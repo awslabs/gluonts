@@ -44,11 +44,11 @@ class EmpiricalDistribution(Distribution):
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.samples.shape[1:-self.event_dim]
+        return self.samples.shape[1 : -self.event_dim]
 
     @property
     def event_shape(self) -> Tuple:
-        return self.samples.shape[-self.event_dim:]
+        return self.samples.shape[-self.event_dim :]
 
     @property
     def event_dim(self) -> int:
@@ -151,6 +151,8 @@ class EmpiricalDistribution(Distribution):
         if self.event_dim > 0:
             # Total CRPS: sum over all but the axes corresponding to the batch shape.
             # Shape: `(*batch_shape)`
-            crps = F.sum(crps, exclude=True, axis=list(range(0, len(self.batch_shape))))
+            crps = F.sum(
+                crps, exclude=True, axis=list(range(0, len(self.batch_shape)))
+            )
 
         return crps.expand_dims(axis=-1)

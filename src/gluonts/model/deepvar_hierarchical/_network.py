@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Tuple
+from typing import List
 from itertools import product
 
 # Third-party imports
@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution import EmpiricalDistribution
-from gluonts.mx.util import assert_shape, weighted_average
+from gluonts.mx.util import assert_shape
 from gluonts.mx.distribution import LowrankMultivariateGaussian
 from gluonts.model.deepvar._network import (
     DeepVARNetwork,
@@ -214,8 +214,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             )
 
             if (
-                    self.coherent_train_samples
-                    and epoch_frac > self.warmstart_epoch_frac
+                self.coherent_train_samples
+                and epoch_frac > self.warmstart_epoch_frac
             ):
                 coherent_samples = self.reconcile_samples(raw_samples)
                 assert_shape(coherent_samples, raw_samples.shape)
@@ -231,8 +231,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
                 -LowrankMultivariateGaussian(
                     dim=samples.shape[-1], rank=0, mu=mu, D=var
                 )
-                    .log_prob(target)
-                    .expand_dims(axis=-1)
+                .log_prob(target)
+                .expand_dims(axis=-1)
             )
         else:  # likelihoods on network params
             neg_likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
@@ -243,8 +243,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
                 obs=target
             )
             loss_unmasked = (
-                    self.CRPS_weight * loss_CRPS
-                    + self.likelihood_weight * neg_likelihoods
+                self.CRPS_weight * loss_CRPS
+                + self.likelihood_weight * neg_likelihoods
             )
         else:  # CRPS_weight = 0.0 (asserted non-negativity above)
             loss_unmasked = neg_likelihoods
@@ -334,6 +334,8 @@ class DeepVARHierarchicalPredictionNetwork(
 
             # assert that A*X_proj ~ 0
             if self.assert_reconciliation:
-                assert self.reconciliation_error(samples=coherent_samples) < 1e-2
+                assert (
+                    self.reconciliation_error(samples=coherent_samples) < 1e-2
+                )
 
             return coherent_samples
