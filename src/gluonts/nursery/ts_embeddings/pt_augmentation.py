@@ -194,3 +194,81 @@ class TimeWrap(nn.Module):
                 ret[i, :, dim] = torch.from_numpy(wrap).float().to(x.device)
 
         return ret
+
+
+class WindowSlice(nn.Module):
+    """https://halshs.archives-ouvertes.fr/halshs-01357973/document"""
+
+    def __init__(self, p, reduce_ratio=0.9):
+        super().__init__()
+        self.p = p
+        self.reduce_ratio = reduce_ratio
+
+    def forward(self, x):
+        if self.p < torch.rand(1):
+            return x
+
+        target_len = np.ceil(self.reduce_ratio * x.shape[1]).astype(int)
+        if target_len >= x.shape[1]:
+            return x
+        starts = np.random.randint(
+            low=0, high=x.shape[1] - target_len, size=(x.shape[0])
+        ).astype(int)
+        ends = (target_len + starts).astype(int)
+
+        ret = torch.zeros_like(x)
+        for i, pat in enumerate(x):
+            for dim in range(x.shape[2]):
+                warp = np.interp(
+                    np.linspace(0, target_len, num=x.shape[1]),
+                    np.arange(target_len),
+                    pat[starts[i] : ends[i], dim].cpu().numpy(),
+                ).T
+                ret[i, :, dim] = torch.from_numpy(warp).float().to(x.device)
+        return ret
+
+
+class WindowWarp(nn.Module):
+    """https://halshs.archives-ouvertes.fr/halshs-01357973/document"""
+
+    def __init__(self, p, window_ratio=0.1, scales=[0.5, 2.0]):
+        super().__init__()
+        self.p = p
+        self.window_ratio = window_ratio
+        self.scales = scales
+
+    def forward(self, x):
+        if self.p < torch.rand(1):
+            return x
+
+        warp_scales = np.random.choice(self.scales, x.shape[0])
+        warp_size = np.ceil(self.window_ratio * x.shape[1]).astype(int)
+        window_steps = np.arange(warp_size)
+
+        window_starts = np.random.randint(
+            low=1, high=x.shape[1] - warp_size - 1, size=(x.shape[0])
+        ).astype(int)
+        window_ends = (window_starts + warp_size).astype(int)
+
+        ret = torch.zeros_like(x)
+        for i, pat in enumerate(x):
+            for dim in range(x.shape[2]):
+                start_seg = pat[: window_starts[i], dim].cpu().numpy()
+                window_seg = np.interp(
+                    np.linspace(
+                        0,
+                        warp_size - 1,
+                        num=int(warp_size * warp_scales[i]),
+                    ),
+                    window_steps,
+                    pat[window_starts[i] : window_ends[i], dim].cpu().numpy(),
+                )
+                end_seg = pat[window_ends[i] :, dim].cpu().numpy()
+                warped = np.concatenate((start_seg, window_seg, end_seg))
+                warp = np.interp(
+                    np.arange(x.shape[1]),
+                    np.linspace(0, x.shape[1] - 1.0, num=warped.size),
+                    warped,
+                ).T
+                ret[i, :, dim] = torch.from_numpy(warp).float().to(x.device)
+        return ret

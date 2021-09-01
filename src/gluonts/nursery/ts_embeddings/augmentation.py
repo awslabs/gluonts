@@ -167,7 +167,7 @@ class WindowSlice(object):
 
     def __init__(self, p, reduce_ratio=0.9):
         self.p = p
-        self.reduce_ration = reduce_ratio
+        self.reduce_ratio = reduce_ratio
 
     def __call__(self, x):
         if random.random() < self.p:
