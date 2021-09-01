@@ -38,7 +38,7 @@ class Scaling(object):
 
 
 class Rotation(object):
-    def __init__(self, p, sigma=0.1):
+    def __init__(self, p):
         self.p = p
 
     def __call__(self, x):
