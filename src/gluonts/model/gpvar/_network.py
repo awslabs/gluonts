@@ -271,7 +271,6 @@ class GPVARPredictionNetwork(GPVARNetwork):
     def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
-        self._post_process_samples = False
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to the
@@ -349,3 +348,19 @@ class GPVARPredictionNetwork(GPVARNetwork):
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,  # (batch_size, prediction_length, num_features)
         )
+
+    def post_process_samples(self, samples: Tensor) -> Tensor:
+        """
+        Identity map.
+
+        Parameters
+        ----------
+        samples
+            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
+
+        Returns
+        -------
+            Tensor of samples with the same shape.
+
+        """
+        return samples
