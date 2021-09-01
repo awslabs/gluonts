@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -23,7 +23,7 @@ from gluonts.core.component import validated
 from gluonts.model.deepvar import DeepVAREstimator
 from gluonts.mx.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution import LowrankMultivariateGaussianOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import TimeFeature
@@ -37,7 +37,7 @@ from ._network import (
 )
 
 
-def projection_mat(S, return_constraint_mat: bool = False):
+def projection_mat(S: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generates the projection matrix given the aggregation matrix `S`.
 
@@ -45,14 +45,12 @@ def projection_mat(S, return_constraint_mat: bool = False):
     ----------
     S
         Summation or aggregation matrix. Shape: (total_num_time_series, num_base_time_series)
-    return_constraint_mat
-        Return the coefficient matrix of the linear constraints?
 
     Returns
     -------
-    Tensor
+    Numpy ND array
         Projection matrix, shape (total_num_time_series, total_num_time_series)
-    Tensor (if `return_constraint_mat` is True)
+    Numpy ND array
         Coefficient matrix of the linear constraints, shape (num_agg_time_series, num_time_series)
 
     """
@@ -69,10 +67,7 @@ def projection_mat(S, return_constraint_mat: bool = False):
 
     M = np.eye(m) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
-    if return_constraint_mat:
-        return mx.nd.array(M), mx.nd.array(A)
-    else:
-        return mx.nd.array(M)
+    return M, A
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
@@ -97,19 +92,32 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Number of samples to draw from the predicted distribution to compute the training loss.
     likelihood_weight
         Weight for the negative log-likelihood loss. Default: 0.0.
-        If not zero, then negative log-likelihood (times `likelihood_weight`) is added to the default CRPS loss.
+        If not zero, then negative log-likelihood (times `likelihood_weight`) is added to the CRPS loss (times
+        `CRPS_weight`).
     CRPS_weight
         Weight for the CRPS loss component. Default: 1.0.
         If zero, then loss is only negative log-likelihood (times `likelihood_weight`).
-        If non-zero, then loss is CRPS (times 'CRPS_weight') added to the default negative log-likelihood loss
+        If non-zero, then CRPS loss (times 'CRPS_weight') is added to the negative log-likelihood loss (times
+        `likelihood_weight`).
     sample_LH
-        Boolean flag to switch between likelihoods from samples or NN parameters. Default: False
+        Boolean flag to specify if likelihood should be computed using the distribution based on (coherent) samples.
+        Default: False (in this case likelihood is computed using the parametric distribution predicted by the network).
+    coherent_train_samples
+        Flag to indicate whether coherence should be enforced during training.
+        Default: True.
+    coherent_pred_samples
+        Flag to indicate whether coherence should be enforced during prediction.
+        Default: True.
+    warmstart_epoch_frac
+        Specifies the epoch (as a fraction of total number of epochs) from when to start enforcing coherence during
+        training.
+    seq_axis
+        Specifies the list of axes that should be processed sequentially. This is useful if batch processing is not
+        possible because of insufficient memory. The reference axes are: (samples, batch, seq_length, target_dim).
+        For large datasets, use seq_axis = [0] or [0, 1].
+        By default, all are processeed in parallel.
     assert_reconciliation
         Flag to indicate whether to assert if the (projected) samples generated during prediction are coherent.
-    coherent_train_samples
-        Flag to indicate whether sampling/projection is being done during training
-    coherent_pred_samples
-        Flag to indicate whether sampling/projection is being done during prediction
     trainer
         Trainer object to be used (default: Trainer())
     context_length
@@ -133,15 +141,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: 5])
-    distr_output
-        Distribution to use to evaluate observations and sample predictions
-        (default: LowrankMultivariateGaussianOutput with dim=target_dim and
-        rank=0, i.e., covariance matrix is assumed to be diagonal).
-        Note that target dim of the DistributionOutput and the estimator constructor
-        call need to match.
-    rank
-        **Not used**. Multivariate Gaussian with diagonal covariance matrix is used.
-        This means setting rank = 0.
     scaling
         Whether to automatically scale the target values (default: true)
     pick_incomplete
@@ -154,10 +153,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     time_features
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
-    conditioning_length
-        Set maximum length for conditioning the marginal transformation
-    use_marginal_transformation
-        **Not used**. It is set to False.
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -172,9 +167,12 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         num_samples_for_loss: int = 200,
         likelihood_weight: float = 0.0,
         CRPS_weight: float = 1.0,
-        assert_reconciliation: bool = False,
+        sample_LH: bool = False,
         coherent_train_samples: bool = True,
         coherent_pred_samples: bool = True,
+        warmstart_epoch_frac: float = 0.0,
+        seq_axis: List[int] = None,
+        assert_reconciliation: bool = False,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
         num_layers: int = 2,
@@ -184,20 +182,23 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         dropout_rate: float = 0.1,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
-        distr_output: Optional[DistributionOutput] = None,
-        rank: Optional[int] = 0,
         scaling: bool = True,
         pick_incomplete: bool = False,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
-        conditioning_length: int = 200,
-        use_marginal_transformation: bool = False,
         batch_size: int = 32,
-        warmstart_epoch_frac: float = 0.0,
-        sample_LH: bool = False,
-        seq_axis: List[int] = None,
         **kwargs,
     ) -> None:
+
+        # This implementation only works for multivariate Gaussian with diagonal covariance and no transformation.
+        # Fixing them here upfront. If the method is exteneded, then these can be passed as arguments of the estimator.
+        rank = 0
+        distr_output = LowrankMultivariateGaussianOutput(
+            dim=target_dim, rank=rank
+        )
+        use_marginal_transformation = False
+        conditioning_length = 0
+
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,
@@ -228,7 +229,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        self.M, self.A = projection_mat(S, return_constraint_mat=True)
+        M, A = projection_mat(S)
+        self.M, self.A = mx.nd.array(M), mx.nd.array(A)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight
@@ -265,7 +267,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            conditioning_length=self.conditioning_length,
         )
 
     def create_predictor(
@@ -292,7 +293,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            conditioning_length=self.conditioning_length,
         )
 
         copy_parameters(trained_network, prediction_network)

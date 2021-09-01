@@ -27,36 +27,58 @@ train_datasets = sine7(
 
 
 @pytest.mark.parametrize(
-    "likelihood_weight, CRPS_weight, coherent_train_samples, coherent_pred_samples, warmstart_epoch_frac",
+    "likelihood_weight, CRPS_weight, sample_LH, coherent_train_samples, coherent_pred_samples, warmstart_epoch_frac",
     [
         # Hier-E2E
         (
             0.0,
             1.0,
+            False,
             True,
             True,
             0.0,
         ),
-        # Hier-E2E with warmstart
+        # Hier-E2E with warm-start
         (
             0.0,
             1.0,
+            False,
             True,
             True,
             0.3,
         ),
-        # DeepVAR+
+        # Hier-E2E with sample-likelihood loss
+        (
+            0.0,
+            1.0,
+            True,
+            True,
+            True,
+            0.0,
+        ),
+        # Hier-E2E with warmstart and sample-likelihood loss
+        (
+            0.0,
+            1.0,
+            True,
+            True,
+            True,
+            0.3,
+        ),
+        # DeepVAR+ (diagonal covariance)
         (
             1.0,
             0.0,
             False,
+            False,
             True,
             0.0,
         ),
-        # DeepVAR
+        # DeepVAR (diagonal covariance)
         (
             1.0,
             0.0,
+            False,
             False,
             False,
             0.0,
@@ -66,6 +88,7 @@ train_datasets = sine7(
 def test_deepvar_hierarchical(
     likelihood_weight,
     CRPS_weight,
+    sample_LH,
     coherent_train_samples,
     coherent_pred_samples,
     warmstart_epoch_frac,
@@ -77,8 +100,10 @@ def test_deepvar_hierarchical(
         S=train_datasets.metadata.S,
         likelihood_weight=likelihood_weight,
         CRPS_weight=CRPS_weight,
+        sample_LH=sample_LH,
         coherent_train_samples=coherent_train_samples,
         coherent_pred_samples=coherent_pred_samples,
+        warmstart_epoch_frac=warmstart_epoch_frac,
         trainer=Trainer(
             epochs=10,
             num_batches_per_epoch=1,

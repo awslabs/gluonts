@@ -312,6 +312,33 @@ class LowrankMultivariateGaussian(Distribution):
             s, mu=self.mu, D=self.D, W=self.W, num_samples=num_samples
         )
 
+    @classmethod
+    def fit(cls, F, samples: Tensor, rank: int = 0) -> Distribution:
+        """
+        Returns an instance of `LowrankMultivariateGaussian` after fitting parameters to the given data.
+        Only the special case of `rank` = 0 is supported at the moment.
+
+        Parameters
+        ----------
+        F
+        samples
+            Tensor of shape (num_samples, batch_size, seq_len, target_dim)
+        rank
+            Rank of W
+
+        Returns
+        -------
+        Distribution instance of type `LowrankMultivariateGaussian`.
+
+        """
+        # TODO: Implement it for the general case: `rank` > 0
+        assert rank == 0, "Fit is not only implemented for the case rank = 0!"
+
+        # Compute mean and variances
+        mu = samples.mean(axis=0)
+        var = F.square(samples - samples.mean(axis=0)).mean(axis=0)
+        return cls(dim=samples.shape[-1], rank=rank, mu=mu, D=var)
+
 
 def inv_softplus(y):
     if y < 20.0:

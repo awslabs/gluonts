@@ -21,7 +21,7 @@ import mxnet as mx
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution import EmpiricalDistribution
 from gluonts.mx.util import assert_shape
 from gluonts.mx.distribution import LowrankMultivariateGaussian
@@ -48,7 +48,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         dropout_rate: float,
         lags_seq: List[int],
         target_dim: int,
-        conditioning_length: int,
         cardinality: List[int] = [1],
         embedding_dimension: int = 1,
         scaling: bool = True,
@@ -66,7 +65,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             dropout_rate=dropout_rate,
             lags_seq=lags_seq,
             target_dim=target_dim,
-            conditioning_length=conditioning_length,
             cardinality=cardinality,
             embedding_dimension=embedding_dimension,
             scaling=scaling,
@@ -78,7 +76,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         self.A = A
         self.seq_axis = seq_axis
 
-    def reconcile_samples(self, samples):
+    def reconcile_samples(self, samples: Tensor) -> Tensor:
         """
         Computes coherent samples by projecting unconstrained `samples` using the matrix `self.M`.
 
@@ -98,9 +96,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         num_iter_dims = len(self.seq_axis) if self.seq_axis else 0
 
         # Expand `M` depending on the shape of samples:
-        # If seq_axis = None, during training the first axis is only `batch_size`,
-        # in which case `M` would be expanded 3 times; during prediction it would be expanded 2 times since the first
-        # axis is `batch_size x  num_parallel_samples`.
+        # If seq_axis = None, during training the first axis is only `batch_size`, in which case `M` would be expanded
+        # 3 times; during prediction it would be expanded 2 times since the first axis is
+        # `batch_size x num_parallel_samples`.
         M_expanded = self.M
         for i in range(len(samples.shape[num_iter_dims:-1])):
             M_expanded = M_expanded.expand_dims(axis=0)
@@ -155,7 +153,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
                 self.M_broadcast, samples.expand_dims(-1)
             ).squeeze(axis=-1)
 
-    def reconciliation_error(self, samples):
+    def reconciliation_error(self, samples: Tensor) -> float:
         r"""
         Computes the reconciliation error defined by the L-infinity norm of the constraint violation:
                     || Ax ||_{\inf}
@@ -183,13 +181,56 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             )
         ).asnumpy()[0]
 
-    def loss(self, target, distr):
+    def get_samples_for_loss(self, distr: Distribution) -> Tensor:
         """
-        Computes (unmasked) loss given the output of the network in the form of distribution.
-        The actual loss is determined by the hyper-parameters `CRPS_weight`, `likelihood_weight` and `sample_LH`.
+        Get samples to compute the final loss. These are samples directly drawn from the given `distr` if coherence is
+        not enforced yet; otherwise the drawn samples are reconciled.
 
         Parameters
         ----------
+        distr
+            Distribution instances
+
+        Returns
+        -------
+        samples
+            Tensor with shape (num_samples, batch_size, seq_len, target_dim)
+
+        """
+        samples = distr.sample_rep(
+            num_samples=self.num_samples_for_loss, dtype="float32"
+        )
+
+        # Determine which epoch we are currently in.
+        self.batch_no += 1
+        epoch_no = self.batch_no // self.num_batches_per_epoch + 1
+        epoch_frac = epoch_no / self.epochs
+
+        if (
+            self.coherent_train_samples
+            and epoch_frac > self.warmstart_epoch_frac
+        ):
+            coherent_samples = self.reconcile_samples(samples)
+            assert_shape(coherent_samples, samples.shape)
+            return coherent_samples
+        else:
+            return samples
+
+    def loss(self, F, target: Tensor, distr: Distribution) -> Tensor:
+        """
+        Computes loss given the output of the network in the form of distribution.
+        The loss is given by:
+
+            `self.CRPS_weight` * `loss_CRPS` + `self.likelihood_weight` * `neg_likelihoods`,
+
+         where
+          * `loss_CRPS` is computed on the samples drawn from the predicted `distr` (optionally after reconciling them),
+          *  `neg_likelihoods` are either computed directly using the predicted `distr` or from the estimated
+          distribution based on (coherent) samples, depending on the `sample_LH` flag.
+
+        Parameters
+        ----------
+        F
         target
             Tensor with shape (batch_size, seq_len, target_dim)
         distr
@@ -201,55 +242,29 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             Tensor with shape (batch_size, seq_length, 1)
 
         """
-        # Determine which epoch we are currently in.
-        self.batch_no += 1
-        epoch_no = self.batch_no // self.num_batches_per_epoch + 1
-        epoch_frac = epoch_no / self.epochs
 
-        # Sample from multivariate Gaussian distribution if we are using CRPS or LH-sample loss
+        # Sample from the predicted distribution if we are computing CRPS loss or likelihood using the distribution
+        # based on (coherent) samples.
         # Samples shape: (num_samples, batch_size, seq_len, target_dim)
         if self.sample_LH or (self.CRPS_weight > 0.0):
-            raw_samples = distr.sample_rep(
-                num_samples=self.num_samples_for_loss, dtype="float32"
-            )
+            samples = self.get_samples_for_loss(distr=distr)
 
-            if (
-                self.coherent_train_samples
-                and epoch_frac > self.warmstart_epoch_frac
-            ):
-                coherent_samples = self.reconcile_samples(raw_samples)
-                assert_shape(coherent_samples, raw_samples.shape)
-                samples = coherent_samples
-            else:
-                samples = raw_samples
+        if self.sample_LH:
+            # Estimate the distribution based on (coherent) samples.
+            distr = LowrankMultivariateGaussian.fit(F, samples=samples, rank=0)
 
-        if self.sample_LH:  # likelihoods on samples
-            # Compute mean and variance
-            mu = samples.mean(axis=0)
-            var = mx.nd.square(samples - samples.mean(axis=0)).mean(axis=0)
-            neg_likelihoods = (
-                -LowrankMultivariateGaussian(
-                    dim=samples.shape[-1], rank=0, mu=mu, D=var
-                )
-                .log_prob(target)
-                .expand_dims(axis=-1)
-            )
-        else:  # likelihoods on network params
-            neg_likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
+        neg_likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
 
-        # Pick loss function approach. This avoids sampling if we are only training with likelihoods on params
+        loss_CRPS = F.zeros_like(neg_likelihoods)
         if self.CRPS_weight > 0.0:
             loss_CRPS = EmpiricalDistribution(samples=samples).crps_univariate(
                 obs=target
             )
-            loss_unmasked = (
-                self.CRPS_weight * loss_CRPS
-                + self.likelihood_weight * neg_likelihoods
-            )
-        else:  # CRPS_weight = 0.0 (asserted non-negativity above)
-            loss_unmasked = neg_likelihoods
 
-        return loss_unmasked
+        return (
+            self.CRPS_weight * loss_CRPS
+            + self.likelihood_weight * neg_likelihoods
+        )
 
 
 class DeepVARHierarchicalTrainingNetwork(
@@ -312,7 +327,7 @@ class DeepVARHierarchicalPredictionNetwork(
         self.coherent_pred_samples = coherent_pred_samples
         self.assert_reconciliation = assert_reconciliation
 
-    def post_process_samples(self, samples: Tensor):
+    def post_process_samples(self, samples: Tensor) -> Tensor:
         """
         Reconciled samples if `coherent_pred_samples` is True.
 

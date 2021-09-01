@@ -18,7 +18,7 @@ import mxnet as mx
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.util import assert_shape, weighted_average
 
 
@@ -60,7 +60,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         dropout_rate: float,
         lags_seq: List[int],
         target_dim: int,
-        conditioning_length: int,
         cardinality: List[int] = [1],
         embedding_dimension: int = 1,
         scaling: bool = True,
@@ -80,7 +79,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         self.target_dim = target_dim
         self.scaling = scaling
         self.target_dim_sample = target_dim
-        self.conditioning_length = conditioning_length
 
         assert len(set(lags_seq)) == len(
             lags_seq
@@ -411,7 +409,24 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         return distr, distr_args
 
-    def loss(self, target, distr):
+    def loss(self, F, target: Tensor, distr: Distribution) -> Tensor:
+        """
+        Returns negative log-likelihood of `target` under `distr`.
+
+        Parameters
+        ----------
+        F
+        target
+            Tensor with shape (batch_size, seq_len, target_dim)
+        distr
+            Distribution instances
+
+        Returns
+        -------
+        Loss
+            Tensor with shape (batch_size, seq_length, 1)
+
+        """
         # we sum the last axis to have the same shape for all likelihoods
         # (batch_size, subseq_length, 1)
         return -distr.log_prob(target).expand_dims(axis=-1)
@@ -506,7 +521,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             seq_len=self.context_length + self.prediction_length,
         )
 
-        loss = self.loss(target=target, distr=distr)
+        loss = self.loss(F, target=target, distr=distr)
         assert_shape(loss, (-1, seq_len, 1))
 
         past_observed_values = F.broadcast_minimum(
