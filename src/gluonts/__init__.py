@@ -16,7 +16,7 @@
 
 from pkgutil import extend_path
 
-from ._version import __version__  # noqa
+from ._version import __version__
 
 __all__ = ["__version__", "__path__"]
 
