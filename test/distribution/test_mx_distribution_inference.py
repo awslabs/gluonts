@@ -537,20 +537,25 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
+@pytest.mark.parametrize("rank", [0, 1])
+def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
     num_samples = 2000
     dim = 2
-    rank = 1
 
     mu = np.arange(0, dim) / float(dim)
     D = np.eye(dim) * (np.arange(dim) / dim + 0.5)
-    W = np.sqrt(np.ones((dim, rank)) * 0.2)
-    Sigma = D + W.dot(W.transpose())
+    if rank > 0:
+        W = np.sqrt(np.ones((dim, rank)) * 0.2)
+        Sigma = D + W.dot(W.transpose())
+        W = mx.nd.array([W])
+    else:
+        Sigma = D
+        W = None
 
     distr = LowrankMultivariateGaussian(
         mu=mx.nd.array([mu]),
         D=mx.nd.array([np.diag(D)]),
-        W=mx.nd.array([W]),
+        W=W,
         dim=dim,
         rank=rank,
     )
@@ -561,7 +566,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
 
     samples = distr.sample(num_samples).squeeze().asnumpy()
 
-    mu_hat, D_hat, W_hat = maximum_likelihood_estimate_sgd(
+    theta_hat = maximum_likelihood_estimate_sgd(
         LowrankMultivariateGaussianOutput(
             dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
         ),
@@ -572,12 +577,19 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
         hybridize=hybridize,
     )
 
+    if rank > 0:
+        mu_hat, D_hat, W_hat = theta_hat
+        W_hat = mx.nd.array([W_hat])
+    else:
+        mu_hat, D_hat = theta_hat
+        W_hat = None
+
     distr = LowrankMultivariateGaussian(
         dim=dim,
         rank=rank,
         mu=mx.nd.array([mu_hat]),
         D=mx.nd.array([D_hat]),
-        W=mx.nd.array([W_hat]),
+        W=W_hat,
     )
 
     Sigma_hat = distr.variance.asnumpy()

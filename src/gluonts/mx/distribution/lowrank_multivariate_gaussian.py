@@ -191,6 +191,7 @@ class LowrankMultivariateGaussian(Distribution):
         Diagonal term in the covariance matrix, of shape (..., dim)
     W
         Low-rank factor in the covariance matrix, of shape (..., dim, rank)
+        Optional; if not provided, the covariance matrix is just diagonal.
     """
 
     is_reparameterizable = True
