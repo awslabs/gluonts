@@ -31,7 +31,9 @@ class Jitter(nn.Module):
         if self.p < torch.rand(1):
             return x
 
-        return x + torch.normal(mean=0.0, std=self.sigma, size=x.shape)
+        return x + torch.normal(
+            mean=0.0, std=self.sigma, size=x.shape, device=x.device
+        )
 
 
 class Scaling(nn.Module):
@@ -46,7 +48,10 @@ class Scaling(nn.Module):
         if self.p < torch.rand(1):
             return x
         factor = torch.normal(
-            mean=1.0, std=self.sigma, size=(x.shape[0], 1, x.shape[2])
+            mean=1.0,
+            std=self.sigma,
+            size=(x.shape[0], 1, x.shape[2]),
+            device=x.device,
         )
         return x * factor
 
@@ -65,9 +70,9 @@ class Rotation(nn.Module):
             num_samples=x.shape[0] * x.shape[2],
             replacement=True,
         )
-        
+
         ones = torch.ones((x.shape[0] * x.shape[2]), device=x.device)
-        flip = torch.where(flip_index==0, -ones, ones)
+        flip = torch.where(flip_index == 0, -ones, ones)
 
         rotate_axis = np.arange(x.shape[2])
         np.random.shuffle(rotate_axis)
