@@ -22,6 +22,7 @@ from gluonts.mx.distribution import (
     Dirichlet,
     DirichletMultinomial,
     Distribution,
+    EmpiricalDistribution,
     Gamma,
     Gaussian,
     Laplace,
@@ -236,6 +237,37 @@ from gluonts.mx.util import make_nd_diag
             (3, 4, 5),
             (),
         ),
+        (
+            EmpiricalDistribution(
+                samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
+                event_dim=0,
+            ),
+            (3, 4, 5),
+            (),
+        ),
+        (
+            EmpiricalDistribution(
+                samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
+            ),
+            (3, 4),
+            (5,),
+        ),
+        (
+            EmpiricalDistribution(
+                samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
+                event_dim=1,
+            ),
+            (3, 4),
+            (5,),
+        ),
+        (
+            EmpiricalDistribution(
+                samples=mx.nd.random.normal(shape=(10, 3, 4, 5, 20)),
+                event_dim=2,
+            ),
+            (3, 4),
+            (5, 20),
+        ),
     ],
 )
 def test_distribution_shapes(
@@ -263,7 +295,9 @@ def test_distribution_shapes(
     assert x3.shape == (3,) + distr.batch_shape + distr.event_shape
 
     def has_quantile(d):
-        return isinstance(d, (Uniform, Gaussian, Laplace))
+        return isinstance(
+            d, (Uniform, Gaussian, Laplace, EmpiricalDistribution)
+        )
 
     if (
         has_quantile(distr)
