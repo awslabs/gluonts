@@ -52,14 +52,16 @@ class Chomp1d(torch.nn.Module):
     the input. Outputs a three-dimensional tensor (`B`, `C`, `L - s`) where `s`
     is the number of elements to remove.
 
-    @param chomp_size Number of elements to remove.
+    Parameters
+    ----------
+    chomp_size : Number of elements to remove.
     """
 
-    def __init__(self, chomp_size):
+    def __init__(self, chomp_size: int):
         super(Chomp1d, self).__init__()
         self.chomp_size = chomp_size
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x[:, :, : -self.chomp_size]
 
 
@@ -71,7 +73,7 @@ class SqueezeChannels(torch.nn.Module):
     def __init__(self):
         super(SqueezeChannels, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x.squeeze(2)
 
 
@@ -85,15 +87,22 @@ class CausalConvolutionBlock(torch.nn.Module):
     of the multivariate time series), and `L` is the length of
     the input. Outputs a three-dimensional tensor (`B`, `C`, `L`).
 
-    @param in_channels Number of input channels.
-    @param out_channels Number of output channels.
-    @param kernel_size Kernel size of the applied non-residual convolutions.
-    @param dilation Dilation parameter of non-residual convolutions.
-    @param final Disables, if True, the last activation function.
+    Parameters
+    ----------
+    in_channels : Number of input channels.
+    out_channels : Number of output channels.
+    kernel_size : Kernel size of the applied non-residual convolutions.
+    dilation : Dilation parameter of non-residual convolutions.
+    final : Disables, if True, the last activation function.
     """
 
     def __init__(
-        self, in_channels, out_channels, kernel_size, dilation, final=False
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        dilation: int,
+        final: bool = False,
     ):
         super(CausalConvolutionBlock, self).__init__()
 
@@ -144,7 +153,7 @@ class CausalConvolutionBlock(torch.nn.Module):
         # Final activation function
         self.relu = torch.nn.LeakyReLU() if final else None
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out_causal = self.causal(x)
         if self.upordownsample is None:
             res = x
@@ -164,16 +173,23 @@ class CausalCNN(torch.nn.Module):
     batch size, `C` is the number of input channels, and `L` is the length of
     the input. Outputs a three-dimensional tensor (`B`, `C_out`, `L`).
 
-    @param in_channels Number of input channels.
-    @param channels Number of channels processed inside the network and of output
+    Parameters
+    ----------
+    in_channels : Number of input channels.
+    channels : Number of channels processed inside the network and of output
            channels.
-    @param depth Depth of the network.
-    @param out_channels Number of output channels.
-    @param kernel_size Kernel size of the applied non-residual convolutions.
+    depth : Depth of the network.
+    out_channels : Number of output channels.
+    kernel_size : Kernel size of the applied non-residual convolutions.
     """
 
     def __init__(
-        self, in_channels, channels, depth, out_channels, kernel_size
+        self,
+        in_channels: int,
+        channels: int,
+        depth: int,
+        out_channels: int,
+        kernel_size: int,
     ):
         super(CausalCNN, self).__init__()
 
@@ -198,7 +214,7 @@ class CausalCNN(torch.nn.Module):
 
         self.network = torch.nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
 
 
@@ -213,23 +229,25 @@ class CausalCNNEncoder(torch.nn.Module):
     batch size, `C` is the number of input channels, and `L` is the length of
     the input. Outputs a three-dimensional tensor (`B`, `C`).
 
-    @param in_channels Number of input channels.
-    @param channels Number of channels manipulated in the causal CNN.
-    @param depth Depth of the causal CNN.
-    @param reduced_size Fixed length to which the output time series of the
+    Parameters
+    ----------
+    in_channels : Number of input channels.
+    channels : Number of channels manipulated in the causal CNN.
+    depth : Depth of the causal CNN.
+    reduced_size : Fixed length to which the output time series of the
            causal CNN is reduced.
-    @param out_channels Number of output channels.
-    @param kernel_size Kernel size of the applied non-residual convolutions.
+    out_channels : Number of output channels.
+    kernel_size : Kernel size of the applied non-residual convolutions.
     """
 
     def __init__(
         self,
-        in_channels,
-        channels,
-        depth,
-        reduced_size,
-        out_channels,
-        kernel_size,
+        in_channels: int,
+        channels: int,
+        depth: int,
+        reduced_size: int,
+        out_channels: int,
+        kernel_size: int,
     ):
         super(CausalCNNEncoder, self).__init__()
         causal_cnn = CausalCNN(
@@ -242,6 +260,6 @@ class CausalCNNEncoder(torch.nn.Module):
             causal_cnn, reduce_size, squeeze, linear
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         u = self.network(x)
         return u

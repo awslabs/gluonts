@@ -15,6 +15,7 @@
 
 
 import os
+import sys
 from argparse import ArgumentParser
 
 import torch
@@ -48,7 +49,7 @@ class MyDataModule(pl.LightningDataModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--ts_len", type=int)
+        parser.add_argument("--ts_len", type=int, required=True)
         parser.add_argument("--dataset_name", type=str, default=None)
         parser.add_argument("--num_workers", type=int, default=4)
         parser.add_argument("--multivar_dim", type=int, default=1)
@@ -135,15 +136,18 @@ class MyDataModule(pl.LightningDataModule):
         )
 
 
-if __name__ == "__main__":
+def main(cli_arguments):
     parser = ArgumentParser()
-
     parser.add_argument("--encoder_path", type=str, default="./encoder.pt")
-
+    parser.add_argument(
+        "--do_plot",
+        help="Show a TSNE plot of the embeddings",
+        action="store_true",
+    )
     parser = MyDataModule.add_model_specific_args(parser)
     parser = EmbedModel.add_model_specific_args(parser)
     parser = Trainer.add_argparse_args(parser)
-    args = parser.parse_args()
+    args = parser.parse_args(cli_arguments)
 
     print(f"args={args}")
     data_module = MyDataModule.from_argparse_args(args)
@@ -152,30 +156,13 @@ if __name__ == "__main__":
     print(model_params)
     model = EmbedModel(**model_params)
 
-    # this may be useful
-    # from pytorch_lightning.callbacks import LearningRateLogger
-    # lr_logger = LearningRateLogger(logging_interval=None)
-    # torch.autograd.set_detect_anomaly(True) # to debug NaN problems
-
     if "TRAINING_JOB_NAME" in os.environ:
         training_job_name = os.environ["TRAINING_JOB_NAME"]
     else:
         training_job_name = "local_test"
 
-    # logger = TensorBoardLogger(log_path, name='embedding')
     logger = TensorBoardLogger("./logs/", name="embedding")
-
     trainer = Trainer.from_argparse_args(args, callbacks=[], logger=logger)
-
-    # Run learning rate finder
-    # lr_finder = trainer.tuner.lr_find(
-    #     model=model,
-    #     datamodule=data_module,
-    #     early_stop_threshold=None,
-    #     num_training=50,
-    # )
-    # lr_finder.plot()
-    # print(f"learning rate suggestion: {lr_finder.suggestion()}")
 
     ####  training of encoder
     trainer.fit(model, data_module)
@@ -194,15 +181,18 @@ if __name__ == "__main__":
     loaded_encoder = torch.jit.load(encoder_model_path)
 
     print("running encoder")
-    # ts = next(iter(data_module.train_ds))
-    # target = ts['target'][:10000]
-    # x = torch.tensor([target])
     with torch.no_grad():
         embed = loaded_encoder(batch).numpy()
-    from sklearn.manifold import TSNE
 
-    tsne_out = TSNE(n_components=2).fit_transform(embed)
-    import matplotlib.pyplot as plt
+    if args.do_plot:
+        from sklearn.manifold import TSNE
 
-    plt.scatter(tsne_out[:, 0], tsne_out[:, 1])
-    plt.show()
+        tsne_out = TSNE(n_components=2).fit_transform(embed)
+        import matplotlib.pyplot as plt
+
+        plt.scatter(tsne_out[:, 0], tsne_out[:, 1])
+        plt.show()
+
+
+if __name__ == "__main__":
+    main(sys.argv)
