@@ -21,7 +21,6 @@ from gluonts.mx.distribution import (
     Beta,
     Binned,
     Dirichlet,
-    EmpiricalDistribution,
     Gamma,
     Laplace,
     MixtureDistribution,
@@ -178,21 +177,6 @@ DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = (Gaussian, Uniform, Laplace, Binned)
                     lambda_2=mx.nd.zeros(shape=BATCH_SHAPE),
                 )
             ],
-        ),
-        EmpiricalDistribution(
-            samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-        ),
-        EmpiricalDistribution(
-            samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-            event_dim=0,
-        ),
-        EmpiricalDistribution(
-            samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-            event_dim=1,
-        ),
-        EmpiricalDistribution(
-            samples=mx.nd.random.normal(shape=(10, 3, 4, 5, 5)),
-            event_dim=2,
         ),
     ],
 )
