@@ -265,19 +265,6 @@ class ListDataset(Dataset):
     def __len__(self):
         return len(self.list_data)
 
-    def save(self, p: Path):
-        """Persists the data set as json lines. This currently only works for the target"""
-        dict_list = []
-
-        for d in dataset.list_data:
-            dict_list.append(
-                gts.dataset.repository._util.to_dict(
-                    target_values=d["target"], start=d["start"]
-                )
-            )
-
-        gts.dataset.repository._util.save_to_file(p, dict_list)
-
 
 class TimeZoneStrategy(Enum):
     ignore = "ignore"
