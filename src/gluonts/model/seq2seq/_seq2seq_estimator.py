@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import mxnet as mx
 
@@ -25,11 +25,11 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.env import env
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.block.decoder import OneShotDecoder
 from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
 from gluonts.mx.block.encoder import (
@@ -41,16 +41,18 @@ from gluonts.mx.block.encoder import (
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.block.scaler import NOPScaler, Scaler
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
-    InstanceSampler,
     ExpectedNumInstanceSampler,
-    ValidationSplitSampler,
-    TestSplitSampler,
+    InstanceSampler,
     SelectFields,
+    TestSplitSampler,
+    ValidationSplitSampler,
 )
 
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
@@ -175,7 +177,8 @@ class Seq2SeqEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(Seq2SeqTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -191,14 +194,13 @@ class Seq2SeqEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(Seq2SeqTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> mx.gluon.HybridBlock:

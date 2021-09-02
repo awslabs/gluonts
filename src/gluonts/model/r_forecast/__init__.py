@@ -11,11 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._predictor import RForecastPredictor
+from ._predictor import (
+    RForecastPredictor,
+    R_IS_INSTALLED,
+    RPY2_IS_INSTALLED,
+    SUPPORTED_METHODS,
+    QUANTILE_FORECAST_METHODS,
+)
 
-__all__ = ["RForecastPredictor"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+__all__ = [
+    "RForecastPredictor",
+    "R_IS_INSTALLED",
+    "RPY2_IS_INSTALLED",
+    "SUPPORTED_METHODS",
+    "QUANTILE_FORECAST_METHODS",
+]

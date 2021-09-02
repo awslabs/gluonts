@@ -13,6 +13,8 @@
 
 # !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
+# flake8: noqa
+
 import typing
 from pkgutil import extend_path
 
@@ -23,4 +25,15 @@ __path__ = extend_path(__path__, __name__)  # type: ignore
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
 
-from gluonts.mx.prelude import *
+from . import prelude as _
+from .batchify import as_in_context, batchify
+from .block.scaler import MeanScaler, NOPScaler
+from .distribution import DistributionOutput, GaussianOutput
+from .kernels import RBFKernel
+from .model.estimator import GluonEstimator
+from .model.predictor import (
+    GluonPredictor,
+    RepresentableBlockPredictor,
+)
+from .trainer import Trainer
+from .util import copy_parameters, get_hybrid_forward_input_names

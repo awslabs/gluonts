@@ -12,12 +12,12 @@
 # permissions and limitations under the License.
 
 from typing import NamedTuple, Optional
-from functools import partial
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
+from gluonts.core import fqname_for
 from gluonts.core.component import (
     DType,
     from_hyperparameters,
@@ -29,9 +29,8 @@ from gluonts.dataset.loader import DataLoader
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.trainer import Trainer
-from gluonts.transform import Transformation, TransformedDataset
+from gluonts.transform import Transformation
 
 
 class TrainOutput(NamedTuple):
@@ -135,7 +134,7 @@ class GluonEstimator(Estimator):
 
     def train_model(
         self,
-        training_data: Optional[Dataset] = None,
+        training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,
@@ -144,9 +143,7 @@ class GluonEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = TransformedDataset(
-            training_data, transformation
-        )
+        transformed_training_data = transformation.apply(training_data)
 
         training_data_loader = self.create_training_data_loader(
             transformed_training_data
@@ -160,15 +157,12 @@ class GluonEstimator(Estimator):
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = TransformedDataset(
-                validation_data, transformation
-            )
+            transformed_validation_data = transformation.apply(validation_data)
 
             validation_data_loader = self.create_validation_data_loader(
                 transformed_validation_data
                 if not cache_data
                 else Cached(transformed_validation_data),
-                num_workers=num_workers,
             )
 
         training_network = self.create_training_network()
@@ -190,7 +184,7 @@ class GluonEstimator(Estimator):
 
     def train(
         self,
-        training_data: Optional[Dataset] = None,
+        training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         num_workers: Optional[int] = None,
         num_prefetch: Optional[int] = None,

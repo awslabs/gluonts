@@ -16,14 +16,16 @@ from typing import List, Optional
 import pytest
 import numpy as np
 import pandas as pd
+import tempfile
+from pathlib import Path
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.util import to_pandas
 from gluonts.nursery.autogluon_tabular.predictor import get_features_dataframe
 from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
-    LocalTabularPredictor,
 )
+from gluonts.model.predictor import Predictor
 from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
 
 
@@ -173,31 +175,61 @@ def test_get_features_dataframe(
 )
 @pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])
+@pytest.mark.parametrize(
+    "validation_data",
+    [
+        None,
+        ListDataset(
+            [
+                {
+                    "start": pd.Timestamp("1750-01-07 00:00:00", freq="W-TUE"),
+                    "target": np.array(
+                        [
+                            1089.2,
+                            1078.91,
+                            1099.88,
+                            35790.55,
+                            34096.95,
+                            34906.95,
+                        ],
+                    ),
+                },
+                {
+                    "start": pd.Timestamp("1750-01-07 00:00:00", freq="W-TUE"),
+                    "target": np.array(
+                        [
+                            1099.2,
+                            1098.91,
+                            1069.88,
+                            35990.55,
+                            34076.95,
+                            34766.95,
+                        ],
+                    ),
+                },
+            ],
+            freq="W-TUE",
+        ),
+    ],
+)
+@pytest.mark.parametrize("last_k_for_val", [None, 2])
 def test_tabular_estimator(
     dataset,
     freq,
     prediction_length: int,
     lag_indices: List[int],
     disable_auto_regression: bool,
+    last_k_for_val: int,
+    validation_data: ListDataset,
 ):
     estimator = TabularEstimator(
         freq=freq,
         prediction_length=prediction_length,
         lag_indices=lag_indices,
-        time_limits=10,
+        time_limit=10,
         disable_auto_regression=disable_auto_regression,
+        last_k_for_val=last_k_for_val,
     )
-
-    predictor = estimator.train(dataset)
-
-    assert not predictor.auto_regression or any(
-        l < prediction_length for l in predictor.lag_indices
-    )
-
-    assert predictor.batch_size > 1
-
-    forecasts_serial = list(predictor._predict_serial(dataset))
-    forecasts_batch = list(predictor.predict(dataset))
 
     def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
@@ -208,14 +240,28 @@ def test_tabular_estimator(
         assert f2.start_date == start_timestamp
         assert np.allclose(f1.samples, f2.samples)
 
-    for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
-        check_consistency(entry, f1, f2)
-
-    if not predictor.auto_regression:
-        forecasts_batch_autoreg = list(
-            predictor._predict_batch_autoreg(dataset)
+    with tempfile.TemporaryDirectory() as path:
+        predictor = estimator.train(dataset, validation_data=validation_data)
+        predictor.serialize(Path(path))
+        predictor = None
+        predictor = Predictor.deserialize(Path(path))
+        assert not predictor.auto_regression or any(
+            l < prediction_length for l in predictor.lag_indices
         )
-        for entry, f1, f2 in zip(
-            dataset, forecasts_serial, forecasts_batch_autoreg
-        ):
+
+        assert predictor.batch_size > 1
+
+        forecasts_serial = list(predictor._predict_serial(dataset))
+        forecasts_batch = list(predictor.predict(dataset))
+
+        for entry, f1, f2 in zip(dataset, forecasts_serial, forecasts_batch):
             check_consistency(entry, f1, f2)
+
+        if not predictor.auto_regression:
+            forecasts_batch_autoreg = list(
+                predictor._predict_batch_autoreg(dataset)
+            )
+            for entry, f1, f2 in zip(
+                dataset, forecasts_serial, forecasts_batch_autoreg
+            ):
+                check_consistency(entry, f1, f2)

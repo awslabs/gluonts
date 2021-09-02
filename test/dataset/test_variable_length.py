@@ -84,7 +84,7 @@ def loader_factory():
                 TrainDataLoader(num_workers=None, **kwargs), 22
             )
         else:
-            return InferenceDataLoader(num_workers=None, **kwargs)
+            return InferenceDataLoader(**kwargs)
 
     return train_loader
 
@@ -195,20 +195,14 @@ def test_inference_loader_short_intervals(loader_factory, pp_dataset):
     assert d["past_target"].shape[1] == 1
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing",
-    itertools.product(["np", "mx"], [True, False]),
-)
-def test_variable_length_stack(pp_dataset, array_type, multi_processing):
-    arrays = [
-        d["target"].T if array_type == "np" else mx.nd.array(d["target"].T)
-        for d in list(iter(pp_dataset()))
-    ]
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_variable_length_stack(pp_dataset, is_right_pad):
+    arrays = [d["target"].T for d in list(iter(pp_dataset()))]
 
-    assert isinstance(multi_processing, bool)
     stacked = stack(
         arrays,
         variable_length=True,
+        is_right_pad=is_right_pad,
     )
 
     assert stacked.shape[0] == 3
@@ -216,24 +210,14 @@ def test_variable_length_stack(pp_dataset, array_type, multi_processing):
     assert stacked.shape[2] == 2
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing",
-    itertools.product(["np", "mx"], [True, False]),
-)
-def test_variable_length_stack_zerosize(
-    pp_dataset, array_type, multi_processing
-):
-    arrays = [
-        np.zeros(shape=(0, 2))
-        if array_type == "np"
-        else mx.nd.array(np.zeros(shape=(0, 2)))
-        for _ in range(5)
-    ]
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_variable_length_stack_zerosize(pp_dataset, is_right_pad):
+    arrays = [np.zeros(shape=(0, 2)) for _ in range(5)]
 
-    assert isinstance(multi_processing, bool)
     stacked = stack(
         arrays,
         variable_length=True,
+        is_right_pad=is_right_pad,
     )
 
     assert stacked.shape[0] == 5
@@ -241,19 +225,22 @@ def test_variable_length_stack_zerosize(
     assert stacked.shape[2] == 2
 
 
-@pytest.mark.parametrize(
-    "array_type, multi_processing, axis",
-    itertools.product(["np", "mx"], [True, False], [0, 1]),
-)
-def test_pad_arrays_axis(array_type, multi_processing, axis: int):
-    arrays = [
-        d["target"] if array_type == "np" else mx.nd.array(d["target"])
-        for d in list(iter(get_dataset()))
-    ]
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("is_right_pad", [True, False])
+def test_pad_arrays_axis(axis: int, is_right_pad: bool):
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
     if axis == 0:
         arrays = [x.T for x in arrays]
 
-    padded_arrays = _pad_arrays(arrays, axis)
+    padded_arrays = _pad_arrays(arrays, axis, is_right_pad=is_right_pad)
 
     assert all(a.shape[axis] == 8 for a in padded_arrays)
     assert all(a.shape[1 - axis] == 2 for a in padded_arrays)
+
+
+def test_pad_arrays_pad_left():
+    arrays = [d["target"] for d in list(iter(get_dataset()))]
+    padded_arrays = _pad_arrays(arrays, 1, is_right_pad=False)
+
+    for padded_array in padded_arrays[1:]:
+        assert np.allclose(padded_array[:, 0], 0)

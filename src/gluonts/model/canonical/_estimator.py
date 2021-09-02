@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Callable
+from typing import List
 
 from mxnet.gluon import HybridBlock, nn
 
@@ -24,25 +24,27 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.rnn import RNN
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddTimeFeatures,
     AsNumpyArray,
     InstanceSplitter,
+    SelectFields,
     SetFieldIfNotPresent,
     TestSplitSampler,
-    ValidationSplitSampler,
     Transformation,
-    SelectFields,
+    ValidationSplitSampler,
 )
 
 from ._network import CanonicalPredictionNetwork, CanonicalTrainingNetwork
@@ -123,7 +125,8 @@ class CanonicalEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(CanonicalTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -139,14 +142,13 @@ class CanonicalEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(CanonicalTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> CanonicalTrainingNetwork:
@@ -207,7 +209,7 @@ class CanonicalRNNEstimator(CanonicalEstimator):
             mode=cell_type, num_layers=num_layers, num_hidden=num_cells
         )
 
-        super(CanonicalRNNEstimator, self).__init__(
+        super().__init__(
             model=model,
             is_sequential=True,
             freq=freq,
@@ -247,7 +249,7 @@ class MLPForecasterEstimator(CanonicalEstimator):
                 )
             )
 
-        super(MLPForecasterEstimator, self).__init__(
+        super().__init__(
             model=model,
             is_sequential=False,
             freq=freq,

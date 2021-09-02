@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 
@@ -24,20 +24,24 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.forecast_generator import (
+    DistributionForecastGenerator,
+    QuantileForecastGenerator,
+)
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import FutureFeatIntegratorEnc2Dec
 from gluonts.mx.block.encoder import Seq2SeqEncoder
 from gluonts.mx.block.quantile_output import QuantileOutput
 from gluonts.mx.distribution import DistributionOutput
-from gluonts.mx.model.forecast_generator import DistributionForecastGenerator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -45,16 +49,15 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
     AddTimeFeatures,
     Chain,
+    InstanceSampler,
     RemoveFields,
     RenameFields,
+    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
-    VstackFeatures,
-    InstanceSampler,
-    SelectFields,
     ValidationSplitSampler,
-    TestSplitSampler,
+    VstackFeatures,
 )
 
 from ._forking_network import (
@@ -409,7 +412,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     # Decoder will use all fields under FEAT_DYNAMIC which are the RTS with past and future values
                     FieldName.FEAT_DYNAMIC,
                 ]
-                + ([FieldName.OBSERVED_VALUES] if mode is not "test" else []),
+                + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
                 decoder_disabled_fields=(
                     [FieldName.FEAT_DYNAMIC]
                     if not self.enable_decoder_dynamic_feature
@@ -446,7 +449,8 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -464,14 +468,13 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> ForkingSeq2SeqNetworkBase:

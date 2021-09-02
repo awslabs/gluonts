@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import functools
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np
@@ -22,41 +22,30 @@ from gluonts.dataset.common import DataBatch
 from gluonts.support.util import pad_to_size
 
 
-# TODO: should the following contempate mxnet arrays or just numpy arrays?
 def _is_stackable(arrays: List, axis: int = 0) -> bool:
     """
     Check if elements are scalars, have too few dimensions, or their
     target axes have equal length; i.e. they are directly `stack` able.
     """
-    if isinstance(arrays[0], (mx.nd.NDArray, np.ndarray)):
+    if isinstance(arrays[0], np.ndarray):
         s = set(arr.shape[axis] for arr in arrays)
         return len(s) <= 1 and arrays[0].shape[axis] != 0
     return True
 
 
-# TODO: should the following contempate mxnet arrays or just numpy arrays?
 def _pad_arrays(
-    data: List[Union[np.ndarray, mx.nd.NDArray]], axis: int = 0
-) -> List[Union[np.ndarray, mx.nd.NDArray]]:
-    assert isinstance(data[0], (np.ndarray, mx.nd.NDArray))
-    is_mx = isinstance(data[0], mx.nd.NDArray)
+    data: List[np.ndarray],
+    axis: int = 0,
+    is_right_pad: bool = True,
+) -> List[np.ndarray]:
+    assert isinstance(data[0], np.ndarray)
 
     # MxNet causes a segfault when persisting 0-length arrays. As such,
     # we add a dummy pad of length 1 to 0-length dims.
     max_len = max(1, functools.reduce(max, (x.shape[axis] for x in data)))
-    padded_data = []
-
-    for x in data:
-        # MxNet lacks the functionality to pad n-D arrays consistently.
-        # We fall back to numpy if x is an mx.nd.NDArray.
-        if is_mx:
-            x = x.asnumpy()
-
-        x = pad_to_size(x, max_len, axis)
-
-        padded_data.append(x if not is_mx else mx.nd.array(x))
-
-    return padded_data
+    return [
+        pad_to_size(x, max_len, axis, is_right_pad=is_right_pad) for x in data
+    ]
 
 
 def stack(
@@ -64,9 +53,10 @@ def stack(
     ctx: Optional[mx.context.Context] = None,
     dtype: Optional[DType] = np.float32,
     variable_length: bool = False,
+    is_right_pad: bool = True,
 ):
     if variable_length and not _is_stackable(data):
-        data = _pad_arrays(data, axis=0)
+        data = _pad_arrays(data, axis=0, is_right_pad=is_right_pad)
     if isinstance(data[0], mx.nd.NDArray):
         # TODO: think about using shared context NDArrays
         #  https://github.com/awslabs/gluon-ts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
@@ -83,6 +73,7 @@ def batchify(
     ctx: Optional[mx.context.Context] = None,
     dtype: Optional[DType] = np.float32,
     variable_length: bool = False,
+    is_right_pad: bool = True,
 ) -> DataBatch:
     return {
         key: stack(
@@ -90,6 +81,7 @@ def batchify(
             ctx=ctx,
             dtype=dtype,
             variable_length=variable_length,
+            is_right_pad=is_right_pad,
         )
         for key in data[0].keys()
     }

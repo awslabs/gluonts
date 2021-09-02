@@ -11,11 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from ._estimator import SeasonalNaiveEstimator
 from ._predictor import SeasonalNaivePredictor
 
-__all__ = ["SeasonalNaivePredictor"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+__all__ = ["SeasonalNaiveEstimator", "SeasonalNaivePredictor"]

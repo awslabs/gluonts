@@ -16,8 +16,8 @@ from typing import Iterator, List, Optional, Tuple
 import numpy as np
 
 from gluonts.core.component import DType, validated, tensor_to_numpy
-from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
+from gluonts.exceptions import assert_data_error
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
@@ -285,6 +285,8 @@ class SampleTargetDim(FlatMapTransformation):
         num_samples: int,
         shuffle: bool = True,
     ) -> None:
+        super().__init__()
+
         self.field_name = field_name
         self.target_field = target_field
         self.observed_values_field = observed_values_field
@@ -606,13 +608,13 @@ class CDFtoGaussianTransform(MapTransformation):
             Transformed target vector.
         """
         transformed = list()
-        for sorted, t, slope, intercept in zip(
+        for sorted_vector, t, slope, intercept in zip(
             sorted_vec.transpose(),
             target.transpose(),
             slopes.transpose(),
             intercepts.transpose(),
         ):
-            indices = self._search_sorted(sorted, t)
+            indices = self._search_sorted(sorted_vector, t)
             transformed_value = slope[indices] * t + intercept[indices]
             transformed.append(transformed_value)
         return np.array(transformed).transpose()
@@ -729,7 +731,7 @@ def cdf_to_gaussian_forward_transform(
 
         """
 
-        batch_size, num_timesteps, target_dim = batch_target_sorted.shape
+        num_timesteps = batch_target_sorted.shape[1]
         indices = np.floor(batch_predictions * num_timesteps)
         # indices = indices - 1
         # for now project into [0, 1]
@@ -748,7 +750,7 @@ def cdf_to_gaussian_forward_transform(
         return transformed
 
     # applies inverse cdf to all outputs
-    batch_size, samples, target_dim, time = outputs.shape
+    samples = outputs.shape[1]
     for sample_index in range(0, samples):
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
             tensor_to_numpy(input_batch["past_target_sorted"]),
@@ -759,3 +761,69 @@ def cdf_to_gaussian_forward_transform(
             tensor_to_numpy(input_batch["intercepts"]),
         )
     return outputs
+
+
+class ToIntervalSizeFormat(FlatMapTransformation):
+    """
+    Convert a sparse univariate time series to the `interval-size` format,
+    i.e., a two dimensional time series where the first dimension corresponds
+    to the time since last positive value (1-indexed), and the second dimension
+    corresponds to the size of the demand. This format is used often in the
+    intermittent demand literature, where predictions are performed on this
+    "dense" time series, e.g., as in Croston's method.
+
+    As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
+    the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
+    shape (2, M) where M denotes the number of non-zero items in the time series.
+
+    Parameters
+    ----------
+    target_field
+        The target field to be converted, containing a univariate and sparse
+        time series
+    drop_empty
+        If True, all-zero time series will be dropped.
+    discard_first
+        If True, the first element in the converted dense series will be dropped,
+        replacing the target with a (2, M-1) tet instead. This can be used
+        when the first 'inter-demand' time is not well-defined. e.g., when the true
+        starting index of the time-series is not known.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_field: str,
+        drop_empty: bool = False,
+        discard_first: bool = False,
+    ) -> None:
+        super().__init__()
+
+        self.target_field = target_field
+        self.drop_empty = drop_empty
+        self.discard_first = discard_first
+
+    def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
+        a = np.array(a)
+        (non_zero_index,) = np.nonzero(a)
+
+        if len(non_zero_index) == 0:
+            return [], []
+
+        times = np.diff(non_zero_index, prepend=-1.0).tolist()
+        sizes = a[non_zero_index].tolist()
+
+        if self.discard_first:
+            return times[1:], sizes[1:]
+        return times, sizes
+
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
+        target = data[self.target_field]
+
+        times, sizes = self._process_sparse_time_sample(target)
+
+        if len(times) > 0 or not self.drop_empty:
+            data[self.target_field] = [times, sizes]
+            yield data

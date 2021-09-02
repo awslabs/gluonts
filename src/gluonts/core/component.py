@@ -22,8 +22,8 @@ from typing import Any, Type, TypeVar
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-from gluonts.core.exception import GluonTSHyperparametersError
 from gluonts.core.serde import dump_code
+from gluonts.exceptions import GluonTSHyperparametersError
 
 from . import fqname_for
 
@@ -249,10 +249,10 @@ def validated(base_model=None):
 
     Internally, the decorator delegates all validation and conversion logic to
     `a Pydantic model <https://pydantic-docs.helpmanual.io/>`_, which can be
-    accessed through the ``Model`` attribute of the decorated initiazlier.
+    accessed through the ``Model`` attribute of the decorated initializer.
 
     >>> ComplexNumber.__init__.Model
-    <class 'ComplexNumberModel'>
+    <class 'pydantic.main.ComplexNumberModel'>
 
     The Pydantic model is synthesized automatically from on the parameter
     names and types of the decorated initializer. In the ``ComplexNumber``

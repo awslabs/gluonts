@@ -14,14 +14,11 @@
 import math
 from typing import List, Optional, Tuple
 
-import mxnet as mx
-import numpy as np
-from mxnet import gluon, init
+from mxnet import init
 from mxnet.gluon import HybridBlock, nn, rnn
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
-from gluonts.mx.block.feature import FeatureEmbedder
 
 
 class GatedLinearUnit(HybridBlock):
@@ -287,12 +284,12 @@ class SelfAttention(HybridBlock):
         )
         unidir_mask = F.broadcast_lesser_equal(k_idx, q_idx)
         unidir_mask = F.broadcast_like(unidir_mask, score)
-        score = F.where(unidir_mask, score, F.ones_like(score) * 1e-9)
+        score = F.where(unidir_mask, score, F.ones_like(score) * -1e9)
         if key_mask is not None:
             key_mask = key_mask.expand_dims(axis=1)  # head
             key_mask = key_mask.expand_dims(axis=2)  # query
             key_mask = F.broadcast_like(key_mask, score)
-            score = F.where(key_mask, score, F.ones_like(score) * 1e-9)
+            score = F.where(key_mask, score, F.ones_like(score) * -1e9)
         return score
 
     def _compute_attn_score(

@@ -17,14 +17,15 @@ from typing import Optional
 import numpy as np
 
 try:
-    import numba
     from numba import njit
-except:
+except ImportError:
     warnings.warn(
         "Could not import numba. ar_p will be slower for long series (len > 1000)."
     )
+
     # TODO: support parameters
-    njit = lambda f: f
+    def njit(fn):
+        return fn
 
 
 @njit

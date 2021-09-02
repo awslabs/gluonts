@@ -117,13 +117,12 @@ class AggregationPreProcessor:
         agg_fns: List[str],
         out_dim: int,
         rescale: bool = True,
-        min_scale: float = 1.0e-12
+        min_scale: float = 1.0e-12,
     ):
         self.agg_window = agg_window
         self.rescale = rescale
         self._agg = []
         for agf in agg_fns:
-            print(agf)
             m = re.match(r"q(\d\.\d+)", agf)
             if m:
                 q = float(m.group(1))
@@ -139,7 +138,7 @@ class AggregationPreProcessor:
             else:
                 raise NotImplementedError()
 
-        if (out_dim > 1 and len(self._agg) > 1):
+        if out_dim > 1 and len(self._agg) > 1:
             # unclear whether we should add a dimension to the tensor here, or rather blow up the last
             # dimension (like this: self.num_out_dim = out_dim * len(self._agg)
             raise NotImplementedError()
@@ -207,8 +206,10 @@ class EmbedModel(pl.LightningModule):
             self.preprocess = ScalePreProcessor(multivar_dim)
         else:
             if self.hparams.preprocessor == "agg":
-                self.preprocess = AggregationPreProcessor( self.hparams.agg_window, self.hparams.agg_fns, multivar_dim )
-            elif self.hparams.preprocessor == 'scale':
+                self.preprocess = AggregationPreProcessor(
+                    self.hparams.agg_window, self.hparams.agg_fns, multivar_dim
+                )
+            elif self.hparams.preprocessor == "scale":
                 self.preprocess = ScalePreProcessor(multivar_dim)
             else:
                 raise NotImplementedError()
@@ -224,16 +225,38 @@ class EmbedModel(pl.LightningModule):
             reduced_size=self.hparams.reduced_size,
         )
 
-        if self.hparams.loss == 'SimCLR':
+        if self.hparams.loss == "SimCLR":
             self.loss = contrastive_loss.NT_Xent_Loss(
+                self.encoder,
                 compared_length=self.hparams.compared_length,
                 temperature=self.hparams.loss_temperature,
             )
-        elif self.hparams.loss == 'BarlowTwins':
+        elif self.hparams.loss == "BarlowTwins":
             self.loss = contrastive_loss.BarlowTwins(
+                self.encoder,
                 compared_length=self.hparams.compared_length,
                 out_channels=self.hparams.out_channels,
                 lambd=self.hparams.loss_lambda,
+            )
+        elif self.hparams.loss == "MoCo":
+            self.encoder_k = causal_cnn.CausalCNNEncoder(
+                in_channels=in_channels,
+                channels=self.hparams.channels,
+                depth=self.hparams.depth,
+                out_channels=self.hparams.out_channels,
+                kernel_size=self.hparams.kernel_size,
+                reduced_size=self.hparams.reduced_size,
+            )
+
+            self.loss = contrastive_loss.MoCo(
+                self.encoder,
+                self.encoder_k,
+                dim=self.hparams.out_channels,
+                compared_length=self.hparams.compared_length,
+                keys=self.hparams.K,
+                batch_size=self.hparams.batch_size,
+                momentum=self.hparams.momentum,
+                temperature=self.hparams.loss_temperature,
             )
 
     @staticmethod
@@ -251,7 +274,7 @@ class EmbedModel(pl.LightningModule):
         parser.add_argument("--channels", type=int, default=32)
         parser.add_argument("--preprocessor", type=str, default="scale")
         parser.add_argument("--agg_window", type=int, default=None)
-        parser.add_argument("--agg_fns", nargs='+', default=["mean"])
+        parser.add_argument("--agg_fns", nargs="+", default=["mean"])
         parser.add_argument("--out_channels", type=int, default=128)
         parser.add_argument("--depth", type=int, default=10)
         parser.add_argument("--kernel_size", type=int, default=3)
@@ -260,7 +283,10 @@ class EmbedModel(pl.LightningModule):
         parser.add_argument("--lr", type=float, default=0.005)
         parser.add_argument("--loss_temperature", type=float, default=0.1)
         parser.add_argument("--loss_lambda", type=float, default=1e-2)
-        parser.add_argument("--loss", type=str, default='SimCLR')
+        parser.add_argument("--K", type=int, default=256 * 4)
+        parser.add_argument("--momentum", type=float, default=0.999)
+        parser.add_argument("--loss", type=str, default="SimCLR")
+
         return parser
 
     def forward(self, x):
@@ -274,9 +300,8 @@ class EmbedModel(pl.LightningModule):
         # TODO: If the pre-processing is expensive, we may optionally want to run it
         #       on the whole training dataset before training
         u = self.preprocess(batch)
-        rep, sub_window_rep = self.loss.get_representations(u, self.encoder)
-        rep = F.normalize(rep, p=2, dim=-1)
-        sub_window_rep = F.normalize(sub_window_rep, p=2, dim=-1)
+        rep, sub_window_rep = self.loss.get_representations(u)
+
         loss = self.loss(rep, sub_window_rep)
         self.log(
             "hparam/train_loss",

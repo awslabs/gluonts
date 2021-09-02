@@ -27,16 +27,18 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import (
     DistributionOutput,
     LowrankMultivariateGaussianOutput,
 )
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import TimeFeature, norm_freq_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -46,17 +48,17 @@ from gluonts.transform import (
     Chain,
     ExpandDimArray,
     ExpectedNumInstanceSampler,
+    InstanceSampler,
     InstanceSplitter,
     RenameFields,
+    SelectFields,
     SetFieldIfNotPresent,
     TargetDimIndicator,
+    TestSplitSampler,
     Transformation,
+    ValidationSplitSampler,
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
-    InstanceSampler,
-    TestSplitSampler,
-    SelectFields,
-    ValidationSplitSampler,
 )
 
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
@@ -115,17 +117,16 @@ def get_lags_for_frequency(
     freq_str: str, num_lags: Optional[int] = None
 ) -> List[int]:
     offset = to_offset(freq_str)
-    multiple, granularity = offset.n, offset.name
 
-    if granularity == "M":
+    if offset.name == "M":
         lags = [[1, 12]]
-    elif granularity == "D":
+    elif offset.name == "D":
         lags = [[1, 7, 14]]
-    elif granularity == "B":
+    elif offset.name == "B":
         lags = [[1, 2]]
-    elif granularity == "H":
+    elif offset.name == "H":
         lags = [[1, 24, 168]]
-    elif granularity == "min":
+    elif offset.name in ("min", "T"):
         lags = [[1, 4, 12, 24, 48]]
     else:
         lags = [[1]]
@@ -409,7 +410,8 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -425,14 +427,13 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> DeepVARTrainingNetwork:

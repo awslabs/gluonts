@@ -131,7 +131,7 @@ Finally, each estimator is configured by a `Trainer`, which defines how the mode
 
 ```python
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.mx.trainer import Trainer
+from gluonts.mx import Trainer
 ```
 
 

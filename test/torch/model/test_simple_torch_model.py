@@ -22,16 +22,14 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
+from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.batchify import batchify
-from gluonts.torch.model.forecast_generator import (
-    DistributionForecastGenerator,
-)
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.modules.distribution_output import (
     NormalOutput,
     StudentTOutput,
 )
-from gluonts.torch.support.util import copy_parameters
+from gluonts.torch.util import copy_parameters
 from gluonts.transform import (
     AddObservedValuesIndicator,
     Chain,

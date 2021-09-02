@@ -16,14 +16,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 import pytest
 from flaky import flaky
 from pydantic import PositiveInt
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
-from gluonts.evaluation import backtest_metrics, Evaluator
+from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
@@ -124,7 +123,7 @@ def test_accuracy(predictor_cls, parameters, accuracy):
     agg_metrics, item_metrics = backtest_metrics(
         test_dataset=constant_test_ds,
         predictor=predictor,
-        evaluator=Evaluator(calculate_owa=True),
+        evaluator=Evaluator(),
     )
 
     assert agg_metrics["ND"] <= accuracy

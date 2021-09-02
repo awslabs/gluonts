@@ -14,9 +14,9 @@
 import abc
 from typing import Callable, Iterable, Iterator, List
 
-from gluonts.env import env
 from gluonts.core.component import validated
-from gluonts.dataset.common import DataEntry
+from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.env import env
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -37,6 +37,11 @@ class Transformation(metaclass=abc.ABCMeta):
 
     def __add__(self, other: "Transformation") -> "Chain":
         return self.chain(other)
+
+    def apply(
+        self, dataset: Dataset, is_train: bool = True
+    ) -> "TransformedDataset":
+        return TransformedDataset(dataset, self, is_train=is_train)
 
 
 class Chain(Transformation):
@@ -61,6 +66,43 @@ class Chain(Transformation):
         for t in self.transformations:
             tmp = t(tmp, is_train)
         return tmp
+
+
+class TransformedDataset(Dataset):
+    """
+    A dataset that corresponds to applying a list of transformations to each
+    element in the base_dataset.
+    This only supports SimpleTransformations, which do the same thing at
+    prediction and training time.
+
+
+    Parameters
+    ----------
+    base_dataset
+        Dataset to transform
+    transformations
+        List of transformations to apply
+    """
+
+    def __init__(
+        self,
+        base_dataset: Dataset,
+        transformation: Transformation,
+        is_train=True,
+    ) -> None:
+        self.base_dataset = base_dataset
+        self.transformation = transformation
+        self.is_train = is_train
+
+    def __len__(self):
+        # NOTE this is unsafe when transformations are run with is_train = True
+        # since some transformations may not be deterministic (instance splitter)
+        return sum(1 for _ in self)
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        yield from self.transformation(
+            self.base_dataset, is_train=self.is_train
+        )
 
 
 class Identity(Transformation):
@@ -119,9 +161,13 @@ class AdhocTransform(SimpleTransformation):
 
 class FlatMapTransformation(Transformation):
     """
-    Transformations that yield zero or more results per input, but do not combine
-    elements from the input stream.
+    Transformations that yield zero or more results per input, but do not
+    combine elements from the input stream.
     """
+
+    @validated()
+    def __init__(self):
+        self.max_idle_transforms = max(env.max_idle_transforms, 100)
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -129,21 +175,16 @@ class FlatMapTransformation(Transformation):
         num_idle_transforms = 0
         for data_entry in data_it:
             num_idle_transforms += 1
-            try:
-                for result in self.flatmap_transform(
-                    data_entry.copy(), is_train
-                ):
-                    num_idle_transforms = 0
-                    yield result
-            except Exception as e:
-                raise e
-            if num_idle_transforms > env.max_idle_transforms:
+            for result in self.flatmap_transform(data_entry.copy(), is_train):
+                num_idle_transforms = 0
+                yield result
+            if num_idle_transforms > self.max_idle_transforms:
                 raise Exception(
                     f"Reached maximum number of idle transformation calls.\n"
                     f"This means the transformation looped over "
-                    f"GLUONTS_MAX_IDLE_TRANSFORMS={env.max_idle_transforms} "
-                    f"inputs without returning any output.\n"
-                    f"This occurred in the following transformation:\n{self}"
+                    f"{self.max_idle_transforms} inputs without returning any "
+                    f"output.\nThis occurred in the following transformation:\n"
+                    f"{self}"
                 )
 
     @abc.abstractmethod
@@ -155,6 +196,7 @@ class FlatMapTransformation(Transformation):
 
 class FilterTransformation(FlatMapTransformation):
     def __init__(self, condition: Callable[[DataEntry], bool]) -> None:
+        super().__init__()
         self.condition = condition
 
     def flatmap_transform(

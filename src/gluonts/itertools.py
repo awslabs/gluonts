@@ -18,6 +18,16 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
+def prod(xs: Iterable[T]) -> T:
+    """
+    Computes the product of the elements of an iterable object.
+    """
+    p = 1
+    for x in xs:
+        p *= x
+    return p
+
+
 class Cyclic(Iterable):
     """
     Like `itertools.cycle`, but does not store the data.
@@ -34,6 +44,9 @@ class Cyclic(Iterable):
                 yield el
             if not at_least_one:
                 break
+
+    def __len__(self) -> int:
+        return len(self.iterable)
 
 
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
@@ -79,6 +92,9 @@ class Cached(Iterable):
         else:
             yield from self.cache
 
+    def __len__(self) -> int:
+        return len(self.iterable)
+
 
 class PseudoShuffled(Iterable):
     """
@@ -100,6 +116,9 @@ class PseudoShuffled(Iterable):
         while shuffle_buffer:
             yield shuffle_buffer.pop(random.randrange(len(shuffle_buffer)))
 
+    def __len__(self) -> int:
+        return len(self.iterable)
+
 
 class IterableSlice(Iterable):
     """
@@ -113,3 +132,6 @@ class IterableSlice(Iterable):
 
     def __iter__(self):
         return itertools.islice(self.iterable, self.length)
+
+    def __len__(self) -> int:
+        return len(self.iterable)

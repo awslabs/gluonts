@@ -16,6 +16,7 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
+from gluonts.itertools import prod
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
 from gluonts.mx import Tensor
@@ -24,13 +25,6 @@ from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
 
 LARGE_NEGATIVE_VALUE = -99999999
-
-
-def prod(xs):
-    p = 1
-    for x in xs:
-        p *= x
-    return p
 
 
 class TransformerNetwork(mx.gluon.HybridBlock):

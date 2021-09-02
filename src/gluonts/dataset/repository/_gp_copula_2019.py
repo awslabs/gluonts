@@ -84,7 +84,7 @@ datasets_info = {
         name="wiki-rolling_nips",
         # That file lives on GitHub Large file storage (lfs). We need to use
         # the exact link, otherwise it will only open the lfs pointer file.
-        url="https://github.com/mbohlkeschneider/gluon-ts/raw/650ad5ffe92d20e89d491966b6d8b4459e219be8/datasets/wiki-rolling_nips.tar.gz",
+        url="https://github.com/awslabs/gluon-ts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
         num_series=9535,
         prediction_length=30,
         freq="D",
@@ -103,12 +103,16 @@ datasets_info = {
 }
 
 
-def generate_gp_copula_dataset(dataset_path: Path, dataset_name: str):
+def generate_gp_copula_dataset(
+    dataset_path: Path,
+    dataset_name: str,
+    prediction_length: Optional[int] = None,
+):
     ds_info = datasets_info[dataset_name]
     os.makedirs(dataset_path, exist_ok=True)
 
     download_dataset(dataset_path.parent, ds_info)
-    save_metadata(dataset_path, ds_info)
+    save_metadata(dataset_path, ds_info, prediction_length)
     save_dataset(dataset_path / "train", ds_info)
     save_dataset(dataset_path / "test", ds_info)
     clean_up_dataset(dataset_path, ds_info)
@@ -121,14 +125,19 @@ def download_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
         tar.extractall(path=dataset_path)
 
 
-def save_metadata(dataset_path: Path, ds_info: GPCopulaDataset):
+def save_metadata(
+    dataset_path: Path,
+    ds_info: GPCopulaDataset,
+    prediction_length: Optional[int],
+):
     with open(dataset_path / "metadata.json", "w") as f:
         f.write(
             json.dumps(
                 metadata(
                     cardinality=ds_info.num_series,
                     freq=ds_info.freq,
-                    prediction_length=ds_info.prediction_length,
+                    prediction_length=prediction_length
+                    or ds_info.prediction_length,
                 )
             )
         )

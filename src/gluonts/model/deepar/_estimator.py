@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -26,6 +26,7 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import as_in_context, batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
@@ -33,6 +34,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -140,6 +142,19 @@ class DeepAREstimator(GluonEstimator):
         The scaling coefficient of the temporal activation regularization
     batch_size
         The size of the batches to be used training and prediction.
+    minimum_scale
+        The minimum scale that is returned by the MeanScaler
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
+    impute_missing_values
+        Whether to impute the missing values during training by using the
+        current model parameters. Recommended if the dataset contains many
+        missing values. However, this is a lot slower than the default mode.
+    num_imputation_samples
+        How many samples to use to impute values when
+        impute_missing_values=True
     """
 
     @validated()
@@ -171,6 +186,10 @@ class DeepAREstimator(GluonEstimator):
         alpha: float = 0.0,
         beta: float = 0.0,
         batch_size: int = 32,
+        default_scale: Optional[float] = None,
+        minimum_scale: float = 1e-10,
+        impute_missing_values: bool = False,
+        num_imputation_samples: int = 1,
     ) -> None:
         super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
@@ -192,9 +211,6 @@ class DeepAREstimator(GluonEstimator):
             dropoutcell_type in supported_dropoutcell_types
         ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (cardinality and use_feat_static_cat) or (
-            not (cardinality or use_feat_static_cat)
-        ), "You should set `cardinality` if and only if `use_feat_static_cat=True`"
         assert cardinality is None or all(
             [c > 0 for c in cardinality]
         ), "Elements of `cardinality` should be > 0"
@@ -267,6 +283,10 @@ class DeepAREstimator(GluonEstimator):
 
         self.alpha = alpha
         self.beta = beta
+        self.num_imputation_samples = num_imputation_samples
+        self.default_scale = default_scale
+        self.minimum_scale = minimum_scale
+        self.impute_missing_values = impute_missing_values
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -380,7 +400,8 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -396,14 +417,13 @@ class DeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepARTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> DeepARTrainingNetwork:
@@ -424,6 +444,10 @@ class DeepAREstimator(GluonEstimator):
             dtype=self.dtype,
             alpha=self.alpha,
             beta=self.beta,
+            num_imputation_samples=self.num_imputation_samples,
+            default_scale=self.default_scale,
+            minimum_scale=self.minimum_scale,
+            impute_missing_values=self.impute_missing_values,
         )
 
     def create_predictor(
@@ -447,6 +471,10 @@ class DeepAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             dtype=self.dtype,
+            num_imputation_samples=self.num_imputation_samples,
+            default_scale=self.default_scale,
+            minimum_scale=self.minimum_scale,
+            impute_missing_values=self.impute_missing_values,
         )
 
         copy_parameters(trained_network, prediction_network)

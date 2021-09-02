@@ -74,6 +74,7 @@ from ._base import (
     MapTransformation,
     SimpleTransformation,
     Transformation,
+    TransformedDataset,
 )
 from .convert import (
     AsNumpyArray,
@@ -87,7 +88,6 @@ from .convert import (
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
 )
-from .dataset import TransformedDataset
 from .feature import (
     AddAgeFeature,
     AddAggregateLags,
@@ -127,8 +127,3 @@ from .split import (
     InstanceSplitter,
     shift_timestamp,
 )
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)

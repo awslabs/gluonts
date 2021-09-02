@@ -117,24 +117,23 @@ datasets_info = {
 }
 
 
-def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
+def generate_lstnet_dataset(
+    dataset_path: Path,
+    dataset_name: str,
+    prediction_length: Optional[int] = None,
+):
     ds_info = datasets_info[dataset_name]
+
+    ds_metadata = metadata(
+        cardinality=ds_info.num_series,
+        freq=ds_info.freq if ds_info.agg_freq is None else ds_info.agg_freq,
+        prediction_length=prediction_length or ds_info.prediction_length,
+    )
 
     os.makedirs(dataset_path, exist_ok=True)
 
     with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=ds_info.num_series,
-                    freq=ds_info.freq,
-                    prediction_length=ds_info.prediction_length,
-                )
-            )
-        )
-
-    train_file = dataset_path / "train" / "data.json"
-    test_file = dataset_path / "test" / "data.json"
+        json.dump(ds_metadata, f)
 
     time_index = pd.date_range(
         start=ds_info.start_date,
@@ -172,7 +171,7 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     assert len(train_ts) == ds_info.num_series
 
-    save_to_file(train_file, train_ts)
+    save_to_file(dataset_path / "train" / "data.json", train_ts)
 
     # time of the first prediction
     prediction_dates = [
@@ -199,4 +198,4 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    save_to_file(test_file, test_ts)
+    save_to_file(dataset_path / "test" / "data.json", test_ts)

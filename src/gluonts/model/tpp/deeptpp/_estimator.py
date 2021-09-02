@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 from functools import partial
-from typing import Optional, Callable
 
 from mxnet.gluon import HybridBlock
 
@@ -22,21 +21,23 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator, TrainOutput
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
-from gluonts.mx.batchify import batchify, as_in_context
-from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.transform import (
     Chain,
     ContinuousTimeInstanceSplitter,
     ContinuousTimePointSampler,
-    ContinuousTimeUniformSampler,
     ContinuousTimePredictionSampler,
-    SelectFields,
+    ContinuousTimeUniformSampler,
     RenameFields,
+    SelectFields,
     Transformation,
 )
 
@@ -196,7 +197,8 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -212,14 +214,13 @@ class DeepTPPEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepTPPTrainingNetwork)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def create_training_network(self) -> HybridBlock:

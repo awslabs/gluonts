@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 import logging
-import re
 from functools import partial
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import mxnet as mx
 import numpy as np
@@ -28,17 +27,19 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.model.wavenet._network import (
     WaveNet,
-    WaveNetTraining,
     WaveNetSampler,
+    WaveNetTraining,
 )
-from gluonts.mx.batchify import batchify, as_in_context
+from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
+from gluonts.support.util import maybe_len
 from gluonts.time_feature import (
     get_seasonality,
     time_features_from_frequency_str,
@@ -50,14 +51,14 @@ from gluonts.transform import (
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
+    InstanceSampler,
     InstanceSplitter,
     SelectFields,
     SetFieldIfNotPresent,
     SimpleTransformation,
-    VstackFeatures,
-    InstanceSampler,
-    ValidationSplitSampler,
     TestSplitSampler,
+    ValidationSplitSampler,
+    VstackFeatures,
 )
 
 
@@ -257,7 +258,9 @@ class WaveNetEstimator(GluonEstimator):
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(
-            f"Using dilation depth {self.dilation_depth} and receptive field length {self.context_length}"
+            "Using dilation depth %d and receptive field length %d",
+            self.dilation_depth,
+            self.context_length,
         )
 
     def create_transformation(self) -> transform.Transformation:
@@ -308,7 +311,7 @@ class WaveNetEstimator(GluonEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length
-            if mode is "test"
+            if mode == "test"
             else self.train_window_length,
             output_NTC=False,
             time_series_fields=[
@@ -327,7 +330,8 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        instance_splitter = self._create_instance_splitter("training")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -343,14 +347,13 @@ class WaveNetEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(WaveNetTraining)
-        instance_splitter = self._create_instance_splitter("validation")
+        with env._let(max_idle_transforms=maybe_len(data) or 0):
+            instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
-            **kwargs,
         )
 
     def _get_wavenet_args(self):

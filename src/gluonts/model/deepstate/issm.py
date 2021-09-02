@@ -13,8 +13,6 @@
 
 from typing import List, Tuple
 
-import numpy as np
-import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.core.component import validated
@@ -22,6 +20,7 @@ from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
+    Constant as ZeroFeature,
     DayOfWeekIndex,
     HourOfDayIndex,
     MinuteOfHourIndex,
@@ -90,15 +89,6 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     )
 
     return _block_diagonal
-
-
-class ZeroFeature(TimeFeature):
-    """
-    A feature that is identically zero.
-    """
-
-    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return np.zeros(index.values.shape)
 
 
 class ISSM:

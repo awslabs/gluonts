@@ -13,7 +13,7 @@
 
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast
 
 import mxnet as mx
 import numpy as np
@@ -176,9 +176,6 @@ class PointProcessGluonPredictor(GluonPredictor):
             stack_fn=partial(
                 batchify, ctx=self.ctx, dtype=self.dtype, variable_length=True
             ),
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
-            **kwargs,
         )
         yield from self.forecast_generator(
             inference_data_loader=inference_data_loader,
