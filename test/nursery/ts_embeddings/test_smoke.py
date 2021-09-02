@@ -19,11 +19,11 @@ def test_ts_embedding_smoke():
     with tempfile.TemporaryDirectory() as tmp_dir:
         main(
             f"""
-        --fast_dev_run
+        --fast_dev_run=1
         --encoder_path={tmp_dir}/encoder.pt
-        --dataset_name=traffic
-        --ts_len=14000
-        --compared_length=500
+        --dataset_name=m4_hourly
+        --ts_len=10
+        --compared_length=5
         --lr=0.005
         --loss_temperature=0.2
         --batch_size=16
