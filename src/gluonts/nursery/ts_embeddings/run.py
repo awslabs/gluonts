@@ -14,7 +14,6 @@
 # permissions and limitations under the License.
 
 
-import os
 import sys
 from argparse import ArgumentParser
 
@@ -156,15 +155,9 @@ def main(cli_arguments):
     print(model_params)
     model = EmbedModel(**model_params)
 
-    if "TRAINING_JOB_NAME" in os.environ:
-        training_job_name = os.environ["TRAINING_JOB_NAME"]
-    else:
-        training_job_name = "local_test"
-
     logger = TensorBoardLogger("./logs/", name="embedding")
     trainer = Trainer.from_argparse_args(args, callbacks=[], logger=logger)
 
-    ####  training of encoder
     trainer.fit(model, data_module)
     print("encoder training done")
 

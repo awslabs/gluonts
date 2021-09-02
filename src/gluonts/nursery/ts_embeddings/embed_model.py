@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 
-from typing import Optional, List
+from typing import Optional, List, Any
 import re
 import ast
 from argparse import ArgumentParser, ArgumentError, ArgumentTypeError
@@ -186,17 +186,18 @@ class EmbedModel(pl.LightningModule):
         **kwargs,
     ):
         """
-        :param channels: Number of channels in convolutions (if it's >1, then we have a multi-variate time series)
-        :param out_channels: Output dimension of encoder
-        :param depth: Number of layers
-        :param kernel_size: Convolution kernel size
-        :param reduced_size:
-        :param compared_length: Size of window used during training (this is the outer window that is selected)
-        :param lr:
-        :param loss_temperature:
-        :param multivar_dim:
-        :param preprocessor: defaults to ScalePreprocessor if nothing is selected
-        :param kwargs:
+        Parameters
+        ----------
+        channels : Number of channels in convolutions (if it's >1, then we have a multi-variate time series)
+        out_channels : Output dimension of encoder
+        depth : Number of layers
+        kernel_size : Convolution kernel size
+        reduced_size : Reduce the size of embeddings
+        compared_length: Size of window used during training (this is the outer window that is selected)
+        lr: Learning rate
+        loss_temperature : Loss temperature
+        multivar_dim : Dimension of the input (e.g. 1 for scalar time series)
+        preprocessor: defaults to ScalePreprocessor if nothing is selected
         """
         super().__init__()
         self.save_hyperparameters()
@@ -225,6 +226,7 @@ class EmbedModel(pl.LightningModule):
             reduced_size=self.hparams.reduced_size,
         )
 
+        self.loss: Any = None
         if self.hparams.loss == "SimCLR":
             self.loss = contrastive_loss.NT_Xent_Loss(
                 self.encoder,

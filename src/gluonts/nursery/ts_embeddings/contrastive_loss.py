@@ -15,7 +15,7 @@
 import torch
 import torch.nn.functional as F
 import numpy
-from typing import Optional, Any, Tuple
+from typing import Tuple
 
 from .pt_augmentation import RandomApply, Jitter, Scaling
 

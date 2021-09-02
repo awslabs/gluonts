@@ -38,9 +38,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
 import torch
-import torch.nn.functional as F
 
 
 class Chomp1d(torch.nn.Module):
