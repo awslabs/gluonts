@@ -248,9 +248,8 @@ class MoCo(torch.nn.Module):
         self.keys = keys
         self.momentum = momentum
         self.temperature = temperature
-        
         assert self.temperature > 0.0, "Temperature should not be zero"
-
+        
         for param_q, param_k in zip(
             self.encoder_q.parameters(), self.encoder_k.parameters()
         ):
