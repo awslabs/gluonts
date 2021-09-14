@@ -258,7 +258,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         loss_CRPS = F.zeros_like(neg_likelihoods)
         if self.CRPS_weight > 0.0:
             loss_CRPS = (
-                EmpiricalDistribution(samples=samples)
+                EmpiricalDistribution(samples=samples, event_dim=1)
                 .crps_univariate(x=target)
                 .expand_dims(axis=-1)
             )
@@ -267,6 +267,34 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             self.CRPS_weight * loss_CRPS
             + self.likelihood_weight * neg_likelihoods
         )
+
+    def post_process_samples(self, samples: Tensor) -> Tensor:
+        """
+        Reconcile samples if `coherent_pred_samples` is True.
+
+        Parameters
+        ----------
+        samples
+            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
+
+        Returns
+        -------
+            Tensor of coherent samples.
+
+        """
+        if not self.coherent_pred_samples:
+            return samples
+        else:
+            coherent_samples = self.reconcile_samples(samples=samples)
+            assert_shape(coherent_samples, samples.shape)
+
+            # assert that A*X_proj ~ 0
+            if self.assert_reconciliation:
+                assert (
+                    self.reconciliation_error(samples=coherent_samples) < 1e-2
+                )
+
+            return coherent_samples
 
 
 class DeepVARHierarchicalTrainingNetwork(
@@ -328,31 +356,3 @@ class DeepVARHierarchicalPredictionNetwork(
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
         self.coherent_pred_samples = coherent_pred_samples
         self.assert_reconciliation = assert_reconciliation
-
-    def post_process_samples(self, samples: Tensor) -> Tensor:
-        """
-        Reconciled samples if `coherent_pred_samples` is True.
-
-        Parameters
-        ----------
-        samples
-            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
-
-        Returns
-        -------
-            Tensor of coherent samples.
-
-        """
-        if not self.coherent_pred_samples:
-            return samples
-        else:
-            coherent_samples = self.reconcile_samples(samples=samples)
-            assert_shape(coherent_samples, samples.shape)
-
-            # assert that A*X_proj ~ 0
-            if self.assert_reconciliation:
-                assert (
-                    self.reconciliation_error(samples=coherent_samples) < 1e-2
-                )
-
-            return coherent_samples

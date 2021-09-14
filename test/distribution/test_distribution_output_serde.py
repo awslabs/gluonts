@@ -26,6 +26,7 @@ from gluonts.mx.distribution import (
     DistributionOutput,
     DirichletMultinomialOutput,
     DirichletOutput,
+    EmpiricalDistributionOutput,
     EmpiricalDistribution,
     GammaOutput,
     GaussianOutput,
@@ -55,8 +56,8 @@ from gluonts.mx.distribution import (
         DeterministicOutput(value=42.0),
         DirichletMultinomialOutput(dim=3, n_trials=5),
         DirichletOutput(dim=4),
-        EmpiricalDistribution(
-            samples=mx.nd.random.normal(shape=(3, 4, 5)), event_dim=1
+        EmpiricalDistributionOutput(
+            num_samples=10, distr_output=GaussianOutput()
         ),
         GammaOutput(),
         GaussianOutput(),

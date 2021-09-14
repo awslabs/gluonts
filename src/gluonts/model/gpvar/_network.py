@@ -348,19 +348,3 @@ class GPVARPredictionNetwork(GPVARNetwork):
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,  # (batch_size, prediction_length, num_features)
         )
-
-    def post_process_samples(self, samples: Tensor) -> Tensor:
-        """
-        Identity map.
-
-        Parameters
-        ----------
-        samples
-            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
-
-        Returns
-        -------
-            Tensor of samples with the same shape.
-
-        """
-        return samples

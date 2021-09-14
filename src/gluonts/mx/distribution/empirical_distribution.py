@@ -26,8 +26,9 @@ from .distribution_output import DistributionOutput, ArgProj
 class EmpiricalDistribution(Distribution):
     r"""
     A class representing empirical distribution.
-    By default, the target is assumed to be vector-valued, i.e., `event_shape` is 1. However, note that each dimension
-    is assumed to be independent when computing variance and CRPS loss.
+
+    The target can be vector/tensor-valued, i.e., `event_shape` can be larger than or equal to 1.
+    However, note that each dimension is assumed to be independent when computing variance and CRPS loss.
 
     Also, for computing CDF and quantiles, it is assumede that samples are distinct along the samples dimension, which
     should almost always be the case if samples are drawn from continuous distributions.
@@ -42,7 +43,7 @@ class EmpiricalDistribution(Distribution):
     """
 
     @validated()
-    def __init__(self, samples: Tensor, event_dim: int = 1) -> None:
+    def __init__(self, samples: Tensor, event_dim: int) -> None:
         self.samples = samples
         self.sorted_samples = self.F.sort(self.samples, axis=0)
         self.sorted_ix = self.F.argsort(self.samples, axis=0)

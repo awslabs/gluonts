@@ -747,6 +747,27 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             begin_states=state,
         )
 
+    def post_process_samples(self, samples: Tensor) -> Tensor:
+        """
+        Method to enforce domain-specific constraints on the generated samples.
+
+        For example, see `DeepVARHierarchicalNetwork`, which adjusts the samples so that they satisfy the given
+        aggregation constraints.
+
+        For `DeepVAR` this is simply the Identity map.
+
+        Parameters
+        ----------
+        samples
+            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
+
+        Returns
+        -------
+            Tensor of samples with the same shape.
+
+        """
+        return samples
+
 
 class DeepVARTrainingNetwork(DeepVARNetwork):
 
@@ -878,19 +899,3 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,
         )
-
-    def post_process_samples(self, samples: Tensor) -> Tensor:
-        """
-        Identity map.
-
-        Parameters
-        ----------
-        samples
-            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
-
-        Returns
-        -------
-            Tensor of samples with the same shape.
-
-        """
-        return samples
