@@ -21,6 +21,7 @@ from gluonts.mx.distribution import (
     Beta,
     Binned,
     Categorical,
+    EmpiricalDistribution,
     Gamma,
     Gaussian,
     GenPareto,
@@ -147,6 +148,18 @@ test_cases = [
             "one_probability": mx.nd.array([0.3]),
         },
     ),
+    (
+        EmpiricalDistribution,
+        {
+            "samples": mx.nd.stack(
+                *[
+                    mx.nd.arange(start=0, stop=20, step=2),
+                    mx.nd.arange(start=100, stop=0, step=-10),
+                ]
+            ).transpose(),
+            "event_dim": 1,
+        },
+    ),
 ]
 
 test_output = {
@@ -220,6 +233,11 @@ test_output = {
         "stddev": mx.nd.array([0.45545503304667967]),
         "variance": mx.nd.array([0.20743928712755205]),
     },
+    "EmpiricalDistribution": {
+        "mean": mx.nd.array([9.0, 55.0]),
+        "stddev": mx.nd.array([5.7445626, 28.722813]),
+        "variance": mx.nd.array([33.0, 825.0]),
+    },
 }
 
 test_cases_quantile = [
@@ -237,6 +255,18 @@ test_cases_quantile = [
             "beta": mx.nd.array([1.0]),
         },
     ),
+    (
+        EmpiricalDistribution,
+        {
+            "samples": mx.nd.stack(
+                *[
+                    mx.nd.arange(start=0, stop=20, step=2),
+                    mx.nd.arange(start=100, stop=0, step=-10),
+                ]
+            ).transpose(),
+            "event_dim": 1,
+        },
+    ),
 ]
 
 test_output_quantile = {
@@ -251,6 +281,15 @@ test_output_quantile = {
         "cdf": mx.nd.array([0.999]),
         "level": mx.nd.array([0.999]),
         "quantile": mx.nd.array([[26.99999999999998]]),
+    },
+    "EmpiricalDistribution": {
+        # Actual samples are (transpose of):
+        # [[  0.   2.   4.   6.   8.  10.  12.  14.  16.  18.]
+        #  [100.  90.  80.  70.  60.  50.  40.  30.  20.  10.]]
+        "x": mx.nd.array([2, 80]),
+        "cdf": mx.nd.array([0.2, 0.8]),
+        "level": mx.nd.array([0.1]),
+        "quantile": mx.nd.array([[0, 10]]),
     },
 }
 
