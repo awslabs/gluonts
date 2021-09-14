@@ -19,11 +19,11 @@ from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
-    RForecastPredictor,
+    RUnivariateForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    SUPPORTED_METHODS,
-    QUANTILE_FORECAST_METHODS,
+    UNIVARIATE_QUANTILE_FORECAST_METHODS,
+    SUPPORTED_UNIVARIATE_METHODS,
 )
 
 
@@ -36,7 +36,7 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
 TOLERANCE = 1e-6
 
 
-@pytest.mark.parametrize("method_name", SUPPORTED_METHODS)
+@pytest.mark.parametrize("method_name", SUPPORTED_UNIVARIATE_METHODS)
 def test_forecasts(method_name):
     if method_name == "mlp":
         # https://stackoverflow.com/questions/56254321/error-in-ifncol-matrix-rep-argument-is-of-length-zero
@@ -64,12 +64,12 @@ def test_forecasts(method_name):
         freq=freq, prediction_length=prediction_length, method_name=method_name
     )
 
-    predictor = RForecastPredictor(**params)
+    predictor = RUnivariateForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
 
     forecast_type = (
         QuantileForecast
-        if method_name in QUANTILE_FORECAST_METHODS
+        if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS
         else SampleForecast
     )
     assert all(
@@ -110,5 +110,5 @@ def test_forecasts(method_name):
 
 
 def test_r_predictor_serialization():
-    predictor = RForecastPredictor(freq="1D", prediction_length=3)
+    predictor = RUnivariateForecastPredictor(freq="1D", prediction_length=3)
     assert predictor == serde.decode(serde.encode(predictor))
