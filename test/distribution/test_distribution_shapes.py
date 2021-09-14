@@ -248,13 +248,6 @@ from gluonts.mx.util import make_nd_diag
         (
             EmpiricalDistribution(
                 samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-            ),
-            (3, 4),
-            (5,),
-        ),
-        (
-            EmpiricalDistribution(
-                samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
                 event_dim=1,
             ),
             (3, 4),
