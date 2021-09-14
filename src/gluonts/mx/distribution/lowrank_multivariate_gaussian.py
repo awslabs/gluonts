@@ -140,15 +140,22 @@ def lowrank_log_likelihood(
 
     dim_factor = dim * math.log(2 * math.pi)
 
-    batch_capacitance_tril = capacitance_tril(F=F, rank=rank, W=W, D=D)
+    if W is not None:
+        batch_capacitance_tril = capacitance_tril(F=F, rank=rank, W=W, D=D)
 
-    log_det_factor = log_det(
-        F=F, batch_D=D, batch_capacitance_tril=batch_capacitance_tril
-    )
+        log_det_factor = log_det(
+            F=F, batch_D=D, batch_capacitance_tril=batch_capacitance_tril
+        )
 
-    mahalanobis_factor = mahalanobis_distance(
-        F=F, W=W, D=D, capacitance_tril=batch_capacitance_tril, x=x - mu
-    )
+        mahalanobis_factor = mahalanobis_distance(
+            F=F, W=W, D=D, capacitance_tril=batch_capacitance_tril, x=x - mu
+        )
+    else:
+        log_det_factor = D.log().sum(axis=-1)
+        x_centered = x - mu
+        mahalanobis_factor = F.broadcast_div(x_centered.square(), D).sum(
+            axis=-1
+        )
 
     ll: Tensor = -0.5 * (
         F.broadcast_add(dim_factor, log_det_factor) + mahalanobis_factor
@@ -164,6 +171,8 @@ class LowrankMultivariateGaussian(Distribution):
 
     .. math::
         \Sigma = D + W W^T
+
+    When `W = None` the covariance matrix is just diagonal.
 
     The implementation is strongly inspired from Pytorch:
     https://github.com/pytorch/pytorch/blob/master/torch/distributions/lowrank_multivariate_normal.py.
@@ -182,13 +191,19 @@ class LowrankMultivariateGaussian(Distribution):
         Diagonal term in the covariance matrix, of shape (..., dim)
     W
         Low-rank factor in the covariance matrix, of shape (..., dim, rank)
+        Optional; if not provided, the covariance matrix is just diagonal.
     """
 
     is_reparameterizable = True
 
     @validated()
     def __init__(
-        self, dim: int, rank: int, mu: Tensor, D: Tensor, W: Tensor
+        self,
+        dim: int,
+        rank: int,
+        mu: Tensor,
+        D: Tensor,
+        W: Optional[Tensor] = None,
     ) -> None:
         self.dim = dim
         self.rank = rank
@@ -232,13 +247,17 @@ class LowrankMultivariateGaussian(Distribution):
         # reshape to a matrix form (..., d, d)
         D_matrix = self.D.expand_dims(-1) * F.eye(self.dim)
 
-        W_matrix = F.linalg_gemm2(self.W, self.W, transpose_b=True)
-
-        self.Cov = D_matrix + W_matrix
+        if self.W is not None:
+            W_matrix = F.linalg_gemm2(self.W, self.W, transpose_b=True)
+            self.Cov = D_matrix + W_matrix
+        else:
+            self.Cov = D_matrix
 
         return self.Cov
 
-    def sample_rep(self, num_samples: int = None, dtype=np.float32) -> Tensor:
+    def sample_rep(
+        self, num_samples: Optional[int] = None, dtype=np.float32
+    ) -> Tensor:
         r"""
         Draw samples from the multivariate Gaussian distribution:
 
@@ -259,7 +278,7 @@ class LowrankMultivariateGaussian(Distribution):
             tensor with shape (num_samples, ..., dim)
         """
 
-        def s(mu: Tensor, D: Tensor, W: Tensor) -> Tensor:
+        def s(mu: Tensor, D: Tensor, W: Optional[Tensor] = None) -> Tensor:
             F = getF(mu)
 
             samples_D = F.sample_normal(
@@ -267,28 +286,58 @@ class LowrankMultivariateGaussian(Distribution):
             )
             cov_D = D.sqrt() * samples_D
 
-            # dummy only use to get the shape (..., rank, 1)
-            dummy_tensor = F.linalg_gemm2(
-                W, mu.expand_dims(axis=-1), transpose_a=True
-            ).squeeze(axis=-1)
+            if W is not None:
+                # dummy only use to get the shape (..., rank, 1)
+                dummy_tensor = F.linalg_gemm2(
+                    W, mu.expand_dims(axis=-1), transpose_a=True
+                ).squeeze(axis=-1)
 
-            samples_W = F.sample_normal(
-                mu=F.zeros_like(dummy_tensor),
-                sigma=F.ones_like(dummy_tensor),
-                dtype=dtype,
-            )
+                samples_W = F.sample_normal(
+                    mu=F.zeros_like(dummy_tensor),
+                    sigma=F.ones_like(dummy_tensor),
+                    dtype=dtype,
+                )
 
-            cov_W = F.linalg_gemm2(W, samples_W.expand_dims(axis=-1)).squeeze(
-                axis=-1
-            )
+                cov_W = F.linalg_gemm2(
+                    W, samples_W.expand_dims(axis=-1)
+                ).squeeze(axis=-1)
 
-            samples = mu + cov_D + cov_W
+                samples = mu + cov_D + cov_W
+            else:
+                samples = mu + cov_D
 
             return samples
 
         return _sample_multiple(
             s, mu=self.mu, D=self.D, W=self.W, num_samples=num_samples
         )
+
+    @classmethod
+    def fit(cls, F, samples: Tensor, rank: int = 0) -> Distribution:
+        """
+        Returns an instance of `LowrankMultivariateGaussian` after fitting parameters to the given data.
+        Only the special case of `rank` = 0 is supported at the moment.
+
+        Parameters
+        ----------
+        F
+        samples
+            Tensor of shape (num_samples, batch_size, seq_len, target_dim)
+        rank
+            Rank of W
+
+        Returns
+        -------
+        Distribution instance of type `LowrankMultivariateGaussian`.
+
+        """
+        # TODO: Implement it for the general case: `rank` > 0
+        assert rank == 0, "Fit is not only implemented for the case rank = 0!"
+
+        # Compute mean and variances
+        mu = samples.mean(axis=0)
+        var = F.square(samples - samples.mean(axis=0)).mean(axis=0)
+        return cls(dim=samples.shape[-1], rank=rank, mu=mu, D=var)
 
 
 def inv_softplus(y):
@@ -312,7 +361,10 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         self.distr_cls = LowrankMultivariateGaussian
         self.dim = dim
         self.rank = rank
-        self.args_dim = {"mu": dim, "D": dim, "W": dim * rank}
+        if rank == 0:
+            self.args_dim = {"mu": dim, "D": dim}
+        else:
+            self.args_dim = {"mu": dim, "D": dim, "W": dim * rank}
         self.mu_bias = 0.0
         self.sigma_init = sigma_init
         self.sigma_minimum = sigma_minimum
@@ -333,7 +385,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         else:
             return AffineTransformedDistribution(distr, loc=loc, scale=scale)
 
-    def domain_map(self, F, mu_vector, D_vector, W_vector):
+    def domain_map(self, F, mu_vector, D_vector, W_vector=None):
         r"""
 
         Parameters
@@ -354,9 +406,6 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
 
         """
 
-        # reshape from vector form (..., d * rank) to matrix form (..., d, rank)
-        W_matrix = W_vector.reshape((-2, self.dim, self.rank, -4), reverse=1)
-
         d_bias = (
             inv_softplus(self.sigma_init ** 2)
             if self.sigma_init > 0.0
@@ -371,7 +420,17 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
             + self.sigma_minimum ** 2
         )
 
-        return mu_vector + self.mu_bias, D_diag, W_matrix
+        if self.rank == 0:
+            return mu_vector + self.mu_bias, D_diag
+        else:
+            assert (
+                W_vector is not None
+            ), "W_vector cannot be None if rank is not zero!"
+            # reshape from vector form (..., d * rank) to matrix form (..., d, rank)
+            W_matrix = W_vector.reshape(
+                (-2, self.dim, self.rank, -4), reverse=1
+            )
+            return mu_vector + self.mu_bias, D_diag, W_matrix
 
     @property
     def event_shape(self) -> Tuple:

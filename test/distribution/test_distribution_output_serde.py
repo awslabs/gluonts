@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import mxnet as mx
 import pytest
 
 from gluonts.core.serde import encode, decode, dump_json
@@ -25,6 +26,8 @@ from gluonts.mx.distribution import (
     DistributionOutput,
     DirichletMultinomialOutput,
     DirichletOutput,
+    EmpiricalDistributionOutput,
+    EmpiricalDistribution,
     GammaOutput,
     GaussianOutput,
     GenParetoOutput,
@@ -53,6 +56,9 @@ from gluonts.mx.distribution import (
         DeterministicOutput(value=42.0),
         DirichletMultinomialOutput(dim=3, n_trials=5),
         DirichletOutput(dim=4),
+        EmpiricalDistributionOutput(
+            num_samples=10, distr_output=GaussianOutput()
+        ),
         GammaOutput(),
         GaussianOutput(),
         GenParetoOutput(),

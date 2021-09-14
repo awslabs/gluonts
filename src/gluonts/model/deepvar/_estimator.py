@@ -451,7 +451,6 @@ class DeepVAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            conditioning_length=self.conditioning_length,
         )
 
     def create_predictor(
@@ -474,7 +473,6 @@ class DeepVAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            conditioning_length=self.conditioning_length,
         )
 
         copy_parameters(trained_network, prediction_network)

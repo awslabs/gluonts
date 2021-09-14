@@ -379,7 +379,6 @@ class GPVAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             distr_output=self.distr_output,
-            conditioning_length=self.conditioning_length,
         )
 
     def create_predictor(
@@ -401,7 +400,6 @@ class GPVAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             distr_output=self.distr_output,
-            conditioning_length=self.conditioning_length,
         )
 
         copy_parameters(trained_network, prediction_network)
