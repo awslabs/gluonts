@@ -23,7 +23,6 @@ from gluonts.model.r_forecast import (
     SUPPORTED_HIERARCHICAL_METHODS,
 )
 from gluonts.support.pandas import forecast_start
-from test.model.deepvar_hierarchical.generate_hierarchical_dataset import sine7
 
 
 # conditionally skip these tests if `R` and `rpy2` are not installed
@@ -31,6 +30,7 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
     skip_message = "Skipping test because `R` and `rpy2` are not installed!"
     pytest.skip(msg=skip_message, allow_module_level=True)
 
+from test.model.deepvar_hierarchical.generate_hierarchical_dataset import sine7
 
 seq_length = 100
 prediction_length = 5
