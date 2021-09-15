@@ -34,7 +34,7 @@ R_IS_INSTALLED = proc.wait() == 0
 try:
     import rpy2.robjects.packages as rpackages
     from rpy2 import rinterface, robjects
-    from rpy2.rinterface_lib.embedded import RRuntimeError
+    from rpy2.rinterface import RRuntimeError
 except ImportError as e:
     rpy2_error_message = str(e)
     RPY2_IS_INSTALLED = False
