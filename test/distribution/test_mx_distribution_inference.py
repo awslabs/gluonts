@@ -43,6 +43,7 @@ from gluonts.mx.distribution import (
     DirichletMultinomialOutput,
     DirichletOutput,
     DistributionOutput,
+    EmpiricalDistributionOutput,
     Gamma,
     GammaOutput,
     Gaussian,
@@ -537,20 +538,25 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
 
 
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
+@pytest.mark.parametrize("rank", [0, 1])
+def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
     num_samples = 2000
     dim = 2
-    rank = 1
 
     mu = np.arange(0, dim) / float(dim)
     D = np.eye(dim) * (np.arange(dim) / dim + 0.5)
-    W = np.sqrt(np.ones((dim, rank)) * 0.2)
-    Sigma = D + W.dot(W.transpose())
+    if rank > 0:
+        W = np.sqrt(np.ones((dim, rank)) * 0.2)
+        Sigma = D + W.dot(W.transpose())
+        W = mx.nd.array([W])
+    else:
+        Sigma = D
+        W = None
 
     distr = LowrankMultivariateGaussian(
         mu=mx.nd.array([mu]),
         D=mx.nd.array([np.diag(D)]),
-        W=mx.nd.array([W]),
+        W=W,
         dim=dim,
         rank=rank,
     )
@@ -561,7 +567,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
 
     samples = distr.sample(num_samples).squeeze().asnumpy()
 
-    mu_hat, D_hat, W_hat = maximum_likelihood_estimate_sgd(
+    theta_hat = maximum_likelihood_estimate_sgd(
         LowrankMultivariateGaussianOutput(
             dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
         ),
@@ -572,15 +578,100 @@ def test_lowrank_multivariate_gaussian(hybridize: bool) -> None:
         hybridize=hybridize,
     )
 
+    if rank > 0:
+        mu_hat, D_hat, W_hat = theta_hat
+        W_hat = mx.nd.array([W_hat])
+    else:
+        mu_hat, D_hat = theta_hat
+        W_hat = None
+
     distr = LowrankMultivariateGaussian(
         dim=dim,
         rank=rank,
         mu=mx.nd.array([mu_hat]),
         D=mx.nd.array([D_hat]),
-        W=mx.nd.array([W_hat]),
+        W=W_hat,
     )
 
     Sigma_hat = distr.variance.asnumpy()
+
+    assert np.allclose(
+        mu_hat, mu, atol=0.2, rtol=0.1
+    ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
+
+    assert np.allclose(
+        Sigma_hat, Sigma, atol=0.1, rtol=0.1
+    ), f"sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
+
+
+@pytest.mark.parametrize("hybridize", [True, False])
+def test_empirical_distribution(hybridize: bool) -> None:
+    r"""
+    This verifies if the loss implemented by `EmpiricalDistribution` is correct.
+    This is done by recovering parameters of a parametric distribution not by maximizing likelihood but by
+    optimizing CRPS loss on the Monte Carlo samples drawn from the underlying parametric distribution.
+
+    More precisely, given observations `obs` drawn from the true distribution p(x; \theta^*), we solve
+
+                \theta_hat = \argmax_{\theta} CRPS(obs, {x}_i)
+                             subject to:      x_i ~ p(x; \theta)
+
+    and verify if \theta^* and \theta_hat agree.
+
+    This test uses Multivariate Gaussian with diagonal covariance. Once multivariate CRPS is implemented in
+    `EmpiricalDistribution` one could use `LowrankMultivariateGaussian` as well. Any univariate distribution whose
+    `sample_rep` is differentiable can also be used in this test.
+
+    """
+    num_obs = 2000
+    dim = 2
+
+    # Multivariate CRPS is not implemented in `EmpiricalDistribution`.
+    rank = 0
+    W = None
+
+    mu = np.arange(0, dim) / float(dim)
+    D = np.eye(dim) * (np.arange(dim) / dim + 0.5)
+    Sigma = D
+
+    distr = LowrankMultivariateGaussian(
+        mu=mx.nd.array([mu]),
+        D=mx.nd.array([np.diag(D)]),
+        W=W,
+        dim=dim,
+        rank=rank,
+    )
+
+    obs = distr.sample(num_obs).squeeze().asnumpy()
+
+    theta_hat = maximum_likelihood_estimate_sgd(
+        EmpiricalDistributionOutput(
+            num_samples=200,
+            distr_output=LowrankMultivariateGaussianOutput(
+                dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
+            ),
+        ),
+        obs,
+        learning_rate=PositiveFloat(0.01),
+        num_epochs=PositiveInt(25),
+        init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
+        hybridize=hybridize,
+    )
+
+    mu_hat, D_hat = theta_hat
+    W_hat = None
+
+    distr = LowrankMultivariateGaussian(
+        dim=dim,
+        rank=rank,
+        mu=mx.nd.array([mu_hat]),
+        D=mx.nd.array([D_hat]),
+        W=W_hat,
+    )
+
+    Sigma_hat = distr.variance.asnumpy()
+
+    print(mu_hat, Sigma_hat)
 
     assert np.allclose(
         mu_hat, mu, atol=0.2, rtol=0.1

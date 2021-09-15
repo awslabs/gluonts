@@ -18,7 +18,7 @@ import mxnet as mx
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
-from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.util import assert_shape, weighted_average
 
 
@@ -60,7 +60,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         dropout_rate: float,
         lags_seq: List[int],
         target_dim: int,
-        conditioning_length: int,
         cardinality: List[int] = [1],
         embedding_dimension: int = 1,
         scaling: bool = True,
@@ -80,7 +79,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         self.target_dim = target_dim
         self.scaling = scaling
         self.target_dim_sample = target_dim
-        self.conditioning_length = conditioning_length
 
         assert len(set(lags_seq)) == len(
             lags_seq
@@ -411,6 +409,28 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         return distr, distr_args
 
+    def loss(self, F, target: Tensor, distr: Distribution) -> Tensor:
+        """
+        Returns negative log-likelihood of `target` under `distr`.
+
+        Parameters
+        ----------
+        F
+        target
+            Tensor with shape (batch_size, seq_len, target_dim)
+        distr
+            Distribution instances
+
+        Returns
+        -------
+        Loss
+            Tensor with shape (batch_size, seq_length, 1)
+
+        """
+        # we sum the last axis to have the same shape for all likelihoods
+        # (batch_size, subseq_length, 1)
+        return -distr.log_prob(target).expand_dims(axis=-1)
+
     def train_hybrid_forward(
         self,
         F,
@@ -501,11 +521,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             seq_len=self.context_length + self.prediction_length,
         )
 
-        # we sum the last axis to have the same shape for all likelihoods
-        # (batch_size, subseq_length, 1)
-        likelihoods = -distr.log_prob(target).expand_dims(axis=-1)
-
-        assert_shape(likelihoods, (-1, seq_len, 1))
+        loss = self.loss(F, target=target, distr=distr)
+        assert_shape(loss, (-1, seq_len, 1))
 
         past_observed_values = F.broadcast_minimum(
             past_observed_values, 1 - past_is_pad.expand_dims(axis=-1)
@@ -526,15 +543,15 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
         assert_shape(loss_weights, (-1, seq_len, 1))
 
-        loss = weighted_average(
-            F=F, x=likelihoods, weights=loss_weights, axis=1
+        weighted_loss = weighted_average(
+            F=F, x=loss, weights=loss_weights, axis=1
         )
 
-        assert_shape(loss, (-1, -1, 1))
+        assert_shape(weighted_loss, (-1, -1, 1))
 
         self.distribution = distr
 
-        return (loss, likelihoods) + distr_args
+        return (weighted_loss, loss) + distr_args
 
     def sampling_decoder(
         self,
@@ -621,6 +638,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
             # (batch_size, 1, target_dim)
             new_samples = distr.sample()
+            new_samples = self.post_process_samples(new_samples)
 
             # (batch_size, seq_len, target_dim)
             future_samples.append(new_samples)
@@ -728,6 +746,27 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             scale=scale,
             begin_states=state,
         )
+
+    def post_process_samples(self, samples: Tensor) -> Tensor:
+        """
+        Method to enforce domain-specific constraints on the generated samples.
+
+        For example, see `DeepVARHierarchicalNetwork`, which adjusts the samples so that they satisfy the given
+        aggregation constraints.
+
+        For `DeepVAR` this is simply the Identity map.
+
+        Parameters
+        ----------
+        samples
+            Tensor of shape (num_parallel_samples*batch_size, 1, target_dim)
+
+        Returns
+        -------
+            Tensor of samples with the same shape.
+
+        """
+        return samples
 
 
 class DeepVARTrainingNetwork(DeepVARNetwork):
