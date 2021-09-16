@@ -82,7 +82,7 @@ class RUnivariateForecastPredictor(RForecastPredictor):
             prediction_length=prediction_length,
             period=period,
             trunc_length=trunc_length,
-            r_file_prefix="univariate",
+            r_file_prefix=R_FILE_PREFIX,
         )
         assert (
             method_name in SUPPORTED_UNIVARIATE_METHODS

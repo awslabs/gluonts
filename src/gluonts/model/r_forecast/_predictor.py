@@ -142,7 +142,7 @@ class RForecastPredictor(RepresentablePredictor):
 
     def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
         """
-        Get forecasts from R methods.
+        Get forecasts from an R method.
 
         Parameters
         ----------
@@ -163,7 +163,7 @@ class RForecastPredictor(RepresentablePredictor):
         self, data: Dict, params: Dict, save_info: bool
     ) -> Tuple[Dict, List]:
         """
-        Run R forecast methods.
+        Run an R forecast method.
 
         Parameters
         ----------
