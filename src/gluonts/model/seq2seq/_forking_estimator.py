@@ -418,6 +418,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     if not self.enable_decoder_dynamic_feature
                     else []
                 ),
+                prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             )
         )
 

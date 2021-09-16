@@ -147,18 +147,6 @@ def run_test(
         else None
     )
 
-    forecast_generator = getattr(predictor, "forecast_generator", None)
-    if isinstance(forecast_generator, QuantileForecastGenerator):
-        predictor_quantiles = forecast_generator.quantiles
-        if test_quantiles is None:
-            test_quantiles = predictor_quantiles
-        elif not set(test_quantiles).issubset(predictor_quantiles):
-            logger.warning(
-                f"Some of the evaluation quantiles `{test_quantiles}` are "
-                f"not in the computed quantile forecasts `{predictor_quantiles}`."
-            )
-            test_quantiles = predictor_quantiles
-
     if test_quantiles is not None:
         logger.info(f"Using quantiles `{test_quantiles}` for evaluation.")
         evaluator = Evaluator(quantiles=test_quantiles)

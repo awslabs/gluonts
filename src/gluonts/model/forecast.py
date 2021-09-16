@@ -21,6 +21,7 @@ import pydantic
 
 from gluonts.core.component import validated
 from gluonts.exceptions import GluonTSUserError
+from gluonts.support.util import Interpolation, TailApproximation
 
 
 class Quantile(NamedTuple):
@@ -385,10 +386,25 @@ class SampleForecast(Forecast):
         """
         return pd.Series(self.mean, index=self.index)
 
-    def quantile(self, q: Union[float, str]) -> np.ndarray:
-        q = Quantile.parse(q).value
-        sample_idx = int(np.round((self.num_samples - 1) * q))
-        return self._sorted_samples[sample_idx, :]
+    def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
+        inference_quantile = Quantile.parse(inference_quantile).value
+
+        if self.num_quantiles == 1 or inference_quantile in self.quantiles:
+            q_str = Quantile.parse(inference_quantile).name
+            return self.quantile_predictions.get(q_str, self._nan_out)
+
+        # The effective range of left, right tails varies over tail approximation class
+        (
+            left_tail_quantile,
+            right_tail_quantile,
+        ) = self.tail_approximation.tail_range()
+
+        if inference_quantile <= left_tail_quantile:
+            return self.tail_approximation.left(inference_quantile)
+        elif inference_quantile >= right_tail_quantile:
+            return self.tail_approximation.right(inference_quantile)
+        else:
+            return self.interpolation(inference_quantile)
 
     def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
@@ -517,10 +533,13 @@ class QuantileForecast(Forecast):
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
         self.prediction_length = shape[-1]
-        self._forecast_dict = {
+        self.quantile_predictions = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
-
+        self.quantiles = sorted(map(float, self.quantile_predictions))
+        self.num_quantiles = len(self.quantile_predictions)
+        self.interpolation = Interpolation(self.quantile_predictions)
+        self.tail_approximation = TailApproximation(self.quantile_predictions)
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
