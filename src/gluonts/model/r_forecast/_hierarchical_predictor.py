@@ -64,8 +64,8 @@ class RHierarchicalForecastPredictor(RForecastPredictor):
     nodes
         Node structure representing the hierarchichy as defined in the hts package.
         To know the exact strucutre of nodes see the help:
-            Hierarhical: https://stackoverflow.com/questions/13579292/how-to-use-hts-with-multi-level-hierarchies
-            Grouped: https://robjhyndman.com/hyndsight/gts/
+        Hierarhical: https://stackoverflow.com/questions/13579292/how-to-use-hts-with-multi-level-hierarchies
+        Grouped: https://robjhyndman.com/hyndsight/gts/
     nonnegative
         Is the target non-negative?
     method_name
