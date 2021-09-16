@@ -386,25 +386,10 @@ class SampleForecast(Forecast):
         """
         return pd.Series(self.mean, index=self.index)
 
-    def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
-        inference_quantile = Quantile.parse(inference_quantile).value
-
-        if self.num_quantiles == 1 or inference_quantile in self.quantiles:
-            q_str = Quantile.parse(inference_quantile).name
-            return self.quantile_predictions.get(q_str, self._nan_out)
-
-        # The effective range of left, right tails varies over tail approximation class
-        (
-            left_tail_quantile,
-            right_tail_quantile,
-        ) = self.tail_approximation.tail_range()
-
-        if inference_quantile <= left_tail_quantile:
-            return self.tail_approximation.left(inference_quantile)
-        elif inference_quantile >= right_tail_quantile:
-            return self.tail_approximation.right(inference_quantile)
-        else:
-            return self.interpolation(inference_quantile)
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
+        q = Quantile.parse(q).value
+        sample_idx = int(np.round((self.num_samples - 1) * q))
+        return self._sorted_samples[sample_idx, :]
 
     def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
@@ -542,10 +527,25 @@ class QuantileForecast(Forecast):
         self.tail_approximation = TailApproximation(self.quantile_predictions)
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
-    def quantile(self, q: Union[float, str]) -> np.ndarray:
-        q_str = Quantile.parse(q).name
-        # We return nan here such that evaluation runs through
-        return self._forecast_dict.get(q_str, self._nan_out)
+    def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
+        inference_quantile = Quantile.parse(inference_quantile).value
+
+        if self.num_quantiles == 1 or inference_quantile in self.quantiles:
+            q_str = Quantile.parse(inference_quantile).name
+            return self.quantile_predictions.get(q_str, self._nan_out)
+
+        # The effective range of left, right tails varies over tail approximation class
+        (
+            left_tail_quantile,
+            right_tail_quantile,
+        ) = self.tail_approximation.tail_range()
+
+        if inference_quantile <= left_tail_quantile:
+            return self.tail_approximation.left(inference_quantile)
+        elif inference_quantile >= right_tail_quantile:
+            return self.tail_approximation.right(inference_quantile)
+        else:
+            return self.interpolation(inference_quantile)
 
     @property
     def mean(self) -> np.ndarray:
