@@ -190,7 +190,7 @@ class Interpolation:
     """
 
     def __init__(
-            self, quantile_predictions: dict, interpolation_type: str = "linear"
+        self, quantile_predictions: dict, interpolation_type: str = "linear"
     ):
         self.quantile_predictions = quantile_predictions
         self.quantiles = sorted(map(float, self.quantile_predictions))
@@ -226,11 +226,11 @@ class Interpolation:
             return self.quantile_predictions[str(self.quantiles[-1])]
         else:
             for (current_quantile, next_quantile) in zip(
-                    self.quantiles, self.quantiles[1:]
+                self.quantiles, self.quantiles[1:]
             ):
                 if (
-                        current_quantile <= inference_quantile
-                        and inference_quantile < next_quantile
+                    current_quantile <= inference_quantile
+                    and inference_quantile < next_quantile
                 ):
                     weights = [
                         (next_quantile - inference_quantile)
@@ -239,10 +239,10 @@ class Interpolation:
                         / (next_quantile - current_quantile),
                     ]
                     return (
-                            weights[0]
-                            * self.quantile_predictions[str(current_quantile)]
-                            + weights[1]
-                            * self.quantile_predictions[str(next_quantile)]
+                        weights[0]
+                        * self.quantile_predictions[str(current_quantile)]
+                        + weights[1]
+                        * self.quantile_predictions[str(next_quantile)]
                     )
 
 
@@ -262,10 +262,10 @@ class TailApproximation:
     """
 
     def __init__(
-            self,
-            quantile_predictions: dict,
-            approximation_type: str = "exponential",
-            tol: float = 1e-8,
+        self,
+        quantile_predictions: dict,
+        approximation_type: str = "exponential",
+        tol: float = 1e-8,
     ):
         self.quantile_predictions = quantile_predictions
         self.quantiles = sorted(map(float, self.quantile_predictions))
@@ -330,15 +330,15 @@ class TailApproximation:
         based on two extreme points on the left and right respectively
         """
         assert (
-                self.num_quantiles >= 2
+            self.num_quantiles >= 2
         ), f" Need at least two predicted quantiles for exponential approximation"
         q_log_diff = np.log(
             (self.quantiles[1] + self.tol) / (self.quantiles[0] + self.tol)
             + self.tol
         )
         x_diff = (
-                self.quantile_predictions[str(self.quantiles[1])]
-                - self.quantile_predictions[str(self.quantiles[0])]
+            self.quantile_predictions[str(self.quantiles[1])]
+            - self.quantile_predictions[str(self.quantiles[0])]
         )
         self.beta_inv_left = x_diff / q_log_diff
 
@@ -348,8 +348,8 @@ class TailApproximation:
             + self.tol
         )  # z = 1/(1-q)
         x_diff = (
-                self.quantile_predictions[str(self.quantiles[-1])]
-                - self.quantile_predictions[str(self.quantiles[-2])]
+            self.quantile_predictions[str(self.quantiles[-1])]
+            - self.quantile_predictions[str(self.quantiles[-2])]
         )
         self.beta_inv_right = x_diff / z_log_diff
 
@@ -365,13 +365,13 @@ class TailApproximation:
 
         """
         return (
-                       self.beta_inv_left
-                       * np.log(
-                   (inference_quantile + self.tol)
-                   / (self.quantiles[1] + self.tol)
-                   + self.tol
-               )
-               ) + self.quantile_predictions[str(self.quantiles[1])]
+            self.beta_inv_left
+            * np.log(
+                (inference_quantile + self.tol)
+                / (self.quantiles[1] + self.tol)
+                + self.tol
+            )
+        ) + self.quantile_predictions[str(self.quantiles[1])]
 
     def exponential_tail_right(self, inference_quantile: float):
         """
@@ -384,16 +384,16 @@ class TailApproximation:
         or self.quantile_predictions[str(self.quantiles[-2])] respectively.
         """
         return (
-                       self.beta_inv_right
-                       * np.log(
-                   (1 - self.quantiles[-2] + self.tol)
-                   / (1 - inference_quantile + self.tol)
-                   + self.tol
-               )
-               ) + self.quantile_predictions[str(self.quantiles[-2])]
+            self.beta_inv_right
+            * np.log(
+                (1 - self.quantiles[-2] + self.tol)
+                / (1 - inference_quantile + self.tol)
+                + self.tol
+            )
+        ) + self.quantile_predictions[str(self.quantiles[-2])]
 
     def tail_range(
-            self, default_left_tail_quantile=0.1, default_right_tail_quantile=0.9
+        self, default_left_tail_quantile=0.1, default_right_tail_quantile=0.9
     ):
         """
         Return an effective range of left and right tails

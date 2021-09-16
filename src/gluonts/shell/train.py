@@ -23,7 +23,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
 from gluonts.support.util import maybe_len
 from gluonts.transform import FilterTransformation

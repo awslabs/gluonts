@@ -312,7 +312,6 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         # We only care about the output of the decoder for the last time step
-        # shape: (batch_size, decoder_length, decoder_mlp_dim_seq[0])
         # shape: (batch_size = num_test_ts, decoder_length = prediction_length, num_quantiles)
         fcst_output = F.squeeze(
             self.quantile_proj(
