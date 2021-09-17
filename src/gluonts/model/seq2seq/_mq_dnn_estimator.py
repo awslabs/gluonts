@@ -180,8 +180,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self.kernel_size_seq = (
             kernel_size_seq if kernel_size_seq is not None else [7, 3, 3]
         )
+
         self.quantiles = (
-            sorted(quantiles, reverse=False)  # ascending order
+            quantiles
             if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )
@@ -343,7 +344,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [30]
         )
         self.quantiles = (
-            sorted(quantiles, reverse=False)  # ascending order
+            quantiles
             if (quantiles is not None) or (distr_output is not None)
             else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         )

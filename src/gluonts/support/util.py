@@ -274,7 +274,6 @@ class TailApproximation:
             approximation_type if self.num_quantiles > 1 else None
         )
         self.tol = tol
-        (self.tail_function_left, self.tail_function_right) = (None, None)
         if not self.approximation_type:
             pass
         elif self.approximation_type == "exponential":

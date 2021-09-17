@@ -296,7 +296,7 @@ class QuantileOutput:
         quantile_weights: Optional[List[float]] = None,
         is_iqf: bool = False,
     ) -> None:
-        self.quantiles = quantiles
+        self.quantiles = sorted(quantiles)
         self.num_quantiles = len(self.quantiles)
         self.quantile_weights = quantile_weights
         self.is_iqf = is_iqf
