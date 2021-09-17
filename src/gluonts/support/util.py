@@ -330,7 +330,7 @@ class TailApproximation:
         """
         assert (
             self.num_quantiles >= 2
-        ), f" Need at least two predicted quantiles for exponential approximation"
+        ), "Need at least two predicted quantiles for exponential approximation"
         q_log_diff = np.log(
             (self.quantiles[1] + self.tol) / (self.quantiles[0] + self.tol)
             + self.tol

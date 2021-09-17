@@ -155,30 +155,38 @@ class QuantileLoss(Loss):
         Math:
         Let quantiles = [q_1, ..., q_n] with quantile estimates [z_1, ..., z_n].
         Then, approximated CRPS with the linear interpolation is
-        CRPS =
-        \[
-            \sum_{i=1}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i}).
-        \]
+        .. math::
+            :nowrap:
+
+            \begin{aligned}
+                CRPS = \sum_{i=1}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i}).
+             \end{aligned}
 
         Reordering w.r.t. e_j for j=1, ..., n, gives
-        CRPS = 0.5 * (q_2 - q_1) z_1
+        .. math::
+            :nowrap:
+            \begin{aligned}
+            CRPS = 0.5 * (q_2 - q_1) z_1
             + 0.5 * (q_3 - q_1)  z_2
             + ....
             + 0.5 * (q_n - q_{n-2}) z_{n-1}
             + 0.5 * (q_n - q_{n-1}) z_n
+            \end{aligned}
         , where each coefficient of z_j is quantile weight w_j.
 
         Thus,
         CRPS = \sum_{j=1}^n w_j z_j
         where quantile weight w_j is
-        \[
+        .. math::
+            :nowrap:
+            \begin{aligned}
             w_j =
             \begin{cases}
                 0.5 * (q_{j+1} - q_j)       & j=1   \\
                 0.5 * (q_{j+1} - q_{j-1})   & j=2,..., n-1  \\
                 0.5 * (q_j - q_{j-1})       & j=n
             \end{cases}.
-        \]
+         \end{aligned}
 
         Return
         ----------

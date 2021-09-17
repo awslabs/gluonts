@@ -268,8 +268,7 @@ def test_serialize(Estimator, serialize_test, hyperparameters, is_iqf):
     serialize_test(Estimator, hyperparameters)
 
 
-@pytest.mark.parametrize("use_feat_dynamic_real", [True, False])
-def test_backwards_compatibility(use_feat_dynamic_real):
+def test_backwards_compatibility():
     hps = {
         "freq": "D",
         "context_length": 5,
@@ -278,7 +277,7 @@ def test_backwards_compatibility(use_feat_dynamic_real):
         "quantiles": [0.5, 0.1],
         "epochs": 3,
         "num_batches_per_epoch": 3,
-        "use_feat_dynamic_real": use_feat_dynamic_real,
+        "use_feat_dynamic_real": True,
         "use_past_feat_dynamic_real": True,
         "enable_encoder_dynamic_feature": True,
         "enable_decoder_dynamic_feature": True,
