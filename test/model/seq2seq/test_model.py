@@ -14,6 +14,7 @@
 import pytest
 
 from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
+from gluonts.mx.distribution import GaussianOutput
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
@@ -41,18 +42,31 @@ def Estimator(request):
 
 @pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize(
+    "quantiles, distr_output",
+    [([0.1, 0.5, 0.9], None), (None, GaussianOutput())],
+)
 @pytest.mark.parametrize("is_iqf", [True, False])
 def test_accuracy(
-    Estimator, accuracy_test, hyperparameters, hybridize, quantiles, is_iqf
+    Estimator,
+    accuracy_test,
+    hyperparameters,
+    hybridize,
+    quantiles,
+    distr_output,
+    is_iqf,
 ):
     hyperparameters.update(
         num_batches_per_epoch=100,
         hybridize=hybridize,
         quantiles=quantiles,
+        distr_output=distr_output,
         is_iqf=is_iqf,
     )
 
-    accuracy_test(Estimator, hyperparameters, accuracy=0.20)
+    accuracy_test(
+        Estimator, hyperparameters, accuracy=0.20
+    ) if quantiles else 0.70
 
 
 @pytest.mark.parametrize("use_past_feat_dynamic_real", [True, False])
@@ -62,6 +76,13 @@ def test_accuracy(
 @pytest.mark.parametrize("enable_encoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("enable_decoder_dynamic_feature", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
+@pytest.mark.parametrize(
+    "quantiles, distr_output",
+    [
+        ([0.5, 0.1], None),
+        (None, GaussianOutput()),
+    ],
+)
 @pytest.mark.parametrize("is_iqf", [True, False])
 def test_mqcnn_covariate_smoke_test(
     use_past_feat_dynamic_real,
@@ -71,6 +92,8 @@ def test_mqcnn_covariate_smoke_test(
     enable_encoder_dynamic_feature,
     enable_decoder_dynamic_feature,
     hybridize,
+    quantiles,
+    distr_output,
     is_iqf,
 ):
     hps = {
@@ -78,7 +101,8 @@ def test_mqcnn_covariate_smoke_test(
         "freq": "Y",
         "context_length": 5,
         "prediction_length": 3,
-        "quantiles": [0.5, 0.1],
+        "quantiles": quantiles,
+        "distr_output": distr_output,
         "epochs": 3,
         "num_batches_per_epoch": 3,
         "use_past_feat_dynamic_real": use_past_feat_dynamic_real,

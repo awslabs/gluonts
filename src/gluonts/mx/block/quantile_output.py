@@ -25,10 +25,10 @@ class QuantileLoss(Loss):
     def __init__(
         self,
         quantiles: List[float],
-        quantile_weights: List[float] = None,
+        quantile_weights: Optional[List[float]] = None,
         is_equal_weights: bool = True,
-        weight=None,
-        batch_axis=0,
+        weight: Optional[float] = None,
+        batch_axis: int = 0,
         **kwargs,
     ) -> None:
         """
