@@ -180,7 +180,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self.kernel_size_seq = (
             kernel_size_seq if kernel_size_seq is not None else [7, 3, 3]
         )
-
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
@@ -220,7 +219,11 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+        quantile_output = (
+            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+            if self.quantiles
+            else None
+        )
 
         super().__init__(
             encoder=encoder,
@@ -369,7 +372,11 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+        quantile_output = (
+            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+            if self.quantiles
+            else None
+        )
 
         super().__init__(
             encoder=encoder,
