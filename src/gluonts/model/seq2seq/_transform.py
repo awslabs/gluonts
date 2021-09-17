@@ -29,7 +29,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
     @validated()
     def __init__(
         self,
-        train_sampler,
+        instance_sampler,
         enc_len: int,
         dec_len: int,
         num_forking: Optional[int] = None,
@@ -46,7 +46,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         assert enc_len > 0, "The value of `enc_len` should be > 0"
         assert dec_len > 0, "The value of `dec_len` should be > 0"
 
-        self.train_sampler = train_sampler
+        self.instance_sampler = instance_sampler
         self.enc_len = enc_len
         self.dec_len = dec_len
         self.num_forking = (
@@ -106,7 +106,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             if len(target) < self.dec_len:
                 return
 
-            sampling_indices = self.train_sampler(
+            sampling_indices = self.instance_sampler(
                 target, 0, len(target) - self.dec_len
             )
         else:
