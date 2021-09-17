@@ -40,7 +40,6 @@ def Estimator(request):
     return request.param
 
 
-@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize(
     "quantiles, distr_output",
@@ -65,8 +64,8 @@ def test_accuracy(
     )
 
     accuracy_test(
-        Estimator, hyperparameters, accuracy=0.20
-    ) if quantiles else 0.70
+        Estimator, hyperparameters, accuracy=0.20 if quantiles else 0.70
+    )
 
 
 @pytest.mark.parametrize("use_past_feat_dynamic_real", [True, False])
