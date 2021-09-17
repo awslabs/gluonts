@@ -207,7 +207,7 @@ def test_inference_quantile_prediction(quantiles, inference_quantiles):
         ), f"quantile-crossing occurred"
 
 
-@pytest.mark.parametrize("is_iqf", [None, True, False])
+@pytest.mark.parametrize("is_iqf", [True, False])
 def test_is_iqf(is_iqf):
     hps = {
         "seed": 42,
@@ -233,13 +233,13 @@ def test_is_iqf(is_iqf):
     assert len(forecasts) == len(dataset_test)
 
 
-@pytest.mark.parametrize("is_iqf", [None, True, False])
+@pytest.mark.parametrize("is_iqf", [True, False])
 def test_repr(Estimator, repr_test, hyperparameters, is_iqf):
     hyperparameters.update(is_iqf=is_iqf)
     repr_test(Estimator, hyperparameters)
 
 
-@pytest.mark.parametrize("is_iqf", [None, True, False])
+@pytest.mark.parametrize("is_iqf", [True, False])
 def test_serialize(Estimator, serialize_test, hyperparameters, is_iqf):
     hyperparameters.update(is_iqf=is_iqf)
     serialize_test(Estimator, hyperparameters)
