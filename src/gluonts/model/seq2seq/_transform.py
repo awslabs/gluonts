@@ -107,9 +107,7 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             if len(target) < self.dec_len:
                 return
 
-            sampling_indices = self.instance_sampler(
-                target, 0, len(target) - self.dec_len
-            )
+            sampling_indices = self.instance_sampler(target)
         else:
             sampling_indices = [len(target)]
 
