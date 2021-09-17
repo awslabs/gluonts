@@ -26,6 +26,7 @@ class QuantileLoss(Loss):
         self,
         quantiles: List[float],
         quantile_weights: Optional[List[float]] = None,
+        is_equal_weights: bool = True,
         weight: Optional[float] = None,
         batch_axis: int = 0,
         **kwargs,
@@ -35,26 +36,31 @@ class QuantileLoss(Loss):
 
         Parameters
         ----------
-        quantiles
+        quantiles:
             list of quantiles to compute loss over.
 
-        quantile_weights
+        quantile_weights:
             weights of the quantiles.
 
-        weight
+        is_equal_weights:
+            use equally quantiles weights or not
+
+        weight:
             weighting of the loss.
 
-        batch_axis
+        batch_axis:
             indicates axis that represents the batch.
         """
         super().__init__(weight, batch_axis, **kwargs)
 
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
+        self.is_equal_weights = is_equal_weights
+
         self.quantile_weights = (
-            [1.0 / self.num_quantiles for i in range(self.num_quantiles)]
-            if not quantile_weights
-            else quantile_weights
+            quantile_weights
+            if quantile_weights
+            else self.compute_quantile_weights()
         )
 
     # noinspection PyMethodOverriding
@@ -142,6 +148,64 @@ class QuantileLoss(Loss):
 
         return qt_loss
 
+    def compute_quantile_weights(self):
+        """
+        Compute weight of each quantile
+
+        Math:
+        Let quantiles = [q_1, ..., q_n] with quantile estimates [z_1, ..., z_n].
+        Then, approximated CRPS with the linear interpolation is
+
+        .. math::
+            :nowrap:
+
+                    CRPS = sum_{i=1}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i}).
+
+        Reordering w.r.t. e_j for j=1, ..., n, gives
+        .. math::
+            :nowrap:
+
+                CRPS = 0.5 * (q_2 - q_1) z_1
+                + 0.5 * (q_3 - q_1)  z_2
+                + ....
+                + 0.5 * (q_n - q_{n-2}) z_{n-1}
+                + 0.5 * (q_n - q_{n-1}) z_n
+        , where each coefficient of z_j is quantile weight w_j.
+
+        Thus,
+        CRPS = sum_{j=1}^n w_j z_j
+        where quantile weight w_j is
+        .. math::
+            :nowrap:
+
+                    w_j =
+                        0.5 * (q_{j+1} - q_j)       & j=1   \\
+                        0.5 * (q_{j+1} - q_{j-1})   & j=2,..., n-1  \\
+                        0.5 * (q_j - q_{j-1})       & j=n
+
+        Return
+        ----------
+        quantile_weights:
+            weights of the quantiles.
+        """
+        assert (
+            self.num_quantiles >= 0
+        ), f"invalid num_quantiles: {self.num_quantiles}"
+        if self.num_quantiles == 0:  # edge case
+            quantile_weights = []
+        elif self.is_equal_weights or self.num_quantiles == 1:
+            quantile_weights = [1.0 / self.num_quantiles] * self.num_quantiles
+        else:  # self.is_equal_weights= False and self.num_quantiles > 1
+            quantile_weights = (
+                [0.5 * (self.quantiles[1] - self.quantiles[0])]
+                + [
+                    0.5 * (self.quantiles[i + 1] - self.quantiles[i - 1])
+                    for i in range(1, self.num_quantiles - 1)
+                ]
+                + [0.5 * (self.quantiles[-1] - self.quantiles[-2])]
+            )
+        return quantile_weights
+
 
 class ProjectParams(nn.HybridBlock):
     """
@@ -150,16 +214,31 @@ class ProjectParams(nn.HybridBlock):
 
     Parameters
     ----------
-    num_quantiles
+    num_quantiles:
         number of quantiles to compute the projection.
+    is_iqf:
+        determines whether to use IQF or QF.
     """
 
     @validated()
-    def __init__(self, num_quantiles, **kwargs):
+    def __init__(self, num_quantiles: int, is_iqf: bool = False, **kwargs):
         super().__init__(**kwargs)
 
+        self.num_quantiles = num_quantiles
+        self.is_iqf = is_iqf
         with self.name_scope():
-            self.projection = nn.Dense(units=num_quantiles, flatten=False)
+            if self.is_iqf:
+                self.proj_intrcpt = nn.Dense(1, flatten=False)
+                if self.num_quantiles > 1:
+                    self.proj_incrmnt = nn.Dense(
+                        self.num_quantiles - 1,
+                        flatten=False,
+                        activation="relu",
+                    )  # increments between quantile estimates
+            else:
+                self.projection = nn.Dense(
+                    units=self.num_quantiles, flatten=False
+                )
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
@@ -178,7 +257,22 @@ class ProjectParams(nn.HybridBlock):
         Tensor
             output of the projection layer
         """
-        return self.projection(x)
+        return (
+            (
+                self.proj_intrcpt(x)
+                if self.num_quantiles == 1
+                else (
+                    F.cumsum(
+                        F.concat(
+                            self.proj_intrcpt(x), self.proj_incrmnt(x), dim=-1
+                        ),
+                        axis=3,
+                    )
+                )
+            )
+            if self.is_iqf
+            else self.projection(x)
+        )
 
 
 class QuantileOutput:
@@ -188,11 +282,14 @@ class QuantileOutput:
 
     Parameters
     ----------
-        quantiles
+        quantiles:
             list of quantiles to compute loss over.
 
-        quantile_weights
+        quantile_weights:
             weights of the quantiles.
+
+        is_iqf:
+            determines whether to use IQF or QF.
     """
 
     @validated()
@@ -200,9 +297,13 @@ class QuantileOutput:
         self,
         quantiles: List[float],
         quantile_weights: Optional[List[float]] = None,
+        is_iqf: bool = False,
     ) -> None:
-        self.quantiles = quantiles
+        self.quantiles = sorted(quantiles)
+        self.num_quantiles = len(self.quantiles)
         self.quantile_weights = quantile_weights
+        self.is_iqf = is_iqf
+        self.is_equal_weights = False if self.is_iqf else True
 
     def get_loss(self) -> nn.HybridBlock:
         """
@@ -212,7 +313,9 @@ class QuantileOutput:
             constructs quantile loss object.
         """
         return QuantileLoss(
-            quantiles=self.quantiles, quantile_weights=self.quantile_weights
+            quantiles=self.quantiles,
+            quantile_weights=self.quantile_weights,
+            is_equal_weights=self.is_equal_weights,
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
@@ -223,4 +326,4 @@ class QuantileOutput:
             constructs projection parameter object.
 
         """
-        return ProjectParams(len(self.quantiles), **kwargs)
+        return ProjectParams(self.num_quantiles, self.is_iqf, **kwargs)
