@@ -15,7 +15,7 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -177,85 +177,86 @@ def erfinv(x: np.array) -> np.array:
     return p * x
 
 
-class Interpolation:
+class LinearInterpolation:
     """
-    Interpolation based on trained quantile predictions
+    Linear interpolation based on datapoints (x_coord, y_coord)
 
     Parameters
     ----------
-    quantile_predictions
-        Dict with key = str(quantile) and value is np.array with size prediction_length
+    x_coord
+        x-coordinates of the data points must be in increasing order.
+    y_coord
+        y-coordinates of the data points - may be a list of lists.
     interpolation_type
-
+        Defines type of interpolation to be performed.
+    tol
+        tolerance when performing the division in the interpolation
     """
 
     def __init__(
-        self, quantile_predictions: dict, interpolation_type: str = "linear"
-    ):
-        self.quantile_predictions = quantile_predictions
-        self.quantiles = sorted(map(float, self.quantile_predictions))
-        self.num_quantiles = len(self.quantile_predictions)
+        self,
+        x_coord: List[float],
+        y_coord: List[np.ndarray],
+        interpolation_type: str = "linear",
+        tol: float = 1e-8,
+    ) -> None:
+        self.x_coord = x_coord
+        assert sorted(self.x_coord) == self.x_coord
+        self.y_coord = y_coord
         self.interpolation_type = interpolation_type
+        self.tol = tol
 
-    def __call__(self, inference_quantile):
+    def __call__(self, x: float):
         if self.interpolation_type == "linear":
-            return self.linear_interpolation(inference_quantile)
+            return self.linear_interpolation(x)
         else:
             raise NotImplementedError(
                 f"unknown interpolation type {self.interpolation_type}"
             )
 
-    def linear_interpolation(self, inference_quantile: float):
+    def linear_interpolation(self, x: float) -> np.ndarray:
         """
-        If inference quantile is out of interpolation range,
+        If x is out of interpolation range,
         return smallest or largest value.
-        Otherwise, find two nearest points [q_1, x_1], [q_2, x_2] and
+        Otherwise, find two nearest points [x_1, y_1], [x_2, y_2] and
         return its linear interpolation
-        x = (q_2 - q)/(q_2 - q_1) * x_1 + (q - q_1)/(q_2 - q_1) * x_2.
+        y = (x_2 - x)/(x_2 - x_1) * y_1 + (x - x_1)/(x_2 - x_1) * y_2.
 
+        Parameters
+        ----------
+        x
+            x-coordinate to evaluate the interpolated points.
 
         Returns
         -------
-        same type and shape as any value of quantile_predictions dict,
-        i.e., type=np.array, shape = (prediction_length, )
+        np.ndarray
+            Interpolated values same shape as self.y_coord
 
         """
-        if self.quantiles[0] >= inference_quantile:
-            return self.quantile_predictions[str(self.quantiles[0])]
-        elif self.quantiles[-1] <= inference_quantile:
-            return self.quantile_predictions[str(self.quantiles[-1])]
+        if self.x_coord[0] >= x:
+            return self.y_coord[0]
+        elif self.x_coord[-1] <= x:
+            return self.y_coord[-1]
         else:
-            for (current_quantile, next_quantile) in zip(
-                self.quantiles, self.quantiles[1:]
-            ):
-                if (
-                    current_quantile <= inference_quantile
-                    and inference_quantile < next_quantile
-                ):
-                    weights = [
-                        (next_quantile - inference_quantile)
-                        / (next_quantile - current_quantile),
-                        (inference_quantile - current_quantile)
-                        / (next_quantile - current_quantile),
-                    ]
-                    return (
-                        weights[0]
-                        * self.quantile_predictions[str(current_quantile)]
-                        + weights[1]
-                        * self.quantile_predictions[str(next_quantile)]
-                    )
+            for i, (x1, x2) in enumerate(zip(self.x_coord, self.x_coord[1:])):
+                if x1 < x < x2:
+                    denominator = x2 - x1 + self.tol
+                    return (x2 - x) / denominator * self.y_coord[i] + (
+                        x - x1
+                    ) / denominator * self.y_coord[i + 1]
 
 
 class TailApproximation:
     """
-    Apporoximate quantile function on tails based on trained quantile predictions
-    and make a inference on query point.
+    Approximate function on tails based on knots and make a inference on query point.
     Can be used for either interpolation or extrapolation on tails
 
     Parameters
     ----------
-    quantile_predictions
-        Dict with key = str(quantile) and value is np.array with size prediction_length
+    x_coord
+        x-coordinates of the data points must be in increasing order.
+    y_coord
+        y-coordinates of the data points - may be a higher numpy array.
     approximation_type
         str of tail approximation type
 
@@ -263,21 +264,22 @@ class TailApproximation:
 
     def __init__(
         self,
-        quantile_predictions: dict,
+        x_coord: List[float],
+        y_coord: List[np.ndarray],
         approximation_type: str = "exponential",
         tol: float = 1e-8,
-    ):
-        self.quantile_predictions = quantile_predictions
-        self.quantiles = sorted(map(float, self.quantile_predictions))
-        self.num_quantiles = len(self.quantile_predictions)
+    ) -> None:
+        self.x_coord = x_coord
+        assert sorted(self.x_coord) == self.x_coord
+        self.y_coord = y_coord
+        self.num_points = len(self.x_coord)
         self.approximation_type = (
-            approximation_type if self.num_quantiles > 1 else None
+            approximation_type if len(self.x_coord) > 1 else None
         )
         self.tol = tol
         if not self.approximation_type:
             pass
         elif self.approximation_type == "exponential":
-            self.init_exponential_tail_weights()
             self.tail_function_left = self.exponential_tail_left
             self.tail_function_right = self.exponential_tail_right
         else:
@@ -285,131 +287,135 @@ class TailApproximation:
                 f"unknown approximation type {self.approximation_type}"
             )
 
-    def left(self, inference_quantile: float):
+    def left(self, x: float) -> np.ndarray:
         """
         Call left tail approximation
 
         Parameters
         -------
-        inference_quantile
-            float
+        x
+            x-coordinate to evaluate the left tail.
 
         Returns
         -------
-        same type and shape as any value of quantile_predictions dict,
-        i.e., type=np.array, shape = (prediction_length, )
+        np.ndarray
+            Interpolated values same shape as self.y_coord
         """
         if not self.approximation_type:
-            return self.quantile_predictions[str(self.quantiles[0])]
+            return self.y_coord[0]
         else:
-            return self.tail_function_left(inference_quantile)
+            return self.tail_function_left(x)
 
-    def right(self, inference_quantile: float):
+    def right(self, x: float) -> np.ndarray:
         """
-        Call right tail approximation
+        Call right tail approximation.
 
         Parameters
-        -------
-        inference_quantile
-            float
+        ----------
+        x
+            x-coordinate to evaluate the right tail.
 
         Returns
         -------
-        same type and shape as any value of quantile_predictions dict,
-        i.e., type=np.array, shape = (prediction_length, )
+        np.ndarray
+            Right tail approximated values same shape as self.y_coord.
         """
         if not self.approximation_type:
-            return self.quantile_predictions[str(self.quantiles[-1])]
+            return self.y_coord[-1]
         else:
-            return self.tail_function_right(inference_quantile)
+            return self.tail_function_right(x)
 
-    def init_exponential_tail_weights(self):
+    def init_exponential_tail_weights(self) -> Tuple[float, float]:
         """
         Initialize the weight of exponentially decaying tail functions
-        based on two extreme points on the left and right respectively
+        based on two extreme points on the left and right, respectively.
+
+        Returns
+        -------
+        Tuple
+            beta coefficient for left and right tails.
         """
         assert (
-            self.num_quantiles >= 2
-        ), "Need at least two predicted quantiles for exponential approximation"
+            self.num_points >= 2
+        ), "Need at least two points for exponential approximation"
         q_log_diff = np.log(
-            (self.quantiles[1] + self.tol) / (self.quantiles[0] + self.tol)
+            (self.x_coord[1] + self.tol) / (self.x_coord[0] + self.tol)
             + self.tol
         )
-        x_diff = (
-            self.quantile_predictions[str(self.quantiles[1])]
-            - self.quantile_predictions[str(self.quantiles[0])]
-        )
-        self.beta_inv_left = x_diff / q_log_diff
+        y_diff = self.y_coord[1] - self.y_coord[0]
+        beta_inv_left = y_diff / q_log_diff
 
         z_log_diff = np.log(
-            (1 - self.quantiles[-2] + self.tol)
-            / (1 - self.quantiles[-1] + self.tol)
+            (1 - self.x_coord[-2] + self.tol)
+            / (1 - self.x_coord[-1] + self.tol)
             + self.tol
         )  # z = 1/(1-q)
-        x_diff = (
-            self.quantile_predictions[str(self.quantiles[-1])]
-            - self.quantile_predictions[str(self.quantiles[-2])]
-        )
-        self.beta_inv_right = x_diff / z_log_diff
+        y_diff = self.y_coord[-1] - self.y_coord[-2]
+        beta_inv_right = y_diff / z_log_diff
 
-    def exponential_tail_left(self, inference_quantile: float):
+        return beta_inv_left, beta_inv_right
+
+    def exponential_tail_left(self, x: float) -> np.ndarray:
         """
         Return the inference made on exponentially decaying tail functions
         For left tail, x = exp(beta * (q - alpha))
         For right tail, x = 1 - exp(-beta * (q - alpha))
 
-        E.g. for inference_quantile = self.quantiles[0] or self.quantiles[1] ,
-        return value is exactly self.quantile_predictions[str(self.quantiles[0])]
-        or self.quantile_predictions[str(self.quantiles[1])] respectively.
+        E.g. for x = self.x_coord[0] or self.x_coord[1] ,
+        return value is exactly self.y_coord[0] or self.y_coord[1], respectively.
+
+        Parameters
+        ----------
+        x
+            x-coordinate to evaluate the right tail.
 
         """
+        beta_inv_left, _ = self.init_exponential_tail_weights()
         return (
-            self.beta_inv_left
-            * np.log(
-                (inference_quantile + self.tol)
-                / (self.quantiles[1] + self.tol)
-                + self.tol
-            )
-        ) + self.quantile_predictions[str(self.quantiles[1])]
+            beta_inv_left
+            * np.log((x + self.tol) / (self.x_coord[1] + self.tol) + self.tol)
+        ) + self.y_coord[1]
 
-    def exponential_tail_right(self, inference_quantile: float):
+    def exponential_tail_right(self, x: float) -> np.ndarray:
         """
         Return the inference made on exponentially decaying tail functions
         For left tail, x = exp(beta * (q - alpha))
         For right tail, x = 1 - exp(-beta * (q - alpha))
 
-        E.g. for inference_quantile = self.quantiles[-1] or self.quantiles[-2] ,
-        return value is exactly self.quantile_predictions[str(self.quantiles[-1])]
-        or self.quantile_predictions[str(self.quantiles[-2])] respectively.
+        E.g. for x = self.x_coord[-1] or self.x_coord[-2] ,
+        return value is exactly self.y_coord[-1]
+        or self.y_coord[-2] respectively.
+        Parameters
+        ----------
+        x
+            x-coordinate to evaluate the right tail.
         """
+        _, beta_inv_right = self.init_exponential_tail_weights()
         return (
-            self.beta_inv_right
+            beta_inv_right
             * np.log(
-                (1 - self.quantiles[-2] + self.tol)
-                / (1 - inference_quantile + self.tol)
+                (1 - self.x_coord[-2] + self.tol) / (1 - x + self.tol)
                 + self.tol
             )
-        ) + self.quantile_predictions[str(self.quantiles[-2])]
+        ) + self.y_coord[-2]
 
-    def tail_range(
-        self, default_left_tail_quantile=0.1, default_right_tail_quantile=0.9
-    ):
+    def tail_range(self, default_left_tail=0.1, default_right_tail=0.9):
         """
         Return an effective range of left and right tails
 
         """
         if self.approximation_type == "exponential":
-            left_tail_quantile = max(
-                self.quantiles[0],
-                min(self.quantiles[1], default_left_tail_quantile),
+            left_tail = max(
+                self.x_coord[0],
+                min(self.x_coord[1], default_left_tail),
             )
-            right_tail_quantile = min(
-                self.quantiles[-1],
-                max(self.quantiles[-2], default_right_tail_quantile),
+            right_tail = min(
+                self.x_coord[-1],
+                max(self.x_coord[-2], default_right_tail),
             )
         else:
-            (left_tail_quantile, right_tail_quantile) = (
-                default_left_tail_quantile,
-                default_right_tail_quantile,
+            (left_tail, right_tail) = (
+                default_left_tail,
+                default_right_tail,
             )
-        return (left_tail_quantile, right_tail_quantile)
+        return left_tail, right_tail

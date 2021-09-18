@@ -21,7 +21,7 @@ import pydantic
 
 from gluonts.core.component import validated
 from gluonts.exceptions import GluonTSUserError
-from gluonts.support.util import Interpolation, TailApproximation
+from gluonts.support.util import LinearInterpolation, TailApproximation
 
 
 class Quantile(NamedTuple):
@@ -518,34 +518,40 @@ class QuantileForecast(Forecast):
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
         self.prediction_length = shape[-1]
-        self.quantile_predictions = {
+        self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
-        self.quantiles = sorted(map(float, self.quantile_predictions))
-        self.num_quantiles = len(self.quantile_predictions)
-        self.interpolation = Interpolation(self.quantile_predictions)
-        self.tail_approximation = TailApproximation(self.quantile_predictions)
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
     def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
+        sorted_forecast_dict = dict(sorted(self._forecast_dict.items()))
+        sorted_forecast_dict.pop("mean", None)
+        quantiles = [float(q) for q in sorted_forecast_dict.keys()]
+        quantile_predictions = list(sorted_forecast_dict.values())
+
         inference_quantile = Quantile.parse(inference_quantile).value
 
-        if self.num_quantiles == 1 or inference_quantile in self.quantiles:
+        if len(quantiles) == 1 or inference_quantile in quantiles:
             q_str = Quantile.parse(inference_quantile).name
-            return self.quantile_predictions.get(q_str, self._nan_out)
+            return self._forecast_dict.get(q_str, self._nan_out)
 
+        # FIXME: Only define for is_iqf = True
+        linear_interpolation = LinearInterpolation(
+            quantiles, quantile_predictions
+        )
+        tail_approximation = TailApproximation(quantiles, quantile_predictions)
         # The effective range of left, right tails varies over tail approximation class
         (
             left_tail_quantile,
             right_tail_quantile,
-        ) = self.tail_approximation.tail_range()
+        ) = tail_approximation.tail_range()
 
         if inference_quantile <= left_tail_quantile:
-            return self.tail_approximation.left(inference_quantile)
+            return tail_approximation.left(inference_quantile)
         elif inference_quantile >= right_tail_quantile:
-            return self.tail_approximation.right(inference_quantile)
+            return tail_approximation.right(inference_quantile)
         else:
-            return self.interpolation(inference_quantile)
+            return linear_interpolation(inference_quantile)
 
     @property
     def mean(self) -> np.ndarray:
