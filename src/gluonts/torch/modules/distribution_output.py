@@ -281,6 +281,22 @@ class NegativeBinomialOutput(DistributionOutput):
         total_count, logits = distr_args
         return self.distr_cls(total_count=total_count, logits=logits)
 
+    # Overwrites the parent class method.
+    # We cannot scale using the affine transformation since negative binomial should return integers.
+    # Instead we scale the parameters.
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
+        total_count, logits = distr_args
+
+        if scale is not None:
+            logits += scale.log()
+
+        return NegativeBinomial(total_count=total_count, logits=logits)
+
     @property
     def event_shape(self) -> Tuple:
         return ()
