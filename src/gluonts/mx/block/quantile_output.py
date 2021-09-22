@@ -36,19 +36,19 @@ class QuantileLoss(Loss):
 
         Parameters
         ----------
-        quantiles:
+        quantiles
             list of quantiles to compute loss over.
 
-        quantile_weights:
+        quantile_weights
             weights of the quantiles.
 
-        is_equal_weights:
+        is_equal_weights
             use equally quantiles weights or not
 
-        weight:
+        weight
             weighting of the loss.
 
-        batch_axis:
+        batch_axis
             indicates axis that represents the batch.
         """
         super().__init__(weight, batch_axis, **kwargs)
@@ -148,44 +148,19 @@ class QuantileLoss(Loss):
 
         return qt_loss
 
-    def compute_quantile_weights(self):
+    def compute_quantile_weights(self) -> List:
         """
-        Compute weight of each quantile
+        Compute the exact weights of the approximated integral
+        CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i})
+        under the assumption of linear interpolation or SQF, where z_i is the
+        ith quantile prediction q_i. The inner terms cancel due to the telescoping sum
+        property and we obtain CRPS = sum_{i=1}^n w_i z_i, with the weights
+        w_i = (q_{i+1}-q_{i-1})/2 for i = 1, ..., n-1,
+        w_0 = (q_1-q_0)/2 and w_n = (w_n - w_{n-1})/2.
 
-        Math:
-        Let quantiles = [q_1, ..., q_n] with quantile estimates [z_1, ..., z_n].
-        Then, approximated CRPS with the linear interpolation is
-
-        .. math::
-            :nowrap:
-
-                    CRPS = sum_{i=1}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i}).
-
-        Reordering w.r.t. e_j for j=1, ..., n, gives
-        .. math::
-            :nowrap:
-
-                CRPS = 0.5 * (q_2 - q_1) z_1
-                + 0.5 * (q_3 - q_1)  z_2
-                + ....
-                + 0.5 * (q_n - q_{n-2}) z_{n-1}
-                + 0.5 * (q_n - q_{n-1}) z_n
-        , where each coefficient of z_j is quantile weight w_j.
-
-        Thus,
-        CRPS = sum_{j=1}^n w_j z_j
-        where quantile weight w_j is
-        .. math::
-            :nowrap:
-
-                    w_j =
-                        0.5 * (q_{j+1} - q_j)       & j=1   \\
-                        0.5 * (q_{j+1} - q_{j-1})   & j=2,..., n-1  \\
-                        0.5 * (q_j - q_{j-1})       & j=n
-
-        Return
-        ----------
-        quantile_weights:
+        Returns
+        -------
+        List
             weights of the quantiles.
         """
         assert (
@@ -195,7 +170,7 @@ class QuantileLoss(Loss):
             quantile_weights = []
         elif self.is_equal_weights or self.num_quantiles == 1:
             quantile_weights = [1.0 / self.num_quantiles] * self.num_quantiles
-        else:  # self.is_equal_weights= False and self.num_quantiles > 1
+        else:
             quantile_weights = (
                 [0.5 * (self.quantiles[1] - self.quantiles[0])]
                 + [
@@ -214,9 +189,9 @@ class ProjectParams(nn.HybridBlock):
 
     Parameters
     ----------
-    num_quantiles:
+    num_quantiles
         number of quantiles to compute the projection.
-    is_iqf:
+    is_iqf
         determines whether to use IQF or QF.
     """
 
@@ -282,14 +257,14 @@ class QuantileOutput:
 
     Parameters
     ----------
-        quantiles:
-            list of quantiles to compute loss over.
+    quantiles
+        list of quantiles to compute loss over.
 
-        quantile_weights:
-            weights of the quantiles.
+    quantile_weights
+        weights of the quantiles.
 
-        is_iqf:
-            determines whether to use IQF or QF.
+    is_iqf
+        determines whether to use IQF or QF.
     """
 
     @validated()
