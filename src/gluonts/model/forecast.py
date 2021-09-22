@@ -21,7 +21,10 @@ import pydantic
 
 from gluonts.core.component import validated
 from gluonts.exceptions import GluonTSUserError
-from gluonts.support.util import LinearInterpolation, TailApproximation
+from gluonts.support.util import (
+    LinearInterpolation,
+    ExponentialTailApproximation,
+)
 
 
 class Quantile(NamedTuple):
@@ -535,21 +538,22 @@ class QuantileForecast(Forecast):
             q_str = Quantile.parse(inference_quantile).name
             return self._forecast_dict.get(q_str, self._nan_out)
 
-        # FIXME: Only define for is_iqf = True
         linear_interpolation = LinearInterpolation(
             quantiles, quantile_predictions
         )
-        tail_approximation = TailApproximation(quantiles, quantile_predictions)
+        exp_tail_approximation = ExponentialTailApproximation(
+            quantiles, quantile_predictions
+        )
         # The effective range of left, right tails varies over tail approximation class
         (
             left_tail_quantile,
             right_tail_quantile,
-        ) = tail_approximation.tail_range()
+        ) = exp_tail_approximation.tail_range()
 
         if inference_quantile <= left_tail_quantile:
-            return tail_approximation.left(inference_quantile)
+            return exp_tail_approximation.left(inference_quantile)
         elif inference_quantile >= right_tail_quantile:
-            return tail_approximation.right(inference_quantile)
+            return exp_tail_approximation.right(inference_quantile)
         else:
             return linear_interpolation(inference_quantile)
 

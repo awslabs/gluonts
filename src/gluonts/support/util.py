@@ -187,32 +187,27 @@ class LinearInterpolation:
         x-coordinates of the data points must be in increasing order.
     y_coord
         y-coordinates of the data points - may be a list of lists.
-    interpolation_type
-        Defines type of interpolation to be performed.
     tol
-        tolerance when performing the division in the interpolation
+        tolerance when performing the division in the linear interpolation.
     """
 
     def __init__(
         self,
         x_coord: List[float],
         y_coord: List[np.ndarray],
-        interpolation_type: str = "linear",
         tol: float = 1e-8,
     ) -> None:
         self.x_coord = x_coord
         assert sorted(self.x_coord) == self.x_coord
         self.y_coord = y_coord
-        self.interpolation_type = interpolation_type
+        self.num_points = len(self.x_coord)
+        assert (
+            self.num_points >= 2
+        ), "Need at least two points for linear interpolation."
         self.tol = tol
 
     def __call__(self, x: float):
-        if self.interpolation_type == "linear":
-            return self.linear_interpolation(x)
-        else:
-            raise NotImplementedError(
-                f"unknown interpolation type {self.interpolation_type}"
-            )
+        return self.linear_interpolation(x)
 
     def linear_interpolation(self, x: float) -> np.ndarray:
         """
@@ -246,7 +241,7 @@ class LinearInterpolation:
                     ) / denominator * self.y_coord[i + 1]
 
 
-class TailApproximation:
+class ExponentialTailApproximation:
     """
     Approximate function on tails based on knots and make a inference on query point.
     Can be used for either interpolation or extrapolation on tails
@@ -257,73 +252,28 @@ class TailApproximation:
         x-coordinates of the data points must be in increasing order.
     y_coord
         y-coordinates of the data points - may be a higher numpy array.
-    approximation_type
-        str of tail approximation type
-
+    tol
+        tolerance when performing the division and computing the log in the exponential extrapolation.
     """
 
     def __init__(
         self,
         x_coord: List[float],
         y_coord: List[np.ndarray],
-        approximation_type: str = "exponential",
         tol: float = 1e-8,
     ) -> None:
         self.x_coord = x_coord
         assert sorted(self.x_coord) == self.x_coord
         self.y_coord = y_coord
         self.num_points = len(self.x_coord)
-        self.approximation_type = (
-            approximation_type if len(self.x_coord) > 1 else None
-        )
+        assert (
+            self.num_points >= 2
+        ), "Need at least two points for exponential approximation."
         self.tol = tol
-        if not self.approximation_type:
-            pass
-        elif self.approximation_type == "exponential":
-            self.tail_function_left = self.exponential_tail_left
-            self.tail_function_right = self.exponential_tail_right
-        else:
-            raise NotImplementedError(
-                f"unknown approximation type {self.approximation_type}"
-            )
-
-    def left(self, x: float) -> np.ndarray:
-        """
-        Call left tail approximation
-
-        Parameters
-        -------
-        x
-            x-coordinate to evaluate the left tail.
-
-        Returns
-        -------
-        np.ndarray
-            Interpolated values same shape as self.y_coord
-        """
-        if not self.approximation_type:
-            return self.y_coord[0]
-        else:
-            return self.tail_function_left(x)
-
-    def right(self, x: float) -> np.ndarray:
-        """
-        Call right tail approximation.
-
-        Parameters
-        ----------
-        x
-            x-coordinate to evaluate the right tail.
-
-        Returns
-        -------
-        np.ndarray
-            Right tail approximated values same shape as self.y_coord.
-        """
-        if not self.approximation_type:
-            return self.y_coord[-1]
-        else:
-            return self.tail_function_right(x)
+        (
+            self.beta_inv_left,
+            self.beta_inv_right,
+        ) = self.init_exponential_tail_weights()
 
     def init_exponential_tail_weights(self) -> Tuple[float, float]:
         """
@@ -335,27 +285,24 @@ class TailApproximation:
         Tuple
             beta coefficient for left and right tails.
         """
-        assert (
-            self.num_points >= 2
-        ), "Need at least two points for exponential approximation"
         q_log_diff = np.log(
             (self.x_coord[1] + self.tol) / (self.x_coord[0] + self.tol)
             + self.tol
         )
-        y_diff = self.y_coord[1] - self.y_coord[0]
-        beta_inv_left = y_diff / q_log_diff
+        y_diff_left = self.y_coord[1] - self.y_coord[0]
+        beta_inv_left = y_diff_left / q_log_diff
 
         z_log_diff = np.log(
             (1 - self.x_coord[-2] + self.tol)
             / (1 - self.x_coord[-1] + self.tol)
             + self.tol
         )  # z = 1/(1-q)
-        y_diff = self.y_coord[-1] - self.y_coord[-2]
-        beta_inv_right = y_diff / z_log_diff
+        y_diff_right = self.y_coord[-1] - self.y_coord[-2]
+        beta_inv_right = y_diff_right / z_log_diff
 
         return beta_inv_left, beta_inv_right
 
-    def exponential_tail_left(self, x: float) -> np.ndarray:
+    def left(self, x: float) -> np.ndarray:
         """
         Return the inference made on exponentially decaying tail functions
         For left tail, x = exp(beta * (q - alpha))
@@ -370,13 +317,12 @@ class TailApproximation:
             x-coordinate to evaluate the right tail.
 
         """
-        beta_inv_left, _ = self.init_exponential_tail_weights()
         return (
-            beta_inv_left
+            self.beta_inv_left
             * np.log((x + self.tol) / (self.x_coord[1] + self.tol) + self.tol)
         ) + self.y_coord[1]
 
-    def exponential_tail_right(self, x: float) -> np.ndarray:
+    def right(self, x: float) -> np.ndarray:
         """
         Return the inference made on exponentially decaying tail functions
         For left tail, x = exp(beta * (q - alpha))
@@ -390,9 +336,8 @@ class TailApproximation:
         x
             x-coordinate to evaluate the right tail.
         """
-        _, beta_inv_right = self.init_exponential_tail_weights()
         return (
-            beta_inv_right
+            self.beta_inv_right
             * np.log(
                 (1 - self.x_coord[-2] + self.tol) / (1 - x + self.tol)
                 + self.tol
@@ -404,18 +349,12 @@ class TailApproximation:
         Return an effective range of left and right tails
 
         """
-        if self.approximation_type == "exponential":
-            left_tail = max(
-                self.x_coord[0],
-                min(self.x_coord[1], default_left_tail),
-            )
-            right_tail = min(
-                self.x_coord[-1],
-                max(self.x_coord[-2], default_right_tail),
-            )
-        else:
-            (left_tail, right_tail) = (
-                default_left_tail,
-                default_right_tail,
-            )
+        left_tail = max(
+            self.x_coord[0],
+            min(self.x_coord[1], default_left_tail),
+        )
+        right_tail = min(
+            self.x_coord[-1],
+            max(self.x_coord[-2], default_right_tail),
+        )
         return left_tail, right_tail
