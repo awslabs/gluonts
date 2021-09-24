@@ -79,6 +79,64 @@ import pydantic
 from pydantic.utils import deep_update
 
 
+class StackElement:
+    def __init__(self, stack, val, prv=None, nxt=None):
+        self.stack = stack
+        self.val = val
+        self.prv = prv
+        self.nxt = nxt
+
+    def pop(self):
+        if self.prv is not None:
+            self.prv.nxt = self.nxt
+
+        if self.nxt is not None:
+            self.nxt.prv = self.prv
+
+        if self.stack.end is self:
+            self.stack.end = self.prv
+            self.stack.len -= 1
+
+        # prevent that element alters stack twice
+        self.prv = self.nxt = None
+        return self.val
+
+
+class LinkedStack:
+    def __init__(self, elements=()):
+        self.end = None
+        self.len = 0
+
+        for element in elements:
+            self.push(element)
+
+    def push(self, val):
+        new_end = StackElement(self, val, prv=self.end)
+
+        if self.end is not None:
+            self.end.nxt = new_end
+
+        self.len += 1
+        self.end = new_end
+        return new_end
+
+    def pop(self):
+        return self.end.pop()
+
+    def peek(self):
+        return self.end.val
+
+    def __len__(self):
+        return self.len
+
+    def __iter__(self):
+        current = self.end
+
+        while current is not None:
+            yield current.val
+            current = current.prv
+
+
 class Dependency:
     def __init__(self, fn, dependencies):
         self.fn = fn
@@ -120,7 +178,7 @@ class Settings:
         # ensured that there are always at least two entries in the chain:
         # A default, used to declare default values for any given key and a
         # base to guard from writing to the default through normal access.
-        self._chain = [self._default, kwargs]
+        self._chain = LinkedStack([self._default, kwargs])
 
         # If sublcassed, `_cls_types` can contain declarations which we need to
         # execute.
@@ -135,10 +193,10 @@ class Settings:
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
 
-        for dct in self._chain[1:]:
+        for dct in reversed(self._chain)[1:]:
             compact.update(dct)
 
-        self._chain = [self._default, compact]
+        self._chain = LinkedStack([self._default, compact])
 
     def _already_declared(self, key):
         return key in self._types or key in self._dependencies
@@ -203,7 +261,7 @@ class Settings:
         if key in self._dependencies:
             return self._dependencies[key].resolve(self)
 
-        for dct in reversed(self._chain):
+        for dct in self._chain:
             try:
                 return dct[key]
             except KeyError:
@@ -247,7 +305,7 @@ class Settings:
 
     def __setitem__(self, key, value):
         # Always assigns to the most recent dictionary in our chain.
-        self._set_(self._chain[-1], key, value)
+        self._set_(self._chain.peek(), key, value)
 
     def __setattr__(self, key, value):
         # Same check as in `__getattribute__`.
@@ -262,12 +320,12 @@ class Settings:
 
         Values are type-checked.
         """
-        self._chain.append({})
+        el = self._chain.push({})
         # Since we want to type-check, we add the entries manually.
         for key, value in kwargs.items():
             self[key] = value
 
-        return self
+        return el
 
     def _pop(self):
         assert len(self._chain) > 2, "Can't pop initial setting."
@@ -353,14 +411,15 @@ class _ScopedSettings:
     def __init__(self, settings, kwargs):
         self.settings = settings
         self.kwargs = kwargs
+        self.element = None
 
     def __enter__(self):
         self.settings._context_count += 1
-        return self.settings._push(**self.kwargs)
+        self.element = self.settings._push(**self.kwargs)
 
     def __exit__(self, *args):
         self.settings._context_count -= 1
-        self.settings._pop()
+        self.element.pop()
 
 
 def let(settings, **kwargs):
