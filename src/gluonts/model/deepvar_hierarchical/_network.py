@@ -72,7 +72,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         )
 
         self.M = M
-        self.M_broadcast = None
         self.A = A
         self.seq_axis = seq_axis
 
@@ -84,6 +83,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         ----------
         samples
             Unconstrained samples
+            Shape: (num_samples, batch_size, seq_len, target_dim) during training and
+                   (num_parallel_samples x batch_size, seq_len, target_dim) during prediction.
 
         Returns
         -------
@@ -91,56 +92,23 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             Tensor, shape same as that of `samples`.
 
         """
-        proj_matrix_shape = self.M.shape  # (num_ts, num_ts)
-
-        num_iter_dims = len(self.seq_axis) if self.seq_axis else 0
-
-        # Expand `M` depending on the shape of samples:
-        # If seq_axis = None, during training the first axis is only `batch_size`, in which case `M` would be expanded
-        # 3 times; during prediction it would be expanded 2 times since the first axis is
-        # `batch_size x num_parallel_samples`.
-        M_expanded = self.M
-        for i in range(len(samples.shape[num_iter_dims:-1])):
-            M_expanded = M_expanded.expand_dims(axis=0)
-
-        # If seq_axis = None broadcast M to (num_samples, batch_size, seq_len, m, m) during training
-        # and to (num_samples * batch_size, seq_len, m, m) during prediction
-        # Else broadcast to the appropriate remaining dimension
-        _shape = (
-            list(samples.shape[:-1])
-            if not self.seq_axis
-            else [
-                samples.shape[i]
-                for i in range(len(samples.shape[:-1]))
-                if i not in self.seq_axis
-            ]
-        )
-        self.M_broadcast = mx.nd.broadcast_to(
-            M_expanded,
-            shape=_shape + list(proj_matrix_shape),
-        )
-
         if self.seq_axis:
             # bring the axis to iterate in the beginning
             samples = mx.nd.moveaxis(
                 samples, self.seq_axis, list(range(len(self.seq_axis)))
             )
 
-            out = []
-            for idx in product(
-                *[
-                    range(x)
-                    for x in [
-                        samples.shape[d] for d in range(len(self.seq_axis))
+            out = [
+                mx.nd.dot(samples[idx], self.M, transpose_b=True)
+                for idx in product(
+                    *[
+                        range(x)
+                        for x in [
+                            samples.shape[d] for d in range(len(self.seq_axis))
+                        ]
                     ]
-                ]
-            ):
-                s = samples[idx]
-                out.append(
-                    mx.nd.linalg.gemm2(
-                        self.M_broadcast, s.expand_dims(-1)
-                    ).squeeze(axis=-1)
                 )
+            ]
 
             # put the axis in the correct order again
             out = mx.nd.concat(*out, dim=0).reshape(samples.shape)
@@ -149,9 +117,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             )
             return out
         else:
-            return mx.nd.linalg.gemm2(
-                self.M_broadcast, samples.expand_dims(-1)
-            ).squeeze(axis=-1)
+            return mx.nd.dot(samples, self.M, transpose_b=True)
 
     def reconciliation_error(self, samples: Tensor) -> float:
         r"""
@@ -161,24 +127,15 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         Parameters
         ----------
         samples
-            Samples
-
+            Samples. Shape: (num_parallel_samples*batch_size, 1, target_dim)
         Returns
         -------
         Reconciliation error
             Float
 
         """
-        constraint_mat_shape = self.A.shape
-
-        A_expanded = self.A.expand_dims(axis=0)
-        A_broadcast = mx.nd.broadcast_to(
-            A_expanded, shape=samples.shape[0:1] + constraint_mat_shape
-        )
         return mx.nd.max(
-            mx.nd.abs(
-                mx.nd.linalg_gemm2(A_broadcast, samples, transpose_b=True)
-            )
+            mx.nd.abs(mx.nd.dot(samples, self.A, transpose_b=True))
         ).asnumpy()[0]
 
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
