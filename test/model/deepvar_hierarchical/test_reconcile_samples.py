@@ -17,10 +17,12 @@ import pytest
 
 from gluonts.model.deepvar_hierarchical import (
     constraint_mat,
+    null_space_projection_mat,
+    reconcile_samples,
     reconciliation_error,
 )
 
-TOL = 1e-4
+TOL = 1e-2
 
 S = np.array(
     [
@@ -36,24 +38,26 @@ S = np.array(
 
 num_bottom_ts = S.shape[1]
 A = constraint_mat(S)
+reconciliation_mat = null_space_projection_mat(A)
 
 
 @pytest.mark.parametrize(
-    "bottom_ts",
+    "samples",
     [
-        np.random.randint(low=0, high=100, size=num_bottom_ts),  # integer data
-        np.random.randint(
-            low=1000, high=100000, size=num_bottom_ts
-        ),  # large integer data
-        np.random.poisson(lam=1, size=num_bottom_ts),
-        np.random.negative_binomial(n=1000, p=0.5, size=num_bottom_ts),
+        np.random.randint(low=10000, high=100000, size=(100, 32, S.shape[0])),
+        100.0 + np.random.poisson(lam=1, size=(100, 32, S.shape[0])),
+        np.random.negative_binomial(n=1000, p=0.5, size=(100, 32, S.shape[0])),
         -np.random.negative_binomial(
-            n=1000, p=0.5, size=num_bottom_ts
+            n=1000, p=0.5, size=(100, 32, S.shape[0])
         ),  # negative data
-        np.random.standard_normal(size=num_bottom_ts),
+        100.0 + 2.0 * np.random.standard_normal(size=(100, 32, S.shape[0])),
     ],
 )
-def test_reconciliation_error(bottom_ts):
-    all_ts = S @ bottom_ts
-
-    assert reconciliation_error(mx.nd.array(A), mx.nd.array(all_ts)) < TOL
+def test_reconciliation_error(samples):
+    # samples = np.random.randint(low=100, high=10000, size=(100, 32, S.shape[0]))
+    coherent_samples = reconcile_samples(
+        reconciliation_mat=mx.nd.array(reconciliation_mat),
+        samples=mx.nd.array(samples),
+    )
+    print(reconciliation_error(mx.nd.array(A), coherent_samples))
+    assert reconciliation_error(mx.nd.array(A), coherent_samples) < TOL
