@@ -147,8 +147,17 @@ def run_test(
     )
 
     if test_quantiles is not None:
-        logger.info(f"Using quantiles `{test_quantiles}` for evaluation.")
-        evaluator = Evaluator(quantiles=test_quantiles)
+        if isinstance(predictor, RepresentableBlockPredictor) and \
+                isinstance(predictor.forecast_generator, QuantileForecastGenerator
+        ):  # This is QF type
+            training_quantiles = predictor.forecast_generator.quantiles
+            logger.info(
+                f"Using quantiles `{test_quantiles}` for evaluation and quantiles `{training_quantiles}` "
+                f"in mean weighted quantile loss.")
+            evaluator = Evaluator(quantiles=test_quantiles, training_quantiles=training_quantiles)
+        else:
+            logger.info(f"Using quantiles `{test_quantiles}` for evaluation.")
+            evaluator = Evaluator(quantiles=test_quantiles)
     else:
         evaluator = Evaluator()
 

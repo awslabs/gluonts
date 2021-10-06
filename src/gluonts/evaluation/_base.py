@@ -156,6 +156,7 @@ class Evaluator:
     def __init__(
         self,
         quantiles: Iterable[Union[float, str]] = default_quantiles,
+        training_quantiles: Optional[Iterable[Union[float, str]]] = None,
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
         calculate_owa: bool = False,
@@ -165,8 +166,10 @@ class Evaluator:
         aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
     ) -> None:
+
         self.quantiles = tuple(map(Quantile.parse, quantiles))
-        self.seasonality = seasonality
+        self.mean_wQuantileLoss_quantiles = tuple(map(Quantile.parse, training_quantiles)) \
+                                        if training_quantiles else self.quantiles
         self.alpha = alpha
         self.calculate_owa = calculate_owa
         self.custom_eval_fn = custom_eval_fn
@@ -455,7 +458,7 @@ class Evaluator:
         totals["mean_wQuantileLoss"] = np.array(
             [
                 totals[quantile.weighted_loss_name]
-                for quantile in self.quantiles
+                for quantile in self.mean_wQuantileLoss_quantiles
             ]
         ).mean()
 
