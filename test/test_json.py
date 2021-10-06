@@ -28,7 +28,7 @@ def json(request):
     factory = {
         "json": _json,
         "orjson": _orjson,
-        "ujson": _json,
+        "ujson": _ujson,
     }[request.param]
 
     return AttrDict(factory())
