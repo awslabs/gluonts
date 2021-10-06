@@ -85,7 +85,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     prediction_length
         Length of the prediction horizon
     target_dim
-        Dimensionality of the input dataset
+        Dimensionality of the input dataset (i.e., the total number of time series in the hierarchical dataset).
     S
         Summation or aggregation matrix.
     num_samples_for_loss
@@ -112,10 +112,11 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Specifies the epoch (as a fraction of total number of epochs) from when to start enforcing coherence during
         training.
     seq_axis
-        Specifies the list of axes that should be processed sequentially. This is useful if batch processing is not
-        possible because of insufficient memory. The reference axes are: (samples, batch, seq_length, target_dim).
-        For large datasets, use seq_axis = [0] or [0, 1].
-        By default, all are processeed in parallel.
+        Specifies the list of axes that should be processed sequentially (only during training).
+        The reference axes are: (num_samples_for_loss, batch, seq_length, target_dim).
+        This is useful if batch processing is not possible because of insufficient memory (e.g. if both
+        num_samples_for_loss and target_dim are very large). In such cases, use seq_axis = [1].
+        By default, all axes are processeed in parallel.
     assert_reconciliation
         Flag to indicate whether to assert if the (projected) samples generated during prediction are coherent.
     trainer
