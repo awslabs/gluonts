@@ -93,21 +93,20 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
         """
         if self.seq_axis:
-            # bring the axis to iterate in the beginning
+            # In this case, reconcile samples by going over each index in `seq_axis` iteratively.
+            # Note that `seq_axis` can be more than one dimension.
+            num_seq_axes = len(self.seq_axis)
+
+            # bring the axes to iterate in the beginning
             samples = mx.nd.moveaxis(
-                samples, self.seq_axis, list(range(len(self.seq_axis)))
+                samples, self.seq_axis, list(range(num_seq_axes))
             )
 
+            seq_axes_sizes = samples.shape[:num_seq_axes]
             out = [
                 mx.nd.dot(samples[idx], self.M, transpose_b=True)
-                for idx in product(
-                    *[
-                        range(x)
-                        for x in [
-                            samples.shape[d] for d in range(len(self.seq_axis))
-                        ]
-                    ]
-                )
+                # get the sequential index from the cross-product of their sizes.
+                for idx in product(*[range(size) for size in seq_axes_sizes])
             ]
 
             # put the axis in the correct order again
