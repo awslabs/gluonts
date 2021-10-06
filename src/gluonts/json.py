@@ -44,15 +44,26 @@ def _orjson():
         # Since orjson returns bytes, we need to call `decode` on the result
         return orjson.dumps(obj).decode()
 
+    def dump(obj, fp, nl=False):
+        end = "\n" if nl else ""
+        print(dumps(obj), file=fp, end=end)
+
     # orjson has no operators on files
     def load(fp):
         return orjson.loads(fp.read())
+
+    def bdump(obj, fp, nl=False):
+        fp.write(bdumps(obj))
+        if nl:
+            fp.write(b"\n")
 
     return {
         "variant": "orjson",
         "load": load,
         "loads": orjson.loads,
         "dumps": dumps,
+        "dump": dump,
+        "bdump": bdump,
         "bdumps": orjson.dumps,
     }
 
@@ -60,17 +71,25 @@ def _orjson():
 def _ujson():
     import ujson
 
+    def dump(obj, fp, nl=False):
+        end = "\n" if nl else ""
+        print(ujson.dumps(obj), file=fp, end=end)
+
     def bdumps(obj):
         return ujson.dumps(obj).encode()
 
-    def bdump(obj, fp):
-        fp.write(bdumps)
+    def bdump(obj, fp, nl=False):
+        fp.write(bdumps(obj))
+        if nl:
+            fp.write(b"\n")
 
     return {
         "variant": "ujson",
         "load": ujson.load,
         "loads": ujson.loads,
+        "dump": dump,
         "dumps": ujson.dumps,
+        "bdump": bdump,
         "bdumps": bdumps,
     }
 
@@ -85,14 +104,25 @@ def _json():
         "to speed up serialization and deserialization."
     )
 
+    def dump(obj, fp, nl=False):
+        end = "\n" if nl else ""
+        print(json.dumps(obj), file=fp, end=end)
+
     def bdumps(obj):
         return json.dumps(obj).encode()
+
+    def bdump(obj, fp, nl=False):
+        fp.write(bdumps(obj))
+        if nl:
+            fp.write(b"\n")
 
     return {
         "variant": "json",
         "load": json.load,
         "loads": json.loads,
+        "dump": dump,
         "dumps": json.dumps,
+        "bdump": bdump,
         "bdumps": bdumps,
     }
 
@@ -103,13 +133,3 @@ for fn in _orjson, _ujson, _json:
         break
     except ImportError:
         continue
-
-
-def dump(obj, fp, nl=False):
-    end = "\n" if nl else ""
-    print(dumps(obj), file=fp, end=end)  # noqa
-
-
-def bdump(obj, fp, nl=False):
-    end = "\n" if nl else ""
-    print(bdumps(obj), file=fp, end=end)  # noqa
