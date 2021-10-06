@@ -135,6 +135,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         By default, all axes are processeed in parallel.
     assert_reconciliation
         Flag to indicate whether to assert if the (projected) samples generated during prediction are coherent.
+    reconciliation_tol
+        Tolerance for the reconciliation error.
     trainer
         Trainer object to be used (default: Trainer())
     context_length
@@ -204,6 +206,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         batch_size: int = 32,
+        reconciliation_tol: float = 1e-2,
         **kwargs,
     ) -> None:
 
@@ -258,6 +261,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         self.warmstart_epoch_frac = warmstart_epoch_frac
         self.sample_LH = sample_LH
         self.seq_axis = seq_axis
+        self.reconciliation_tol = reconciliation_tol
 
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(
@@ -297,6 +301,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             A=self.A,
             assert_reconciliation=self.assert_reconciliation,
             coherent_pred_samples=self.coherent_pred_samples,
+            reconciliation_tol=self.reconciliation_tol,
             target_dim=self.target_dim,
             num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,

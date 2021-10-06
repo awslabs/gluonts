@@ -295,7 +295,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             if self.assert_reconciliation:
                 assert (
                     reconciliation_error(self.A, samples=coherent_samples)
-                    < 1e-2
+                    < self.reconciliation_tol
                 )
 
             return coherent_samples
@@ -355,8 +355,10 @@ class DeepVARHierarchicalPredictionNetwork(
         num_parallel_samples: int,
         assert_reconciliation: bool,
         coherent_pred_samples: bool,
+        reconciliation_tol: float,
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
         self.coherent_pred_samples = coherent_pred_samples
         self.assert_reconciliation = assert_reconciliation
+        self.reconciliation_tol = reconciliation_tol

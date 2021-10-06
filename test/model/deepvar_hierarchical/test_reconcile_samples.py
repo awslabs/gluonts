@@ -59,5 +59,5 @@ def test_reconciliation_error(samples):
         reconciliation_mat=mx.nd.array(reconciliation_mat),
         samples=mx.nd.array(samples),
     )
-    print(reconciliation_error(mx.nd.array(A), coherent_samples))
+
     assert reconciliation_error(mx.nd.array(A), coherent_samples) < TOL
