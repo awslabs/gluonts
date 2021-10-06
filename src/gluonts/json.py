@@ -26,7 +26,15 @@ Both `dump` and `bdump` expose a `nl` interpreter, which appends a newline
 character if set to `True`.
 """
 
-__all__ = ["variant", "dump", "dumps", "load", "loads", "bdump", "bdumps"]
+__all__ = [  # noqa
+    "variant",
+    "dump",
+    "dumps",
+    "load",
+    "loads",
+    "bdump",
+    "bdumps",
+]
 
 
 def _orjson():
@@ -63,7 +71,7 @@ def _ujson():
         "load": ujson.load,
         "loads": ujson.loads,
         "dumps": ujson.dumps,
-        "bdumps": dumps,
+        "bdumps": bdumps,
     }
 
 
@@ -85,7 +93,7 @@ def _json():
         "load": json.load,
         "loads": json.loads,
         "dumps": json.dumps,
-        "bdumps": dumps,
+        "bdumps": bdumps,
     }
 
 
@@ -99,9 +107,9 @@ for fn in _orjson, _ujson, _json:
 
 def dump(obj, fp, nl=False):
     end = "\n" if nl else ""
-    print(dumps(obj), file=fp, end=end)
+    print(dumps(obj), file=fp, end=end)  # noqa
 
 
 def bdump(obj, fp, nl=False):
     end = "\n" if nl else ""
-    print(bdumps(obj), file=fp, end=end)
+    print(bdumps(obj), file=fp, end=end)  # noqa
