@@ -53,7 +53,7 @@ def _orjson():
         return orjson.loads(fp.read())
 
     def bdump(obj, fp, nl=False):
-        fp.write(bdumps(obj))
+        fp.write(orjson.dumps(obj))
         if nl:
             fp.write(b"\n")
 
