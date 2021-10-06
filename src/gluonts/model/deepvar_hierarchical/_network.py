@@ -17,6 +17,7 @@ from itertools import product
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
@@ -30,6 +31,54 @@ from gluonts.model.deepvar._network import (
     DeepVARTrainingNetwork,
     DeepVARPredictionNetwork,
 )
+
+
+def reconciliation_error(A: Tensor, samples: Tensor) -> float:
+    r"""
+    Computes the maximum relative reconciliation error among all the aggregated time series
+
+                         |y_i - s_i|
+                    max -------------,
+                     i      |y_i|
+
+    where `i` refers to the aggregated time series index, y_i is the (direct) forecast obtained for i^th time series and
+    s_i is its aggregated forecast obtained by summing the corresponding bottom-level forecasts.
+    If y_i is zero, then the corresponding error on the absolute scale is used: |s_i|.
+
+    This can be comupted as follows given the constraint matrix A:
+
+                         |A \times samples|
+                    max ----------------------,
+                            |samples[:r]|
+
+    where `r` is the number aggregated time series.
+
+    Parameters
+    ----------
+    A
+        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+        hierarchy).
+    samples
+        Samples. Shape: (*batch_shape, target_dim)
+
+    Returns
+    -------
+    Reconciliation error
+        Float
+
+    """
+
+    num_agg_ts = A.shape[0]
+    forecasts_agg_ts = samples.slice_axis(axis=-1, begin=0, end=num_agg_ts).asnumpy()
+
+    abs_err = mx.nd.abs(mx.nd.dot(samples, A, transpose_b=True)).asnumpy()
+    rel_err = abs_err / np.abs(forecasts_agg_ts)
+
+    # Take the absolute error when the aggregated forecast is zero (avoiding division by zero).
+    zero_mask = np.where(forecasts_agg_ts == 0)
+    rel_err[zero_mask] = abs_err[zero_mask]
+
+    return np.max(rel_err)
 
 
 class DeepVARHierarchicalNetwork(DeepVARNetwork):
@@ -117,25 +166,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             return out
         else:
             return mx.nd.dot(samples, self.M, transpose_b=True)
-
-    def reconciliation_error(self, samples: Tensor) -> float:
-        r"""
-        Computes the reconciliation error defined by the L-infinity norm of the constraint violation:
-                    || Ax ||_{\inf}
-
-        Parameters
-        ----------
-        samples
-            Samples. Shape: (num_parallel_samples*batch_size, 1, target_dim)
-        Returns
-        -------
-        Reconciliation error
-            Float
-
-        """
-        return mx.nd.max(
-            mx.nd.abs(mx.nd.dot(samples, self.A, transpose_b=True))
-        ).asnumpy()[0]
 
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
         """
@@ -247,7 +277,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             # assert that A*X_proj ~ 0
             if self.assert_reconciliation:
                 assert (
-                    self.reconciliation_error(samples=coherent_samples) < 1e-2
+                    reconciliation_error(self.A, samples=coherent_samples) < 1e-2
                 )
 
             return coherent_samples

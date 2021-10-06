@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Relative imports
-from ._estimator import DeepVARHierarchicalEstimator
+from ._estimator import constraint_mat, DeepVARHierarchicalEstimator
+from ._network import reconciliation_error
 
-__all__ = ["DeepVARHierarchicalEstimator"]
+__all__ = ["constraint_mat", "DeepVARHierarchicalEstimator", "reconciliation_error"]

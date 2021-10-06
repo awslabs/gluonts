@@ -37,24 +37,23 @@ from ._network import (
 )
 
 
-def projection_mat(S: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def constraint_mat(S: np.ndarray) -> np.ndarray:
     """
-    Generates the projection matrix given the aggregation matrix `S`.
+    Generates the constraint matrix in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+    hierarchy).
 
     Parameters
     ----------
     S
-        Summation or aggregation matrix. Shape: (total_num_time_series, num_base_time_series)
+        Summation or aggregation matrix. Shape: (total_num_time_series, num_bottom_time_series)
 
     Returns
     -------
     Numpy ND array
-        Projection matrix, shape (total_num_time_series, total_num_time_series)
-    Numpy ND array
         Coefficient matrix of the linear constraints, shape (num_agg_time_series, num_time_series)
-
     """
-    # Re-arrange S matrix to form A matrix (coefficient matrix of the linear constraints)
+
+    # Re-arrange S matrix to form A matrix
     # S = [S_agg|I_m_K]^T dim:(m,m_K)
     # A = [I_magg | -S_agg] dim:(m_agg,m)
 
@@ -64,10 +63,27 @@ def projection_mat(S: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     # The top `m_agg` rows of the matrix `S` give the aggregation constraint matrix.
     S_agg = S[:m_agg, :]
     A = np.hstack((np.eye(m_agg), -S_agg))
+    return A
 
-    M = np.eye(m) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
-    return M, A
+def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
+    """
+    Computes the projection matrix for projecting onto the null space of A.
+
+    Parameters
+    ----------
+    A
+        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+        hierarchy).
+
+    Returns
+    -------
+    Numpy ND array
+        Projection matrix, shape (total_num_time_series, total_num_time_series)
+
+    """
+    num_ts = A.shape[1]
+    return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
@@ -230,7 +246,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        M, A = projection_mat(S)
+        A = constraint_mat(S)
+        M = null_space_projection_mat(A)
         self.M, self.A = mx.nd.array(M), mx.nd.array(A)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
