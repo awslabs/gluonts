@@ -22,14 +22,12 @@ from gluonts.dataset.util import get_bounds_for_mp_data_loading
 
 
 def load(file_obj):
-    for line in file_obj:
-        yield json.loads(line)
+    return map(json.loads, file_obj)
 
 
 def dump(objects, file_obj):
     for object_ in objects:
-        file_obj.write(json.dumps(object_))
-        file_obj.write("\n")
+        json.dump(object_, file_obj, nl=True)
 
 
 class Span(NamedTuple):
