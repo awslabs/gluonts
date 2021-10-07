@@ -133,11 +133,11 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     ).asnumpy()
 
     abs_err = mx.nd.abs(mx.nd.dot(samples, A, transpose_b=True)).asnumpy()
-    rel_err = abs_err / np.abs(forecasts_agg_ts)
-
-    # Take the absolute error when the aggregated forecast is zero (avoiding division by zero).
-    zero_mask = np.where(forecasts_agg_ts == 0)
-    rel_err[zero_mask] = abs_err[zero_mask]
+    rel_err = np.where(
+        forecasts_agg_ts == 0,
+        abs_err,
+        abs_err / np.abs(forecasts_agg_ts),
+    )
 
     return np.max(rel_err)
 
