@@ -170,6 +170,7 @@ class Evaluator:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.mean_wQuantileLoss_quantiles = tuple(map(Quantile.parse, training_quantiles)) \
                                         if training_quantiles else self.quantiles
+        self.seasonality = seasonality
         self.alpha = alpha
         self.calculate_owa = calculate_owa
         self.custom_eval_fn = custom_eval_fn
