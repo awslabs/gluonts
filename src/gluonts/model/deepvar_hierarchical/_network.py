@@ -39,7 +39,7 @@ def reconcile_samples(
     seq_axis: Optional[List] = None,
 ) -> Tensor:
     """
-    Computes coherent samples by multiplying unconstrained `samples` by `reconciliation_mat`.
+    Computes coherent samples by multiplying unconstrained `samples` with `reconciliation_mat`.
 
     Parameters
     ----------
@@ -47,22 +47,30 @@ def reconcile_samples(
         Shape: (target_dim, target_dim)
     samples
         Unconstrained samples
-        Shape: (*batch_shape, target_dim)
-            during training: (num_samples, batch_size, seq_len, target_dim)
-            during prediction: (num_parallel_samples x batch_size, seq_len, target_dim)
+        Shape: `(*batch_shape, target_dim)`
+        During training: (num_samples, batch_size, seq_len, target_dim)
+        During prediction: (num_parallel_samples x batch_size, seq_len, target_dim)
     seq_axis
         Specifies the list of axes that should be reconciled sequentially.
         By default, all axes are processeed in parallel.
 
     Returns
     -------
-    Coherent samples
-        Tensor, shape same as that of `samples`.
+    Tensor, shape same as that of `samples`
+        Coherent samples
+
 
     """
     if not seq_axis:
         return mx.nd.dot(samples, reconciliation_mat, transpose_b=True)
     else:
+        num_dims = len(samples.shape)
+
+        last_dim_in_seq_axis = num_dims - 1 in seq_axis or -1 in seq_axis
+        assert (
+            not last_dim_in_seq_axis
+        ), f"The last dimension cannot be processed iteratively. Remove axis {num_dims - 1} (or -1) from `seq_axis`."
+
         # In this case, reconcile samples by going over each index in `seq_axis` iteratively.
         # Note that `seq_axis` can be more than one dimension.
         num_seq_axes = len(seq_axis)
@@ -87,21 +95,21 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     r"""
     Computes the maximum relative reconciliation error among all the aggregated time series
 
-                         |y_i - s_i|
-                    max -------------,
-                     i      |y_i|
+    .. math::
 
-    where `i` refers to the aggregated time series index, y_i is the (direct) forecast obtained for i^th time series and
-    s_i is its aggregated forecast obtained by summing the corresponding bottom-level forecasts.
-    If y_i is zero, then the corresponding error on the absolute scale is used: |s_i|.
+                    \max_i \frac{|y_i - s_i|} {|y_i|},
+
+    where :math:`i` refers to the aggregated time series index, :math:`y_i` is the (direct) forecast obtained for
+    the :math:`i^{th}` time series and :math:`s_i` is its aggregated forecast obtained by summing the corresponding
+    bottom-level forecasts. If :math:`y_i` is zero, then the absolute difference, :math:`|s_i|`, is used instead.
 
     This can be comupted as follows given the constraint matrix A:
 
-                         |A \times samples|
-                    max ----------------------,
-                            |samples[:r]|
+    .. math::
 
-    where `r` is the number aggregated time series.
+                    \max \frac{|A \times samples|} {|samples[:r]|},
+
+    where :math:`r` is the number aggregated time series.
 
     Parameters
     ----------
@@ -109,12 +117,13 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
         The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
         hierarchy).
     samples
-        Samples. Shape: (*batch_shape, target_dim)
+        Samples. Shape: `(*batch_shape, target_dim)`.
 
     Returns
     -------
-    Reconciliation error
-        Float
+    Float
+        Reconciliation error
+
 
     """
 

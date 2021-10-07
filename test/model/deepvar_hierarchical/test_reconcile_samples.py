@@ -44,20 +44,30 @@ reconciliation_mat = null_space_projection_mat(A)
 @pytest.mark.parametrize(
     "samples",
     [
-        np.random.randint(low=10000, high=100000, size=(100, 32, S.shape[0])),
-        100.0 + np.random.poisson(lam=1, size=(100, 32, S.shape[0])),
-        np.random.negative_binomial(n=1000, p=0.5, size=(100, 32, S.shape[0])),
+        np.random.randint(low=10000, high=100000, size=(10, 32, S.shape[0])),
+        100.0 + np.random.poisson(lam=1, size=(10, 32, S.shape[0])),
+        np.random.negative_binomial(n=1000, p=0.5, size=(10, 32, S.shape[0])),
         -np.random.negative_binomial(
-            n=1000, p=0.5, size=(100, 32, S.shape[0])
+            n=1000, p=0.5, size=(10, 32, S.shape[0])
         ),  # negative data
-        100.0 + 2.0 * np.random.standard_normal(size=(100, 32, S.shape[0])),
+        100.0 + 2.0 * np.random.standard_normal(size=(10, 32, S.shape[0])),
     ],
 )
-def test_reconciliation_error(samples):
-    # samples = np.random.randint(low=100, high=10000, size=(100, 32, S.shape[0]))
+@pytest.mark.parametrize(
+    "seq_axis",
+    [
+        None,
+        [0],
+        [1],
+        [0, 1],
+        [1, 0],
+    ],
+)
+def test_reconciliation_error(samples, seq_axis):
     coherent_samples = reconcile_samples(
         reconciliation_mat=mx.nd.array(reconciliation_mat),
         samples=mx.nd.array(samples),
+        seq_axis=seq_axis,
     )
 
     assert reconciliation_error(mx.nd.array(A), coherent_samples) < TOL
