@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List
+from typing import List, Optional
 from itertools import product
 
 # Third-party imports
 import mxnet as mx
+import numpy as np
 
 # First-party imports
 from gluonts.core.component import validated
@@ -30,6 +31,115 @@ from gluonts.model.deepvar._network import (
     DeepVARTrainingNetwork,
     DeepVARPredictionNetwork,
 )
+
+
+def reconcile_samples(
+    reconciliation_mat: Tensor,
+    samples: Tensor,
+    seq_axis: Optional[List] = None,
+) -> Tensor:
+    """
+    Computes coherent samples by multiplying unconstrained `samples` with `reconciliation_mat`.
+
+    Parameters
+    ----------
+    reconciliation_mat
+        Shape: (target_dim, target_dim)
+    samples
+        Unconstrained samples
+        Shape: `(*batch_shape, target_dim)`
+        During training: (num_samples, batch_size, seq_len, target_dim)
+        During prediction: (num_parallel_samples x batch_size, seq_len, target_dim)
+    seq_axis
+        Specifies the list of axes that should be reconciled sequentially.
+        By default, all axes are processeed in parallel.
+
+    Returns
+    -------
+    Tensor, shape same as that of `samples`
+        Coherent samples
+
+
+    """
+    if not seq_axis:
+        return mx.nd.dot(samples, reconciliation_mat, transpose_b=True)
+    else:
+        num_dims = len(samples.shape)
+
+        last_dim_in_seq_axis = num_dims - 1 in seq_axis or -1 in seq_axis
+        assert (
+            not last_dim_in_seq_axis
+        ), f"The last dimension cannot be processed iteratively. Remove axis {num_dims - 1} (or -1) from `seq_axis`."
+
+        # In this case, reconcile samples by going over each index in `seq_axis` iteratively.
+        # Note that `seq_axis` can be more than one dimension.
+        num_seq_axes = len(seq_axis)
+
+        # bring the axes to iterate in the beginning
+        samples = mx.nd.moveaxis(samples, seq_axis, list(range(num_seq_axes)))
+
+        seq_axes_sizes = samples.shape[:num_seq_axes]
+        out = [
+            mx.nd.dot(samples[idx], reconciliation_mat, transpose_b=True)
+            # get the sequential index from the cross-product of their sizes.
+            for idx in product(*[range(size) for size in seq_axes_sizes])
+        ]
+
+        # put the axis in the correct order again
+        out = mx.nd.concat(*out, dim=0).reshape(samples.shape)
+        out = mx.nd.moveaxis(out, list(range(len(seq_axis))), seq_axis)
+        return out
+
+
+def reconciliation_error(A: Tensor, samples: Tensor) -> float:
+    r"""
+    Computes the maximum relative reconciliation error among all the aggregated time series
+
+    .. math::
+
+                    \max_i \frac{|y_i - s_i|} {|y_i|},
+
+    where :math:`i` refers to the aggregated time series index, :math:`y_i` is the (direct) forecast obtained for
+    the :math:`i^{th}` time series and :math:`s_i` is its aggregated forecast obtained by summing the corresponding
+    bottom-level forecasts. If :math:`y_i` is zero, then the absolute difference, :math:`|s_i|`, is used instead.
+
+    This can be comupted as follows given the constraint matrix A:
+
+    .. math::
+
+                    \max \frac{|A \times samples|} {|samples[:r]|},
+
+    where :math:`r` is the number aggregated time series.
+
+    Parameters
+    ----------
+    A
+        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+        hierarchy).
+    samples
+        Samples. Shape: `(*batch_shape, target_dim)`.
+
+    Returns
+    -------
+    Float
+        Reconciliation error
+
+
+    """
+
+    num_agg_ts = A.shape[0]
+    forecasts_agg_ts = samples.slice_axis(
+        axis=-1, begin=0, end=num_agg_ts
+    ).asnumpy()
+
+    abs_err = mx.nd.abs(mx.nd.dot(samples, A, transpose_b=True)).asnumpy()
+    rel_err = np.where(
+        forecasts_agg_ts == 0,
+        abs_err,
+        abs_err / np.abs(forecasts_agg_ts),
+    )
+
+    return np.max(rel_err)
 
 
 class DeepVARHierarchicalNetwork(DeepVARNetwork):
@@ -75,68 +185,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         self.A = A
         self.seq_axis = seq_axis
 
-    def reconcile_samples(self, samples: Tensor) -> Tensor:
-        """
-        Computes coherent samples by projecting unconstrained `samples` using the matrix `self.M`.
-
-        Parameters
-        ----------
-        samples
-            Unconstrained samples
-            Shape: (num_samples, batch_size, seq_len, target_dim) during training and
-                   (num_parallel_samples x batch_size, seq_len, target_dim) during prediction.
-
-        Returns
-        -------
-        Coherent samples
-            Tensor, shape same as that of `samples`.
-
-        """
-        if self.seq_axis:
-            # In this case, reconcile samples by going over each index in `seq_axis` iteratively.
-            # Note that `seq_axis` can be more than one dimension.
-            num_seq_axes = len(self.seq_axis)
-
-            # bring the axes to iterate in the beginning
-            samples = mx.nd.moveaxis(
-                samples, self.seq_axis, list(range(num_seq_axes))
-            )
-
-            seq_axes_sizes = samples.shape[:num_seq_axes]
-            out = [
-                mx.nd.dot(samples[idx], self.M, transpose_b=True)
-                # get the sequential index from the cross-product of their sizes.
-                for idx in product(*[range(size) for size in seq_axes_sizes])
-            ]
-
-            # put the axis in the correct order again
-            out = mx.nd.concat(*out, dim=0).reshape(samples.shape)
-            out = mx.nd.moveaxis(
-                out, list(range(len(self.seq_axis))), self.seq_axis
-            )
-            return out
-        else:
-            return mx.nd.dot(samples, self.M, transpose_b=True)
-
-    def reconciliation_error(self, samples: Tensor) -> float:
-        r"""
-        Computes the reconciliation error defined by the L-infinity norm of the constraint violation:
-                    || Ax ||_{\inf}
-
-        Parameters
-        ----------
-        samples
-            Samples. Shape: (num_parallel_samples*batch_size, 1, target_dim)
-        Returns
-        -------
-        Reconciliation error
-            Float
-
-        """
-        return mx.nd.max(
-            mx.nd.abs(mx.nd.dot(samples, self.A, transpose_b=True))
-        ).asnumpy()[0]
-
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
         """
         Get samples to compute the final loss. These are samples directly drawn from the given `distr` if coherence is
@@ -166,7 +214,11 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             self.coherent_train_samples
             and epoch_frac > self.warmstart_epoch_frac
         ):
-            coherent_samples = self.reconcile_samples(samples)
+            coherent_samples = reconcile_samples(
+                reconciliation_mat=self.M,
+                samples=samples,
+                seq_axis=self.seq_axis,
+            )
             assert_shape(coherent_samples, samples.shape)
             return coherent_samples
         else:
@@ -241,13 +293,18 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         if not self.coherent_pred_samples:
             return samples
         else:
-            coherent_samples = self.reconcile_samples(samples=samples)
+            coherent_samples = reconcile_samples(
+                reconciliation_mat=self.M,
+                samples=samples,
+                seq_axis=self.seq_axis,
+            )
             assert_shape(coherent_samples, samples.shape)
 
             # assert that A*X_proj ~ 0
             if self.assert_reconciliation:
                 assert (
-                    self.reconciliation_error(samples=coherent_samples) < 1e-2
+                    reconciliation_error(self.A, samples=coherent_samples)
+                    < self.reconciliation_tol
                 )
 
             return coherent_samples
@@ -307,8 +364,10 @@ class DeepVARHierarchicalPredictionNetwork(
         num_parallel_samples: int,
         assert_reconciliation: bool,
         coherent_pred_samples: bool,
+        reconciliation_tol: float,
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
         self.coherent_pred_samples = coherent_pred_samples
         self.assert_reconciliation = assert_reconciliation
+        self.reconciliation_tol = reconciliation_tol

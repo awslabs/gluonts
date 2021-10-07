@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -37,24 +37,23 @@ from ._network import (
 )
 
 
-def projection_mat(S: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def constraint_mat(S: np.ndarray) -> np.ndarray:
     """
-    Generates the projection matrix given the aggregation matrix `S`.
+    Generates the constraint matrix in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+    hierarchy).
 
     Parameters
     ----------
     S
-        Summation or aggregation matrix. Shape: (total_num_time_series, num_base_time_series)
+        Summation or aggregation matrix. Shape: (total_num_time_series, num_bottom_time_series)
 
     Returns
     -------
     Numpy ND array
-        Projection matrix, shape (total_num_time_series, total_num_time_series)
-    Numpy ND array
         Coefficient matrix of the linear constraints, shape (num_agg_time_series, num_time_series)
-
     """
-    # Re-arrange S matrix to form A matrix (coefficient matrix of the linear constraints)
+
+    # Re-arrange S matrix to form A matrix
     # S = [S_agg|I_m_K]^T dim:(m,m_K)
     # A = [I_magg | -S_agg] dim:(m_agg,m)
 
@@ -64,10 +63,27 @@ def projection_mat(S: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     # The top `m_agg` rows of the matrix `S` give the aggregation constraint matrix.
     S_agg = S[:m_agg, :]
     A = np.hstack((np.eye(m_agg), -S_agg))
+    return A
 
-    M = np.eye(m) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
-    return M, A
+def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
+    """
+    Computes the projection matrix for projecting onto the null space of A.
+
+    Parameters
+    ----------
+    A
+        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
+        hierarchy).
+
+    Returns
+    -------
+    Numpy ND array
+        Projection matrix, shape (total_num_time_series, total_num_time_series)
+
+    """
+    num_ts = A.shape[1]
+    return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
@@ -119,6 +135,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         By default, all axes are processeed in parallel.
     assert_reconciliation
         Flag to indicate whether to assert if the (projected) samples generated during prediction are coherent.
+    reconciliation_tol
+        Tolerance for the reconciliation error.
     trainer
         Trainer object to be used (default: Trainer())
     context_length
@@ -188,6 +206,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         batch_size: int = 32,
+        reconciliation_tol: float = 1e-2,
         **kwargs,
     ) -> None:
 
@@ -230,7 +249,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        M, A = projection_mat(S)
+        A = constraint_mat(S)
+        M = null_space_projection_mat(A)
         self.M, self.A = mx.nd.array(M), mx.nd.array(A)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
@@ -241,6 +261,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         self.warmstart_epoch_frac = warmstart_epoch_frac
         self.sample_LH = sample_LH
         self.seq_axis = seq_axis
+        self.reconciliation_tol = reconciliation_tol
 
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(
@@ -280,6 +301,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             A=self.A,
             assert_reconciliation=self.assert_reconciliation,
             coherent_pred_samples=self.coherent_pred_samples,
+            reconciliation_tol=self.reconciliation_tol,
             target_dim=self.target_dim,
             num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
