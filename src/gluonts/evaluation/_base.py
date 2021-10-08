@@ -166,7 +166,6 @@ class Evaluator:
         aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
     ) -> None:
-
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.mean_wQuantileLoss_quantiles = tuple(map(Quantile.parse, training_quantiles)) \
                                         if training_quantiles else self.quantiles
