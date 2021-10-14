@@ -21,7 +21,7 @@ from gluonts.dataset.common import DataBatch
 
 def stack(data, device: Optional[torch.device] = None):
     if isinstance(data[0], np.ndarray):
-        data = torch.tensor(data, device=device)
+        data = torch.tensor(np.array(data), device=device)
     elif isinstance(data[0], (list, tuple)):
         return list(stack(t, device=device) for t in zip(*data))
     return data
