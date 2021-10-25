@@ -15,7 +15,7 @@ import torch
 import numpy as np
 from torch.testing._internal.common_utils import TestCase, run_tests
 
-from ..forward_backward import (
+from .forward_backward import (
     forward_pass_hmm,
     backward_pass_hmm,
     forward_backward_hmm,

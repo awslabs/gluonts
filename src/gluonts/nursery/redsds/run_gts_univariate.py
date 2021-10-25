@@ -19,11 +19,22 @@ import argparse
 import matplotlib
 import numpy as np
 from tensorboardX import SummaryWriter
-import src.utils as utils
-import src.datasets as datasets
-import src.tensorboard_utils as tensorboard_utils
-from src.model_utils import build_model
-from src.evaluation import evaluate_gts_dataset
+from .utils import (
+    get_temperature,
+    get_learning_rate,
+    get_cross_entropy_coef,
+    get_config_and_setup_dirs,
+)
+from .datasets import GTSUnivariateDataset
+from .tensorboard_utils import (
+    show_time_series,
+    plot_to_image,
+    show_discrete_states,
+    show_hidden_states,
+    show_time_series_forecast,
+)
+from .model_utils import build_model
+from .evaluation import evaluate_gts_dataset
 
 
 def train_step(batch, model, optimizer, step, config, device):
@@ -33,14 +44,14 @@ def train_step(batch, model, optimizer, step, config, device):
         for g in optimizer.param_groups:
             g["lr"] = lr
 
-    switch_temp = utils.get_temperature(step, config, "switch_")
+    switch_temp = get_temperature(step, config, "switch_")
     extra_args = dict()
     dur_temp = 1.0
     if config["model"] == "REDSDS":
-        dur_temp = utils.get_temperature(step, config, "dur_")
+        dur_temp = get_temperature(step, config, "dur_")
         extra_args = {"dur_temperature": dur_temp}
-    lr = utils.get_learning_rate(step, config)
-    xent_coeff = utils.get_cross_entropy_coef(step, config)
+    lr = get_learning_rate(step, config)
+    xent_coeff = get_cross_entropy_coef(step, config)
     cont_ent_anneal = config["cont_ent_anneal"]
     optimizer.zero_grad()
     result = model(
@@ -98,7 +109,7 @@ def plot_results(result, prefix=""):
             .numpy()
         )
 
-    matplotlib_fig = tensorboard_utils.show_time_series(
+    matplotlib_fig = show_time_series(
         fig_size=(12, 4),
         inputs=original_inputs,
         reconstructed_inputs=reconstructed_inputs,
@@ -106,25 +117,25 @@ def plot_results(result, prefix=""):
         true_segmentation=true_seg,
         fig_title="input_reconstruction",
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Reconstruction", fig_numpy_array, step, dataformats="HWC"
     )
 
-    matplotlib_fig = tensorboard_utils.show_hidden_states(
+    matplotlib_fig = show_hidden_states(
         fig_size=(12, 3), zt=hidden_states, segmentation=most_likely_states
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Hidden_State_xt", fig_numpy_array, step, dataformats="HWC"
     )
 
-    matplotlib_fig = tensorboard_utils.show_discrete_states(
+    matplotlib_fig = show_discrete_states(
         fig_size=(12, 3),
         discrete_states_lk=discrete_states_lk,
         segmentation=most_likely_states,
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Discrete_State_zt", fig_numpy_array, step, dataformats="HWC"
     )
@@ -151,17 +162,17 @@ if __name__ == "__main__":
         ckpt = torch.load(args.ckpt, map_location="cpu")
         config = ckpt["config"]
     else:
-        config = utils.get_config_and_setup_dirs(args.config)
+        config = get_config_and_setup_dirs(args.config)
     device = torch.device(args.device)
 
     # DATA
-    train_dataset = datasets.GTSUnivariateDataset(
+    train_dataset = GTSUnivariateDataset(
         config["dataset"], batch_size=config["batch_size"]
     )
-    val_dataset = datasets.GTSUnivariateDataset(
+    val_dataset = GTSUnivariateDataset(
         config["dataset"], batch_size=10, mode="val"
     )
-    test_dataset = datasets.GTSUnivariateDataset(
+    test_dataset = GTSUnivariateDataset(
         config["dataset"], batch_size=10, mode="test"
     )
 
@@ -286,7 +297,7 @@ if __name__ == "__main__":
                 .numpy()[:, 0, ...]
             )
             complete_ts = val_batch["past_target"][0:1]
-            matplotlib_fig = tensorboard_utils.show_time_series_forecast(
+            matplotlib_fig = show_time_series_forecast(
                 fig_size=(12, 4),
                 inputs=complete_ts.data.cpu().numpy()[0],
                 rec_with_forecast=rec_with_forecast,
@@ -294,7 +305,7 @@ if __name__ == "__main__":
                 prediction_length=config["prediction_length"],
                 fig_title="forecast",
             )
-            fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+            fig_numpy_array = plot_to_image(matplotlib_fig)
             summary.add_image(
                 "Forecast", fig_numpy_array, step, dataformats="HWC"
             )

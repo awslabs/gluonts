@@ -19,12 +19,23 @@ import argparse
 import numpy as np
 import matplotlib
 from tensorboardX import SummaryWriter
-import src.utils as utils
-import src.datasets as datasets
-import src.tensorboard_utils as tensorboard_utils
-from src.model_utils import build_model
-from src.evaluation import evaluate_segmentation
-from src.torch_utils import torch2numpy
+from .utils import (
+    get_learning_rate,
+    get_cross_entropy_coef,
+    get_temperature,
+    get_config_and_setup_dirs,
+)
+from .datasets import BouncingBallDataset, ThreeModeSystemDataset, BeeDataset
+from .tensorboard_utils import (
+    show_time_series,
+    plot_to_image,
+    show_discrete_states,
+    show_hidden_states,
+    show_duration_dists,
+)
+from .model_utils import build_model
+from .evaluation import evaluate_segmentation
+from .torch_utils import torch2numpy
 
 available_datasets = {"bouncing_ball", "3modesystem", "bee"}
 
@@ -36,14 +47,14 @@ def train_step(batch, model, optimizer, step, config):
         for g in optimizer.param_groups:
             g["lr"] = lr
 
-    switch_temp = utils.get_temperature(step, config, "switch_")
+    switch_temp = get_temperature(step, config, "switch_")
     extra_args = dict()
     dur_temp = 1.0
     if config["model"] == "REDSDS":
-        dur_temp = utils.get_temperature(step, config, "dur_")
+        dur_temp = get_temperature(step, config, "dur_")
         extra_args = {"dur_temperature": dur_temp}
-    lr = utils.get_learning_rate(step, config)
-    xent_coeff = utils.get_cross_entropy_coef(step, config)
+    lr = get_learning_rate(step, config)
+    xent_coeff = get_cross_entropy_coef(step, config)
     cont_ent_anneal = config["cont_ent_anneal"]
     optimizer.zero_grad()
     result = model(
@@ -92,7 +103,7 @@ def plot_results(result, prefix=""):
         )
 
     ylim = 1.3 * np.abs(original_inputs).max()
-    matplotlib_fig = tensorboard_utils.show_time_series(
+    matplotlib_fig = show_time_series(
         fig_size=(12, 4),
         inputs=original_inputs,
         reconstructed_inputs=reconstructed_inputs,
@@ -101,25 +112,25 @@ def plot_results(result, prefix=""):
         fig_title="input_reconstruction",
         ylim=(-ylim, ylim),
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Reconstruction", fig_numpy_array, step, dataformats="HWC"
     )
 
-    matplotlib_fig = tensorboard_utils.show_hidden_states(
+    matplotlib_fig = show_hidden_states(
         fig_size=(12, 3), zt=hidden_states, segmentation=most_likely_states
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Hidden_State_xt", fig_numpy_array, step, dataformats="HWC"
     )
 
-    matplotlib_fig = tensorboard_utils.show_discrete_states(
+    matplotlib_fig = show_discrete_states(
         fig_size=(12, 3),
         discrete_states_lk=discrete_states_lk,
         segmentation=most_likely_states,
     )
-    fig_numpy_array = tensorboard_utils.plot_to_image(matplotlib_fig)
+    fig_numpy_array = plot_to_image(matplotlib_fig)
     summary.add_image(
         f"{prefix}Discrete_State_zt", fig_numpy_array, step, dataformats="HWC"
     )
@@ -128,22 +139,18 @@ def plot_results(result, prefix=""):
 def get_dataset(dataset):
     assert dataset in available_datasets, f"Unknown dataset {dataset}!"
     if dataset == "bouncing_ball":
-        train_dataset = datasets.BouncingBallDataset(
-            path="./data/bouncing_ball.npz"
-        )
-        test_dataset = datasets.BouncingBallDataset(
+        train_dataset = BouncingBallDataset(path="./data/bouncing_ball.npz")
+        test_dataset = BouncingBallDataset(
             path="./data/bouncing_ball_test.npz"
         )
     elif dataset == "3modesystem":
-        train_dataset = datasets.ThreeModeSystemDataset(
-            path="./data/3modesystem.npz"
-        )
-        test_dataset = datasets.ThreeModeSystemDataset(
+        train_dataset = ThreeModeSystemDataset(path="./data/3modesystem.npz")
+        test_dataset = ThreeModeSystemDataset(
             path="./data/3modesystem_test.npz"
         )
     elif dataset == "bee":
-        train_dataset = datasets.BeeDataset(path="./data/bee.npz")
-        test_dataset = datasets.BeeDataset(path="./data/bee_test.npz")
+        train_dataset = BeeDataset(path="./data/bee.npz")
+        test_dataset = BeeDataset(path="./data/bee_test.npz")
     return train_dataset, test_dataset
 
 
@@ -168,7 +175,7 @@ if __name__ == "__main__":
         ckpt = torch.load(args.ckpt, map_location="cpu")
         config = ckpt["config"]
     else:
-        config = utils.get_config_and_setup_dirs(args.config)
+        config = get_config_and_setup_dirs(args.config)
     device = torch.device(args.device)
     with open(os.path.join(config["log_dir"], "config.json"), "w") as fp:
         json.dump(config, fp)
@@ -262,12 +269,10 @@ if __name__ == "__main__":
                         temperature=train_result["dur_temperature"],
                     )
                 )[0, 0]
-                matplotlib_fig = tensorboard_utils.show_duration_dists(
+                matplotlib_fig = show_duration_dists(
                     fig_size=(15, rho.shape[0] * 2), rho=rho
                 )
-                fig_numpy_array = tensorboard_utils.plot_to_image(
-                    matplotlib_fig
-                )
+                fig_numpy_array = plot_to_image(matplotlib_fig)
                 summary.add_image(
                     "Duration", fig_numpy_array, step, dataformats="HWC"
                 )

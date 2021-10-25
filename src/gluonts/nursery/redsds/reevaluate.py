@@ -15,26 +15,31 @@ import torch
 import argparse
 from pathlib import Path
 import numpy as np
-from src.model_utils import build_model
-import src.datasets as datasets
-import src.evaluation as evaluation
-from src.torch_utils import torch2numpy
+from .model_utils import build_model
+from .datasets import (
+    GTSUnivariateDataset,
+    BouncingBallDataset,
+    ThreeModeSystemDataset,
+    BeeDataset,
+)
+from .evaluation import evaluate_segmentation, evaluate_gts_dataset
+from .torch_utils import torch2numpy
 
 
 def get_test_dataset(config, test_path=Path("./data/")):
     if config["experiment"] == "gts_univariate":
-        test_dataset = datasets.GTSUnivariateDataset(
+        test_dataset = GTSUnivariateDataset(
             config["dataset"], batch_size=50, mode="test"
         )
     else:
         if config["dataset"] == "3modesystem":
-            test_dataset = datasets.ThreeModeSystemDataset(
+            test_dataset = ThreeModeSystemDataset(
                 path=str(test_path / f"{config['dataset']}_test.npz")
             )
         elif config["dataset"] == "bee":
-            test_dataset = datasets.BeeDataset(path="./data/bee_test.npz")
+            test_dataset = BeeDataset(path="./data/bee_test.npz")
         elif config["dataset"] == "bouncing_ball":
-            test_dataset = datasets.BouncingBallDataset(
+            test_dataset = BouncingBallDataset(
                 path="./data/bouncing_ball_test.npz"
             )
         else:
@@ -71,7 +76,7 @@ if __name__ == "__main__":
         ctx_len = config["context_length"]
         pred_len = config["prediction_length"]
 
-        agg_metrics = evaluation.evaluate_gts_dataset(
+        agg_metrics = evaluate_gts_dataset(
             test_dataset,
             model,
             max_len=np.inf,
@@ -117,7 +122,7 @@ if __name__ == "__main__":
         recons_tss = np.concatenate(recons_tss, 0)
         true_segs = np.concatenate(true_segs, 0)
         pred_segs = np.concatenate(pred_segs, 0)
-        seg_metrics = evaluation.evaluate_segmentation(
+        seg_metrics = evaluate_segmentation(
             true_segs, pred_segs, K=config["num_categories"]
         )
         print(config["dataset"], seg_metrics)
