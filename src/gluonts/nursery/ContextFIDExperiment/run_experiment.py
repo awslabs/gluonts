@@ -19,7 +19,6 @@ from random import choice
 import pandas as pd
 import torch
 import yaml
-from icecream import ic
 
 from gluonts.model.psagan.cnn_encoder._model import CausalCNNEncoder
 from gluonts.model.psagan.helpers import look_for_model
@@ -80,8 +79,7 @@ def main(
     embedder.eval()
 
     exp = Experiment(
-        model_similarity_score=embedder,
-        gan_model_path=gan_model_path,
+        model_similarity_score=embedder, gan_model_path=gan_model_path,
     )
     fid_ts, fid_embed = exp.run_FID(nb_run_experiment)
 
@@ -117,7 +115,7 @@ d = df_unexperimented[
     (df_unexperimented["target_len"].isin([16, 32, 64, 128, 256]))
     # &(df_unexperimented["cold_start_value"].isin([0., None]))
     # &(df_unexperimented["missing_values_stretch"].isin([0., None]))
-    & (df_unexperimented["DownloadStatus"] == True)
+    & (df_unexperimented["DownloadStatus"].isin([True]))
     & (df_unexperimented["TrainingJobStatus"] == "Completed")
 ]
 
