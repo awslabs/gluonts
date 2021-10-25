@@ -14,7 +14,6 @@
 import logging
 from itertools import groupby
 from random import choice, randint
-from time import time
 
 import torch
 from torch.utils.data import Dataset
