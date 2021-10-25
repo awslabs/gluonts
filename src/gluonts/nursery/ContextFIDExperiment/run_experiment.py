@@ -79,7 +79,8 @@ def main(
     embedder.eval()
 
     exp = Experiment(
-        model_similarity_score=embedder, gan_model_path=gan_model_path,
+        model_similarity_score=embedder,
+        gan_model_path=gan_model_path,
     )
     fid_ts, fid_embed = exp.run_FID(nb_run_experiment)
 

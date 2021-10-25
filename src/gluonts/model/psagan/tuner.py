@@ -182,7 +182,11 @@ for nb_runs in range(1):
                     hyperparameters["cardinality"] = [
                         [cardinality_dict[hyperparameters["ds"][0]]]
                     ]
-                    for elmnt in zip(target_len, epochs, schedule,):
+                    for elmnt in zip(
+                        target_len,
+                        epochs,
+                        schedule,
+                    ):
                         hyperparameters["target_len"][0] = elmnt[0]
                         hyperparameters["num_epochs"][0] = elmnt[1]
                         hyperparameters["schedule"][0] = elmnt[2]

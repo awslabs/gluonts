@@ -56,7 +56,8 @@ class ExperimentSetUp:
         )
 
     def _convert_ds_name(
-        self, ds_name: str,
+        self,
+        ds_name: str,
     ):
         ds_to_ds = {
             "m4_hourly": "/home/ec2-user/SageMaker/gluon-ts-gan/scaled_dataset/m4_hourly",
@@ -67,19 +68,25 @@ class ExperimentSetUp:
         }
         return Path(ds_to_ds[ds_name])
 
-    def _load_yaml_data(self,):
+    def _load_yaml_data(
+        self,
+    ):
         parsed_yaml_file = yaml.load(
             open(self.gan_model_path / "data.yml"), Loader=yaml.FullLoader
         )
         return parsed_yaml_file
 
-    def _load_PytorchPredictor(self,):
+    def _load_PytorchPredictor(
+        self,
+    ):
         pp = PyTorchPredictor.deserialize(
             self.gan_model_path, device=torch.device("cpu")
         )
         return pp
 
-    def _load_dataset(self,):
+    def _load_dataset(
+        self,
+    ):
         if self.yaml_data["scaling"] == "NoScale":
             ds_path = self._convert_ds_name(self.yaml_data["dataset"])
             dataset = load_datasets(
@@ -104,7 +111,8 @@ class ExperimentSetUp:
             start_field=FieldName.START,
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=ExpectedNumInstanceSampler(
-                num_instances=1, min_future=self.yaml_data["target_len"],
+                num_instances=1,
+                min_future=self.yaml_data["target_len"],
             ),
             past_length=self.yaml_data["target_len"],
             future_length=self.yaml_data["target_len"],
@@ -117,7 +125,8 @@ class ExperimentSetUp:
         return Chain(small_t)
 
     def _load_TrainDataLoader(
-        self, train_data: bool = False,
+        self,
+        train_data: bool = False,
     ):
         dataset = self._load_dataset()
         TrainDL = TrainDataLoader(
@@ -187,7 +196,8 @@ class Experiment:
         return real_fid, embed_fid
 
     def run_FID(
-        self, nb_run: int = 10,
+        self,
+        nb_run: int = 10,
     ):
         logger.info("Starting experiment for the Transformer")
         fid_ts = torch.empty(nb_run)
