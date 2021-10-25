@@ -1,0 +1,18 @@
+Model = gluonts.model.CausalCNNEncoder._model.CausalCNNEncoder(channels=40, depth=10, in_channels=1, kernel_size=3, out_channels=80, reduced_size=160)
+optimizer = Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.0001
+    weight_decay: 0
+)
+Estimator = gluonts.model.CausalCNNEncoder._estimator.CausalCNNEncoderEstimator(batch_size=32, context_length=200, depth=10, device="gpu", freq="random_string", kernel_size=3, max_len=300, nb_channels=40, nb_features=1, nb_negative_samples=20, num_workers=0, reduced_size=160, scaling="global", size_embedding=80, subseries_length=30, trainer=gluonts.model.CausalCNNEncoder._trainer.Trainer(device="gpu", lr=0.0001, num_epochs=600, save_dir=pathlib.PosixPath("/Users/pauljeha/Documents/MyTsProject/gluon-ts-ebm"), save_display_frq=1, save_model_dir=pathlib.PosixPath("/Users/pauljeha/Documents/MyTsProject/gluon-ts-ebm")), use_feat_dynamic_real=True, use_feat_static_cat=True, use_feat_static_real=True)
+Description = Training with MinMax Scaler 
+     Scaling the context and the negative samples independently
+     Changing the loss function so that we have a mean and not a sum for the right term. 
+     Adding a new term to the loss, which is -logsigmoid(-positive_embedding, negative_embedding) 
+     We do this to force the embedding of other part of other signal to be different 
+     than the embedding of the positive signal. 
+     We now use a dataloader that samples data exactly as described in the paper. However we limit the 
+     the size of the sampled time series. 
