@@ -26,7 +26,7 @@ class Base(nn.Module):
         discrete_state_prior: Optional[torch.Tensor] = None,
         transform_target: bool = False,
         transform_only_scale: bool = False,
-        use_jacobian: bool = False
+        use_jacobian: bool = False,
     ):
         """Base Model class.
 
@@ -88,23 +88,25 @@ class Base(nn.Module):
 
         if discrete_state_prior is None:
             self.register_buffer(
-                'discrete_prior', torch.ones([self.K]) / self.K)
+                "discrete_prior", torch.ones([self.K]) / self.K
+            )
         else:
-            self.register_buffer(
-                'discrete_prior', discrete_state_prior)
+            self.register_buffer("discrete_prior", discrete_state_prior)
 
     def _calculate_continuous_transition_probabilities(
-            self,
-            x_samples: torch.Tensor,
-            ctrl_feats: Optional[torch.Tensor],
-            log_prob_x0: torch.Tensor):
+        self,
+        x_samples: torch.Tensor,
+        ctrl_feats: Optional[torch.Tensor],
+        log_prob_x0: torch.Tensor,
+    ):
         #  Feed x[1:T-1] into the continuous state transition
         #  network to get the distributions:
         #  p(x[2] | x[1], z[2], u[2]) ... p(x[T] | x[T-1], z[T], u[T]).
         #  where u[t] is the control at t-th time step.
         p_xt_dists = self.x_tran(
             x_samples[:, :-1, :],
-            ctrl_feats[:, 1:, :] if ctrl_feats is not None else None)
+            ctrl_feats[:, 1:, :] if ctrl_feats is not None else None,
+        )
         future_xts = x_samples[:, 1:, :]
         #  Evaluate the log_prob of x[2] ... x[T].
         log_prob_xt = p_xt_dists.log_prob(future_xts[:, :, None, :])
@@ -113,11 +115,12 @@ class Base(nn.Module):
         return log_prob_xt
 
     def _calculate_discrete_transition_probabilities(
-            self,
-            y: torch.Tensor,
-            x: torch.Tensor,
-            ctrl_feats: Optional[torch.Tensor],
-            temperature: float = 1.0):
+        self,
+        y: torch.Tensor,
+        x: torch.Tensor,
+        ctrl_feats: Optional[torch.Tensor],
+        temperature: float = 1.0,
+    ):
         B, T = y.shape[:2]
         #  Feed the observations y[1:T-1] and the pseudo observations x[1:T-1]
         #  into the discrete state transition network
@@ -126,29 +129,33 @@ class Base(nn.Module):
         log_prob_zt_ztm1 = self.z_tran(
             y[:, :-1, :],
             x[:, :-1, :],
-            ctrl_feats[:, 1:, :] if ctrl_feats is not None else None
-        ).view([B, T-1, self.K, self.K])
+            ctrl_feats[:, 1:, :] if ctrl_feats is not None else None,
+        ).view([B, T - 1, self.K, self.K])
         #  self.z_tran returns an unnormalized transition matrix,
         #  so we normalize the last axis such that
         #  log_prob_zt_ztm1[:, t, i, j] represents the probability
         #  p(z[t] = j | x[t-1], y[t-1], z[t-1] = i).
         log_prob_zt_ztm1 = normalize_logprob(
-            log_prob_zt_ztm1, axis=-1, temperature=temperature)[0]
-        identity_pad = torch.eye(self.K, device=y.device)\
-            .view(1, 1, self.K, self.K).repeat(B, 1, 1, 1) + get_precision(y)
+            log_prob_zt_ztm1, axis=-1, temperature=temperature
+        )[0]
+        identity_pad = torch.eye(self.K, device=y.device).view(
+            1, 1, self.K, self.K
+        ).repeat(B, 1, 1, 1) + get_precision(y)
         log_identity_pad = identity_pad.log()
         #  Pad the [:, 0, :, :] elements with log I. This is to ensure
         #  correct dimensions and the 0-th index is not used in computations.
         log_prob_zt_ztm1 = torch.cat(
-            [log_identity_pad, log_prob_zt_ztm1], dim=1)
+            [log_identity_pad, log_prob_zt_ztm1], dim=1
+        )
         return log_prob_zt_ztm1
 
     def _calculate_likelihoods(
-            self,
-            y: torch.Tensor,
-            x_samples: torch.Tensor,
-            scale: torch.Tensor,
-            ctrl_feats: Optional[torch.Tensor],):
+        self,
+        y: torch.Tensor,
+        x_samples: torch.Tensor,
+        scale: torch.Tensor,
+        ctrl_feats: Optional[torch.Tensor],
+    ):
         B, T = y.shape[:2]
         x0_samples = x_samples[:, 0, :]
         #  Construct the initial x distribution
@@ -165,7 +172,8 @@ class Base(nn.Module):
         #  Compute the log probs p(x[2] | x[1], z[2]) ...
         #  p(x[T] | x[T-1], z[T]).
         log_prob_xt = self._calculate_continuous_transition_probabilities(
-            x_samples, ctrl_feats, log_prob_x0)
+            x_samples, ctrl_feats, log_prob_x0
+        )
 
         #  Compute the log probs p(y[1] | x[1]) ... p(y[T] | x[T]).
         emission_dist = self.y_emit(x_samples)
@@ -181,9 +189,7 @@ class Base(nn.Module):
         log_p_xt_yt = log_prob_yt[:, :, None] + log_prob_xt
         return log_p_xt_yt
 
-    def get_reconstruction(
-            self,
-            x_samples: torch.Tensor):
+    def get_reconstruction(self, x_samples: torch.Tensor):
         emission_dist = self.y_emit(x_samples)
         reconstructed_obs = emission_dist.mean
         return reconstructed_obs
@@ -192,13 +198,13 @@ class Base(nn.Module):
         self,
         y: torch.Tensor,
         ctrl_inputs: Optional[Dict[str, torch.Tensor]] = None,
-        switch_temperature: float = 1.,
-        cont_ent_anneal: float = 1.,
+        switch_temperature: float = 1.0,
+        cont_ent_anneal: float = 1.0,
         num_samples: int = 1,
-        deterministic_inference: bool = False
+        deterministic_inference: bool = False,
     ):
         raise NotImplementedError(
-            'This is the Base class. Use one of the child classes.'
+            "This is the Base class. Use one of the child classes."
         )
 
 
@@ -219,7 +225,7 @@ class SNLDS(Base):
         discrete_state_prior: Optional[torch.Tensor] = None,
         transform_target: bool = False,
         transform_only_scale: bool = False,
-        use_jacobian: bool = False
+        use_jacobian: bool = False,
     ):
         super().__init__(
             x_init,
@@ -236,7 +242,7 @@ class SNLDS(Base):
             discrete_state_prior=discrete_state_prior,
             transform_target=transform_target,
             transform_only_scale=transform_only_scale,
-            use_jacobian=use_jacobian
+            use_jacobian=use_jacobian,
         )
 
     def _calculate_loglike_lowerbound(
@@ -245,13 +251,15 @@ class SNLDS(Base):
         log_b: torch.Tensor,
         log_z_init: torch.Tensor,
         log_gamma: torch.Tensor,
-        log_xi: torch.Tensor
+        log_xi: torch.Tensor,
     ):
         gamma = torch.exp(log_gamma)  # Use .detach() to stop gradient
         xi = torch.exp(log_xi)  # Use .detach() to stop gradient
         log_a = torch.transpose(log_a, -2, -1)
-        t2 = torch.sum(xi[:, 1:, :, :] * (log_b[:, 1:, None, :] +
-                                          log_a[:, 1:, :, :]), dim=[1, 2, 3])
+        t2 = torch.sum(
+            xi[:, 1:, :, :] * (log_b[:, 1:, None, :] + log_a[:, 1:, :, :]),
+            dim=[1, 2, 3],
+        )
         gamma_1, log_b1 = gamma[:, 0, :], log_b[:, 0, :]
         t1 = torch.sum(gamma_1 * (log_b1 + log_z_init[:, :]), dim=-1)
         loglike_p_XY_lowerbound = t1 + t2
@@ -261,18 +269,20 @@ class SNLDS(Base):
         self,
         loglike_p_XY_lowerbound: torch.Tensor,
         log_prob_q: torch.Tensor,
-        num_samples: int
+        num_samples: int,
     ):
         log_surrogate_posterior = torch.sum(log_prob_q, dim=-1)
 
         loglike_p_XY_lowerbound = loglike_p_XY_lowerbound.view(
-            [num_samples, -1])
+            [num_samples, -1]
+        )
         log_surrogate_posterior = log_surrogate_posterior.view(
-            [num_samples, -1])
+            [num_samples, -1]
+        )
 
         iwlbo = torch.logsumexp(
-            loglike_p_XY_lowerbound - log_surrogate_posterior, dim=0) -\
-            np.log(num_samples)
+            loglike_p_XY_lowerbound - log_surrogate_posterior, dim=0
+        ) - np.log(num_samples)
         iwlbo = iwlbo.mean(0)
         return iwlbo
 
@@ -286,10 +296,11 @@ class SNLDS(Base):
         log_prob_q: torch.Tensor,
         x_entropy: torch.Tensor,
         log_p_XY: torch.Tensor,
-        num_samples: int
+        num_samples: int,
     ):
         loglike_p_XY_lowerbound = self._calculate_loglike_lowerbound(
-            log_a, log_b, log_z_init, log_gamma, log_xi)
+            log_a, log_b, log_z_init, log_gamma, log_xi
+        )
         entropy_term = torch.sum(x_entropy, dim=1).mean(0)
         #  likelihood_termv1 is the lower-bound on p(X, Y) proposed by
         #  Dong et. al, 2020.
@@ -299,28 +310,29 @@ class SNLDS(Base):
         elbo = likelihood_termv1 + entropy_term
         elbov2 = likelihood_termv2 + entropy_term
         iwlbo = self._get_iwlbo(
-            loglike_p_XY_lowerbound, log_prob_q, num_samples)
-        iwlbov2 = self._get_iwlbo(
-            log_p_XY, log_prob_q, num_samples)
+            loglike_p_XY_lowerbound, log_prob_q, num_samples
+        )
+        iwlbov2 = self._get_iwlbo(log_p_XY, log_prob_q, num_samples)
         return elbo, elbov2, iwlbo, iwlbov2
 
     def forward(
         self,
         y: torch.Tensor,
         ctrl_inputs: Optional[Dict[str, torch.Tensor]] = None,
-        switch_temperature: float = 1.,
-        cont_ent_anneal: float = 1.,
+        switch_temperature: float = 1.0,
+        cont_ent_anneal: float = 1.0,
         num_samples: int = 1,
-        deterministic_inference: bool = False
+        deterministic_inference: bool = False,
     ):
-        y = y[:, :self.context_length, :]
+        y = y[:, : self.context_length, :]
         eps = get_precision(y)
         #  Scale and shift input
         if self.transform_target:
             with torch.no_grad():
                 if self.transform_only_scale:
-                    scale_y = torch.mean(
-                        torch.abs(y), dim=-2, keepdim=True) + eps
+                    scale_y = (
+                        torch.mean(torch.abs(y), dim=-2, keepdim=True) + eps
+                    )
                     target_transformer = td.transforms.AffineTransform(
                         torch.zeros_like(scale_y), scale_y
                     )
@@ -340,19 +352,25 @@ class SNLDS(Base):
         #  Extract the control features
         ctrl_feats = None
         if self.ctrl_transformer is not None:
-            assert ctrl_inputs is not None,\
-                'ctrl_inputs cannot be None for a model with ctrl_transformer!'
+            assert (
+                ctrl_inputs is not None
+            ), "ctrl_inputs cannot be None for a model with ctrl_transformer!"
             ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.context_length,
-                feat_time=ctrl_inputs['past_time_feat'][
-                    ..., :self.context_length, :])
+                feat_time=ctrl_inputs["past_time_feat"][
+                    ..., : self.context_length, :
+                ],
+            )
         #  Feed the observations y[1:T] into the inference_network
         #  to get the samples from q(x[1:T] | y[1:T]), its entropy
         #  and the log_prob of the samples under q(x[1:T] | y[1:T]).
         x_samples, x_entropy, log_prob_q = self.inference_network(
-            y, ctrl_feats=ctrl_feats, num_samples=num_samples,
-            deterministic=deterministic_inference)
+            y,
+            ctrl_feats=ctrl_feats,
+            num_samples=num_samples,
+            deterministic=deterministic_inference,
+        )
         _, B, T, x_dim = x_samples.shape
 
         #  Merge the first two dimensions into a single batch dimension
@@ -379,29 +397,42 @@ class SNLDS(Base):
             y_tiled,
             x_samples,
             target_transformer.scale.repeat(num_samples, 1, 1),
-            ctrl_feats_tiled)
+            ctrl_feats_tiled,
+        )
         #  Compute log A, A = p(z[t] | x[t-1], y[t-1], z[t-1]).
         log_a = self._calculate_discrete_transition_probabilities(
-            y_tiled, x_samples, ctrl_feats_tiled,
-            temperature=switch_temperature)
+            y_tiled,
+            x_samples,
+            ctrl_feats_tiled,
+            temperature=switch_temperature,
+        )
         #  Compute gamma, xi, and, log p(X, Y) using the forward-backward
         #  algorithm.
         _, _, log_gamma, log_xi, log_p_XY = forward_backward_hmm(
-            log_a, log_b, log_z_init)
+            log_a, log_b, log_z_init
+        )
         #  Compute the objective function.
         elbo, elbov2, iwlbo, iwlbov2 = self._calculate_objective(
-            log_a, log_b, log_z_init, log_gamma, log_xi,
-            log_prob_q, cont_ent_anneal * x_entropy, log_p_XY, num_samples
+            log_a,
+            log_b,
+            log_z_init,
+            log_gamma,
+            log_xi,
+            log_prob_q,
+            cont_ent_anneal * x_entropy,
+            log_p_XY,
+            num_samples,
         )
         #  Reconstruct the observations for visualization.
-        recons_y = self.get_reconstruction(x_samples).view([
-            num_samples, B, T, -1])
+        recons_y = self.get_reconstruction(x_samples).view(
+            [num_samples, B, T, -1]
+        )
         #   Compute the KL between the discrete prior and gamma.
-        crossent_regularizer = torch.einsum(
-            'ijk, k -> ij',
-            log_gamma,
-            self.discrete_prior
-        ).sum(1).mean(0)
+        crossent_regularizer = (
+            torch.einsum("ijk, k -> ij", log_gamma, self.discrete_prior)
+            .sum(1)
+            .mean(0)
+        )
         log_gamma = log_gamma.view([num_samples, B, T, -1])
         x_samples = x_samples.view([num_samples, B, T, x_dim])
         # Invert scale and shift
@@ -419,7 +450,7 @@ class SNLDS(Base):
             reconstructions=recons_y[0],
             x_samples=x_samples[0],
             log_gamma=log_gamma,
-            crossent_regularizer=crossent_regularizer
+            crossent_regularizer=crossent_regularizer,
         )
         return return_dict
 
@@ -431,7 +462,7 @@ class SNLDS(Base):
         deterministic_z: bool = False,
         deterministic_x: bool = False,
         deterministic_y: bool = False,
-        drop_first: bool = False
+        drop_first: bool = False,
     ):
         z0, x0 = start_state
         num_samples, _ = x0.shape
@@ -447,12 +478,14 @@ class SNLDS(Base):
             y_samples.append(yt)
             ctrl_feat_tp1 = None
             if future_ctrl_feats is not None:
-                ctrl_feat_tp1 = future_ctrl_feats[:, i:i+1, :]
+                ctrl_feat_tp1 = future_ctrl_feats[:, i : i + 1, :]
             yt = yt.unsqueeze(1)
             ztp1_prob = normalize_logprob(
                 self.z_tran(yt, xt, ctrl_feat_tp1)[
-                    torch.arange(0, num_samples),
-                    0, zt, :], axis=-1)[0].exp()
+                    torch.arange(0, num_samples), 0, zt, :
+                ],
+                axis=-1,
+            )[0].exp()
             ztp1_dist = td.categorical.Categorical(probs=ztp1_prob)
             if deterministic_z:
                 ztp1 = torch.argmax(ztp1_dist.probs, dim=-1)
@@ -460,9 +493,7 @@ class SNLDS(Base):
                 ztp1 = ztp1_dist.sample()
             xtp1_dist = self.x_tran(xt, ctrl_feat_tp1)
             if deterministic_x:
-                xtp1 = xtp1_dist.mean[
-                    torch.arange(0, num_samples), 0, ztp1, :
-                ]
+                xtp1 = xtp1_dist.mean[torch.arange(0, num_samples), 0, ztp1, :]
             else:
                 xtp1 = xtp1_dist.sample()[
                     torch.arange(0, num_samples), 0, ztp1, :
@@ -491,19 +522,20 @@ class SNLDS(Base):
         deterministic_z: bool = False,
         deterministic_x: bool = False,
         deterministic_y: bool = False,
-        mean_prediction: bool = False
+        mean_prediction: bool = False,
     ):
         if mean_prediction:
             num_samples = 1
         self.eval()
-        y = y[..., :self.context_length, :]
+        y = y[..., : self.context_length, :]
         eps = get_precision(y)
         # Scale and shift input
         if self.transform_target:
             with torch.no_grad():
                 if self.transform_only_scale:
-                    scale_y = torch.mean(
-                        torch.abs(y), dim=-2, keepdim=True) + eps
+                    scale_y = (
+                        torch.mean(torch.abs(y), dim=-2, keepdim=True) + eps
+                    )
                     target_transformer = td.transforms.AffineTransform(
                         torch.zeros_like(scale_y), scale_y
                     )
@@ -523,16 +555,21 @@ class SNLDS(Base):
         # Extract the control features
         ctrl_feats = None
         if self.ctrl_transformer is not None:
-            assert ctrl_inputs is not None,\
-                'ctrl_inputs cannot be None for a model with ctrl_transformer!'
+            assert (
+                ctrl_inputs is not None
+            ), "ctrl_inputs cannot be None for a model with ctrl_transformer!"
             ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.context_length,
-                feat_time=ctrl_inputs['past_time_feat'])
+                feat_time=ctrl_inputs["past_time_feat"],
+            )
         #  Infer the latent state x[1:T]
         x_samples, _, _ = self.inference_network(
-            y, ctrl_feats, num_samples=num_samples,
-            deterministic=mean_prediction)
+            y,
+            ctrl_feats,
+            num_samples=num_samples,
+            deterministic=mean_prediction,
+        )
         _, B, T, x_dim = x_samples.shape
         x_samples = x_samples.view(num_samples * B, T, x_dim)
         #  Repeat the first dim num_samples times to allow broadcast
@@ -554,17 +591,19 @@ class SNLDS(Base):
             y_tiled,
             x_samples,
             target_transformer.scale.repeat(num_samples, 1, 1),
-            ctrl_feats_tiled)
+            ctrl_feats_tiled,
+        )
         #  Compute log A, A = p(z[t] | y[t-1], z[t-1]).
         log_a = self._calculate_discrete_transition_probabilities(
-            y_tiled, x_samples, ctrl_feats_tiled, temperature=1.)
+            y_tiled, x_samples, ctrl_feats_tiled, temperature=1.0
+        )
         #  Compute gamma using the forward-backward
         #  algorithm.
-        _, _, log_gamma, _, _ = forward_backward_hmm(
-            log_a, log_b, log_z_init)
+        _, _, log_gamma, _, _ = forward_backward_hmm(log_a, log_b, log_z_init)
         #  Reconstruct the input
-        rec_y = self.get_reconstruction(x_samples).view([
-            num_samples, B, T, -1])
+        rec_y = self.get_reconstruction(x_samples).view(
+            [num_samples, B, T, -1]
+        )
         #  Get the most likely state for zT
         zT = torch.argmax(log_gamma[:, -1, :], dim=-1)
         #  Get the state xT
@@ -573,10 +612,10 @@ class SNLDS(Base):
         future_ctrl_feats = None
         if self.ctrl_transformer is not None:
             future_ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.prediction_length,
-                feat_time=ctrl_inputs['future_time_feat']).repeat(
-                    num_samples, 1, 1)
+                feat_time=ctrl_inputs["future_time_feat"],
+            ).repeat(num_samples, 1, 1)
         #  Unroll using zT and xT
         forecast, z_samples = self._unroll(
             start_state=(zT, xT),
@@ -585,14 +624,17 @@ class SNLDS(Base):
             deterministic_z=deterministic_z,
             deterministic_x=deterministic_x,
             deterministic_y=deterministic_y,
-            drop_first=True)
-        forecast = forecast.view(
-            [num_samples, B, self.prediction_length, -1])
-        z_samples = z_samples.view(
-            [num_samples, B, self.prediction_length, 1])
+            drop_first=True,
+        )
+        forecast = forecast.view([num_samples, B, self.prediction_length, -1])
+        z_samples = z_samples.view([num_samples, B, self.prediction_length, 1])
         z_samples_oh = torch.zeros(
-            num_samples, B, self.prediction_length, self.K,
-            device=z_samples.device)
+            num_samples,
+            B,
+            self.prediction_length,
+            self.K,
+            device=z_samples.device,
+        )
         z_samples_oh.scatter_(-1, z_samples, 1)
         z_emp_probs = z_samples_oh.mean(0)
         #  Concat reconstruction with forecast on time dimension
@@ -602,8 +644,7 @@ class SNLDS(Base):
             with torch.no_grad():
                 rec_y_with_forecast = target_transformer(rec_y_with_forecast)
         return dict(
-            rec_n_forecast=rec_y_with_forecast,
-            z_emp_probs=z_emp_probs
+            rec_n_forecast=rec_y_with_forecast, z_emp_probs=z_emp_probs
         )
 
 
@@ -626,7 +667,7 @@ class REDSDS(Base):
         discrete_state_prior: Optional[torch.Tensor] = None,
         transform_target: bool = False,
         transform_only_scale: bool = False,
-        use_jacobian: bool = False
+        use_jacobian: bool = False,
     ):
         """REDSDS Model class.
 
@@ -688,7 +729,7 @@ class REDSDS(Base):
             discrete_state_prior=discrete_state_prior,
             transform_target=transform_target,
             transform_only_scale=transform_only_scale,
-            use_jacobian=use_jacobian
+            use_jacobian=use_jacobian,
         )
         self.d_max = d_max
         self.ctrl2nstf_network = ctrl2nstf_network
@@ -697,18 +738,18 @@ class REDSDS(Base):
         self,
         loglike_p_XY: torch.Tensor,
         log_prob_q: torch.Tensor,
-        num_samples: int
+        num_samples: int,
     ):
         log_surrogate_posterior = torch.sum(log_prob_q, dim=-1)
 
-        loglike_p_XY = loglike_p_XY.view(
-            [num_samples, -1])
+        loglike_p_XY = loglike_p_XY.view([num_samples, -1])
         log_surrogate_posterior = log_surrogate_posterior.view(
-            [num_samples, -1])
+            [num_samples, -1]
+        )
 
         iwlbo = torch.logsumexp(
-            loglike_p_XY - log_surrogate_posterior, dim=0) -\
-            np.log(num_samples)
+            loglike_p_XY - log_surrogate_posterior, dim=0
+        ) - np.log(num_samples)
         iwlbo = iwlbo.mean(0)
         return iwlbo
 
@@ -721,34 +762,34 @@ class REDSDS(Base):
         log_prob_q: torch.Tensor,
         x_entropy: torch.Tensor,
         log_p_XY: torch.Tensor,
-        num_samples: int
+        num_samples: int,
     ):
         entropy_term = torch.sum(x_entropy, dim=1).mean(0)
         #  likelihood_termv2 is p(X, Y) computed using the forward algorithm.
         likelihood_termv2 = log_p_XY.mean(0)
         elbov2 = likelihood_termv2 + entropy_term
-        iwlbov2 = self._get_iwlbo(
-            log_p_XY, log_prob_q, num_samples)
+        iwlbov2 = self._get_iwlbo(log_p_XY, log_prob_q, num_samples)
         return elbov2, iwlbov2
 
     def forward(
         self,
         y: torch.Tensor,
         ctrl_inputs: Optional[Dict[str, torch.Tensor]] = None,
-        switch_temperature: float = 1.,
-        dur_temperature: float = 1.,
-        cont_ent_anneal: float = 1.,
+        switch_temperature: float = 1.0,
+        dur_temperature: float = 1.0,
+        cont_ent_anneal: float = 1.0,
         num_samples: int = 1,
-        deterministic_inference: bool = False
+        deterministic_inference: bool = False,
     ):
-        y = y[:, :self.context_length, :]
+        y = y[:, : self.context_length, :]
         eps = get_precision(y)
         # Scale and shift input
         if self.transform_target:
             with torch.no_grad():
                 if self.transform_only_scale:
-                    scale_y = torch.mean(
-                        torch.abs(y), dim=-2, keepdim=True) + eps
+                    scale_y = (
+                        torch.mean(torch.abs(y), dim=-2, keepdim=True) + eps
+                    )
                     target_transformer = td.transforms.AffineTransform(
                         torch.zeros_like(scale_y), scale_y
                     )
@@ -768,19 +809,25 @@ class REDSDS(Base):
         #  Extract the control features
         ctrl_feats = None
         if self.ctrl_transformer is not None:
-            assert ctrl_inputs is not None,\
-                'ctrl_inputs cannot be None for a model with ctrl_transformer!'
+            assert (
+                ctrl_inputs is not None
+            ), "ctrl_inputs cannot be None for a model with ctrl_transformer!"
             ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.context_length,
-                feat_time=ctrl_inputs['past_time_feat'][
-                    ..., :self.context_length, :])
+                feat_time=ctrl_inputs["past_time_feat"][
+                    ..., : self.context_length, :
+                ],
+            )
         #  Feed the observations y[1:T] into the inference_network
         #  to get the samples from q(x[1:T] | y[1:T]), it entropy
         #  and the log_prob of the samples under q(x[1:T] | y[1:T]).
         x_samples, x_entropy, log_prob_q = self.inference_network(
-            y, ctrl_feats=ctrl_feats, num_samples=num_samples,
-            deterministic=deterministic_inference)
+            y,
+            ctrl_feats=ctrl_feats,
+            num_samples=num_samples,
+            deterministic=deterministic_inference,
+        )
         _, B, T, x_dim = x_samples.shape
 
         #  Merge the first two dimensions into a single batch dimension
@@ -807,43 +854,55 @@ class REDSDS(Base):
             y_tiled,
             x_samples,
             target_transformer.scale.repeat(num_samples, 1, 1),
-            ctrl_feats_tiled)
+            ctrl_feats_tiled,
+        )
         #  Compute log A, A = p(z[t] | x[t-1], y[t-1], z[t-1]).
         log_a = self._calculate_discrete_transition_probabilities(
-            y_tiled, x_samples, ctrl_feats_tiled,
-            temperature=switch_temperature)
+            y_tiled,
+            x_samples,
+            ctrl_feats_tiled,
+            temperature=switch_temperature,
+        )
         #  Get the NSTFs
         if ctrl_feats_tiled is None:
             #  If the dataset is control-less,
             #  then feed in dummy control = 1
-            dummy_ctrls = torch.ones(
-                num_samples * B, T, 1, device=y.device)
+            dummy_ctrls = torch.ones(num_samples * B, T, 1, device=y.device)
             log_u = self.ctrl2nstf_network(
-                ctrl_feats=dummy_ctrls,
-                temperature=dur_temperature)
+                ctrl_feats=dummy_ctrls, temperature=dur_temperature
+            )
         else:
             log_u = self.ctrl2nstf_network(
-                ctrl_feats=ctrl_feats_tiled,
-                temperature=dur_temperature)
+                ctrl_feats=ctrl_feats_tiled, temperature=dur_temperature
+            )
         #  Compute gamma, xi, and, log p(X, Y) using the forward-backward
         #  algorithm.
         _, _, log_gamma, log_p_XY = forward_backward_hsmm(
-            log_a, log_b, log_z_init, log_u)
+            log_a, log_b, log_z_init, log_u
+        )
         #  State posterior: sum over counts
         log_z_posterior = torch.logsumexp(log_gamma, dim=-1)
         #  Compute the objective function.
         elbov2, iwlbov2 = self._calculate_objective(
-            log_a, log_b, log_z_init, log_gamma,
-            log_prob_q, cont_ent_anneal * x_entropy, log_p_XY, num_samples)
+            log_a,
+            log_b,
+            log_z_init,
+            log_gamma,
+            log_prob_q,
+            cont_ent_anneal * x_entropy,
+            log_p_XY,
+            num_samples,
+        )
         #  Reconstruct the observations for visualization.
-        recons_y = self.get_reconstruction(x_samples).view([
-            num_samples, B, T, -1])
+        recons_y = self.get_reconstruction(x_samples).view(
+            [num_samples, B, T, -1]
+        )
         #   Compute the KL between the discrete prior and gamma.
-        crossent_regularizer = torch.einsum(
-            'ijk, k -> ij',
-            log_z_posterior,
-            self.discrete_prior
-        ).sum(1).mean(0)
+        crossent_regularizer = (
+            torch.einsum("ijk, k -> ij", log_z_posterior, self.discrete_prior)
+            .sum(1)
+            .mean(0)
+        )
         log_z_posterior = log_z_posterior.view([num_samples, B, T, -1])
         x_samples = x_samples.view([num_samples, B, T, x_dim])
         # Invert scale and shift
@@ -859,7 +918,7 @@ class REDSDS(Base):
             reconstructions=recons_y[0],
             x_samples=x_samples[0],
             log_gamma=log_z_posterior,
-            crossent_regularizer=crossent_regularizer
+            crossent_regularizer=crossent_regularizer,
         )
         return return_dict
 
@@ -871,7 +930,7 @@ class REDSDS(Base):
         deterministic_z: bool = False,
         deterministic_x: bool = False,
         deterministic_y: bool = False,
-        drop_first: bool = False
+        drop_first: bool = False,
     ):
         c0, z0, x0 = start_state
         num_samples, _ = x0.shape
@@ -887,20 +946,17 @@ class REDSDS(Base):
             y_samples.append(yt)
             ctrl_feat_tp1 = None
             if future_ctrl_feats is not None:
-                ctrl_feat_tp1 = future_ctrl_feats[:, i:i+1, :]
+                ctrl_feat_tp1 = future_ctrl_feats[:, i : i + 1, :]
             if future_ctrl_feats is None:
                 #  If the dataset is control-less,
                 #  then feed in dummy control = 1
-                dummy_ctrls = torch.ones(
-                    num_samples, 1, 1, device=x0.device)
+                dummy_ctrls = torch.ones(num_samples, 1, 1, device=x0.device)
                 log_u = self.ctrl2nstf_network(ctrl_feats=dummy_ctrls)
             else:
                 log_u = self.ctrl2nstf_network(ctrl_feats=ctrl_feat_tp1)
             u = log_u.exp()[
-                torch.arange(0, num_samples),
-                0,
-                zt.squeeze(),
-                ct.squeeze()]
+                torch.arange(0, num_samples), 0, zt.squeeze(), ct.squeeze()
+            ]
             u_dist = td.bernoulli.Bernoulli(probs=u)
             if deterministic_z:
                 u_sample = (u_dist.probs > 0.5).long()
@@ -914,7 +970,7 @@ class REDSDS(Base):
                 print(
                     u_sample.size(),
                     ctp1.size(),
-                    torch2numpy(torch.unique(u_sample))
+                    torch2numpy(torch.unique(u_sample)),
                 )
                 raise RuntimeError()
             ctp1[u_sample == 1] = ctp1[u_sample == 1] + 1
@@ -922,8 +978,10 @@ class REDSDS(Base):
             yt = yt.unsqueeze(1)
             ztp1_prob = normalize_logprob(
                 self.z_tran(yt, xt, ctrl_feat_tp1)[
-                    torch.arange(0, num_samples),
-                    0, zt, :], axis=-1)[0].exp()
+                    torch.arange(0, num_samples), 0, zt, :
+                ],
+                axis=-1,
+            )[0].exp()
             ztp1_dist = td.categorical.Categorical(probs=ztp1_prob)
             if deterministic_z:
                 ztp1 = torch.argmax(ztp1_dist.probs, dim=-1)
@@ -933,9 +991,7 @@ class REDSDS(Base):
 
             xtp1_dist = self.x_tran(xt, ctrl_feat_tp1)
             if deterministic_x:
-                xtp1 = xtp1_dist.mean[
-                    torch.arange(0, num_samples), 0, ztp1, :
-                ]
+                xtp1 = xtp1_dist.mean[torch.arange(0, num_samples), 0, ztp1, :]
             else:
                 xtp1 = xtp1_dist.sample()[
                     torch.arange(0, num_samples), 0, ztp1, :
@@ -965,19 +1021,20 @@ class REDSDS(Base):
         deterministic_z: bool = False,
         deterministic_x: bool = False,
         deterministic_y: bool = False,
-        mean_prediction: bool = False
+        mean_prediction: bool = False,
     ):
         if mean_prediction:
             num_samples = 1
         self.eval()
-        y = y[..., :self.context_length, :]
+        y = y[..., : self.context_length, :]
         eps = get_precision(y)
         # Scale and shift input
         if self.transform_target:
             with torch.no_grad():
                 if self.transform_only_scale:
-                    scale_y = torch.mean(
-                        torch.abs(y), dim=-2, keepdim=True) + eps
+                    scale_y = (
+                        torch.mean(torch.abs(y), dim=-2, keepdim=True) + eps
+                    )
                     target_transformer = td.transforms.AffineTransform(
                         torch.zeros_like(scale_y), scale_y
                     )
@@ -999,13 +1056,17 @@ class REDSDS(Base):
         if self.ctrl_transformer is not None:
             assert ctrl_inputs is not None
             ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.context_length,
-                feat_time=ctrl_inputs['past_time_feat'])
+                feat_time=ctrl_inputs["past_time_feat"],
+            )
         #  Infer the latent state x[1:T]
         x_samples, _, _ = self.inference_network(
-            y, ctrl_feats, num_samples=num_samples,
-            deterministic=mean_prediction)
+            y,
+            ctrl_feats,
+            num_samples=num_samples,
+            deterministic=mean_prediction,
+        )
         _, B, T, x_dim = x_samples.shape
         x_samples = x_samples.view(num_samples * B, T, x_dim)
         #  Repeat the first dim num_samples times to allow broadcast
@@ -1026,32 +1087,39 @@ class REDSDS(Base):
             y_tiled,
             x_samples,
             target_transformer.scale.repeat(num_samples, 1, 1),
-            ctrl_feats_tiled)
+            ctrl_feats_tiled,
+        )
         #  Compute log A, A = p(z[t] | y[t-1], z[t-1]).
         log_a = self._calculate_discrete_transition_probabilities(
-            y_tiled, x_samples, ctrl_feats_tiled, temperature=1.)
+            y_tiled, x_samples, ctrl_feats_tiled, temperature=1.0
+        )
         #  Get the NSTFs
         if ctrl_feats_tiled is None:
             #  If the dataset is control-less,
             #  then feed in dummy control = 1
             dummy_ctrls = torch.ones(
-                num_samples * B, T, 1, device=log_a.device)
+                num_samples * B, T, 1, device=log_a.device
+            )
             log_u = self.ctrl2nstf_network(ctrl_feats=dummy_ctrls)
         else:
             log_u = self.ctrl2nstf_network(ctrl_feats=ctrl_feats_tiled)
         #  Compute gamma using the forward-backward
         #  algorithm.
         _, _, log_gamma, _ = forward_backward_hsmm(
-            log_a, log_b, log_z_init, log_u)
+            log_a, log_b, log_z_init, log_u
+        )
         #  Reconstruct the input
-        rec_y = self.get_reconstruction(x_samples).view([
-            num_samples, B, T, -1])
+        rec_y = self.get_reconstruction(x_samples).view(
+            [num_samples, B, T, -1]
+        )
         #  Get the most likely state for cT, zT
         log_gamma_flat = log_gamma.view(
-            num_samples * B, T, self.K * self.d_max)
+            num_samples * B, T, self.K * self.d_max
+        )
         zTcT = unravel_indices(
             torch.argmax(log_gamma_flat[:, -1, :], dim=-1),
-            (self.K, self.d_max))
+            (self.K, self.d_max),
+        )
         zT = zTcT[:, 0].view((num_samples * B,))
         cT = zTcT[:, 1].view((num_samples * B,))
         #  Get the state xT
@@ -1060,10 +1128,10 @@ class REDSDS(Base):
         future_ctrl_feats = None
         if self.ctrl_transformer is not None:
             future_ctrl_feats = self.ctrl_transformer(
-                feat_static=ctrl_inputs['feat_static_cat'],
+                feat_static=ctrl_inputs["feat_static_cat"],
                 n_timesteps=self.prediction_length,
-                feat_time=ctrl_inputs['future_time_feat']).repeat(
-                    num_samples, 1, 1)
+                feat_time=ctrl_inputs["future_time_feat"],
+            ).repeat(num_samples, 1, 1)
         #  Unroll using cT, zT and xT
         forecast, z_samples = self._unroll(
             start_state=(cT, zT, xT),
@@ -1072,14 +1140,17 @@ class REDSDS(Base):
             deterministic_z=deterministic_z,
             deterministic_x=deterministic_x,
             deterministic_y=deterministic_y,
-            drop_first=True)
-        forecast = forecast.view(
-            [num_samples, B, self.prediction_length, -1])
-        z_samples = z_samples.view(
-            [num_samples, B, self.prediction_length, 1])
+            drop_first=True,
+        )
+        forecast = forecast.view([num_samples, B, self.prediction_length, -1])
+        z_samples = z_samples.view([num_samples, B, self.prediction_length, 1])
         z_samples_oh = torch.zeros(
-            num_samples, B, self.prediction_length, self.K,
-            device=z_samples.device)
+            num_samples,
+            B,
+            self.prediction_length,
+            self.K,
+            device=z_samples.device,
+        )
         z_samples_oh.scatter_(-1, z_samples, 1)
         z_emp_probs = z_samples_oh.mean(0)
         #  Concat reconstruction with forecast on time dimension
@@ -1090,6 +1161,5 @@ class REDSDS(Base):
                 rec_y_with_forecast = target_transformer(rec_y_with_forecast)
 
         return dict(
-            rec_n_forecast=rec_y_with_forecast,
-            z_emp_probs=z_emp_probs
+            rec_n_forecast=rec_y_with_forecast, z_emp_probs=z_emp_probs
         )

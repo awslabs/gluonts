@@ -63,10 +63,10 @@ class CachedIterable:
 
 # Bouncing Ball
 class BouncingBallDataset(torch.utils.data.Dataset):
-    def __init__(self, path='./data/bouncing_ball.npz'):
+    def __init__(self, path="./data/bouncing_ball.npz"):
         npz = np.load(path)
-        self.data_y = npz['y'].astype(np.float32)
-        self.data_z = npz['z'].astype(np.int32)
+        self.data_y = npz["y"].astype(np.float32)
+        self.data_z = npz["z"].astype(np.int32)
 
     def __getitem__(self, i):
         return self.data_y[i], self.data_z[i]
@@ -77,10 +77,10 @@ class BouncingBallDataset(torch.utils.data.Dataset):
 
 # Three Mode System
 class ThreeModeSystemDataset(torch.utils.data.Dataset):
-    def __init__(self, path='./data/3modesystem.npz'):
+    def __init__(self, path="./data/3modesystem.npz"):
         npz = np.load(path)
-        self.data_y = npz['y'].astype(np.float32)
-        self.data_z = npz['z'].astype(np.int32)
+        self.data_y = npz["y"].astype(np.float32)
+        self.data_z = npz["z"].astype(np.int32)
 
     def __getitem__(self, i):
         return self.data_y[i], self.data_z[i]
@@ -91,10 +91,10 @@ class ThreeModeSystemDataset(torch.utils.data.Dataset):
 
 # Bee Dataset
 class BeeDataset(torch.utils.data.Dataset):
-    def __init__(self, path='./data/bee.npz'):
+    def __init__(self, path="./data/bee.npz"):
         npz = np.load(path)
-        self.data_y = npz['y'].astype(np.float32)
-        self.data_z = npz['z'].astype(np.int32)
+        self.data_y = npz["y"].astype(np.float32)
+        self.data_z = npz["z"].astype(np.int32)
 
     def __getitem__(self, i):
         return self.data_y[i], self.data_z[i]
@@ -105,23 +105,25 @@ class BeeDataset(torch.utils.data.Dataset):
 
 # GluonTS Univariate Datasets
 
+
 def get_wiki2000_nips(train_path, test_path):
     return load_datasets(
-        metadata=train_path / 'wiki2000_nips',
-        train=train_path / 'wiki2000_nips/train',
+        metadata=train_path / "wiki2000_nips",
+        train=train_path / "wiki2000_nips/train",
         test=test_path / "wiki2000_nips/test",
     )
 
 
 def create_input_transform(
-        is_train,
-        prediction_length,
-        past_length,
-        use_feat_static_cat=True,
-        use_feat_dynamic_real=False,
-        freq='H',
-        time_features=None,
-        extract_tail_chunks_for_train=False):
+    is_train,
+    prediction_length,
+    past_length,
+    use_feat_static_cat=True,
+    use_feat_dynamic_real=False,
+    freq="H",
+    time_features=None,
+    extract_tail_chunks_for_train=False,
+):
     def seasonal_features(freq):
         offset = to_offset(freq)
         if offset.name == "M":
@@ -143,6 +145,7 @@ def create_input_transform(
             RuntimeError(f"Unsupported frequency {offset.name}")
 
         return []
+
     remove_field_names = [
         FieldName.FEAT_DYNAMIC_CAT,
         FieldName.FEAT_STATIC_REAL,
@@ -250,34 +253,27 @@ def get_cardinalities(dataset):
         offset = to_offset(freq)
 
         if offset.name == "M":
-            cardinalities = [
-                12  # month-of-year seasonality
-            ]
+            cardinalities = [12]  # month-of-year seasonality
         elif offset.name == "W-SUN":
-            cardinalities = [
-                53  # week-of-year seasonality
-            ]
+            cardinalities = [53]  # week-of-year seasonality
         elif offset.name == "D":
-            cardinalities = [
-                7  # day-of-week seasonality
-            ]
+            cardinalities = [7]  # day-of-week seasonality
         elif offset.name == "B":
-            cardinalities = [
-                7  # day-of-week seasonality
-            ]
+            cardinalities = [7]  # day-of-week seasonality
         elif offset.name == "H":
             cardinalities = [
                 24,  # hour-of-day seasonality
-                7  # day-of-week seasonality
+                7,  # day-of-week seasonality
             ]
         elif offset.name == "T":
             cardinalities = [
                 60,  # minute-of-hour seasonality
-                24  # hour-of-day seasonality
+                24,  # hour-of-day seasonality
             ]
         else:
-            ValueError(f'Unsupported frequency {offset.name}')
+            ValueError(f"Unsupported frequency {offset.name}")
         return cardinalities
+
     cardinalities_season_indicators = get_from_freq(dataset.metadata.freq)
     return dict(
         cardinalities_feat_static_cat=cardinalities_feat_static_cat,
@@ -304,18 +300,19 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
     def __init__(
         self,
         dataset_name,
-        time_feat_type='time',
+        time_feat_type="time",
         num_batches_per_epoch=250,
         batch_size=50,
-        mode='train',
+        mode="train",
         float_dtype=torch.float32,
-        train_path=Path('./data'),
-        test_path=Path('./data'),
+        train_path=Path("./data"),
+        test_path=Path("./data"),
     ):
         assert dataset_name in GTSUnivariateDataset.available_datasets, (
-            f'Unknown dataset! {dataset_name} not in'
-            f' {GTSUnivariateDataset.available_datasets}')
-        if dataset_name == 'wiki2000_nips':
+            f"Unknown dataset! {dataset_name} not in"
+            f" {GTSUnivariateDataset.available_datasets}"
+        )
+        if dataset_name == "wiki2000_nips":
             dataset = get_wiki2000_nips(train_path, test_path)
         else:
             dataset = get_dataset_gts(dataset_name)
@@ -330,17 +327,17 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
         elif self.freq in {"B", "D", "1D"}:
             prediction_length_full = 5 * prediction_length_rolling
         else:
-            raise ValueError(f'Unknown freq {self.freq}.')
+            raise ValueError(f"Unknown freq {self.freq}.")
 
-        if mode == 'train':
+        if mode == "train":
             train = True
             self.context_length = context_length
             self.gluonts_dataset = dataset.train
-        elif mode == 'val':
+        elif mode == "val":
             train = False
             self.context_length = context_length + prediction_length_full
             self.gluonts_dataset = dataset.train
-        elif mode == 'test':
+        elif mode == "test":
             train = False
             self.context_length = context_length + prediction_length_full
             self.gluonts_dataset = dataset.test
@@ -352,12 +349,12 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
             use_feat_static_cat=True,
             use_feat_dynamic_real=False,
             freq=self.freq,
-            time_features=None
+            time_features=None,
         )
 
         self.infinite_iter = False
 
-        if mode == 'train':
+        if mode == "train":
             fields_to_keep = [
                 FieldName.TARGET,
                 FieldName.START,
@@ -375,36 +372,37 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
             assert isinstance(splitter, CanonicalInstanceSplitter)
 
             transformed_dataset = TransformedDataset(
-                dataset.train, pre_split_tfs)
+                dataset.train, pre_split_tfs
+            )
             transformed_dataset = CachedIterable(transformed_dataset)
 
             gts_loader = TrainDataLoader(
-                    dataset=transformed_dataset,
-                    transform=splitter,
-                    batch_size=batch_size,
-                    stack_fn=batchify,
-                    num_batches_per_epoch=num_batches_per_epoch,
-                    num_workers=1,
-                )
+                dataset=transformed_dataset,
+                transform=splitter,
+                batch_size=batch_size,
+                stack_fn=batchify,
+                num_batches_per_epoch=num_batches_per_epoch,
+                num_workers=1,
+            )
             self.infinite_iter = True
-        elif mode == 'val':
+        elif mode == "val":
             gts_loader = ValidationDataLoader(
-                    dataset=dataset.train,
-                    transform=input_transform,
-                    batch_size=batch_size,
-                    stack_fn=batchify,
-                    num_workers=1,
-                )
-        elif mode == 'test':
+                dataset=dataset.train,
+                transform=input_transform,
+                batch_size=batch_size,
+                stack_fn=batchify,
+                num_workers=1,
+            )
+        elif mode == "test":
             gts_loader = ValidationDataLoader(
-                    dataset=dataset.test,
-                    transform=input_transform,
-                    batch_size=batch_size,
-                    stack_fn=batchify,
-                    num_workers=1,
-                )
+                dataset=dataset.test,
+                transform=input_transform,
+                batch_size=batch_size,
+                stack_fn=batchify,
+                num_workers=1,
+            )
         else:
-            raise ValueError(f'Unknown mode {mode}.')
+            raise ValueError(f"Unknown mode {mode}.")
         self.data_loader = gts_loader
 
         # Data keys
@@ -420,7 +418,7 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
             "future_target",
             "future_seasonal_indicators",
             "future_time_feat",
-            "past_observed_values"
+            "past_observed_values",
         ]
         self._static_data_keys = [
             "feat_static_cat",
@@ -433,33 +431,36 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
         # Metadata
 
         n_staticfeat = sum(cardinalities["cardinalities_feat_static_cat"])
-        if time_feat_type == 'seasonal':
+        if time_feat_type == "seasonal":
             n_timefeat = sum(cardinalities["cardinalities_season_indicators"])
-        elif time_feat_type == 'time':
-            n_timefeat = (len(cardinalities["cardinalities_season_indicators"])
-                          + 3)
-        elif time_feat_type == 'both':
+        elif time_feat_type == "time":
+            n_timefeat = (
+                len(cardinalities["cardinalities_season_indicators"]) + 3
+            )
+        elif time_feat_type == "both":
             n_timefeat = (
                 sum(cardinalities["cardinalities_season_indicators"])
                 + len(cardinalities["cardinalities_season_indicators"])
                 + 3
             )
-        elif time_feat_type == 'none':
+        elif time_feat_type == "none":
             n_timefeat = 0
         else:
-            raise ValueError(f'Unknown time_feat_type {time_feat_type}')
+            raise ValueError(f"Unknown time_feat_type {time_feat_type}")
 
         # TODO: Implement other features, if needed.
-        if time_feat_type != 'time':
+        if time_feat_type != "time":
             raise NotImplementedError(
-                'Only time_feat_type = time is implemented currently')
+                "Only time_feat_type = time is implemented currently"
+            )
 
         self.metadata = dict(
             n_staticfeat=n_staticfeat,
             n_timefeat=n_timefeat,
             freq=self.freq,
             context_length=context_length,
-            prediction_length=prediction_length_full)
+            prediction_length=prediction_length_full,
+        )
 
     def __iter__(self):
         def data_gen():
@@ -467,13 +468,17 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
             while epoch == 0 or self.infinite_iter:
                 epoch += 1
                 for batch in self.data_loader:
-                    relevant_data = {k: batch[k] for k in self._all_data_keys
-                                     if k in batch}
+                    relevant_data = {
+                        k: batch[k] for k in self._all_data_keys if k in batch
+                    }
                     torch_batch = {
                         k: v.type(
                             self.int_dtype
                             if k in self._int_data_keys
-                            else self.float_dtype)
-                        for k, v in relevant_data.items()}
+                            else self.float_dtype
+                        )
+                        for k, v in relevant_data.items()
+                    }
                     yield torch_batch
+
         return data_gen()

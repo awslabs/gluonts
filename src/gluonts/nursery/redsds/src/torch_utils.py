@@ -38,14 +38,16 @@ def init_layers(module):
         nn.init.xavier_uniform_(module.weight)
         if module.bias is not None:
             nn.init.zeros_(module.bias)
-    elif (type(module) == nn.RNNCell
-          or type(module) == nn.RNN
-          or type(module) == nn.GRUCell
-          or type(module) == nn.GRU
-          or type(module) == nn.LSTMCell
-          or type(module) == nn.LSTM):
+    elif (
+        type(module) == nn.RNNCell
+        or type(module) == nn.RNN
+        or type(module) == nn.GRUCell
+        or type(module) == nn.GRU
+        or type(module) == nn.LSTMCell
+        or type(module) == nn.LSTM
+    ):
         for name, param in module.named_parameters():
-            if 'bias' in name:
+            if "bias" in name:
                 nn.init.zeros_(param)
             else:
                 nn.init.xavier_uniform_(param)
