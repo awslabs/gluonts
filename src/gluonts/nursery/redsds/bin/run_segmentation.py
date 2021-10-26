@@ -19,23 +19,23 @@ import argparse
 import numpy as np
 import matplotlib
 from tensorboardX import SummaryWriter
-from .utils import (
+from ..utils import (
     get_learning_rate,
     get_cross_entropy_coef,
     get_temperature,
     get_config_and_setup_dirs,
 )
-from .datasets import BouncingBallDataset, ThreeModeSystemDataset, BeeDataset
-from .tensorboard_utils import (
+from ..datasets import BouncingBallDataset, ThreeModeSystemDataset, BeeDataset
+from ..tensorboard_utils import (
     show_time_series,
     plot_to_image,
     show_discrete_states,
     show_hidden_states,
     show_duration_dists,
 )
-from .model_utils import build_model
-from .evaluation import evaluate_segmentation
-from .torch_utils import torch2numpy
+from ..model_utils import build_model
+from ..evaluation import evaluate_segmentation
+from ..torch_utils import torch2numpy
 
 available_datasets = {"bouncing_ball", "3modesystem", "bee"}
 

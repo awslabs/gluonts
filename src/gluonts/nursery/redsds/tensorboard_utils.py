@@ -17,33 +17,34 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sns.set(style="white")
 
-color_names = [
-    "red",
-    "windows blue",
-    "amber",
-    "faded green",
-    "dusty purple",
-    "orange",
-    "clay",
-    "pink",
-    "greyish",
-    "light cyan",
-    "steel blue",
-    "pastel purple",
-    "mint",
-    "salmon",
-    "plum",
-    "dark orange",
-    "sea blue",
-    "neon purple",
-    "emerald",
-    "denim",
-    "peacock blue",
-]
-
-colors = sns.xkcd_palette(color_names)
+def _setup_colors():
+    sns.set(style="white")
+    color_names = [
+        "red",
+        "windows blue",
+        "amber",
+        "faded green",
+        "dusty purple",
+        "orange",
+        "clay",
+        "pink",
+        "greyish",
+        "light cyan",
+        "steel blue",
+        "pastel purple",
+        "mint",
+        "salmon",
+        "plum",
+        "dark orange",
+        "sea blue",
+        "neon purple",
+        "emerald",
+        "denim",
+        "peacock blue",
+    ]
+    colors = sns.xkcd_palette(color_names)
+    return colors
 
 
 def plot_to_image(figure):
@@ -64,6 +65,8 @@ def show_time_series(
     fig_title=None,
     ylim=None,
 ):
+    colors = _setup_colors()
+
     def _plot_segments(segmentation, ymin, ymax):
         s_seq = np.squeeze(segmentation)
         z_cps = np.concatenate(
@@ -113,6 +116,7 @@ def show_time_series(
 
 
 def show_duration_dists(fig_size, rho, fig_title=None):
+    colors = _setup_colors()
     K, d_max = rho.shape
     fig, axn = plt.subplots(nrows=K, figsize=fig_size)
     if fig_title:
@@ -126,6 +130,7 @@ def show_duration_dists(fig_size, rho, fig_title=None):
 
 
 def show_time_series_sample(fig_size, inputs, fig_title=None, ylim=None):
+    colors = _setup_colors()
     fig = plt.figure(figsize=fig_size)
     if fig_title:
         plt.title(fig_title)
@@ -159,7 +164,7 @@ def show_time_series_forecast(
     fig_title=None,
     ylim=None,
 ):
-
+    colors = _setup_colors()
     fig = plt.figure(figsize=fig_size)
     if fig_title:
         plt.title(fig_title)
@@ -250,6 +255,7 @@ def show_time_series_forecast(
 def show_discrete_states(
     fig_size, discrete_states_lk, segmentation, fig_title=None
 ):
+    colors = _setup_colors()
     fig = plt.figure(figsize=fig_size)
     if fig_title:
         plt.title(fig_title)
@@ -268,6 +274,7 @@ def show_discrete_states(
 
 
 def show_hidden_states(fig_size, zt, segmentation, fig_title=None):
+    colors = _setup_colors()
     fig = plt.figure(figsize=fig_size)
     if fig_title:
         plt.title(fig_title)

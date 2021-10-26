@@ -19,22 +19,22 @@ import argparse
 import matplotlib
 import numpy as np
 from tensorboardX import SummaryWriter
-from .utils import (
+from ..utils import (
     get_temperature,
     get_learning_rate,
     get_cross_entropy_coef,
     get_config_and_setup_dirs,
 )
-from .datasets import GTSUnivariateDataset
-from .tensorboard_utils import (
+from ..datasets import GTSUnivariateDataset
+from ..tensorboard_utils import (
     show_time_series,
     plot_to_image,
     show_discrete_states,
     show_hidden_states,
     show_time_series_forecast,
 )
-from .model_utils import build_model
-from .evaluation import evaluate_gts_dataset
+from ..model_utils import build_model
+from ..evaluation import evaluate_gts_dataset
 
 
 def train_step(batch, model, optimizer, step, config, device):
@@ -313,6 +313,5 @@ if __name__ == "__main__":
             for k, v in summary_items.items():
                 summary.add_scalar(k, v, step)
             summary.flush()
-
-with open(os.path.join(config["log_dir"], "metrics.json"), "w") as fp:
-    json.dump(all_metrics, fp)
+    with open(os.path.join(config["log_dir"], "metrics.json"), "w") as fp:
+        json.dump(all_metrics, fp)
