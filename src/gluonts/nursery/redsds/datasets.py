@@ -39,11 +39,11 @@ from gluonts.transform import (
     SelectFields,
 )
 from gluonts.time_feature import (
-    MinuteOfHour,
-    HourOfDay,
-    DayOfWeek,
-    WeekOfYear,
-    MonthOfYear,
+    MinuteOfHourIndex,
+    HourOfDayIndex,
+    DayOfWeekIndex,
+    WeekOfYearIndex,
+    MonthOfYearIndex,
 )
 
 from gluonts.dataset.loader import (
@@ -140,19 +140,19 @@ def create_input_transform(
     def seasonal_features(freq):
         offset = to_offset(freq)
         if offset.name == "M":
-            return [MonthOfYear(normalized=False)]
+            return [MonthOfYearIndex()]
         elif offset.name == "W-SUN":
-            return [WeekOfYear(normalized=False)]
+            return [WeekOfYearIndex()]
         elif offset.name == "D":
-            return [DayOfWeek(normalized=False)]
+            return [DayOfWeekIndex()]
         elif offset.name == "B":
-            return [DayOfWeek(normalized=False)]
+            return [DayOfWeekIndex()]
         elif offset.name == "H":
-            return [HourOfDay(normalized=False), DayOfWeek(normalized=False)]
+            return [HourOfDayIndex(), DayOfWeekIndex()]
         elif offset.name == "T":
             return [
-                MinuteOfHour(normalized=False),
-                HourOfDay(normalized=False),
+                MinuteOfHourIndex(),
+                HourOfDayIndex(),
             ]
         else:
             RuntimeError(f"Unsupported frequency {offset.name}")
@@ -404,7 +404,6 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
                 transform=input_transform,
                 batch_size=batch_size,
                 stack_fn=batchify,
-                num_workers=1,
             )
         elif mode == "test":
             gts_loader = ValidationDataLoader(
@@ -412,7 +411,6 @@ class GTSUnivariateDataset(torch.utils.data.IterableDataset):
                 transform=input_transform,
                 batch_size=batch_size,
                 stack_fn=batchify,
-                num_workers=1,
             )
         else:
             raise ValueError(f"Unknown mode {mode}.")
