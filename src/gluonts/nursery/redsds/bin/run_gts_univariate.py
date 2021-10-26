@@ -19,22 +19,22 @@ import argparse
 import matplotlib
 import numpy as np
 from tensorboardX import SummaryWriter
-from ..utils import (
+from gluonts.nursery.redsds.utils import (
     get_temperature,
     get_learning_rate,
     get_cross_entropy_coef,
     get_config_and_setup_dirs,
 )
-from ..datasets import GTSUnivariateDataset
-from ..tensorboard_utils import (
+from gluonts.nursery.redsds.datasets import GTSUnivariateDataset
+from gluonts.nursery.redsds.tensorboard_utils import (
     show_time_series,
     plot_to_image,
     show_discrete_states,
     show_hidden_states,
     show_time_series_forecast,
 )
-from ..model_utils import build_model
-from ..evaluation import evaluate_gts_dataset
+from gluonts.nursery.redsds.model_utils import build_model
+from gluonts.nursery.redsds.evaluation import evaluate_gts_dataset
 
 
 def train_step(batch, model, optimizer, step, config, device):
