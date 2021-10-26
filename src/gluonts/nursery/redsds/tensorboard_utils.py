@@ -116,7 +116,7 @@ def show_time_series(
 
 
 def show_duration_dists(fig_size, rho, fig_title=None):
-    colors = _setup_colors()
+    _setup_colors()
     K, d_max = rho.shape
     fig, axn = plt.subplots(nrows=K, figsize=fig_size)
     if fig_title:
@@ -274,7 +274,7 @@ def show_discrete_states(
 
 
 def show_hidden_states(fig_size, zt, segmentation, fig_title=None):
-    colors = _setup_colors()
+    _setup_colors()
     fig = plt.figure(figsize=fig_size)
     if fig_title:
         plt.title(fig_title)
