@@ -239,7 +239,7 @@ def setup(app):
         True,
     )
     app.add_transform(AutoStructify)
-    app.add_javascript("google_analytics.js")
+    app.add_js_file("google_analytics.js")
 
 
 # Napoleon settings
