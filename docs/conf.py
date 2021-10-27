@@ -16,7 +16,7 @@ import sys
 import os, subprocess
 import shlex
 import recommonmark
-import sphinx_gallery
+
 from recommonmark.parser import CommonMarkParser
 from recommonmark.transform import AutoStructify
 
@@ -61,7 +61,6 @@ extensions = [
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
-    "sphinx_autorun",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -207,7 +206,6 @@ intersphinx_mapping = {
 # (source start file, name, description, authors, manual section).
 man_pages = [(master_doc, "gluonts", "GluonTS Documentation", [author], 1)]
 
-from sphinx_gallery.sorting import ExplicitOrder
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -241,23 +239,8 @@ def setup(app):
         True,
     )
     app.add_transform(AutoStructify)
-    app.add_javascript("google_analytics.js")
+    app.add_js_file("google_analytics.js")
 
-
-sphinx_gallery_conf = {
-    "backreferences_dir": "gen_modules/backreferences",
-    "doc_module": ("gluonts", "mxnet", "numpy"),
-    "reference_url": {
-        "gluonts": None,
-        "numpy": "http://docs.scipy.org/doc/numpy-1.9.1",
-    },
-    "examples_dirs": [],
-    "gallery_dirs": [],
-    "subsection_order": ExplicitOrder([]),
-    "find_mayavi_figures": False,
-    "filename_pattern": ".py",
-    "expected_failing_examples": [],
-}
 
 # Napoleon settings
 napoleon_use_ivar = True
