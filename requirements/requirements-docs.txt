@@ -5,9 +5,6 @@ nbsphinx>=0.3.4,<0.4
 notedown
 pytest-runner~=2.11
 recommonmark
-sphinx~=2.1
-sphinx-autobuild~=0.7
-sphinx-autorun
-sphinx-gallery
-tornado==5.1.1
+sphinx~=4.0
 mxtheme==0.3.15
+docutils<=0.16
