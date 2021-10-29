@@ -58,7 +58,7 @@ class Callback:
     def __getattr__(self, k):
         return getattr(self.run, k)
 
-    def _min_max_scaling(self, target):
+    def _min_max_scaling(self, target: torch.Tensor) -> torch.Tensor: 
         _min, _ = torch.min(target, dim=1)
         _max, _ = torch.max(target, dim=1)
 
