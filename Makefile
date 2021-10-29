@@ -29,7 +29,7 @@ lint:
 	make restruc || true
 
 docs: release
-	make -C docs html SPHINXOPTS=-W
+	make -C docs html # SPHINXOPTS=-W
 	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
 		FILE=`echo $$f | sed 's/docs\///g'` ; \
 		DIR=`dirname $$FILE` ; \

@@ -34,7 +34,7 @@ jobs:
 
     - name: Doctests
       run: |
-        pytest --doctest-modules src/gluonts
+        pytest --doctest-modules src/gluonts --ignore-glob="**/nursery/**"
 
     - name: Build docs
       run: |
