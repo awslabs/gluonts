@@ -103,9 +103,6 @@ class Data(Dataset):
 
     def _get_start_end(self, index):
         len_ts = self.dataset_list[index]["target"].size(0)  # Get its length
-        # assert (
-        #     len_ts - self.target_len > self.context_length
-        # ), f"Time series {index }too short for the given target len and context len"
         start = randint(
             self.context_length, len_ts - self.target_len
         )  # Start index of sub-series

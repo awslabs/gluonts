@@ -101,30 +101,6 @@ class CudaCallback(Callback):
         self.run.model.to(self.device)
         self.run.device = self.device
 
-    # def begin_batch(self):
-    # logger.info(f"past_target on {self.run.item["past_target"].device}")
-    # self.run.item["noise_with_time_feat"] = self.run.item["noise_with_time_feat"].cuda()
-    # self.run.item["past_time_feat"] = self.run.item["past_time_feat"].cuda()
-    # self.run.item["past_target"] = self.run.item["past_target"].cuda()
-
-
-# class CudaCallbackPytorch(Callback):
-#     """Train on GPU"""
-
-#     _order = 4
-#     def __init__(self, device : str):
-#         assert device == "cpu" or device =="gpu"
-#         self.device = torch.device("cuda" if device=="gpu" else "cpu")
-#     def begin_fit(self):
-#         self.run.model.to(self.device)
-#         self.run.data.train_dl.to(self.device)
-
-#     # def begin_batch(self):
-#         # logger.info(f"past_target on {self.run.item["past_target"].device}")
-#         # self.run.item["noise_with_time_feat"] = self.run.item["noise_with_time_feat"].cuda()
-#         # self.run.item["past_time_feat"] = self.run.item["past_time_feat"].cuda()
-#         # self.run.item["past_target"] = self.run.item["past_target"].cuda()
-
 
 class TimeCheck(Callback):
     """
@@ -213,8 +189,7 @@ class InputforInterpolation(Callback):
         modified_input[idx_to_change] = noise
         modified_input = self._min_max_scaling(modified_input.view(shape))
         self.run.interpolate_target = torch.cat(
-            (self.run.item[1], modified_input),
-            dim=1,
+            (self.run.item[1], modified_input), dim=1,
         )
 
 
@@ -269,8 +244,7 @@ class LossCheck(Callback):
             \t save_plot_dir : {self.save_plot_dir}"
 
     def __init__(
-        self,
-        save_plot_dir: pathlib.PosixPath = pathlib.Path.cwd(),
+        self, save_plot_dir: pathlib.PosixPath = pathlib.Path.cwd(),
     ):
         super(LossCheck, self).__init__()
         self.save_plot_dir = save_plot_dir
@@ -350,10 +324,7 @@ class PlotInterpolatedSamples(Callback):
         modified_input = self._min_max_scaling(
             modified_input.view(shape).squeeze(1)
         ).unsqueeze(1)
-        return torch.cat(
-            (self.run.item[1], modified_input),
-            dim=1,
-        )
+        return torch.cat((self.run.item[1], modified_input), dim=1,)
 
     def _save_samples(
         self,
@@ -701,9 +672,7 @@ class JointTrainingPytorch(Callback):
         )
 
     def _encoder_loss(
-        self,
-        fake_ts: torch.Tensor,
-        reduced_target: torch.Tensor,
+        self, fake_ts: torch.Tensor, reduced_target: torch.Tensor,
     ):
         fake_embedding = self.encoder_network(fake_ts)
         real_embedding = self.encoder_network(reduced_target)
@@ -764,22 +733,8 @@ class JointTrainingPytorch(Callback):
                 log2(self.run.model.discriminator.target_len)
             ) - int(log2(generated.size(2)))
             reduced_target = F.avg_pool1d(
-                self.run.item[0].unsqueeze(1),
-                kernel_size=2 ** reduce_factor,
+                self.run.item[0].unsqueeze(1), kernel_size=2 ** reduce_factor,
             )
-
-            # if self.use_loss == "wgan":
-            #     self.run.score_g = self._wgan_loss(
-            #         fake_ts=generated, reduced_target=reduced_target, step="generator"
-            #     )
-            # elif self.use_loss == "hinge":
-            #     self.run.score_g = self._hinge_loss_gan(
-            #         fake_ts=generated, reduced_target=reduced_target,step="generator"
-            #     )
-            # elif self.use_loss == "lsgan":
-            #     self.run.score_g = self._lsgan_loss_gan(
-            #         fake_ts=generated, reduced_target=reduced_target,step="generator"
-            #     )
 
             self.run.score_g = self._loss_gan(
                 fake_ts=generated,
@@ -811,27 +766,8 @@ class JointTrainingPytorch(Callback):
                 log2(self.run.model.discriminator.target_len)
             ) - int(log2(fake_ts.size(2)))
             reduced_target = F.avg_pool1d(
-                self.run.item[0].unsqueeze(1),
-                kernel_size=2 ** reduce_factor,
+                self.run.item[0].unsqueeze(1), kernel_size=2 ** reduce_factor,
             )
-            # if self.use_loss == "wgan":
-            #     self.run.score_d = self._wgan_loss(
-            #         fake_ts=fake_ts,
-            #         reduced_target=reduced_target,
-            #         step="discriminator",
-            #     )
-            # elif self.use_loss == "hinge":
-            #     self.run.score_d = self._hinge_loss_gan(
-            #         fake_ts=fake_ts,
-            #         reduced_target=reduced_target,
-            #         step="discriminator",
-            #     )
-            # elif self.use_loss == "lsgan":
-            #     self.run.score_d = self._lsgan_loss_gan(
-            #         fake_ts=fake_ts,
-            #         reduced_target=reduced_target,
-            #         step="discriminator",
-            #     )
 
             self.run.score_d = self._loss_gan(
                 fake_ts=fake_ts,
@@ -871,10 +807,7 @@ class PlotSamplesandTSNEPytorch(Callback):
     _order = 20
 
     def __init__(
-        self,
-        freq: int,
-        freq_tsne: int,
-        save_plot_dir: pathlib.PosixPath,
+        self, freq: int, freq_tsne: int, save_plot_dir: pathlib.PosixPath,
     ):
         super(PlotSamplesandTSNEPytorch, self).__init__()
         self.freq = freq
@@ -884,13 +817,7 @@ class PlotSamplesandTSNEPytorch(Callback):
     def _get_noise(self):
         shape = self.run.item[0].unsqueeze(1).shape
         noise = torch.randn(shape, device=self.run.device)
-        return torch.cat(
-            (
-                self.run.item[1],
-                noise,
-            ),
-            dim=1,
-        )
+        return torch.cat((self.run.item[1], noise,), dim=1,)
 
     def _save_samples(self, fake_ts: torch.Tensor, fake=True):
         fig, ax = plt.subplots(nrows=4, ncols=4, figsize=(50, 50))
@@ -965,8 +892,7 @@ class PlotSamplesandTSNEPytorch(Callback):
                 log2(self.run.model.discriminator.target_len)
             ) - int(log2(fake_ts.size(1)))
             reduced_target = F.avg_pool1d(
-                self.run.item[0].unsqueeze(1),
-                kernel_size=2 ** reduce_factor,
+                self.run.item[0].unsqueeze(1), kernel_size=2 ** reduce_factor,
             ).squeeze(1)
             self._save_samples(reduced_target, fake=False)
             if (
