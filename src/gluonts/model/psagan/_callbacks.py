@@ -58,6 +58,22 @@ class Callback:
     def __getattr__(self, k):
         return getattr(self.run, k)
 
+    def _min_max_scaling(self, target):
+        _min, _ = torch.min(target, dim=1)
+        _max, _ = torch.max(target, dim=1)
+
+        _min = _min.unsqueeze(dim=1)
+
+        _max = _max.unsqueeze(dim=1)
+        scaling_factor = _max - _min
+        scaling_factor = torch.where(
+            scaling_factor != 0,
+            scaling_factor,
+            torch.ones_like(scaling_factor),
+        )
+        scaled_target = (target - _min) / scaling_factor
+        return scaled_target
+
 
 class TrainEvalCallback(Callback):
     """
@@ -128,22 +144,6 @@ class MinMaxScalingPytorch(Callback):
     def __repr__(self):
         return "MinMaxScaling Callback \n"
 
-    def _min_max_scaling(self, target):
-        _min, _ = torch.min(target, dim=1)
-        _max, _ = torch.max(target, dim=1)
-
-        _min = _min.unsqueeze(dim=1)
-
-        _max = _max.unsqueeze(dim=1)
-        scaling_factor = _max - _min
-        scaling_factor = torch.where(
-            scaling_factor != 0,
-            scaling_factor,
-            torch.ones_like(scaling_factor),
-        )
-        scaled_target = (target - _min) / scaling_factor
-        return scaled_target
-
     def begin_batch(self):
         self.run.item[0] = self._min_max_scaling(self.run.item[0])
 
@@ -163,22 +163,6 @@ class InputforInterpolation(Callback):
             0 <= replace_factor <= 1
         ), " Replace factor must be a float between 0 and 1"
         self.replace_factor = replace_factor
-
-    def _min_max_scaling(self, target):
-        _min, _ = torch.min(target, dim=1)
-        _max, _ = torch.max(target, dim=1)
-
-        _min = _min.unsqueeze(dim=1)
-
-        _max = _max.unsqueeze(dim=1)
-        scaling_factor = _max - _min
-        scaling_factor = torch.where(
-            scaling_factor != 0,
-            scaling_factor,
-            torch.ones_like(scaling_factor),
-        )
-        scaled_target = (target - _min) / scaling_factor
-        return scaled_target
 
     def forward_pass(self):
         shape = self.run.item[0].unsqueeze(1).shape
@@ -297,22 +281,6 @@ class PlotInterpolatedSamples(Callback):
         self.freq = freq
         self.save_plot_dir = save_plot_dir
         self.replace_factor = replace_factor
-
-    def _min_max_scaling(self, target):
-        _min, _ = torch.min(target, dim=1)
-        _max, _ = torch.max(target, dim=1)
-
-        _min = _min.unsqueeze(dim=1)
-
-        _max = _max.unsqueeze(dim=1)
-        scaling_factor = _max - _min
-        scaling_factor = torch.where(
-            scaling_factor != 0,
-            scaling_factor,
-            torch.ones_like(scaling_factor),
-        )
-        scaled_target = (target - _min) / scaling_factor
-        return scaled_target
 
     def _get_input(self):
         shape = self.run.item[0].unsqueeze(1).shape
