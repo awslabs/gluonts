@@ -213,13 +213,10 @@ class syntheticEstimator(Estimator):
                         start_field=FieldName.START,
                         forecast_start_field=FieldName.FORECAST_START,
                         instance_sampler=ExpectedNumInstanceSampler(
-                            num_instances=1,
-                            min_future=self.target_len,
+                            num_instances=1, min_future=self.target_len,
                         )
                         if train
-                        else TestSplitSampler(
-                            min_past=self.target_len,
-                        ),
+                        else TestSplitSampler(min_past=self.target_len,),
                         past_length=self.target_len,
                         future_length=self.target_len,
                         time_series_fields=[
@@ -288,14 +285,6 @@ class syntheticEstimator(Estimator):
         self, training_data: Dataset, validation_data: Optional[Dataset] = None
     ):
         transformation = self.create_transformation()
-        # dataloader = TrainDataLoader(
-        #     training_data,
-        #     batch_size=self.batch_size,
-        #     num_batches_per_epoch=self.num_batches_per_epoch,
-        #     transform=transformation,
-        #     stack_fn=partial(batchify, device = self.device),
-        #     num_workers=self.num_workers
-        # )
         ds = Data(
             training_data,
             transformation,

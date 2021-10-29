@@ -152,23 +152,6 @@ class Trainer:
 
         data = DataBunch(data_loader)
 
-        # opt_pre = Adam(network.generator.parameters(), lr = self.lr_generator)
-
-        # learner = Learner(network.generator, opt_pre, data, SupervisedLoss())
-
-        # run_pre = Runner(
-        #     [
-        #         TrainEvalCallback(),
-        #         TimeCheck(),
-        #         MinMaxScaling(),
-        #         InputforInterpolation(0.5),
-        #         SupervisedPreTraining(),
-        #         LossCheck(save_plot_dir=self.save_plot_dir,),
-        #         SaveModelSingle()
-
-        #     ]
-        # )
-
         opt_gen = Adam(
             network.generator.parameters(),
             lr=self.lr_generator,
@@ -186,27 +169,8 @@ class Trainer:
         )
         learner = Learner(network, opt, data)
 
-        # run = Runner(
-        #     [
-        #         TrainEvalCallback(),
-        #         TimeCheck(),
-        #     ]
-        #     + ([MinMaxScalingPytorch()] if self.scaling == "local" else [])
-        #     + [
-        #         CudaCallback(device=self.device),
-        #         InputforInterpolation(0.3),
-        #         SupervisedPreTraining(),
-        #         LossCheck(save_plot_dir=self.save_plot_dir),
-        #         SaveModelSingle(save_model_dir=self.save_model_dir),
-        #         PlotInterpolatedSamples(0.3, save_plot_dir=self.save_plot_dir),
-        #     ]
-        # )
-
         run = Runner(
-            [
-                TrainEvalCallback(),
-                TimeCheck(),
-            ]
+            [TrainEvalCallback(), TimeCheck(),]
             + ([MinMaxScalingPytorch()] if self.scaling == "local" else [])
             + [
                 CudaCallback(device=self.device),
