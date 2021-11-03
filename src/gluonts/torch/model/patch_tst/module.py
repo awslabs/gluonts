@@ -76,7 +76,8 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
 
 class PatchTSTModel(nn.Module):
     """
-    Module implementing the PatchTST model for forecasting.
+    Module implementing the PatchTST model for forecasting as described in
+    https://arxiv.org/abs/2211.14730 extended to be probabilistic.
 
     Parameters
     ----------

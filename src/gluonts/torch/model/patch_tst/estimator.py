@@ -49,7 +49,8 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class PatchTSTEstimator(PyTorchLightningEstimator):
     """
-    An estimator training the PatchTST model for forecasting.
+    An estimator training the PatchTST model for forecasting as described in
+    https://arxiv.org/abs/2211.14730 extended to be probabilistic.
 
     This class uses the model defined in ``PatchTSTModel``,
     and wraps it into a ``PatchTSTLightningModule`` for training
@@ -72,7 +73,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
     d_model
         Size of hidden layers in the Transformer encoder.
     nhead
-        Number of attention heads in the Transformer encoder.
+        Number of attention heads in the Transformer encoder which must divide d_model.
     dim_feedforward
         Size of hidden layers in the Transformer encoder.
     dropout
@@ -106,7 +107,6 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during training.
     validation_sampler
         Controls the sampling of windows during validation.
-
     """
 
     @validated()
