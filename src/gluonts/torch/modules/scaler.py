@@ -111,6 +111,6 @@ class NOPScaler(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
             dim=self.dim,
-            keepdim=True
-        )  # TODO this is a waste
-        return data, scale if self.keepdim else scale.squeeze(dim=self.dim)
+            keepdim=self.keepdim,
+        )
+        return data, scale
