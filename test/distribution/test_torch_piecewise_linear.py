@@ -96,7 +96,7 @@ def test_values(
     expected_target_cdf: List[float],
     expected_target_crps: List[float],
 ):
-    target = torch.Tensor(target).reshape(shape=(len(target),))
+    test_target = torch.Tensor(target).reshape(shape=(len(target),))
     expected_target_cdf = np.array(expected_target_cdf).reshape(
         (len(expected_target_cdf),)
     )
@@ -104,8 +104,10 @@ def test_values(
         (len(expected_target_crps),)
     )
 
-    assert all(np.isclose(distr.cdf(target).numpy(), expected_target_cdf))
-    assert all(np.isclose(distr.crps(target).numpy(), expected_target_crps))
+    assert all(np.isclose(distr.cdf(test_target).numpy(), expected_target_cdf))
+    assert all(
+        np.isclose(distr.crps(test_target).numpy(), expected_target_crps)
+    )
 
     # compare with empirical cdf from samples
     num_samples = 100_000
