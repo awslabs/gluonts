@@ -944,7 +944,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         past_time_feat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Optional,
+        past_is_pad: Tensor,
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
