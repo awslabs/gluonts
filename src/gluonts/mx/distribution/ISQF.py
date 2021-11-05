@@ -728,7 +728,8 @@ class ISQFOutput(DistributionOutput):
     def domain_map(
         cls,
         F,
-        *args,
+        *args: Tensor,
+        tol: float = 1e-4,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
         Domain map function
@@ -741,22 +742,27 @@ class ISQFOutput(DistributionOutput):
         parameterizing the left/right tail, shape = (*batch_shape, 1)
         """
 
-        knots, heights, q, beta_l, beta_r = args
+        try:
+            knots, heights, q, beta_l, beta_r = args
+        except ValueError:
+            raise ValueError(
+                "Failed to unpack args of domain_map. Double check your input."
+            )
 
         # Add tol to prevent the y-distance of two quantile knots from being too small
         # Because in this case the spline knots could be squeezed together
         # and cause overflow in spline CRPS computation
         q_proj = F.concat(
             F.slice_axis(q, axis=-1, begin=0, end=1),
-            F.abs(F.slice_axis(q, axis=-1, begin=1, end=None)) + 1e-4,
+            F.abs(F.slice_axis(q, axis=-1, begin=1, end=None)) + tol,
             dim=-1,
         )
         q_proj = cumsum(F, q_proj)
 
         # Prevent overflow when we compute 1/beta
         beta_l, beta_r = (
-            F.abs(beta_l.squeeze(axis=-1)) + 1e-4,
-            F.abs(beta_r.squeeze(axis=-1)) + 1e-4,
+            F.abs(beta_l.squeeze(axis=-1)) + tol,
+            F.abs(beta_r.squeeze(axis=-1)) + tol,
         )
 
         return knots, heights, q_proj, beta_l, beta_r
