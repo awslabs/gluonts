@@ -31,9 +31,16 @@ def hyperparameters():
     )
 
 
+@pytest.mark.parametrize("impute_missing_values", [True, False])
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_accuracy(accuracy_test, hyperparameters, hybridize):
-    hyperparameters.update(num_batches_per_epoch=50, hybridize=hybridize)
+def test_accuracy(
+    accuracy_test, hyperparameters, hybridize, impute_missing_values
+):
+    hyperparameters.update(
+        num_batches_per_epoch=50,
+        hybridize=hybridize,
+        impute_missing_values=impute_missing_values,
+    )
 
     # large value as this test is breaking frequently
     accuracy_test(DeepAREstimator, hyperparameters, accuracy=1.5)

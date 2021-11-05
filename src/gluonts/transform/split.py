@@ -122,6 +122,7 @@ class InstanceSplitter(FlatMapTransformation):
         lead_time: int = 0,
         output_NTC: bool = True,
         time_series_fields: List[str] = [],
+        past_time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
         super().__init__()
@@ -134,6 +135,7 @@ class InstanceSplitter(FlatMapTransformation):
         self.lead_time = lead_time
         self.output_NTC = output_NTC
         self.ts_fields = time_series_fields
+        self.past_ts_fields = past_time_series_fields
         self.target_field = target_field
         self.is_pad_field = is_pad_field
         self.start_field = start_field
@@ -151,7 +153,7 @@ class InstanceSplitter(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         pl = self.future_length
         lt = self.lead_time
-        slice_cols = self.ts_fields + [self.target_field]
+        slice_cols = self.ts_fields + self.past_ts_fields + [self.target_field]
         target = data[self.target_field]
 
         sampled_indices = self.instance_sampler(target)

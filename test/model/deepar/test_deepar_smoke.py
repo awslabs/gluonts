@@ -97,6 +97,19 @@ common_estimator_hps = dict(
                 cardinality=[3, 10, 42], num_feat_dynamic_real=3
             ),
         ),
+        # Both past dynamic real features and dynamic real features
+        (
+            partial(
+                DeepAREstimator,
+                **common_estimator_hps,
+                use_feat_dynamic_real=True,
+                use_past_feat_dynamic_real=True,
+            ),
+            make_dummy_datasets_with_features(
+                num_feat_dynamic_real=3,
+                num_past_feat_dynamic_real=2,
+            ),
+        ),
         # Both static categorical and dynamic real features (ignored)
         (
             partial(DeepAREstimator, **common_estimator_hps),

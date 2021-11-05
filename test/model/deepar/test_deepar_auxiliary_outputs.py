@@ -61,7 +61,7 @@ def test_distribution():
         )
 
         distr = train_output.trained_net.distribution(
-            *[data_entry[k] for k in input_names]
+            *[data_entry[k] for k in input_names if k in data_entry.keys()]
         )
 
         assert distr.sample(num_samples).shape == (

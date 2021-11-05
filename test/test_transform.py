@@ -216,42 +216,74 @@ def test_AddAgeFeatures(start, target, is_train: bool):
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
 @pytest.mark.parametrize("lead_time", TEST_VALUES["lead_time"])
+@pytest.mark.parametrize("use_time_series_field", [True, False])
+@pytest.mark.parametrize("use_past_time_series_field", [True, False])
 def test_InstanceSplitter(
-    start, target, lead_time: int, is_train: bool, pick_incomplete: bool
+    start,
+    target,
+    lead_time: int,
+    is_train: bool,
+    pick_incomplete: bool,
+    use_time_series_field: bool,
+    use_past_time_series_field: bool,
 ):
     train_length = 100
     pred_length = 13
-    t = transform.InstanceSplitter(
-        target_field=FieldName.TARGET,
-        is_pad_field=FieldName.IS_PAD,
-        start_field=FieldName.START,
-        forecast_start_field=FieldName.FORECAST_START,
-        instance_sampler=(
-            transform.UniformSplitSampler(
-                p=1.0,
-                min_past=0 if pick_incomplete else train_length,
-                min_future=lead_time + pred_length,
-            )
-            if is_train
-            else transform.TestSplitSampler(
-                min_past=0 if pick_incomplete else train_length
-            )
-        ),
-        past_length=train_length,
-        future_length=pred_length,
-        lead_time=lead_time,
-        time_series_fields=["some_time_feature"],
+
+    def setup_InstanceSplitter_test(
+        train_length: int,
+        pred_length: int,
+        use_time_series_field: bool = True,
+        use_past_time_series_field: bool = True,
+    ):
+
+        t = transform.InstanceSplitter(
+            target_field=FieldName.TARGET,
+            is_pad_field=FieldName.IS_PAD,
+            start_field=FieldName.START,
+            forecast_start_field=FieldName.FORECAST_START,
+            instance_sampler=(
+                transform.UniformSplitSampler(
+                    p=1.0,
+                    min_past=0 if pick_incomplete else train_length,
+                    min_future=lead_time + pred_length,
+                )
+                if is_train
+                else transform.TestSplitSampler(
+                    min_past=0 if pick_incomplete else train_length
+                )
+            ),
+            past_length=train_length,
+            future_length=pred_length,
+            lead_time=lead_time,
+            time_series_fields=["some_time_feature"]
+            if use_time_series_field
+            else [],
+            past_time_series_fields=["only_past_feature"]
+            if use_past_time_series_field
+            else [],
+        )
+
+        assert_serializable(t)
+
+        other_feat = np.arange(len(target) + 100)
+        data = {
+            "start": start,
+            "target": target,
+            "some_other_col": "ABC",
+        }
+        if use_time_series_field:
+            data["some_time_feature"] = other_feat
+        if use_past_time_series_field:
+            data["only_past_feature"] = other_feat
+        return t, data
+
+    t, data = setup_InstanceSplitter_test(
+        train_length=train_length,
+        pred_length=pred_length,
+        use_time_series_field=use_time_series_field,
+        use_past_time_series_field=use_past_time_series_field,
     )
-
-    assert_serializable(t)
-
-    other_feat = np.arange(len(target) + 100)
-    data = {
-        "start": start,
-        "target": target,
-        "some_time_feature": other_feat,
-        "some_other_col": "ABC",
-    }
 
     if not is_train and not pick_incomplete and len(target) < train_length:
         with pytest.raises(AssertionError):
@@ -274,18 +306,28 @@ def test_InstanceSplitter(
 
     for o in out:
         assert "target" not in o
-        assert "some_time_feature" not in o
+        if use_time_series_field:
+            assert "some_time_feature" not in o
+            assert len(o["past_some_time_feature"]) == train_length
+        if use_past_time_series_field:
+            assert "only_past_feature" not in o
+            assert len(o["past_only_past_feature"]) == train_length
         assert "some_other_col" in o
 
-        assert len(o["past_some_time_feature"]) == train_length
         assert len(o["past_target"]) == train_length
 
         if is_train:
             assert len(o["future_target"]) == pred_length
-            assert len(o["future_some_time_feature"]) == pred_length
+            if use_time_series_field:
+                assert len(o["future_some_time_feature"]) == pred_length
+            if use_past_time_series_field:
+                assert len(o["future_only_past_feature"]) == pred_length
         else:
             assert len(o["future_target"]) == 0
-            assert len(o["future_some_time_feature"]) == pred_length
+            if use_time_series_field:
+                assert len(o["future_some_time_feature"]) == pred_length
+            if use_past_time_series_field:
+                assert len(o["future_only_past_feature"]) == pred_length
 
     # expected_length = len(target) + (0 if is_train else pred_length)
     # assert len(out['age']) == expected_length
