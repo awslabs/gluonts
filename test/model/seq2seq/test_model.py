@@ -43,7 +43,12 @@ def Estimator(request):
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize(
     "quantiles, distr_output",
-    [([0.1, 0.5, 0.9], None), (None, GaussianOutput()), (None, ISQFOutput(1, [0.1, 0.9])), (None, ISQFOutput(5, [0.1, 0.3, 0.5, 0.7, 0.9]))],
+    [
+        ([0.1, 0.5, 0.9], None),
+        (None, GaussianOutput()),
+        (None, ISQFOutput(1, [0.1, 0.9])),
+        (None, ISQFOutput(5, [0.1, 0.3, 0.5, 0.7, 0.9])),
+    ],
 )
 @pytest.mark.parametrize("is_iqf", [True, False])
 def test_accuracy(
