@@ -55,6 +55,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         num_imputation_samples: int = 1,
         minimum_scale: float = 1e-10,
         impute_missing_values: bool = False,
+        use_past_feat_dynamic_real: bool = False,
         default_scale: Optional[float] = None,
         **kwargs,
     ) -> None:
@@ -72,6 +73,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.num_cat = len(cardinality)
         self.scaling = scaling
         self.dtype = dtype
+        self.impute_missing_values = impute_missing_values
 
         assert len(cardinality) == len(
             embedding_dimension
@@ -85,9 +87,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.lags_seq = lags_seq
 
         self.distr_output = distr_output
-        RnnCell = {"lstm": mx.gluon.rnn.LSTMCell, "gru": mx.gluon.rnn.GRUCell}[
-            self.cell_type
-        ]
+        self.RnnCell = {
+            "lstm": mx.gluon.rnn.LSTMCell,
+            "gru": mx.gluon.rnn.GRUCell,
+        }[self.cell_type]
 
         self.target_shape = distr_output.event_shape
 
@@ -96,7 +99,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             len(self.target_shape) <= 1
         ), "Argument `target_shape` should be a tuple with 1 element at most"
 
-        Dropout = {
+        self.Dropout = {
             "ZoneoutCell": ZoneoutCell,
             "RNNZoneoutCell": RNNZoneoutCell,
             "VariationalDropoutCell": VariationalDropoutCell,
@@ -104,26 +107,14 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         }[self.dropoutcell_type]
 
         with self.name_scope():
-            self.proj_distr_args = distr_output.get_args_proj()
-            self.rnn = mx.gluon.rnn.HybridSequentialRNNCell()
-            for k in range(num_layers):
-                cell = RnnCell(hidden_size=num_cells)
-                cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
-                # we found that adding dropout to outputs doesn't improve the performance, so we only drop states
-                if "Zoneout" in self.dropoutcell_type:
-                    cell = (
-                        Dropout(cell, zoneout_states=dropout_rate)
-                        if dropout_rate > 0.0
-                        else cell
-                    )
-                elif "Dropout" in self.dropoutcell_type:
-                    cell = (
-                        Dropout(cell, drop_states=dropout_rate)
-                        if dropout_rate > 0.0
-                        else cell
-                    )
-                self.rnn.add(cell)
-            self.rnn.cast(dtype=dtype)
+            self.rnn = self.rnn_block(
+                distr_output=distr_output,
+                num_layers=num_layers,
+                dropout_rate=dropout_rate,
+                num_cells=num_cells,
+                dtype=dtype,
+            )
+
             self.embedder = FeatureEmbedder(
                 cardinalities=cardinality,
                 embedding_dims=embedding_dimension,
@@ -143,12 +134,54 @@ class DeepARNetwork(mx.gluon.HybridBlock):
 
             # Switch between vanilla mode and imputing the missing values
             # with the model during training/prediction
-            if impute_missing_values:
+            if impute_missing_values or use_past_feat_dynamic_real:
                 self.unroll_encoder = self.unroll_encoder_imputation
                 self.include_zeros_in_denominator = True
+
+                self.decoder = self.rnn_block(
+                    distr_output=distr_output,
+                    num_layers=num_layers,
+                    dropout_rate=dropout_rate,
+                    num_cells=num_cells,
+                    dtype=dtype,
+                )
             else:
+                self.decoder = self.rnn
+                assert id(self.decoder) == id(self.rnn), (
+                    "Check that decoder" "is just a reference" "to rnn"
+                )
                 self.unroll_encoder = self.unroll_encoder_default
                 self.include_zeros_in_denominator = False
+
+    def rnn_block(
+        self,
+        distr_output: DistributionOutput,
+        num_layers: int,
+        dropout_rate: float,
+        num_cells: int,
+        dtype: DType,
+    ):
+        self.proj_distr_args = distr_output.get_args_proj()
+        rnn = mx.gluon.rnn.HybridSequentialRNNCell()
+        for k in range(num_layers):
+            cell = self.RnnCell(hidden_size=num_cells)
+            cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
+            # we found that adding dropout to outputs doesn't improve the performance, so we only drop states
+            if "Zoneout" in self.dropoutcell_type:
+                cell = (
+                    self.Dropout(cell, zoneout_states=dropout_rate)
+                    if dropout_rate > 0.0
+                    else cell
+                )
+            elif "Dropout" in self.dropoutcell_type:
+                cell = (
+                    self.Dropout(cell, drop_states=dropout_rate)
+                    if dropout_rate > 0.0
+                    else cell
+                )
+            rnn.add(cell)
+        rnn.cast(dtype=dtype)
+        return rnn
 
     @staticmethod
     def get_lagged_subsequences(
@@ -212,6 +245,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         time_feat: Tensor,
         repeated_static_feat: Tensor,
         is_padded_indicator: Tensor,
+        past_only_time_feat: Optional[Tensor],
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Unrolls the RNN and imputes missing values with samples from the
@@ -280,13 +314,33 @@ class DeepARNetwork(mx.gluon.HybridBlock):
                 state,
             ) = input_data
 
-            output, state = self.rnn.unroll(
-                inputs=inputs.slice_axis(axis=1, begin=i, end=i + 1),
-                length=1,
-                layout="NTC",
-                merge_outputs=True,
-                begin_state=state,
-            )
+            if i < self.context_length:
+                inputs = (
+                    F.concat(
+                        inputs.slice_axis(axis=1, begin=i, end=i + 1),
+                        past_only_time_feat.slice_axis(
+                            axis=1, begin=i, end=i + 1
+                        ),
+                        dim=-1,
+                    )
+                    if past_only_time_feat is not None
+                    else inputs.slice_axis(axis=1, begin=i, end=i + 1)
+                )
+                output, state = self.rnn.unroll(
+                    inputs=inputs,
+                    length=1,
+                    layout="NTC",
+                    merge_outputs=True,
+                    begin_state=state,
+                )
+            else:
+                output, state = self.decoder.unroll(
+                    inputs=inputs.slice_axis(axis=1, begin=i, end=i + 1),
+                    length=1,
+                    layout="NTC",
+                    merge_outputs=True,
+                    begin_state=state,
+                )
 
             target_value = self.impute_target_if_unobserved(
                 F,
@@ -464,12 +518,12 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         future_target: Optional[
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
+        past_only_time_feat: Optional[Tensor],
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
         """
         Unrolls the RNN encoder in "imputation mode" which will fill imputed
         values with samples from the DeepAR model.
         """
-
         if future_time_feat is None or future_target is None:
             time_feat = past_time_feat.slice_axis(
                 axis=1,
@@ -539,6 +593,14 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             sequence = F.concat(past_target, future_target, dim=1)
             sequence_length = self.history_length + self.prediction_length
             subsequences_length = self.context_length + self.prediction_length
+
+        if past_only_time_feat is not None:
+            past_only_time_features = past_only_time_feat.slice_axis(
+                axis=1,
+                begin=self.history_length - self.context_length,
+                end=None,
+            )
+
         # (batch_size, sub_seq_len, *target_shape, num_lags)
         lags = self.get_lagged_subsequences(
             F=F,
@@ -603,7 +665,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             if isinstance(inputs, mx.nd.NDArray)
             else 0,
         )
-
         unroll_results = self.imputation_rnn_unroll(
             F,
             begin_state=begin_state,
@@ -616,6 +677,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             time_feat=time_feat,
             repeated_static_feat=repeated_static_feat,
             is_padded_indicator=is_padded_indicator,
+            past_only_time_feat=past_only_time_features
+            if past_only_time_feat is not None
+            else past_only_time_feat,
         )
 
         outputs, state, imputed_sequence = unroll_results
@@ -642,6 +706,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         future_target: Optional[
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
+        past_only_time_feat: Optional[Tensor],
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
@@ -816,6 +881,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
+        past_only_time_feat: Optional[Tensor] = None,
         return_rnn_outputs: bool = False,
     ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
         """
@@ -853,6 +919,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_observed_values=future_observed_values,
             future_time_feat=future_time_feat,
             future_target=future_target,
+            past_only_time_feat=past_only_time_feat,
         )
 
         distr_args = self.proj_distr_args(rnn_outputs)
@@ -877,10 +944,11 @@ class DeepARTrainingNetwork(DeepARNetwork):
         past_time_feat: Tensor,
         past_target: Tensor,
         past_observed_values: Tensor,
-        past_is_pad: Optional[Tensor],
+        past_is_pad: Tensor,
         future_time_feat: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
+        past_past_feat_dynamic_real: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Computes the loss for training DeepAR, all inputs tensors representing
@@ -902,7 +970,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
         -------
 
         """
-
         outputs = self.distribution(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -913,6 +980,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
             future_time_feat=future_time_feat,
             future_target=future_target,
             future_observed_values=future_observed_values,
+            past_only_time_feat=past_past_feat_dynamic_real,
             return_rnn_outputs=True,
         )
         # since return_rnn_outputs=True, assert:
@@ -1074,7 +1142,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
             # output shape: (batch_size * num_samples, 1, num_cells)
             # state shape: (batch_size * num_samples, num_cells)
-            rnn_outputs, repeated_states = self.rnn.unroll(
+            rnn_outputs, repeated_states = self.decoder.unroll(
                 inputs=decoder_input,
                 length=1,
                 begin_state=repeated_states,
@@ -1122,6 +1190,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
         past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
         future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
         past_is_pad: Tensor,
+        past_past_feat_dynamic_real: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Predicts samples, all tensors should have NTC layout.
@@ -1140,6 +1209,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
         Tensor
             Predicted samples
         """
+        if past_past_feat_dynamic_real is not None:
+            past_past_feat_dynamic_real.mean()
         # unroll the decoder in "prediction mode", i.e. with past data only
         _, state, scale, static_feat, imputed_sequence = self.unroll_encoder(
             F=F,
@@ -1152,6 +1223,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
             future_observed_values=None,
             future_time_feat=None,
             future_target=None,
+            past_only_time_feat=past_past_feat_dynamic_real,
         )
         return self.sampling_decoder(
             F=F,

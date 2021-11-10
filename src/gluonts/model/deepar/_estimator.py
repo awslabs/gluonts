@@ -101,7 +101,13 @@ class DeepAREstimator(GluonEstimator):
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
-        Whether to use the ``feat_dynamic_real`` field from the data
+        Whether to use the ``feat_dynamic_real`` field from the data. DeepAR
+        will assume that these features are present in training AND prediction
+        range
+        (default: False)
+    use_past_feat_dynamic_real
+        Whether to use the ``past_feat_dynamic_real`` field from the data.
+        DeepAR only need these features in training range only
         (default: False)
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
@@ -170,6 +176,7 @@ class DeepAREstimator(GluonEstimator):
         dropoutcell_type: str = "ZoneoutCell",
         dropout_rate: float = 0.1,
         use_feat_dynamic_real: bool = False,
+        use_past_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
         use_feat_static_real: bool = False,
         cardinality: Optional[List[int]] = None,
@@ -236,6 +243,7 @@ class DeepAREstimator(GluonEstimator):
         self.dropoutcell_type = dropoutcell_type
         self.dropout_rate = dropout_rate
         self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
         self.cardinality = (
@@ -304,6 +312,8 @@ class DeepAREstimator(GluonEstimator):
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+        if not self.use_past_feat_dynamic_real:
+            remove_field_names.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
 
         return Chain(
             [RemoveFields(field_names=remove_field_names)]
@@ -391,6 +401,9 @@ class DeepAREstimator(GluonEstimator):
                 FieldName.FEAT_TIME,
                 FieldName.OBSERVED_VALUES,
             ],
+            past_time_series_fields=[FieldName.PAST_FEAT_DYNAMIC_REAL]
+            if self.use_past_feat_dynamic_real
+            else [],
             dummy_value=self.distr_output.value_in_support,
         )
 
@@ -448,6 +461,7 @@ class DeepAREstimator(GluonEstimator):
             default_scale=self.default_scale,
             minimum_scale=self.minimum_scale,
             impute_missing_values=self.impute_missing_values,
+            use_past_feat_dynamic_real=self.use_past_feat_dynamic_real,
         )
 
     def create_predictor(
@@ -475,6 +489,7 @@ class DeepAREstimator(GluonEstimator):
             default_scale=self.default_scale,
             minimum_scale=self.minimum_scale,
             impute_missing_values=self.impute_missing_values,
+            use_past_feat_dynamic_real=self.use_past_feat_dynamic_real,
         )
 
         copy_parameters(trained_network, prediction_network)
