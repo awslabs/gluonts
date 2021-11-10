@@ -312,7 +312,7 @@ class DeepAREstimator(GluonEstimator):
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-        if not self.use_feat_dynamic_real:
+        if not self.use_past_feat_dynamic_real:
             remove_field_names.append(FieldName.PAST_FEAT_DYNAMIC_REAL)
 
         return Chain(
