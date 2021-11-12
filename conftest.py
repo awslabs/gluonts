@@ -85,7 +85,7 @@ def pytest_configure():
 
     module_seed_str = os.getenv("MXNET_MODULE_SEED")
     if module_seed_str is None:
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        seed = int.from_bytes(os.urandom(4), "big")
     else:
         seed = int(module_seed_str)
         logging.warning(
