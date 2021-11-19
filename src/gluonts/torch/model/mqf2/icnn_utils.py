@@ -23,9 +23,8 @@
 
 from typing import Optional, Tuple, List
 
-from cpflows.flows import SequentialFlow, DeepConvexFlow, ActNorm
+from cpflows.flows import SequentialFlow, DeepConvexFlow
 from cpflows.icnn import PICNN as ConvexNet
-from cpflows.icnn import softplus
 
 import torch
 import torch.nn.functional as F

@@ -175,7 +175,7 @@ class MQF2Distribution(Distribution):
             Tensor of shape (batch_size * context_length,)
         """
 
-        es_num_samples, numel_batch = self.es_num_samples, self.numel_batch
+        es_num_samples = self.es_num_samples
         hidden_state = self.hidden_state
         picnn = self.picnn
         beta = self.beta
