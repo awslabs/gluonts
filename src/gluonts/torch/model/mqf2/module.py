@@ -19,7 +19,8 @@ from gluonts.core.component import validated
 from gluonts.torch.model.deepar.module import DeepARModel
 from gluonts.torch.modules.distribution_output import DistributionOutput
 
-from .icnn_utils import ActNorm, ConvexNet, DeepConvexNet, SequentialNet
+from cpflows.flows import ActNorm
+from .icnn_utils import ConvexNet, DeepConvexNet, SequentialNet
 
 
 class MQF2MultiHorizonModel(DeepARModel):
