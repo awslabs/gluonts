@@ -40,10 +40,7 @@ class QuantileLayer(nn.Module):
 
     def forward(self, tau):  # tau: [B, T]
         cos_emb_tau = torch.cos(tau.unsqueeze(-1) * self.integers * torch.pi)
-        # [B, T, n_cos_embedding]
-
         return self.output_layer(cos_emb_tau)
-        # [B, T, num_output]
 
 
 class ImplicitQuantileModule(nn.Module):
