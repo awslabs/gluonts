@@ -50,7 +50,7 @@ class PyTorchPredictor(Predictor):
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
-        device=torch.device("cpu"),
+        device: Optional[torch.device] = torch.device("cpu"),
     ) -> None:
         super().__init__(prediction_length, freq=freq, lead_time=lead_time)
         self.input_names = input_names

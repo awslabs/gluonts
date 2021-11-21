@@ -112,7 +112,7 @@ class FeedForwardNetwork(nn.Module):
             forecast_generator=DistributionForecastGenerator(
                 self.distr_output
             ),
-            device=None,
+            device=device,
         )
 
 
