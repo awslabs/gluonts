@@ -28,7 +28,7 @@ jobs:
         python -m pip install pip
         pip install mxnet~=1.7.0
         pip install torch
-        pip install pytorch-lightning~=1.5.1
+        pip install pytorch-lightning~=1.5
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-sagemaker-sdk.txt
