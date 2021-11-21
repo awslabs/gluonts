@@ -63,4 +63,4 @@ class QuantileLoss(DistributionLoss):
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
-        return -input.quantile_loss(target)
+        return input.quantile_loss(target)
