@@ -20,7 +20,8 @@ from gluonts.torch.model.deepar.module import DeepARModel
 from gluonts.torch.modules.distribution_output import DistributionOutput
 
 from cpflows.flows import ActNorm
-from .icnn_utils import ConvexNet, DeepConvexNet, SequentialNet
+from cpflows.icnn import PICNN
+from .icnn_utils import DeepConvexNet, SequentialNet
 
 
 class MQF2MultiHorizonModel(DeepARModel):
@@ -82,7 +83,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         self.threshold_input = threshold_input
         self.es_num_samples = es_num_samples
 
-        convexnet = ConvexNet(
+        convexnet = PICNN(
             dim=prediction_length,
             dimh=icnn_hidden_size,
             dimc=hidden_size,

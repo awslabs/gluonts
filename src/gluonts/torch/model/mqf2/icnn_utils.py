@@ -24,7 +24,6 @@
 from typing import Optional, Tuple, List
 
 from cpflows.flows import SequentialFlow, DeepConvexFlow
-from cpflows.icnn import PICNN as ConvexNet
 
 import torch
 import torch.nn.functional as F
@@ -43,8 +42,8 @@ class DeepConvexNet(DeepConvexFlow):
 
     Parameters
     ----------
-    convexnet
-        An instance of a partially input convex neural network (picnn)
+    picnn
+        A partially input convex neural network (picnn)
     dim
         Dimension of the input
     is_energy_score
@@ -63,7 +62,7 @@ class DeepConvexNet(DeepConvexFlow):
 
     def __init__(
         self,
-        convexnet: ConvexNet,
+        picnn: torch.nn.Module,
         dim: int,
         is_energy_score: bool = False,
         estimate_logdet: bool = False,
@@ -73,7 +72,7 @@ class DeepConvexNet(DeepConvexFlow):
         atol: float = 1e-3,
     ) -> None:
         super().__init__(
-            convexnet,
+            picnn,
             dim,
             m1=m1,
             m2=m2,
@@ -81,7 +80,7 @@ class DeepConvexNet(DeepConvexFlow):
             atol=atol,
         )
 
-        self.convexnet = self.icnn
+        self.picnn = self.icnn
         self.is_energy_score = is_energy_score
         self.estimate_logdet = estimate_logdet
 
@@ -89,7 +88,7 @@ class DeepConvexNet(DeepConvexFlow):
         self, x: torch.Tensor, context: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         n = x.size(0)
-        output = self.convexnet(x, context)
+        output = self.picnn(x, context)
 
         if self.is_energy_score:
             return output
