@@ -112,7 +112,7 @@ class FeedForwardNetwork(nn.Module):
             forecast_generator=DistributionForecastGenerator(
                 self.distr_output
             ),
-            device=None,
+            device=device,
         )
 
 
@@ -184,7 +184,7 @@ def test_simple_model():
     )
 
     trainer = pl.Trainer(max_epochs=3, callbacks=[], weights_summary=None)
-    trainer.fit(net, train_dataloader=data_loader)
+    trainer.fit(net, train_dataloaders=data_loader)
 
     prediction_splitter = InstanceSplitter(
         target_field=FieldName.TARGET,
