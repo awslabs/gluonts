@@ -78,7 +78,7 @@ class PyTorchPredictor(Predictor):
 
         self.prediction_net.eval()
 
-        with torch.inference_mode():
+        with torch.no_grad():
             yield from self.forecast_generator(
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
