@@ -129,7 +129,7 @@ class FeedForwardNetwork(nn.Module):
             batch_size=batch_size,
             input_transform=input_transform,
             forecast_generator=DistributionForecastGenerator(self.distr_output),
-            device=None,
+            device=device,
         )
 ```
 
