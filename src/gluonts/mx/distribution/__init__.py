@@ -65,7 +65,7 @@ from .piecewise_linear import (
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
-from .ISQF import (
+from .isqf import (
     ISQF,
     ISQFOutput,
 )
