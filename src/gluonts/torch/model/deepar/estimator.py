@@ -14,6 +14,8 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import numpy as np
+
+import torch
 from torch.utils.data import DataLoader
 
 from gluonts.core.component import validated
@@ -315,4 +317,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
+            device=torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu"
+            ),
         )
