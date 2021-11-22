@@ -50,7 +50,7 @@ class PyTorchPredictor(Predictor):
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
-        device=torch.device("cpu"),
+        device: Optional[torch.device] = torch.device("cpu"),
     ) -> None:
         super().__init__(prediction_length, freq=freq, lead_time=lead_time)
         self.input_names = input_names
@@ -78,7 +78,7 @@ class PyTorchPredictor(Predictor):
 
         self.prediction_net.eval()
 
-        with torch.no_grad():
+        with torch.inference_mode():
             yield from self.forecast_generator(
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
