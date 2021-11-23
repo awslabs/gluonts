@@ -21,6 +21,7 @@ chronographically.
 A number of the below methods are available in GluonTS.
 
 ### [Tree-based probabilistic forecaster](https://proceedings.neurips.cc/paper/2021/file/32b127307a606effdcc8e51f60a45922-Paper.pdf)
+```
 @article{hasson2021probabilistic,
   title={Probabilistic Forecasting: A Level-Set Approach},
   author={Hasson, Hilaf and Wang, Yuyang and Januschowski, Tim and Gasthaus, Jan},
@@ -28,22 +29,27 @@ A number of the below methods are available in GluonTS.
   volume={34},
   year={2021}
 }
+```
 
 ### [Deep switching models](https://papers.nips.cc/paper/2021/file/fb4c835feb0a65cc39739320d7a51c02-Paper.pdf)
+```
 @inproceedings{ansari2021deep,
   title={Deep Explicit Duration Switching Models for Time Series},
   author={Ansari, Abdul Fatir and Benidis, Konstantinos and Kurle, Richard and Turkmen, Ali Caner and Soh, Harold and Smola, Alex and Wang, Bernie and Januschowski, Tim},
   booktitle={Thirty-Fifth Conference on Neural Information Processing Systems},
   year={2021}
 }
+```
 
 ### [Neural flows](https://papers.nips.cc/paper/2021/file/b21f9f98829dea9a48fd8aaddc1f159d-Paper.pdf)
+```
 @inproceedings{bilovs2021neural,
   title={Neural Flows: Efficient Alternative to Neural ODEs},
   author={Bilo{\v{s}}, Marin and Sommer, Johanna and Rangapuram, Syama Sundar and Januschowski, Tim and G{\"u}nnemann, Stephan},
   booktitle={Thirty-Fifth Conference on Neural Information Processing Systems},
   year={2021}
 }
+```
 
 
 ### [Optimization methods for time series](http://proceedings.mlr.press/v139/lu21d/lu21d.pdf)
