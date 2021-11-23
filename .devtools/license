@@ -42,9 +42,7 @@ license = dedent(
 ).strip()
 
 
-miniver = (
-    "# This file is part of 'miniver': https://github.com/jbweston/miniver"
-)
+external_license = "# LICENSE: EXTERNAL"
 
 
 def check_file(path: Path) -> bool:
@@ -58,7 +56,7 @@ def check_file(path: Path) -> bool:
         lines = list(in_file)[:num_lines]
 
     head = "".join(lines)
-    return license in head or miniver in head
+    return license in head or external_license in head
 
 
 def iter_paths(roots: List[str]) -> Iterator[Path]:
