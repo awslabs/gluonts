@@ -167,7 +167,7 @@ def function_scope_seed(request):
     elif env_seed_str is not None:
         seed = int(env_seed_str)
     else:
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        seed = int.from_bytes(os.urandom(4), "big")
 
     post_test_state = np.random.get_state()
     np.random.seed(seed)
