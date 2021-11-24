@@ -243,7 +243,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             validation_transform.apply(data),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
         )
 
     def create_training_network(self) -> DeepRenewalTrainingNetwork:
