@@ -183,7 +183,9 @@ def test_simple_model():
         num_batches_per_epoch=5,
     )
 
-    trainer = pl.Trainer(max_epochs=3, callbacks=[], weights_summary=None)
+    trainer = pl.Trainer(
+        max_epochs=3, callbacks=[], enable_model_summary=False
+    )
     trainer.fit(net, train_dataloaders=data_loader)
 
     prediction_splitter = InstanceSplitter(
