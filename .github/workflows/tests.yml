@@ -34,7 +34,7 @@ jobs:
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-rotbaum.txt
-	    pip install -r requirements/requirements-extras-cpflows.txt
+	pip install -r requirements/requirements-extras-cpflows.txt
     - name: Test with pytest
       run: |
         pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml --ignore test/nursery test
