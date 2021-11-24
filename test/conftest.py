@@ -1,29 +1,16 @@
-# LICENSE: EXTERNAL
-
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
-#   http://www.apache.org/licenses/LICENSE-2.0
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-"""conftest.py contains configuration for pytest.
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
 
-Configuration file for tests in tests/ and scripts/ folders.
-
-Note that fixtures of higher-scoped fixtures (such as ``session``) are
-instantiated before lower-scoped fixtures (such as ``function``).
-
-"""
 
 import logging
 import os
@@ -36,95 +23,6 @@ import mxnet as mx
 import pytest
 
 import gluonts
-
-# * Random seed setup
-def pytest_configure():
-    """Pytest configuration hook to help reproduce test segfaults
-
-    Sets and outputs rng seeds.
-
-    The segfault-debug procedure on a module called test_module.py is:
-
-    1. run "pytest --verbose test_module.py".  A seg-faulting output might be:
-
-       [INFO] np, mx and python random seeds = 4018804151
-       test_module.test1 ... ok
-       test_module.test2 ... Illegal instruction (core dumped)
-
-    2. Copy the module-starting seed into the next command, then run:
-
-       MXNET_MODULE_SEED=4018804151 pytest --log-level=DEBUG --verbose test_module.py
-
-       Output might be:
-
-       [WARNING] **** module-level seed is set: all tests running deterministically ****
-       [INFO] np, mx and python random seeds = 4018804151
-       test_module.test1 ... [DEBUG] np and mx random seeds = 3935862516
-       ok
-       test_module.test2 ... [DEBUG] np and mx random seeds = 1435005594
-       Illegal instruction (core dumped)
-
-    3. Copy the segfaulting-test seed into the command:
-       MXNET_TEST_SEED=1435005594 pytest --log-level=DEBUG --verbose test_module.py:test2
-       Output might be:
-
-       [INFO] np, mx and python random seeds = 2481884723
-       test_module.test2 ... [DEBUG] np and mx random seeds = 1435005594
-       Illegal instruction (core dumped)
-
-    3. Finally reproduce the segfault directly under gdb (might need additional os packages)
-       by editing the bottom of test_module.py to be
-
-       if __name__ == '__main__':
-           logging.getLogger().setLevel(logging.DEBUG)
-           test2()
-
-       MXNET_TEST_SEED=1435005594 gdb -ex r --args python test_module.py
-
-    4. When finished debugging the segfault, remember to unset any exported MXNET_ seed
-       variables in the environment to return to non-deterministic testing (a good thing).
-    """
-
-    module_seed_str = os.getenv("MXNET_MODULE_SEED")
-    if module_seed_str is None:
-        seed = int.from_bytes(os.urandom(4), "big")
-    else:
-        seed = int(module_seed_str)
-        logging.warning(
-            "*** module-level seed is set: "
-            "all tests running deterministically ***"
-        )
-    print(
-        "Setting module np/mx/python random seeds, "
-        "use MXNET_MODULE_SEED={} to reproduce.".format(seed)
-    )
-
-    np.random.seed(seed)
-    mx.random.seed(seed)
-    random.seed(seed)
-
-    # The MXNET_TEST_SEED environment variable will override MXNET_MODULE_SEED for tests with
-    #  the 'with_seed()' decoration.  Inform the user of this once here at the module level.
-    if os.getenv("MXNET_TEST_SEED") is not None:
-        logging.warning(
-            '*** test-level seed set: all "@with_seed()" '
-            "tests run deterministically ***"
-        )
-
-
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    """Make test outcome available to fixture.
-
-    https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
-    """
-    # execute all other hooks to obtain the report object
-    outcome = yield
-    rep = outcome.get_result()
-
-    # set a report attribute for each phase of a call, which can
-    # be "setup", "call", "teardown"
-    setattr(item, "rep_" + rep.when, rep)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -176,9 +74,8 @@ def function_scope_seed(request):
 
     seed_message = (
         "np/mx/python random seeds are set to "
-        "{}, use MXNET_TEST_SEED={} to reproduce."
+        f"{seed}, use MXNET_TEST_SEED={seed} to reproduce."
     )
-    seed_message = seed_message.format(seed, seed)
 
     # Always log seed on DEBUG log level. This makes sure we can find out the
     # value of the seed even if the test case causes a segfault and subsequent
@@ -187,17 +84,7 @@ def function_scope_seed(request):
 
     yield  # run the test
 
-    if request.node.rep_call.outcome == "failed":
-        # On failure also log seed on INFO log level
-        logging.info(seed_message)
-
     np.random.set_state(post_test_state)
-
-
-# * Shared test fixtures
-@pytest.fixture(params=[True, False])
-def hybridize(request):
-    return request.param
 
 
 @pytest.fixture(autouse=True)
@@ -206,6 +93,7 @@ def doctest(doctest_namespace):
     doctest_namespace["gluonts"] = gluonts
     doctest_namespace["mx"] = mx
     doctest_namespace["gluon"] = mx.gluon
+
     import doctest
 
     doctest.ELLIPSIS_MARKER = "-etc-"
