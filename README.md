@@ -23,8 +23,7 @@ your own models and quickly experiment with different solutions.
 
 ## Installation
 
-GluonTS requires Python 3.6, and the easiest
-way to install it is via `pip`:
+GluonTS requires Python 3.7, and the easiest way to install it is via `pip`:
 
 ```bash
 pip install --upgrade mxnet~=1.7 gluonts
