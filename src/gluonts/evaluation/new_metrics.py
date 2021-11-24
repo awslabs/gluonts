@@ -27,7 +27,7 @@ class Stat:
         raise NotImplementedError
 
 
-class Metric:
+class Metric(Stat):
     name: str
     dependencies = ()
 
@@ -59,7 +59,7 @@ class Loss(Stat):
     name: str = "loss"
 
     def apply(self, x):
-        x.loss = x.target - x.forecast
+        x["loss"] = x["target"] - x["forecast"]
 
 
 class AggrMean:
@@ -76,21 +76,22 @@ class AbsTargetSum(AggrSum, Metric):
     name: str = "abs_target_sum"
 
     def loss(self, x):
-        return x.target
+        return x["target"]
 
 
 @dataclass
 class QuantileLoss(AggrSum, Metric):
     q: float
 
-    dependencies = [Loss()]
-
     @property
     def name(self):
         return f"quantile[{self.q}]"
 
     def loss(self, x):
-        return 2 * np.abs(x.loss * ((x.target <= x.forecast) - self.q))
+        return 2 * np.abs(
+            x["loss"]
+            * ((x["target"] <= x["forecast"].quantile(self.q)) - self.q)
+        )
 
 
 @dataclass
@@ -108,7 +109,7 @@ class WeightedQuantileLoss(DerivedMetric):
     def get(self, metrics):
         ql = QuantileLoss(self.quantile)
 
-        return metrics[ql.name] / metrics.abs_target_sum
+        return metrics[ql.name] / metrics["abs_target_sum"]
 
 
 @dataclass
@@ -154,13 +155,14 @@ def get_order(entities):
     result = {}
 
     for entity in entities:
-        merge(result, resolve(entity))
+        resolved = resolve(entity)
+        merge(result, resolved)
 
     return result
 
 
 def calc_aggrs(aggr_fns, data, axis=None):
-    result = AttrDict({})
+    result = {}
 
     for aggr in aggr_fns:
         result[aggr.name] = aggr.get_aggr(data, result, axis=axis)
@@ -169,7 +171,7 @@ def calc_aggrs(aggr_fns, data, axis=None):
 
 
 def calc_losses(loss_fns, data):
-    result = AttrDict({})
+    result = {}
 
     for loss in loss_fns:
         loss.apply(data)
@@ -197,13 +199,7 @@ def get_evaluator(metrics):
     )
 
 
-class AttrDict(dict):
-    def __getattribute__(self, key):
-        return self[key]
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
+import pandas as pd
 
 data = {
     "target": np.array(
@@ -220,11 +216,37 @@ data = {
     ),
 }
 
+from typing import List
 
-get_losses, aggregate, select = get_evaluator([MeanWeightedQuantileLoss()])
 
-value_metrics = get_losses(AttrDict(data))
-item_metrics = aggregate(value_metrics, axis=1)
-aggr_metrics = aggregate(item_metrics)
+class Evaluator:
+    metrics: List[Metric]
 
-print(select(aggr_metrics))
+    def __init__(self, metrics):
+        self.metrics = metrics
+        self._operations = get_order(metrics)
+        stats = [
+            op for op in self._operations.values() if isinstance(op, Stat)
+        ]
+
+        aggrs = [
+            op
+            for op in ops.values()
+            if isinstance(op, (Metric, DerivedMetric))
+        ]
+
+    # def _get_losses(self, data):
+
+    # def apply(self, data):
+
+
+ev = Evaluator([MeanWeightedQuantileLoss()])
+
+
+# get_losses, aggregate, select = get_evaluator([MeanWeightedQuantileLoss()])
+
+# value_metrics = get_losses(data)
+# item_metrics = aggregate(value_metrics, axis=1)
+# aggr_metrics = aggregate(item_metrics)
+
+# print(select(aggr_metrics))

@@ -82,6 +82,9 @@ class Predictor:
         """
         raise NotImplementedError
 
+    def backtest(self, dataset: Dataset, **kwargs):
+        pass
+
     def serialize(self, path: Path) -> None:
         # serialize Predictor type
         with (path / "type.txt").open("w") as fp:
