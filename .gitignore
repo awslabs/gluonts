@@ -167,3 +167,5 @@ src/gluonts/version.py
 # makefiles with own credentials
 Makefile.own
 
+# pytorch lightning
+lightning_logs/
