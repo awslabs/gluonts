@@ -78,12 +78,12 @@ def test_lagged_lstm(
 
 
 @pytest.mark.parametrize(
-    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality",
+    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality, scaling",
     [
-        (5, 4, 1, [1]),
-        (1, 4, 2, [2, 3]),
-        (5, 1, 3, [4, 5, 6]),
-        (5, 4, 1, [1]),
+        (5, 4, 1, [1], True),
+        (1, 4, 2, [2, 3], False),
+        (5, 1, 3, [4, 5, 6], True),
+        (5, 4, 1, [1], False),
     ],
 )
 def test_deepar_modules(
@@ -91,6 +91,7 @@ def test_deepar_modules(
     num_feat_static_real: int,
     num_feat_static_cat: int,
     cardinality: Optional[List[int]],
+    scaling: bool,
 ):
     batch_size = 4
     prediction_length = 6
@@ -104,6 +105,7 @@ def test_deepar_modules(
         num_feat_static_real=num_feat_static_real,
         num_feat_static_cat=num_feat_static_cat,
         cardinality=cardinality,
+        scaling=scaling,
     )
 
     # TODO uncomment the following

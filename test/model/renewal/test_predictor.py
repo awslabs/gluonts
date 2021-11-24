@@ -13,10 +13,14 @@
 
 import numpy as np
 import pytest
+from gluonts.dataset.common import ListDataset
+from gluonts.evaluation import make_evaluation_predictions
+from gluonts.model.renewal import DeepRenewalProcessEstimator
 
 from gluonts.model.renewal._predictor import (
     DeepRenewalProcessSampleOutputTransform,
 )
+from gluonts.mx import Trainer
 
 
 @pytest.mark.parametrize(
@@ -63,3 +67,67 @@ def test_output_transform(input, expected):
 
     assert np.allclose(out, expected)
     assert out.shape == expected.shape
+
+
+def test_predictor_smoke_test():
+    train_ds = ListDataset(
+        [
+            {
+                "target": [
+                    100.0,
+                    63.0,
+                    83.0,
+                    126.0,
+                    115.0,
+                    92.0,
+                    57.0,
+                    95.0,
+                    94.0,
+                    92.0,
+                    142.0,
+                    35.0,
+                    116.0,
+                    78.0,
+                    64.0,
+                    141.0,
+                ],
+                "start": "2018-01-07 00:00:00",
+                "feat_static_cat": [0],
+            }
+        ],
+        freq="1m",
+    )
+
+    test_ds = ListDataset(
+        [
+            {
+                "target": [100.0, 63.0, 83.0, 126.0, 115.0, 92.0, 57.0, 95.0]
+                + [0] * 15,
+                "start": "2018-01-07 00:00:00",
+                "feat_static_cat": [1],
+            }
+        ],
+        freq="1m",
+    )
+
+    estimator = DeepRenewalProcessEstimator(
+        freq="1m",
+        prediction_length=5,
+        context_length=12,
+        num_layers=1,
+        num_cells=20,
+        dropout_rate=0.1,
+        trainer=Trainer(epochs=10),
+    )
+
+    predictor = estimator.train(train_ds)
+
+    try:
+        forecast_it, ts_it = make_evaluation_predictions(
+            dataset=test_ds,
+            predictor=predictor,
+            num_samples=200,
+        )
+        assert (np.min(x.samples) >= 0 for x in list(forecast_it))
+    except IndexError:
+        pytest.fail("Negative indices in renewal process predictor")
