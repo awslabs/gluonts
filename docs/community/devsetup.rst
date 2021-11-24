@@ -1,4 +1,4 @@
-pDevelopment Setup
+Development Setup
 =================
 
 .. highlight:: bash
