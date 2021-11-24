@@ -36,7 +36,7 @@ from gluonts.transform import (
     MissingValueImputation,
     RollingMeanValueImputation,
 )
-from gluonts.transform.convert import ToIntervalSizeFormat
+from gluonts.transform.convert import ToIntervalSizeFormat, erf, erfinv
 from gluonts.transform.feature import CountTrailingZeros
 
 FREQ = "1D"
@@ -1197,3 +1197,31 @@ def test_to_interval_size_format(
 
     transformed = next(transform(data_set, is_train=is_train))
     assert np.allclose(transformed["target"], expected)
+
+
+def test_erf() -> None:
+    pytest.importorskip("scipy")
+    from scipy.special import erf as scipy_erf
+
+    x = np.array(
+        [-1000, -100, -10]
+        + np.linspace(-5, 5, 1001).tolist()
+        + [10, 100, 1000]
+    )
+    y_scipy = scipy_erf(x)
+
+    # Text np
+    y_np = erf(x)
+    assert np.allclose(y_np, y_scipy, atol=1e-7)
+
+
+def test_erfinv() -> None:
+    pytest.importorskip("scipy")
+    from scipy.special import erfinv as scipy_erfinv
+
+    x = np.linspace(-1.0 + 1.0e-4, 1 - 1.0e-4, 11)
+    y_scipy = scipy_erfinv(x)
+
+    # Text np
+    y_np = erfinv(x)
+    assert np.allclose(y_np, y_scipy, rtol=1e-3)

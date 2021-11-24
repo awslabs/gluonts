@@ -22,11 +22,11 @@ from pydantic import PositiveInt
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
-from gluonts.support.pandas import forecast_start
 
 
 def generate_random_dataset(

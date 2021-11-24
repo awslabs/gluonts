@@ -23,7 +23,7 @@ from typing import List, NamedTuple, Optional
 import pandas as pd
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
-from gluonts.support.pandas import frequency_add
+from gluonts.dataset.util import frequency_add
 
 
 def load_from_pandas(

@@ -21,7 +21,8 @@ import pydantic
 
 from gluonts.core.component import validated
 from gluonts.exceptions import GluonTSUserError
-from gluonts.support.util import (
+
+from .util import (
     LinearInterpolation,
     ExponentialTailApproximation,
 )

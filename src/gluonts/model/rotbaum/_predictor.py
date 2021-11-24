@@ -21,10 +21,10 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.support.pandas import forecast_start
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures

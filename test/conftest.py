@@ -28,12 +28,14 @@ instantiated before lower-scoped fixtures (such as ``function``).
 import logging
 import os
 import random
+import warnings
+from pathlib import Path
 
 import numpy as np
 import mxnet as mx
-import gluonts
 import pytest
 
+import gluonts
 
 # * Random seed setup
 def pytest_configure():
@@ -207,3 +209,28 @@ def doctest(doctest_namespace):
     import doctest
 
     doctest.ELLIPSIS_MARKER = "-etc-"
+
+
+def get_collect_ignores():
+    test_folder = Path(__file__).parent
+
+    excludes = []
+
+    for path in test_folder.glob("**/require-packages.txt"):
+        with path.open() as requirements:
+            for requirement in map(str.strip, requirements):
+                try:
+                    __import__(requirement)
+                except ImportError:
+                    excludes.append(str(path.parent.relative_to(test_folder)))
+                    break
+
+    if excludes:
+        warnings.warn(
+            f"Skipping tests because some packages are not installed: {excludes}"
+        )
+
+    return excludes
+
+
+collect_ignore = get_collect_ignores()
