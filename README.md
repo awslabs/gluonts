@@ -4,6 +4,7 @@
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
 [![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)][stable docs url]
 [![Static](https://img.shields.io/static/v1?label=docs&message=latest&color=blue&style=flat-square)][latest docs url]
+[![PyPI Downloads](https://pepy.tech/badge/gluonts)](https://pypi.org/project/gluonts/)
 
 GluonTS is a Python toolkit for probabilistic time series modeling,
 built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
@@ -22,8 +23,7 @@ your own models and quickly experiment with different solutions.
 
 ## Installation
 
-GluonTS requires Python 3.6, and the easiest
-way to install it is via `pip`:
+GluonTS requires Python 3.7, and the easiest way to install it is via `pip`:
 
 ```bash
 pip install --upgrade mxnet~=1.7 gluonts
