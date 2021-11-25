@@ -1257,7 +1257,7 @@ def test_inflated_poisson_likelihood(
     Test to check that maximizing the likelihood recovers the parameters
     """
     # generate samples
-    num_samples = 500  # Required for convergence
+    num_samples = 1000  # Required for convergence
 
     distr = ZeroInflatedPoissonOutput().distribution(
         distr_args=[
