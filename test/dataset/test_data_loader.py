@@ -113,7 +113,7 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
 )
 @pytest.mark.parametrize(
     "num_workers",
-    [None, 1, 2, 5],
+    [None, 1, 2],
 )
 def test_training_data_loader(dataset_context, num_workers):
     with dataset_context as dataset:
