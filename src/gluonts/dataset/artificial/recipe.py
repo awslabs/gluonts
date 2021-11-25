@@ -643,7 +643,7 @@ class BinaryMarkovChain(Lifted):
         probs = np.zeros(2)
         probs[0] = resolve(self.zero_to_one, x, length, *args, **kwargs)
         probs[1] = resolve(self.one_to_zero, x, length, *args, **kwargs)
-        out = np.ones(length, dtype=np.int)  # initial state is 1
+        out = np.ones(length, dtype=int)  # initial state is 1
         uu = np.random.rand(length)
         for i in range(1, length):
             if uu[i] < probs[out[i - 1]]:
@@ -776,7 +776,7 @@ class ForEachCat(Lifted):
         if field_name not in global_state:
             global_state[field_name] = np.empty(
                 len(global_state[self.cat_field][self.cat_idx]),
-                dtype=np.object,
+                dtype=object,
             )
         if global_state[field_name][c] is None:
             global_state[field_name][c] = self.fun(
@@ -962,7 +962,7 @@ class RandomChangepoints(Lifted):
             np.random.randint(low=1, high=length - 1, size=(num_changepoints,))
         )
         change_ranges = np.concatenate([change_idx, [length]])
-        out = np.zeros(length, dtype=np.int)
+        out = np.zeros(length, dtype=int)
         for i in range(0, num_changepoints):
             out[change_ranges[i] : change_ranges[i + 1]] = i + 1
         return out
