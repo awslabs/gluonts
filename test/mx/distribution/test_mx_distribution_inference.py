@@ -604,6 +604,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
     ), f"sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_empirical_distribution(hybridize: bool) -> None:
     r"""
