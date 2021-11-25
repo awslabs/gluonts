@@ -1,4 +1,4 @@
-name: Tests
+name: Nursery Tests
 
 on: [push, pull_request]
 
@@ -6,10 +6,10 @@ jobs:
   test:
 
     strategy:
-      max-parallel: 4
+      max-parallel: 1
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.8]
         platform: [ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
@@ -33,8 +33,11 @@ jobs:
         pip install pytorch-lightning~=1.5
         pip install -e ".[shell]"
         pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
-        pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml --ignore test/nursery test
+        pytest test/nursery

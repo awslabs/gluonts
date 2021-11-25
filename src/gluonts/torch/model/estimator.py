@@ -154,7 +154,7 @@ class PyTorchLightningEstimator(Estimator):
 
         trainer.fit(
             model=training_network,
-            train_dataloader=training_data_loader,
+            train_dataloaders=training_data_loader,
             val_dataloaders=validation_data_loader,
         )
 

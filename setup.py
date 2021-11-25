@@ -218,7 +218,7 @@ setup_kwargs: dict = dict(
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
-    python_requires=">= 3.6",
+    python_requires=">= 3.7",
     package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
