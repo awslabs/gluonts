@@ -5,4 +5,6 @@ pandas~=1.0
 pydantic~=1.1
 tqdm~=4.23
 toolz~=0.10
-typing-extensions~=3.10.0.0
+
+# used for Protocol, can be removed once Python 3.8 is required
+typing-extensions~=4.0
