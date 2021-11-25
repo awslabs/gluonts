@@ -3,8 +3,8 @@ Development Setup
 
 .. highlight:: bash
 
-GluonTS requires Python 3.6 or higher to run. This setup guide assumes that the
-``python`` command references a Python 3.6 version or higher. We recommend
+GluonTS requires Python 3.7 or higher to run. This setup guide assumes that the
+``python`` command references a Python 3.7 version or higher. We recommend
 using pyenv_ for managing Python versions.
 
 Upon checking out this package, please run the following::
@@ -82,7 +82,7 @@ If you adhere to the above guidelines, you should be able to run
 ``python setup.py style_check`` and catch type errors early directly on your
 |WIP| branch.
 
-.. _type hints: https://docs.python.org/3.6/library/typing.html
+.. _type hints: https://docs.python.org/3.7/library/typing.html
 .. _mypy: https://mypy.readthedocs.io/en/latest/
 
 Editing the documentation
