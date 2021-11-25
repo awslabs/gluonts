@@ -468,7 +468,7 @@ def test_multivariate_gaussian(hybridize: bool) -> None:
 
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_dirichlet(hybridize: bool) -> None:
-    num_samples = 2000
+    num_samples = 1000
     dim = 3
 
     alpha = np.array([1.0, 2.0, 3.0])
@@ -501,7 +501,7 @@ def test_dirichlet(hybridize: bool) -> None:
 
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_dirichlet_multinomial(hybridize: bool) -> None:
-    num_samples = 8000
+    num_samples = 2000
     dim = 3
     n_trials = 500
 
@@ -537,10 +537,11 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("rank", [0, 1])
 def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
-    num_samples = 2000
+    num_samples = 1000
     dim = 2
 
     mu = np.arange(0, dim) / float(dim)
@@ -573,7 +574,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
         ),
         samples,
         learning_rate=PositiveFloat(0.01),
-        num_epochs=PositiveInt(25),
+        num_epochs=PositiveInt(10),
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=hybridize,
     )
@@ -624,7 +625,7 @@ def test_empirical_distribution(hybridize: bool) -> None:
     `sample_rep` is differentiable can also be used in this test.
 
     """
-    num_obs = 2000
+    num_obs = 500
     dim = 2
 
     # Multivariate CRPS is not implemented in `EmpiricalDistribution`.
@@ -647,14 +648,14 @@ def test_empirical_distribution(hybridize: bool) -> None:
 
     theta_hat = maximum_likelihood_estimate_sgd(
         EmpiricalDistributionOutput(
-            num_samples=200,
+            num_samples=100,
             distr_output=LowrankMultivariateGaussianOutput(
                 dim=dim, rank=rank, sigma_init=0.2, sigma_minimum=0.0
             ),
         ),
         obs,
         learning_rate=PositiveFloat(0.01),
-        num_epochs=PositiveInt(25),
+        num_epochs=PositiveInt(10),
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=hybridize,
     )
@@ -1256,7 +1257,7 @@ def test_inflated_poisson_likelihood(
     Test to check that maximizing the likelihood recovers the parameters
     """
     # generate samples
-    num_samples = 2000  # Required for convergence
+    num_samples = 500  # Required for convergence
 
     distr = ZeroInflatedPoissonOutput().distribution(
         distr_args=[
@@ -1276,8 +1277,8 @@ def test_inflated_poisson_likelihood(
         samples=samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=PositiveFloat(0.15),
-        num_epochs=PositiveInt(25),
+        learning_rate=0.15,
+        num_epochs=25,
     )
 
     assert (
@@ -1334,8 +1335,8 @@ def test_inflated_neg_binomial_likelihood(
         samples=samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=PositiveFloat(0.1),
-        num_epochs=PositiveInt(20),
+        learning_rate=0.1,
+        num_epochs=20,
     )
 
     assert (
