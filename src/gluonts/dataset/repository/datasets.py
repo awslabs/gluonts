@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import logging
+import os
 import shutil
 from collections import OrderedDict
 from functools import partial
@@ -31,7 +32,25 @@ from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.dataset.repository._tsf_datasets import (
     generate_forecasting_dataset,
 )
-from gluonts.support.util import get_download_path
+
+
+def get_download_path() -> Path:
+    """
+
+    Returns
+    -------
+    Path
+        default path to download datasets or models of gluon-ts.
+        The path is either $MXNET_HOME if the environment variable is defined or
+        /home/username/.mxnet/gluon-ts/
+    """
+    mxnet_home = os.environ.get("MXNET_HOME", None)
+
+    if mxnet_home is not None:
+        return Path(mxnet_home)
+
+    return Path.home() / ".mxnet" / "gluon-ts"
+
 
 dataset_recipes = OrderedDict(
     {

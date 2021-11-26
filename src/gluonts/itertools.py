@@ -18,6 +18,13 @@ from typing import Iterable, Iterator, List, Optional, TypeVar
 T = TypeVar("T")
 
 
+def maybe_len(obj) -> Optional[int]:
+    try:
+        return len(obj)
+    except (NotImplementedError, AttributeError):
+        return None
+
+
 def prod(xs: Iterable[T]) -> T:
     """
     Computes the product of the elements of an iterable object.
