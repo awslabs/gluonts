@@ -16,9 +16,10 @@ from distutils.util import strtobool
 from functools import partial
 from typing import Dict
 
+from toolz import valmap
+
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
 from gluonts.model import forecast
-from gluonts.support.util import map_dct_values
 
 from . import sagemaker
 
@@ -38,9 +39,9 @@ class TrainEnv(sagemaker.TrainEnv):
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
         list_dataset = partial(ListDataset, freq=self.hyperparameters["freq"])
 
-        datasets = map_dct_values(file_dataset, self.channels)
+        datasets = valmap(file_dataset, self.channels)
         if self._listify_dataset():
-            datasets = map_dct_values(list_dataset, datasets)
+            datasets = valmap(list_dataset, datasets)
 
         return datasets
 
