@@ -574,7 +574,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
         ),
         samples,
         learning_rate=PositiveFloat(0.01),
-        num_epochs=PositiveInt(10),
+        num_epochs=PositiveInt(25),
         init_biases=None,  # todo we would need to rework biases a bit to use it in the multivariate case
         hybridize=hybridize,
     )
@@ -625,7 +625,7 @@ def test_empirical_distribution(hybridize: bool) -> None:
     `sample_rep` is differentiable can also be used in this test.
 
     """
-    num_obs = 500
+    num_obs = 2000
     dim = 2
 
     # Multivariate CRPS is not implemented in `EmpiricalDistribution`.
@@ -1277,8 +1277,8 @@ def test_inflated_poisson_likelihood(
         samples=samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=0.15,
-        num_epochs=25,
+        learning_rate=PositiveFloat(0.15),
+        num_epochs=PositiveInt(25),
     )
 
     assert (
@@ -1335,8 +1335,8 @@ def test_inflated_neg_binomial_likelihood(
         samples=samples,
         init_biases=init_biases,
         hybridize=hybridize,
-        learning_rate=0.1,
-        num_epochs=20,
+        learning_rate=PositiveFloat(0.1),
+        num_epochs=PositiveInt(20),
     )
 
     assert (
