@@ -37,7 +37,7 @@ from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
