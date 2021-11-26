@@ -19,10 +19,14 @@ import warnings
 from pathlib import Path
 
 import numpy as np
-import mxnet as mx
 import pytest
 
 import gluonts
+
+try:
+    import mxnet as mx
+except ImportError:
+    mx = None
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -60,8 +64,10 @@ def function_scope_seed(request):
 
     post_test_state = np.random.get_state()
     np.random.seed(seed)
-    mx.random.seed(seed)
     random.seed(seed)
+
+    if mx is not None:
+        mx.random.seed(seed)
 
     seed_message = (
         "np/mx/python random seeds are set to "
@@ -82,8 +88,10 @@ def function_scope_seed(request):
 def doctest(doctest_namespace):
     doctest_namespace["np"] = np
     doctest_namespace["gluonts"] = gluonts
-    doctest_namespace["mx"] = mx
-    doctest_namespace["gluon"] = mx.gluon
+
+    if mx is not None:
+        doctest_namespace["mx"] = mx
+        doctest_namespace["gluon"] = mx.gluon
 
     import doctest
 
