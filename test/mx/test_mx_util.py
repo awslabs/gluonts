@@ -10,6 +10,9 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
+import pytest
+
 import itertools
 import tempfile
 from pathlib import Path
@@ -17,7 +20,6 @@ from typing import List
 
 import mxnet as mx
 import numpy as np
-import pytest
 
 from gluonts.mx import Tensor
 from gluonts.mx.util import (
@@ -27,12 +29,6 @@ from gluonts.mx.util import (
     import_symb_block,
     mx_switch,
     weighted_average,
-)
-from gluonts.support.util import (
-    erf,
-    erfinv,
-    ExponentialTailApproximation,
-    LinearInterpolation,
 )
 
 
@@ -76,38 +72,6 @@ def test_cumsum(vec) -> None:
         f"reverse cumsum (exclusive) did not match: "
         f"expected: {np_reverse_cumsum_excl}, obtained: {reverse_cumsum_excl}"
     )
-
-
-def test_erf() -> None:
-    try:
-        from scipy.special import erf as scipy_erf
-    except:
-        pytest.skip("scipy not installed skipping test for erf")
-
-    x = np.array(
-        [-1000, -100, -10]
-        + np.linspace(-5, 5, 1001).tolist()
-        + [10, 100, 1000]
-    )
-    y_scipy = scipy_erf(x)
-
-    # Text np
-    y_np = erf(x)
-    assert np.allclose(y_np, y_scipy, atol=1e-7)
-
-
-def test_erfinv() -> None:
-    try:
-        from scipy.special import erfinv as scipy_erfinv
-    except:
-        pytest.skip("scipy not installed skipping test for erf")
-
-    x = np.linspace(-1.0 + 1.0e-4, 1 - 1.0e-4, 11)
-    y_scipy = scipy_erfinv(x)
-
-    # Text np
-    y_np = erfinv(x)
-    assert np.allclose(y_np, y_scipy, rtol=1e-3)
 
 
 def sym_block_import_export_test_cases():
@@ -241,50 +205,3 @@ def test_mx_switch() -> None:
         .asnumpy()
         .all()
     )
-
-
-def test_linear_interpolation() -> None:
-    tol = 1e-7
-    x_coord = [0.1, 0.5, 0.9]
-    y_coord = [
-        np.array([0.1, 0.5, 1]),
-        np.array([1.0, 2.0, 3.0]),
-        np.array([0.25, 0.5, 0.9]),
-    ]
-    linear_interpolation = LinearInterpolation(x_coord, y_coord)
-    x = 0.75
-    exact = y_coord[1] + (x - x_coord[1]) * (y_coord[2] - y_coord[1]) / (
-        x_coord[2] - x_coord[1]
-    )
-    print(exact - linear_interpolation(x))
-    assert np.all(np.abs(exact - linear_interpolation(x)) <= tol)
-
-
-def test_exponential_left_tail_approximation() -> None:
-    tol = 1e-5
-    x_coord = [0.1, 0.5, 0.9]
-    y_coord = [
-        np.array([0.1, 0.5, 1]),
-        np.array([1.0, 2.0, 3.0]),
-        np.array([0.25, 0.5, 0.9]),
-    ]
-    x = 0.01
-    beta_inv = np.array([0.55920144, 0.9320024, 1.24266987])
-    exact = beta_inv * np.log(x / x_coord[1]) + y_coord[1]
-    exp_tail_approximation = ExponentialTailApproximation(x_coord, y_coord)
-    assert np.all(np.abs(exact - exp_tail_approximation.left(x)) <= tol)
-
-
-def test_exponential_right_tail_approximation() -> None:
-    tol = 1e-5
-    x_coord = [0.1, 0.5, 0.9]
-    y_coord = [
-        np.array([0.1, 0.5, 1]),
-        np.array([1.0, 2.0, 3.0]),
-        np.array([0.25, 0.5, 0.9]),
-    ]
-    x = 0.99
-    beta_inv = np.array([-0.4660012, -0.9320024, -1.30480336])
-    exact = beta_inv * np.log((1 - x_coord[1]) / (1 - x)) + y_coord[1]
-    exp_tail_approximation = ExponentialTailApproximation(x_coord, y_coord)
-    assert np.all(np.abs(exact - exp_tail_approximation.right(x)) <= tol)

@@ -15,9 +15,10 @@
 from itertools import count
 from typing import Any, Union
 
+from toolz import valmap
+
 from gluonts.core.serde import dump_json, load_json
 from gluonts.itertools import batcher
-from gluonts.support.util import map_dct_values
 
 
 def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
@@ -63,7 +64,7 @@ def decode_sagemaker_parameters(encoded_params: dict) -> dict:
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
-    return map_dct_values(decode_sagemaker_parameter, encoded_params)
+    return valmap(decode_sagemaker_parameter, encoded_params)
 
 
 def encode_sagemaker_parameters(decoded_params: dict) -> dict:
@@ -77,7 +78,7 @@ def encode_sagemaker_parameters(decoded_params: dict) -> dict:
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
     """
-    return map_dct_values(encode_sagemaker_parameter, decoded_params)
+    return valmap(encode_sagemaker_parameter, decoded_params)
 
 
 def detrim_and_decode_sagemaker_parameters(trimmed_params: dict) -> dict:
@@ -95,7 +96,7 @@ def detrim_and_decode_sagemaker_parameters(trimmed_params: dict) -> dict:
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
     encoded_params = detrim_sagemaker_parameters(trimmed_params)
-    return map_dct_values(decode_sagemaker_parameter, encoded_params)
+    return valmap(decode_sagemaker_parameter, encoded_params)
 
 
 def encode_and_trim_sagemaker_parameters(
@@ -114,7 +115,7 @@ def encode_and_trim_sagemaker_parameters(
      '_0_bar': 'hell',
      '_1_bar': 'o'}
     """
-    endoded_params = map_dct_values(encode_sagemaker_parameter, decoded_params)
+    endoded_params = valmap(encode_sagemaker_parameter, decoded_params)
     return trim_encoded_sagemaker_parameters(endoded_params, max_len)
 
 
