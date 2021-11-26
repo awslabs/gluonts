@@ -541,7 +541,7 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("rank", [0, 1])
 def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
-    num_samples = 1000
+    num_samples = 2000
     dim = 2
 
     mu = np.arange(0, dim) / float(dim)
