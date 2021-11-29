@@ -10,6 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
 import itertools
 from functools import partial
 from typing import Any, Dict, Iterable
@@ -33,15 +34,11 @@ from gluonts.transform import (
     ContinuousTimePredictionSampler,
 )
 
-
-@pytest.fixture
-def pp_dataset():
-    return get_dataset
+NUM_BATCHES = 22
 
 
 @pytest.fixture
 def loader_factory():
-    # noinspection PyTypeChecker
     def train_loader(
         dataset: ListDataset,
         prediction_interval_length: float,
@@ -53,35 +50,35 @@ def loader_factory():
         if override_args is None:
             override_args = {}
 
+        if is_train:
+            sampler = ContinuousTimeUniformSampler(
+                num_instances=10,
+                min_past=context_interval_length,
+                min_future=prediction_interval_length,
+            )
+        else:
+            sampler = ContinuousTimePredictionSampler(
+                min_past=context_interval_length
+            )
+
         splitter = ContinuousTimeInstanceSplitter(
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
-            instance_sampler=(
-                ContinuousTimeUniformSampler(
-                    num_instances=10,
-                    min_past=context_interval_length,
-                    min_future=prediction_interval_length,
-                )
-                if is_train
-                else ContinuousTimePredictionSampler(
-                    min_past=context_interval_length
-                )
-            ),
+            instance_sampler=sampler,
         )
 
-        kwargs: Dict[str, Any] = dict(
+        kwargs = dict(
             dataset=dataset,
             transform=splitter,
             batch_size=10,
-            stack_fn=partial(
-                batchify, ctx=mx.cpu(), dtype=np.float32, variable_length=True
-            ),
+            stack_fn=partial(batchify, dtype=np.float32, variable_length=True),
         )
+
         kwargs.update(override_args)
 
         if is_train:
             return itertools.islice(
-                TrainDataLoader(num_workers=None, **kwargs), 22
+                TrainDataLoader(num_workers=None, **kwargs), NUM_BATCHES
             )
         else:
             return InferenceDataLoader(**kwargs)
@@ -89,9 +86,8 @@ def loader_factory():
     return train_loader
 
 
-def test_train_loader_shapes(loader_factory, pp_dataset):
-    dataset = pp_dataset()
-    loader = loader_factory(dataset, 1.0, 1.5)
+def test_train_loader_shapes(loader_factory):
+    loader = loader_factory(get_dataset(), 1.0, 1.5)
 
     d = next(iter(loader))
 
@@ -113,91 +109,86 @@ def test_train_loader_shapes(loader_factory, pp_dataset):
     )
 
 
-def test_train_loader_length(loader_factory, pp_dataset):
-    dataset = pp_dataset()
-    loader = loader_factory(dataset, 1.0, 1.5)
+def test_train_loader_length(loader_factory):
+    loader = loader_factory(get_dataset(), 1.0, 1.5)
 
-    batches = list(iter(loader))
-
-    assert len(batches) == 22
+    assert len(list(loader)) == NUM_BATCHES
 
 
-def test_inference_loader_shapes(loader_factory, pp_dataset):
+def test_inference_loader_shapes(loader_factory):
     loader = loader_factory(
-        dataset=pp_dataset(),
+        dataset=get_dataset(),
         prediction_interval_length=1.0,
         context_interval_length=1.5,
         is_train=False,
         override_args={"batch_size": 10},
     )
 
-    batches = list(iter(loader))
-
+    batches = list(loader)
     assert len(batches) == 1
+    batch = batches[0]
 
-    d = batches[0]
-
-    assert d["past_target"].shape[2] == 2
-    assert d["past_target"].shape[0] == 3
-    assert d["past_valid_length"].shape[0] == 3
+    assert batch["past_target"].shape[2] == 2
+    assert batch["past_target"].shape[0] == 3
+    assert batch["past_valid_length"].shape[0] == 3
 
 
-def test_inference_loader_shapes_small_batch(loader_factory, pp_dataset):
+def test_inference_loader_shapes_small_batch(loader_factory):
     loader = loader_factory(
-        dataset=pp_dataset(),
+        dataset=get_dataset(),
         prediction_interval_length=1.0,
         context_interval_length=1.5,
         is_train=False,
         override_args={"batch_size": 2},
     )
 
-    batches = list(iter(loader))
-
+    batches = list(loader)
     assert len(batches) == 2
+    batch = batches[0]
 
-    d = batches[0]
-
-    assert d["past_target"].shape[2] == 2
-    assert d["past_target"].shape[0] == 2
-    assert d["past_valid_length"].shape[0] == 2
+    assert batch["past_target"].shape[2] == 2
+    assert batch["past_target"].shape[0] == 2
+    assert batch["past_valid_length"].shape[0] == 2
 
 
-def test_train_loader_short_intervals(loader_factory, pp_dataset):
+def test_train_loader_short_intervals(loader_factory):
     loader = loader_factory(
-        dataset=pp_dataset(),
+        dataset=get_dataset(),
         prediction_interval_length=0.001,
         context_interval_length=0.0001,
         is_train=True,
         override_args={"batch_size": 5},
     )
 
-    batches = list(iter(loader))
+    batches = list(loader)
+    batch = batches[0]
 
-    d = batches[0]
+    assert (
+        batch["past_target"].shape[1] == batch["future_target"].shape[1] == 1
+    )
+    assert (
+        batch["past_target"].shape[0] == batch["future_target"].shape[0] == 5
+    )
 
-    assert d["past_target"].shape[1] == d["future_target"].shape[1] == 1
-    assert d["past_target"].shape[0] == d["future_target"].shape[0] == 5
 
-
-def test_inference_loader_short_intervals(loader_factory, pp_dataset):
+def test_inference_loader_short_intervals(loader_factory):
     loader = loader_factory(
-        dataset=pp_dataset(),
+        dataset=get_dataset(),
         prediction_interval_length=0.001,
         context_interval_length=0.0001,
         is_train=False,
         override_args={"batch_size": 5},
     )
 
-    batches = list(iter(loader))
+    batches = list(loader)
+    batch = batches[0]
 
-    d = batches[0]
-
-    assert d["past_target"].shape[1] == 1
+    assert batch["past_target"].shape[1] == 1
 
 
 @pytest.mark.parametrize("is_right_pad", [True, False])
-def test_variable_length_stack(pp_dataset, is_right_pad):
-    arrays = [d["target"].T for d in list(iter(pp_dataset()))]
+def test_variable_length_stack(is_right_pad):
+    arrays = [d["target"].T for d in list(iter(get_dataset()))]
 
     stacked = stack(
         arrays,
@@ -211,7 +202,7 @@ def test_variable_length_stack(pp_dataset, is_right_pad):
 
 
 @pytest.mark.parametrize("is_right_pad", [True, False])
-def test_variable_length_stack_zerosize(pp_dataset, is_right_pad):
+def test_variable_length_stack_zerosize(is_right_pad):
     arrays = [np.zeros(shape=(0, 2)) for _ in range(5)]
 
     stacked = stack(
