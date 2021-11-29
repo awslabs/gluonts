@@ -1,4 +1,4 @@
-name: PyTorch Tests
+name: XGBoost Tests
 
 on: [push, pull_request]
 
