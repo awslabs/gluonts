@@ -38,4 +38,4 @@ jobs:
         pip install pytest-xdist
     - name: Test with pytest
       run: |
-        pytest -n2 -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml --ignore test/nursery test
+        pytest -n2 --doctest-modules --ignore test/nursery test
