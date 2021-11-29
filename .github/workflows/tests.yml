@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   test:
-
     strategy:
       max-parallel: 4
       fail-fast: false
@@ -32,7 +31,6 @@ jobs:
         pip install ".[shell]"
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-m-competitions.txt
-        pip install pytest-xdist
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules --ignore test/nursery test
