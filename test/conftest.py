@@ -15,6 +15,7 @@
 import logging
 import os
 import random
+import sys
 import warnings
 from pathlib import Path
 
@@ -99,6 +100,8 @@ def doctest(doctest_namespace):
 
 
 def get_collect_ignores():
+    _test_path = sys.path.pop(0)
+
     test_folder = Path(__file__).parent
 
     excludes = []
@@ -117,6 +120,7 @@ def get_collect_ignores():
             f"Skipping tests because some packages are not installed: {excludes}"
         )
 
+    sys.path.insert(0, _test_path)
     return excludes
 
 
