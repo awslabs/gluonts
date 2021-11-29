@@ -13,14 +13,11 @@
 
 from typing import Tuple, List
 
-import mxnet as mx
-
 import numpy as np
 import pandas as pd
 import pytest
 
 import gluonts
-import gluonts.mx.component
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
@@ -31,9 +28,7 @@ from gluonts.transform import (
     CausalMeanValueImputation,
     DummyValueImputation,
     LastValueImputation,
-    LeavesMissingValues,
     MeanValueImputation,
-    MissingValueImputation,
     RollingMeanValueImputation,
 )
 from gluonts.transform.convert import ToIntervalSizeFormat, erf, erfinv
@@ -617,43 +612,39 @@ def test_BucketInstanceSampler():
 
 def test_cdf_to_gaussian_transformation():
     def make_test_data():
-        target = np.array(
-            [
-                0,
-                0,
-                0,
-                0,
-                10,
-                10,
-                20,
-                20,
-                30,
-                30,
-                40,
-                50,
-                59,
-                60,
-                60,
-                70,
-                80,
-                90,
-                100,
-            ]
-        ).tolist()
-
+        target = [
+            0,
+            0,
+            0,
+            0,
+            10,
+            10,
+            20,
+            20,
+            30,
+            30,
+            40,
+            50,
+            59,
+            60,
+            60,
+            70,
+            80,
+            90,
+            100,
+        ]
         np.random.shuffle(target)
 
         multi_dim_target = np.array([target, target]).transpose()
-
-        past_is_pad = np.array([[0] * len(target)]).transpose()
+        past_is_pad = np.atleast_2d(np.zeros_like(target)).transpose()
 
         past_observed_target = np.array(
-            [[1] * len(target), [1] * len(target)]
+            [np.ones_like(target), np.ones_like(target)]
         ).transpose()
 
         ds = gluonts.dataset.common.ListDataset(
             # Mimic output from InstanceSplitter
-            data_iter=[
+            [
                 {
                     "start": "2012-01-01",
                     "target": multi_dim_target,
@@ -669,10 +660,9 @@ def test_cdf_to_gaussian_transformation():
         return ds
 
     def make_fake_output(u: DataEntry):
-        fake_output = np.expand_dims(
+        return np.expand_dims(
             np.expand_dims(u["past_target_cdf"], axis=0), axis=0
         )
-        return fake_output
 
     ds = make_test_data()
 
@@ -688,17 +678,14 @@ def test_cdf_to_gaussian_transformation():
     )
 
     for u in t(iter(ds), is_train=False):
-
         fake_output = make_fake_output(u)
 
         # Fake transformation chain output
-        u["past_target_sorted"] = mx.nd.array(
-            np.expand_dims(u["past_target_sorted"], axis=0)
+        u["past_target_sorted"] = np.expand_dims(
+            u["past_target_sorted"], axis=0
         )
-
-        u["slopes"] = mx.nd.array(np.expand_dims(u["slopes"], axis=0))
-
-        u["intercepts"] = mx.nd.array(np.expand_dims(u["intercepts"], axis=0))
+        u["slopes"] = np.expand_dims(u["slopes"], axis=0)
+        u["intercepts"] = np.expand_dims(u["intercepts"], axis=0)
 
         back_transformed = transform.cdf_to_gaussian_forward_transform(
             u, fake_output
@@ -714,10 +701,8 @@ def test_cdf_to_gaussian_transformation():
 
 
 def test_gaussian_cdf():
-    try:
-        from scipy.stats import norm
-    except:
-        pytest.skip("scipy not installed skipping test for erf")
+    pytest.importorskip("scipy")
+    from scipy.stats import norm
 
     x = np.array(
         [-1000, -100, -10]
@@ -731,10 +716,8 @@ def test_gaussian_cdf():
 
 
 def test_gaussian_ppf():
-    try:
-        from scipy.stats import norm
-    except:
-        pytest.skip("scipy not installed skipping test for erf")
+    pytest.importorskip("scipy")
+    from scipy.stats import norm
 
     x = np.linspace(0.0001, 0.9999, 1001)
     y_gluonts = transform.CDFtoGaussianTransform.standard_gaussian_ppf(x)

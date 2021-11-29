@@ -182,6 +182,11 @@ def tensor_to_numpy(tensor) -> np.ndarray:
     raise NotImplementedError
 
 
+@tensor_to_numpy.register(np.ndarray)
+def _numpy_to_numpy(tensor: np.ndarray) -> np.ndarray:
+    return tensor
+
+
 @singledispatch
 def skip_encoding(v: Any) -> bool:
     """
