@@ -86,23 +86,19 @@ class EmpiricalDistribution(Distribution):
 
     def cdf(self, x: Tensor):
         # Note: computes CDF on each dimension of the target independently.
-        self.CDF_sorted = self.F.linspace(
-            start=1 / self.samples.shape[0],
+
+        ix = [
+            np.searchsorted(arr, val)
+            for arr, val in zip(self.sorted_samples.T.asnumpy(), x.asnumpy())
+        ]
+
+        CDF_sorted = self.F.linspace(
+            start=1 / len(self.samples),
             stop=1,
             endpoint=True,
-            num=self.samples.shape[0],
+            num=len(self.samples),
         )
-
-        # Replace this when mxnet is updated to a version where `searchsorted` is available!
-        import torch
-
-        sorted_samples = torch.tensor(self.sorted_samples.asnumpy()).transpose(
-            0, -1
-        )
-        x = torch.tensor(x.asnumpy()).unsqueeze(dim=-1)
-        ix = torch.searchsorted(sorted_samples, x).squeeze().numpy()
-
-        return self.CDF_sorted.take(indices=mx.nd.array(ix), axis=0)
+        return CDF_sorted.take(indices=mx.nd.array(ix), axis=0)
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
