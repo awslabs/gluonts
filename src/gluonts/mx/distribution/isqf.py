@@ -27,8 +27,9 @@ from .transformed_distribution import TransformedDistribution
 
 class ISQF(Distribution):
     r"""
-    Distribution class for the Incremental (Spline) Quantile Function in the paper
-    ``Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting``
+    Distribution class for the Incremental (Spline) Quantile Function in the
+    paper ``Learning Quantile Functions without Quantile Crossing for
+    Distribution-free Time Series Forecasting``
     by Park, Robinson, Aubet, Kan, Gasthaus, Wang
 
     Parameters
@@ -37,11 +38,11 @@ class ISQF(Distribution):
         Tensor parametrizing the x-positions (y-positions) of the spline knots
         Shape: (*batch_shape, (num_qk-1), num_pieces)
     qk_x, qk_y
-        Tensor containing the increasing x-positions (y-positions) of the quantile knots
-        Shape: (*batch_shape, num_qk)
+        Tensor containing the increasing x-positions (y-positions) of the
+        quantile knots, Shape: (*batch_shape, num_qk)
     beta_l, beta_r
-        Tensor containing the non-negative learnable parameter of the left (right) tail
-        Shape: (*batch_shape,)
+        Tensor containing the non-negative learnable parameter of the
+        left (right) tail, Shape: (*batch_shape,)
     """
 
     is_reparameterizable = False
@@ -135,23 +136,30 @@ class ISQF(Distribution):
         F, quantile_knots: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         r"""
-        Function to parametrize the x or y positions of the num_qk quantile knots
+        Function to parametrize the x or y positions
+        of the num_qk quantile knots
+
         Parameters
         ----------
         quantile_knots
-            x or y positions of the quantile knots, shape: (*batch_shape, num_qk)
+            x or y positions of the quantile knots
+            shape: (*batch_shape, num_qk)
         Returns
         -------
         qk
-            x or y positions of the quantile knots (qk), with index=1, ..., num_qk-1
+            x or y positions of the quantile knots (qk),
+            with index=1, ..., num_qk-1,
             shape: (*batch_shape, num_qk-1)
         qk_plus
-            x or y positions of the quantile knots (qk), with index=2, ..., num_qk
+            x or y positions of the quantile knots (qk),
+            with index=2, ..., num_qk,
             shape: (*batch_shape, num_qk-1)
         qk_l
-            x or y positions of the left-most quantile knot (qk), shape: (*batch_shape)
+            x or y positions of the left-most quantile knot (qk),
+            shape: (*batch_shape)
         qk_r
-            x or y positions of the right-most quantile knot (qk), shape: (*batch_shape)
+            x or y positions of the right-most quantile knot (qk),
+            shape: (*batch_shape)
         """
 
         qk = F.slice_axis(quantile_knots, axis=-1, begin=0, end=-1)
@@ -181,10 +189,12 @@ class ISQF(Distribution):
         spline_knots
             variable that parameterizes the spline knot positions
         qk
-            x or y positions of the quantile knots (qk), with index=1, ..., num_qk-1
+            x or y positions of the quantile knots (qk),
+            with index=1, ..., num_qk-1,
             shape: (*batch_shape, num_qk-1)
         qk_plus
-            x or y positions of the quantile knots (qk), with index=2, ..., num_qk
+            x or y positions of the quantile knots (qk),
+            with index=2, ..., num_qk,
             shape: (*batch_shape, num_qk-1)
         num_pieces
             number of spline knot pieces
@@ -193,14 +203,18 @@ class ISQF(Distribution):
         Returns
         -------
         sk
-            x or y positions of the spline knots (sk), shape: (*batch_shape, num_qk-1, num_pieces)
+            x or y positions of the spline knots (sk),
+            shape: (*batch_shape, num_qk-1, num_pieces)
         delta_sk
-            difference of x or y positions of the spline knots (sk), shape: (*batch_shape, num_qk-1, num_pieces)
+            difference of x or y positions of the spline knots (sk),
+            shape: (*batch_shape, num_qk-1, num_pieces)
         """
 
-        # The spacing between spline knots is parametrized by softmax function (in [0,1] and sum to 1)
-        # We add tol to prevent overflow when we compute 1/spacing in spline CRPS
-        # After adding tol, it is normalized by (1 + num_pieces * tol) to keep the sum-to-1 property
+        # The spacing between spline knots is parametrized
+        # by softmax function (in [0,1] and sum to 1)
+        # We add tol to prevent overflow in computing 1/spacing in spline CRPS
+        # After adding tol, it is normalized by
+        # (1 + num_pieces * tol) to keep the sum-to-1 property
         delta_x = (F.softmax(spline_knots) + tol) / (1 + num_pieces * tol)
 
         # TODO: update to mxnet cumsum when it supports axis=-1
@@ -235,9 +249,11 @@ class ISQF(Distribution):
         beta
             parameterizes the left or right tail, shape: (*batch_shape,)
         qk_x
-            left- or right-most x-positions of the quantile knots, shape: (*batch_shape,)
+            left- or right-most x-positions of the quantile knots,
+            shape: (*batch_shape,)
         qk_y
-            left- or right-most y-positions of the quantile knots, shape: (*batch_shape,)
+            left- or right-most y-positions of the quantile knots,
+            shape: (*batch_shape,)
         Returns
         -------
         tail_a
@@ -266,7 +282,8 @@ class ISQF(Distribution):
             additional axis on the specified position, otherwise
         axis
             Index of the axis containing the different quantile levels which
-            are to be computed. Read the description below for detailed information
+            are to be computed.
+            Read the description below for detailed information
         Returns
         -------
         Tensor
@@ -276,31 +293,52 @@ class ISQF(Distribution):
         F = self.F
         qk_x, qk_x_l, qk_x_plus = self.qk_x, self.qk_x_l, self.qk_x_plus
 
-        # The following describes the parameters reshaping in quantile_internal, quantile_spline and quantile_tail
+        # The following describes the parameters reshaping in
+        # quantile_internal, quantile_spline and quantile_tail
 
-        # tail parameters: tail_al, tail_ar, tail_bl, tail_br, shape = (*batch_shape,)
-        # spline parameters: sk_x, sk_x_plus, sk_y, sk_y_plus, shape = (*batch_shape, num_qk-1, num_pieces)
-        # quantile knots parameters: qk_x, qk_x_plus, qk_y, qk_y_plus, shape = (*batch_shape, num_qk-1)
+        # tail parameters: tail_al, tail_ar, tail_bl, tail_br,
+        # shape = (*batch_shape,)
+        # spline parameters: sk_x, sk_x_plus, sk_y, sk_y_plus,
+        # shape = (*batch_shape, num_qk-1, num_pieces)
+        # quantile knots parameters: qk_x, qk_x_plus, qk_y, qk_y_plus,
+        # shape = (*batch_shape, num_qk-1)
 
         # axis=None - passed at inference when num_samples is None
-        # shape of input_alpha = (*batch_shape,), will be expanded to (*batch_shape, 1, 1) to perform operation
-        # The shapes of parameters are as described above, no reshaping is needed
+        # shape of input_alpha = (*batch_shape,), will be expanded to
+        # (*batch_shape, 1, 1) to perform operation
+        # The shapes of parameters are as described above,
+        # no reshaping is needed
 
         # axis=0 - passed at inference when num_samples is not None
         # shape of input_alpha = (num_samples, *batch_shape)
-        # it will be expanded to (num_samples, *batch_shape, 1, 1) to perform operation
-        # The shapes of tail parameters should be (num_samples, *batch_shape)
-        # The shapes of spline parameters should be (num_samples, *batch_shape, num_qk-1, num_pieces)
-        # The shapes of quantile knots parameters should be (num_samples, *batch_shape, num_qk-1)
+        # it will be expanded to
+        # (num_samples, *batch_shape, 1, 1) to perform operation
+        #
+        # The shapes of tail parameters
+        # should be (num_samples, *batch_shape)
+        #
+        # The shapes of spline parameters
+        # should be (num_samples, *batch_shape, num_qk-1, num_pieces)
+        #
+        # The shapes of quantile knots parameters
+        # should be (num_samples, *batch_shape, num_qk-1)
+        #
         # We expand axis=0 for all of them
 
-        # axis=-2 - passed at training when we evaluate quantiles at spline knots in order to compute alpha_tilde
+        # axis=-2 - passed at training when we evaluate quantiles at
+        # spline knots in order to compute alpha_tilde
+        #
         # This is only for the quantile_spline function
         # shape of input_alpha = (*batch_shape, num_qk-1, num_pieces)
-        # it will be expanded to (*batch_shape, num_qk-1, num_pieces, 1) to perform operation
+        # it will be expanded to
+        # (*batch_shape, num_qk-1, num_pieces, 1) to perform operation
+        #
         # The shapes of spline and quantile knots parameters should be
-        # (*batch_shape, num_qk-1, 1, num_pieces) and (*batch_shape, num_qk-1, 1), respectively
-        # We expand axis=-2 and axis=-1 for spline and quantile knots parameters, respectively
+        # (*batch_shape, num_qk-1, 1, num_pieces)
+        # and (*batch_shape, num_qk-1, 1), respectively
+        #
+        # We expand axis=-2 and axis=-1 for
+        # spline and quantile knots parameters, respectively
 
         if axis is not None:
             qk_x_l = F.expand_dims(qk_x_l, axis=axis)
@@ -315,22 +353,24 @@ class ISQF(Distribution):
 
         spline_val = self.quantile_spline(alpha, axis=axis)
 
-        for i in range(self.num_qk - 1):
+        for spline_idx in range(self.num_qk - 1):
 
             is_in_between = F.broadcast_logical_and(
-                F.slice_axis(qk_x, axis=-1, begin=i, end=i + 1).squeeze(-1)
+                F.slice_axis(
+                    qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
+                ).squeeze(-1)
                 <= alpha,
                 alpha
-                < F.slice_axis(qk_x_plus, axis=-1, begin=i, end=i + 1).squeeze(
-                    -1
-                ),
+                < F.slice_axis(
+                    qk_x_plus, axis=-1, begin=spline_idx, end=spline_idx + 1
+                ).squeeze(-1),
             )
 
             quantile = F.where(
                 is_in_between,
-                F.slice_axis(spline_val, axis=-1, begin=i, end=i + 1).squeeze(
-                    -1
-                ),
+                F.slice_axis(
+                    spline_val, axis=-1, begin=spline_idx, end=spline_idx + 1
+                ).squeeze(-1),
                 quantile,
             )
 
@@ -342,14 +382,17 @@ class ISQF(Distribution):
         axis: Optional[int] = None,
     ) -> Tensor:
         r"""
-        Evaluates the spline functions at the quantile levels contained in alpha
+        Evaluates the spline functions at the
+        quantile levels contained in alpha
+
         Parameters
         ----------
         alpha
             Input quantile levels
         axis
             Axis along which to expand
-            For details of input_alpha shape and axis, refer to the description in quantile_internal
+            For details of input_alpha shape and axis,
+            refer to the description in quantile_internal
         Returns
         -------
         Tensor
@@ -408,7 +451,8 @@ class ISQF(Distribution):
             Input quantile levels
         axis
             Axis along which to expand
-            For details of input_alpha shape and axis, refer to the description in quantile_internal
+            For details of input_alpha shape and axis,
+            refer to the description in quantile_internal
         left_tail
             If True, compute the quantile for the left tail
             Otherwise, compute the quantile for the right tail
@@ -469,7 +513,8 @@ class ISQF(Distribution):
 
             knots_eval = self.quantile_spline(sk_x, axis=-2)
 
-            # Compute \sum_{s=0}^{s_0-1} \Delta sk_y[s], where \Delta sk_y[s] = (sk_y[s+1]-sk_y[s])
+            # Compute \sum_{s=0}^{s_0-1} \Delta sk_y[s],
+            # where \Delta sk_y[s] = (sk_y[s+1]-sk_y[s])
             mask_sum_s0 = F.broadcast_lesser(knots_eval, z_expand_twice)
             mask_sum_s0_minus = F.concat(
                 F.slice_axis(mask_sum_s0, axis=-1, begin=1, end=None),
@@ -594,9 +639,7 @@ class ISQF(Distribution):
                 tail_a * (1 - qk_x) * F.log(1 - qk_x),
             )
 
-        result = term1 + term2
-
-        return result
+        return term1 + term2
 
     def crps_spline(self, z: Tensor) -> Tensor:
         r"""
@@ -737,12 +780,14 @@ class ISQF(Distribution):
         Returns
         -------
         Tensor
-            Tensor of shape (*batch_shape,) if num_samples = None else (num_samples, *batch_shape)
+            Tensor of shape (*batch_shape,) if num_samples = None
+            else (num_samples, *batch_shape)
         """
 
         F = self.F
 
-        # if num_samples=None then input_alpha should have the same shape as beta_l, i.e., (*batch_shape,)
+        # if num_samples=None then input_alpha should have the same shape
+        # as beta_l, i.e., (*batch_shape,)
         # else u should be (num_samples, *batch_shape)
         alpha = F.random.uniform_like(
             data=(
@@ -807,16 +852,13 @@ class ISQFOutput(DistributionOutput):
         self.qk_x = sorted(qk_x)
         self.num_qk = len(qk_x)
         self.tol = tol
-        self.args_dim = cast(
-            Dict[str, int],
-            {
-                "spline_knots": (self.num_qk - 1) * num_pieces,
-                "spline_heights": (self.num_qk - 1) * num_pieces,
-                "beta_l": 1,
-                "beta_r": 1,
-                "quantile_knots": self.num_qk,
-            },
-        )
+        self.args_dim: Dict[str, int] = {
+            "spline_knots": (self.num_qk - 1) * num_pieces,
+            "spline_heights": (self.num_qk - 1) * num_pieces,
+            "beta_l": 1,
+            "beta_r": 1,
+            "quantile_knots": self.num_qk,
+        }
 
     @classmethod
     def domain_map(
@@ -829,9 +871,11 @@ class ISQFOutput(DistributionOutput):
         Domain map function
         The inputs of this function are specified by self.args_dim
         knots, heights:
-        parameterizing the x-/ y-positions of the spline knots, shape = (*batch_shape, (num_qk-1)*num_pieces)
+        parameterizing the x-/ y-positions of the spline knots,
+        shape = (*batch_shape, (num_qk-1)*num_pieces)
         q:
-        parameterizing the y-positions of the quantile knots, shape = (*batch_shape, num_qk)
+        parameterizing the y-positions of the quantile knots,
+        shape = (*batch_shape, num_qk)
         beta_l, beta_r:
         parameterizing the left/right tail, shape = (*batch_shape, 1)
         """
@@ -843,7 +887,9 @@ class ISQFOutput(DistributionOutput):
                 "Failed to unpack args of domain_map. Double check your input."
             )
 
-        # Add tol to prevent the y-distance of two quantile knots from being too small
+        # Add tol to prevent the y-distance of
+        # two quantile knots from being too small
+        #
         # Because in this case the spline knots could be squeezed together
         # and cause overflow in spline CRPS computation
         qk_y = F.concat(
@@ -903,9 +949,13 @@ class ISQFOutput(DistributionOutput):
         F = getF(beta_l)
 
         # FIXME number 1
-        # Convert alpha from list of len=num_qk to Tensor of shape (*batch_shape, num_qk)
+        # Convert alpha from list of len=num_qk to
+        # Tensor of shape (*batch_shape, num_qk)
+        #
         # For example, if alpha = [0.1, 0.5, 0.9],
-        # then alpha_reshape will be a Tensor of shape (*batch_shape, 3) with the last dimension being [0.1, 0.5, 0.9]
+        # then alpha_reshape will be a Tensor of shape (*batch_shape, 3)
+        # with the last dimension being [0.1, 0.5, 0.9]
+        #
         # In PyTorch, it would be torch.tensor(alpha).repeat(*batch_shape,1)
         qk_x_reshape = F.concat(
             *[
@@ -918,7 +968,7 @@ class ISQFOutput(DistributionOutput):
         # FIXME number 2
         # knots and heights have shape (*batch_shape, (num_qk-1)*num_pieces)
         # I want to convert the shape to (*batch_shape, (num_qk-1), num_pieces)
-        # Here I make a shape_holder with the target shape, and use reshape_like
+        # Here I make a shape_holder with target_shape, and use reshape_like
 
         # create a shape holder of shape (*batch_shape, num_qk-1, num_pieces)
         shape_holder = F.repeat(
