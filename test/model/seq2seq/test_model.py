@@ -14,7 +14,7 @@
 import pytest
 
 from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
-from gluonts.mx.distribution import GaussianOutput
+from gluonts.mx.distribution import GaussianOutput, ISQFOutput
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
@@ -43,7 +43,12 @@ def Estimator(request):
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize(
     "quantiles, distr_output",
-    [([0.1, 0.5, 0.9], None), (None, GaussianOutput())],
+    [
+        ([0.1, 0.5, 0.9], None),
+        (None, GaussianOutput()),
+        (None, ISQFOutput(1, [0.1, 0.9])),
+        (None, ISQFOutput(5, [0.1, 0.3, 0.5, 0.7, 0.9])),
+    ],
 )
 @pytest.mark.parametrize("is_iqf", [True, False])
 def test_accuracy(
@@ -80,6 +85,8 @@ def test_accuracy(
     [
         ([0.5, 0.1], None),
         (None, GaussianOutput()),
+        (None, ISQFOutput(1, [0.1, 0.9])),
+        (None, ISQFOutput(5, [0.1, 0.3, 0.5, 0.7, 0.9])),
     ],
 )
 @pytest.mark.parametrize("is_iqf", [True, False])
