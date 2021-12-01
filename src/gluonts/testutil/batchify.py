@@ -11,8 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from typing import List
 
-from pkgutil import extend_path
+import numpy as np
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+
+def stack(data):
+    if isinstance(data[0], np.ndarray):
+        return np.array(data)
+
+    elif isinstance(data[0], (list, tuple)):
+        return list(map(stack, zip(*data)))
+
+    return data
+
+
+def batchify(data: List[dict]) -> dict:
+    keys = data[0].keys()
+    return {key: stack(data=[item[key] for item in data]) for key in keys}

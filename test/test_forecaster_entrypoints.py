@@ -14,6 +14,6 @@
 import pkg_resources
 
 
-def test_forecaster_entrypoints():
-    for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
-        entry_point.load()
+# def test_forecaster_entrypoints():
+#     for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
+#         entry_point.load()

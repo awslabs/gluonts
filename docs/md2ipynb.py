@@ -1,33 +1,34 @@
 import sys
 import time
+import multiprocessing
 import notedown
 import nbformat
+from itertools import chain
+from pathlib import Path
 
-assert len(sys.argv) == 2, "usage: input.md"
 
-# timeout for each notebook, in sec
-timeout = 40 * 60
+def convert(path, timeout=40 * 60):
+    with path.open() as in_file:
+        notebook = notedown.MarkdownReader().read(in_file)
 
-# the files will be ignored for execution
-ignore_execution = []
-
-input_fn = sys.argv[1]
-output_fn = ".".join(input_fn.split(".")[:-1] + ["ipynb"])
-
-reader = notedown.MarkdownReader()
-
-# read
-with open(input_fn, "r") as f:
-    notebook = reader.read(f)
-
-if not any([i in input_fn for i in ignore_execution]):
-    tic = time.time()
+    start = time.time()
     notedown.run(notebook, timeout)
-    print("=== Finished evaluation in %f sec" % (time.time() - tic))
 
-# write
-# need to add language info to for syntax highlight
-notebook["metadata"].update({"language_info": {"name": "python"}})
+    print(f"=== {path.name} finished evaluation in {time.time() - start} sec")
 
-with open(output_fn, "w") as f:
-    f.write(nbformat.writes(notebook))
+    # need to add language info to for syntax highlight
+    notebook["metadata"].update(language_info={"name": "python"})
+
+    with path.with_suffix(".ipynb").open("w") as out_file:
+        out_file.write(nbformat.writes(notebook))
+
+
+if __name__ == "__main__":
+    assert len(sys.argv) >= 2, "usage: input.md"
+
+    here = Path(".")
+
+    files = list(chain.from_iterable(map(here.glob, sys.argv[1:])))
+
+    with multiprocessing.Pool() as pool:
+        pool.map(convert, files)
