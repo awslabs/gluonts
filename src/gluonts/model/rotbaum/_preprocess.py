@@ -419,7 +419,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             else []
         )
         feat_dynamic_cat = (
-            [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
+            [
+                elem
+                for ent in time_series["feat_dynamic_cat"]
+                for elem in ent[starting_index:end_index]
+            ]
             if self.use_feat_dynamic_cat
             else []
         )
