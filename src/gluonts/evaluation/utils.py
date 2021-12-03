@@ -97,11 +97,11 @@ def compute_metrics_of_user_provided_forecasts(
     filename_fcsts: str, filename_targets: str, freq: str
 ) -> Tuple[dict, pd.DataFrame]:
 
-    logger.info(f"Loading fcsts from json file")
+    logger.info("Loading fcsts from json file")
     fcsts = load_forecasts_from_json_file(Path(filename_fcsts))
     fcsts = numpify_samples(fcsts)
 
-    logger.info(f"Loading targets from json file")
+    logger.info("Loading targets from json file")
     targets = load_forecasts_from_json_file(Path(filename_targets))
 
     targets_iter = prepare_targets_for_metric_computation(targets, freq)
