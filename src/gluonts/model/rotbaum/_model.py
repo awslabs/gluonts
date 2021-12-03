@@ -261,7 +261,7 @@ class QRX:
             new_dic[key] = iter_list  # Note that iter_list may change in the
             # future, and this will change the value of new_dic[key]. This
             # is intentional.
-            if iter_length > min_num:
+            if iter_length >= min_num:
                 iter_length = 0
                 iter_list = []  # This line, of course, doesn't change any
                 # value of new_dic, as it makes iter_list reference a new
