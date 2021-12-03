@@ -23,7 +23,7 @@ from ._base import Kind, encode
 def encode_np_dtype(v: np.dtype) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~mxnet.Context` class.
+    the :class:`~numpy.dtype` class.
     """
     return {
         "__kind__": Kind.Instance,
@@ -36,7 +36,7 @@ def encode_np_dtype(v: np.dtype) -> Any:
 def encode_np_ndarray(v: np.ndarray) -> Any:
     """
     Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~mxnet.Context` class.
+    the :class:`~numpy.ndarray` class.
     """
     return {
         "__kind__": Kind.Instance,

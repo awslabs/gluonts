@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -32,7 +33,19 @@ from gluonts.dataset.common import (
 )
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files
-from gluonts.support.util import Timer
+
+
+class Timer:
+    """Context manager for measuring the time of enclosed code fragments."""
+
+    def __enter__(self):
+        self.start = time.perf_counter()
+        self.interval = None
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.perf_counter()
+        self.interval = self.end - self.start
 
 
 def baseline(path: Path, freq: str) -> Iterator[Any]:
