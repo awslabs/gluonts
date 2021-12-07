@@ -1,4 +1,4 @@
-from .api import Stat, Aggregagtion, Metric, DerivedMetric
+from .api import Stat, Aggregation, Metric, DerivedMetric
 
 from .evaluator import Evaluator
 
