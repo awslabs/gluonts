@@ -21,7 +21,6 @@ import pytest
 
 from gluonts.core.component import equals
 from gluonts.dataset.common import FileDataset, ListDataset
-from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
@@ -114,7 +113,7 @@ def test_listify_dataset(train_env: TrainEnv, listify_dataset):
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
-@pytest.mark.parametrize("forecaster_type", [MeanPredictor, MQCNNEstimator])
+@pytest.mark.parametrize("forecaster_type", [MeanPredictor])
 def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
     run_train_and_test(env=train_env, forecaster_type=forecaster_type)
 

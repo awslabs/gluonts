@@ -89,7 +89,7 @@ def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(ListDataset(lines, freq))
 
 
-# @pytest.mark.skip()
+@pytest.mark.xfail()
 def test_io_speed() -> None:
     exp_size = 250
     act_size = 0
