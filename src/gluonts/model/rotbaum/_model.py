@@ -204,9 +204,10 @@ class QRX:
         df = pd.DataFrame({"preds": self.sorted_train_preds})
         df["bin_ids"] = df["preds"].apply(lambda x: self.preds_to_id[x])
         bin_ids = df["bin_ids"].drop_duplicates().values
-        final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
-        if len(self.id_to_bins[final_id]) < self.min_bin_size:
-            self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
+        if len(bin_ids) > 1:
+            final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
+            if len(self.id_to_bins[final_id]) < self.min_bin_size:
+                self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
 
     @staticmethod
     def clump(
@@ -260,7 +261,7 @@ class QRX:
             new_dic[key] = iter_list  # Note that iter_list may change in the
             # future, and this will change the value of new_dic[key]. This
             # is intentional.
-            if iter_length > min_num:
+            if iter_length >= min_num:
                 iter_length = 0
                 iter_list = []  # This line, of course, doesn't change any
                 # value of new_dic, as it makes iter_list reference a new
