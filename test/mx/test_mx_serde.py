@@ -97,3 +97,32 @@ def test_ndarray_serialization(a, serialize_fn) -> None:
     assert a.dtype == b.dtype
     assert a.shape == b.shape
     assert np.all((a == b).asnumpy())
+
+
+def test_dynamic_loading():
+    code = dedent(
+        """
+        dict(
+           trainer=gluonts.mx.trainer.Trainer(
+               ctx="cpu(0)",
+               epochs=5,
+               learning_rate=0.001,
+               clip_gradient=10.0,
+               weight_decay=1e-08,
+               patience=5,
+               batch_size=32,
+               num_batches_per_epoch=10,
+               hybridize=False,
+           ),
+           num_hidden_dimensions=[3],
+           context_length=5,
+           prediction_length=2,
+           freq="1H",
+           distr_output=gluonts.mx.distribution.StudentTOutput(),
+           batch_normalization=False,
+           mean_scaling=True
+        )
+        """
+    )
+
+    load_code(code)
