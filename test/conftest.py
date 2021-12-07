@@ -100,9 +100,12 @@ def doctest(doctest_namespace):
 
 
 def get_collect_ignores():
-    _test_path = sys.path.pop(0)
+    test_folder = Path(__file__).parent.resolve()
 
-    test_folder = Path(__file__).parent
+    old_path = sys.path
+    sys.path = [
+        path for path in sys.path if Path(path).resolve() != test_folder
+    ]
 
     excludes = []
 
@@ -120,7 +123,7 @@ def get_collect_ignores():
             f"Skipping tests because some packages are not installed: {excludes}"
         )
 
-    sys.path.insert(0, _test_path)
+    sys.path = old_path
     return excludes
 
 
