@@ -17,6 +17,7 @@ from typing import Dict, Optional, Tuple
 
 from pydantic import BaseModel
 
+from .dyn import install_and_restart
 from .params import decode_sagemaker_parameters
 from .nested_params import decode_nested_parameters
 
@@ -70,6 +71,9 @@ class TrainEnv:
         hyperparameters, env = self._load_hyperparameters()
         self.hyperparameters = hyperparameters
         self.env = env
+
+    def install_dynamic(self):
+        install_and_restart(self.cahnnels.get("code"))
 
     def _load_inputdataconfig(self) -> Optional[InpuDataConfig]:
         if self.path.inputdataconfig.exists():
