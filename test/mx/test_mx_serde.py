@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from textwrap import dedent
 from typing import List
 
 import pytest
@@ -125,4 +126,4 @@ def test_dynamic_loading():
         """
     )
 
-    load_code(code)
+    serde.load_code(code)
