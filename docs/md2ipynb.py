@@ -1,10 +1,10 @@
 import sys
 import time
-import multiprocessing
-import notedown
-import nbformat
 from itertools import chain
 from pathlib import Path
+
+import nbformat
+import notedown
 
 
 def convert(path, timeout=40 * 60):
@@ -30,5 +30,5 @@ if __name__ == "__main__":
 
     files = list(chain.from_iterable(map(here.glob, sys.argv[1:])))
 
-    with multiprocessing.Pool() as pool:
-        pool.map(convert, files)
+    for file in files:
+        convert(file)
