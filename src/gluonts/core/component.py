@@ -58,17 +58,13 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
     """
     Model = getattr(cls.__init__, "Model", None)
 
-    if not Model:
-        raise AttributeError(
-            f"Cannot find attribute Model attached to the "
-            f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-            f"the class initializer as @validated()."
-        )
-
     try:
-        return cls(**Model(**hyperparameters).__dict__)  # type: ignore
-    except ValidationError as e:
-        raise GluonTSHyperparametersError from e
+        if Model is not None:
+            return cls(**Model(**hyperparameters).__dict__)  # type: ignore
+        else:
+            return cls(**hyperparameters)  # type: ignore
+    except ValidationError as error:
+        raise GluonTSHyperparametersError from error
 
 
 @singledispatch
