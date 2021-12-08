@@ -46,12 +46,12 @@ In order to use it you need to install R and run
 
 pip install 'rpy2>=2.9.*,<3.*'
 
-R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+R -e 'install.packages(c("forecast", "nnfor", "thief"), repos="https://cloud.r-project.org")'
 """
 
 SAMPLE_FORECAST_METHODS = ["ets", "arima"]
 QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar"]
-POINT_FORECAST_METHODS = ["croston", "mlp"]
+POINT_FORECAST_METHODS = ["croston", "mlp", "thief"]
 SUPPORTED_METHODS = (
     SAMPLE_FORECAST_METHODS
     + QUANTILE_FORECAST_METHODS
@@ -68,7 +68,7 @@ class RForecastPredictor(RepresentablePredictor):
     package.  In order to use it you need to install R and run::
 
         pip install 'rpy2>=2.9.*,<3.*'
-        R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+        R -e 'install.packages(c("forecast", "nnfor", "thief"), repos="https://cloud.r-project.org")'
 
     Parameters
     ----------

@@ -1,4 +1,5 @@
 loadNamespace("forecast")
+loadNamespace("thief")
 
 handleForecast <- function(model, params) {
     outputs = list()
@@ -117,4 +118,10 @@ stlar <- function(ts, params) {
 
     forecasts <- seer_stlar(y=ts, h=h, s.window=s_window, robust=robust, level=level)
     handleQuantileForecast(forecasts, params)
+}
+
+
+thief <- function(ts, params) {
+    forecasts <- thief::thief(y=ts, h=params$prediction_length, usemodel=params$usemodel)
+    handlePointForecast(forecasts, params)
 }
