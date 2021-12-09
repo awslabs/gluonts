@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import json
+import shutil
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -73,7 +74,17 @@ class TrainEnv:
         self.env = env
 
     def install_dynamic(self):
-        install_and_restart(self.cahnnels.get("code"))
+        install_and_restart(self.channels.get("code"), self.path.base / "code")
+
+    def copy_code_to_model(self):
+        code = self.channels.get("code")
+        if code is not None:
+            dest = self.path.model / "code"
+
+            if dest.is_dir():
+                shutil.rmtree(dest)
+
+            shutil.copytree(code, dest)
 
     def _load_inputdataconfig(self) -> Optional[InpuDataConfig]:
         if self.path.inputdataconfig.exists():
