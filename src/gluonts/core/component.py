@@ -25,7 +25,6 @@ from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 from gluonts.core.serde import dump_code
 from gluonts.exceptions import GluonTSHyperparametersError
 
-from . import fqname_for
 
 logger = logging.getLogger(__name__)
 
