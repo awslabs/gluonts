@@ -101,4 +101,8 @@ def install_and_restart(code_channel: Optional[Path], packages: Path):
     os.environ.update(__SHELL_RELOADED__="1", PYTHONPATH=python_path)
 
     # restart
-    os.execve(sys.executable, [sys.executable] + sys.argv, os.environ)
+    os.execve(
+        sys.executable,
+        [sys.executable, "-m", "gluonts.shell"] + sys.argv[1:],
+        os.environ,
+    )
