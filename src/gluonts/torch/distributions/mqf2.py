@@ -91,19 +91,23 @@ class MQF2Distribution(Distribution):
         )
         self.numel_batch = MQF2Distribution.get_numel(self.batch_shape)
 
-        zero = torch.tensor(
+        # mean zero and std one
+        mu = torch.tensor(
             0, dtype=hidden_state.dtype, device=hidden_state.device
         )
-        one = torch.ones_like(zero)
-        self.standard_normal = Normal(zero, one)
+        sigma = torch.ones_like(mu)
+        self.standard_normal = Normal(mu, sigma)
 
-    def loss(self, z: torch.Tensor) -> torch.Tensor:
-        if self.is_energy_score:
-            return self.energy_score(z)
-        else:
-            return -self.log_prob(z)
+        # Overload the loss function depending on is_energy_score
+        self.loss = self.energy_score if is_energy_score else -self.log_prob
 
-    def unfold_observations(self, z: torch.Tensor) -> torch.Tensor:
+    # def loss(self, z: torch.Tensor) -> torch.Tensor:
+    #     if self.is_energy_score:
+    #         return self.energy_score(z)
+    #     else:
+    #         return -self.log_prob(z)
+
+    def stack_sliding_view(self, z: torch.Tensor) -> torch.Tensor:
         """
         Auxiliary function for loss computation
 
@@ -117,7 +121,7 @@ class MQF2Distribution(Distribution):
 
         Returns
         -------
-        unfolded_z
+        Tensor
             Unfolded time series with shape (batch_size * context_length, prediction_length)
         """
 
@@ -148,7 +152,7 @@ class MQF2Distribution(Distribution):
 
         z = torch.clamp(z, min=-threshold_input, max=threshold_input)
 
-        z = self.unfold_observations(z)
+        z = self.stack_sliding_view(z)
         hidden_state = hidden_state.reshape(-1, hidden_state.shape[-1])
 
         loss = picnn.logp(z, context=hidden_state)
@@ -180,7 +184,7 @@ class MQF2Distribution(Distribution):
         picnn = self.picnn
         beta = self.beta
 
-        z = self.unfold_observations(z)
+        z = self.stack_sliding_view(z)
         hidden_state = hidden_state.reshape(-1, hidden_state.shape[-1])
 
         loss = picnn.energy_score(
@@ -252,6 +256,9 @@ class MQF2Distribution(Distribution):
 
         normal_quantile = self.standard_normal.icdf(alpha)
 
+        # In the energy score approach, we directly draw samples from picnn
+        # In the MLE (Normalizing flows) approach, we need to invert the picnn
+        # (go backward through the flow) to draw samples
         if self.is_energy_score:
             result = picnn(normal_quantile, context=hidden_state)
         else:
