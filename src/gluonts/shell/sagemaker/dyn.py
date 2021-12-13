@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import zipfile
 from functools import partial
 from pathlib import Path
 from typing import Optional
@@ -61,18 +62,14 @@ class Installer:
 
     def install(self, path):
         if path.is_file():
-            if path.suffix == ".py":
+            if tarfile.is_tarfile(path):
+                self.handle_archive(tarfile.open, path)
+
+            elif zipfile.is_zipfile(path):
+                self.handle_archive(zipfile.ZipFile, path)
+
+            elif path.suffix == ".py":
                 self.copy_install(path)
-
-            elif path.suffixes[-2:] == [".tar", ".gz"]:
-                with tarfile.open(path, "r:gz") as archive:
-                    tempdir = tempfile.mkdtemp()
-                    self.cleanups.append(
-                        partial(shutil.rmtree, tempdir, ignore_errors=True)
-                    )
-
-                    archive.extractall(tempdir)
-                    self.install(Path(tempdir))
 
         elif path.is_dir():
             if (path / "setup.py").exists():
@@ -82,6 +79,16 @@ class Installer:
             else:
                 for subpath in path.iterdir():
                     self.install(subpath)
+
+    def handle_archive(self, open_fn, path):
+        with open_fn(path) as archive:
+            tempdir = tempfile.mkdtemp()
+            self.cleanups.append(
+                partial(shutil.rmtree, tempdir, ignore_errors=True)
+            )
+
+            archive.extractall(tempdir)
+            self.install(Path(tempdir))
 
 
 def install_and_restart(code_channel: Optional[Path], packages: Path):
