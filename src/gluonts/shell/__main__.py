@@ -70,6 +70,9 @@ def serve_command(
 ) -> None:
     from gluonts.shell import serve
 
+    env = ServeEnv(Path(data_path))
+    env.install_dynamic()
+
     logger.info("Run 'serve' command")
 
     if not force_static and forecaster is not None:
@@ -80,7 +83,7 @@ def serve_command(
         forecaster_type = None
 
     gunicorn_app = serve.make_gunicorn_app(
-        env=ServeEnv(Path(data_path)),
+        env=env,
         forecaster_type=forecaster_type,
         settings=Settings(),
     )
@@ -114,6 +117,8 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
     try:
         env = TrainEnv(Path(data_path))
+        env.install_dynamic()
+        env.copy_code_to_model()
 
         if env.env is not None:
             gluonts_env._push(**env.env)

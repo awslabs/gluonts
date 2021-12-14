@@ -174,7 +174,7 @@ def get_git_version(fallback):
         # TODO: Do we really need this check?
         if repo.root() != dist_root_:
             return None
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         # can fail if git is not installed, or command fails
         return None
 
