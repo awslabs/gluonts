@@ -11,29 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytorch_lightning as pl
 import torch
 
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
 
-from .module import DeepARModel
+from gluonts.torch.model.deepar.lightning_module import DeepARLightningModule
+
+from .module import DeepVARModel
 
 
-class DeepARLightningModule(pl.LightningModule):
+class MQF2MultiItemLightningModule(DeepARLightningModule):
     def __init__(
         self,
-        model: DeepARModel,
+        model: DeepVARModel,
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
     ) -> None:
-        super().__init__()
-        self.save_hyperparameters()
-        self.model = model
-        self.loss = loss
-        self.lr = lr
-        self.weight_decay = weight_decay
+        super().__init__(
+            model=model,
+            loss=loss,
+            lr=lr,
+            weight_decay=weight_decay,
+        )
 
     def _compute_loss(self, batch):
         feat_static_cat = batch["feat_static_cat"]
@@ -45,7 +46,7 @@ class DeepARLightningModule(pl.LightningModule):
         past_observed_values = batch["past_observed_values"]
         future_observed_values = batch["future_observed_values"]
 
-        params, scale, _, _ = self.model.unroll_lagged_rnn(
+        _, scale, hidden_state, _ = self.model.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
@@ -54,7 +55,9 @@ class DeepARLightningModule(pl.LightningModule):
             future_time_feat,
             future_target,
         )
-        distr = self.model.output_distribution(params, scale)
+
+        picnn = self.model.picnn
+        distr = self.model.output_distribution(picnn, hidden_state, scale)
 
         context_target = past_target[:, -self.model.context_length + 1 :]
         target = torch.cat(
@@ -62,6 +65,9 @@ class DeepARLightningModule(pl.LightningModule):
             dim=1,
         )
         loss_values = self.loss(distr, target)
+
+        batch_size = past_target.shape[0]
+        loss_values = loss_values.reshape(batch_size, -1)
 
         context_observed = past_observed_values[
             :, -self.model.context_length + 1 :
@@ -76,31 +82,3 @@ class DeepARLightningModule(pl.LightningModule):
             loss_weights, _ = observed_values.min(dim=-1, keepdim=False)
 
         return weighted_average(loss_values, weights=loss_weights)
-
-    def training_step(self, batch, batch_idx: int):
-        """Execute training step"""
-        train_loss = self._compute_loss(batch)
-        self.log(
-            "train_loss",
-            train_loss,
-            on_epoch=True,
-            on_step=False,
-            prog_bar=True,
-        )
-        return train_loss
-
-    def validation_step(self, batch, batch_idx: int):
-        """Execute validation step"""
-        val_loss = self._compute_loss(batch)
-        self.log(
-            "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
-        )
-        return val_loss
-
-    def configure_optimizers(self):
-        """Returns the optimizer to use"""
-        return torch.optim.Adam(
-            self.model.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay,
-        )
