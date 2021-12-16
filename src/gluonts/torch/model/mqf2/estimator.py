@@ -77,18 +77,23 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         Number of layers of the input convex neural network (icnn)
     is_energy_score
         If True, use energy score as objective function
-        otherwise use maximum likelihood as objective function (normalizing flows)
+        otherwise use maximum likelihood
+        as objective function (normalizing flows)
     es_num_samples
         Number of samples drawn to approximate the energy score
     beta
         Hyperparameter of the energy score (power of the two terms)
     threshold_input
-        Clamping threshold of the (scaled) input when maximum likelihood is used as objective function
-        this is used to make the forecaster more robust to outliers in training samples
+        Clamping threshold of the (scaled) input when maximum likelihood
+        is used as objective function
+        this is used to make the forecaster more robust
+        to outliers in training samples
     estimate_logdet
-        When maximum likelihood is used as the objective function, specify whether to use the logdet estimator
+        When maximum likelihood is used as the objective function,
+        specify whether to use the logdet estimator
         introduced in the paper
-        ``Convex potential flows: Universal probability distributions with optimal transport and convex optimization``
+        ``Convex potential flows: Universal probability distributions
+        with optimal transport and convex optimization``
         If True, the logdet estimator (can be numerically unstable) is used
         otherwise, the logdet is directly computed
     """

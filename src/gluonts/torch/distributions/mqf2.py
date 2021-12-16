@@ -38,7 +38,8 @@ class MQF2Distribution(Distribution):
     Parameters
     ----------
     picnn
-        A SequentialNet instance of a partially input convex neural network (picnn)
+        A SequentialNet instance of a
+        partially input convex neural network (picnn)
     hidden_state
         hidden_state obtained by unrolling the RNN encoder
         shape = (batch_size, context_length, hidden_size) in training
@@ -47,17 +48,21 @@ class MQF2Distribution(Distribution):
         Length of the prediction horizon
     is_energy_score
         If True, use energy score as objective function
-        otherwise use maximum likelihood as objective function (normalizing flows)
+        otherwise use maximum likelihood as
+        objective function (normalizing flows)
     es_num_samples
         Number of samples drawn to approximate the energy score
     beta
         Hyperparameter of the energy score (power of the two terms)
     threshold_input
-        Clamping threshold of the (scaled) input when maximum likelihood is used as objective function
-        this is used to make the forecaster more robust to outliers in training samples
+        Clamping threshold of the (scaled) input when maximum
+        likelihood is used as objective function
+        this is used to make the forecaster more robust
+        to outliers in training samples
     validate_args
         Sets whether validation is enabled or disabled
-        For more details, refer to the descriptions in torch.distributions.distribution.Distribution
+        For more details, refer to the descriptions in
+        torch.distributions.distribution.Distribution
     """
 
     def __init__(
@@ -98,31 +103,26 @@ class MQF2Distribution(Distribution):
         sigma = torch.ones_like(mu)
         self.standard_normal = Normal(mu, sigma)
 
-        # Overload the loss function depending on is_energy_score
-        self.loss = self.energy_score if is_energy_score else -self.log_prob
-
-    # def loss(self, z: torch.Tensor) -> torch.Tensor:
-    #     if self.is_energy_score:
-    #         return self.energy_score(z)
-    #     else:
-    #         return -self.log_prob(z)
-
     def stack_sliding_view(self, z: torch.Tensor) -> torch.Tensor:
         """
         Auxiliary function for loss computation
 
-        Unfolds the observations by sliding a window of size prediction_length over the observations z
-        Then, reshapes the observations into a 2-dimensional tensor for further computation
+        Unfolds the observations by sliding a window of size prediction_length
+        over the observations z
+        Then, reshapes the observations into a 2-dimensional tensor for
+        further computation
 
         Parameters
         ----------
         z
-            A batch of time series with shape (batch_size, context_length + prediction_length - 1)
+            A batch of time series with shape
+            (batch_size, context_length + prediction_length - 1)
 
         Returns
         -------
         Tensor
-            Unfolded time series with shape (batch_size * context_length, prediction_length)
+            Unfolded time series with shape
+            (batch_size * context_length, prediction_length)
         """
 
         prediction_length = self.prediction_length
@@ -131,14 +131,22 @@ class MQF2Distribution(Distribution):
 
         return z
 
+    def loss(self, z: torch.Tensor) -> torch.Tensor:
+        if self.is_energy_score:
+            return self.energy_score(z)
+        else:
+            return -self.log_prob(z)
+
     def log_prob(self, z: torch.Tensor) -> torch.Tensor:
         """
-        Computes the log likelihood  log(g(z)) + logdet(dg(z)/dz), where g is the gradient of the picnn
+        Computes the log likelihood  log(g(z)) + logdet(dg(z)/dz),
+        where g is the gradient of the picnn
 
         Parameters
         ----------
         z
-            A batch of time series with shape (batch_size, context_length + prediciton_length - 1)
+            A batch of time series with shape
+            (batch_size, context_length + prediciton_length - 1)
 
         Returns
         -------
@@ -163,15 +171,19 @@ class MQF2Distribution(Distribution):
         """
         Computes the (approximated) energy score sum_i ES(g,z_i),
         where ES(g,z_i) =
-        -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
-        w's are samples drawn from the quantile function g(., h_i) (gradient of picnn),
+        -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta
+        + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
+        w's are samples drawn from the
+        quantile function g(., h_i) (gradient of picnn),
         h_i is the hidden state associated with z_i,
-        and es_num_samples is the number of samples drawn for each of w, w', w'' in energy score approximation
+        and es_num_samples is the number of samples drawn
+        for each of w, w', w'' in energy score approximation
 
         Parameters
         ----------
         z
-            A batch of time series with shape (batch_size, context_length + prediction_length - 1)
+            A batch of time series with shape
+            (batch_size, context_length + prediction_length - 1)
 
         Returns
         -------
@@ -387,7 +399,8 @@ class TransformedMQF2Distribution(TransformedDistribution):
 
         repeated_scale = self.repeat_scale(scale)
 
-        # the log scale term can be omitted in optimization because it is a constant
+        # the log scale term can be omitted
+        # in optimization because it is a constant
         # prediction_length is the dimension of each sample
         return p - prediction_length * torch.log(repeated_scale)
 

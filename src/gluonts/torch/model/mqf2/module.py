@@ -133,7 +133,8 @@ class MQF2MultiHorizonModel(DeepARModel):
         past_target
             Past target values (batch_size, history_length)
         past_observed_values
-            Indicate whether or not the values were observed (batch_size, history_length)
+            Indicate whether or not the values were observed
+            (batch_size, history_length)
         future_time_feat
             Future time features (batch_size, prediction_length, num_features)
         future_target
@@ -175,13 +176,15 @@ class MQF2MultiHorizonModel(DeepARModel):
         Parameters
         ----------
         picnn
-            A SequentialNet instance of a partially input convex neural network (picnn)
+            A SequentialNet instance of a
+            partially input convex neural network (picnn)
         hidden_state
             RNN hidden state (batch_size, context_length, hidden_size)
         scale
             scaling of the data (batch_size, 1)
         inference
-            If True, pass only the last hidden state to the forecaster for prediction
+            If True, pass only the last hidden state
+            to the forecaster for prediction
             Otherwise, pass all the hidden states to train the forecaster
 
         Returns
@@ -219,7 +222,8 @@ class MQF2MultiHorizonModel(DeepARModel):
         past_target
             Past target values (batch_size, history_length)
         past_observed_values
-            Indicator whether or not the values were observed (batch_size, history_length)
+            Indicator whether or not the values were observed
+            (batch_size, history_length)
         future_time_feat
             Future time features (batch_size, prediction_length, num_features)
         num_parallel_samples

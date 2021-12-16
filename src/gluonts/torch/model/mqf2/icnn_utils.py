@@ -10,8 +10,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -32,13 +32,16 @@ from torch.distributions.normal import Normal
 
 class DeepConvexNet(DeepConvexFlow):
     r"""
-    Class that takes a partially input convex neural network (picnn) as input and equips it with functions of logdet
+    Class that takes a partially input convex neural network (picnn)
+    as input and equips it with functions of logdet
     computation (both estimation and exact computation)
 
-    This class is based on DeepConvexFlow of the CP-Flow repo (https://github.com/CW-Huang/CP-Flow)
+    This class is based on DeepConvexFlow of the CP-Flow
+    repo (https://github.com/CW-Huang/CP-Flow)
 
     For details of the logdet estimator, see
-    ``Convex potential flows: Universal probability distributions with optimal transport and convex optimization``
+    ``Convex potential flows: Universal probability distributions
+    with optimal transport and convex optimization``
 
     Parameters
     ----------
@@ -48,12 +51,16 @@ class DeepConvexNet(DeepConvexFlow):
         Dimension of the input
     is_energy_score
         Indicates if energy score is used as the objective function
-        If yes, the network is not required to be strictly convex, so we can just use the picnn
-        otherwise, a quadratic term is added to the output of picnn to render it strictly convex
+        If yes, the network is not required to be strictly convex,
+        so we can just use the picnn
+        otherwise, a quadratic term is added to the output of picnn
+        to render it strictly convex
     m1
-        Dimension of the Krylov subspace of the Lanczos tridiagonalization used in approximating H of logdet(H)
+        Dimension of the Krylov subspace of the Lanczos tridiagonalization
+        used in approximating H of logdet(H)
     m2
-        Iteration number of the conjugate gradient algorithm used to approximate logdet(H)
+        Iteration number of the conjugate gradient algorithm
+        used to approximate logdet(H)
     rtol
         relative tolerance of the conjugate gradient algorithm
     atol
@@ -119,9 +126,11 @@ class DeepConvexNet(DeepConvexFlow):
 
 class SequentialNet(SequentialFlow):
     r"""
-    Class that combines a list of DeepConvexNet and ActNorm layers and provides energy score computation
+    Class that combines a list of DeepConvexNet and ActNorm
+    layers and provides energy score computation
 
-    This class is based on SequentialFlow of the CP-Flow repo (https://github.com/CW-Huang/CP-Flow)
+    This class is based on SequentialFlow of the CP-Flow repo
+    (https://github.com/CW-Huang/CP-Flow)
 
     Parameters
     ----------
@@ -153,7 +162,8 @@ class SequentialNet(SequentialFlow):
         Parameters
         ----------
         hidden_state
-            hidden_state which the samples conditioned on (num_samples, hidden_size)
+            hidden_state which the samples conditioned
+            on (num_samples, hidden_size)
         dimension
             dimension of the input
 
@@ -190,10 +200,13 @@ class SequentialNet(SequentialFlow):
         """
         Computes the (approximated) energy score sum_i ES(g,z_i),
         where ES(g,z_i) =
-        -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
-        w's are samples drawn from the quantile function g(., h_i) (gradient of picnn),
+        -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta
+        + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
+        w's are samples drawn from the
+        quantile function g(., h_i) (gradient of picnn),
         h_i is the hidden state associated with z_i,
-        and es_num_samples is the number of samples drawn for each of w, w', w'' in energy score approximation
+        and es_num_samples is the number of samples drawn
+        for each of w, w', w'' in energy score approximation
 
         Parameters
         ----------
@@ -202,7 +215,8 @@ class SequentialNet(SequentialFlow):
         hidden_state
             Hidden state (numel_batch, hidden_size)
         es_num_samples
-            Number of samples drawn for each of w, w', w'' in energy score approximation
+            Number of samples drawn for each of w, w', w''
+            in energy score approximation
         beta
             Hyperparameter of the energy score, see the formula above
         Returns

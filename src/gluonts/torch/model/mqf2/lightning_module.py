@@ -28,7 +28,8 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
 
     This is the multi-horizon (multivariate in time step) variant of MQF2
 
-    This class is based on gluonts.torch.model.deepar.lightning_module.DeepARLightningModule
+    This class is based on
+    gluonts.torch.model.deepar.lightning_module.DeepARLightningModule
 
     Parameters
     ----------
@@ -60,13 +61,15 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         """
         Function to compute loss
 
-        Given time series, unroll the RNN over the context window and pass the hidden states to the forecaster
+        Given time series, unroll the RNN over the context window
+        and pass the hidden states to the forecaster
         then the loss with respect to the prediction is computed
 
         Parameters
         ----------
         batch
-            Dictionary containing the (past and future) features and target values in a batch
+            Dictionary containing the (past and future) features
+            and target values in a batch
 
         Returns
         -------
