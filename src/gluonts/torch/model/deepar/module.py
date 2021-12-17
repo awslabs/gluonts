@@ -219,7 +219,7 @@ class DeepARModel(nn.Module):
             )
             output, repeated_state = self.lagged_rnn(
                 repeated_past_target,
-                next_sample/repeated_scale,
+                next_sample / repeated_scale,
                 next_features,
                 repeated_state,
             )
