@@ -205,7 +205,7 @@ class DeepARModel(nn.Module):
         ]
 
         distr = self.output_distribution(
-            params, trailing_n=1, scale=repeated_scale
+            params, trailing_n=1, scale=scale
         )
 
         next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
