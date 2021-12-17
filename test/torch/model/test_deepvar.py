@@ -43,25 +43,22 @@ estimator = DeepVAREstimator
 
 
 @pytest.mark.parametrize(
-    "distr_output, num_batches_per_epoch, Estimator, hybridize",
+    "distr_output, num_batches_per_epoch, Estimator",
     [
         (
             LowRankMultivariateNormalOutput(target_dim=target_dim, rank=2),
             10,
             estimator,
-            True,
         ),
         (
             LowRankMultivariateNormalOutput(target_dim=target_dim, rank=2),
             10,
             estimator,
-            False,
         ),
         (
             LowRankMultivariateNormalOutput(target_dim=target_dim, rank=2),
             10,
             estimator,
-            True,
         ),
     ],
 )
@@ -69,7 +66,6 @@ def test_deepvar(
     distr_output,
     num_batches_per_epoch,
     Estimator,
-    hybridize,
 ):
 
     estimator = Estimator(
