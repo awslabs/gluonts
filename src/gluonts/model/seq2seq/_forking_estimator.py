@@ -41,7 +41,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -418,6 +418,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     if not self.enable_decoder_dynamic_feature
                     else []
                 ),
+                prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             )
         )
 

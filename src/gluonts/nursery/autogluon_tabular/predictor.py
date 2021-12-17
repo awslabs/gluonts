@@ -23,7 +23,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
-from gluonts.model.forecast import SampleForecast
+from gluonts.model.forecast import SampleForecast, QuantileForecast, Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.time_feature import TimeFeature
 
@@ -104,6 +104,7 @@ class TabularPredictor(Predictor):
         lag_indices: List[int],
         scaling: Callable[[pd.Series], Tuple[pd.Series, float]],
         batch_size: Optional[int] = 32,
+        quantiles_to_predict: Optional[List[float]] = None,
         dtype=np.float32,
     ) -> None:
         super().__init__(prediction_length=prediction_length, freq=freq)
@@ -115,6 +116,12 @@ class TabularPredictor(Predictor):
         self.scaling = scaling
         self.batch_size = batch_size
         self.dtype = dtype
+        self.quantiles_to_predict = quantiles_to_predict
+        self.forecast_keys = (
+            [str(q) for q in quantiles_to_predict]
+            if quantiles_to_predict is not None
+            else None
+        )
 
     @property
     def auto_regression(self) -> bool:
@@ -129,15 +136,24 @@ class TabularPredictor(Predictor):
         ag_output: np.ndarray,
         start_timestamp: pd.Timestamp,
         item_id=None,
-    ) -> Iterator[SampleForecast]:
-        samples = ag_output.reshape((1, self.prediction_length))
-        sample = SampleForecast(
-            freq=self.freq,
-            start_date=pd.Timestamp(start_timestamp, freq=self.freq),
-            item_id=item_id,
-            samples=samples,
-        )
-        return sample
+    ) -> Forecast:
+        if self.quantiles_to_predict:
+            forecasts = ag_output.transpose()
+            return QuantileForecast(
+                freq=self.freq,
+                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                item_id=item_id,
+                forecast_arrays=forecasts,
+                forecast_keys=self.forecast_keys,
+            )
+        else:
+            samples = ag_output.reshape((1, self.prediction_length))
+            return SampleForecast(
+                freq=self.freq,
+                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                item_id=item_id,
+                samples=samples,
+            )
 
     # serial prediction (both auto-regressive and not)
     # `auto_regression == False`: one call to Autogluon's `predict` per input time series
@@ -145,7 +161,7 @@ class TabularPredictor(Predictor):
     # really only useful for debugging, since this is generally slower than the batched versions (see below)
     def _predict_serial(
         self, dataset: Iterable[Dict], **kwargs
-    ) -> Iterator[SampleForecast]:
+    ) -> Iterator[Forecast]:
         for entry in dataset:
             series, scale = self.scaling(to_pandas(entry))
 
@@ -191,7 +207,7 @@ class TabularPredictor(Predictor):
     # one call to Autogluon's `predict`
     def _predict_batch_one_shot(
         self, dataset: Iterable[Dict], **kwargs
-    ) -> Iterator[SampleForecast]:
+    ) -> Iterator[Forecast]:
         # TODO clean up
         # TODO optimize
         item_ids = []
@@ -242,7 +258,7 @@ class TabularPredictor(Predictor):
     # `prediction_length` calls to Autogluon's `predict`
     def _predict_batch_autoreg(
         self, dataset: Iterable[Dict], **kwargs
-    ) -> Iterator[SampleForecast]:
+    ) -> Iterator[Forecast]:
         # TODO clean up
         # TODO optimize
         batch_ids = []
@@ -358,6 +374,7 @@ class TabularPredictor(Predictor):
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
                 ag_path=path / Path(ag_path.name),
+                quantiles_to_predict=self.quantiles_to_predict,
             )
             print(dump_json(parameters), file=fp)
 
@@ -380,5 +397,7 @@ class TabularPredictor(Predictor):
         ag_model = AutogluonTabularPredictor.load(loaded_ag_path)
 
         return TabularPredictor(
-            ag_model=ag_model, scaling=scaling, **parameters
+            ag_model=ag_model,
+            scaling=scaling,
+            **parameters,
         )

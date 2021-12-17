@@ -112,6 +112,9 @@ class DistributionOutput(Output):
     def __init__(self) -> None:
         pass
 
+    def _base_distribution(self, distr_args):
+        return self.distr_cls(*distr_args)
+
     def distribution(
         self,
         distr_args,
@@ -133,19 +136,15 @@ class DistributionOutput(Output):
             Optional tensor, of the same shape as the
             batch_shape+event_shape of the resulting distribution.
         """
+        distr = self._base_distribution(distr_args)
         if loc is None and scale is None:
-            return self.distr_cls(*distr_args)
+            return distr
         else:
-            distr = self.distr_cls(*distr_args)
-            return TransformedDistribution(
-                distr,
-                [
-                    AffineTransform(
-                        loc=0.0 if loc is None else loc,
-                        scale=1.0 if scale is None else scale,
-                    )
-                ],
+            transform = AffineTransform(
+                loc=0.0 if loc is None else loc,
+                scale=1.0 if scale is None else scale,
             )
+            return TransformedDistribution(distr, [transform])
 
     @property
     def event_shape(self) -> Tuple:
@@ -277,6 +276,26 @@ class NegativeBinomialOutput(DistributionOutput):
     def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
         total_count = F.softplus(total_count)
         return total_count.squeeze(-1), logits.squeeze(-1)
+
+    def _base_distribution(self, distr_args) -> Distribution:
+        total_count, logits = distr_args
+        return self.distr_cls(total_count=total_count, logits=logits)
+
+    # Overwrites the parent class method.
+    # We cannot scale using the affine transformation since negative binomial should return integers.
+    # Instead we scale the parameters.
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
+        total_count, logits = distr_args
+
+        if scale is not None:
+            logits += scale.log()
+
+        return NegativeBinomial(total_count=total_count, logits=logits)
 
     @property
     def event_shape(self) -> Tuple:

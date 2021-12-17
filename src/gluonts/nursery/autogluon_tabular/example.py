@@ -33,6 +33,7 @@ def run_example():
         time_limit=10,  # two minutes for training
         disable_auto_regression=True,  # makes prediction faster, but potentially less accurate
         last_k_for_val=24,  # split the last 24 targets from each time series to be the validation data
+        quantiles_to_predict=None,
     )
 
     n_train = 5

@@ -32,7 +32,8 @@ import numpy as np
 import pandas as pd
 import pydantic
 from pandas.tseries.offsets import Tick
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
+
 
 from gluonts import json
 from gluonts.dataset import jsonl, util
@@ -43,6 +44,7 @@ DataEntry = Dict[str, Any]
 DataBatch = Dict[str, Any]
 
 
+@runtime_checkable
 class Dataset(Protocol):
     def __iter__(self) -> Iterator[DataEntry]:
         raise NotImplementedError
@@ -120,24 +122,20 @@ class TrainDatasets(NamedTuple):
         if overwrite:
             shutil.rmtree(path, ignore_errors=True)
 
-        def dump_line(f, line):
-            f.write(json.dumps(line).encode("utf-8"))
-            f.write("\n".encode("utf-8"))
-
         (path / "metadata").mkdir(parents=True)
         with open(path / "metadata/metadata.json", "wb") as f:
-            dump_line(f, self.metadata.dict())
+            json.bdump(self.metadata.dict(), f, nl=True)
 
         (path / "train").mkdir(parents=True)
         with open(path / "train/data.json", "wb") as f:
             for entry in self.train:
-                dump_line(f, serialize_data_entry(entry))
+                json.bdump(serialize_data_entry(entry), f, nl=True)
 
         if self.test is not None:
             (path / "test").mkdir(parents=True)
             with open(path / "test/data.json", "wb") as f:
                 for entry in self.test:  # pylint: disable=not-an-iterable
-                    dump_line(f, serialize_data_entry(entry))
+                    json.bdump(serialize_data_entry(entry), f, nl=True)
 
 
 class FileDataset(Dataset):

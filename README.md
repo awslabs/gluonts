@@ -4,6 +4,7 @@
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
 [![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)][stable docs url]
 [![Static](https://img.shields.io/static/v1?label=docs&message=latest&color=blue&style=flat-square)][latest docs url]
+[![PyPI Downloads](https://pepy.tech/badge/gluonts)](https://pypi.org/project/gluonts/)
 
 GluonTS is a Python toolkit for probabilistic time series modeling,
 built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
@@ -22,8 +23,7 @@ your own models and quickly experiment with different solutions.
 
 ## Installation
 
-GluonTS requires Python 3.6, and the easiest
-way to install it is via `pip`:
+GluonTS requires Python 3.7, and the easiest way to install it is via `pip`:
 
 ```bash
 pip install --upgrade mxnet~=1.7 gluonts
@@ -177,7 +177,8 @@ the following references to the related papers:
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
 
 ### Overview tutorials
-* [Tutorial at WWW 20202 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
+* [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
+* [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)

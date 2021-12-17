@@ -1,0 +1,41 @@
+name: Nursery Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        python-version: [3.8]
+        platform: [ubuntu-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install MXNet (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      run: pip install mxnet~=1.8.0
+    - name: Install MXNet (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      run: pip install mxnet~=1.7.0
+    - name: Install other dependencies
+      run: |
+        python -m pip install -U pip
+        pip install torch==1.10.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install pytorch-lightning~=1.5
+        pip install -e ".[shell]"
+        pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
+    - name: Test with pytest
+      run: |
+        pytest -n2 --doctest-modules test/nursery

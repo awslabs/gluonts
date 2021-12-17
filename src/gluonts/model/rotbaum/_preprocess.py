@@ -404,12 +404,26 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             feat_static_cat = []
 
         feat_dynamic_real = (
-            [elem for ent in time_series["feat_dynamic_real"] for elem in ent]
+            list(
+                chain(
+                    *[
+                        list(ent[0]) + list(ent[1].values())
+                        for ent in [
+                            self._pre_transform(ts[starting_index:end_index])
+                            for ts in time_series["feat_dynamic_real"]
+                        ]
+                    ]
+                )
+            )
             if self.use_feat_dynamic_real
             else []
         )
         feat_dynamic_cat = (
-            [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
+            [
+                elem
+                for ent in time_series["feat_dynamic_cat"]
+                for elem in ent[starting_index:end_index]
+            ]
             if self.use_feat_dynamic_cat
             else []
         )

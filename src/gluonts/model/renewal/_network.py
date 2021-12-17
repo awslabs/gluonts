@@ -116,7 +116,7 @@ class DeepRenewalNetwork(gluon.HybridBlock):
     def forwardshift(A):
         """
         Shift an array's content forward by 1 time step along the first axis,
-        keeping the shape identical by repeating the first element.
+        keeping the shape identical by padding on the left with zeros.
 
         Parameters
         ----------
@@ -125,11 +125,10 @@ class DeepRenewalNetwork(gluon.HybridBlock):
             forward by one
         """
         F = getF(A)
-        return F.Concat(
-            F.slice_axis(A, axis=1, begin=0, end=1),
-            F.slice_axis(A, axis=1, begin=0, end=-1),
-            dim=1,
+        A = F.Concat(
+            F.zeros_like(F.slice_axis(A, axis=1, begin=0, end=1)), A, dim=1
         )
+        return F.slice_axis(A, axis=1, begin=0, end=-1)
 
     def mu_map(
         self,
@@ -219,7 +218,7 @@ class DeepRenewalTrainingNetwork(DeepRenewalNetwork):
             axis=-1,
         )
         reverse_lengths = F.broadcast_sub(
-            F.max(valid_length), valid_length
+            F.maximum(1, F.max(valid_length)), valid_length
         ).squeeze(-1)
         mask = F.SequenceMask(
             F.ones_like(log_prob),
@@ -302,12 +301,15 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
                     interval_sample = F.where(
                         interval_sample > repeated_time_remaining,
                         interval_sample,
-                        dist_interval.sample() + 1,
+                        dist_interval.sample(),
                     )
-                interval_sample = F.where(
-                    interval_sample == 0,
-                    repeated_time_remaining + 1,
-                    interval_sample,
+                interval_sample = (
+                    F.where(
+                        interval_sample <= repeated_time_remaining,
+                        repeated_time_remaining,
+                        interval_sample,
+                    )
+                    + 1
                 )
             else:
                 interval_sample = dist_interval.sample() + 1

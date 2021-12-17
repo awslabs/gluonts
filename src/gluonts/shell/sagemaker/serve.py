@@ -14,6 +14,8 @@
 import os
 from pathlib import Path
 
+from .dyn import install_and_restart
+
 
 class ServePaths:
     def __init__(self, base: Path = Path("/opt/ml")) -> None:
@@ -32,3 +34,9 @@ class ServeEnv:
         self.sagemaker_batch = (
             os.environ.get("SAGEMAKER_BATCH", "false") == "true"
         )
+
+    def install_dynamic(self):
+        code = self.path.model / "code"
+
+        if code.is_dir():
+            install_and_restart(code, self.path.base / "code")

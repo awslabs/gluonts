@@ -54,24 +54,17 @@ def find_requirements(filename):
         ]
 
 
-# miniver:
-def get_version_and_cmdclass(package_path):
-    """Load version.py module without importing the whole package.
+def get_version_and_cmdclass(version_file):
+    with open(version_file) as fobj:
+        code = fobj.read()
 
-    Template code from miniver
-    """
-    import os
-    from importlib.util import module_from_spec, spec_from_file_location
+    globals_ = {"__file__": str(version_file)}
+    exec(code, globals_)
 
-    spec = spec_from_file_location(
-        "version", os.path.join(package_path, "_version.py")
-    )
-    module = module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.__version__, module.cmdclass
+    return globals_["__version__"], globals_["cmdclass"]()
 
 
-version, version_cmdclass = get_version_and_cmdclass("src/gluonts")
+version, version_cmdclass = get_version_and_cmdclass("src/gluonts/_version.py")
 
 
 class TypeCheckCommand(distutils.cmd.Command):
@@ -225,7 +218,7 @@ setup_kwargs: dict = dict(
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
-    python_requires=">= 3.6",
+    python_requires=">= 3.7",
     package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,

@@ -273,8 +273,13 @@ def test_poisson(rate: float) -> None:
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
 
-# The following parameters match the Gluon-based test, adjusted for the different parametrization
-@pytest.mark.parametrize("total_count, logit", [(1 / 0.7, np.log(2.5 * 0.7))])
+@pytest.mark.parametrize(
+    "total_count, logit",
+    [
+        (1.4, 0.56),
+        (1.4, 2.0),
+    ],
+)
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 def test_neg_binomial(total_count: float, logit: float) -> None:
     """
