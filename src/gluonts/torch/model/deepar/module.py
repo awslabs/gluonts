@@ -204,7 +204,7 @@ class DeepARModel(nn.Module):
             for s in state
         ]
 
-        distr = self.output_distribution(params, trailing_n=1)
+        distr = self.output_distribution(params, trailing_n=1, scale=repeated_scale)
 
         next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
         next_sample = next_sample.transpose(0, 1).reshape(
@@ -219,22 +219,21 @@ class DeepARModel(nn.Module):
             )
             output, repeated_state = self.lagged_rnn(
                 repeated_past_target,
-                next_sample,
+                next_sample/repeated_scale,
                 next_features,
                 repeated_state,
             )
             params = self.param_proj(output)
-            distr = self.output_distribution(params)
+            distr = self.output_distribution(params, scale=repeated_scale)
             repeated_past_target = torch.cat(
                 (repeated_past_target, next_sample), dim=1
             )
             next_sample = distr.sample()
             future_samples.append(next_sample)
 
-        unscaled_future_samples = (
-            torch.cat(future_samples, dim=1) * repeated_scale
-        )
-        return unscaled_future_samples.reshape(
+        future_samples_concat = torch.cat(future_samples, dim=1)
+
+        return future_samples_concat.reshape(
             (-1, self.num_parallel_samples, self.prediction_length)
             + self.target_shape,
         )
