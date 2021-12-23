@@ -226,7 +226,7 @@ class DeepARModel(nn.Module):
             params = self.param_proj(output)
             distr = self.output_distribution(params, scale=repeated_scale)
             repeated_past_target = torch.cat(
-                (repeated_past_target, next_sample), dim=1
+                (repeated_past_target, next_sample / repeated_scale), dim=1
             )
             next_sample = distr.sample()
             future_samples.append(next_sample)
