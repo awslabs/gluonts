@@ -11,18 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import mxnet as mx
-
 import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.model.forecast import (
-    QuantileForecast,
-    SampleForecast,
-)
-from gluonts.mx.distribution import Uniform
-from gluonts.mx.model.forecast import DistributionForecast
+from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
@@ -38,11 +31,6 @@ FORECASTS = {
     ),
     "SampleForecast": SampleForecast(
         samples=SAMPLES, start_date=START_DATE, freq=FREQ
-    ),
-    "DistributionForecast": DistributionForecast(
-        distribution=Uniform(low=mx.nd.zeros(1), high=mx.nd.ones(1)),
-        start_date=START_DATE,
-        freq=FREQ,
     ),
 }
 
@@ -68,32 +56,6 @@ def test_Forecast(name):
     assert forecast.index[0] == pd.Timestamp(START_DATE)
 
 
-def test_DistributionForecast():
-    forecast = DistributionForecast(
-        distribution=Uniform(
-            low=mx.nd.array([0.0, 0.0]), high=mx.nd.array([1.0, 2.0])
-        ),
-        start_date=START_DATE,
-        freq=FREQ,
-    )
-
-    def percentile(value):
-        return f"p{int(round(value * 100)):02d}"
-
-    for quantile in QUANTILES:
-        test_cases = [quantile, str(quantile), percentile(quantile)]
-        for quant_pred in map(forecast.quantile, test_cases):
-            expected = quantile * np.array([1.0, 2.0])
-            assert np.allclose(
-                quant_pred, expected
-            ), f"Expected {percentile(quantile)} quantile {quantile}. Obtained {quant_pred}."
-
-    pred_length = 2
-    assert forecast.prediction_length == pred_length
-    assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
-
-
 @pytest.mark.parametrize(
     "forecast, exp_index",
     [
@@ -107,21 +69,6 @@ def test_DistributionForecast():
                 start=pd.Timestamp("2020-01-01 00:00:00"),
                 freq="1D",
                 periods=7,
-            ),
-        ),
-        (
-            DistributionForecast(
-                Uniform(
-                    low=mx.nd.zeros(shape=(5, 2)),
-                    high=mx.nd.ones(shape=(5, 2)),
-                ),
-                start_date=pd.Timestamp("2020-01-01 00:00:00"),
-                freq="W",
-            ),
-            pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"),
-                freq="W",
-                periods=5,
             ),
         ),
     ],

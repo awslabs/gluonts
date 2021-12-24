@@ -298,7 +298,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         Returns
         -------
-        prediction tensor with shape (batch_size, prediction_length)
+        prediction tensor with shape (num_test_ts, num_quantiles, prediction_length)
         """
 
         # shape: (batch_size, num_forking, decoder_length, decoder_mlp_dim_seq[0])
@@ -312,14 +312,16 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         # We only care about the output of the decoder for the last time step
-        # shape: (batch_size, decoder_length, decoder_mlp_dim_seq[0])
-        fcst_output = F.slice_axis(dec_output, axis=1, begin=-1, end=None)
-        fcst_output = F.squeeze(fcst_output, axis=1)
+        # shape: (batch_size = num_test_ts, decoder_length = prediction_length, num_quantiles)
+        fcst_output = F.squeeze(
+            self.quantile_proj(
+                F.slice_axis(dec_output, axis=1, begin=-1, end=None)
+            ),
+            axis=1,
+        )
 
-        # shape: (batch_size, len(quantiles), decoder_length = prediction_length)
-        predictions = self.quantile_proj(fcst_output).swapaxes(2, 1)
-
-        return predictions
+        # shape: (num_test_ts, num_quantiles, prediction_length)
+        return fcst_output.swapaxes(2, 1)
 
 
 class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):

@@ -29,7 +29,7 @@ lint:
 	make restruc || true
 
 docs: release
-	make -C docs html SPHINXOPTS=-W
+	make -C docs html # SPHINXOPTS=-W
 	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
 		FILE=`echo $$f | sed 's/docs\///g'` ; \
 		DIR=`dirname $$FILE` ; \
@@ -46,15 +46,7 @@ clean:
 	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
 
 compile_notebooks:
-	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
-		DIR=`dirname $$f` ; \
-		BASENAME=`basename $$f` ; \
-		echo $$DIR $$BASENAME ; \
-		cd $$DIR ; \
-		python $(MD2IPYNB) $$BASENAME ; \
-		if [ $$? -ne 0 ] ; then echo "the following notebook raised an error:" $$BASENAME ; exit 1 ; fi ; \
-		cd - ; \
-	done;
+	python $(MD2IPYNB) "docs/tutorials/**/*.md"
 
 dist_notebooks: compile_notebooks
 	cd docs/tutorials && \

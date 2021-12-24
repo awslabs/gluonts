@@ -22,6 +22,11 @@ import pydantic
 from gluonts.core.component import validated
 from gluonts.exceptions import GluonTSUserError
 
+from .util import (
+    LinearInterpolation,
+    ExponentialTailApproximation,
+)
+
 
 class Quantile(NamedTuple):
     value: float
@@ -520,13 +525,38 @@ class QuantileForecast(Forecast):
         self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
-
         self._nan_out = np.array([np.nan] * self.prediction_length)
 
-    def quantile(self, q: Union[float, str]) -> np.ndarray:
-        q_str = Quantile.parse(q).name
-        # We return nan here such that evaluation runs through
-        return self._forecast_dict.get(q_str, self._nan_out)
+    def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
+        sorted_forecast_dict = dict(sorted(self._forecast_dict.items()))
+        sorted_forecast_dict.pop("mean", None)
+        quantiles = [float(q) for q in sorted_forecast_dict.keys()]
+        quantile_predictions = list(sorted_forecast_dict.values())
+
+        inference_quantile = Quantile.parse(inference_quantile).value
+
+        if len(quantiles) == 1 or inference_quantile in quantiles:
+            q_str = Quantile.parse(inference_quantile).name
+            return self._forecast_dict.get(q_str, self._nan_out)
+
+        linear_interpolation = LinearInterpolation(
+            quantiles, quantile_predictions
+        )
+        exp_tail_approximation = ExponentialTailApproximation(
+            quantiles, quantile_predictions
+        )
+        # The effective range of left, right tails varies over tail approximation class
+        (
+            left_tail_quantile,
+            right_tail_quantile,
+        ) = exp_tail_approximation.tail_range()
+
+        if inference_quantile <= left_tail_quantile:
+            return exp_tail_approximation.left(inference_quantile)
+        elif inference_quantile >= right_tail_quantile:
+            return exp_tail_approximation.right(inference_quantile)
+        else:
+            return linear_interpolation(inference_quantile)
 
     @property
     def mean(self) -> np.ndarray:

@@ -37,7 +37,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -379,7 +379,6 @@ class GPVAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             distr_output=self.distr_output,
-            conditioning_length=self.conditioning_length,
         )
 
     def create_predictor(
@@ -401,7 +400,6 @@ class GPVAREstimator(GluonEstimator):
             lags_seq=self.lags_seq,
             scaling=self.scaling,
             distr_output=self.distr_output,
-            conditioning_length=self.conditioning_length,
         )
 
         copy_parameters(trained_network, prediction_network)

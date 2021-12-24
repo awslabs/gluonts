@@ -106,7 +106,10 @@ class Predictor:
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
-            tpe = locate(fp.readline())
+            tpe_str = fp.readline()
+
+        tpe = locate(tpe_str)
+        assert tpe is not None, f"Cannot locate {tpe_str}."
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):

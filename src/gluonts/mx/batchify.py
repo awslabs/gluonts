@@ -19,7 +19,22 @@ import numpy as np
 
 from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch
-from gluonts.support.util import pad_to_size
+
+
+def pad_to_size(
+    x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
+):
+    """Pads `xs` with 0 on the right (default) on the specified axis, which is
+    the first axis by default."""
+
+    pad_length = size - x.shape[axis]
+    if pad_length <= 0:
+        return x
+
+    pad_width = [(0, 0)] * x.ndim
+    right_pad = (0, pad_length)
+    pad_width[axis] = right_pad if is_right_pad else right_pad[::-1]
+    return np.pad(x, mode="constant", pad_width=pad_width)
 
 
 def _is_stackable(arrays: List, axis: int = 0) -> bool:
