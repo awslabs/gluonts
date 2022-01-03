@@ -37,7 +37,9 @@ FORECASTS = {
         forecast_keys=np.array(QUANTILES, str),
         freq=FREQ,
     ),
-    "SampleForecast": SampleForecast(samples=SAMPLES, start_date=START_DATE, freq=FREQ),
+    "SampleForecast": SampleForecast(
+        samples=SAMPLES, start_date=START_DATE, freq=FREQ
+    ),
     "DistributionForecast": DistributionForecast(
         distribution=Uniform(low=torch.zeros(1), high=torch.ones(1)),
         start_date=START_DATE,
@@ -103,17 +105,24 @@ def test_DistributionForecast():
                 freq="1D",
             ),
             pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"), freq="1D", periods=7,
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="1D",
+                periods=7,
             ),
         ),
         (
             DistributionForecast(
-                Uniform(low=torch.zeros(size=(5, 2)), high=torch.ones(size=(5, 2)),),
+                Uniform(
+                    low=torch.zeros(size=(5, 2)),
+                    high=torch.ones(size=(5, 2)),
+                ),
                 start_date=pd.Timestamp("2020-01-01 00:00:00"),
                 freq="W",
             ),
             pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"), freq="W", periods=5,
+                start=pd.Timestamp("2020-01-01 00:00:00"),
+                freq="W",
+                periods=5,
             ),
         ),
     ],

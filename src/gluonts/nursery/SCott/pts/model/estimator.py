@@ -22,10 +22,16 @@ from torch.utils.data import DataLoader
 from pts import Trainer
 from pts.dataset import Dataset
 from pts.dataset.loader import InferenceDataLoader
-from pts.dataset.transformed_iterable_dataset import TransformedIterableDataset, TransformedGroupedIterableDataset, FullBatchDataset, FullGroupBatchDataset
+from pts.dataset.transformed_iterable_dataset import (
+    TransformedIterableDataset,
+    TransformedGroupedIterableDataset,
+    FullBatchDataset,
+    FullGroupBatchDataset,
+)
 from pts.transform import Transformation
 from .predictor import Predictor
 from .utils import get_module_forward_input_names
+
 
 class Estimator(ABC):
     prediction_length: int
@@ -112,52 +118,54 @@ class PTSEstimator(Estimator):
 
     def train_model(self, data_package) -> TrainOutput:
         transformation = self.create_transformation()
-        transformation_full_batch = self.create_transformation(is_full_batch=True)
+        transformation_full_batch = self.create_transformation(
+            is_full_batch=True
+        )
 
         training_iter_dataset = TransformedIterableDataset(
-            dataset=data_package['whole_data'],
+            dataset=data_package["whole_data"],
             is_train=True,
-            transform=transformation
+            transform=transformation,
         )
 
         training_data_loader = DataLoader(
             training_iter_dataset,
             batch_size=self.trainer.batch_size,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         rand_anchor_loader = DataLoader(
             training_iter_dataset,
             batch_size=self.trainer.batch_size,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         test_iter_dataset = FullBatchDataset(
-            dataset=data_package['val_data'],
+            dataset=data_package["val_data"],
             is_train=True,
-            transform=transformation_full_batch
+            transform=transformation_full_batch,
         )
 
         test_data_loader = DataLoader(
             test_iter_dataset,
             batch_size=8192,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         full_batch_dataset = FullBatchDataset(
-            dataset=data_package['whole_data'],
+            dataset=data_package["whole_data"],
             is_train=True,
-            transform=transformation_full_batch
+            transform=transformation_full_batch,
         )
 
         full_batch_loader = DataLoader(
             full_batch_dataset,
             batch_size=8192,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         # ensure that the training network is created on the same device
@@ -167,11 +175,11 @@ class PTSEstimator(Estimator):
             net=trained_net,
             input_names=get_module_forward_input_names(trained_net),
             data_loaders={
-                'training_data_loader':training_data_loader,
-                'validation_data_loader':test_data_loader,
-                'full_batch_loader':full_batch_loader,
-                'rand_anchor_loader':rand_anchor_loader
-            }
+                "training_data_loader": training_data_loader,
+                "validation_data_loader": test_data_loader,
+                "full_batch_loader": full_batch_loader,
+                "rand_anchor_loader": rand_anchor_loader,
+            },
         )
 
         return TrainOutput(
@@ -185,62 +193,63 @@ class PTSEstimator(Estimator):
     def train(self, data_package) -> Predictor:
         return self.train_model(data_package).predictor
 
-
     def stratified_train_model(self, data_package) -> TrainOutput:
         transformation = self.create_transformation()
-        transformation_full_batch = self.create_transformation(is_full_batch=True)
+        transformation_full_batch = self.create_transformation(
+            is_full_batch=True
+        )
 
         anchor_iter_dataset = TransformedGroupedIterableDataset(
-            list_of_dataset=data_package['group_data'],
+            list_of_dataset=data_package["group_data"],
             is_train=True,
             transform=transformation,
-            batch_size=self.trainer.batch_size
+            batch_size=self.trainer.batch_size,
         )
 
         anchor_data_loader = DataLoader(
             anchor_iter_dataset,
-            batch_size=self.trainer.batch_size*self.trainer.num_strata,
+            batch_size=self.trainer.batch_size * self.trainer.num_strata,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         training_iter_dataset = TransformedIterableDataset(
-            dataset=data_package['whole_data'],
+            dataset=data_package["whole_data"],
             is_train=True,
-            transform=transformation
+            transform=transformation,
         )
 
         training_data_loader = DataLoader(
             training_iter_dataset,
             batch_size=self.trainer.batch_size,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         test_iter_dataset = FullBatchDataset(
-            dataset=data_package['val_data'],
+            dataset=data_package["val_data"],
             is_train=True,
-            transform=transformation_full_batch
+            transform=transformation_full_batch,
         )
 
         test_data_loader = DataLoader(
             test_iter_dataset,
             batch_size=8192,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         full_batch_dataset = FullBatchDataset(
-            dataset=data_package['whole_data'],
+            dataset=data_package["whole_data"],
             is_train=True,
-            transform=transformation_full_batch
+            transform=transformation_full_batch,
         )
 
         full_batch_loader = DataLoader(
             full_batch_dataset,
             batch_size=8192,
             num_workers=self.trainer.num_workers,
-            pin_memory=self.trainer.pin_memory
+            pin_memory=self.trainer.pin_memory,
         )
 
         # ensure that the training network is created on the same device
@@ -250,12 +259,12 @@ class PTSEstimator(Estimator):
             net=trained_net,
             input_names=get_module_forward_input_names(trained_net),
             data_loaders={
-                'training_data_loader':training_data_loader,
-                'validation_data_loader':test_data_loader,
-                'anchor_data_loader':anchor_data_loader,
-                'full_batch_loader':full_batch_loader,
-                'group_ratio':data_package['group_ratio']
-            }
+                "training_data_loader": training_data_loader,
+                "validation_data_loader": test_data_loader,
+                "anchor_data_loader": anchor_data_loader,
+                "full_batch_loader": full_batch_loader,
+                "group_ratio": data_package["group_ratio"],
+            },
         )
 
         return TrainOutput(

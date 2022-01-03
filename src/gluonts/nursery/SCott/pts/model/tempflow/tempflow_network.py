@@ -9,7 +9,6 @@ from pts.modules import RealNVP, MAF, FlowOutput, MeanScaler, NOPScaler
 
 
 class TempFlowTrainingNetwork(nn.Module):
-
     @validated()
     def __init__(
         self,
@@ -41,7 +40,9 @@ class TempFlowTrainingNetwork(nn.Module):
         self.history_length = history_length
         self.scaling = scaling
 
-        assert len(set(lags_seq)) == len(lags_seq), "no duplicated lags allowed!"
+        assert len(set(lags_seq)) == len(
+            lags_seq
+        ), "no duplicated lags allowed!"
         lags_seq.sort()
         self.lags_seq = lags_seq
 
@@ -55,7 +56,10 @@ class TempFlowTrainingNetwork(nn.Module):
             batch_first=True,
         )
 
-        flow_cls = {"RealNVP": RealNVP, "MAF": MAF,}[flow_type]
+        flow_cls = {
+            "RealNVP": RealNVP,
+            "MAF": MAF,
+        }[flow_type]
         self.flow = flow_cls(
             input_size=target_dim,
             n_blocks=n_blocks,
@@ -122,7 +126,9 @@ class TempFlowTrainingNetwork(nn.Module):
         for lag_index in indices:
             begin_index = -lag_index - subsequences_length
             end_index = -lag_index if lag_index > 0 else None
-            lagged_values.append(sequence[:, begin_index:end_index, ...].unsqueeze(1))
+            lagged_values.append(
+                sequence[:, begin_index:end_index, ...].unsqueeze(1)
+            )
         return torch.cat(lagged_values, dim=1).permute(0, 2, 3, 1)
 
     def unroll(
@@ -163,7 +169,9 @@ class TempFlowTrainingNetwork(nn.Module):
         )
 
         # (batch_size, sub_seq_len, input_dim)
-        inputs = torch.cat((input_lags, repeated_index_embeddings, time_feat), dim=-1)
+        inputs = torch.cat(
+            (input_lags, repeated_index_embeddings, time_feat), dim=-1
+        )
 
         # unroll encoder
         outputs, state = self.rnn(inputs, begin_state)
@@ -249,7 +257,10 @@ class TempFlowTrainingNetwork(nn.Module):
             subsequences_length = self.context_length
         else:
             time_feat = torch.cat(
-                (past_time_feat[:, -self.context_length :, ...], future_time_feat),
+                (
+                    past_time_feat[:, -self.context_length :, ...],
+                    future_time_feat,
+                ),
                 dim=1,
             )
             sequence = torch.cat((past_target_cdf, future_target_cdf), dim=1)
@@ -377,7 +388,11 @@ class TempFlowTrainingNetwork(nn.Module):
         # put together target sequence
         # (batch_size, seq_len, target_dim)
         target = torch.cat(
-            (past_target_cdf[:, -self.context_length :, ...], future_target_cdf), dim=1,
+            (
+                past_target_cdf[:, -self.context_length :, ...],
+                future_target_cdf,
+            ),
+            dim=1,
         )
 
         # assert_shape(target, (-1, seq_len, self.target_dim))
@@ -466,7 +481,9 @@ class TempFlowPredictionNetwork(TempFlowTrainingNetwork):
         """
 
         def repeat(tensor, dim=0):
-            return tensor.repeat_interleave(repeats=self.num_parallel_samples, dim=dim)
+            return tensor.repeat_interleave(
+                repeats=self.num_parallel_samples, dim=dim
+            )
 
         # blows-up the dimension of each tensor to
         # batch_size * self.num_sample_paths for increasing parallelism
@@ -475,7 +492,9 @@ class TempFlowPredictionNetwork(TempFlowTrainingNetwork):
         repeated_scale = repeat(scale)
         if self.scaling:
             self.flow.scale = repeated_scale
-        repeated_target_dimension_indicator = repeat(target_dimension_indicator)
+        repeated_target_dimension_indicator = repeat(
+            target_dimension_indicator
+        )
 
         if self.cell_type == "LSTM":
             repeated_states = [repeat(s, dim=1) for s in begin_states]
@@ -519,7 +538,12 @@ class TempFlowPredictionNetwork(TempFlowTrainingNetwork):
 
         # (batch_size, num_samples, prediction_length, target_dim)
         return samples.reshape(
-            (-1, self.num_parallel_samples, self.prediction_length, self.target_dim,)
+            (
+                -1,
+                self.num_parallel_samples,
+                self.prediction_length,
+                self.target_dim,
+            )
         )
 
     def forward(

@@ -75,7 +75,9 @@ class TransformerEstimator(PTSEstimator):
         self.embedding_dimension = embedding_dimension
         self.num_parallel_samples = num_parallel_samples
         self.lags_seq = (
-            lags_seq if lags_seq is not None else get_fourier_lags_for_frequency(freq_str=freq)
+            lags_seq
+            if lags_seq is not None
+            else get_fourier_lags_for_frequency(freq_str=freq)
         )
         self.time_features = (
             time_features
@@ -108,16 +110,24 @@ class TransformerEstimator(PTSEstimator):
                 else []
             )
             + (
-                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
                 if not self.use_feat_static_real
                 else []
             )
             + [
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=np.long
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=np.long,
                 ),
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1, dtype=self.dtype,
+                    field=FieldName.FEAT_STATIC_REAL,
+                    expected_ndim=1,
+                    dtype=self.dtype,
                 ),
                 AsNumpyArray(
                     field=FieldName.TARGET,

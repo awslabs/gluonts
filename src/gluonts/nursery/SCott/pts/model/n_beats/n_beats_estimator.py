@@ -43,7 +43,9 @@ class NBEATSEstimator(PTSEstimator):
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
-            context_length if context_length is not None else 2 * prediction_length
+            context_length
+            if context_length is not None
+            else 2 * prediction_length
         )
         # num_stacks has to be handled separately because other arguments have to match its length
         self.num_stacks = num_stacks
@@ -101,7 +103,9 @@ class NBEATSEstimator(PTSEstimator):
         invalidation_message,
     ):
         # set default value if applicable
-        new_value = argument_value if argument_value is not None else default_value
+        new_value = (
+            argument_value if argument_value is not None else default_value
+        )
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
@@ -125,26 +129,32 @@ class NBEATSEstimator(PTSEstimator):
     # conditioning part and a to-predict part, for each training example.
     def create_transformation(self, is_full_batch=False) -> Transformation:
         return Chain(
-            [   RemoveFields(
-                    field_names=[FieldName.FEAT_STATIC_REAL,
+            [
+                RemoveFields(
+                    field_names=[
+                        FieldName.FEAT_STATIC_REAL,
                         FieldName.FEAT_DYNAMIC_REAL,
-                        FieldName.FEAT_DYNAMIC_CAT]),
+                        FieldName.FEAT_DYNAMIC_CAT,
+                    ]
+                ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    #train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     train_sampler=CustomUniformSampler(),
                     past_length=self.context_length,
                     is_full_batch=is_full_batch,
                     future_length=self.prediction_length,
                     time_series_fields=[],
-                )
+                ),
             ]
         )
 
-    def create_training_network(self, device: torch.device) ->  NBEATSTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> NBEATSTrainingNetwork:
         return NBEATSTrainingNetwork(
             prediction_length=self.prediction_length,
             context_length=self.context_length,
@@ -158,7 +168,6 @@ class NBEATSEstimator(PTSEstimator):
             loss_function=self.loss_function,
             freq=self.freq,
         ).to(device)
-
 
     def create_predictor(
         self,
@@ -175,7 +184,7 @@ class NBEATSEstimator(PTSEstimator):
             num_block_layers=self.num_block_layers,
             expansion_coefficient_lengths=self.expansion_coefficient_lengths,
             sharing=self.sharing,
-            stack_types=self.stack_types
+            stack_types=self.stack_types,
         ).to(device)
 
         copy_parameters(trained_network, prediction_network)

@@ -3,4 +3,3 @@ from .simple_feedforward_network import (
     SimpleFeedForwardTrainingNetwork,
     SimpleFeedForwardPredictionNetwork,
 )
-

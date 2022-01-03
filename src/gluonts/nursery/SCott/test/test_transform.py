@@ -52,23 +52,59 @@ def test_align_timestamp():
         return str(ProcessStartField.process(date_str, freq=freq))
 
     for _ in range(2):
-        assert aligned_with("2012-03-05 09:13:12", "min") == "2012-03-05 09:13:00"
-        assert aligned_with("2012-03-05 09:13:12", "2min") == "2012-03-05 09:12:00"
-        assert aligned_with("2012-03-05 09:13:12", "H") == "2012-03-05 09:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "D") == "2012-03-05 00:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "W") == "2012-03-11 00:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "4W") == "2012-03-11 00:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "M") == "2012-03-31 00:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "3M") == "2012-03-31 00:00:00"
-        assert aligned_with("2012-03-05 09:13:12", "Y") == "2012-12-31 00:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "min") == "2012-03-05 09:14:00"
-        assert aligned_with("2012-03-05 09:14:11", "2min") == "2012-03-05 09:14:00"
-        assert aligned_with("2012-03-05 09:14:11", "H") == "2012-03-05 09:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "D") == "2012-03-05 00:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "W") == "2012-03-11 00:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "4W") == "2012-03-11 00:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "M") == "2012-03-31 00:00:00"
-        assert aligned_with("2012-03-05 09:14:11", "3M") == "2012-03-31 00:00:00"
+        assert (
+            aligned_with("2012-03-05 09:13:12", "min") == "2012-03-05 09:13:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "2min")
+            == "2012-03-05 09:12:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "H") == "2012-03-05 09:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "D") == "2012-03-05 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "W") == "2012-03-11 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "4W") == "2012-03-11 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "M") == "2012-03-31 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "3M") == "2012-03-31 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:13:12", "Y") == "2012-12-31 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "min") == "2012-03-05 09:14:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "2min")
+            == "2012-03-05 09:14:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "H") == "2012-03-05 09:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "D") == "2012-03-05 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "W") == "2012-03-11 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "4W") == "2012-03-11 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "M") == "2012-03-31 00:00:00"
+        )
+        assert (
+            aligned_with("2012-03-05 09:14:11", "3M") == "2012-03-31 00:00:00"
+        )
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
@@ -89,7 +125,9 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     mat = res["myout"]
     expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
-    tmp_idx = pd.date_range(start=start, freq=start.freq, periods=expected_length)
+    tmp_idx = pd.date_range(
+        start=start, freq=start.freq, periods=expected_length
+    )
     assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))
     assert np.alltrue(mat[1] == time_feature.DayOfMonth()(tmp_idx))
 
@@ -130,15 +168,21 @@ def test_AddAgeFeatures(start, target, is_train: bool):
     assert out["age"].shape[-1] == expected_length
     assert np.allclose(
         out["age"],
-        np.log10(2.0 + np.arange(expected_length)).reshape((1, expected_length)),
+        np.log10(2.0 + np.arange(expected_length)).reshape(
+            (1, expected_length)
+        ),
     )
 
 
-@pytest.mark.parametrize("pick_incomplete", TEST_VALUES["allow_target_padding"])
+@pytest.mark.parametrize(
+    "pick_incomplete", TEST_VALUES["allow_target_padding"]
+)
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
 @pytest.mark.parametrize("target", TEST_VALUES["target"])
 @pytest.mark.parametrize("start", TEST_VALUES["start"])
-def test_InstanceSplitter(start, target, is_train: bool, pick_incomplete: bool):
+def test_InstanceSplitter(
+    start, target, is_train: bool, pick_incomplete: bool
+):
     train_length = 100
     pred_length = 13
     t = transform.InstanceSplitter(
@@ -170,7 +214,11 @@ def test_InstanceSplitter(start, target, is_train: bool, pick_incomplete: bool):
 
     if is_train:
         assert len(out) == max(
-            0, len(target) - pred_length + 1 - (0 if pick_incomplete else train_length),
+            0,
+            len(target)
+            - pred_length
+            + 1
+            - (0 if pick_incomplete else train_length),
         )
     else:
         assert len(out) == 1
@@ -201,7 +249,9 @@ def test_InstanceSplitter(start, target, is_train: bool, pick_incomplete: bool):
 @pytest.mark.parametrize(
     "use_prediction_features", TEST_VALUES["use_prediction_features"]
 )
-@pytest.mark.parametrize("allow_target_padding", TEST_VALUES["allow_target_padding"])
+@pytest.mark.parametrize(
+    "allow_target_padding", TEST_VALUES["allow_target_padding"]
+)
 def test_CanonicalInstanceSplitter(
     start,
     target,
@@ -236,7 +286,9 @@ def test_CanonicalInstanceSplitter(
 
     min_num_instances = 1 if allow_target_padding else 0
     if is_train:
-        assert len(out) == max(min_num_instances, len(target) - train_length + 1)
+        assert len(out) == max(
+            min_num_instances, len(target) - train_length + 1
+        )
     else:
         assert len(out) == 1
 
@@ -293,7 +345,9 @@ def test_Transformation():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(num_instances=4),
+                train_sampler=transform.ExpectedNumInstanceSampler(
+                    num_instances=4
+                ),
                 past_length=train_length,
                 future_length=pred_length,
                 time_series_fields=["dynamic_feat", "observed_values"],
@@ -360,7 +414,9 @@ def test_multi_dim_transformation(is_train):
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(num_instances=4),
+                train_sampler=transform.ExpectedNumInstanceSampler(
+                    num_instances=4
+                ),
                 past_length=train_length,
                 future_length=pred_length,
                 time_series_fields=["dynamic_feat", "observed_values"],
@@ -382,7 +438,9 @@ def test_multi_dim_transformation(is_train):
                 u["past_is_pad"],
             )
             assert_padded_array(
-                u["past_target"], np.array([first_dim, second_dim]), u["past_is_pad"],
+                u["past_target"],
+                np.array([first_dim, second_dim]),
+                u["past_is_pad"],
             )
     else:
         for u in t(iter(ds), is_train=False):
@@ -397,7 +455,9 @@ def test_multi_dim_transformation(is_train):
                 u["past_is_pad"],
             )
             assert_padded_array(
-                u["past_target"], np.array([first_dim, second_dim]), u["past_is_pad"],
+                u["past_target"],
+                np.array([first_dim, second_dim]),
+                u["past_is_pad"],
             )
 
 
@@ -414,7 +474,9 @@ def test_ExpectedNumInstanceSampler():
                 is_pad_field=FieldName.IS_PAD,
                 start_field=FieldName.START,
                 forecast_start_field=FieldName.FORECAST_START,
-                train_sampler=transform.ExpectedNumInstanceSampler(num_instances=4),
+                train_sampler=transform.ExpectedNumInstanceSampler(
+                    num_instances=4
+                ),
                 past_length=train_length,
                 future_length=pred_length,
                 pick_incomplete=True,
@@ -476,13 +538,35 @@ def test_BucketInstanceSampler():
     found_values = scale_hist.bin_counts
 
     for i in range(1, N):
-        assert abs(expected_values[i] - found_values[i] < expected_values[i] * 0.3)
+        assert abs(
+            expected_values[i] - found_values[i] < expected_values[i] * 0.3
+        )
 
 
 def test_cdf_to_gaussian_transformation():
     def make_test_data():
         target = np.array(
-            [0, 0, 0, 0, 10, 10, 20, 20, 30, 30, 40, 50, 59, 60, 60, 70, 80, 90, 100,]
+            [
+                0,
+                0,
+                0,
+                0,
+                10,
+                10,
+                20,
+                20,
+                30,
+                30,
+                40,
+                50,
+                59,
+                60,
+                60,
+                70,
+                80,
+                90,
+                100,
+            ]
         ).tolist()
 
         np.random.shuffle(target)
@@ -544,7 +628,9 @@ def test_cdf_to_gaussian_transformation():
 
         u["intercepts"] = torch.tensor(np.expand_dims(u["intercepts"], axis=0))
 
-        back_transformed = transform.cdf_to_gaussian_forward_transform(u, fake_output)
+        back_transformed = transform.cdf_to_gaussian_forward_transform(
+            u, fake_output
+        )
 
         # Get any sample/batch (slopes[i][:, d]they are all the same)
         back_transformed = back_transformed[0][0]
@@ -562,7 +648,9 @@ def test_gaussian_cdf():
         pytest.skip("scipy not installed skipping test for erf")
 
     x = np.array(
-        [-1000, -100, -10] + np.linspace(-2, 2, 1001).tolist() + [10, 100, 1000]
+        [-1000, -100, -10]
+        + np.linspace(-2, 2, 1001).tolist()
+        + [10, 100, 1000]
     )
     y_gluonts = transform.CDFtoGaussianTransform.standard_gaussian_cdf(x)
     y_scipy = norm.cdf(x)
@@ -602,7 +690,9 @@ def test_target_dim_indicator():
     )
 
     for data_entry in t(dataset, is_train=True):
-        assert (data_entry["target_dimensions"] == np.array([0, 1, 2, 3])).all()
+        assert (
+            data_entry["target_dimensions"] == np.array([0, 1, 2, 3])
+        ).all()
 
 
 @pytest.fixture
@@ -643,7 +733,9 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
     ts = np.cumsum(ia_times)
 
     splitter = transform.ContinuousTimeInstanceSplitter(
-        2, 1, train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+        2,
+        1,
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
     )
 
     # no boundary conditions
@@ -657,7 +749,9 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
 
 def test_ctsplitter_no_train_last_point(point_process_dataset):
     splitter = transform.ContinuousTimeInstanceSplitter(
-        2, 1, train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
+        2,
+        1,
+        train_sampler=transform.ContinuousTimeUniformSampler(num_instances=10),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -691,7 +785,9 @@ def test_ctsplitter_train_correct(point_process_dataset):
     assert outputs[0]["past_valid_length"] == 2
     assert outputs[0]["future_valid_length"] == 3
 
-    assert np.allclose(outputs[0]["past_target"], np.array([[0.19, 0.7], [0, 1]]).T)
+    assert np.allclose(
+        outputs[0]["past_target"], np.array([[0.19, 0.7], [0, 1]]).T
+    )
     assert np.allclose(
         outputs[0]["future_target"], np.array([[0.09, 0.5, 0.3], [2, 0, 1]]).T
     )
@@ -773,7 +869,9 @@ def make_dataset(N, train_length):
         targets[i, :] = targets[i, :] * i
 
     ds = ListDataset(
-        data_iter=[{"start": "2012-01-01", "target": targets[i, :]} for i in range(n)],
+        data_iter=[
+            {"start": "2012-01-01", "target": targets[i, :]} for i in range(n)
+        ],
         freq="1D",
     )
 

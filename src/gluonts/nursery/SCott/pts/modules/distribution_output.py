@@ -64,7 +64,9 @@ class Output(ABC):
     def dtype(self, dtype: np.dtype):
         self._dtype = dtype
 
-    def get_args_proj(self, in_features: int, prefix: Optional[str] = None) -> ArgProj:
+    def get_args_proj(
+        self, in_features: int, prefix: Optional[str] = None
+    ) -> ArgProj:
         return ArgProj(
             in_features=in_features,
             args_dim=self.args_dim,
@@ -94,7 +96,9 @@ class DistributionOutput(Output, ABC):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
 
 class IndependentDistributionOutput(DistributionOutput):
@@ -123,7 +127,9 @@ class IndependentDistributionOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
 
 class NormalOutput(IndependentDistributionOutput):
@@ -326,7 +332,9 @@ class StudentTMixtureOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -359,7 +367,9 @@ class NormalMixtureOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -369,7 +379,11 @@ class NormalMixtureOutput(DistributionOutput):
 class LowRankMultivariateNormalOutput(DistributionOutput):
     @validated()
     def __init__(
-        self, dim: int, rank: int, sigma_init: float = 1.0, sigma_minimum: float = 1e-3,
+        self,
+        dim: int,
+        rank: int,
+        sigma_init: float = 1.0,
+        sigma_minimum: float = 1e-3,
     ) -> None:
         self.distr_cls = LowRankMultivariateNormal
         self.dim = dim
@@ -380,7 +394,9 @@ class LowRankMultivariateNormalOutput(DistributionOutput):
 
     def domain_map(self, loc, cov_factor, cov_diag):
         diag_bias = (
-            self.inv_softplus(self.sigma_init ** 2) if self.sigma_init > 0.0 else 0.0
+            self.inv_softplus(self.sigma_init ** 2)
+            if self.sigma_init > 0.0
+            else 0.0
         )
 
         shape = cov_factor.shape[:-1] + (self.dim, self.rank)
@@ -413,9 +429,9 @@ class MultivariateNormalOutput(DistributionOutput):
         shape = scale.shape[:-1] + (d, d)
         scale = scale.reshape(shape)
 
-        scale_diag = F.softplus(scale * torch.eye(d, device=device)) * torch.eye(
-            d, device=device
-        )
+        scale_diag = F.softplus(
+            scale * torch.eye(d, device=device)
+        ) * torch.eye(d, device=device)
 
         mask = torch.tril(torch.ones_like(scale), diagonal=-1)
         scale_tril = (scale * mask) + scale_diag
@@ -431,7 +447,9 @@ class MultivariateNormalOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:

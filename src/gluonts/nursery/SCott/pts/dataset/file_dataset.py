@@ -66,7 +66,9 @@ class JsonLinesFile:
                 try:
                     yield Line(json.loads(raw), span=span)
                 except ValueError:
-                    raise Exception(f"Could not read json line {line_number}, {raw}")
+                    raise Exception(
+                        f"Could not read json line {line_number}, {raw}"
+                    )
 
     def __len__(self):
         # 1MB
@@ -97,7 +99,11 @@ class FileDataset(Dataset):
     """
 
     def __init__(
-        self, path: Path, freq: str, one_dim_target: bool = True, shuffle: bool = False
+        self,
+        path: Path,
+        freq: str,
+        one_dim_target: bool = True,
+        shuffle: bool = False,
     ) -> None:
         self.shuffle = shuffle
         self.path = path
@@ -130,4 +136,3 @@ class FileDataset(Dataset):
         if self.shuffle:
             random.shuffle(files)
         return files
-

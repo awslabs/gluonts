@@ -11,7 +11,7 @@ from pts.transform import (
     Transformation,
     Chain,
     InstanceSplitter,
-    ExpectedNumInstanceSampler
+    ExpectedNumInstanceSampler,
 )
 from pts.transform.sampler import CustomUniformSampler
 from .ar_network import (
@@ -34,7 +34,7 @@ class AREstimator(PTSEstimator):
         """
         super().__init__(trainer=trainer)
         self.num_parallel_samples = num_parallel_samples
-        self.freq=freq
+        self.freq = freq
 
         self.prediction_length = prediction_length
         self.context_length = (
@@ -55,7 +55,7 @@ class AREstimator(PTSEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    #train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     train_sampler=CustomUniformSampler(),
                     past_length=self.context_length,
                     future_length=self.prediction_length,

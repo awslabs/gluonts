@@ -75,9 +75,13 @@ def maximum_likelihood_estimate_sgd(
         print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
 
     if len(distr_args[0].shape) == 1:
-        return [param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))]
+        return [
+            param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))
+        ]
 
-    return [param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))]
+    return [
+        param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
+    ]
 
 
 @pytest.mark.parametrize("concentration1, concentration0", [(3.75, 1.25)])
@@ -94,8 +98,12 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     samples = distr.sample()
 
     init_biases = [
-        inv_softplus(concentration1 - START_TOL_MULTIPLE * TOL * concentration1),
-        inv_softplus(concentration0 - START_TOL_MULTIPLE * TOL * concentration0),
+        inv_softplus(
+            concentration1 - START_TOL_MULTIPLE * TOL * concentration1
+        ),
+        inv_softplus(
+            concentration0 - START_TOL_MULTIPLE * TOL * concentration0
+        ),
     ]
 
     concentration1_hat, concentration0_hat = maximum_likelihood_estimate_sgd(
@@ -106,7 +114,12 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
         num_epochs=10,
     )
 
-    print("concentration1:", concentration1_hat, "concentration0:", concentration0_hat)
+    print(
+        "concentration1:",
+        concentration1_hat,
+        "concentration0:",
+        concentration0_hat,
+    )
     assert (
         np.abs(concentration1_hat - concentration1) < TOL * concentration1
     ), f"concentration1 did not match: concentration1 = {concentration1}, concentration1_hat = {concentration1_hat}"
@@ -127,9 +140,7 @@ def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
     total_counts = torch.zeros((NUM_SAMPLES,)) + total_count
     logits = torch.zeros((NUM_SAMPLES,)) + logit
 
-    neg_bin_distr = NegativeBinomial(
-        total_count=total_counts, logits=logits
-    )
+    neg_bin_distr = NegativeBinomial(total_count=total_counts, logits=logits)
     samples = neg_bin_distr.sample()
 
     init_biases = [
@@ -138,7 +149,10 @@ def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
     ]
 
     total_count_hat, logit_hat = maximum_likelihood_estimate_sgd(
-        NegativeBinomialOutput(), samples, init_biases=init_biases, num_epochs=15,
+        NegativeBinomialOutput(),
+        samples,
+        init_biases=init_biases,
+        num_epochs=15,
     )
 
     assert (
@@ -192,7 +206,9 @@ def test_independent_normal() -> None:
     diag = np.arange(dim) / dim + 0.5
     Sigma = diag ** 2
 
-    distr = Independent(Normal(loc=torch.Tensor(loc), scale=torch.Tensor(diag)), 1)
+    distr = Independent(
+        Normal(loc=torch.Tensor(loc), scale=torch.Tensor(diag)), 1
+    )
 
     assert np.allclose(
         distr.variance.numpy(), Sigma, atol=0.1, rtol=0.1
@@ -201,7 +217,10 @@ def test_independent_normal() -> None:
     samples = distr.sample((num_samples,))
 
     loc_hat, diag_hat = maximum_likelihood_estimate_sgd(
-        NormalOutput(dim=dim), samples, learning_rate=0.01, num_epochs=10,
+        NormalOutput(dim=dim),
+        samples,
+        learning_rate=0.01,
+        num_epochs=10,
     )
 
     distr = Independent(
@@ -278,7 +297,9 @@ def test_multivariate_normal() -> None:
     L = np.diag(L_diag) + L_low
     Sigma = L.dot(L.transpose())
 
-    distr = MultivariateNormal(loc=torch.Tensor(mu), scale_tril=torch.Tensor(L))
+    distr = MultivariateNormal(
+        loc=torch.Tensor(mu), scale_tril=torch.Tensor(L)
+    )
 
     samples = distr.sample((num_samples,))
 
@@ -290,7 +311,9 @@ def test_multivariate_normal() -> None:
         num_epochs=10,
     )
 
-    distr = MultivariateNormal(loc=torch.tensor(mu_hat), scale_tril=torch.tensor(L_hat))
+    distr = MultivariateNormal(
+        loc=torch.tensor(mu_hat), scale_tril=torch.tensor(L_hat)
+    )
 
     Sigma_hat = distr.covariance_matrix.numpy()
 
