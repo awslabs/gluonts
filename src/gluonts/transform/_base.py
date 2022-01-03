@@ -14,6 +14,7 @@
 import abc
 from typing import Callable, Iterable, Iterator, List
 
+from gluonts.core.component import equals
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.env import env
@@ -204,3 +205,16 @@ class FilterTransformation(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         if self.condition(data):
             yield data
+
+
+# The __init__ in FilterTransformation is not validated but
+# the __init__ in the parent class (FlatMapTransformation) is.
+# So now the code (equals_default_impl) validate the arguments in FilterTransformation,
+# which is an empty dict for all the FilterTransformation.
+# We can not make __init__ FilterTransformation as validated as
+# we may use lambda function as the argument
+@equals.register(FilterTransformation)
+def equals_filter_transformation(
+    this: FilterTransformation, that: FilterTransformation
+):
+    return this.condition.__code__.co_code == that.condition.__code__.co_code
