@@ -90,7 +90,9 @@ class Evaluator:
         self.calculate_owa = calculate_owa
 
         self.num_workers = (
-            num_workers if num_workers is not None else multiprocessing.cpu_count()
+            num_workers
+            if num_workers is not None
+            else multiprocessing.cpu_count()
         )
         self.chunk_size = chunk_size if chunk_size is not None else 32
 
@@ -135,7 +137,9 @@ class Evaluator:
                     initializer=_worker_init(self), processes=self.num_workers
                 )
                 rows = mp_pool.map(
-                    func=_worker_fun, iterable=iter(it), chunksize=self.chunk_size,
+                    func=_worker_fun,
+                    iterable=iter(it),
+                    chunksize=self.chunk_size,
                 )
                 mp_pool.close()
                 mp_pool.join()
@@ -178,13 +182,17 @@ class Evaluator:
         np.ndarray
             time series cut in the Forecast object dates
         """
-        assert forecast.index.intersection(time_series.index).equals(forecast.index), (
+        assert forecast.index.intersection(time_series.index).equals(
+            forecast.index
+        ), (
             "Cannot extract prediction target since the index of forecast is outside the index of target\n"
             f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
         )
 
         # cut the time series using the dates of the forecast object
-        return np.atleast_1d(np.squeeze(time_series.loc[forecast.index].transpose()))
+        return np.atleast_1d(
+            np.squeeze(time_series.loc[forecast.index].transpose())
+        )
 
     # This method is needed for the owa calculation
     # It extracts the training sequence from the Series or DataFrame to a numpy array
@@ -205,7 +213,9 @@ class Evaluator:
             time series without the forecast dates
         """
 
-        assert forecast.index.intersection(time_series.index).equals(forecast.index), (
+        assert forecast.index.intersection(time_series.index).equals(
+            forecast.index
+        ), (
             "Index of forecast is outside the index of target\n"
             f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
         )
@@ -218,7 +228,9 @@ class Evaluator:
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
 
-    def seasonal_error(self, past_data: np.ndarray, forecast: Forecast) -> float:
+    def seasonal_error(
+        self, past_data: np.ndarray, forecast: Forecast
+    ) -> float:
         r"""
         .. math::
 
@@ -229,7 +241,9 @@ class Evaluator:
         """
         # Check if the length of the time series is larger than the seasonal frequency
         seasonality = (
-            self.seasonality if self.seasonality else get_seasonality(forecast.freq)
+            self.seasonality
+            if self.seasonality
+            else get_seasonality(forecast.freq)
         )
         if seasonality < len(past_data):
             forecast_freq = seasonality
@@ -263,7 +277,9 @@ class Evaluator:
         seasonal_error = self.seasonal_error(past_data, forecast)
         metrics = {
             "item_id": forecast.item_id,
-            "MSE": self.mse(pred_target, mean_fcst) if mean_fcst is not None else None,
+            "MSE": self.mse(pred_target, mean_fcst)
+            if mean_fcst is not None
+            else None,
             "abs_error": self.abs_error(pred_target, median_fcst),
             "abs_target_sum": self.abs_target_sum(pred_target),
             "abs_target_mean": self.abs_target_mean(pred_target),
@@ -325,7 +341,9 @@ class Evaluator:
             set(metric_per_ts.columns) >= agg_funs.keys()
         ), "The some of the requested item metrics are missing."
 
-        totals = {key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()}
+        totals = {
+            key: metric_per_ts[key].agg(agg) for key, agg in agg_funs.items()
+        }
 
         # derived metrics based on previous aggregate metrics
         totals["RMSE"] = np.sqrt(totals["MSE"])
@@ -340,7 +358,9 @@ class Evaluator:
             totals["abs_error"] * (1 - flag), totals["abs_target_sum"] + flag
         )
 
-        all_qLoss_names = [quantile.weighted_loss_name for quantile in self.quantiles]
+        all_qLoss_names = [
+            quantile.weighted_loss_name for quantile in self.quantiles
+        ]
         for quantile in self.quantiles:
             totals[quantile.weighted_loss_name] = np.divide(
                 totals[quantile.loss_name], totals["abs_target_sum"]
@@ -369,7 +389,10 @@ class Evaluator:
     @staticmethod
     def quantile_loss(target, quantile_forecast, q):
         return 2.0 * np.sum(
-            np.abs((quantile_forecast - target) * ((target <= quantile_forecast) - q))
+            np.abs(
+                (quantile_forecast - target)
+                * ((target <= quantile_forecast) - q)
+            )
         )
 
     @staticmethod
@@ -401,7 +424,9 @@ class Evaluator:
         denominator = np.abs(target)
         flag = denominator == 0
 
-        mape = np.mean((np.abs(target - forecast) * (1 - flag)) / (denominator + flag))
+        mape = np.mean(
+            (np.abs(target - forecast) * (1 - flag)) / (denominator + flag)
+        )
         return mape
 
     @staticmethod
@@ -441,7 +466,9 @@ class Evaluator:
         from gluonts.model.naive_2 import naive_2
 
         # calculate the forecast of the seasonal naive predictor
-        naive_median_fcst = naive_2(past_data, len(target), freq=start_date.freqstr)
+        naive_median_fcst = naive_2(
+            past_data, len(target), freq=start_date.freqstr
+        )
 
         owa = 0.5 * (
             (
@@ -468,8 +495,14 @@ class Evaluator:
         numerator = np.mean(
             upper_quantile
             - lower_quantile
-            + 2.0 / alpha * (lower_quantile - target) * (target < lower_quantile)
-            + 2.0 / alpha * (target - upper_quantile) * (target > upper_quantile)
+            + 2.0
+            / alpha
+            * (lower_quantile - target)
+            * (target < lower_quantile)
+            + 2.0
+            / alpha
+            * (target - upper_quantile)
+            * (target > upper_quantile)
         )
 
         flag = seasonal_error == 0
@@ -486,7 +519,7 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    
+
     The MultivariateEvaluator class owns functionality for evaluating
     multidimensional target arrays of shape
     (target_dimensionality, prediction_length).
@@ -542,7 +575,9 @@ class MultivariateEvaluator(Evaluator):
             dimension axis. Useful to compute metrics over aggregated target
             and forecast (typically sum or mean).
         """
-        super().__init__(quantiles=quantiles, seasonality=seasonality, alpha=alpha)
+        super().__init__(
+            quantiles=quantiles, seasonality=seasonality, alpha=alpha
+        )
         self._eval_dims = eval_dims
         self.target_agg_funcs = target_agg_funcs
 
@@ -630,7 +665,9 @@ class MultivariateEvaluator(Evaluator):
         return agg_metrics
 
     def calculate_aggregate_vector_metrics(
-        self, all_agg_metrics: Dict[str, float], all_metrics_per_ts: pd.DataFrame,
+        self,
+        all_agg_metrics: Dict[str, float],
+        all_metrics_per_ts: pd.DataFrame,
     ) -> Dict[str, float]:
         """
 
@@ -648,7 +685,9 @@ class MultivariateEvaluator(Evaluator):
             dictionary with aggregate metrics (of individual (evaluated)
             dimensions and the entire vector)
         """
-        vector_aggregate_metrics, _ = self.get_aggregate_metrics(all_metrics_per_ts)
+        vector_aggregate_metrics, _ = self.get_aggregate_metrics(
+            all_metrics_per_ts
+        )
         for key, value in vector_aggregate_metrics.items():
             all_agg_metrics[key] = value
         return all_agg_metrics
@@ -677,7 +716,9 @@ class MultivariateEvaluator(Evaluator):
         )
 
         for dim in eval_dims:
-            agg_metrics, metrics_per_ts = super(MultivariateEvaluator, self).__call__(
+            agg_metrics, metrics_per_ts = super(
+                MultivariateEvaluator, self
+            ).__call__(
                 self.extract_target_by_dim(ts_iterator_set[dim], dim),
                 self.extract_forecast_by_dim(fcst_iterator_set[dim], dim),
             )

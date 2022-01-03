@@ -44,7 +44,9 @@ class ScaleHistogram:
         empty_target_count: int = 0,
     ) -> None:
         self._base = base
-        self.bin_counts = defaultdict(int, {} if bin_counts is None else bin_counts)
+        self.bin_counts = defaultdict(
+            int, {} if bin_counts is None else bin_counts
+        )
         self.empty_target_count = empty_target_count
         self.__init_args__ = dict(
             base=self._base,
@@ -89,7 +91,9 @@ class ScaleHistogram:
                 max=self._base ** (base_index + 1) - 1,
                 count=count,
             )
-            for base_index, count in sorted(self.bin_counts.items(), key=lambda x: x[0])
+            for base_index, count in sorted(
+                self.bin_counts.items(), key=lambda x: x[0]
+            )
         ]
         return "\n".join(string_repr)
 
@@ -187,16 +191,22 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                     np.all(np.mod(observed_target, 1) == 0)
                 )
 
-            scale_histogram.add(observed_target)  # after checks for inf and None
+            scale_histogram.add(
+                observed_target
+            )  # after checks for inf and None
 
             # FEAT_STATIC_CAT
             feat_static_cat = (
-                ts[FieldName.FEAT_STATIC_CAT] if FieldName.FEAT_STATIC_CAT in ts else []
+                ts[FieldName.FEAT_STATIC_CAT]
+                if FieldName.FEAT_STATIC_CAT in ts
+                else []
             )
 
             if num_feat_static_cat is None:
                 num_feat_static_cat = len(feat_static_cat)
-                observed_feat_static_cat = [set() for _ in range(num_feat_static_cat)]
+                observed_feat_static_cat = [
+                    set() for _ in range(num_feat_static_cat)
+                ]
 
             # needed to type check
             assert num_feat_static_cat is not None
@@ -220,7 +230,9 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
             if num_feat_static_real is None:
                 num_feat_static_real = len(feat_static_real)
-                observed_feat_static_real = [set() for _ in range(num_feat_static_real)]
+                observed_feat_static_real = [
+                    set() for _ in range(num_feat_static_real)
+                ]
 
             # needed to type check
             assert num_feat_static_real is not None
@@ -289,7 +301,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 # feat_dynamic_real not found, check it was the first ts we encounter or
                 # that feat_dynamic_real were seen before
                 assert_pts(
-                    num_feat_dynamic_real is None or num_feat_dynamic_real == 0,
+                    num_feat_dynamic_real is None
+                    or num_feat_dynamic_real == 0,
                     "feat_dynamic_real was found for some instances but not others.",
                 )
                 num_feat_dynamic_real = 0
@@ -323,7 +336,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
     assert_pts(num_time_series > 0, "Time series dataset is empty!")
     assert_pts(
-        num_time_observations > 0, "Only empty time series found in the dataset!",
+        num_time_observations > 0,
+        "Only empty time series found in the dataset!",
     )
 
     # note this require the above assumption to avoid a division by zero
@@ -347,8 +361,12 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         mean_target_length=mean_target_length,
         min_target=min_target,
         num_missing_values=num_missing_values,
-        feat_static_real=observed_feat_static_real if observed_feat_static_real else [],
-        feat_static_cat=observed_feat_static_cat if observed_feat_static_cat else [],
+        feat_static_real=observed_feat_static_real
+        if observed_feat_static_real
+        else [],
+        feat_static_cat=observed_feat_static_cat
+        if observed_feat_static_cat
+        else [],
         num_feat_dynamic_real=num_feat_dynamic_real,
         num_feat_dynamic_cat=num_feat_dynamic_cat,
         num_time_observations=num_time_observations,

@@ -43,7 +43,10 @@ def test_lagged_subsequences():
     # checks that lags value behave as described as in the get_lagged_subsequences contract
     for i, j, k in itertools.product(range(N), range(S), range(I)):
         assert (
-            (lagged_subsequences[i, j, :, k] == sequence[i, -lags[k] - S + j, :])
+            (
+                lagged_subsequences[i, j, :, k]
+                == sequence[i, -lags[k] - S + j, :]
+            )
             .numpy()
             .all()
         )

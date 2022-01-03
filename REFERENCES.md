@@ -4,6 +4,7 @@ We encourage you to also check out the time series work by the group behind Gluo
 
 # 2021
 
+* [Forecasting with trees](https://www.sciencedirect.com/science/article/pii/S0169207021001679), *Tim Januschowski, Yuyang Wang, Kari Torkkola, Timo Erkkilä, Hilaf Hasson, Jan Gasthaus*, IJF 2021
 * [Probabilistic Forecasting: A Level-Set Approach](https://proceedings.neurips.cc/paper/2021/file/32b127307a606effdcc8e51f60a45922-Paper.pdf), *Hilaf Hasson, Yuyang Wang, Tim Januschowski, and Jan Gasthaus*, NeurIPS 2021.
 * [Deep Explicit Duration Switching Models for Time Series](https://papers.nips.cc/paper/2021/file/fb4c835feb0a65cc39739320d7a51c02-Paper.pdf), *Abdul Fatir Ansari, Konstantinos Benidis, Richard Kurle, Ali Caner Turkmen, Harold Soh, Alex Smola, Tim Januschowski*, NeurIPS 2021
 * [Neural Flows: Efficient Alternative to Neural ODEs](https://papers.nips.cc/paper/2021/file/b21f9f98829dea9a48fd8aaddc1f159d-Paper.pdf), *Marin Biloš, Johanna Sommer, Syama Sundar Rangapuram, Tim Januschowski, Stephan Günnemann*, NeurIPS 2021
@@ -24,7 +25,7 @@ We encourage you to also check out the time series work by the group behind Gluo
 * Forecasting with Trees, *Tim Januschowski, Yuyang Wang, Kari Torkkola, Timo Erkkila, Hilaf Hasson, Jan Gasthaus*, International Journal of Forecasting (IJF) 2021
 * [Forecasting: Theory and Practice](https://arxiv.org/abs/2012.03854), *Fotios Petroupolos et al and Tim Januschowski*, International Journal of Forecasting (IJF) 2021
 * The M5 Competition: A Critial Appraisal, *Tim Januschowski, Jan Gasthaus, Yuyang Wang*, Foresight, 2021
-* Forecasting of intermittent and sparse time series: a unified probabilistic framework via deep renewal processes, *Caner Turkmen, Tim Januschowski, Yuyang Wang, Ali Taylan Cemgil*, PlosOne, 2021
+* [Forecasting of intermittent and sparse time series: a unified probabilistic framework via deep renewal processes](https://journals.plos.org/plosone/article/authors?id=10.1371/journal.pone.0259764), *Caner Turkmen, Tim Januschowski, Yuyang Wang, Ali Taylan Cemgil*, PlosOne, 2021
 
 # 2020
 * [Deep Rao-Blackwellised Particle Filters for Time Series Forecasting](https://proceedings.neurips.cc/paper/2020/hash/afb0b97df87090596ae7c503f60bb23f-Abstract.html), *Richard Kurle, Syama Rangapuram, Emmanuel de Bezenac, Stepuhan Günnemann, Jan Gasthaus*, NeurIPS 2020

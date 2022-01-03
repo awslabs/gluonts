@@ -34,7 +34,9 @@ def load_multivariate_constant_dataset():
     grouper_train = MultivariateGrouper(max_target_dim=NUM_SERIES)
     grouper_test = MultivariateGrouper(max_target_dim=NUM_SERIES)
     return TrainDatasets(
-        metadata=metadata, train=grouper_train(train_ds), test=grouper_test(test_ds),
+        metadata=metadata,
+        train=grouper_train(train_ds),
+        test=grouper_test(test_ds),
     )
 
 
@@ -60,7 +62,11 @@ def test_lstnet(skip_size, ar_window, horizon, prediction_length):
         freq=freq,
         horizon=horizon,
         prediction_length=prediction_length,
-        trainer=Trainer(epochs=1, batch_size=2, learning_rate=0.01,),
+        trainer=Trainer(
+            epochs=1,
+            batch_size=2,
+            learning_rate=0.01,
+        ),
     )
 
     predictor = estimator.train(dataset.train)
@@ -76,16 +82,17 @@ def test_lstnet(skip_size, ar_window, horizon, prediction_length):
         if estimator.horizon:
             assert fct.samples.shape == (NUM_SAMPLES, 1, NUM_SERIES)
         else:
-            assert fct.samples.shape == (NUM_SAMPLES, prediction_length, NUM_SERIES,)
-        assert (
-            fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
-                periods=test_ds["target"].shape[1],  # number of test periods
-                freq=freq,
-                closed="right",
-            )[-(horizon or prediction_length)]
-        )
+            assert fct.samples.shape == (
+                NUM_SAMPLES,
+                prediction_length,
+                NUM_SERIES,
+            )
+        assert fct.start_date == pd.date_range(
+            start=str(test_ds["start"]),
+            periods=test_ds["target"].shape[1],  # number of test periods
+            freq=freq,
+            closed="right",
+        )[-(horizon or prediction_length)]
 
     evaluator = MultivariateEvaluator(
         quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]

@@ -11,7 +11,7 @@ from pts.transform import (
     Transformation,
     Chain,
     InstanceSplitter,
-    ExpectedNumInstanceSampler
+    ExpectedNumInstanceSampler,
 )
 from pts.transform.sampler import CustomUniformSampler
 from .lstm_network import (
@@ -36,7 +36,7 @@ class LSTMEstimator(PTSEstimator):
         """
         super().__init__(trainer=trainer)
         self.num_parallel_samples = num_parallel_samples
-        self.freq=freq
+        self.freq = freq
         self.input_size = input_size
         self.hidden_layer_size = hidden_layer_size
         self.prediction_length = prediction_length
@@ -58,7 +58,7 @@ class LSTMEstimator(PTSEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    #train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     train_sampler=CustomUniformSampler(),
                     past_length=self.context_length,
                     future_length=self.prediction_length,

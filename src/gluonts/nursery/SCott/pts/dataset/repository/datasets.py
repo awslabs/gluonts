@@ -32,10 +32,18 @@ prediction_length = 48
 dataset_recipes = OrderedDict(
     {
         # each recipe generates a dataset given a path
-        "constant": partial(generate_artificial_dataset, dataset=ConstantDataset()),
-        "exchange_rate": partial(generate_lstnet_dataset, dataset_name="exchange_rate"),
-        "solar-energy": partial(generate_lstnet_dataset, dataset_name="solar-energy"),
-        "electricity": partial(generate_lstnet_dataset, dataset_name="electricity"),
+        "constant": partial(
+            generate_artificial_dataset, dataset=ConstantDataset()
+        ),
+        "exchange_rate": partial(
+            generate_lstnet_dataset, dataset_name="exchange_rate"
+        ),
+        "solar-energy": partial(
+            generate_lstnet_dataset, dataset_name="solar-energy"
+        ),
+        "electricity": partial(
+            generate_lstnet_dataset, dataset_name="electricity"
+        ),
         "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
         "exchange_rate_nips": partial(
             generate_gp_copula_dataset, dataset_name="exchange_rate_nips"
@@ -46,11 +54,15 @@ dataset_recipes = OrderedDict(
         "traffic_nips": partial(
             generate_gp_copula_dataset, dataset_name="traffic_nips"
         ),
-        "solar_nips": partial(generate_gp_copula_dataset, dataset_name="solar_nips"),
+        "solar_nips": partial(
+            generate_gp_copula_dataset, dataset_name="solar_nips"
+        ),
         "wiki-rolling_nips": partial(
             generate_gp_copula_dataset, dataset_name="wiki-rolling_nips"
         ),
-        "taxi_30min": partial(generate_gp_copula_dataset, dataset_name="taxi_30min"),
+        "taxi_30min": partial(
+            generate_gp_copula_dataset, dataset_name="taxi_30min"
+        ),
         "m4_hourly": partial(
             generate_m4_dataset,
             m4_freq="Hourly",
@@ -58,7 +70,10 @@ dataset_recipes = OrderedDict(
             prediction_length=48,
         ),
         "m4_daily": partial(
-            generate_m4_dataset, m4_freq="Daily", pandas_freq="D", prediction_length=14,
+            generate_m4_dataset,
+            m4_freq="Daily",
+            pandas_freq="D",
+            prediction_length=14,
         ),
         "m4_weekly": partial(
             generate_m4_dataset,
@@ -85,7 +100,10 @@ dataset_recipes = OrderedDict(
             prediction_length=6,
         ),
         "m5": partial(
-            generate_m5_dataset, pandas_freq="D", prediction_length=28, alpha=0.5
+            generate_m5_dataset,
+            pandas_freq="D",
+            prediction_length=28,
+            alpha=0.5,
         ),
     }
 )
@@ -96,7 +114,9 @@ default_dataset_path = get_download_path() / "datasets"
 
 
 def materialize_dataset(
-    dataset_name: str, path: Path = default_dataset_path, regenerate: bool = False,
+    dataset_name: str,
+    path: Path = default_dataset_path,
+    regenerate: bool = False,
 ) -> Path:
     """
     Ensures that the dataset is materialized under the `path / dataset_name`
@@ -130,7 +150,9 @@ def materialize_dataset(
         logging.info(f"downloading and processing {dataset_name}")
         dataset_recipe(dataset_path=dataset_path)
     else:
-        logging.info(f"using dataset already processed in path {dataset_path}.")
+        logging.info(
+            f"using dataset already processed in path {dataset_path}."
+        )
 
     return dataset_path
 

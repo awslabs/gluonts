@@ -109,7 +109,9 @@ def validated(base_model=None):
                 param.annotation
                 if param.annotation != inspect.Parameter.empty
                 else Any,
-                param.default if param.default != inspect.Parameter.empty else ...,
+                param.default
+                if param.default != inspect.Parameter.empty
+                else ...,
             )
             for param in init_params.values()
             if param.name != "self"
@@ -124,7 +126,9 @@ def validated(base_model=None):
             )
         else:
             PydanticModel = create_model(
-                f"{init_clsnme}Model", __base__=base_model, **init_fields,
+                f"{init_clsnme}Model",
+                __base__=base_model,
+                **init_fields,
             )
 
         def validated_repr(self) -> str:
@@ -139,7 +143,9 @@ def validated(base_model=None):
 
             nmargs = {
                 name: arg
-                for (name, param), arg in zip(list(init_params.items()), [self] + args)
+                for (name, param), arg in zip(
+                    list(init_params.items()), [self] + args
+                )
                 if name != "self"
             }
             model = PydanticModel(**{**nmargs, **kwargs})

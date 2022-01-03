@@ -2,7 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-from torch.distributions import constraints, NegativeBinomial, Poisson, Distribution
+from torch.distributions import (
+    constraints,
+    NegativeBinomial,
+    Poisson,
+    Distribution,
+)
 from torch.distributions.utils import broadcast_all, lazy_property
 
 from .utils import broadcast_shape
@@ -25,7 +30,9 @@ class ZeroInflatedDistribution(Distribution):
         if base_dist.event_shape:
             raise ValueError(
                 "ZeroInflatedDistribution expected empty "
-                "base_dist.event_shape but got {}".format(base_dist.event_shape)
+                "base_dist.event_shape but got {}".format(
+                    base_dist.event_shape
+                )
             )
         batch_shape = broadcast_shape(gate.shape, base_dist.batch_shape)
         self.gate = gate.expand(batch_shape)
@@ -44,7 +51,9 @@ class ZeroInflatedDistribution(Distribution):
 
         gate, value = broadcast_all(self.gate, value)
         log_prob = (-gate).log1p() + self.base_dist.log_prob(value)
-        log_prob = torch.where(value == 0, (gate + log_prob.exp()).log(), log_prob)
+        log_prob = torch.where(
+            value == 0, (gate + log_prob.exp()).log(), log_prob
+        )
         return log_prob
 
     def sample(self, sample_shape=torch.Size()):
@@ -70,7 +79,9 @@ class ZeroInflatedDistribution(Distribution):
         batch_shape = torch.Size(batch_shape)
         gate = self.gate.expand(batch_shape)
         base_dist = self.base_dist.expand(batch_shape)
-        ZeroInflatedDistribution.__init__(new, gate, base_dist, validate_args=False)
+        ZeroInflatedDistribution.__init__(
+            new, gate, base_dist, validate_args=False
+        )
         new._validate_args = self._validate_args
         return new
 
@@ -83,7 +94,10 @@ class ZeroInflatedPoisson(ZeroInflatedDistribution):
     :param torch.Tensor rate: rate of poisson distribution.
     """
 
-    arg_constraints = {"gate": constraints.unit_interval, "rate": constraints.positive}
+    arg_constraints = {
+        "gate": constraints.unit_interval,
+        "rate": constraints.positive,
+    }
     support = constraints.nonnegative_integer
 
     def __init__(self, gate, rate, validate_args=None):
@@ -116,9 +130,14 @@ class ZeroInflatedNegativeBinomial(ZeroInflatedDistribution):
     }
     support = constraints.nonnegative_integer
 
-    def __init__(self, gate, total_count, probs=None, logits=None, validate_args=None):
+    def __init__(
+        self, gate, total_count, probs=None, logits=None, validate_args=None
+    ):
         base_dist = NegativeBinomial(
-            total_count=total_count, probs=probs, logits=logits, validate_args=False,
+            total_count=total_count,
+            probs=probs,
+            logits=logits,
+            validate_args=False,
         )
         base_dist._validate_args = validate_args
 
