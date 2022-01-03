@@ -50,13 +50,11 @@ class Predictor(ABC):
         with (path / "type.txt").open("w") as fp:
             fp.write(fqname_for(self.__class__))
         with (path / "version.json").open("w") as fp:
-            json.dump(
-                {"model": self.__version__, "pts": pts.__version__}, fp
-            )
+            json.dump({"model": self.__version__, "pts": pts.__version__}, fp)
 
     @classmethod
     def deserialize(
-            cls, path: Path, device: Optional[torch.device] = None
+        cls, path: Path, device: Optional[torch.device] = None
     ) -> "Predictor":
         """
         Load a serialized predictor from the given path
@@ -117,7 +115,7 @@ class PTSPredictor(Predictor):
         )
 
         self.prediction_net.eval()
-        
+
         with torch.no_grad():
             yield from self.forecast_generator(
                 inference_data_loader=inference_data_loader,
@@ -133,7 +131,7 @@ class PTSPredictor(Predictor):
         super().serialize(path)
 
         # serialize network
-        model_name = 'prediction_net'
+        model_name = "prediction_net"
         with (path / f"{model_name}-network.json").open("w") as fp:
             print(dump_json(self.prediction_net), file=fp)
         torch.save(self.prediction_net.state_dict(), path / "prediction_net")
@@ -160,7 +158,7 @@ class PTSPredictor(Predictor):
 
     @classmethod
     def deserialize(
-            cls, path: Path, device: Optional[torch.device] = None
+        cls, path: Path, device: Optional[torch.device] = None
     ) -> "PTSPredictor":
 
         # deserialize constructor parameters
@@ -172,7 +170,7 @@ class PTSPredictor(Predictor):
             transformation = load_json(fp.read())
 
         # deserialize prediction network
-        model_name = 'prediction_net'
+        model_name = "prediction_net"
         with (path / f"{model_name}-network.json").open("r") as fp:
             prediction_net = load_json(fp.read())
             prediction_net.load_state_dict(torch.load(path / "prediction_net"))
@@ -186,5 +184,5 @@ class PTSPredictor(Predictor):
         return PTSPredictor(
             input_transform=transformation,
             prediction_net=prediction_net,
-            **parameters
+            **parameters,
         )

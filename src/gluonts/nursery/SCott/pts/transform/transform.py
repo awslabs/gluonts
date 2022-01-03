@@ -43,6 +43,7 @@ class Chain(Transformation):
     """
     Chain multiple transformations together.
     """
+
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
         self.transformations = []
@@ -62,7 +63,9 @@ class Chain(Transformation):
         return tmp
 
     def estimate(self, data_it: Iterator[DataEntry]) -> Iterator[DataEntry]:
-        return reduce(lambda x, y: y.estimate(x), self.transformations, data_it)
+        return reduce(
+            lambda x, y: y.estimate(x), self.transformations, data_it
+        )
 
 
 class Identity(Transformation):
@@ -77,7 +80,9 @@ class MapTransformation(Transformation):
     Base class for Transformations that returns exactly one result per input in the stream.
     """
 
-    def __call__(self, data_it: Iterable[DataEntry], is_train: bool) -> Iterator:
+    def __call__(
+        self, data_it: Iterable[DataEntry], is_train: bool
+    ) -> Iterator:
         for data_entry in data_it:
             try:
                 yield self.map_transform(data_entry.copy(), is_train)
@@ -123,12 +128,16 @@ class FlatMapTransformation(Transformation):
     elements from the input stream.
     """
 
-    def __call__(self, data_it: Iterable[DataEntry], is_train: bool) -> Iterator:
+    def __call__(
+        self, data_it: Iterable[DataEntry], is_train: bool
+    ) -> Iterator:
         num_idle_transforms = 0
         for data_entry in data_it:
             num_idle_transforms += 1
             try:
-                for result in self.flatmap_transform(data_entry.copy(), is_train):
+                for result in self.flatmap_transform(
+                    data_entry.copy(), is_train
+                ):
                     num_idle_transforms = 0
                     yield result
             except Exception as e:
@@ -143,7 +152,9 @@ class FlatMapTransformation(Transformation):
                 )
 
     @abstractmethod
-    def flatmap_transform(self, data: DataEntry, is_train: bool) -> Iterator[DataEntry]:
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
         pass
 
 
@@ -151,6 +162,8 @@ class FilterTransformation(FlatMapTransformation):
     def __init__(self, condition: Callable[[DataEntry], bool]) -> None:
         self.condition = condition
 
-    def flatmap_transform(self, data: DataEntry, is_train: bool) -> Iterator[DataEntry]:
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
         if self.condition(data):
             yield data

@@ -120,7 +120,9 @@ class Forecast(ABC):
             assert 0.0 <= c <= 100.0
 
         ps = [50.0] + [
-            50.0 + f * c / 2.0 for c in prediction_intervals for f in [-1.0, +1.0]
+            50.0 + f * c / 2.0
+            for c in prediction_intervals
+            for f in [-1.0, +1.0]
         ]
         percentiles_sorted = sorted(set(ps))
 
@@ -137,7 +139,11 @@ class Forecast(ABC):
         if show_mean:
             mean_data = np.mean(self._sorted_samples, axis=0)
             pd.Series(data=mean_data, index=self.index).plot(
-                color=color, ls=":", label=f"{label_prefix}mean", *args, **kwargs,
+                color=color,
+                ls=":",
+                label=f"{label_prefix}mean",
+                *args,
+                **kwargs,
             )
 
         for i in range(len(percentiles_sorted) // 2):
@@ -229,7 +235,9 @@ class SampleForecast(Forecast):
             len(np.shape(samples))
         )
         self.samples = (
-            samples if (isinstance(samples, np.ndarray)) else samples.cpu().numpy()
+            samples
+            if (isinstance(samples, np.ndarray))
+            else samples.cpu().numpy()
         )
         self._sorted_samples_value = None
         self._mean = None
@@ -505,7 +513,9 @@ class DistributionForecast(Forecast):
         info: Optional[Dict] = None,
     ) -> None:
         self.distribution = distribution
-        self.shape = self.distribution.batch_shape + self.distribution.event_shape
+        self.shape = (
+            self.distribution.batch_shape + self.distribution.event_shape
+        )
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info

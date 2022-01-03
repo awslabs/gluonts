@@ -37,7 +37,7 @@ class Scaler(ABC, nn.Module):
         Tensor
             Tensor containing the "scaled" data, shape: (N, T, C) or (N, C, T).
         Tensor
-            Tensor containing the scale, of shape (N, C) if ``keepdim == False``, 
+            Tensor containing the scale, of shape (N, C) if ``keepdim == False``,
             and shape (N, 1, C) or (N, C, 1) if ``keepdim == True``.
         """
 
@@ -87,7 +87,9 @@ class MeanScaler(Scaler):
 
         # first compute a global scale per-dimension
         total_observed = num_observed.sum(dim=0)
-        denominator = torch.max(total_observed, torch.ones_like(total_observed))
+        denominator = torch.max(
+            total_observed, torch.ones_like(total_observed)
+        )
         default_scale = sum_observed.sum(dim=0) / denominator
 
         # then compute a per-item, per-dimension scale

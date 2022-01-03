@@ -39,6 +39,7 @@ class AsNumpyArray(SimpleTransformation):
     dtype
         numpy dtype to use.
     """
+
     @validated()
     def __init__(
         self, field: str, expected_ndim: int, dtype: np.dtype = np.float32
@@ -83,6 +84,7 @@ class ExpandDimArray(SimpleTransformation):
     axis
         Axis to expand (see np.expand_dims for details)
     """
+
     @validated()
     def __init__(self, field: str, axis: Optional[int] = None) -> None:
         self.field = field
@@ -109,20 +111,30 @@ class VstackFeatures(SimpleTransformation):
     drop_inputs
         If set to true the input fields will be dropped.
     """
+
     @validated()
     def __init__(
-        self, output_field: str, input_fields: List[str], drop_inputs: bool = True,
+        self,
+        output_field: str,
+        input_fields: List[str],
+        drop_inputs: bool = True,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
         self.cols_to_drop = (
             []
             if not drop_inputs
-            else [fname for fname in self.input_fields if fname != output_field]
+            else [
+                fname for fname in self.input_fields if fname != output_field
+            ]
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields if data[fname] is not None]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.vstack(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
@@ -145,20 +157,30 @@ class ConcatFeatures(SimpleTransformation):
     drop_inputs
         If set to true the input fields will be dropped.
     """
+
     @validated()
     def __init__(
-        self, output_field: str, input_fields: List[str], drop_inputs: bool = True,
+        self,
+        output_field: str,
+        input_fields: List[str],
+        drop_inputs: bool = True,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
         self.cols_to_drop = (
             []
             if not drop_inputs
-            else [fname for fname in self.input_fields if fname != output_field]
+            else [
+                fname for fname in self.input_fields if fname != output_field
+            ]
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
-        r = [data[fname] for fname in self.input_fields if data[fname] is not None]
+        r = [
+            data[fname]
+            for fname in self.input_fields
+            if data[fname] is not None
+        ]
         output = np.concatenate(r)
         data[self.output_field] = output
         for fname in self.cols_to_drop:
@@ -177,6 +199,7 @@ class SwapAxes(SimpleTransformation):
     axes
         Axes to use
     """
+
     @validated()
     def __init__(self, input_fields: List[str], axes: Tuple[int, int]) -> None:
         self.input_fields = input_fields
@@ -212,16 +235,22 @@ class ListFeatures(SimpleTransformation):
     drop_inputs
         If true the input fields will be removed from the result.
     """
+
     @validated()
     def __init__(
-        self, output_field: str, input_fields: List[str], drop_inputs: bool = True,
+        self,
+        output_field: str,
+        input_fields: List[str],
+        drop_inputs: bool = True,
     ) -> None:
         self.output_field = output_field
         self.input_fields = input_fields
         self.cols_to_drop = (
             []
             if not drop_inputs
-            else [fname for fname in self.input_fields if fname != output_field]
+            else [
+                fname for fname in self.input_fields if fname != output_field
+            ]
         )
 
     def transform(self, data: DataEntry) -> DataEntry:
@@ -235,6 +264,7 @@ class TargetDimIndicator(SimpleTransformation):
     """
     Label-encoding of the target dimensions.
     """
+
     @validated()
     def __init__(self, field_name: str, target_field: str) -> None:
         self.field_name = field_name
@@ -249,6 +279,7 @@ class SampleTargetDim(FlatMapTransformation):
     """
     Samples random dimensions from the target at training time.
     """
+
     @validated()
     def __init__(
         self,
@@ -301,6 +332,7 @@ class CDFtoGaussianTransform(MapTransformation):
     Note that this transformation is currently intended for multivariate
     targets only.
     """
+
     @validated()
     def __init__(
         self,
@@ -435,15 +467,21 @@ class CDFtoGaussianTransform(MapTransformation):
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = np.stack(
-            [np.arange(sorted_target_length) for _ in range(target_dim)], axis=1,
-        ) / float(sorted_target_length)
+        quantiles = (
+            np.stack(
+                [np.arange(sorted_target_length) for _ in range(target_dim)],
+                axis=1,
+            )
+            / float(sorted_target_length)
+        )
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)
 
         # Calculate slopes of the pw-linear pieces.
-        slopes = np.where(x_diff == 0.0, np.zeros_like(x_diff), y_diff / x_diff)
+        slopes = np.where(
+            x_diff == 0.0, np.zeros_like(x_diff), y_diff / x_diff
+        )
 
         zeroes = np.zeros_like(np.expand_dims(slopes[0, :], axis=0))
         slopes = np.append(slopes, zeroes, axis=0)
@@ -484,7 +522,9 @@ class CDFtoGaussianTransform(MapTransformation):
 
         """
         m = sorted_values.shape[0]
-        quantiles = self._forward_transform(sorted_values, values, slopes, intercepts)
+        quantiles = self._forward_transform(
+            sorted_values, values, slopes, intercepts
+        )
 
         quantiles = np.clip(
             quantiles, self.winsorized_cutoff(m), 1 - self.winsorized_cutoff(m)
@@ -495,7 +535,9 @@ class CDFtoGaussianTransform(MapTransformation):
     def _add_noise(x: np.array) -> np.array:
         scale_noise = 0.2
         std = np.sqrt(
-            (np.square(x - x.mean(axis=1, keepdims=True))).mean(axis=1, keepdims=True)
+            (np.square(x - x.mean(axis=1, keepdims=True))).mean(
+                axis=1, keepdims=True
+            )
         )
         noise = np.random.normal(
             loc=np.zeros_like(x), scale=np.ones_like(x) * std * scale_noise
@@ -504,7 +546,9 @@ class CDFtoGaussianTransform(MapTransformation):
         return x
 
     @staticmethod
-    def _search_sorted(sorted_vec: np.array, to_insert_vec: np.array) -> np.array:
+    def _search_sorted(
+        sorted_vec: np.array, to_insert_vec: np.array
+    ) -> np.array:
         """
         Finds the indices of the active piece-wise linear function.
 
@@ -522,7 +566,9 @@ class CDFtoGaussianTransform(MapTransformation):
             Indices mapping to the active linear function.
         """
         indices_left = np.searchsorted(sorted_vec, to_insert_vec, side="left")
-        indices_right = np.searchsorted(sorted_vec, to_insert_vec, side="right")
+        indices_right = np.searchsorted(
+            sorted_vec, to_insert_vec, side="right"
+        )
 
         indices = indices_left + (indices_right - indices_left) // 2
         indices = indices - 1
@@ -693,7 +739,10 @@ def cdf_to_gaussian_forward_transform(
 
         transformed = np.where(
             np.take_along_axis(slopes, indices, axis=1) != 0.0,
-            (batch_predictions - np.take_along_axis(intercepts, indices, axis=1))
+            (
+                batch_predictions
+                - np.take_along_axis(intercepts, indices, axis=1)
+            )
             / np.take_along_axis(slopes, indices, axis=1),
             np.take_along_axis(batch_target_sorted, indices, axis=1),
         )

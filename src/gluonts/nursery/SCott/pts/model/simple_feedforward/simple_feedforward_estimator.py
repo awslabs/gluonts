@@ -11,7 +11,7 @@ from pts.transform import (
     Transformation,
     Chain,
     InstanceSplitter,
-    ExpectedNumInstanceSampler
+    ExpectedNumInstanceSampler,
 )
 from pts.transform.sampler import CustomUniformSampler
 from .simple_feedforward_network import (
@@ -119,7 +119,7 @@ class SimpleFeedForwardEstimator(PTSEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    #train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     train_sampler=CustomUniformSampler(),
                     past_length=self.context_length,
                     is_full_batch=is_full_batch,

@@ -17,10 +17,12 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, Iterator, List, Optional  # noqa: F401
 
 import numpy as np
+
 # Third-party imports
 import torch
 
 from pts.transform.transform import Transformation
+
 # First-party imports
 from .common import DataEntry, Dataset
 
@@ -29,7 +31,10 @@ DataBatch = Dict[str, Any]
 
 class BatchBuffer:
     def __init__(
-        self, batch_size: int, device: torch.device, dtype: np.dtype = np.float32
+        self,
+        batch_size: int,
+        device: torch.device,
+        dtype: np.dtype = np.float32,
     ) -> None:
         self._buffers: Dict[Any, List[Any]] = defaultdict(list)
         self.batch_size = batch_size
@@ -61,7 +66,9 @@ class BatchBuffer:
             data = np.asarray(xs)
             if data.dtype.kind == "f":
                 data = data.astype(self.dtype)
-            return torch.from_numpy(data).to(device=self.device, non_blocking=True)
+            return torch.from_numpy(data).to(
+                device=self.device, non_blocking=True
+            )
         elif isinstance(xs[0], torch.Tensor):
             return torch.stack(*xs)
         else:
@@ -152,13 +159,17 @@ class TrainDataLoader(DataLoader):
         self._cur_iter: Optional[Iterator] = None
         self._buffer = BatchBuffer(self.batch_size, device, dtype)
 
-    def _emit_batches_while_buffer_larger_than(self, thresh) -> Iterator[DataBatch]:
+    def _emit_batches_while_buffer_larger_than(
+        self, thresh
+    ) -> Iterator[DataBatch]:
         if self.shuffle_for_training:
             self._buffer.shuffle()
         while len(self._buffer) > thresh:
             yield self._buffer.next_batch()
 
-    def _iterate_forever(self, collection: Iterable[DataEntry]) -> Iterator[DataEntry]:
+    def _iterate_forever(
+        self, collection: Iterable[DataEntry]
+    ) -> Iterator[DataEntry]:
         # iterate forever over the collection, the collection must be non empty
         while True:
             try:
@@ -182,7 +193,10 @@ class TrainDataLoader(DataLoader):
         while True:
             data_entry = next(self._cur_iter)
             self._buffer.add(data_entry)
-            if len(self._buffer) >= self._num_buffered_batches * self.batch_size:
+            if (
+                len(self._buffer)
+                >= self._num_buffered_batches * self.batch_size
+            ):
                 for batch in self._emit_batches_while_buffer_larger_than(
                     self.batch_size - 1
                 ):

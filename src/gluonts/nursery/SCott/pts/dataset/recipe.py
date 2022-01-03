@@ -66,7 +66,11 @@ def generate(
             data: DataEntry = {}
             for k, f in recipe:
                 data[k] = resolve(
-                    f, data, length=length, field_name=k, global_state=global_state,
+                    f,
+                    data,
+                    length=length,
+                    field_name=k,
+                    global_state=global_state,
                 )
             yield dict(**data, item_id=item_id_prefix + str(x), start=start)
     else:
@@ -171,7 +175,13 @@ class Lifted:
         return LiftedTruediv(other, self, operator.truediv)
 
     def __call__(
-        self, x: Env, length: int, field_name: str, global_state: Dict, *args, **kwargs
+        self,
+        x: Env,
+        length: int,
+        field_name: str,
+        global_state: Dict,
+        *args,
+        **kwargs
     ):
         pass
 
@@ -354,7 +364,10 @@ class RandomCat:
 
 class Lag(Lifted):
     def __init__(
-        self, input: ValueOrCallable, lag: ValueOrCallable = 0, pad_const: int = 0,
+        self,
+        input: ValueOrCallable,
+        lag: ValueOrCallable = 0,
+        pad_const: int = 0,
     ) -> None:
         self.input = input
         self.lag = lag
@@ -365,9 +378,13 @@ class Lag(Lifted):
         lag = resolve(self.lag, x, *args, **kwargs)
 
         if lag > 0:
-            lagged_feat = np.concatenate((self.pad_const * np.ones(lag), feat[:-lag]))
+            lagged_feat = np.concatenate(
+                (self.pad_const * np.ones(lag), feat[:-lag])
+            )
         elif lag < 0:
-            lagged_feat = np.concatenate((feat[-lag:], self.pad_const * np.ones(-lag)))
+            lagged_feat = np.concatenate(
+                (feat[-lag:], self.pad_const * np.ones(-lag))
+            )
 
         else:
             lagged_feat = feat
@@ -381,12 +398,19 @@ class ForEachCat(Lifted):
         self.cat_idx = cat_idx
 
     def __call__(
-        self, x: Env, length: int, field_name: str, global_state: Dict, *args, **kwargs
+        self,
+        x: Env,
+        length: int,
+        field_name: str,
+        global_state: Dict,
+        *args,
+        **kwargs
     ):
         c = x[self.cat_field][self.cat_idx]
         if field_name not in global_state:
             global_state[field_name] = np.empty(
-                len(global_state[self.cat_field][self.cat_idx]), dtype=np.object,
+                len(global_state[self.cat_field][self.cat_idx]),
+                dtype=np.object,
             )
         if global_state[field_name][c] is None:
             global_state[field_name][c] = self.fun(
@@ -404,14 +428,18 @@ class Eval(Lifted):
 
 
 class SmoothSeasonality(Lifted):
-    def __init__(self, period: ValueOrCallable, phase: ValueOrCallable) -> None:
+    def __init__(
+        self, period: ValueOrCallable, phase: ValueOrCallable
+    ) -> None:
         self.period = period
         self.phase = phase
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         period = resolve(self.period, x, length, *args, **kwargs)
         phase = resolve(self.phase, x, length, *args, **kwargs)
-        return (np.sin(2.0 / period * np.pi * (np.arange(length) + phase)) + 1) / 2.0
+        return (
+            np.sin(2.0 / period * np.pi * (np.arange(length) + phase)) + 1
+        ) / 2.0
 
 
 class Add(Lifted):
@@ -419,7 +447,9 @@ class Add(Lifted):
         self.inputs = inputs
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
-        return sum([resolve(k, x, length, *args, **kwargs) for k in self.inputs])
+        return sum(
+            [resolve(k, x, length, *args, **kwargs) for k in self.inputs]
+        )
 
 
 class Mul(Lifted):
@@ -428,12 +458,15 @@ class Mul(Lifted):
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         return functools.reduce(
-            operator.mul, [resolve(k, x, length, *args, **kwargs) for k in self.inputs],
+            operator.mul,
+            [resolve(k, x, length, *args, **kwargs) for k in self.inputs],
         )
 
 
 class NanWhere(Lifted):
-    def __init__(self, source: ValueOrCallable, nan_indicator: ValueOrCallable) -> None:
+    def __init__(
+        self, source: ValueOrCallable, nan_indicator: ValueOrCallable
+    ) -> None:
         self.source = source
         self.nan_indicator = nan_indicator
 
@@ -492,7 +525,10 @@ class Ref(Lifted):
 
 class RandomUniform(Lifted):
     def __init__(
-        self, low: ValueOrCallable = 0.0, high: ValueOrCallable = 1.0, shape=(0,),
+        self,
+        low: ValueOrCallable = 0.0,
+        high: ValueOrCallable = 1.0,
+        shape=(0,),
     ) -> None:
         self.low = low
         self.high = high
@@ -559,7 +595,9 @@ class Repeated(Lifted):
 
 
 class Convolve(Lifted):
-    def __init__(self, input: ValueOrCallable, filter: ValueOrCallable) -> None:
+    def __init__(
+        self, input: ValueOrCallable, filter: ValueOrCallable
+    ) -> None:
         self.filter = filter
         self.input = input
 
@@ -582,7 +620,9 @@ class Dilated(Lifted):
 
 
 class Choose(Lifted):
-    def __init__(self, options: ValueOrCallable, selector: ValueOrCallable) -> None:
+    def __init__(
+        self, options: ValueOrCallable, selector: ValueOrCallable
+    ) -> None:
         self.options = options
         self.selector = selector
 

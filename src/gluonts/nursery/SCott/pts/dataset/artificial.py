@@ -155,7 +155,9 @@ class ConstantDataset(ArtificialDataset):
                     }
                 ],
                 feat_static_real=[{"name": "feat_static_real_000"}],
-                feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
+                feat_dynamic_real=[
+                    BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+                ],
                 prediction_length=self.prediction_length,
             )
         return metadata
@@ -193,7 +195,9 @@ class ConstantDataset(ArtificialDataset):
             recipe.append(
                 ("binary_causal", BinaryMarkovChain(one_to_zero, zero_to_one))
             )
-            recipe.append((FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"])))
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_causal"]))
+            )
             recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
             timestamp = self.init_date()
@@ -202,8 +206,12 @@ class ConstantDataset(ArtificialDataset):
             for i in range(num_steps):
                 dates.append(timestamp)
                 timestamp += 1
-            recipe.append(("binary_holidays", BinaryHolidays(dates, self.holidays)))
-            recipe.append((FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"])))
+            recipe.append(
+                ("binary_holidays", BinaryHolidays(dates, self.holidays))
+            )
+            recipe.append(
+                (FieldName.FEAT_DYNAMIC_REAL, Stack(["binary_holidays"]))
+            )
             recipe_type += scale_features * Lag("binary_holidays", lag=0)
         recipe.append((FieldName.TARGET, recipe_type))
         max_train_length = num_steps - self.prediction_length
@@ -289,7 +297,9 @@ class ConstantDataset(ArtificialDataset):
             target.append(val)
         return target
 
-    def generate_ts(self, num_ts_steps: int, is_train: bool = False) -> List[DataEntry]:
+    def generate_ts(
+        self, num_ts_steps: int, is_train: bool = False
+    ) -> List[DataEntry]:
         res = []
         constant = None
         for i in range(self.num_timeseries):
@@ -300,7 +310,9 @@ class ConstantDataset(ArtificialDataset):
             else:
                 constant = self.determine_constant(i, constant)
                 if self.num_missing_middle > 0:
-                    target = self.insert_missing_vals_middle(num_ts_steps, constant)
+                    target = self.insert_missing_vals_middle(
+                        num_ts_steps, constant
+                    )
                 elif (
                     self.is_noise
                     or self.is_trend
@@ -309,7 +321,9 @@ class ConstantDataset(ArtificialDataset):
                 ):
 
                     num_steps = self.get_num_steps(i)
-                    generated = self.compute_data_from_recipe(num_steps, constant)
+                    generated = self.compute_data_from_recipe(
+                        num_steps, constant
+                    )
                     if is_train:
                         time_series = generated.train
                     else:
@@ -335,7 +349,9 @@ class ConstantDataset(ArtificialDataset):
 
     @property
     def train(self) -> List[DataEntry]:
-        return self.generate_ts(num_ts_steps=self.num_training_steps, is_train=True)
+        return self.generate_ts(
+            num_ts_steps=self.num_training_steps, is_train=True
+        )
 
     @property
     def test(self) -> List[DataEntry]:
@@ -408,7 +424,9 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
 
     @property
     def metadata(self) -> MetaData:
-        return MetaData(freq=self.freq, prediction_length=self.prediction_length)
+        return MetaData(
+            freq=self.freq, prediction_length=self.prediction_length
+        )
 
     def _get_period(self) -> int:
         if self.seasonality is not None:
@@ -526,7 +544,9 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             period = self._get_period()
             w = 2 * np.pi / period
             t = np.arange(length)
-            idx = pd.date_range(start=start, freq=self.freq_str, periods=length)
+            idx = pd.date_range(
+                start=start, freq=self.freq_str, periods=length
+            )
             special_tp_indicator = self._special_time_point_indicator(idx)
             sunday_effect = state.random_sample() * special_tp_indicator
             v = np.sin(w * t + phi) + sunday_effect
@@ -555,10 +575,14 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                     min(self.max_val, v_max),
                 )
                 shifted_min = np.clip(
-                    p_min + (p_max - v_max), a_min=self.min_val, a_max=self.max_val,
+                    p_min + (p_max - v_max),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
                 )
                 shifted_max = np.clip(
-                    p_max + (p_min - v_min), a_min=self.min_val, a_max=self.max_val,
+                    p_max + (p_min - v_min),
+                    a_min=self.min_val,
+                    a_max=self.max_val,
                 )
                 v = shifted_min + (shifted_max - shifted_min) * (v - v_min) / (
                     v_max - v_min
@@ -566,7 +590,10 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
 
             if self.is_integer:
                 np.clip(
-                    v, a_min=np.ceil(self.min_val), a_max=np.floor(self.max_val), out=v,
+                    v,
+                    a_min=np.ceil(self.min_val),
+                    a_max=np.floor(self.max_val),
+                    out=v,
                 )
                 v = np.round(v).astype(int)
             v = list(v.tolist())
@@ -666,9 +693,13 @@ class RecipeDataset(ArtificialDataset):
         )
 
         if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][:, :-length]
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, :-length
+            ]
         if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][:, :-length]
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, :-length
+            ]
         return y
 
     @staticmethod
@@ -685,9 +716,13 @@ class RecipeDataset(ArtificialDataset):
         )
 
         if FieldName.FEAT_DYNAMIC_CAT in x:
-            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][:, length:]
+            y[FieldName.FEAT_DYNAMIC_CAT] = x[FieldName.FEAT_DYNAMIC_CAT][
+                :, length:
+            ]
         if FieldName.FEAT_DYNAMIC_REAL in x:
-            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][:, length:]
+            y[FieldName.FEAT_DYNAMIC_REAL] = x[FieldName.FEAT_DYNAMIC_REAL][
+                :, length:
+            ]
         return y
 
     def generate(self) -> TrainDatasets:
@@ -706,7 +741,8 @@ class RecipeDataset(ArtificialDataset):
             for x in full_length_data
         ]
         train_data = [
-            RecipeDataset.trim_ts_item_end(x, self.prediction_length) for x in test_data
+            RecipeDataset.trim_ts_item_end(x, self.prediction_length)
+            for x in test_data
         ]
         return TrainDatasets(
             metadata=metadata,
@@ -731,11 +767,17 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
         recipe=recipe,
         metadata=MetaData(
             freq="D",
-            feat_static_real=[BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)],
-            feat_static_cat=[
-                CategoricalFeatureInfo(name=FieldName.FEAT_STATIC_CAT, cardinality=10)
+            feat_static_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_STATIC_REAL)
             ],
-            feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
+            feat_static_cat=[
+                CategoricalFeatureInfo(
+                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                )
+            ],
+            feat_dynamic_real=[
+                BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
+            ],
         ),
         max_train_length=20,
         prediction_length=10,
@@ -757,7 +799,9 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     metadata = MetaData(
         freq="1H",
         feat_static_cat=[
-            CategoricalFeatureInfo(name="feat_static_cat_000", cardinality="10")
+            CategoricalFeatureInfo(
+                name="feat_static_cat_000", cardinality="10"
+            )
         ],
         feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
     )
@@ -824,9 +868,14 @@ def generate_sf2(
             ts.pop(FieldName.FEAT_STATIC_CAT, None)
             ts.pop(FieldName.FEAT_STATIC_REAL, None)
             # Chop features in training set
-            if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in filename:
+            if (
+                FieldName.FEAT_DYNAMIC_REAL in ts.keys()
+                and "train" in filename
+            ):
                 # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(ts[FieldName.FEAT_DYNAMIC_REAL]):
+                for i, feat_dynamic_real in enumerate(
+                    ts[FieldName.FEAT_DYNAMIC_REAL]
+                ):
                     ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
                         : len(ts[FieldName.TARGET])
                     ]

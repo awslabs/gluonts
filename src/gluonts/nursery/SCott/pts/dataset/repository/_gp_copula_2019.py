@@ -38,9 +38,7 @@ class GPCopulaDataset(NamedTuple):
     max_target_dim: Optional[int] = None
 
 
-root = (
-    "https://raw.githubusercontent.com/mbohlkeschneider/gluon-ts/mv_release/datasets/"
-)
+root = "https://raw.githubusercontent.com/mbohlkeschneider/gluon-ts/mv_release/datasets/"
 
 datasets_info = {
     "exchange_rate_nips": GPCopulaDataset(

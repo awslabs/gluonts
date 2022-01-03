@@ -56,29 +56,35 @@ def get_lags_for_frequency(
     # Lags are target values at the same `season` (+/- delta) but in the previous cycle.
     def _make_lags_for_minute(multiple, num_cycles=3):
         # We use previous ``num_cycles`` hours to generate lags
-        return [_make_lags(k * 60 // multiple, 2) for k in range(1, num_cycles + 1)]
+        return [
+            _make_lags(k * 60 // multiple, 2) for k in range(1, num_cycles + 1)
+        ]
 
     def _make_lags_for_hour(multiple, num_cycles=7):
         # We use previous ``num_cycles`` days to generate lags
-        return [_make_lags(k * 24 // multiple, 1) for k in range(1, num_cycles + 1)]
+        return [
+            _make_lags(k * 24 // multiple, 1) for k in range(1, num_cycles + 1)
+        ]
 
     def _make_lags_for_day(multiple, num_cycles=4):
         # We use previous ``num_cycles`` weeks to generate lags
         # We use the last month (in addition to 4 weeks) to generate lag.
-        return [_make_lags(k * 7 // multiple, 1) for k in range(1, num_cycles + 1)] + [
-            _make_lags(30 // multiple, 1)
-        ]
+        return [
+            _make_lags(k * 7 // multiple, 1) for k in range(1, num_cycles + 1)
+        ] + [_make_lags(30 // multiple, 1)]
 
     def _make_lags_for_week(multiple, num_cycles=3):
         # We use previous ``num_cycles`` years to generate lags
         # Additionally, we use previous 4, 8, 12 weeks
-        return [_make_lags(k * 52 // multiple, 1) for k in range(1, num_cycles + 1)] + [
-            [4 // multiple, 8 // multiple, 12 // multiple]
-        ]
+        return [
+            _make_lags(k * 52 // multiple, 1) for k in range(1, num_cycles + 1)
+        ] + [[4 // multiple, 8 // multiple, 12 // multiple]]
 
     def _make_lags_for_month(multiple, num_cycles=3):
         # We use previous ``num_cycles`` years to generate lags
-        return [_make_lags(k * 12 // multiple, 1) for k in range(1, num_cycles + 1)]
+        return [
+            _make_lags(k * 12 // multiple, 1) for k in range(1, num_cycles + 1)
+        ]
 
     # multiple, granularity = get_granularity(freq_str)
     offset = to_offset(freq_str)
@@ -88,7 +94,9 @@ def get_lags_for_frequency(
     elif offset.name == "W-SUN" or offset.name == "W-MON":
         lags = _make_lags_for_week(offset.n)
     elif offset.name == "D":
-        lags = _make_lags_for_day(offset.n) + _make_lags_for_week(offset.n / 7.0)
+        lags = _make_lags_for_day(offset.n) + _make_lags_for_week(
+            offset.n / 7.0
+        )
     elif offset.name == "B":
         # todo find good lags for business day
         lags = []
@@ -110,13 +118,17 @@ def get_lags_for_frequency(
         raise Exception("invalid frequency")
 
     # flatten lags list and filter
-    lags = [int(lag) for sub_list in lags for lag in sub_list if 7 < lag <= lag_ub]
+    lags = [
+        int(lag) for sub_list in lags for lag in sub_list if 7 < lag <= lag_ub
+    ]
     lags = [1, 2, 3, 4, 5, 6, 7] + sorted(list(set(lags)))
 
     return lags[:num_lags]
 
 
-def get_fourier_lags_for_frequency(freq_str: str, num_lags: Optional[int] = None) -> List[int]:
+def get_fourier_lags_for_frequency(
+    freq_str: str, num_lags: Optional[int] = None
+) -> List[int]:
     offset = to_offset(freq_str)
     granularity = offset.name
 

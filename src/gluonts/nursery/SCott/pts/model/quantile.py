@@ -35,7 +35,9 @@ class Quantile(NamedTuple):
     @classmethod
     def checked(cls, value: float, name: str) -> "Quantile":
         if not 0 <= value <= 1:
-            raise Exception(f"quantile value should be in [0, 1] but found {value}")
+            raise Exception(
+                f"quantile value should be in [0, 1] but found {value}"
+            )
 
         return Quantile(value, name)
 
