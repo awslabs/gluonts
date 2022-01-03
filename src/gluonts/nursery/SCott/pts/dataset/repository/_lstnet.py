@@ -27,7 +27,9 @@ from ._util import save_to_file, to_dict, metadata
 
 
 def load_from_pandas(
-    df: pd.DataFrame, time_index: pd.DatetimeIndex, agg_freq: Optional[str] = None,
+    df: pd.DataFrame,
+    time_index: pd.DatetimeIndex,
+    agg_freq: Optional[str] = None,
 ) -> List[pd.Series]:
     df = df.set_index(time_index)
 
@@ -60,9 +62,7 @@ class LstnetDataset(NamedTuple):
     agg_freq: Optional[str] = None
 
 
-root = (
-    "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
-)
+root = "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
 
 datasets_info = {
     "exchange_rate": LstnetDataset(
@@ -137,7 +137,9 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
     test_file = dataset_path / "test" / "data.json"
 
     time_index = pd.date_range(
-        start=ds_info.start_date, freq=ds_info.freq, periods=ds_info.num_time_steps,
+        start=ds_info.start_date,
+        freq=ds_info.freq,
+        periods=ds_info.num_time_steps,
     )
 
     df = pd.read_csv(ds_info.url, header=None)
@@ -188,7 +190,9 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
                 to_dict(
-                    target_values=sliced_ts.values, start=sliced_ts.index[0], cat=[cat],
+                    target_values=sliced_ts.values,
+                    start=sliced_ts.index[0],
+                    cat=[cat],
                 )
             )
 

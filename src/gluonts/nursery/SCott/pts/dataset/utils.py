@@ -56,7 +56,9 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     return pd.Series(target, index=index)
 
 
-def load_datasets(metadata, train, test, shuffle: bool = False) -> TrainDatasets:
+def load_datasets(
+    metadata, train, test, shuffle: bool = False
+) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
     Parameters
@@ -81,7 +83,9 @@ def load_datasets(metadata, train, test, shuffle: bool = False) -> TrainDatasets
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
 
-def save_datasets(dataset: TrainDatasets, path_str: str, overwrite=True) -> None:
+def save_datasets(
+    dataset: TrainDatasets, path_str: str, overwrite=True
+) -> None:
     """
     Saves an TrainDatasets object to a JSON Lines file.
 

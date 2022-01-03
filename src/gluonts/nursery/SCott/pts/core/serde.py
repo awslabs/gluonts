@@ -119,6 +119,7 @@ def dump_code(o: Any) -> str:
 
     return _dump_code(encode(o))
 
+
 # JSON Serialization/Deserialization
 # ----------------------------------
 
@@ -130,7 +131,6 @@ def dump_code(o: Any) -> str:
 # To circumvent the issue, we pass the input value through custom encode
 # and decode functions that map nested object terms to JSON-serializable
 # data structures with explicit recursion.
-
 
 
 def dump_json(o: Any, indent: Optional[int] = None) -> str:

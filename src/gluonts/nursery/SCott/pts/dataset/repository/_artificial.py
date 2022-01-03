@@ -19,7 +19,9 @@ from pathlib import Path
 from pts.dataset import ArtificialDataset, generate_sf2, serialize_data_entry
 
 
-def generate_artificial_dataset(dataset_path: Path, dataset: ArtificialDataset) -> None:
+def generate_artificial_dataset(
+    dataset_path: Path, dataset: ArtificialDataset
+) -> None:
     dataset_path_train = dataset_path / "train"
     dataset_path_test = dataset_path / "test"
 

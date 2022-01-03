@@ -37,12 +37,16 @@ class LSTNetBase(nn.Module):
             channels % skip_size == 0
         ), "number of conv1d `channels` must be divisible by the `skip_size`"
         self.skip_size = skip_size
-        assert ar_window > 0, "auto-regressive window must be a positive integer"
+        assert (
+            ar_window > 0
+        ), "auto-regressive window must be a positive integer"
         self.ar_window = ar_window
         assert not ((horizon is None)) == (
             prediction_length is None
         ), "Exactly one of `horizon` and `prediction_length` must be set at a time"
-        assert horizon is None or horizon > 0, "`horizon` must be greater than zero"
+        assert (
+            horizon is None or horizon > 0
+        ), "`horizon` must be greater than zero"
         assert (
             prediction_length is None or prediction_length > 0
         ), "`prediction_length` must be greater than zero"
@@ -73,7 +77,9 @@ class LSTNetBase(nn.Module):
         )
 
         self.cnn = nn.Conv2d(
-            in_channels=1, out_channels=channels, kernel_size=(num_series, kernel_size)
+            in_channels=1,
+            out_channels=channels,
+            kernel_size=(num_series, kernel_size),
         )
 
         self.dropout = nn.Dropout(p=dropout_rate)
@@ -93,7 +99,9 @@ class LSTNetBase(nn.Module):
             # dropout=dropout_rate,
         )
 
-        self.fc = nn.Linear(rnn_num_cells + skip_size * skip_rnn_num_cells, num_series)
+        self.fc = nn.Linear(
+            rnn_num_cells + skip_size * skip_rnn_num_cells, num_series
+        )
 
         if self.horizon:
             self.ar_fc = nn.Linear(ar_window, 1)
@@ -110,7 +118,7 @@ class LSTNetBase(nn.Module):
     ) -> torch.Tensor:
         scaled_past_target, scale = self.scaler(
             past_target[..., -self.context_length :],  # [B, C, T]
-            past_observed_values[..., -self.context_length :]  # [B, C, T]
+            past_observed_values[..., -self.context_length :],  # [B, C, T]
         )
 
         # CNN
@@ -121,11 +129,13 @@ class LSTNetBase(nn.Module):
         # RNN
         r = c.permute(2, 0, 1)  # [F (T), B, C]
         _, r = self.rnn(r)  # [1, B, H]
-        r = self.dropout(r.squeeze(0)) # [B, H]
+        r = self.dropout(r.squeeze(0))  # [B, H]
 
         # Skip-RNN
         skip_c = c[..., -self.conv_skip * self.skip_size :]
-        skip_c = skip_c.reshape(-1, self.channels, self.conv_skip, self.skip_size)
+        skip_c = skip_c.reshape(
+            -1, self.channels, self.conv_skip, self.skip_size
+        )
         skip_c = skip_c.permute(2, 0, 3, 1)
         skip_c = skip_c.reshape((self.conv_skip, -1, self.channels))
         _, skip_c = self.skip_rnn(skip_c)
@@ -174,7 +184,7 @@ class LSTNetTrain(LSTNetBase):
         if self.horizon:
             future_target = future_target[..., -1:]
 
-        loss = self.loss_fn(ret*scale, future_target)
+        loss = self.loss_fn(ret * scale, future_target)
         return loss
 
 
@@ -183,6 +193,6 @@ class LSTNetPredict(LSTNetBase):
         self, past_target: torch.Tensor, past_observed_values: torch.Tensor
     ) -> torch.Tensor:
         ret, scale = super().forward(past_target, past_observed_values)
-        ret = (ret*scale).permute(0, 2, 1)
+        ret = (ret * scale).permute(0, 2, 1)
 
         return ret.unsqueeze(1)

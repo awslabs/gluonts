@@ -51,19 +51,31 @@ def distance_to_holiday(holiday):
     return distance_to_day
 
 
-EasterSunday = Holiday("Easter Sunday", month=1, day=1, offset=[Easter(), Day(0)])
+EasterSunday = Holiday(
+    "Easter Sunday", month=1, day=1, offset=[Easter(), Day(0)]
+)
 NewYearsDay = Holiday("New Years Day", month=1, day=1)
-SuperBowl = Holiday("Superbowl", month=2, day=1, offset=DateOffset(weekday=SU(1)))
-MothersDay = Holiday("Mothers Day", month=5, day=1, offset=DateOffset(weekday=SU(2)))
+SuperBowl = Holiday(
+    "Superbowl", month=2, day=1, offset=DateOffset(weekday=SU(1))
+)
+MothersDay = Holiday(
+    "Mothers Day", month=5, day=1, offset=DateOffset(weekday=SU(2))
+)
 IndependenceDay = Holiday("Independence Day", month=7, day=4)
 ChristmasEve = Holiday("Christmas", month=12, day=24)
 ChristmasDay = Holiday("Christmas", month=12, day=25)
 NewYearsEve = Holiday("New Years Eve", month=12, day=31)
 BlackFriday = Holiday(
-    "Black Friday", month=11, day=1, offset=[pd.DateOffset(weekday=TH(4)), Day(1)]
+    "Black Friday",
+    month=11,
+    day=1,
+    offset=[pd.DateOffset(weekday=TH(4)), Day(1)],
 )
 CyberMonday = Holiday(
-    "Cyber Monday", month=11, day=1, offset=[pd.DateOffset(weekday=TH(4)), Day(4)],
+    "Cyber Monday",
+    month=11,
+    day=1,
+    offset=[pd.DateOffset(weekday=TH(4)), Day(4)],
 )
 
 
@@ -209,7 +221,9 @@ class SpecialDateFeatureSet:
             [
                 np.hstack(
                     [
-                        self.kernel_function(SPECIAL_DATE_FEATURES[feat_name](index))
+                        self.kernel_function(
+                            SPECIAL_DATE_FEATURES[feat_name](index)
+                        )
                         for index in dates
                     ]
                 )
@@ -230,7 +244,7 @@ class CustomDateFeatureSet:
     Example use:
 
         >>> import pandas as pd
-        >>> cfs = CustomDateFeatureSet([pd.to_datetime('20191129', format='%Y%m%d'), 
+        >>> cfs = CustomDateFeatureSet([pd.to_datetime('20191129', format='%Y%m%d'),
         ...                             pd.to_datetime('20200101', format='%Y%m%d')])
         >>> date_indices = pd.date_range(
         ...     start="2019-11-24",
@@ -245,7 +259,7 @@ class CustomDateFeatureSet:
     Example use for using a squared exponential kernel:
 
         >>> kernel = squared_exponential_kernel(alpha=0.5)
-        >>> cfs = CustomDateFeatureSet([pd.to_datetime('20191129', format='%Y%m%d'), 
+        >>> cfs = CustomDateFeatureSet([pd.to_datetime('20191129', format='%Y%m%d'),
         ...                             pd.to_datetime('20200101', format='%Y%m%d')], kernel)
         >>> cfs(date_indices)
         array([[3.72665317e-06, 3.35462628e-04, 1.11089965e-02, 1.35335283e-01,
@@ -287,20 +301,17 @@ class CustomDateFeatureSet:
         dates
             Pandas series with Datetimeindex timestamps.
         """
-        return (
-            np.vstack(
-                [
-                    np.hstack(
-                        [
-                            self.kernel_function((index - ref_date).days)
-                            for index in dates
-                        ]
-                    )
-                    for ref_date in self.reference_dates
-                ]
-            )
-            .sum(0, keepdims=True)
-        )
+        return np.vstack(
+            [
+                np.hstack(
+                    [
+                        self.kernel_function((index - ref_date).days)
+                        for index in dates
+                    ]
+                )
+                for ref_date in self.reference_dates
+            ]
+        ).sum(0, keepdims=True)
 
 
 class CustomHolidayFeatureSet:
@@ -376,11 +387,12 @@ class CustomHolidayFeatureSet:
             [
                 np.hstack(
                     [
-                        self.kernel_function(distance_to_holiday(custom_holiday)(index))
+                        self.kernel_function(
+                            distance_to_holiday(custom_holiday)(index)
+                        )
                         for index in dates
                     ]
                 )
                 for custom_holiday in self.custom_holidays
             ]
         )
-

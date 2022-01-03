@@ -84,7 +84,9 @@ class NBEATSEnsemblePredictor(Predictor):
                 output,
                 start_date=start_date,
                 freq=start_date.freqstr,
-                item_id=item[FieldName.ITEM_ID] if FieldName.ITEM_ID in item else None,
+                item_id=item[FieldName.ITEM_ID]
+                if FieldName.ITEM_ID in item
+                else None,
                 info=item["info"] if "info" in item else None,
             )
 
@@ -164,6 +166,7 @@ class NBEATSEnsembleEstimator(Estimator):
     **kwargs
         Arguments passed down to the individual estimators.
     """
+
     def __init__(
         self,
         freq: str,
@@ -183,7 +186,9 @@ class NBEATSEnsembleEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        assert prediction_length > 0, "The value of `prediction_length` should be > 0"
+        assert (
+            prediction_length > 0
+        ), "The value of `prediction_length` should be > 0"
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -260,7 +265,11 @@ class NBEATSEnsembleEstimator(Estimator):
         predictors = []
 
         for index, estimator in enumerate(self.estimators):
-            logging.info(f"Training estimator {index + 1}/{len(self.estimators)}.")
+            logging.info(
+                f"Training estimator {index + 1}/{len(self.estimators)}."
+            )
             predictors.append(estimator.train(training_data))
 
-        return NBEATSEnsemblePredictor(self.prediction_length, self.freq, predictors)
+        return NBEATSEnsemblePredictor(
+            self.prediction_length, self.freq, predictors
+        )

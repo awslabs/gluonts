@@ -36,17 +36,33 @@ def generate_m5_dataset(
 
     sales_train_validation = pd.read_csv(
         sales_path,
-        index_col=["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"],
+        index_col=[
+            "id",
+            "item_id",
+            "dept_id",
+            "cat_id",
+            "store_id",
+            "state_id",
+        ],
     )
     sales_train_validation.sort_index(inplace=True)
 
     sales_train_evaluation = pd.read_csv(
         sales_test_path,
-        index_col=["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"],
+        index_col=[
+            "id",
+            "item_id",
+            "dept_id",
+            "cat_id",
+            "store_id",
+            "state_id",
+        ],
     )
     sales_train_evaluation.sort_index(inplace=True)
 
-    sell_prices = pd.read_csv(sell_prices_path, index_col=['item_id', 'store_id'])
+    sell_prices = pd.read_csv(
+        sell_prices_path, index_col=["item_id", "store_id"]
+    )
     sell_prices.sort_index(inplace=True)
 
     @lru_cache(maxsize=None)
@@ -57,12 +73,22 @@ def generate_m5_dataset(
 
     # Build dynamic features
     kernel = squared_exponential_kernel(alpha=alpha)
-    event_1 = CustomDateFeatureSet(calendar[calendar.event_name_1.notna()].date, kernel)
-    event_2 = CustomDateFeatureSet(calendar[calendar.event_name_2.notna()].date, kernel)
+    event_1 = CustomDateFeatureSet(
+        calendar[calendar.event_name_1.notna()].date, kernel
+    )
+    event_2 = CustomDateFeatureSet(
+        calendar[calendar.event_name_2.notna()].date, kernel
+    )
 
-    snap_CA = CustomDateFeatureSet(calendar[calendar.snap_CA == 1].date, kernel)
-    snap_TX = CustomDateFeatureSet(calendar[calendar.snap_TX == 1].date, kernel)
-    snap_WI = CustomDateFeatureSet(calendar[calendar.snap_WI == 1].date, kernel)
+    snap_CA = CustomDateFeatureSet(
+        calendar[calendar.snap_CA == 1].date, kernel
+    )
+    snap_TX = CustomDateFeatureSet(
+        calendar[calendar.snap_TX == 1].date, kernel
+    )
+    snap_WI = CustomDateFeatureSet(
+        calendar[calendar.snap_WI == 1].date, kernel
+    )
 
     time_index = pd.to_datetime(calendar.date)
     event_1_feature = event_1(time_index)
@@ -114,7 +140,10 @@ def generate_m5_dataset(
             "name": "store_id",
             "cardinality": len(sales_train_validation["store"].unique()),
         },
-        {"name": "cat_id", "cardinality": len(sales_train_validation["cat"].unique())},
+        {
+            "name": "cat_id",
+            "cardinality": len(sales_train_validation["cat"].unique()),
+        },
         {
             "name": "dept_id",
             "cardinality": len(sales_train_validation["dept"].unique()),
@@ -161,16 +190,24 @@ def generate_m5_dataset(
             "WI": snap_WI_feature,
         }[state_id]
 
-        time_series["target"] = item.iloc[start_index:1913].values.astype(np.float32).tolist()
-        time_series["feat_dynamic_real"] = np.concatenate(
-            (
-                np.expand_dims(sell_price.iloc[start_index:1913].values, 0),
-                event_1_feature[:, start_index:1913],
-                event_2_feature[:, start_index:1913],
-                snap_feature[:, start_index:1913],
-            ),
-            0,
-        ).astype(np.float32).tolist()
+        time_series["target"] = (
+            item.iloc[start_index:1913].values.astype(np.float32).tolist()
+        )
+        time_series["feat_dynamic_real"] = (
+            np.concatenate(
+                (
+                    np.expand_dims(
+                        sell_price.iloc[start_index:1913].values, 0
+                    ),
+                    event_1_feature[:, start_index:1913],
+                    event_2_feature[:, start_index:1913],
+                    snap_feature[:, start_index:1913],
+                ),
+                0,
+            )
+            .astype(np.float32)
+            .tolist()
+        )
 
         train_ds.append(time_series.copy())
 
@@ -222,16 +259,24 @@ def generate_m5_dataset(
             "WI": snap_WI_feature,
         }[state_id]
 
-        time_series["target"] = item.iloc[start_index:1941].values.astype(np.float32).tolist()
-        time_series["feat_dynamic_real"] = np.concatenate(
-            (
-                np.expand_dims(sell_price.iloc[start_index:1941].values, 0),
-                event_1_feature[:, start_index:1941],
-                event_2_feature[:, start_index:1941],
-                snap_feature[:, start_index:1941],
-            ),
-            0,
-        ).astype(np.float32).tolist()
+        time_series["target"] = (
+            item.iloc[start_index:1941].values.astype(np.float32).tolist()
+        )
+        time_series["feat_dynamic_real"] = (
+            np.concatenate(
+                (
+                    np.expand_dims(
+                        sell_price.iloc[start_index:1941].values, 0
+                    ),
+                    event_1_feature[:, start_index:1941],
+                    event_2_feature[:, start_index:1941],
+                    snap_feature[:, start_index:1941],
+                ),
+                0,
+            )
+            .astype(np.float32)
+            .tolist()
+        )
 
         test_ds.append(time_series.copy())
 

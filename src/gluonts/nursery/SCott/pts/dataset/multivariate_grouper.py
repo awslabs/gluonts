@@ -123,7 +123,9 @@ class MultivariateGrouper:
         grouped_data[FieldName.START] = self.first_timestamp
         grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
 
-        return ListDataset([grouped_data], freq=self.frequency, one_dim_target=False)
+        return ListDataset(
+            [grouped_data], freq=self.frequency, one_dim_target=False
+        )
 
     def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
         logging.info("group test time-series to datasets")
@@ -131,7 +133,9 @@ class MultivariateGrouper:
         grouped_data = self._transform_target(self._left_pad_data, dataset)
         # splits test dataset with rolling date into N R^d time series where
         # N is the number of rolling evaluation dates
-        split_dataset = np.split(grouped_data[FieldName.TARGET], self.num_test_dates)
+        split_dataset = np.split(
+            grouped_data[FieldName.TARGET], self.num_test_dates
+        )
 
         all_entries = list()
         for dataset_at_test_date in split_dataset:
@@ -208,4 +212,3 @@ class MultivariateGrouper:
                 freq=data[FieldName.START].freq,
             ),
         )
-
