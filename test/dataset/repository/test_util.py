@@ -15,8 +15,9 @@ from gluonts.dataset.repository import _util
 
 
 def test_metadata_1():
-    inp = [[10, 3], "1H", 20]
-    exp = {
+    assert _util.metadata(
+        freq="1H", prediction_length=20, cardinality=[10, 3]
+    ) == {
         "freq": "1H",
         "prediction_length": 20,
         "feat_static_cat": [
@@ -24,16 +25,13 @@ def test_metadata_1():
             {"name": "feat_static_cat_1", "cardinality": "3"},
         ],
     }
-    assert _util.metadata(*inp) == exp
 
 
 def test_metadata_2():
-    inp = [10, "1H", 2]
-    exp = {
+    assert _util.metadata(freq="1H", prediction_length=2, cardinality=10) == {
         "freq": "1H",
         "prediction_length": 2,
         "feat_static_cat": [
-            {"name": "feat_static_cat_0", "cardinality": "10"},
+            {"name": "feat_static_cat_0", "cardinality": "10"}
         ],
     }
-    assert _util.metadata(*inp) == exp
