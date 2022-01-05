@@ -155,7 +155,7 @@ class MultivariateGrouper:
             all_entries, freq=self.frequency, one_dim_target=False
         )
 
-    def _align_data_entry(self, data: DataEntry) -> np.array:
+    def _align_data_entry(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
             pd.date_range(
