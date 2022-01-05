@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
+from typing import Optional, Type
 
 import mxnet as mx
 from mxnet.gluon import loss, nn
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
@@ -42,7 +42,7 @@ class LSTNetBase(nn.HybridBlock):
         dropout_rate: float,
         output_activation: Optional[str],
         scaling: bool,
-        dtype: DType,
+        dtype: Type,
         *args,
         **kwargs,
     ) -> None:

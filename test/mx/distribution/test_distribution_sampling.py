@@ -263,6 +263,7 @@ def test_piecewise_linear_sampling(distr, params, serialize_fn):
     assert samples.shape == (num_samples, 2)
 
 
+@pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("alpha, beta", [(0.3, 0.9), (1.5, 1.7)])
 @pytest.mark.parametrize("zero_probability, one_probability", [(0.1, 0.2)])
 def test_inflated_beta_sampling(

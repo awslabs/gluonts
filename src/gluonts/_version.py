@@ -163,7 +163,7 @@ def get_git_archive_version(fallback):
 
 def get_git_version(fallback):
     def format_version(release, is_dev, labels):
-        dev = ".dev" if is_dev else ""
+        dev = ".dev0" if is_dev else ""
         labels = "+" + ".".join(labels) if labels else ""
         return "".join([release, dev, labels])
 

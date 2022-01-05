@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, Type
 
 import numpy as np
 import torch
@@ -29,7 +29,7 @@ from torch.distributions import (
     TransformedDistribution,
 )
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 
 from .lambda_layer import LambdaLayer
 
@@ -75,19 +75,18 @@ class PtArgProj(nn.Module):
 
 
 class Output:
-    r"""
-    Class to connect a network to some output
-    """
+    """Class to connect a network to some output."""
+
     in_features: int
     args_dim: Dict[str, int]
-    _dtype: DType = np.float32
+    _dtype: Type = np.float32
 
     @property
     def dtype(self):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, dtype: DType):
+    def dtype(self, dtype: Type):
         self._dtype = dtype
 
     def get_args_proj(self, in_features: int) -> nn.Module:

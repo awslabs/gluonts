@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
@@ -75,7 +75,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         quantile_output: Optional[QuantileOutput] = None,
         scaling: bool = True,
         scaling_decoder_dynamic_feature: bool = False,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         num_forking: Optional[int] = None,
         **kwargs,
     ) -> None:

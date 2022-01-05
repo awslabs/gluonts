@@ -186,7 +186,7 @@ class NPTS:
     def log_weighted_distance_kernel(
         kernel_weights: List[float],
     ) -> Callable[[np.ndarray, np.ndarray], float]:
-        kernel_weights_nd = np.ndarray(kernel_weights, dtype=np.float32)
+        kernel_weights_nd = np.array(kernel_weights, dtype=np.float32)
         return lambda x, y: cast(
             float, -np.sum(kernel_weights_nd * np.abs(x - y))
         )

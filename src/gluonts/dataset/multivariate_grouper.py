@@ -131,6 +131,8 @@ class MultivariateGrouper:
         )
 
     def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
+        assert self.num_test_dates is not None
+
         logging.info("group test time-series to datasets")
 
         grouped_data = self._transform_target(self._left_pad_data, dataset)
@@ -155,7 +157,7 @@ class MultivariateGrouper:
             all_entries, freq=self.frequency, one_dim_target=False
         )
 
-    def _align_data_entry(self, data: DataEntry) -> np.array:
+    def _align_data_entry(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
             pd.date_range(
@@ -166,7 +168,7 @@ class MultivariateGrouper:
             fill_value=self.train_fill_function(ts),
         ).values
 
-    def _left_pad_data(self, data: DataEntry) -> np.array:
+    def _left_pad_data(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
             pd.date_range(

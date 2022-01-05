@@ -159,7 +159,7 @@ class ProphetPredictor(RepresentablePredictor):
                 freq=self.freq,
             )
 
-    def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.array:
+    def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.ndarray:
         """
         Construct and run a :class:`Prophet` model on the given
         :class:`ProphetDataEntry` and return the resulting array of samples.
