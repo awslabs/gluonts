@@ -12,12 +12,11 @@
 # permissions and limitations under the License.
 
 import functools
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch
 
 
@@ -66,7 +65,7 @@ def _pad_arrays(
 def stack(
     data,
     ctx: Optional[mx.context.Context] = None,
-    dtype: Optional[DType] = np.float32,
+    dtype: Optional[Type] = np.float32,
     variable_length: bool = False,
     is_right_pad: bool = True,
 ):
@@ -86,7 +85,7 @@ def stack(
 def batchify(
     data: List[dict],
     ctx: Optional[mx.context.Context] = None,
-    dtype: Optional[DType] = np.float32,
+    dtype: Optional[Type] = np.float32,
     variable_length: bool = False,
     is_right_pad: bool = True,
 ) -> DataBatch:

@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Tuple, Type
 
 import mxnet as mx
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import softplus
 from gluonts.mx.kernels import KernelOutputDict
@@ -40,7 +40,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         cardinality: int,
         kernel_output: KernelOutputDict,
         params_scaling: bool,
-        float_type: DType,
+        float_type: Type,
         max_iter_jitter: int,
         jitter_method: str,
         **kwargs,

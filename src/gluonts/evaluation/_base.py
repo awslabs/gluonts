@@ -26,6 +26,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    Mapping,
 )
 
 import numpy as np
@@ -309,7 +310,7 @@ class Evaluator:
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
-    ) -> Dict[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
+    ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 

@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated, tensor_to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.exceptions import assert_data_error
 
@@ -26,7 +26,7 @@ from ._base import (
 )
 
 
-def erf(x: np.array) -> np.array:
+def erf(x: np.ndarray) -> np.ndarray:
     # Using numerical recipes approximation for erf function
     # accurate to 1E-7
 
@@ -55,7 +55,7 @@ def erf(x: np.array) -> np.array:
     return np.where(x >= zeros, res, -1.0 * res)
 
 
-def erfinv(x: np.array) -> np.array:
+def erfinv(x: np.ndarray) -> np.ndarray:
     zeros = np.zeros_like(x)
 
     w = -np.log((1.0 - x) * (1.0 + x))
@@ -117,7 +117,7 @@ class AsNumpyArray(SimpleTransformation):
 
     @validated()
     def __init__(
-        self, field: str, expected_ndim: int, dtype: DType = np.float32
+        self, field: str, expected_ndim: int, dtype: Type = np.float32
     ) -> None:
         self.field = field
         self.expected_ndim = expected_ndim
@@ -414,7 +414,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -611,7 +611,7 @@ class CDFtoGaussianTransform(MapTransformation):
         return quantiles
 
     @staticmethod
-    def _add_noise(x: np.array) -> np.array:
+    def _add_noise(x: np.ndarray) -> np.ndarray:
         scale_noise = 0.2
         std = np.sqrt(
             (np.square(x - x.mean(axis=1, keepdims=True))).mean(
@@ -626,8 +626,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     @staticmethod
     def _search_sorted(
-        sorted_vec: np.array, to_insert_vec: np.array
-    ) -> np.array:
+        sorted_vec: np.ndarray, to_insert_vec: np.ndarray
+    ) -> np.ndarray:
         """
         Finds the indices of the active piece-wise linear function.
 
@@ -657,11 +657,11 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _forward_transform(
         self,
-        sorted_vec: np.array,
-        target: np.array,
-        slopes: np.array,
-        intercepts: np.array,
-    ) -> np.array:
+        sorted_vec: np.ndarray,
+        target: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
+    ) -> np.ndarray:
         """
         Applies the forward transformation to the marginals of the multivariate
         target. Target (real valued) -> empirical cdf [0, 1]
@@ -695,17 +695,17 @@ class CDFtoGaussianTransform(MapTransformation):
         return np.array(transformed).transpose()
 
     @staticmethod
-    def standard_gaussian_cdf(x: np.array) -> np.array:
+    def standard_gaussian_cdf(x: np.ndarray) -> np.ndarray:
         u = x / (np.sqrt(2.0))
         return (erf(u) + 1.0) / 2.0
 
     @staticmethod
-    def standard_gaussian_ppf(y: np.array) -> np.array:
+    def standard_gaussian_ppf(y: np.ndarray) -> np.ndarray:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
         return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
-    def winsorized_cutoff(m: np.array) -> np.array:
+    def winsorized_cutoff(m: float) -> float:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
         described here: https://arxiv.org/abs/0903.0649
@@ -713,12 +713,12 @@ class CDFtoGaussianTransform(MapTransformation):
         Parameters
         ----------
         m
-            Input array with empirical CDF values.
+            Input empirical CDF value.
 
         Returns
         -------
         res
-            Truncated empirical CDf values.
+            Truncated empirical CDf value.
         """
         res = 1 / (4 * m ** 0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1
@@ -811,7 +811,7 @@ def cdf_to_gaussian_forward_transform(
         # indices = indices - 1
         # for now project into [0, 1]
         indices = np.clip(indices, 0, num_timesteps - 1)
-        indices = indices.astype(np.int)
+        indices = indices.astype(int)
 
         transformed = np.where(
             np.take_along_axis(slopes, indices, axis=1) != 0.0,
@@ -879,7 +879,7 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         self.discard_first = discard_first
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
-        a = np.array(a)
+        a: np.ndarray = np.array(a)
         (non_zero_index,) = np.nonzero(a)
 
         if len(non_zero_index) == 0:
