@@ -13,12 +13,11 @@
 
 from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, List, Optional, cast, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, DataLoader, InferenceDataLoader
 from gluonts.model.forecast import Forecast
@@ -121,7 +120,7 @@ class PointProcessGluonPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         forecast_generator: ForecastGenerator = PointProcessForecastGenerator(),
         **kwargs,
     ) -> None:

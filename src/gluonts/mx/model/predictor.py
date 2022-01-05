@@ -15,12 +15,11 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -90,7 +89,7 @@ class GluonPredictor(Predictor):
         lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             freq=freq,
@@ -307,7 +306,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(type(prediction_net)),

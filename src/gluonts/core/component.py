@@ -350,31 +350,3 @@ def validated(base_model=None):
         return init_wrapper
 
     return validator
-
-
-class DType:
-    """
-    Defines `custom data type validation
-    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for ``type``
-    instances.
-
-    Parameters annotated with :class:`DType` can be bound to string arguments
-    representing the fully-qualified type name. The validation logic
-    defined here attempts to automatically load the type as part of the
-    conversion process.
-    """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, str):
-            return locate(v)
-        if isinstance(v, type):
-            return v
-        else:
-            raise ValueError(
-                f"bad value {v} of type {type(v)}, expected a type or a string"
-            )

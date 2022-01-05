@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated, tensor_to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.exceptions import assert_data_error
 
@@ -117,7 +117,7 @@ class AsNumpyArray(SimpleTransformation):
 
     @validated()
     def __init__(
-        self, field: str, expected_ndim: int, dtype: DType = np.float32
+        self, field: str, expected_ndim: int, dtype: Type = np.float32
     ) -> None:
         self.field = field
         self.expected_ndim = expected_ndim
@@ -414,7 +414,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -811,7 +811,7 @@ def cdf_to_gaussian_forward_transform(
         # indices = indices - 1
         # for now project into [0, 1]
         indices = np.clip(indices, 0, num_timesteps - 1)
-        indices = indices.astype(np.int)
+        indices = indices.astype(int)
 
         transformed = np.where(
             np.take_along_axis(slopes, indices, axis=1) != 0.0,
@@ -879,7 +879,7 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         self.discard_first = discard_first
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
-        a = np.array(a)
+        a: np.ndarray = np.array(a)
         (non_zero_index,) = np.nonzero(a)
 
         if len(non_zero_index) == 0:
