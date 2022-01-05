@@ -49,7 +49,9 @@ class NBEATSBlock(nn.Module):
         self.fc = nn.Sequential(*fc_stack)
 
         if share_thetas:
-            self.theta_f_fc = self.theta_b_fc = nn.Linear(units, thetas_dim, bias=False)
+            self.theta_f_fc = self.theta_b_fc = nn.Linear(
+                units, thetas_dim, bias=False
+            )
         else:
             self.theta_b_fc = nn.Linear(units, thetas_dim, bias=False)
             self.theta_f_fc = nn.Linear(units, thetas_dim, bias=False)
@@ -140,11 +142,15 @@ class NBEATSTrendBlock(NBEATSBlock):
 
         self.register_buffer(
             "T_backcast",
-            torch.tensor([backcast_linspace ** i for i in range(thetas_dim)]).float(),
+            torch.tensor(
+                [backcast_linspace ** i for i in range(thetas_dim)]
+            ).float(),
         )
         self.register_buffer(
             "T_forecast",
-            torch.tensor([forecast_linspace ** i for i in range(thetas_dim)]).float(),
+            torch.tensor(
+                [forecast_linspace ** i for i in range(thetas_dim)]
+            ).float(),
         )
 
     def forward(self, x) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -215,7 +221,9 @@ class NBEATSNetwork(nn.Module):
                 if self.stack_types[stack_id] == "G":
                     net_block = NBEATSGenericBlock(
                         units=self.widths[stack_id],
-                        thetas_dim=self.expansion_coefficient_lengths[stack_id],
+                        thetas_dim=self.expansion_coefficient_lengths[
+                            stack_id
+                        ],
                         num_block_layers=self.num_block_layers[stack_id],
                         backcast_length=context_length,
                         forecast_length=prediction_length,
@@ -230,7 +238,9 @@ class NBEATSNetwork(nn.Module):
                 else:
                     net_block = NBEATSTrendBlock(
                         units=self.widths[stack_id],
-                        thetas_dim=self.expansion_coefficient_lengths[stack_id],
+                        thetas_dim=self.expansion_coefficient_lengths[
+                            stack_id
+                        ],
                         num_block_layers=self.num_block_layers[stack_id],
                         backcast_length=context_length,
                         forecast_length=prediction_length,
@@ -258,7 +268,8 @@ class NBEATSNetwork(nn.Module):
         flag = denominator == 0
 
         return (200 / self.prediction_length) * torch.mean(
-            (torch.abs(future_target - forecast) * torch.logical_not(flag)) / (denominator + flag),
+            (torch.abs(future_target - forecast) * torch.logical_not(flag))
+            / (denominator + flag),
             dim=1,
         )
 
@@ -269,7 +280,8 @@ class NBEATSNetwork(nn.Module):
         flag = denominator == 0
 
         return (100 / self.prediction_length) * torch.mean(
-            (torch.abs(future_target - forecast) * torch.logical_not(flag)) / (denominator + flag),
+            (torch.abs(future_target - forecast) * torch.logical_not(flag))
+            / (denominator + flag),
             dim=1,
         )
 
@@ -280,7 +292,9 @@ class NBEATSNetwork(nn.Module):
         past_target: torch.Tensor,
         periodicity: int,
     ) -> torch.Tensor:
-        factor = 1 / (self.context_length + self.prediction_length - periodicity)
+        factor = 1 / (
+            self.context_length + self.prediction_length - periodicity
+        )
 
         whole_target = torch.cat((past_target, future_target), dim=1)
         seasonal_error = factor * torch.mean(
@@ -292,9 +306,10 @@ class NBEATSNetwork(nn.Module):
         )
         flag = seasonal_error == 0
 
-        return (torch.mean(torch.abs(future_target - forecast), dim=1) * torch.logical_not(flag)) / (
-            seasonal_error + flag
-        )
+        return (
+            torch.mean(torch.abs(future_target - forecast), dim=1)
+            * torch.logical_not(flag)
+        ) / (seasonal_error + flag)
 
 
 class NBEATSTrainingNetwork(NBEATSNetwork):
@@ -306,7 +321,9 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
         self.periodicity = get_seasonality(self.freq)
 
         if self.loss_function == "MASE":
-            assert self.periodicity < self.context_length + self.prediction_length, (
+            assert (
+                self.periodicity < self.context_length + self.prediction_length
+            ), (
                 "If the 'periodicity' of your data is less than 'context_length' + 'prediction_length' "
                 "the seasonal_error cannot be calculated and thus 'MASE' cannot be used for optimization."
             )
@@ -328,10 +345,10 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             raise ValueError(
                 f"Invalid value {self.loss_function} for argument loss_function."
             )
-        #print(loss)
-        #import pdb;pdb.set_trace()
+        # print(loss)
+        # import pdb;pdb.set_trace()
         return loss
-        #return loss.mean()
+        # return loss.mean()
 
 
 class NBEATSPredictionNetwork(NBEATSNetwork):
@@ -344,4 +361,3 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
         forecasts = super().forward(past_target=past_target)
 
         return forecasts.unsqueeze(1)
-

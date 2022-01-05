@@ -61,11 +61,14 @@ class UniformSplitSampler(InstanceSampler):
         self.p = p
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert a <= b, "First index must be less than or equal to the last index."
+        assert (
+            a <= b
+        ), "First index must be less than or equal to the last index."
 
         window_size = b - a + 1
         (indices,) = np.where(np.random.random_sample(window_size) < self.p)
         return indices + a
+
 
 class CustomUniformSampler(InstanceSampler):
     """
@@ -81,10 +84,12 @@ class CustomUniformSampler(InstanceSampler):
         pass
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> np.ndarray:
-        assert a <= b, "First index must be less than or equal to the last index."
+        assert (
+            a <= b
+        ), "First index must be less than or equal to the last index."
 
         window_size = b - a + 1
-        p = 1/window_size
+        p = 1 / window_size
         (indices,) = np.where(np.random.random_sample(window_size) < p)
         return indices + a
 
@@ -114,6 +119,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     num_instances
         number of training examples generated per time series on average
     """
+
     @validated()
     def __init__(self, num_instances: float) -> None:
         self.num_instances = num_instances

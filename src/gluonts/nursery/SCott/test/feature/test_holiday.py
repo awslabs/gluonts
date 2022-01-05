@@ -112,7 +112,13 @@ test_dates = {
         "2019-11-29",
         "2020-11-27",
     ],
-    CYBER_MONDAY: ["2016-11-28", "2017-11-27", "2018-11-26", "2019-12-2", "2020-11-30"],
+    CYBER_MONDAY: [
+        "2016-11-28",
+        "2017-11-27",
+        "2018-11-26",
+        "2019-12-2",
+        "2020-11-30",
+    ],
 }
 
 
@@ -127,10 +133,16 @@ def test_holidays(holiday):
 
 
 def test_special_date_feature_set_daily():
-    date_indices = pd.date_range(start="2016-12-24", end="2016-12-31", freq="D")
+    date_indices = pd.date_range(
+        start="2016-12-24", end="2016-12-31", freq="D"
+    )
 
     reference_features = np.array(
-        [[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],]
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+        ]
     )
     sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY, NEW_YEARS_EVE])
     computed_features = sfs(date_indices)
@@ -141,7 +153,9 @@ def test_special_date_feature_set_daily():
 
 
 def test_special_date_feature_set_hourly():
-    date_indices = pd.date_range(start="2016-12-24", end="2016-12-25", freq="H")
+    date_indices = pd.date_range(
+        start="2016-12-24", end="2016-12-25", freq="H"
+    )
 
     reference_features = np.array(
         [
@@ -237,7 +251,9 @@ def test_special_date_feature_set_hourly():
 
 
 def test_special_date_feature_set_daily_squared_exponential():
-    date_indices = pd.date_range(start="2016-12-24", end="2016-12-29", freq="D")
+    date_indices = pd.date_range(
+        start="2016-12-24", end="2016-12-29", freq="D"
+    )
     reference_features = np.array(
         [
             [
@@ -261,9 +277,13 @@ def test_special_date_feature_set_daily_squared_exponential():
     )
 
     squared_exp_kernel = squared_exponential_kernel(alpha=1.0)
-    sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY], squared_exp_kernel)
+    sfs = SpecialDateFeatureSet(
+        [CHRISTMAS_EVE, CHRISTMAS_DAY], squared_exp_kernel
+    )
     computed_features = sfs(date_indices)
-    np.testing.assert_almost_equal(computed_features, reference_features, decimal=6)
+    np.testing.assert_almost_equal(
+        computed_features, reference_features, decimal=6
+    )
 
 
 def test_custom_date_feature_set():
@@ -285,7 +305,8 @@ def test_custom_date_feature_set():
     )
 
     assert (
-        np.sum(cfs(date_indices) - sfs(date_indices).sum(0, keepdims=True)) == 0
+        np.sum(cfs(date_indices) - sfs(date_indices).sum(0, keepdims=True))
+        == 0
     ), "Features don't match"
 
 
@@ -307,4 +328,6 @@ def test_custom_holiday_feature_set():
         freq="D",
     )
 
-    assert np.sum(cfs(date_indices) - sfs(date_indices)) == 0, "Features don't match"
+    assert (
+        np.sum(cfs(date_indices) - sfs(date_indices)) == 0
+    ), "Features don't match"

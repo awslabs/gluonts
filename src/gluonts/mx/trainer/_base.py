@@ -18,7 +18,7 @@ import tempfile
 import time
 import uuid
 import warnings
-from typing import List, Optional, Union
+from typing import cast, List, Optional, Union
 
 import mxnet as mx
 import mxnet.autograd as autograd
@@ -476,7 +476,9 @@ class Trainer:
                 save_epoch_info(bp, epoch_info)
 
                 # update best epoch info
-                if loss_value(epoch_loss) < best_epoch_info["score"]:
+                if loss_value(epoch_loss) < cast(
+                    float, best_epoch_info["score"]
+                ):
                     best_epoch_info = epoch_info.copy()
 
                 should_continue = (

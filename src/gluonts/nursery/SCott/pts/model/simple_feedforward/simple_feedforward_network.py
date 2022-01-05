@@ -35,6 +35,7 @@ class SimpleFeedForwardNetworkBase(nn.Module):
         Distribution to fit.
     kwargs
     """
+
     @validated()
     def __init__(
         self,
@@ -61,28 +62,34 @@ class SimpleFeedForwardNetworkBase(nn.Module):
             if i == 0:
                 input_size = context_length
             else:
-                input_size = dims[i-1]
+                input_size = dims[i - 1]
             modules += [nn.Linear(input_size, units), nn.ReLU()]
             if self.batch_normalization:
                 modules.append(nn.BatchNorm1d(units))
         if len(dims) == 1:
-            modules.append(nn.Linear(context_length, dims[-1] * prediction_length))
+            modules.append(
+                nn.Linear(context_length, dims[-1] * prediction_length)
+            )
         else:
             modules.append(nn.Linear(dims[-2], dims[-1] * prediction_length))
         modules.append(
-            LambdaLayer(lambda o: torch.reshape(o, (-1, prediction_length, dims[-1])))
+            LambdaLayer(
+                lambda o: torch.reshape(o, (-1, prediction_length, dims[-1]))
+            )
         )
 
         self.mlp = nn.Sequential(*modules)
         self.distr_args_proj = self.distr_output.get_args_proj(dims[-1])
-        self.criterion = nn.SmoothL1Loss(reduction='none')
+        self.criterion = nn.SmoothL1Loss(reduction="none")
         self.scaler = MeanScaler() if mean_scaling else NOPScaler()
 
     def get_distr(self, past_target: torch.Tensor) -> Distribution:
         # (batch_size, seq_len, target_dim) and (batch_size, seq_len, target_dim)
         scaled_target, target_scale = self.scaler(
             past_target,
-            torch.ones_like(past_target),  # TODO: pass the actual observed here
+            torch.ones_like(
+                past_target
+            ),  # TODO: pass the actual observed here
         )
 
         mlp_outputs = self.mlp(scaled_target)
@@ -104,9 +111,12 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
 
         return loss
 
+
 class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
-    def __init__(self, num_parallel_samples: int = 100, *args, **kwargs) -> None:
+    def __init__(
+        self, num_parallel_samples: int = 100, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples
 

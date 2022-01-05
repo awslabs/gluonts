@@ -19,6 +19,7 @@ from pts.transform import (
 from .lstnet_network import LSTNetTrain, LSTNetPredict
 from pts.transform.sampler import CustomUniformSampler
 
+
 class LSTNetEstimator(PTSEstimator):
     def __init__(
         self,
@@ -50,7 +51,9 @@ class LSTNetEstimator(PTSEstimator):
         self.horizon = horizon
         self.prediction_length = prediction_length
 
-        self.future_length = horizon if horizon is not None else prediction_length
+        self.future_length = (
+            horizon if horizon is not None else prediction_length
+        )
         self.context_length = context_length
         self.channels = channels
         self.kernel_size = kernel_size
@@ -66,7 +69,9 @@ class LSTNetEstimator(PTSEstimator):
     def create_transformation(self, is_full_batch=False) -> Transformation:
         return Chain(
             trans=[
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=2, dtype=self.dtype),
+                AsNumpyArray(
+                    field=FieldName.TARGET, expected_ndim=2, dtype=self.dtype
+                ),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,

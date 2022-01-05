@@ -197,7 +197,7 @@ def TrainDataLoader(
     Iterator[DataBatch]
         An iterator of batches.
     """
-    dataset = Cyclic(dataset)
+    dataset: Dataset = Cyclic(dataset)
 
     if shuffle_buffer_length:
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)

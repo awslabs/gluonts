@@ -10,20 +10,3 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-
-def fqname_for(cls: type) -> str:
-    """
-    Returns the fully qualified name of ``cls``.
-
-    Parameters
-    ----------
-    cls
-        The class we are interested in.
-
-    Returns
-    -------
-    str
-        The fully qualified name of ``cls``.
-    """
-    return f"{cls.__module__}.{cls.__qualname__}"

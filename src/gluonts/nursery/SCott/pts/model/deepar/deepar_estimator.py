@@ -29,6 +29,7 @@ from pts.transform import (
 from .deepar_network import DeepARTrainingNetwork, DeepARPredictionNetwork
 from pts.transform.sampler import CustomUniformSampler
 
+
 class DeepAREstimator(PTSEstimator):
     def __init__(
         self,
@@ -72,7 +73,9 @@ class DeepAREstimator(PTSEstimator):
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
-        self.cardinality = cardinality if cardinality and use_feat_static_cat else [1]
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
@@ -80,8 +83,10 @@ class DeepAREstimator(PTSEstimator):
         )
         self.scaling = scaling
         self.lags_seq = (
-            #lags_seq if lags_seq is not None else get_lags_for_frequency(freq_str=freq)
-            lags_seq if lags_seq is not None else get_lags_for_frequency(freq_str=freq, num_lags=0)
+            # lags_seq if lags_seq is not None else get_lags_for_frequency(freq_str=freq)
+            lags_seq
+            if lags_seq is not None
+            else get_lags_for_frequency(freq_str=freq, num_lags=0)
         )
         self.time_features = (
             time_features
@@ -89,7 +94,7 @@ class DeepAREstimator(PTSEstimator):
             else time_features_from_frequency_str(self.freq)
         )
 
-        #self.history_length = self.context_length + max(self.lags_seq)
+        # self.history_length = self.context_length + max(self.lags_seq)
         self.history_length = self.context_length
 
         self.num_parallel_samples = num_parallel_samples
@@ -111,16 +116,24 @@ class DeepAREstimator(PTSEstimator):
                 else []
             )
             + (
-                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
                 if not self.use_feat_static_real
                 else []
             )
             + [
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=np.long,
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=np.long,
                 ),
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1, dtype=self.dtype,
+                    field=FieldName.FEAT_STATIC_REAL,
+                    expected_ndim=1,
+                    dtype=self.dtype,
                 ),
                 AsNumpyArray(
                     field=FieldName.TARGET,
@@ -166,7 +179,7 @@ class DeepAREstimator(PTSEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    #train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
                     train_sampler=CustomUniformSampler(),
                     is_full_batch=is_full_batch,
                     past_length=self.history_length,
@@ -179,7 +192,9 @@ class DeepAREstimator(PTSEstimator):
             ]
         )
 
-    def create_training_network(self, device: torch.device) -> DeepARTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> DeepARTrainingNetwork:
         return DeepARTrainingNetwork(
             input_size=self.input_size,
             num_layers=self.num_layers,

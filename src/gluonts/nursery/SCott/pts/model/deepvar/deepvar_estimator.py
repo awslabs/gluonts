@@ -88,7 +88,9 @@ class DeepVAREstimator(PTSEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
-        self.cardinality = cardinality if cardinality and use_feat_static_cat else [1]
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
@@ -153,7 +155,11 @@ class DeepVAREstimator(PTSEstimator):
                 else []
             )
             + (
-                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
                 if not self.use_feat_static_real
                 else []
             )
@@ -199,8 +205,14 @@ class DeepVAREstimator(PTSEstimator):
                     field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,
                 ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=np.long),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_REAL, expected_ndim=1),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=np.long,
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                ),
                 InstanceSplitter(
                     target_field=FieldName.TARGET,
                     is_pad_field=FieldName.IS_PAD,
@@ -219,7 +231,9 @@ class DeepVAREstimator(PTSEstimator):
             ]
         )
 
-    def create_training_network(self, device: torch.device) -> DeepVARTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> DeepVARTrainingNetwork:
         return DeepVARTrainingNetwork(
             input_size=self.input_size,
             target_dim=self.target_dim,

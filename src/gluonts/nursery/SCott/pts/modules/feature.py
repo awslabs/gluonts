@@ -5,7 +5,11 @@ import torch.nn as nn
 
 
 class FeatureEmbedder(nn.Module):
-    def __init__(self, cardinalities: List[int], embedding_dims: List[int],) -> None:
+    def __init__(
+        self,
+        cardinalities: List[int],
+        embedding_dims: List[int],
+    ) -> None:
         super().__init__()
 
         self.__num_features = len(cardinalities)
@@ -15,14 +19,19 @@ class FeatureEmbedder(nn.Module):
             return embedding
 
         self.__embedders = nn.ModuleList(
-            [create_embedding(c, d) for c, d in zip(cardinalities, embedding_dims)]
+            [
+                create_embedding(c, d)
+                for c, d in zip(cardinalities, embedding_dims)
+            ]
         )
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         if self.__num_features > 1:
             # we slice the last dimension, giving an array of length
             # self.__num_features with shape (N,T) or (N)
-            cat_feature_slices = torch.chunk(features, self.__num_features, dim=-1)
+            cat_feature_slices = torch.chunk(
+                features, self.__num_features, dim=-1
+            )
         else:
             cat_feature_slices = [features]
 

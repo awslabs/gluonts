@@ -7,7 +7,12 @@ from torch.distributions import Distribution
 
 from pts.core.component import validated
 from pts.model import weighted_average
-from pts.modules import DistributionOutput, MeanScaler, NOPScaler, FeatureEmbedder
+from pts.modules import (
+    DistributionOutput,
+    MeanScaler,
+    NOPScaler,
+    FeatureEmbedder,
+)
 
 
 def prod(xs):
@@ -18,7 +23,6 @@ def prod(xs):
 
 
 class DeepARNetwork(nn.Module):
-
     @validated()
     def __init__(
         self,
@@ -103,7 +107,7 @@ class DeepARNetwork(nn.Module):
             I = len(indices), containing lagged subsequences. Specifically,
             lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
         """
-        #assert max(indices) + subsequences_length <= sequence_length, (
+        # assert max(indices) + subsequences_length <= sequence_length, (
         assert subsequences_length <= sequence_length, (
             f"lags cannot go further than history length, found lag {max(indices)} "
             f"while history length is only {sequence_length}"
@@ -130,7 +134,9 @@ class DeepARNetwork(nn.Module):
         future_target: Optional[
             torch.Tensor
         ] = None,  # (batch_size, prediction_length, *target_shape)
-    ) -> Tuple[torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor]:
+    ) -> Tuple[
+        torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor
+    ]:
 
         if future_time_feat is None or future_target is None:
             time_feat = past_time_feat[
@@ -142,22 +148,23 @@ class DeepARNetwork(nn.Module):
         else:
             time_feat = torch.cat(
                 (
-                    past_time_feat[:, self.history_length - self.context_length :, ...],
+                    past_time_feat[
+                        :, self.history_length - self.context_length :, ...
+                    ],
                     future_time_feat,
                 ),
-                dim=1
+                dim=1,
             )
             sequence = torch.cat((past_target, future_target), dim=1)
             sequence_length = self.history_length + self.prediction_length
             subsequences_length = self.context_length + self.prediction_length
 
-
-        #lags = self.get_lagged_subsequences(
+        # lags = self.get_lagged_subsequences(
         #    sequence=sequence,
         #    sequence_length=sequence_length,
         #    indices=self.lags_seq,
         #    subsequences_length=subsequences_length
-        #)
+        # )
 
         # scale is computed on the context length last units of the past target
         # scale shape is (batch_size, 1, *target_shape)
@@ -176,7 +183,9 @@ class DeepARNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                scale.log() if len(self.target_shape) == 0 else scale.squeeze(1).log(),
+                scale.log()
+                if len(self.target_shape) == 0
+                else scale.squeeze(1).log(),
             ),
             dim=1,
         )
@@ -188,23 +197,23 @@ class DeepARNetwork(nn.Module):
 
         # (batch_size, sub_seq_len, *target_shape, num_lags)
 
-        #lags_scaled = lags / scale.unsqueeze(-1)
+        # lags_scaled = lags / scale.unsqueeze(-1)
 
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
 
-        #input_lags = lags_scaled.reshape(
+        # input_lags = lags_scaled.reshape(
         #    (-1, subsequences_length, len(self.lags_seq) * prod(self.target_shape))
-        #)
+        # )
 
         # (batch_size, sub_seq_len, input_dim)
-        #inputs = torch.cat((input_lags, time_feat, repeated_static_feat), dim=-1)
+        # inputs = torch.cat((input_lags, time_feat, repeated_static_feat), dim=-1)
         inputs = torch.cat((time_feat, repeated_static_feat), dim=-1)
 
-        #inputs.zero_()
+        # inputs.zero_()
 
-        #print(inputs.shape)
-        #import pdb;pdb.set_trace()
+        # print(inputs.shape)
+        # import pdb;pdb.set_trace()
         # unroll encoder
         outputs, state = self.rnn(inputs)
 
@@ -267,7 +276,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
         # (batch_size, seq_len, *target_shape)
         target = torch.cat(
             (
-                past_target[:, self.history_length - self.context_length :, ...],
+                past_target[
+                    :, self.history_length - self.context_length :, ...
+                ],
                 future_target,
             ),
             dim=1,
@@ -276,7 +287,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         # (batch_size, seq_len)
         loss = -distr.log_prob(target)
 
-        #return loss
+        # return loss
         # (batch_size, seq_len, *target_shape)
         observed_values = torch.cat(
             (
@@ -299,7 +310,8 @@ class DeepARTrainingNetwork(DeepARNetwork):
         weighted_loss = weighted_average(loss, weights=loss_weights)
 
         return loss
-        #return weighted_loss, loss
+        # return weighted_loss, loss
+
 
 class DeepARPredictionNetwork(DeepARNetwork):
     def __init__(self, num_parallel_samples: int = 100, **kwargs) -> None:
@@ -388,24 +400,34 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
             # (batch_size * num_samples, 1, prod(target_shape) * num_lags + num_time_features + num_static_features)
             decoder_input = torch.cat(
-                (input_lags, repeated_time_feat[:, k : k + 1, :], repeated_static_feat),
+                (
+                    input_lags,
+                    repeated_time_feat[:, k : k + 1, :],
+                    repeated_static_feat,
+                ),
                 dim=-1,
             )
 
             # output shape: (batch_size * num_samples, 1, num_cells)
             # state shape: (batch_size * num_samples, num_cells)
-            rnn_outputs, repeated_states = self.rnn(decoder_input, repeated_states)
+            rnn_outputs, repeated_states = self.rnn(
+                decoder_input, repeated_states
+            )
 
             distr_args = self.proj_distr_args(rnn_outputs)
 
             # compute likelihood of target given the predicted parameters
-            distr = self.distr_output.distribution(distr_args, scale=repeated_scale)
+            distr = self.distr_output.distribution(
+                distr_args, scale=repeated_scale
+            )
 
             # (batch_size * num_samples, 1, *target_shape)
             new_samples = distr.sample()
 
             # (batch_size * num_samples, seq_len, *target_shape)
-            repeated_past_target = torch.cat((repeated_past_target, new_samples), dim=1)
+            repeated_past_target = torch.cat(
+                (repeated_past_target, new_samples), dim=1
+            )
             future_samples.append(new_samples)
 
         # (batch_size * num_samples, prediction_length, *target_shape)

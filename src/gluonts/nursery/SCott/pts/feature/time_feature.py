@@ -164,7 +164,13 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     elif granularity == "H":
         feature_classes = [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
     elif granularity in ["min", "T"]:
-        feature_classes = [MinuteOfHour, HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
+        feature_classes = [
+            MinuteOfHour,
+            HourOfDay,
+            DayOfWeek,
+            DayOfMonth,
+            DayOfYear,
+        ]
     else:
         supported_freq_msg = f"""
         Unsupported frequency {freq_str}
@@ -182,7 +188,9 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     return [cls() for cls in feature_classes]
 
 
-def fourier_time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
+def fourier_time_features_from_frequency_str(
+    freq_str: str,
+) -> List[TimeFeature]:
     offset = to_offset(freq_str)
     granularity = offset.name
 

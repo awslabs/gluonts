@@ -2,28 +2,36 @@ from traffic import *
 from synthetic import *
 from exchange_rate import *
 from electricity import *
-#from algo_clustering import *
 
-# Please uncomment the following four commands to generate the corresponding dataset. 
+# from algo_clustering import *
+
+# Please uncomment the following four commands to generate the corresponding dataset.
 # The four lines corresponds to sythetic, traffic, exchange rate, electricity datasets, respectively.
 
 # ===================================================================================================
 get_mixed_pattern(unit_length=24, num_duplicates=2000)
-group_traffic_cv(num_ts=800, num_groups=49, context_length=72, prediction_length=24, file_name='traffic')
-group_exchangerate_cv(num_ts=8, num_groups=32, context_length=8, prediction_length=1, file_name='exchange_rate')
-group_electricity_cv(num_ts=300, num_groups=70, context_length=72, prediction_length=24, file_name='electricity')
+group_traffic_cv(
+    num_ts=800,
+    num_groups=49,
+    context_length=72,
+    prediction_length=24,
+    file_name="traffic",
+)
+group_exchangerate_cv(
+    num_ts=8,
+    num_groups=32,
+    context_length=8,
+    prediction_length=1,
+    file_name="exchange_rate",
+)
+group_electricity_cv(
+    num_ts=300,
+    num_groups=70,
+    context_length=72,
+    prediction_length=24,
+    file_name="electricity",
+)
 # ===================================================================================================
-
-
-
-
-
-
-
-
-
-
-
 
 
 # (Ignore) the following are auxiliary functions for other datasets that are not included in the paper

@@ -22,7 +22,12 @@ import torch.nn as nn
 from pts.core.component import validated
 from pts.dataset import InferenceDataLoader, DataEntry, FieldName
 from pts.modules import DistributionOutput
-from .forecast import Forecast, DistributionForecast, QuantileForecast, SampleForecast
+from .forecast import (
+    Forecast,
+    DistributionForecast,
+    QuantileForecast,
+    SampleForecast,
+)
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
@@ -95,7 +100,8 @@ class DistributionForecastGenerator(ForecastGenerator):
                 outputs = output_transform(batch, outputs)
 
             distributions = [
-                self.distr_output.distribution(*u) for u in _extract_instances(outputs)
+                self.distr_output.distribution(*u)
+                for u in _extract_instances(outputs)
             ]
 
             i = -1
@@ -148,7 +154,6 @@ class QuantileForecastGenerator(ForecastGenerator):
 
 
 class SampleForecastGenerator(ForecastGenerator):
-
     @validated()
     def __init__(self):
         pass
@@ -178,7 +183,8 @@ class SampleForecastGenerator(ForecastGenerator):
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
                 outputs = [
-                    np.concatenate(s)[:num_samples] for s in zip(*collected_samples)
+                    np.concatenate(s)[:num_samples]
+                    for s in zip(*collected_samples)
                 ]
                 assert len(outputs[0]) == num_samples
             i = -1

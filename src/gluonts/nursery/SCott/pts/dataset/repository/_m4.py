@@ -24,9 +24,15 @@ from ._util import save_to_file, to_dict, metadata
 def generate_m4_dataset(
     dataset_path: Path, m4_freq: str, pandas_freq: str, prediction_length: int
 ):
-    m4_dataset_url = "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
-    train_df = pd.read_csv(f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0)
-    test_df = pd.read_csv(f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0)
+    m4_dataset_url = (
+        "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
+    )
+    train_df = pd.read_csv(
+        f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0
+    )
+    test_df = pd.read_csv(
+        f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
+    )
 
     os.makedirs(dataset_path, exist_ok=True)
 
@@ -67,7 +73,10 @@ def generate_m4_dataset(
         train_file,
         [
             to_dict(
-                target_values=target, start=mock_start_dataset, cat=[cat], item_id=cat
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
             )
             for cat, target in enumerate(train_target_values)
         ],
@@ -77,9 +86,11 @@ def generate_m4_dataset(
         test_file,
         [
             to_dict(
-                target_values=target, start=mock_start_dataset, cat=[cat], item_id=cat
+                target_values=target,
+                start=mock_start_dataset,
+                cat=[cat],
+                item_id=cat,
             )
             for cat, target in enumerate(test_target_values)
         ],
     )
-

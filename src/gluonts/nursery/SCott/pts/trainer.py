@@ -7,6 +7,7 @@ from tqdm import tqdm
 import copy
 import random
 
+
 class Trainer:
     def __init__(
         self,

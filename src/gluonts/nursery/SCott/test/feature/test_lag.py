@@ -239,9 +239,11 @@ expected_lags = {
     + [28, 42]
     + [181, 182, 183, 363, 364, 365, 545, 546, 547],
     # centered around each of the last 3 months (delta = 0) + last 3 years (delta = 1) (assuming 52 weeks per year)
-    "6D": [1, 2, 3, 4, 5, 6, 7, 9, 14] + [59, 60, 61, 120, 121, 122, 181, 182, 183],
+    "6D": [1, 2, 3, 4, 5, 6, 7, 9, 14]
+    + [59, 60, 61, 120, 121, 122, 181, 182, 183],
     # centered around each of the last 3 months (delta = 0) + last 3 years (delta = 1) (assuming 52 weeks per year)
-    "W": [1, 2, 3, 4, 5, 6, 7, 8, 12] + [51, 52, 53, 103, 104, 105, 155, 156, 157],
+    "W": [1, 2, 3, 4, 5, 6, 7, 8, 12]
+    + [51, 52, 53, 103, 104, 105, 155, 156, 157],
     # centered around each of the last 3 months (delta = 0) + last 3 years (delta = 1) (assuming 52 weeks per year)
     "8D": [1, 2, 3, 4, 5, 6, 7, 10] + [44, 45, 46, 90, 91, 92, 135, 136, 137],
     # centered around each of the last 3 years (delta = 1)

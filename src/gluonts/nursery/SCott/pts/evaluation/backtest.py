@@ -26,6 +26,7 @@ from pts.dataset import (
     calculate_dataset_statistics,
 )
 from pts.model import Estimator, Predictor, Forecast
+
 # First-party imports
 from pts.transform import AdhocTransform, TransformedDataset
 from .evaluator import Evaluator
@@ -57,13 +58,19 @@ def make_evaluation_predictions(
     prediction_length = predictor.prediction_length
     freq = predictor.freq
 
-    def add_ts_dataframe(data_iterator: Iterator[DataEntry]) -> Iterator[DataEntry]:
+    def add_ts_dataframe(
+        data_iterator: Iterator[DataEntry],
+    ) -> Iterator[DataEntry]:
         for data_entry in data_iterator:
             data = data_entry.copy()
             index = pd.date_range(
-                start=data["start"], freq=freq, periods=data["target"].shape[-1],
+                start=data["start"],
+                freq=freq,
+                periods=data["target"].shape[-1],
             )
-            data["ts"] = pd.DataFrame(index=index, data=data["target"].transpose())
+            data["ts"] = pd.DataFrame(
+                index=index, data=data["target"].transpose()
+            )
             yield data
 
     def ts_iter(dataset: Dataset) -> pd.DataFrame:
@@ -107,7 +114,9 @@ def backtest_metrics(
     train_dataset: Optional[Dataset],
     test_dataset: Dataset,
     forecaster: Union[Estimator, Predictor],
-    evaluator=Evaluator(quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)),
+    evaluator=Evaluator(
+        quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+    ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
 ):
