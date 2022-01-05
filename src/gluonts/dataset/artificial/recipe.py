@@ -315,7 +315,7 @@ class NumpyFunc(Lifted):
         func_args: Tuple[Any, ...],
         func_kwargs: Dict[str, Any],
     ):
-        self.func: Callable = locate("numpy.{func}")  # type: ignore
+        self.func: Callable = locate(f"numpy.{func}")  # type: ignore
         self.func_args = func_args
         self.func_kwargs = func_kwargs
 
