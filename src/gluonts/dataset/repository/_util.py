@@ -59,11 +59,15 @@ def save_to_file(path: Path, data: List[Dict]):
 def metadata(
     cardinality: Union[int, List[int]], freq: str, prediction_length: int
 ):
+    if not isinstance(cardinality, list):
+        cardinality = [cardinality]
+
     return {
         "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
-            {"name": "feat_static_cat", "cardinality": str(cardinality)}
+            {"name": f"feat_static_cat_{i}", "cardinality": str(card)}
+            for i, card in enumerate(cardinality)
         ],
     }
 
