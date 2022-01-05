@@ -168,7 +168,7 @@ def equals_dict(this: dict, that: dict) -> bool:
 
 @equals.register(np.ndarray)
 def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
-    return np.array_equal(this, that, equal_nan=True)
+    return np.array_equal(this, that)
 
 
 @singledispatch
