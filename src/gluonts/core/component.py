@@ -16,7 +16,6 @@ import inspect
 import logging
 from collections import OrderedDict
 from functools import singledispatch
-from pydoc import locate
 from typing import Any, Type, TypeVar
 
 import numpy as np
