@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
+from typing import Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.mx import Tensor
 
 
@@ -84,7 +83,7 @@ def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    float_type: DType = np.float64,
+    float_type: Type = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
     """
@@ -141,7 +140,7 @@ def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    float_type: DType = np.float64,
+    float_type: Type = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,
     diag_weight: float = 1e-6,

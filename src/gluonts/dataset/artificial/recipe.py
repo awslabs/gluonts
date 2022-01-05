@@ -14,6 +14,7 @@ import functools
 import itertools
 import operator
 import textwrap
+from pydoc import locate
 from types import SimpleNamespace
 from typing import (
     Any,
@@ -314,13 +315,7 @@ class NumpyFunc(Lifted):
         func_args: Tuple[Any, ...],
         func_kwargs: Dict[str, Any],
     ):
-        import numpy
-
-        splits = func.split(".")
-        b = numpy
-        for s in splits:
-            b = getattr(b, s)
-        self.func = b
+        self.func: Callable = locate(f"numpy.{func}")  # type: ignore
         self.func_args = func_args
         self.func_kwargs = func_kwargs
 
@@ -958,12 +953,12 @@ class RandomChangepoints(Lifted):
             self.max_num_changepoints, x, length, *args, **kwargs
         )
         num_changepoints = np.random.randint(0, max_num_changepoints + 1)
-        change_idx = np.sort(
+        change_idx: np.ndarray = np.sort(
             np.random.randint(low=1, high=length - 1, size=(num_changepoints,))
         )
-        change_ranges = np.concatenate([change_idx, [length]])
+        change_ranges: np.ndarray = np.concatenate([change_idx, [length]])  # type: ignore
         out = np.zeros(length, dtype=int)
-        for i in range(0, num_changepoints):
+        for i in range(num_changepoints):
             out[change_ranges[i] : change_ranges[i + 1]] = i + 1
         return out
 

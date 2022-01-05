@@ -11,14 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Type
 
 import mxnet as mx
 import numpy as np
 from mxnet.gluon.contrib.rnn import VariationalDropoutCell
 from mxnet.gluon.rnn import ZoneoutCell
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.itertools import prod
 from gluonts.mx import Tensor
 from gluonts.mx.block.dropout import RNNZoneoutCell, VariationalZoneoutCell
@@ -51,7 +51,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         lags_seq: List[int],
         dropoutcell_type: str = "ZoneoutCell",
         scaling: bool = True,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         num_imputation_samples: int = 1,
         minimum_scale: float = 1e-10,
         impute_missing_values: bool = False,

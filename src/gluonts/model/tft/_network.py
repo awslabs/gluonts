@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock, nn
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
@@ -65,7 +65,7 @@ class FeatureProjector(HybridBlock):
         self,
         feature_dims: List[int],
         embedding_dims: List[int],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)

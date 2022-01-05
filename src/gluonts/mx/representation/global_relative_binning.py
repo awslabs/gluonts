@@ -82,7 +82,7 @@ class GlobalRelativeBinning(Representation):
         self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
     ):
         # Rescale all time series in training set.
-        train_target_sequence = np.array([])
+        train_target_sequence: np.ndarray = np.array([])
         for train_entry in input_dataset:
             train_entry_target = train_entry["target"]
             train_tar_mean = np.mean(train_entry_target)
