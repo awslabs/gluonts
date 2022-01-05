@@ -30,7 +30,6 @@ try:
 
     HAS_SPHINX = True
 except ImportError:
-
     logging.warning(
         "Package 'sphinx' not found. You will not be able to build the docs."
     )
@@ -80,22 +79,26 @@ class TypeCheckCommand(distutils.cmd.Command):
         pass
 
     def run(self):
-        """Run command."""
-
         # import here (after the setup_requires list is loaded),
         # otherwise a module-not-found error is thrown
         import mypy.api
 
-        mypy_opts = ["--follow-imports=silent", "--ignore-missing-imports"]
-        mypy_args = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
+        mypy_opts = [
+            "--allow-redefinition",
+            "--follow-imports=silent",
+            "--ignore-missing-imports",
+        ]
+
+        folders = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
 
         print(
-            "the following folders contain a `.typesafe` marker file "
+            "The following folders contain a `.typesafe` marker file "
             "and will be type-checked with `mypy`:"
         )
-        print("\n".join(["  " + arg for arg in mypy_args]))
+        for folder in folders:
+            print(f"  {folder}")
 
-        std_out, std_err, exit_code = mypy.api.run(mypy_opts + mypy_args)
+        std_out, std_err, exit_code = mypy.api.run(mypy_opts + folders)
 
         print(std_out, file=sys.stdout)
         print(std_err, file=sys.stderr)
@@ -105,7 +108,7 @@ class TypeCheckCommand(distutils.cmd.Command):
                 f"""
                 Mypy command
 
-                    mypy {" ".join(mypy_opts + mypy_args)}
+                    mypy {" ".join(mypy_opts + folders)}
 
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run

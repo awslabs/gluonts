@@ -280,21 +280,23 @@ class ConstantDataset(ArtificialDataset):
 
     def insert_missing_vals_middle(
         self, ts_len: int, constant: Optional[float]
-    ) -> List:
-        target = []
+    ) -> List[Optional[float]]:
+        target: List[Optional[float]] = []
         lower_bound = (self.num_training_steps - self.num_missing_middle) // 2
         upper_bound = (self.num_training_steps + self.num_missing_middle) // 2
         num_missing_endpts = math.floor(0.1 * self.num_missing_middle)
         for j in range(ts_len):
             if (
-                (0 < j < lower_bound and j % (2 * num_missing_endpts) == 0)
-                or (lower_bound <= j < upper_bound)
-                or (j >= upper_bound and j % (2 * num_missing_endpts) == 0)
+                0 < j < lower_bound
+                and j % (2 * num_missing_endpts) == 0
+                or lower_bound <= j < upper_bound
+                or j >= upper_bound
+                and j % (2 * num_missing_endpts) == 0
             ):
-                val = np.nan
+                target.append(float("nan"))
             else:
-                val = constant
-            target.append(val)
+                target.append(constant)
+
         return target
 
     def generate_ts(

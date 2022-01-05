@@ -14,12 +14,11 @@
 import itertools
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Callable, Iterator
+from typing import List, Optional, Callable, Iterator, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.core.serde import load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -78,7 +77,7 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = DeepRenewalProcessSampleOutputTransform(),
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             prediction_net=prediction_net,

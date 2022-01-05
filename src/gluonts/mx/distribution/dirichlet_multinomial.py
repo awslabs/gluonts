@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.util import make_nd_diag
 
@@ -61,7 +61,7 @@ class DirichletMultinomial(Distribution):
         dim: int,
         n_trials: int,
         alpha: Tensor,
-        float_type: DType = np.float32,
+        float_type: Type = np.float32,
     ) -> None:
         self.dim = dim
         self.n_trials = n_trials

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -19,7 +19,6 @@ from pydantic import ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import (
-    DType,
     from_hyperparameters,
     validated,
     GluonTSHyperparametersError,
@@ -55,7 +54,7 @@ class GluonEstimator(Estimator):
         trainer: Trainer,
         batch_size: int = 32,
         lead_time: int = 0,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
 
