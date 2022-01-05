@@ -364,19 +364,16 @@ class AddTimeFeatures(MapTransformation):
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-
         start = data[self.start_field]
         length = target_transformation_length(
             data[self.target_field], self.pred_length, is_train=is_train
         )
         self._update_cache(start, length)
-        # make mypy happy
-        assert self._full_range_date_features is not None
 
         i0 = self._date_index[start]
         features = (
             self._full_range_date_features[..., i0 : i0 + length]
-            if self.date_features
+            if self._full_range_date_features is not None
             else None
         )
         data[self.output_field] = features
