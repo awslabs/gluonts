@@ -26,7 +26,7 @@ from ._base import (
 )
 
 
-def erf(x: np.array) -> np.array:
+def erf(x: np.ndarray) -> np.ndarray:
     # Using numerical recipes approximation for erf function
     # accurate to 1E-7
 
@@ -55,7 +55,7 @@ def erf(x: np.array) -> np.array:
     return np.where(x >= zeros, res, -1.0 * res)
 
 
-def erfinv(x: np.array) -> np.array:
+def erfinv(x: np.ndarray) -> np.ndarray:
     zeros = np.zeros_like(x)
 
     w = -np.log((1.0 - x) * (1.0 + x))
@@ -611,7 +611,7 @@ class CDFtoGaussianTransform(MapTransformation):
         return quantiles
 
     @staticmethod
-    def _add_noise(x: np.array) -> np.array:
+    def _add_noise(x: np.ndarray) -> np.ndarray:
         scale_noise = 0.2
         std = np.sqrt(
             (np.square(x - x.mean(axis=1, keepdims=True))).mean(
@@ -626,8 +626,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     @staticmethod
     def _search_sorted(
-        sorted_vec: np.array, to_insert_vec: np.array
-    ) -> np.array:
+        sorted_vec: np.ndarray, to_insert_vec: np.ndarray
+    ) -> np.ndarray:
         """
         Finds the indices of the active piece-wise linear function.
 
@@ -657,11 +657,11 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _forward_transform(
         self,
-        sorted_vec: np.array,
-        target: np.array,
-        slopes: np.array,
-        intercepts: np.array,
-    ) -> np.array:
+        sorted_vec: np.ndarray,
+        target: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
+    ) -> np.ndarray:
         """
         Applies the forward transformation to the marginals of the multivariate
         target. Target (real valued) -> empirical cdf [0, 1]
@@ -695,17 +695,17 @@ class CDFtoGaussianTransform(MapTransformation):
         return np.array(transformed).transpose()
 
     @staticmethod
-    def standard_gaussian_cdf(x: np.array) -> np.array:
+    def standard_gaussian_cdf(x: np.ndarray) -> np.ndarray:
         u = x / (np.sqrt(2.0))
         return (erf(u) + 1.0) / 2.0
 
     @staticmethod
-    def standard_gaussian_ppf(y: np.array) -> np.array:
+    def standard_gaussian_ppf(y: np.ndarray) -> np.ndarray:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
         return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
-    def winsorized_cutoff(m: np.array) -> np.array:
+    def winsorized_cutoff(m: np.ndarray) -> np.ndarray:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
         described here: https://arxiv.org/abs/0903.0649
