@@ -25,7 +25,7 @@ from .split import shift_timestamp
 
 
 def target_transformation_length(
-    target: np.array, pred_length: int, is_train: bool
+    target: np.ndarray, pred_length: int, is_train: bool
 ) -> int:
     return target.shape[-1] + (0 if is_train else pred_length)
 
@@ -330,7 +330,7 @@ class AddTimeFeatures(MapTransformation):
         self.output_field = output_field
         self._min_time_point: pd.Timestamp = None
         self._max_time_point: pd.Timestamp = None
-        self._full_range_date_features: np.ndarray = None
+        self._full_range_date_features: Optional[np.ndarray] = None
         self._date_index: pd.DatetimeIndex = None
         self.dtype = dtype
 
@@ -364,6 +364,8 @@ class AddTimeFeatures(MapTransformation):
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        assert self._full_range_date_features is not None
+
         start = data[self.start_field]
         length = target_transformation_length(
             data[self.target_field], self.pred_length, is_train=is_train

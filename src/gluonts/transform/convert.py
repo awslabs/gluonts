@@ -705,7 +705,7 @@ class CDFtoGaussianTransform(MapTransformation):
         return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
-    def winsorized_cutoff(m: np.ndarray) -> np.ndarray:
+    def winsorized_cutoff(m: float) -> float:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
         described here: https://arxiv.org/abs/0903.0649
@@ -713,12 +713,12 @@ class CDFtoGaussianTransform(MapTransformation):
         Parameters
         ----------
         m
-            Input array with empirical CDF values.
+            Input empirical CDF value.
 
         Returns
         -------
         res
-            Truncated empirical CDf values.
+            Truncated empirical CDf value.
         """
         res = 1 / (4 * m ** 0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1

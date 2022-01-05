@@ -57,7 +57,7 @@ class RotbaumForecast(Forecast):
         self.item_id = None
         self.lead_time = None
 
-    def quantile(self, q: float) -> np.array:
+    def quantile(self, q: float) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is the estimate of the q
         quantile of the conditional distribution of the value of the i^th
@@ -73,7 +73,7 @@ class RotbaumForecast(Forecast):
             )
         )
 
-    def estimate_dists(self) -> np.array:
+    def estimate_dists(self) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is an estimated sampling from
         the conditional distribution of the value of the i^th step in the
