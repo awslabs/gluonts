@@ -408,6 +408,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         output field that will contain the time point where the forecast starts
     """
 
+    @validated()
     def __init__(
         self,
         past_interval_length: float,

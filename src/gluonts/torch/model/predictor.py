@@ -92,9 +92,8 @@ class PyTorchPredictor(Predictor):
         if type(self) != type(that):
             return False
 
-        # TODO: also consider equality of the pipelines
-        # if not equals(self.input_transform, that.input_transform):
-        #    return False
+        if not equals(self.input_transform, that.input_transform):
+            return False
 
         return equals(
             self.prediction_net.state_dict(),

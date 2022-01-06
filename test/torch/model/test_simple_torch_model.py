@@ -17,10 +17,10 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 
+from gluonts.core.component import equals
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.batchify import batchify
@@ -29,10 +29,8 @@ from gluonts.torch.modules.distribution_output import (
     NormalOutput,
     StudentTOutput,
 )
-from gluonts.torch.util import copy_parameters
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    Chain,
     ExpectedNumInstanceSampler,
     TestSplitSampler,
     InstanceSplitter,
@@ -206,3 +204,28 @@ def test_simple_model():
     evaluator = Evaluator(quantiles=[0.5, 0.9], num_workers=None)
 
     agg_metrics, _ = evaluator(ts_it, forecast_it)
+
+    # equality check
+    another_training_splitter = InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=ExpectedNumInstanceSampler(
+            num_instances=2,
+            min_future=prediction_length,
+        ),
+        past_length=context_length,
+        future_length=prediction_length,
+        time_series_fields=[FieldName.OBSERVED_VALUES],
+    )
+
+    another_predictor = net.get_predictor(
+        transformation + another_training_splitter
+    )
+
+    # serde.flat.clone does not work on predictor
+    assert equals(
+        predictor, net.get_predictor(transformation + prediction_splitter)
+    )
+    assert not equals(predictor, another_predictor)
