@@ -18,7 +18,6 @@ import torch
 from torch import nn
 
 from gluonts.core.component import equals
-from gluonts.core.serde.flat import clone
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
@@ -225,5 +224,8 @@ def test_simple_model():
         transformation + another_training_splitter
     )
 
-    assert equals(predictor, clone(predictor))
+    # serde.flat.clone does not work on predictor
+    assert equals(
+        predictor, net.get_predictor(transformation + prediction_splitter)
+    )
     assert not equals(predictor, another_predictor)
