@@ -10,34 +10,27 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-from typing import List
 
-import pytest
-import numpy as np
-
-from gluonts.core import serde
+from gluonts.core.serde.flat import clone
 from gluonts import time_feature, transform
 from gluonts.core.component import equals
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import Batch
 from gluonts.model.canonical._estimator import CanonicalRNNEstimator
 
 
 def test_map_transformation():
-
-    tran1 = transform.VstackFeatures(
+    tran = transform.VstackFeatures(
         output_field="dynamic_feat",
         input_fields=["age", "time_feat"],
         drop_inputs=True,
     )
 
-    tran2 = serde.flat.clone(tran1)
-    tran3 = serde.flat.clone(tran1, {"drop_inputs": False})
+    assert equals(tran, clone(tran))
+    assert not equals(tran, clone(tran, {"drop_inputs": False}))
 
-    assert equals(tran1, tran2)
-    assert not equals(tran1, tran3)
 
-    tran4 = transform.AddTimeFeatures(
+def test_add_time_features():
+    tran = transform.AddTimeFeatures(
         start_field=FieldName.START,
         target_field=FieldName.TARGET,
         output_field="time_feat",
@@ -49,9 +42,8 @@ def test_map_transformation():
         pred_length=10,
     )
 
-    tran5 = serde.flat.clone(tran4)
-    tran6 = serde.flat.clone(
-        tran4,
+    tran2 = clone(
+        tran,
         {
             "time_features": [
                 time_feature.DayOfWeek(),
@@ -60,12 +52,11 @@ def test_map_transformation():
         },
     )
 
-    assert equals(tran4, tran5)
-    assert not equals(tran4, tran6)
+    assert equals(tran, clone(tran))
+    assert not equals(tran, tran2)
 
 
 def test_filter_transformation():
-
     prediction_length = 10
     tran1 = transform.FilterTransformation(
         lambda x: x["target"].shape[-1] > prediction_length
@@ -82,20 +73,19 @@ def test_filter_transformation():
     assert not equals(tran1, tran3)
 
 
-def test_sampler():
+def test_exp_num_sampler():
     sampler = transform.ExpectedNumInstanceSampler(num_instances=4)
-    sampler2 = serde.flat.clone(sampler, {"num_instances": 5})
-    assert equals(sampler, serde.flat.clone(sampler))
-    assert not equals(sampler, sampler2)
+    assert equals(sampler, clone(sampler))
+    assert not equals(sampler, clone(sampler, {"num_instances": 5}))
 
-    sampler3 = transform.ContinuousTimeUniformSampler(num_instances=4)
-    assert equals(sampler3, serde.flat.clone(sampler3))
-    sampler4 = serde.flat.clone(sampler3, {"num_instances": 5})
-    assert not equals(sampler3, sampler4)
+
+def test_continuous_time_sampler():
+    sampler = transform.ContinuousTimeUniformSampler(num_instances=4)
+    assert equals(sampler, clone(sampler))
+    assert not equals(sampler, clone(sampler, {"num_instances": 5}))
 
 
 def test_instance_splitter():
-
     splitter = transform.InstanceSplitter(
         target_field=FieldName.TARGET,
         is_pad_field=FieldName.IS_PAD,
@@ -107,18 +97,16 @@ def test_instance_splitter():
         time_series_fields=["dynamic_feat", "observed_values"],
     )
 
-    assert equals(splitter, serde.flat.clone(splitter))
-    assert not equals(
+    splitter2 = clone(
         splitter,
-        serde.flat.clone(
-            splitter,
-            {
-                "instance_sampler": transform.ExpectedNumInstanceSampler(
-                    num_instances=5
-                )
-            },
-        ),
+        {
+            "instance_sampler": transform.ExpectedNumInstanceSampler(
+                num_instances=5
+            )
+        },
     )
+    assert equals(splitter, clone(splitter))
+    assert not equals(splitter, splitter2)
 
 
 def test_continuous_time_splitter():
@@ -131,25 +119,14 @@ def test_continuous_time_splitter():
     splitter2 = transform.ContinuousTimeInstanceSplitter(
         past_interval_length=1,
         future_interval_length=1,
-        instance_sampler=transform.ContinuousTimePointSampler(),
-    )
-
-    splitter3 = transform.ContinuousTimeInstanceSplitter(
-        past_interval_length=1,
-        future_interval_length=1,
         instance_sampler=transform.ContinuousTimePointSampler(min_past=1.0),
     )
-    assert equals(splitter, splitter2)
-    assert not equals(splitter, splitter3)
 
-
-def test_batch():
-    assert equals(Batch(batch_size=10), Batch(batch_size=10))
-    assert not equals(Batch(batch_size=10), Batch(batch_size=100))
+    assert equals(splitter, clone(splitter))
+    assert not equals(splitter, splitter2)
 
 
 def test_chain():
-
     chain = transform.Chain(
         trans=[
             transform.AddTimeFeatures(
@@ -175,8 +152,8 @@ def test_chain():
         ]
     )
 
-    assert equals(chain, serde.flat.clone(chain))
-    assert not equals(chain, serde.flat.clone(chain, {"trans": []}))
+    assert equals(chain, clone(chain))
+    assert not equals(chain, clone(chain, {"trans": []}))
 
     another_chain = transform.Chain(
         trans=[
@@ -211,9 +188,5 @@ def test_gluon_predictor():
 
     estimator = CanonicalRNNEstimator("5min", train_length, pred_length)
 
-    assert equals(estimator, serde.flat.clone(estimator))
-    assert not equals(estimator, serde.flat.clone(estimator, {"freq": "1h"}))
-
-
-if __name__ == "__main__":
-    test_filter_transformation()
+    assert equals(estimator, clone(estimator))
+    assert not equals(estimator, clone(estimator, {"freq": "1h"}))

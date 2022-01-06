@@ -18,10 +18,10 @@ import torch
 from torch import nn
 
 from gluonts.core.component import equals
+from gluonts.core.serde.flat import clone
 from gluonts.dataset.artificial import default_synthetic
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.batchify import batchify
@@ -30,10 +30,8 @@ from gluonts.torch.modules.distribution_output import (
     NormalOutput,
     StudentTOutput,
 )
-from gluonts.torch.util import copy_parameters
 from gluonts.transform import (
     AddObservedValuesIndicator,
-    Chain,
     ExpectedNumInstanceSampler,
     TestSplitSampler,
     InstanceSplitter,
@@ -226,4 +224,6 @@ def test_simple_model():
     another_predictor = net.get_predictor(
         transformation + another_training_splitter
     )
+
+    assert equals(predictor, clone(predictor))
     assert not equals(predictor, another_predictor)
