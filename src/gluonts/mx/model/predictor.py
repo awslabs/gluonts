@@ -180,10 +180,8 @@ class GluonPredictor(Predictor):
             return False
         if not equals(self.lead_time, that.lead_time):
             return False
-
-        # TODO: also consider equality of the pipelines
-        # if not equals(self.input_transform, that.input_transform):
-        #    return False
+        if not equals(self.input_transform, that.input_transform):
+            return False
 
         return equals(
             self.prediction_net.collect_params(),
