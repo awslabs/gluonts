@@ -51,7 +51,7 @@ class FeatureEmbedder(nn.HybridBlock):
         ), "Length of `cardinalities` list must be greater than zero"
         assert len(cardinalities) == len(
             embedding_dims
-        ), "Length of `embedding_dims` and `embedding_dims` should match"
+        ), "Length of `cardinalities` and `embedding_dims` should match"
         assert all(
             [c > 0 for c in cardinalities]
         ), "Elements of `cardinalities` should be > 0"
