@@ -99,8 +99,14 @@ class QuantileForecasts:
         Args:
             path: The path from where to load the forecasts.
         """
-        with (path / "values.npy").open("rb") as f:
-            values = np.load(f)
+        try:
+            with (path / "values.npy").open("rb") as f:
+                values = np.load(f)
+        except FileNotFoundError:
+            # This is a bug in the publicly available evaluations for MQ-RNN.
+            # Should not be called otherwise.
+            with (path / "values.npz").open("rb") as f:
+                values = np.load(f)
         with (path / "metadata.npz").open("rb") as f:
             metadata = np.load(f, allow_pickle=True).item()
         return QuantileForecasts(
