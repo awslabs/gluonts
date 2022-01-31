@@ -143,7 +143,9 @@ class StyleCheckCommand(distutils.cmd.Command):
         import click
         import black
 
-        black_opts = []
+        black_opts = [
+            "--extend-exclude", "src/gluonts/nursery/tsbench"
+        ]
         black_args = [
             str(ROOT / folder)
             for folder in ["src", "test", "examples"]
