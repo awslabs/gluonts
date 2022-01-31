@@ -32,7 +32,7 @@ def num_fitting_processes(
         cast(int, os.cpu_count()) / cpus_per_process
     )
 
-    available_gib = psutil.virtual_memory().total / (1024**3)
+    available_gib = psutil.virtual_memory().total / (1024 ** 3)
     num_processes_memory = math.floor(available_gib / memory_per_process)
 
     return min(num_processes_cpu, num_processes_memory)

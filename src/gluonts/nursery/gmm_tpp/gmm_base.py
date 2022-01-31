@@ -100,7 +100,7 @@ class GMMModel(gluon.HybridBlock):
         Rx_ = self._get_Rx_(F, dx_, kR_)
 
         log_conditional = (
-            -0.5 * (Rx_**2).sum(axis=-1)
+            -0.5 * (Rx_ ** 2).sum(axis=-1)
             - 0.5 * self.input_dim * np.log(2 * np.pi)
             + F.linalg.slogdet(kR_)[1]
         )  # (batch, num_clusters)
