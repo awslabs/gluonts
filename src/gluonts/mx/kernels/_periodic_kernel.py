@@ -88,7 +88,7 @@ class PeriodicKernel(Kernel):
                         )
                     )
                     ** 2,
-                    self.length_scale ** 2,
+                    self.length_scale**2,
                 )
             ),
         )
@@ -130,7 +130,7 @@ class PeriodicKernelOutput(KernelOutputDict):
         sigma_scaling = (
             self.compute_std(F, past_target, axis=axis) / math.sqrt(2)
         ).expand_dims(axis=axis)
-        amplitude_scaling = sigma_scaling ** 2
+        amplitude_scaling = sigma_scaling**2
         length_scale_scaling = F.broadcast_mul(
             F.mean(self.compute_std(F, past_time_feat, axis=axis)),
             F.ones_like(amplitude_scaling),

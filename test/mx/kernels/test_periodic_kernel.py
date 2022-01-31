@@ -91,7 +91,7 @@ def test_periodic_kernel(x1, x2, amplitude, length_scale, exact) -> None:
     exact = amplitude * nd.exp(
         -2
         * nd.sin(frequency * math.pi * nd.sqrt(exact)) ** 2
-        / length_scale ** 2
+        / length_scale**2
     )
 
     res = periodic.kernel_matrix(x1, x2)

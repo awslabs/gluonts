@@ -73,7 +73,7 @@ def trend_model(
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
-    T = F.stack(*[t ** i for i in range(num_coefficients)])
+    T = F.stack(*[t**i for i in range(num_coefficients)])
     return T
 
 

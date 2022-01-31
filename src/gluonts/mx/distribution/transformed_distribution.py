@@ -229,7 +229,7 @@ class AffineTransformedDistribution(TransformedDistribution):
         return (
             self.base_distribution.variance
             if self.scale is None
-            else self.base_distribution.variance * self.scale ** 2
+            else self.base_distribution.variance * self.scale**2
         )
 
     # TODO: crps
