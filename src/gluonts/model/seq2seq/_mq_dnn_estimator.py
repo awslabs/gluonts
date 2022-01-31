@@ -349,7 +349,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
-            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
         self.is_iqf = is_iqf
 
