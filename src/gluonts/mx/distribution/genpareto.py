@@ -91,7 +91,7 @@ class GenPareto(Distribution):
         """
         return F.where(
             x < 0,
-            -(10.0 ** 15) * F.ones_like(x),
+            -(10.0**15) * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
 
@@ -128,7 +128,7 @@ class GenPareto(Distribution):
         return F.where(
             xi < 1 / 2,
             F.broadcast_div(
-                beta ** 2, F.broadcast_mul((1 - xi) ** 2, (1 - 2 * xi))
+                beta**2, F.broadcast_mul((1 - xi) ** 2, (1 - 2 * xi))
             ),
             np.nan * F.ones_like(xi),
         )

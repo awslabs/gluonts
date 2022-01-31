@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 import math
 import multiprocessing as mp
 import os
@@ -32,7 +45,7 @@ def num_fitting_processes(
         cast(int, os.cpu_count()) / cpus_per_process
     )
 
-    available_gib = psutil.virtual_memory().total / (1024 ** 3)
+    available_gib = psutil.virtual_memory().total / (1024**3)
     num_processes_memory = math.floor(available_gib / memory_per_process)
 
     return min(num_processes_cpu, num_processes_memory)
