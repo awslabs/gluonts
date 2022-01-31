@@ -8,7 +8,10 @@ from typing import Any, cast, Dict, List, Tuple
 from zipfile import ZipFile
 from gluonts.dataset.common import MetaData
 from gluonts.dataset.repository._tsf_datasets import Dataset as MonashDataset
-from gluonts.dataset.repository._tsf_datasets import save_datasets, save_metadata
+from gluonts.dataset.repository._tsf_datasets import (
+    save_datasets,
+    save_metadata,
+)
 from gluonts.dataset.repository._tsf_reader import TSFReader
 from gluonts.dataset.repository.datasets import materialize_dataset
 from tsbench.config.dataset.preprocessing.filters import (
@@ -45,11 +48,13 @@ class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
 
             # Copy the data and apply filters
             filters = self._filters(
-                self._prediction_length_multiplier * cast(int, meta.prediction_length)
+                self._prediction_length_multiplier
+                * cast(int, meta.prediction_length)
             )
             read_transform_write(
                 self.root / "gluonts" / "train" / "data.json",
-                filters=filters + [EndOfSeriesCutFilter(cast(int, meta.prediction_length))],
+                filters=filters
+                + [EndOfSeriesCutFilter(cast(int, meta.prediction_length))],
                 source=source / "train" / "data.json",
             )
             read_transform_write(
@@ -63,7 +68,8 @@ class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
             read_transform_write(
                 self.root / "gluonts" / "test" / "data.json",
                 filters=self._filters(
-                    (self._prediction_length_multiplier + 1) * cast(int, meta.prediction_length)
+                    (self._prediction_length_multiplier + 1)
+                    * cast(int, meta.prediction_length)
                 ),
                 source=source / "test" / "data.json",
             )
@@ -79,10 +85,15 @@ class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
         return 0
 
     def _filters(self, prediction_length: int) -> List[Filter]:
-        return [ConstantTargetFilter(prediction_length), AbsoluteValueFilter(1e18)]
+        return [
+            ConstantTargetFilter(prediction_length),
+            AbsoluteValueFilter(1e18),
+        ]
 
     def _materialize(self, directory: Path, regenerate: bool = False) -> None:
-        materialize_dataset(self._gluonts_name, directory, regenerate=regenerate)
+        materialize_dataset(
+            self._gluonts_name, directory, regenerate=regenerate
+        )
 
 
 @dataclass(frozen=True)
@@ -120,9 +131,17 @@ class MonashDatasetConfig(GluonTsDatasetConfig):
         path.mkdir()
 
         # Save metadata and dataset (filling in missing timestamps)
-        save_metadata(path, len(data), _get_frequency(meta.frequency), self._prediction_length)
+        save_metadata(
+            path,
+            len(data),
+            _get_frequency(meta.frequency),
+            self._prediction_length,
+        )
 
-        data = [{**d, "start_timestamp": d.get("start_timestamp", "1970-01-01")} for d in data]
+        data = [
+            {**d, "start_timestamp": d.get("start_timestamp", "1970-01-01")}
+            for d in data
+        ]
         save_datasets(path, data, self._prediction_length)
 
 
@@ -143,7 +162,9 @@ class M3DatasetConfig(GluonTsDatasetConfig):  # pylint: disable=abstract-method
             opener = req.build_opener()
             opener.addheaders = [("User-Agent", "")]
             req.install_opener(opener)
-            req.urlretrieve("https://forecasters.org/data/m3comp/M3C.xls", target)
+            req.urlretrieve(
+                "https://forecasters.org/data/m3comp/M3C.xls", target
+            )
 
         # Run the generation
         super().generate()
@@ -160,7 +181,9 @@ class KaggleDatasetConfig(GluonTsDatasetConfig):
         if self.root.exists():
             return
 
-        data_root = Path.home() / ".mxnet" / "gluon-ts" / "datasets" / self.name()
+        data_root = (
+            Path.home() / ".mxnet" / "gluon-ts" / "datasets" / self.name()
+        )
         if not data_root.exists():
             raise ValueError(
                 f"download the dataset from Kaggle ({self._link}) and unzip it into {data_root}"
@@ -203,7 +226,9 @@ class KaggleDatasetConfig(GluonTsDatasetConfig):
     def _link(self) -> str:
         raise NotImplementedError
 
-    def _extract_data(self, path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _extract_data(
+        self, path: Path
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         raise NotImplementedError
 
 

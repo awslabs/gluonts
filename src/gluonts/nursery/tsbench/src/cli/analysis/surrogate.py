@@ -1,7 +1,11 @@
 from pathlib import Path
+import click
 import yaml
-from black import click
-from cli.utils import explode_key_values, iterate_configurations, run_sacred_script
+from cli.utils import (
+    explode_key_values,
+    iterate_configurations,
+    run_sacred_script,
+)
 from tsbench.constants import DEFAULT_DATA_PATH, DEFAULT_EVALUATIONS_PATH
 from ._main import analysis
 
@@ -38,7 +42,11 @@ from ._main import analysis
     help="The number of configurations to skip. Useful if some set of experiments failed.",
 )
 def surrogate(
-    experiment: str, config_path: str, data_path: str, evaluations_path: str, nskip: int
+    experiment: str,
+    config_path: str,
+    data_path: str,
+    evaluations_path: str,
+    nskip: int,
 ):
     """
     Evaluates the performance of a set of surrogate models using the available offline

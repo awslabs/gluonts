@@ -21,7 +21,7 @@ def hypervolume(points: npt.NDArray[np.float32], box: float = 1) -> float:
     """
     dim = points.shape[1]
     ref = np.ones(dim) * box
-    return pygmo.hypervolume(points).compute(ref) / (box ** dim)  # type: ignore
+    return pygmo.hypervolume(points).compute(ref) / (box**dim)  # type: ignore
 
 
 def maximum_spread(solution: npt.NDArray[np.float32]) -> float:

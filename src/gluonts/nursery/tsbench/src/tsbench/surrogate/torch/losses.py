@@ -9,7 +9,12 @@ class ListMLELoss(nn.Module):
     score indicates a lower rank (i.e. "better" value).
     """
 
-    def __init__(self, discount: Optional[Literal["logarithmic", "linear", "quadratic"]] = None):
+    def __init__(
+        self,
+        discount: Optional[
+            Literal["logarithmic", "linear", "quadratic"]
+        ] = None,
+    ):
         """
         Args:
             discount: The type of discount to apply. If discounting, higher-ranked values are more
@@ -19,7 +24,10 @@ class ListMLELoss(nn.Module):
         self.discount = discount
 
     def forward(
-        self, y_pred: torch.Tensor, y_true: torch.Tensor, group_ids: torch.Tensor
+        self,
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor,
+        group_ids: torch.Tensor,
     ) -> torch.Tensor:
         """
         Computes the listwise loss of the predictions.
@@ -39,7 +47,9 @@ class ListMLELoss(nn.Module):
         for group_id in group_ids.unique():
             # First, we extract the values belonging to the group
             mask = group_ids == group_id
-            group_pred = -y_pred[mask]  # for ListMLE, a higher score is "better, so we invert here
+            group_pred = -y_pred[
+                mask
+            ]  # for ListMLE, a higher score is "better, so we invert here
             group_true = y_true[mask]
 
             # Then, compute numerator and denominator
@@ -60,7 +70,9 @@ class ListMLELoss(nn.Module):
                 else:  # self.discount == "quadratic"
                     denom = (torch.arange(n) + 1)[:, None] ** 2
                 # We additionally scale by n / denom.sum() to scale the loss
-                log_likeli = (log_likeli / denom) * (n / denom.reciprocal().sum())
+                log_likeli = (log_likeli / denom) * (
+                    n / denom.reciprocal().sum()
+                )
 
             log_likelihoods.append(log_likeli.mean())
 

@@ -19,7 +19,10 @@ def run_sacred_script(script: str, **kwargs: Any) -> None:
             "python",
             "-W",
             "ignore",
-            Path(os.path.realpath(__file__)).parent.parent / "analysis" / "scripts" / script,
+            Path(os.path.realpath(__file__)).parent.parent
+            / "analysis"
+            / "scripts"
+            / script,
             "-m",
             "localhost:27017:sacred",
             "with",

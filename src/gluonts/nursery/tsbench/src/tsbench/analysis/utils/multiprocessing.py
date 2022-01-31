@@ -14,7 +14,9 @@ U = TypeVar("U")
 _GLOBAL_DATA_CACHE = None
 
 
-def num_fitting_processes(cpus_per_process: float = 2, memory_per_process: float = 16) -> int:
+def num_fitting_processes(
+    cpus_per_process: float = 2, memory_per_process: float = 16
+) -> int:
     """
     Returns the number of processes that can be fitted onto the machine when using a particular
     number of CPUs and a particular amount of memory for every process.
@@ -26,15 +28,19 @@ def num_fitting_processes(cpus_per_process: float = 2, memory_per_process: float
     Returns:
         The number of processes to use.
     """
-    num_processes_cpu = math.floor(cast(int, os.cpu_count()) / cpus_per_process)
+    num_processes_cpu = math.floor(
+        cast(int, os.cpu_count()) / cpus_per_process
+    )
 
-    available_gib = psutil.virtual_memory().total / (1024 ** 3)
+    available_gib = psutil.virtual_memory().total / (1024**3)
     num_processes_memory = math.floor(available_gib / memory_per_process)
 
     return min(num_processes_cpu, num_processes_memory)
 
 
-def run_parallel(execute: Callable[[T], U], data: List[T], num_processes: int) -> List[U]:
+def run_parallel(
+    execute: Callable[[T], U], data: List[T], num_processes: int
+) -> List[U]:
     """
     Runs a function on multiple processes, parallelizing computations for the provided data.
 

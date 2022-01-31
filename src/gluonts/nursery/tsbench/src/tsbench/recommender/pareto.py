@@ -42,7 +42,9 @@ class ParetoRecommender(Recommender[T]):
     def required_memory(self) -> int:
         return self.surrogate.required_memory
 
-    def fit(self, configs: List[Config[T]], performances: List[Performance]) -> None:
+    def fit(
+        self, configs: List[Config[T]], performances: List[Performance]
+    ) -> None:
         super().fit(configs, performances)
         self.surrogate.fit(configs, performances)
 

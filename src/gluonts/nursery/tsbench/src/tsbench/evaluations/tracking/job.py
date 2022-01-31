@@ -119,8 +119,12 @@ class Job:
             Performance(
                 training_time=Metric(p["training"]["duration"], 0),
                 latency=Metric(self.static_metrics["latency"], 0),
-                num_model_parameters=Metric(self.static_metrics["num_model_parameters"], 0),
-                num_gradient_updates=Metric(p["training"]["num_gradient_updates"], 0),
+                num_model_parameters=Metric(
+                    self.static_metrics["num_model_parameters"], 0
+                ),
+                num_gradient_updates=Metric(
+                    p["training"]["num_gradient_updates"], 0
+                ),
                 **{
                     k: Metric(p["testing"][k], 0)
                     for k in ["mase", "smape", "nrmse", "nd", "ncrps"]
@@ -142,7 +146,9 @@ class Job:
         # If this job was initialized from Sagemaker, load it from the Sagemaker job
         if self.source_job is not None:
             with self.source_job.artifact(cache=False) as artifact:
-                return QuantileForecasts.load(artifact.path / "predictions" / f"model_{index}")
+                return QuantileForecasts.load(
+                    artifact.path / "predictions" / f"model_{index}"
+                )
 
         # Otherwise, load it from the file system
         return QuantileForecasts.load(
@@ -162,9 +168,12 @@ class Job:
 
         # First, we generate the folder name
         components = [f"seed-{self.config['seed']}"] + [
-            f"{k}-{v}" for k, v in self.config.get("hyperparameters", {}).items()
+            f"{k}-{v}"
+            for k, v in self.config.get("hyperparameters", {}).items()
         ]
-        target = path / self.model / self.dataset / "+".join(sorted(components))
+        target = (
+            path / self.model / self.dataset / "+".join(sorted(components))
+        )
 
         # Make sure folder exists and is empty
         if target.exists():
@@ -188,12 +197,21 @@ class Job:
                 for i in range(num_models):
                     (target / "forecasts" / f"model_{i:02}").mkdir()
                     shutil.copyfile(
-                        artifact.path / "predictions" / f"model_{i}" / "values.npy",
+                        artifact.path
+                        / "predictions"
+                        / f"model_{i}"
+                        / "values.npy",
                         target / "forecasts" / f"model_{i:02}" / "values.npy",
                     )
                     shutil.copyfile(
-                        artifact.path / "predictions" / f"model_{i}" / "metadata.npz",
-                        target / "forecasts" / f"model_{i:02}" / "metadata.npz",
+                        artifact.path
+                        / "predictions"
+                        / f"model_{i}"
+                        / "metadata.npz",
+                        target
+                        / "forecasts"
+                        / f"model_{i:02}"
+                        / "metadata.npz",
                     )
 
         # Finally check that saving all data worked as expected
@@ -241,7 +259,9 @@ def _extract_configuration(job: TrainingJob) -> Dict[str, Any]:
 
     hyperparameters = {}
     if "context_length_multiple" in job.hyperparameters:
-        hyperparameters["context_length_multiple"] = job.hyperparameters["context_length_multiple"]
+        hyperparameters["context_length_multiple"] = job.hyperparameters[
+            "context_length_multiple"
+        ]
     for key, value in job.hyperparameters.items():
         if key.startswith(f"{model}_"):
             hyperparameters[key[len(model) + 1 :]] = value
@@ -258,8 +278,20 @@ def _extract_performance(job: TrainingJob) -> Dict[str, Any]:
     # We need to keep the "mean_weighted_quantile_loss" for legacy experiments
     hierarchy = {
         "training": ["training_time", "num_gradient_updates"],
-        "evaluation": ["train_loss", "val_loss", "val_mean_weighted_quantile_loss", "val_ncrps"],
-        "testing": ["mase", "smape", "nrmse", "nd", "mean_weighted_quantile_loss", "ncrps"],
+        "evaluation": [
+            "train_loss",
+            "val_loss",
+            "val_mean_weighted_quantile_loss",
+            "val_ncrps",
+        ],
+        "testing": [
+            "mase",
+            "smape",
+            "nrmse",
+            "nd",
+            "mean_weighted_quantile_loss",
+            "ncrps",
+        ],
     }
     rename = {
         "training_time": "duration",
@@ -287,7 +319,9 @@ def _extract_performance(job: TrainingJob) -> Dict[str, Any]:
 
     result = {
         "meta": {
-            "num_model_parameters": int(job.metrics["num_model_parameters"][0].item()),
+            "num_model_parameters": int(
+                job.metrics["num_model_parameters"][0].item()
+            ),
             "latency": np.mean(job.metrics["latency"]).item(),
         },
         "performances": performances,

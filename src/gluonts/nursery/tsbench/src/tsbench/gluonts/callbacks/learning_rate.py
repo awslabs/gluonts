@@ -37,7 +37,9 @@ class LearningRateScheduleCallback(Callback):  # type: ignore
         self.lr = trainer.learning_rate
         self.milestone_index = 0
 
-    def on_train_batch_end(self, network: nn.HybridBlock, time_elapsed: float) -> None:
+    def on_train_batch_end(
+        self, network: nn.HybridBlock, time_elapsed: float
+    ) -> None:
         if (
             len(self.milestones) > self.milestone_index
             and time_elapsed > self.milestones[self.milestone_index]

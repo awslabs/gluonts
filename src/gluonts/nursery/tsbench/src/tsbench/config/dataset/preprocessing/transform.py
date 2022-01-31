@@ -5,7 +5,9 @@ from .filters import Filter
 
 
 def read_transform_write(
-    file: Path, filters: Optional[List[Filter]] = None, source: Optional[Path] = None
+    file: Path,
+    filters: Optional[List[Filter]] = None,
+    source: Optional[Path] = None,
 ) -> None:
     """
     Reads the dataset from the provided path, applies the given transform and writes it back to the

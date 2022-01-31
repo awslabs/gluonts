@@ -34,7 +34,9 @@ def pareto_efficiency_mask(X: npt.NDArray[np.float32]) -> np.ndarray:
     return mask
 
 
-def epsilon_net_indices(X: npt.NDArray[np.float32], dim: Optional[int] = None) -> np.ndarray:
+def epsilon_net_indices(
+    X: npt.NDArray[np.float32], dim: Optional[int] = None
+) -> np.ndarray:
     """
     Outputs an order of the items in the provided array such that the items are spaced well. This
     means that after choosing a seed item, the next item is chosen to be the farthest from the seed
@@ -70,7 +72,10 @@ def epsilon_net_indices(X: npt.NDArray[np.float32], dim: Optional[int] = None) -
     while indices:
         # Get the distance to all items that have already been chosen
         ordered_indices = list(indices)
-        diff = X[ordered_indices][:, None, :].repeat(len(order), axis=1) - X[order]
+        diff = (
+            X[ordered_indices][:, None, :].repeat(len(order), axis=1)
+            - X[order]
+        )
         min_distances = np.linalg.norm(diff, axis=-1).min(-1)
 
         # Then, choose the one with the maximum distance to all points

@@ -6,11 +6,15 @@ from numpy import ma
 from .quantile import QuantileForecasts
 
 
-def rmse(y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]) -> float:
+def rmse(
+    y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]
+) -> float:
     return np.sqrt(((y_pred - y_true) ** 2).mean())
 
 
-def abs_error_sum(y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]) -> float:
+def abs_error_sum(
+    y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]
+) -> float:
     return np.abs(y_pred - y_true).sum()
 
 
@@ -39,7 +43,9 @@ def mase(
     return mase_values.mean()
 
 
-def smape(y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]) -> float:
+def smape(
+    y_pred: npt.NDArray[np.float32], y_true: npt.NDArray[np.float32]
+) -> float:
     median = y_pred
     num = np.abs(y_true - median)
     denom = (np.abs(y_true) + np.abs(median)) / 2
@@ -54,7 +60,8 @@ def ncrps(y_pred: QuantileForecasts, y_true: npt.NDArray[np.float32]) -> float:
     quantiles = np.array([float(q) for q in y_pred.quantiles])
     quantile_losses = 2 * np.sum(
         np.abs(
-            (y_pred.values - y_true_rep) * ((y_true_rep <= y_pred.values) - quantiles[:, None])
+            (y_pred.values - y_true_rep)
+            * ((y_true_rep <= y_pred.values) - quantiles[:, None])
         ),
         axis=-1,
     )  # shape [num_time_series, num_quantiles]

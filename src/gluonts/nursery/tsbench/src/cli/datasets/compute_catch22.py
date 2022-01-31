@@ -50,14 +50,18 @@ def compute_catch22(dataset: Optional[str], data_path: str, output_path: str):
     directory = Path(output_path)
     directory.mkdir(parents=True, exist_ok=True)
 
-    for dataset_name, config in tqdm(dataset_names, disable=len(dataset_names) == 1):
+    for dataset_name, config in tqdm(
+        dataset_names, disable=len(dataset_names) == 1
+    ):
         file = directory / f"{dataset_name}.parquet"
         if file.exists():
             continue
 
         ts_features = process_map(
             _get_features,
-            config.data.train(val=False).gluonts(),  # Get features on train set
+            config.data.train(
+                val=False
+            ).gluonts(),  # Get features on train set
             max_workers=os.cpu_count(),
             desc=dataset_name,
             chunksize=1,

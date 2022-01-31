@@ -119,7 +119,9 @@ def schedule(
         sm_session = sagemaker.Session(boto_session)
 
     def job_factory() -> str:
-        date_str = datetime.now(tz=timezone.utc).strftime("%d-%m-%Y-%H-%M-%S-%f")
+        date_str = datetime.now(tz=timezone.utc).strftime(
+            "%d-%m-%Y-%H-%M-%S-%f"
+        )
         job_name = f"{experiment}-{date_str}"
         return job_name
 
@@ -146,12 +148,18 @@ def schedule(
             volume_size=30,
             max_run=max_runtime * 60 * 60,
             image_uri=image_uri(docker_image),
-            source_dir=str(Path(os.path.realpath(__file__)).parent.parent.parent),
+            source_dir=str(
+                Path(os.path.realpath(__file__)).parent.parent.parent
+            ),
             output_path=f"s3://{output_bucket}/{output_bucket_prefix}/{experiment}",
             entry_point="evaluate.py",
             debugger_hook_config=False,
             metric_definitions=metric_definitions(),
-            hyperparameters={k: v for k, v in configuration.items() if not k.startswith("__")},
+            hyperparameters={
+                k: v
+                for k, v in configuration.items()
+                if not k.startswith("__")
+            },
         )
 
         while True:

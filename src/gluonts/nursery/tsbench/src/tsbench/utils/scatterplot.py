@@ -49,7 +49,9 @@ def plot_scatter_matrix(  # pylint: disable=too-many-statements
     Creates a set of plots that visualize the data entries along the provided dimensions.
     """
     n = len(dimensions)
-    fig, axes = plt.subplots(n - 1, n - 1, figsize=((n - 1) * size[0], (n - 1) * size[1]), dpi=150)
+    fig, axes = plt.subplots(
+        n - 1, n - 1, figsize=((n - 1) * size[0], (n - 1) * size[1]), dpi=150
+    )
     if title is not None:
         fig.suptitle(title)
 
@@ -88,7 +90,9 @@ def plot_scatter_matrix(  # pylint: disable=too-many-statements
                 ys = np.array(ys)
                 all_points = np.stack([xs, ys], axis=1)
                 mask = pareto_efficiency_mask(all_points)
-                pareto_front = np.array(sorted(all_points[mask], key=lambda r: -r[1]))
+                pareto_front = np.array(
+                    sorted(all_points[mask], key=lambda r: -r[1])
+                )
                 pareto_front_x = pareto_front[:, 0].tolist()
                 pareto_front_y = pareto_front[:, 1].tolist()
                 ax.step(
@@ -104,13 +108,17 @@ def plot_scatter_matrix(  # pylint: disable=too-many-statements
                 ax.set_xlim(xlim)
 
             if j == 0:
-                ax.set_ylabel(dimensions[i + 1].displayName, fontsize=axis_fontsize)
+                ax.set_ylabel(
+                    dimensions[i + 1].displayName, fontsize=axis_fontsize
+                )
             if tick_fontsize is not None:
                 for tick in ax.yaxis.get_major_ticks():
                     tick.label.set_fontsize(tick_fontsize)
 
             if i == n - 2:
-                ax.set_xlabel(dimensions[j].displayName, fontsize=axis_fontsize)
+                ax.set_xlabel(
+                    dimensions[j].displayName, fontsize=axis_fontsize
+                )
             if tick_fontsize is not None:
                 for tick in ax.xaxis.get_major_ticks():
                     tick.label.set_fontsize(tick_fontsize)

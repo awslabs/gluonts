@@ -17,7 +17,9 @@ from .metrics import (
 from .quantile import QuantileForecasts
 
 
-def evaluate_forecasts(forecasts: QuantileForecasts, data: EvaluationDataset) -> Evaluation:
+def evaluate_forecasts(
+    forecasts: QuantileForecasts, data: EvaluationDataset
+) -> Evaluation:
     """
     Evaluates the forecasts on the provided dataset and returns the metrics averaged over all time
     series.
@@ -40,8 +42,10 @@ def evaluate_forecasts(forecasts: QuantileForecasts, data: EvaluationDataset) ->
 
     # Compute all the metrics
     results = {
-        "nd": abs_error_sum(forecasts.median, data.future) / abs_target_sum(data.future),
-        "nrmse": rmse(forecasts.median, data.future) / abs_target_mean(data.future),
+        "nd": abs_error_sum(forecasts.median, data.future)
+        / abs_target_sum(data.future),
+        "nrmse": rmse(forecasts.median, data.future)
+        / abs_target_mean(data.future),
         "mase": mase(forecasts.median, data.future, seasonal_error),
         "smape": smape(forecasts.median, data.future),
         "ncrps": ncrps(forecasts, data.future),
@@ -82,8 +86,18 @@ class Evaluation:
                 Metric(0, 0)
                 if m == "num_model_parameters"
                 else Metric(
-                    np.mean([metric[m] if m in metric else np.nan for metric in metrics]),
-                    np.std([metric[m] if m in metric else np.nan for metric in metrics]),
+                    np.mean(
+                        [
+                            metric[m] if m in metric else np.nan
+                            for metric in metrics
+                        ]
+                    ),
+                    np.std(
+                        [
+                            metric[m] if m in metric else np.nan
+                            for metric in metrics
+                        ]
+                    ),
                 )
             )
             for m in Performance.metrics()

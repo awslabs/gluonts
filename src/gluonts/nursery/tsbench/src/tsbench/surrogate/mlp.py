@@ -29,7 +29,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
         self,
         tracker: ModelTracker,
         objective: Literal["regression", "ranking"] = "regression",
-        discount: Optional[Literal["logarithmic", "linear", "quadratic"]] = None,
+        discount: Optional[
+            Literal["logarithmic", "linear", "quadratic"]
+        ] = None,
         hidden_layer_sizes: Optional[List[int]] = None,
         weight_decay: float = 0.0,
         dropout: float = 0.0,
@@ -65,7 +67,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             impute_simulatable: Whether the tracker should impute latency and number of model
                 parameters into the returned performance object.
         """
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.use_ranking = objective == "ranking"
         self.hidden_layer_sizes = hidden_layer_sizes or []
@@ -89,7 +93,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     def required_cpus(self) -> int:
         return 4
 
-    def _fit(self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         # Fit transformers to infer dimensionality
         X_numpy = self.config_transformer.fit_transform(X)
 
@@ -109,7 +115,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             dataset = TensorDataset(
                 torch.from_numpy(X_numpy).float(),
                 torch.from_numpy(y[:, i : i + 1]).float(),
-                torch.as_tensor([mapping[x.dataset] for x in X], dtype=torch.long),
+                torch.as_tensor(
+                    [mapping[x.dataset] for x in X], dtype=torch.long
+                ),
             )
             train_loader = DataLoader(dataset, batch_size=len(dataset))
             self._trainer.fit(module, train_dataloaders=train_loader)
@@ -117,7 +125,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             # Add to models
             self.models_.append(model)
 
-    def _predict(self, X: List[Config[ModelConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[ModelConfig]]
+    ) -> npt.NDArray[np.float32]:
         # Get data
         X_numpy = self.config_transformer.transform(X)
         dataset = TensorDataset(
@@ -130,7 +140,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
         predictions = []
         for model in self.models_:
             module = MLPLightningModule(model, self.loss)
-            out = cast(List[torch.Tensor], self._trainer.predict(module, test_loader))
+            out = cast(
+                List[torch.Tensor], self._trainer.predict(module, test_loader)
+            )
             predictions.append(out[0].numpy())
 
         return np.concatenate(predictions, axis=-1)
@@ -149,7 +161,9 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     def _init_model(self, input_dim: int) -> nn.Module:
         layer_sizes = [input_dim] + self.hidden_layer_sizes + [1]
         layers = []
-        for i, (in_size, out_size) in enumerate(zip(layer_sizes, layer_sizes[1:])):
+        for i, (in_size, out_size) in enumerate(
+            zip(layer_sizes, layer_sizes[1:])
+        ):
             if i > 0:
                 layers.append(nn.LeakyReLU())
                 if self.dropout > 0:

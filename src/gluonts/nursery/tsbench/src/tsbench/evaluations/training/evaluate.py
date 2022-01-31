@@ -46,13 +46,16 @@ class FitResult:
         if length is not None:
             # pylint: disable=invalid-unary-operand-type
             dataset = [
-                {**item, "target": item["target"][-length:]} for item in dataset_split.gluonts()
+                {**item, "target": item["target"][-length:]}
+                for item in dataset_split.gluonts()
             ]
         else:
             dataset = dataset_split.gluonts()
 
         for i, predictor in enumerate(self.predictors):
-            logging.info("Evaluating predictor %d/%d...", i + 1, len(self.predictors))
+            logging.info(
+                "Evaluating predictor %d/%d...", i + 1, len(self.predictors)
+            )
 
             # Evaluate
             with _suppress_stdout_stderr():  # need to do this to suppress Prophet outputs
@@ -62,7 +65,9 @@ class FitResult:
                     num_samples=self.config.prediction_samples,
                     parallelize=self.config.prefers_parallel_predictions,
                 )
-            evaluation = evaluate_forecasts(prediction, dataset_split.evaluation())
+            evaluation = evaluate_forecasts(
+                prediction, dataset_split.evaluation()
+            )
 
             # Log the summary and store the predictions
             eval_dir = directory / f"model_{i}"
@@ -88,7 +93,9 @@ class FitResult:
             directory: The directory where the predictors should be serialized to.
         """
         for i, predictor in enumerate(self.predictors):
-            logging.info("Serializing predictor %d/%d...", i + 1, len(self.predictors))
+            logging.info(
+                "Serializing predictor %d/%d...", i + 1, len(self.predictors)
+            )
             path = directory / f"model_{i}"
             path.mkdir(parents=True, exist_ok=True)
             self.config.save_predictor(predictor, path)

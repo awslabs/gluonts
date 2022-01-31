@@ -60,7 +60,10 @@ def explode_key_values(
     """
     all_combinations = {
         primary: itertools.product(
-            *[[(option["key"], value) for value in option["values"]] for option in choices]
+            *[
+                [(option["key"], value) for value in option["values"]]
+                for option in choices
+            ]
         )
         if choices
         else []
@@ -76,7 +79,12 @@ def explode_key_values(
             primary_config = {primary_key: primary}
             for key, value in item:
                 if isinstance(key, (list, tuple)):
-                    primary_config.update({process_key(primary, k): v for k, v in zip(key, value)})
+                    primary_config.update(
+                        {
+                            process_key(primary, k): v
+                            for k, v in zip(key, value)
+                        }
+                    )
                 else:
                     primary_config[process_key(primary, key)] = value
             configs.append(primary_config)
@@ -86,7 +94,9 @@ def explode_key_values(
     for config in configs:
         if "__repeat__" in config:
             for _ in range(config["__repeat__"]):
-                result.append({k: v for k, v in config.items() if k != "__repeat__"})
+                result.append(
+                    {k: v for k, v in config.items() if k != "__repeat__"}
+                )
         else:
             result.append(config)
 

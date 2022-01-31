@@ -49,7 +49,9 @@ class AutoGluonSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             impute_simulatable: Whether the tracker should impute latency and number of model
                 parameters into the returned performance object.
         """
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.time_limit = time_limit
         self.output_normalization = output_normalization
@@ -61,13 +63,17 @@ class AutoGluonSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             tracker=tracker,
         )
 
-    def _fit(self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         X_numpy = self.config_transformer.fit_transform(X)
 
         # We need to train one predictor per output feature
         self.predictors = []
         for i in range(y.shape[1]):
-            df = pd.DataFrame(np.concatenate([X_numpy, y[:, i : i + 1]], axis=-1))
+            df = pd.DataFrame(
+                np.concatenate([X_numpy, y[:, i : i + 1]], axis=-1)
+            )
             predictor = TabularPredictor(
                 df.shape[1] - 1,
                 problem_type="regression",
@@ -76,7 +82,9 @@ class AutoGluonSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             predictor.fit(df, time_limit=self.time_limit, verbosity=0)
             self.predictors.append(predictor)
 
-    def _predict(self, X: List[Config[ModelConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[ModelConfig]]
+    ) -> npt.NDArray[np.float32]:
         X_numpy = self.config_transformer.transform(X)
         df = pd.DataFrame(X_numpy)
 

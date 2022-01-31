@@ -2,7 +2,9 @@ import os
 from typing import Any
 
 
-def upload_directory(client: Any, directory: str, bucket: str, prefix: str = "") -> None:
+def upload_directory(
+    client: Any, directory: str, bucket: str, prefix: str = ""
+) -> None:
     """
     Uploads all files in the given directory (recursively) to the provided bucket, using the
     specified prefix.

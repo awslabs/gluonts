@@ -8,7 +8,11 @@ import numpy as np
 import pandas as pd
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
 from numpy import ma
-from tsbench.constants import DEFAULT_DATA_CATCH22_PATH, DEFAULT_DATA_PATH, DEFAULT_DATA_STATS_PATH
+from tsbench.constants import (
+    DEFAULT_DATA_CATCH22_PATH,
+    DEFAULT_DATA_PATH,
+    DEFAULT_DATA_STATS_PATH,
+)
 
 
 @dataclass(frozen=True)
@@ -77,7 +81,9 @@ class DatasetConfig:
         """
         return self.base_path / self.name()
 
-    def stats(self, root: Union[str, Path] = DEFAULT_DATA_STATS_PATH) -> Dict[str, float]:
+    def stats(
+        self, root: Union[str, Path] = DEFAULT_DATA_STATS_PATH
+    ) -> Dict[str, float]:
         """
         Returns basic statistics of the dataset.
 
@@ -88,7 +94,9 @@ class DatasetConfig:
         with file.open("r") as f:
             return json.load(f)
 
-    def catch22(self, root: Union[str, Path] = DEFAULT_DATA_CATCH22_PATH) -> pd.DataFrame:
+    def catch22(
+        self, root: Union[str, Path] = DEFAULT_DATA_CATCH22_PATH
+    ) -> pd.DataFrame:
         """
         Returns the catch22 features of all time series in the dataset.
 
@@ -118,7 +126,9 @@ class DatasetSplits:
             val: Whether validation data is used. If not, this returns the validation data, i.e.
                 the same time series that are longer by the prediction length.
         """
-        return DatasetSplit(self._metadata, self._directory, "train" if val else "val")
+        return DatasetSplit(
+            self._metadata, self._directory, "train" if val else "val"
+        )
 
     def val(self) -> DatasetSplit:
         """
@@ -149,19 +159,26 @@ class DatasetSplit:
         Returns the GluonTS dataset for the dataset split. This loads the associated JSON file and
         is, thus, potentially slow.
         """
-        return FileDataset(self._directory / "gluonts" / self._split, freq=self._metadata.freq)
+        return FileDataset(
+            self._directory / "gluonts" / self._split, freq=self._metadata.freq
+        )
 
     def evaluation(self) -> EvaluationDataset:
         """
         Returns the NumPy arrays that are used to perform evaluation.
         """
         if self._split == "train":
-            raise ValueError("training data does not provide an evaluation dataset")
+            raise ValueError(
+                "training data does not provide an evaluation dataset"
+            )
 
         base = self._directory / "numpy" / self._split
         return EvaluationDataset(
             np.load(base / "future_data.npy"),
-            ma.MaskedArray(np.load(base / "past_data.npy"), mask=np.load(base / "past_mask.npy")),
+            ma.MaskedArray(
+                np.load(base / "past_data.npy"),
+                mask=np.load(base / "past_mask.npy"),
+            ),
         )
 
     def prepare(self) -> None:

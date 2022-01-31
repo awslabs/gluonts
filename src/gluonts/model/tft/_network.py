@@ -327,10 +327,10 @@ class TemporalFusionTransformerNetwork(HybridBlock):
             count + self.normalize_eps,
         )
         scale = F.broadcast_div(
-            F.sum(obs ** 2, axis=1, keepdims=True),
+            F.sum(obs**2, axis=1, keepdims=True),
             count + self.normalize_eps,
         )
-        scale = F.broadcast_sub(scale, offset ** 2)
+        scale = F.broadcast_sub(scale, offset**2)
         scale = F.sqrt(scale)
         past_target = F.broadcast_div(
             F.broadcast_sub(past_target, offset),

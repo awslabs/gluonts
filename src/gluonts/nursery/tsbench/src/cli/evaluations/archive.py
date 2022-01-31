@@ -5,7 +5,9 @@ from tsbench.utils import compress_directory
 from ._main import evaluations
 
 
-@evaluations.command(short_help="Archive metrics of all evaluations into a single file.")
+@evaluations.command(
+    short_help="Archive metrics of all evaluations into a single file."
+)
 @click.option(
     "--evaluations_path",
     type=click.Path(exists=True),

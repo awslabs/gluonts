@@ -22,7 +22,8 @@ def compute_ranks(candidates: Dict[str, pd.DataFrame]) -> pd.DataFrame:
 
     # Sort data frames such that we can use NumPy operations to compute ranks
     sorted_candidates = [
-        {"name": k, "df": d[ref.columns].sort_index()} for k, d in candidates.items()
+        {"name": k, "df": d[ref.columns].sort_index()}
+        for k, d in candidates.items()
     ]
     arr = np.stack([c["df"].to_numpy() for c in sorted_candidates], axis=0)  # type: ignore
     ranks = st.rankdata(arr, axis=0, method="min")
@@ -38,7 +39,9 @@ def compute_ranks(candidates: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         ],
         names=["candidate", "example"],
     )
-    return pd.DataFrame(np.concatenate(ranks), index=index, columns=ref.columns)
+    return pd.DataFrame(
+        np.concatenate(ranks), index=index, columns=ref.columns
+    )
 
 
 def _check_candidates(candidates: Dict[str, pd.DataFrame]) -> None:

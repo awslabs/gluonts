@@ -49,7 +49,9 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             impute_simulatable: Whether the tracker should impute latency and number of model
                 parameters into the returned performance object.
         """
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.use_dataset_features = any(
             [
@@ -67,13 +69,17 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
                 tracker=tracker,
             )
 
-    def _fit(self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         # For each model configuration, we store all performances, sorted by dataset
         performances = defaultdict(list)
         datasets = set()
         for xx, yy in zip(X, y):
             datasets.add(xx.dataset)
-            performances[xx.model].append({"performance": yy, "dataset": xx.dataset})
+            performances[xx.model].append(
+                {"performance": yy, "dataset": xx.dataset}
+            )
 
         # Then, we assign the model performances and dataset features
         self.model_performances_ = {
@@ -98,7 +104,9 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
                 ]
             )
 
-    def _predict(self, X: List[Config[ModelConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[ModelConfig]]
+    ) -> npt.NDArray[np.float32]:
         if self.use_dataset_features:
             embeddings = self.config_transformer.transform(X)
 
@@ -108,7 +116,9 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             if self.use_dataset_features:
                 dataset_embedding = embeddings[i][None, :]  # type: ignore
                 # Compute distances
-                distances = euclidean_distances(self.dataset_features_, dataset_embedding)
+                distances = euclidean_distances(
+                    self.dataset_features_, dataset_embedding
+                )
                 similarity = 1 / distances
                 similarity[distances == 0] = float("inf")
                 # Compute weighted prediction

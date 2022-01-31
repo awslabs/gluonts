@@ -54,9 +54,14 @@ class ModelSaverCallback(Callback):  # type: ignore
     def on_network_initialization_end(self, network: nn.HybridBlock) -> None:
         self.network = network
 
-    def on_train_batch_end(self, network: nn.HybridBlock, time_elapsed: float) -> None:
+    def on_train_batch_end(
+        self, network: nn.HybridBlock, time_elapsed: float
+    ) -> None:
         self.batch_count += 1
-        if len(self.milestones) > self.seq and time_elapsed > self.milestones[self.seq]:
+        if (
+            len(self.milestones) > self.seq
+            and time_elapsed > self.milestones[self.seq]
+        ):
             file = self.directory / f"model_{self.seq}.params"
             network.save_parameters(file.absolute().as_posix())
             self.saved_parameters.append(file)

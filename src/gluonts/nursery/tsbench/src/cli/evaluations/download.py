@@ -38,7 +38,9 @@ from ._main import evaluations
     show_default=True,
     help="The path to which to download the evaluations to.",
 )
-def download(experiment: Optional[str], include_forecasts: bool, evaluations_path: str):
+def download(
+    experiment: Optional[str], include_forecasts: bool, evaluations_path: str
+):
     """
     Downloads either the evaluations of a single AWS Sagemaker experiment or the publicly
     available evaluations. The evaluations are downloaded to the provided directory.
@@ -48,18 +50,24 @@ def download(experiment: Optional[str], include_forecasts: bool, evaluations_pat
 
     if experiment is None:
         print("Downloading publicly available evaluations...")
-        _download_public_evaluations(include_forecasts=include_forecasts, evaluations_path=target)
+        _download_public_evaluations(
+            include_forecasts=include_forecasts, evaluations_path=target
+        )
     else:
         print(f"Downloading data from experiment '{experiment}'...")
         analysis = aws.Analysis(experiment)
         process_map(
-            partial(_move_job, target=target, include_forecasts=include_forecasts),
+            partial(
+                _move_job, target=target, include_forecasts=include_forecasts
+            ),
             load_jobs_from_analysis(analysis),
             chunksize=1,
         )
 
 
-def _download_public_evaluations(include_forecasts: bool, evaluations_path: Path) -> None:
+def _download_public_evaluations(
+    include_forecasts: bool, evaluations_path: Path
+) -> None:
     public_bucket = "odp-tsbench"
     session = default_session()
     client = session.client(
@@ -88,21 +96,28 @@ def _download_public_evaluations(include_forecasts: bool, evaluations_path: Path
             objects = _extract_object_names(response)
             progress.update()
             while response["IsTruncated"]:
-                response = client.list_objects(Bucket=public_bucket, Marker=objects[-1])
+                response = client.list_objects(
+                    Bucket=public_bucket, Marker=objects[-1]
+                )
                 objects.extend(_extract_object_names(response))
                 progress.update()
 
         # Then, download all of the objects
         run_parallel(
             partial(
-                _download_object, bucket=public_bucket, client=client, destination=evaluations_path
+                _download_object,
+                bucket=public_bucket,
+                client=client,
+                destination=evaluations_path,
             ),
             objects,
             2 * cast(int, os.cpu_count()),
         )
 
 
-def _download_object(key: str, bucket: str, client: Any, destination: Path) -> None:
+def _download_object(
+    key: str, bucket: str, client: Any, destination: Path
+) -> None:
     target = destination / key
     target.parent.mkdir(parents=True, exist_ok=True)
     client.download_file(Bucket=bucket, Key=key, Filename=str(target))

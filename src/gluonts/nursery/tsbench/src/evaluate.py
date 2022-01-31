@@ -122,7 +122,11 @@ def main(
         training_fraction=training_fraction,
         learning_rate=learning_rate,
         context_length_multiple=context_length_multiple,
-        **{key[len(model) + 1 :]: value for key, value in kwargs.items() if key.startswith(model)},
+        **{
+            key[len(model) + 1 :]: value
+            for key, value in kwargs.items()
+            if key.startswith(model)
+        },
     )
     logging.info("Using model configuration %s.", config)
 
@@ -141,11 +145,16 @@ def main(
     if validate and isinstance(config, TrainConfig):
         logging.info("Evaluating predictors on validation data...")
         fit_result.evaluate_predictors(
-            data, data.data.val(), model_dir / "val_predictions", validation=True
+            data,
+            data.data.val(),
+            model_dir / "val_predictions",
+            validation=True,
         )
 
     logging.info("Evaluating predictors on test data...")
-    fit_result.evaluate_predictors(data, data.data.test(), model_dir / "predictions")
+    fit_result.evaluate_predictors(
+        data, data.data.test(), model_dir / "predictions"
+    )
 
 
 if __name__ == "__main__":

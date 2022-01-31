@@ -65,7 +65,9 @@ def main(
 
     # First, get the tracker
     print("Fetching the data...")
-    tracker = ModelTracker.from_directory(Path(evaluations_path), data_path=Path(data_path))
+    tracker = ModelTracker.from_directory(
+        Path(evaluations_path), data_path=Path(data_path)
+    )
 
     # Then, initialize the surrogate
     print("Initializing the surrogate...")
@@ -82,7 +84,9 @@ def main(
 
     # And evaluate it
     print("Evaluating the surrogate...")
-    evaluator = SurrogateAnalyzer(surrogate_instance, tracker=tracker, metrics=metrics_list)
+    evaluator = SurrogateAnalyzer(
+        surrogate_instance, tracker=tracker, metrics=metrics_list
+    )
     result = evaluator.run()
 
     print(result.mean())

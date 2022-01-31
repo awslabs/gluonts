@@ -56,7 +56,8 @@ class EnsembleRecommenderAnalyzer:
 
         recommendations = {k: v for r in results for k, v in r.items()}
         return [
-            {k: v[i] for k, v in recommendations.items()} for i in range(self.num_recommendations)
+            {k: v[i] for k, v in recommendations.items()}
+            for i in range(self.num_recommendations)
         ]
 
     def _run_on_dataset(
@@ -72,7 +73,9 @@ class EnsembleRecommenderAnalyzer:
 
         # Fit the recommender and predict
         self.recommender.fit(X_train, y_train)
-        recommendations = self.recommender.recommend(dataset, max_count=self.num_recommendations)
+        recommendations = self.recommender.recommend(
+            dataset, max_count=self.num_recommendations
+        )
 
         # Return the recommendations
         return {dataset.name(): [r.config for r in recommendations]}

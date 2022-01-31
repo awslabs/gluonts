@@ -78,7 +78,9 @@ def main(
 
     # First, get the tracker
     print("Fetching the data...")
-    tracker = ModelTracker.from_directory(Path(evaluations_path), data_path=Path(data_path))
+    tracker = ModelTracker.from_directory(
+        Path(evaluations_path), data_path=Path(data_path)
+    )
 
     # Then, potentially initialize the surrogate
     recommender_args: Dict[str, Any] = {
@@ -91,7 +93,10 @@ def main(
         surrogate_metrics = [
             m
             for m in objectives.split(",")
-            if (not m.startswith("latency") and not m.startswith("num_model_parameters"))
+            if (
+                not m.startswith("latency")
+                and not m.startswith("num_model_parameters")
+            )
             or not surrogate["outputs"]["imputation"]
         ]
         recommender_args["surrogate"] = create_surrogate(
@@ -101,7 +106,11 @@ def main(
             input_flags=surrogate["inputs"],
             output_normalization=surrogate["outputs"]["normalization"],
             impute_simulatable=surrogate["outputs"]["imputation"],
-            **(surrogate[surrogate["name"]] if surrogate["name"] in surrogate else {})
+            **(
+                surrogate[surrogate["name"]]
+                if surrogate["name"] in surrogate
+                else {}
+            )
         )
     elif recommender == "optimal":
         recommender_args["tracker"] = tracker

@@ -3,7 +3,11 @@ from abc import ABC, abstractmethod
 from typing import Generic, List, Literal, Optional, TypeVar
 import numpy as np
 import numpy.typing as npt
-from sklearn.preprocessing import LabelEncoder, QuantileTransformer, StandardScaler
+from sklearn.preprocessing import (
+    LabelEncoder,
+    QuantileTransformer,
+    StandardScaler,
+)
 from tsbench.config import Config, EnsembleConfig, ModelConfig
 from tsbench.evaluations.metrics import Performance
 from tsbench.evaluations.tracking import Tracker
@@ -79,7 +83,9 @@ class Surrogate(ABC, Generic[T]):
 
             # Assign indices according to datasets
             encoder = LabelEncoder()
-            dataset_indices = encoder.fit_transform([x.dataset.name() for x in X])
+            dataset_indices = encoder.fit_transform(
+                [x.dataset.name() for x in X]
+            )
 
             # Then, iterate over datasets and transform the objectives
             result = np.empty_like(y_numpy)
@@ -114,7 +120,9 @@ class Surrogate(ABC, Generic[T]):
             true_performance = self.tracker.get_performance(x)
             # in-place operations
             predicted_performance.latency = true_performance.latency
-            predicted_performance.num_model_parameters = true_performance.num_model_parameters
+            predicted_performance.num_model_parameters = (
+                true_performance.num_model_parameters
+            )
         return performances
 
     @abstractmethod

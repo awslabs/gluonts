@@ -12,8 +12,14 @@ def metric_definitions() -> List[Dict[str, str]]:
         for name in Performance.__dataclass_fields__  # type: ignore
     ]
     list_metrics = [
-        {"Name": "train_loss", "Regex": f"'epoch_loss'={_FLOATING_POINT_REGEX}"},
-        {"Name": "val_loss", "Regex": f"'validation_epoch_loss'={_FLOATING_POINT_REGEX}"},
+        {
+            "Name": "train_loss",
+            "Regex": f"'epoch_loss'={_FLOATING_POINT_REGEX}",
+        },
+        {
+            "Name": "val_loss",
+            "Regex": f"'validation_epoch_loss'={_FLOATING_POINT_REGEX}",
+        },
         {
             "Name": "val_ncrps",
             "Regex": _metric_regex("val_ncrps"),
@@ -24,7 +30,9 @@ def metric_definitions() -> List[Dict[str, str]]:
 
 # -------------------------------------------------------------------------------------------------
 
-_FLOATING_POINT_REGEX = r"(([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]\d+)?)|[Nn][Aa][Nn])"
+_FLOATING_POINT_REGEX = (
+    r"(([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]\d+)?)|[Nn][Aa][Nn])"
+)
 
 
 def _metric_regex(target: str) -> str:

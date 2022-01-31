@@ -44,7 +44,11 @@ class SacredExperiment:
         Returns:
             The parquet file loaded as data frame.
         """
-        matches = [a["file_id"] for a in self.info["artifacts"] if a["name"] == artifact]
+        matches = [
+            a["file_id"]
+            for a in self.info["artifacts"]
+            if a["name"] == artifact
+        ]
         data = self.fs.get(matches[0]).read()
         return pd.read_parquet(BytesIO(data))
 
@@ -58,7 +62,11 @@ class SacredExperiment:
         Returns:
             The data that was pickled.
         """
-        matches = [a["file_id"] for a in self.info["artifacts"] if a["name"] == artifact]
+        matches = [
+            a["file_id"]
+            for a in self.info["artifacts"]
+            if a["name"] == artifact
+        ]
         data = self.fs.get(matches[0]).read()
         return pickle.loads(data)
 

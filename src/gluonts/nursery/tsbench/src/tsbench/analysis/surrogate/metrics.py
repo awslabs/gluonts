@@ -56,7 +56,9 @@ def mrr(
     """
     minimum_indices = y_pred.argmin(0)  # [D]
     true_ranks = st.rankdata(y_true, method="min", axis=0)  # [N, D]
-    ranks = np.take_along_axis(true_ranks, minimum_indices[None, :], axis=0)  # [N, D]
+    ranks = np.take_along_axis(
+        true_ranks, minimum_indices[None, :], axis=0
+    )  # [N, D]
     result = 1 / ranks
     return result.mean(0)
 

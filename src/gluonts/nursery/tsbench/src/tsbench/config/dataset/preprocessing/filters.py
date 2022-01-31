@@ -38,11 +38,14 @@ class ConstantTargetFilter(Filter):
         self.required_length = required_length
 
     def __call__(self, items: List[Item]) -> List[Item]:
-        limit = None if self.prediction_length == 0 else -self.prediction_length
+        limit = (
+            None if self.prediction_length == 0 else -self.prediction_length
+        )
         return [
             item
             for item in items
-            if len(set(item[FieldName.TARGET][-self.required_length : limit])) > 1
+            if len(set(item[FieldName.TARGET][-self.required_length : limit]))
+            > 1
         ]
 
 
@@ -55,7 +58,11 @@ class AbsoluteValueFilter(Filter):
         self.value = value
 
     def __call__(self, items: List[Item]) -> List[Item]:
-        return [item for item in items if np.mean(np.abs(item[FieldName.TARGET])) < self.value]
+        return [
+            item
+            for item in items
+            if np.mean(np.abs(item[FieldName.TARGET])) < self.value
+        ]
 
 
 class EndOfSeriesCutFilter(Filter):
@@ -68,7 +75,12 @@ class EndOfSeriesCutFilter(Filter):
 
     def __call__(self, items: List[Item]) -> List[Item]:
         return [
-            {**item, FieldName.TARGET: item[FieldName.TARGET][: -self.prediction_length]}
+            {
+                **item,
+                FieldName.TARGET: item[FieldName.TARGET][
+                    : -self.prediction_length
+                ],
+            }
             for item in items
         ]
 
@@ -82,4 +94,8 @@ class MinLengthFilter(Filter):
         self.length = length
 
     def __call__(self, items: List[Item]) -> List[Item]:
-        return [item for item in items if len(item[FieldName.TARGET]) >= self.length]
+        return [
+            item
+            for item in items
+            if len(item[FieldName.TARGET]) >= self.length
+        ]

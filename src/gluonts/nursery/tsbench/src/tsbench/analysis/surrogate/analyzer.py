@@ -2,7 +2,11 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
-from tsbench.analysis.utils import loocv_split, num_fitting_processes, run_parallel
+from tsbench.analysis.utils import (
+    loocv_split,
+    num_fitting_processes,
+    run_parallel,
+)
 from tsbench.config import Config, ModelConfig
 from tsbench.evaluations.metrics import Performance
 from tsbench.evaluations.tracking import ModelTracker
@@ -43,7 +47,10 @@ class SurrogateAnalyzer:
                 are indexed by the dataset which was left out.
         """
         if isinstance(self.surrogate, AutoGluonSurrogate):
-            metrics = [self._run_on_dataset(x) for x in tqdm(list(loocv_split(self.tracker)))]
+            metrics = [
+                self._run_on_dataset(x)
+                for x in tqdm(list(loocv_split(self.tracker)))
+            ]
         else:
             data = list(loocv_split(self.tracker))
             metrics = run_parallel(
@@ -76,7 +83,9 @@ class SurrogateAnalyzer:
         scores = self._score(y_pred, y_test)
         return scores.assign(test_dataset=X_test[0].dataset.name())
 
-    def _score(self, y_pred: List[Performance], y_true: List[Performance]) -> pd.DataFrame:
+    def _score(
+        self, y_pred: List[Performance], y_true: List[Performance]
+    ) -> pd.DataFrame:
         df_pred = Performance.to_dataframe(y_pred)
         df_true = Performance.to_dataframe(y_true)
 
@@ -95,7 +104,10 @@ class SurrogateAnalyzer:
             "nrmse": nrmse(y_pred_min, y_true_min),
             "smape": smape(y_pred_min, y_true_min),
             "mrr": mrr(y_pred_min, y_true_min),
-            **{f"precision_{k}": precision_k(k, y_pred_min, y_true_min) for k in (5, 10, 20)},
+            **{
+                f"precision_{k}": precision_k(k, y_pred_min, y_true_min)
+                for k in (5, 10, 20)
+            },
             "ndcg": ndcg(y_pred_min, y_true_min),
         }
         column_index = pd.MultiIndex.from_tuples(

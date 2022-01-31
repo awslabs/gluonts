@@ -48,7 +48,9 @@ class XGBoostSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             impute_simulatable: Whether the tracker should impute latency and number of model
                 parameters into the returned performance object.
         """
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.use_ranking = objective == "ranking"
         self.config_transformer = ConfigTransformer(
@@ -69,22 +71,30 @@ class XGBoostSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     def required_cpus(self) -> int:
         return 4
 
-    def _fit(self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         X_numpy = self.config_transformer.fit_transform(X)
 
         if self.use_ranking:
             # We need to sort by dataset
             encoder = LabelEncoder()
-            dataset_indices = encoder.fit_transform([x.dataset.name() for x in X])
+            dataset_indices = encoder.fit_transform(
+                [x.dataset.name() for x in X]
+            )
             sorting = np.argsort(dataset_indices)
 
             # Then, sort X and y and assign the group IDs
             X_grouped = [X_numpy[i] for i in sorting]
             y_grouped = [y[i] for i in sorting]
-            self.estimator.fit(X_grouped, y_grouped, qid=dataset_indices[sorting])
+            self.estimator.fit(
+                X_grouped, y_grouped, qid=dataset_indices[sorting]
+            )
         else:
             self.estimator.fit(X_numpy, y)
 
-    def _predict(self, X: List[Config[ModelConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[ModelConfig]]
+    ) -> npt.NDArray[np.float32]:
         X_numpy = self.config_transformer.transform(X)
         return self.estimator.predict(X_numpy)

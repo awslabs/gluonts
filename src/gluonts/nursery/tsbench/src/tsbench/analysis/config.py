@@ -17,9 +17,13 @@ class ConfigAnalyzer:
             tracker: The tracker which is used to obtain performances.
         """
         self.tracker = tracker
-        self.datasets = {c.dataset for c in self.tracker.get_evaluations().configurations}
+        self.datasets = {
+            c.dataset for c in self.tracker.get_evaluations().configurations
+        }
 
-    def run(self, model_config: Union[ModelConfig, Dict[str, ModelConfig]]) -> pd.DataFrame:
+    def run(
+        self, model_config: Union[ModelConfig, Dict[str, ModelConfig]]
+    ) -> pd.DataFrame:
         """
         Runs the evaluation, providing a configuration's performances for all datasets.
 
@@ -40,7 +44,9 @@ class ConfigAnalyzer:
 
             # Get the performance and append to results
             performance = self.tracker.get_performance(config)
-            df = Performance.to_dataframe([performance]).assign(test_dataset=dataset.name())
+            df = Performance.to_dataframe([performance]).assign(
+                test_dataset=dataset.name()
+            )
             results.append(df)
 
         return pd.concat(results).set_index("test_dataset")

@@ -10,7 +10,10 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 def loocv_split(
     tracker: Tracker[T],
 ) -> Iterator[
-    Tuple[Tuple[List[Config[T]], List[Performance]], Tuple[List[Config[T]], List[Performance]]]
+    Tuple[
+        Tuple[List[Config[T]], List[Performance]],
+        Tuple[List[Config[T]], List[Performance]],
+    ]
 ]:
     """
     Iterates over the configurations and associated performances obtained from a collector. For

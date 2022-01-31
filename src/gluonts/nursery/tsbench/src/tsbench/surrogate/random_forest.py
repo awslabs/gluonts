@@ -44,7 +44,9 @@ class RandomForestSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             impute_simulatable: Whether the tracker should impute latency and number of model
                 parameters into the returned performance object.
         """
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.config_transformer = ConfigTransformer(
             add_model_features=True,
@@ -57,10 +59,14 @@ class RandomForestSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
         base_estimator = RandomForestRegressor(n_jobs=1)
         self.estimator = MultiOutputRegressor(base_estimator)
 
-    def _fit(self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[ModelConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         X_numpy = self.config_transformer.fit_transform(X)
         self.estimator.fit(X_numpy, y)
 
-    def _predict(self, X: List[Config[ModelConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[ModelConfig]]
+    ) -> npt.NDArray[np.float32]:
         X_numpy = self.config_transformer.transform(X)
         return self.estimator.predict(X_numpy)

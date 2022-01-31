@@ -18,7 +18,9 @@ class Callback:
         Hook called once the network is initialized.
         """
 
-    def on_train_batch_end(self, network: nn.HybridBlock, time_elapsed: float) -> None:
+    def on_train_batch_end(
+        self, network: nn.HybridBlock, time_elapsed: float
+    ) -> None:
         """
         Hook called after every training batch.
         """
@@ -45,7 +47,9 @@ class CallbackList(Callback):
         for callback in self.callbacks:
             callback.on_network_initialization_end(network)
 
-    def on_train_batch_end(self, network: nn.HybridBlock, time_elapsed: float) -> None:
+    def on_train_batch_end(
+        self, network: nn.HybridBlock, time_elapsed: float
+    ) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_end(network, time_elapsed)
 

@@ -51,7 +51,9 @@ def ensemble_forecasts(
 
     # Some assertions
     ref = forecasts[0]
-    assert math.isclose(sum(weights), 1, abs_tol=1e-7), "The ensembling weights do not sum to 1."
+    assert math.isclose(
+        sum(weights), 1, abs_tol=1e-7
+    ), "The ensembling weights do not sum to 1."
     assert all(
         len(forecast) == len(ref) for forecast in forecasts
     ), "The different forecasts do not provide equally many values."

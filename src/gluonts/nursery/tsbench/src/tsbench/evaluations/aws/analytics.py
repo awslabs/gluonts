@@ -91,7 +91,8 @@ class TrainingJob:
         return {
             k: _process_hyperparameter_value(v)
             for k, v in self.info["HyperParameters"].items()
-            if not k.startswith("sagemaker_") and not k.endswith("_output_distribution")
+            if not k.startswith("sagemaker_")
+            and not k.endswith("_output_distribution")
         }
 
     @lru_cache()
@@ -157,12 +158,20 @@ class TrainingJob:
         metrics_file = self._cache_dir() / "metrics.json"
         if metrics_file.exists():
             with metrics_file.open("r") as f:
-                return {k: np.array(v, dtype=np.float32) for k, v in json.load(f).items()}
+                return {
+                    k: np.array(v, dtype=np.float32)
+                    for k, v in json.load(f).items()
+                }
 
         # If not, get them from the logs, write them to the file system and return
         metrics = {
-            metric["Name"]: [float(x) for x in re.findall(metric["Regex"], "\n".join(self.logs))]
-            for metric in self.info["AlgorithmSpecification"]["MetricDefinitions"]
+            metric["Name"]: [
+                float(x)
+                for x in re.findall(metric["Regex"], "\n".join(self.logs))
+            ]
+            for metric in self.info["AlgorithmSpecification"][
+                "MetricDefinitions"
+            ]
         }
         with metrics_file.open("w+") as f:
             json.dump(metrics, f)
@@ -232,7 +241,11 @@ class TrainingJob:
             ResourceArn=self.info["TrainingJobArn"],
             MaxResults=100,
         )
-        experiment = [t["Value"] for t in existing_tags["Tags"] if t["Key"] == "Experiment"][0]
+        experiment = [
+            t["Value"]
+            for t in existing_tags["Tags"]
+            if t["Key"] == "Experiment"
+        ][0]
 
         client.add_tags(
             ResourceArn=self.info["TrainingJobArn"],
@@ -248,7 +261,12 @@ class TrainingJob:
         return f"TrainingJob(name={self.info['TrainingJobName']})"
 
     def _cache_dir(self) -> Path:
-        return Path.home() / "tsbench" / "cache" / cast(str, self.info["TrainingJobName"])
+        return (
+            Path.home()
+            / "tsbench"
+            / "cache"
+            / cast(str, self.info["TrainingJobName"])
+        )
 
 
 # -------------------------------------------------------------------------------------------------
@@ -282,13 +300,17 @@ class Analysis:
         """
         self.experiment_name = experiment
         training_jobs, duplicates = _fetch_training_jobs(
-            default_session(), self.experiment_name, only_completed, resolve_duplicates
+            default_session(),
+            self.experiment_name,
+            only_completed,
+            resolve_duplicates,
         )
         self.duplicates = duplicates
         self.map = {t.name: t for t in training_jobs if include(t)}
         if len(self.map) < len(training_jobs):
             logging.warning(
-                " Analysis manually excludes %d jobs", len(training_jobs) - len(self.map)
+                " Analysis manually excludes %d jobs",
+                len(training_jobs) - len(self.map),
             )
 
     def get(self, name: str) -> TrainingJob:
@@ -317,7 +339,10 @@ class Analysis:
 
 # -------------------------------------------------------------------------------------------------
 def _fetch_training_jobs(
-    session: boto3.Session, experiment: str, only_completed: bool, resolve_duplicates: bool
+    session: boto3.Session,
+    experiment: str,
+    only_completed: bool,
+    resolve_duplicates: bool,
 ) -> Tuple[List[TrainingJob], List[TrainingJob]]:
     """
     Fetches all training jobs which are associated with this experiment.
@@ -348,7 +373,9 @@ def _fetch_training_jobs(
     while "NextToken" in response:
         while True:
             try:
-                response = client.search(NextToken=response["NextToken"], **search_params)
+                response = client.search(
+                    NextToken=response["NextToken"], **search_params
+                )
                 results.extend(response["Results"])
                 break
             except ClientError:
@@ -362,7 +389,11 @@ def _fetch_training_jobs(
             c = Counter([j.status for j in jobs])
             d = dict(c)
             del d["Completed"]
-            logging.warning(" Analysis is ignoring %d jobs %s", len(jobs) - len(completed_jobs), d)
+            logging.warning(
+                " Analysis is ignoring %d jobs %s",
+                len(jobs) - len(completed_jobs),
+                d,
+            )
         jobs = completed_jobs
 
     duplicates = []
@@ -381,7 +412,10 @@ def _fetch_training_jobs(
                 unique[hyperparameters] = job
 
         if len(unique) < len(jobs):
-            logging.warning(" Analysis is ignoring %d superseded jobs", len(jobs) - len(unique))
+            logging.warning(
+                " Analysis is ignoring %d superseded jobs",
+                len(jobs) - len(unique),
+            )
         jobs = list(unique.values())
 
     return jobs, duplicates

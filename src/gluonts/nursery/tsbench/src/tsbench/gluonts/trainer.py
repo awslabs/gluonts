@@ -50,7 +50,8 @@ class TimedTrainer(Trainer):
 
         validation_milestones = validation_milestones or []
         assert all(
-            x < y for x, y in zip(validation_milestones, validation_milestones[1:])
+            x < y
+            for x, y in zip(validation_milestones, validation_milestones[1:])
         ), "Validation milestones must be increasing."
 
         self.training_time = training_time
@@ -125,7 +126,11 @@ class TimedTrainer(Trainer):
                     # we set the mode explicitly as by default mxnet assumes
                     # predict mode and hence dropout layers are not used if
                     # the mode is not explicitly set to training
-                    mode = autograd.train_mode if is_training else autograd.predict_mode
+                    mode = (
+                        autograd.train_mode
+                        if is_training
+                        else autograd.predict_mode
+                    )
                     with mode():
                         output = net(*batch.values())
 
@@ -154,19 +159,25 @@ class TimedTrainer(Trainer):
                     epoch_loss.update(None, preds=loss)
 
                 if is_training:
-                    total_time_elapsed = time_elapsed + time.time() - tic - subtic
+                    total_time_elapsed = (
+                        time_elapsed + time.time() - tic - subtic
+                    )
 
                     orig_lr = trainer.learning_rate
                     tictic = time.time()
                     self.callbacks.on_train_batch_end(net, total_time_elapsed)
                     subtic += time.time() - tictic
                     if trainer.learning_rate != orig_lr:
-                        logger.info("Trainer learning rate set to %f", trainer.learning_rate)
+                        logger.info(
+                            "Trainer learning rate set to %f",
+                            trainer.learning_rate,
+                        )
 
                 lv = _loss_value(epoch_loss)
                 it.set_postfix(
                     ordered_dict={
-                        ("" if is_training else "validation_") + "avg_epoch_loss": lv,
+                        ("" if is_training else "validation_")
+                        + "avg_epoch_loss": lv,
                     },
                     refresh=False,
                 )

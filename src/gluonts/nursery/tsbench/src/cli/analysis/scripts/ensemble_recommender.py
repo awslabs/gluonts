@@ -71,7 +71,10 @@ def main(
     surrogate_metrics = [
         m
         for m in objectives.split(",")
-        if (not m.startswith("latency") and not m.startswith("num_model_parameters"))
+        if (
+            not m.startswith("latency")
+            and not m.startswith("num_model_parameters")
+        )
         or not surrogate["outputs"]["imputation"]
     ]
     recommender_args["surrogate"] = create_ensemble_surrogate(
@@ -80,12 +83,18 @@ def main(
         tracker=tracker,
         input_flags={},
         impute_simulatable=surrogate["outputs"]["imputation"],
-        **(surrogate[surrogate["name"]] if surrogate["name"] in surrogate else {})
+        **(
+            surrogate[surrogate["name"]]
+            if surrogate["name"] in surrogate
+            else {}
+        )
     )
 
     # Then, we can create the recommender
     print("Initializing the recommender...")
-    recommender_instance = create_ensemble_recommender(recommender, **recommender_args)
+    recommender_instance = create_ensemble_recommender(
+        recommender, **recommender_args
+    )
 
     # And evaluate it
     print("Evaluating the recommender...")

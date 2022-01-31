@@ -17,7 +17,9 @@ def register_dataset(cls: D) -> D:
     return cls
 
 
-def get_dataset_config(name: str, path: Union[Path, str] = DEFAULT_DATA_PATH) -> DatasetConfig:
+def get_dataset_config(
+    name: str, path: Union[Path, str] = DEFAULT_DATA_PATH
+) -> DatasetConfig:
     """
     This method creates the dataset configuration of the model with the specified name.
 

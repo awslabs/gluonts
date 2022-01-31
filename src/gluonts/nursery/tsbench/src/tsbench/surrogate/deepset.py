@@ -29,7 +29,9 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
         self,
         tracker: EnsembleTracker,
         objective: Literal["regression", "ranking"] = "ranking",
-        discount: Optional[Literal["logarithmic", "linear", "quadratic"]] = "linear",
+        discount: Optional[
+            Literal["logarithmic", "linear", "quadratic"]
+        ] = "linear",
         hidden_layer_sizes: Optional[List[int]] = None,
         weight_decay: float = 0.01,
         dropout: float = 0.0,
@@ -57,7 +59,9 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
                 parameters into the returned performance object.
         """
 
-        super().__init__(tracker, predict, output_normalization, impute_simulatable)
+        super().__init__(
+            tracker, predict, output_normalization, impute_simulatable
+        )
 
         self.use_ranking = objective == "ranking"
         self.hidden_layer_sizes = hidden_layer_sizes or [32, 32]
@@ -75,7 +79,9 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
     def required_cpus(self) -> int:
         return 4
 
-    def _fit(self, X: List[Config[EnsembleConfig]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(
+        self, X: List[Config[EnsembleConfig]], y: npt.NDArray[np.float32]
+    ) -> None:
         # Fit transformers to infer dimensionality
         X_numpy_list = self.config_transformer.fit_transform(X)
         X_numpy = np.concatenate(X_numpy_list)
@@ -91,14 +97,18 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
         self.models_ = []
         for i in range(output_dim):
             model = self._init_model(input_dim)
-            module = DeepSetLightningModule(model, self.loss, self.weight_decay)
+            module = DeepSetLightningModule(
+                model, self.loss, self.weight_decay
+            )
 
             # Train on output variable i
             dataset = TensorDataset(
                 torch.from_numpy(X_numpy).float(),
                 torch.from_numpy(X_lengths_numpy).long(),
                 torch.from_numpy(y[:, i : i + 1]).float(),
-                torch.as_tensor([mapping[x.dataset] for x in X], dtype=torch.long),
+                torch.as_tensor(
+                    [mapping[x.dataset] for x in X], dtype=torch.long
+                ),
             )
             train_loader = DataLoader(dataset, batch_size=len(dataset))
             self._trainer.fit(module, train_dataloaders=train_loader)
@@ -106,7 +116,9 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
             # Add to models
             self.models_.append(model)
 
-    def _predict(self, X: List[Config[EnsembleConfig]]) -> npt.NDArray[np.float32]:
+    def _predict(
+        self, X: List[Config[EnsembleConfig]]
+    ) -> npt.NDArray[np.float32]:
         # Get data
         X_numpy_list = self.config_transformer.transform(X)
         X_numpy = np.concatenate(X_numpy_list)
@@ -122,7 +134,9 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
         predictions = []
         for model in self.models_:
             module = DeepSetLightningModule(model, self.loss)
-            out = cast(List[torch.Tensor], self._trainer.predict(module, test_loader))
+            out = cast(
+                List[torch.Tensor], self._trainer.predict(module, test_loader)
+            )
             predictions.append(out[0].numpy())
 
         return np.concatenate(predictions, axis=-1)

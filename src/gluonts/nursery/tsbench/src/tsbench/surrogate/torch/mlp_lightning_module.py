@@ -12,7 +12,9 @@ class MLPLightningModule(pl.LightningModule):
     Lightning module which trains an MLP until convergence.
     """
 
-    def __init__(self, model: nn.Module, loss: nn.Module, weight_decay: float = 0.0):
+    def __init__(
+        self, model: nn.Module, loss: nn.Module, weight_decay: float = 0.0
+    ):
         super().__init__()
 
         self.model = model
@@ -21,7 +23,9 @@ class MLPLightningModule(pl.LightningModule):
         self.uses_ranking = isinstance(self.loss, ListMLELoss)
 
     def configure_optimizers(self) -> optim.Optimizer:
-        return optim.Adam(self.model.parameters(), lr=1e-2, weight_decay=self.weight_decay)
+        return optim.Adam(
+            self.model.parameters(), lr=1e-2, weight_decay=self.weight_decay
+        )
 
     def configure_callbacks(self) -> List[Callback]:
         return [
@@ -34,7 +38,9 @@ class MLPLightningModule(pl.LightningModule):
         ]
 
     def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor], _batch_idx: int
+        self,
+        batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        _batch_idx: int,
     ) -> torch.Tensor:
         X, y_true, group_ids = batch
         y_pred = self.model(X)
@@ -47,6 +53,8 @@ class MLPLightningModule(pl.LightningModule):
         self.log("train_loss", loss, on_step=False, on_epoch=True)
         return loss
 
-    def predict_step(self, batch: torch.Tensor, _batch_idx: int) -> torch.Tensor:
+    def predict_step(
+        self, batch: torch.Tensor, _batch_idx: int
+    ) -> torch.Tensor:
         X, _ = batch
         return self.model(X)

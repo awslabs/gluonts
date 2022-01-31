@@ -20,7 +20,9 @@ class DeepSetModel(nn.Module):
         super().__init__()
 
         self.encoder = _MLP([input_dim] + encoder_dims + [hidden_dim], dropout)
-        self.decoder = _MLP([hidden_dim + 1] + decoder_dims + [output_dim], dropout)
+        self.decoder = _MLP(
+            [hidden_dim + 1] + decoder_dims + [output_dim], dropout
+        )
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
         """
@@ -37,17 +39,25 @@ class DeepSetModel(nn.Module):
         indices[lengths.cumsum(0)[:-1]] = 1
         groups = indices.cumsum(0)
 
-        encodings = torch.zeros(lengths.size(0), z.size(1), dtype=z.dtype, device=z.device)
+        encodings = torch.zeros(
+            lengths.size(0), z.size(1), dtype=z.dtype, device=z.device
+        )
         encodings.index_add_(0, groups, z)
 
         # Run decoder
-        return self.decoder(torch.cat([encodings / lengths, lengths.float().unsqueeze(1)], dim=1))
+        return self.decoder(
+            torch.cat(
+                [encodings / lengths, lengths.float().unsqueeze(1)], dim=1
+            )
+        )
 
 
 class _MLP(nn.Sequential):
     def __init__(self, layer_dims: List[int], dropout: float):
         layers = []
-        for i, (in_size, out_size) in enumerate(zip(layer_dims, layer_dims[1:])):
+        for i, (in_size, out_size) in enumerate(
+            zip(layer_dims, layer_dims[1:])
+        ):
             if i > 0:
                 layers.append(nn.LeakyReLU())
                 if dropout > 0:

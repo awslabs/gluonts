@@ -6,13 +6,28 @@ from typing import Callable, Dict, List, Optional, Tuple, Type
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
-from tsbench.analysis.utils import loocv_split, num_fitting_processes, run_parallel
-from tsbench.config import Config, DATASET_REGISTRY, DatasetConfig, ModelConfig, TrainConfig
+from tsbench.analysis.utils import (
+    loocv_split,
+    num_fitting_processes,
+    run_parallel,
+)
+from tsbench.config import (
+    Config,
+    DATASET_REGISTRY,
+    DatasetConfig,
+    ModelConfig,
+    TrainConfig,
+)
 from tsbench.config.model.models import SeasonalNaiveModelConfig
 from tsbench.constants import DEFAULT_DATA_PATH
 from tsbench.evaluations.metrics.performance import Metric, Performance
 from tsbench.evaluations.tracking import ModelTracker
-from tsbench.forecasts import ensemble_forecasts, EnsembleWeighting, evaluate_forecasts, Evaluation
+from tsbench.forecasts import (
+    ensemble_forecasts,
+    EnsembleWeighting,
+    evaluate_forecasts,
+    Evaluation,
+)
 
 
 class EnsembleAnalyzer:
@@ -78,7 +93,9 @@ class EnsembleAnalyzer:
         performance, members = self._performance_on_dataset(X_test, y_test)
 
         # Transform into output
-        df = Performance.to_dataframe([performance]).assign(test_dataset=X_test[0].dataset.name())
+        df = Performance.to_dataframe([performance]).assign(
+            test_dataset=X_test[0].dataset.name()
+        )
         return df, {X_test[0].dataset.name(): members}
 
     def _performance_on_dataset(
@@ -92,7 +109,10 @@ class EnsembleAnalyzer:
                 i
                 for i, c in enumerate(X_test)
                 if isinstance(c.model, self.config_class)
-                and (not isinstance(c.model, TrainConfig) or c.model.training_fraction == 1)
+                and (
+                    not isinstance(c.model, TrainConfig)
+                    or c.model.training_fraction == 1
+                )
             ]
             X_test = [X_test[i] for i in indices]
             y_test = [y_test[i] for i in indices]
@@ -110,7 +130,9 @@ class EnsembleAnalyzer:
         # the implementation inefficient)
         if len(choices) == 0:
             choices = [
-                i for i, c in enumerate(X_test) if isinstance(c.model, SeasonalNaiveModelConfig)
+                i
+                for i, c in enumerate(X_test)
+                if isinstance(c.model, SeasonalNaiveModelConfig)
             ]
 
         # Eventually, we get the ensemble members and compute the ensemble performance
@@ -148,11 +170,14 @@ class EnsembleAnalyzer:
         """
         if member_performances is None:
             member_performances = [
-                self.tracker.get_performance(Config(m, dataset)) for m in models
+                self.tracker.get_performance(Config(m, dataset))
+                for m in models
             ]
 
         # First, we need to get the forecasts for all models
-        forecasts = [self.tracker.get_forecasts(Config(m, dataset)) for m in models]
+        forecasts = [
+            self.tracker.get_forecasts(Config(m, dataset)) for m in models
+        ]
 
         # Then, we want to construct min(#available_choices, 10) different ensembles by randomly
         # choosing models from the configurations without replacement.
@@ -169,7 +194,9 @@ class EnsembleAnalyzer:
                 self.ensemble_weighting,
                 [p.ncrps.mean for p in member_performances],
             )
-            evaluation = evaluate_forecasts(ensembled_forecast, dataset.data.test().evaluation())
+            evaluation = evaluate_forecasts(
+                ensembled_forecast, dataset.data.test().evaluation()
+            )
             evaluations.append(evaluation)
 
         # And eventually, we build the resulting performance object
@@ -180,14 +207,18 @@ class EnsembleAnalyzer:
         performance.num_model_parameters = self._combine_metrics(
             member_performances, lambda p: p.num_model_parameters
         )
-        performance.latency = self._combine_metrics(member_performances, lambda p: p.latency)
+        performance.latency = self._combine_metrics(
+            member_performances, lambda p: p.latency
+        )
         performance.training_time = self._combine_metrics(
             member_performances, lambda p: p.training_time
         )
         return performance
 
     def _combine_metrics(
-        self, performances: List[Performance], metric: Callable[[Performance], Metric]
+        self,
+        performances: List[Performance],
+        metric: Callable[[Performance], Metric],
     ) -> Metric:
         return Metric(
             mean=sum(metric(p).mean for p in performances),
@@ -206,8 +237,12 @@ class EnsembleAnalyzer:
         """
         results = []
         for name, dataset in tqdm(DATASET_REGISTRY.items()):
-            performance = self.get_ensemble_performance(models[name], dataset(data_path))
-            df = Performance.to_dataframe([performance]).assign(test_dataset=name)
+            performance = self.get_ensemble_performance(
+                models[name], dataset(data_path)
+            )
+            df = Performance.to_dataframe([performance]).assign(
+                test_dataset=name
+            )
             results.append(df)
 
         return pd.concat(results).set_index("test_dataset")

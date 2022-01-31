@@ -15,7 +15,9 @@ class QuantileForecasts:
     A type-safe wrapper for a list of quantile forecasts, stored as NumPy arrays.
     """
 
-    values: npt.NDArray[np.float32]  # [num_time_series, num_quantiles, prediction_length]
+    values: npt.NDArray[
+        np.float32
+    ]  # [num_time_series, num_quantiles, prediction_length]
     start_dates: npt.NDArray[np.float32]
     item_ids: npt.NDArray[np.float32]
     freq: pd.DateOffset

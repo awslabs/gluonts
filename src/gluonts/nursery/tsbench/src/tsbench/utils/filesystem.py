@@ -4,7 +4,9 @@ from pathlib import Path
 from typing import Optional, Set
 
 
-def compress_directory(directory: Path, target: Path, include: Optional[Set[str]] = None) -> None:
+def compress_directory(
+    directory: Path, target: Path, include: Optional[Set[str]] = None
+) -> None:
     """
     Compresses the provided directory into a single `.tar.gz` file.
 

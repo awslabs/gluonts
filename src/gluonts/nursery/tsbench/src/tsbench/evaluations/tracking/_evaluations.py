@@ -25,9 +25,13 @@ class Evaluations(Generic[T]):
             std: Whether to include the standard deviation of performance metrics in the dataframe.
         """
         # Should implement this for ensembles as well
-        index_df = Config.to_dataframe(cast(List[Config[ModelConfig]], self.configurations))
+        index_df = Config.to_dataframe(
+            cast(List[Config[ModelConfig]], self.configurations)
+        )
         # Reorder columns
-        column_order = ["dataset"] + [c for c in index_df.columns.tolist() if c != "dataset"]
+        column_order = ["dataset"] + [
+            c for c in index_df.columns.tolist() if c != "dataset"
+        ]
         index = pd.MultiIndex.from_frame(index_df[column_order])
         df = Performance.to_dataframe(self.performances, std=std)
         df.index = index

@@ -151,7 +151,9 @@ class TrainConfig:
     learning_rate: float = 1e-3
     context_length_multiple: int = 1
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         """
         Creates a predictor from the provided network. This method is required to be implemented by
         every model configuration which describes a trainable model.
@@ -167,7 +169,10 @@ class TrainConfig:
         raise NotImplementedError
 
     def _create_trainer(
-        self, training_time: float, validation_milestones: List[float], callbacks: List[Callback]
+        self,
+        training_time: float,
+        validation_milestones: List[float],
+        callbacks: List[Callback],
     ) -> TimedTrainer:
         return TimedTrainer(
             training_time=training_time,

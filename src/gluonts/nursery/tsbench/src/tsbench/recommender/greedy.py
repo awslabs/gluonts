@@ -20,7 +20,9 @@ class GreedyRecommender(Recommender[ModelConfig]):
     """
 
     metrics: np.ndarray  # shape [num_datasets, num_models, num_objectives]
-    model_indices: Dict[ModelConfig, int]  # A map from model config to index in the metrics
+    model_indices: Dict[
+        ModelConfig, int
+    ]  # A map from model config to index in the metrics
 
     def __init__(
         self,
@@ -42,7 +44,11 @@ class GreedyRecommender(Recommender[ModelConfig]):
         super().__init__(objectives, focus, generator)
         self.enforce_single_objective = enforce_single_objective
 
-    def fit(self, configs: List[Config[ModelConfig]], performances: List[Performance]) -> None:
+    def fit(
+        self,
+        configs: List[Config[ModelConfig]],
+        performances: List[Performance],
+    ) -> None:
         super().fit(configs, performances)
 
         # We need to sort by dataset to have the same ordering for each model config
@@ -63,14 +69,22 @@ class GreedyRecommender(Recommender[ModelConfig]):
         # If we are in the multi-objective setting, we have to apply dataset-level quantile
         # normalization of each objective. Otherwise, we perform standardization.
         if not self.enforce_single_objective and len(self.objectives) > 1:
-            transformer = QuantileTransformer(n_quantiles=min(1000, self.metrics.shape[0]))
+            transformer = QuantileTransformer(
+                n_quantiles=min(1000, self.metrics.shape[0])
+            )
             self.metrics = np.stack(
-                [transformer.fit_transform(dataset_metrics) for dataset_metrics in self.metrics]
+                [
+                    transformer.fit_transform(dataset_metrics)
+                    for dataset_metrics in self.metrics
+                ]
             )
         else:
             transformer = StandardScaler()
             self.metrics = np.stack(
-                [transformer.fit_transform(dataset_metrics) for dataset_metrics in self.metrics]
+                [
+                    transformer.fit_transform(dataset_metrics)
+                    for dataset_metrics in self.metrics
+                ]
             )
 
     def recommend(
@@ -108,12 +122,16 @@ class GreedyRecommender(Recommender[ModelConfig]):
             for i, choice in enumerate(available_choices):
                 # Compute the joint error with the model configuration of the choice
                 all_configs = result + [model_configs[choice]]
-                all_performances = self.metrics[:, [self.model_indices[c] for c in all_configs]]
+                all_performances = self.metrics[
+                    :, [self.model_indices[c] for c in all_configs]
+                ]
 
                 if self.enforce_single_objective or len(self.objectives) == 1:
                     # If we only consider a single objective, we can simply sum together the
                     # minimum observed values of the objective across the dataset
-                    error = all_performances.min(1)[:, i % len(self.objectives)].sum()
+                    error = all_performances.min(1)[
+                        :, i % len(self.objectives)
+                    ].sum()
                 else:
                     # Otherwise, we need to compute the hypervolumes for all datasets
                     reference = np.ones(len(self.objectives))
@@ -143,5 +161,9 @@ class GreedyRecommender(Recommender[ModelConfig]):
 
 def _dummy_performance() -> Performance:
     return Performance.from_dict(
-        {mm: np.nan for m in Performance.metrics() for mm in [f"{m}_mean", f"{m}_std"]}
+        {
+            mm: np.nan
+            for m in Performance.metrics()
+            for mm in [f"{m}_mean", f"{m}_std"]
+        }
     )

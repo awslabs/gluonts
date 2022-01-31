@@ -38,8 +38,12 @@ def get_model_config(name: str, **kwargs: Any) -> ModelConfig:
     # Filter the required parameters
     all_params = set(config_cls.hyperparameters())
     required = {
-        key for key, has_default in config_cls.hyperparameters().items() if not has_default
+        key
+        for key, has_default in config_cls.hyperparameters().items()
+        if not has_default
     }
-    assert all(r in kwargs for r in required), "Keyword arguments missing at least one parameter."
+    assert all(
+        r in kwargs for r in required
+    ), "Keyword arguments missing at least one parameter."
 
     return config_cls(**{k: v for k, v in kwargs.items() if k in all_params})

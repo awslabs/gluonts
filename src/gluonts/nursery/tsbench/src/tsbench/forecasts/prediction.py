@@ -34,17 +34,23 @@ def generate_forecasts(
         The average latency for generating a single forecast.
     """
     if parallelize:
-        predictor = ParallelizedPredictor(predictor, num_workers=os.cpu_count())
+        predictor = ParallelizedPredictor(
+            predictor, num_workers=os.cpu_count()
+        )
 
     # First, perform the predictions...
     tic = time.time()
-    forecast_pred, _ = make_evaluation_predictions(dataset, predictor, num_samples)
+    forecast_pred, _ = make_evaluation_predictions(
+        dataset, predictor, num_samples
+    )
 
     # ...and compute the quantiles
     quantiles = [f"0.{i+1}" for i in range(9)]
     forecasts = []
     for i, forecast in tqdm(
-        enumerate(forecast_pred), total=maybe_len(dataset), disable=not env.use_tqdm
+        enumerate(forecast_pred),
+        total=maybe_len(dataset),
+        disable=not env.use_tqdm,
     ):
         result = None
         if isinstance(forecast, QuantileForecast):
@@ -58,7 +64,9 @@ def generate_forecasts(
             # If none of the above checks added a quantile forecast, we resort to a method that
             # should work on all types of forecasts
             result = QuantileForecast(
-                forecast_arrays=np.stack([forecast.quantile(q) for q in quantiles], axis=0),
+                forecast_arrays=np.stack(
+                    [forecast.quantile(q) for q in quantiles], axis=0
+                ),
                 start_date=forecast.start_date,
                 freq=forecast.freq,
                 forecast_keys=quantiles,

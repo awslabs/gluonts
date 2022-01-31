@@ -55,7 +55,11 @@ def extract_job_infos(
     if group_seeds:
         grouped_jobs = defaultdict(list)
         for job in training_jobs:
-            hypers = {"model": job.model, "dataset": job.dataset, **job.hyperparameters}
+            hypers = {
+                "model": job.model,
+                "dataset": job.dataset,
+                **job.hyperparameters,
+            }
             grouped_jobs[tuple(sorted(hypers.items()))].append(job)
         all_jobs = grouped_jobs.values()
     else:
@@ -70,7 +74,9 @@ def extract_job_infos(
 
         # First, we reconstruct the training times
         if issubclass(MODEL_REGISTRY[model_name], TrainConfig):
-            training_fractions = [1 / 81, 1 / 27] + [i / 9 for i in range(1, 10)]
+            training_fractions = [1 / 81, 1 / 27] + [
+                i / 9 for i in range(1, 10)
+            ]
         else:
             training_fractions = [0]
 
@@ -88,9 +94,14 @@ def extract_job_infos(
         # the performane metrics
         for i in training_fraction_indices:
             # Create the config object
-            hyperparams = {**base_hyperparams, "training_fraction": training_fractions[i]}
+            hyperparams = {
+                **base_hyperparams,
+                "training_fraction": training_fractions[i],
+            }
             model_config = get_model_config(model_name, **hyperparams)
-            config = Config(model_config, get_dataset_config(ref_job.dataset, data_path))
+            config = Config(
+                model_config, get_dataset_config(ref_job.dataset, data_path)
+            )
 
             # Get the indices of the models that should be used to derive the performance
             if validation_metric is None or len(training_fractions) == 1:
@@ -101,20 +112,29 @@ def extract_job_infos(
                 # Otherwise, we get the minimum value for the metric up to this point in time
                 choices = [
                     np.argmin(
-                        [p["evaluation"][validation_metric] for p in job.metrics][: i + 1]
+                        [
+                            p["evaluation"][validation_metric]
+                            for p in job.metrics
+                        ][: i + 1]
                     ).item()
                     for job in jobs
                 ]
 
             # Get the performances of the chosen models
-            performances = [job.performances[choice] for choice, job in zip(choices, jobs)]
+            performances = [
+                job.performances[choice] for choice, job in zip(choices, jobs)
+            ]
 
             # And average the performance
             averaged_performance = Performance(
                 **{
                     metric: Metric(
-                        np.mean([getattr(p, metric).mean for p in performances]),
-                        np.std([getattr(p, metric).mean for p in performances]),
+                        np.mean(
+                            [getattr(p, metric).mean for p in performances]
+                        ),
+                        np.std(
+                            [getattr(p, metric).mean for p in performances]
+                        ),
                     )
                     for metric in Performance.metrics()
                 }
@@ -123,16 +143,26 @@ def extract_job_infos(
             # Get validation scores if available
             try:
                 val_ncrps = np.mean(
-                    [job.metrics[c]["evaluation"]["val_ncrps"] for (job, c) in zip(jobs, choices)]
+                    [
+                        job.metrics[c]["evaluation"]["val_ncrps"]
+                        for (job, c) in zip(jobs, choices)
+                    ]
                 )
                 val_loss = np.mean(
-                    [job.metrics[c]["evaluation"]["val_loss"] for (job, c) in zip(jobs, choices)]
+                    [
+                        job.metrics[c]["evaluation"]["val_loss"]
+                        for (job, c) in zip(jobs, choices)
+                    ]
                 ).item()
                 val_scores = ValidationScores(val_ncrps, val_loss)
             except KeyError:
                 val_scores = None
 
             # Initialize the info object
-            runs.append(JobInfo(config, averaged_performance, val_scores, jobs, choices))
+            runs.append(
+                JobInfo(
+                    config, averaged_performance, val_scores, jobs, choices
+                )
+            )
 
     return runs

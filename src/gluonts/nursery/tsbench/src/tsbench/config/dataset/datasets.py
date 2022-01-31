@@ -315,7 +315,10 @@ class M5DatasetConfig(GluonTsDatasetConfig):
         return 28800
 
     def _materialize(self, directory: Path, regenerate: bool = False) -> None:
-        shutil.copytree(Path.home() / ".mxnet" / "gluon-ts" / "datasets" / "m5", directory / "m5")
+        shutil.copytree(
+            Path.home() / ".mxnet" / "gluon-ts" / "datasets" / "m5",
+            directory / "m5",
+        )
         super()._materialize(directory, regenerate=True)
 
 
@@ -431,7 +434,9 @@ class WindFarmsDatasetConfig(MonashDatasetConfig):
         return 28800
 
     def _filters(self, prediction_length: int) -> List[Filter]:
-        return [ConstantTargetFilter(prediction_length, required_length=100000)]
+        return [
+            ConstantTargetFilter(prediction_length, required_length=100000)
+        ]
 
     @property
     def _file(self) -> str:
@@ -985,7 +990,9 @@ class RossmannDatasetConfig(KaggleDatasetConfig):
     def _link(self) -> str:
         return "https://www.kaggle.com/c/rossmann-store-sales"
 
-    def _extract_data(self, path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _extract_data(
+        self, path: Path
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         # Read the raw data
         data = cast(pd.DataFrame, pd.read_csv(path / "train.csv"))
         stores = cast(pd.DataFrame, pd.read_csv(path / "store.csv"))
@@ -1038,7 +1045,9 @@ class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
     def _link(self) -> str:
         return "https://www.kaggle.com/c/favorita-grocery-sales-forecasting"
 
-    def _extract_data(self, path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _extract_data(
+        self, path: Path
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         # Read the raw data
         data = cast(pd.DataFrame, pd.read_csv(path / "train.csv"))
         stores = cast(pd.DataFrame, pd.read_csv(path / "stores.csv"))
@@ -1067,13 +1076,17 @@ class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
             item_id = np.where(item_ids == item)[0][0]
             sorted_data = group_data.sort_values("date")
             sales = pd.Series(
-                sorted_data.unit_sales.to_numpy(), index=pd.DatetimeIndex(sorted_data.date)
+                sorted_data.unit_sales.to_numpy(),
+                index=pd.DatetimeIndex(sorted_data.date),
             )
             series.append(
                 {
                     "item_id": i,
                     "start": sorted_data.date.min(),
-                    "target": sales.resample("D").first().fillna(value=0).to_list(),
+                    "target": sales.resample("D")
+                    .first()
+                    .fillna(value=0)
+                    .to_list(),
                     "feat_static_cat": [
                         int(store_id) - 1,
                         int(item_id),
@@ -1103,7 +1116,9 @@ class WalmartDatasetConfig(KaggleDatasetConfig):
     def _link(self) -> str:
         return "https://www.kaggle.com/c/walmart-recruiting-store-sales-forecasting"
 
-    def _extract_data(self, path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _extract_data(
+        self, path: Path
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         # Read the raw data
         data = cast(pd.DataFrame, pd.read_csv(path / "train.csv"))
         department_ids = np.sort(data.Dept.unique())
@@ -1115,7 +1130,9 @@ class WalmartDatasetConfig(KaggleDatasetConfig):
             "feat_static_cat": [
                 {
                     "name": "store",
-                    "cardinality": len(data.Store.unique()),  # pylint: disable=no-member
+                    "cardinality": len(
+                        data.Store.unique()
+                    ),  # pylint: disable=no-member
                 },
                 {
                     "name": "department",
@@ -1126,7 +1143,9 @@ class WalmartDatasetConfig(KaggleDatasetConfig):
 
         series = []
         # pylint: disable=no-member
-        for i, ((store_id, department), group_data) in enumerate(data.groupby(["Store", "Dept"])):
+        for i, ((store_id, department), group_data) in enumerate(
+            data.groupby(["Store", "Dept"])
+        ):
             department_id = np.where(department_ids == department)[0][0]
             sorted_data = group_data.sort_values("Date")
             series.append(
@@ -1161,9 +1180,13 @@ class RestaurantDatasetConfig(KaggleDatasetConfig):
 
     @property
     def _link(self) -> str:
-        return "https://www.kaggle.com/c/recruit-restaurant-visitor-forecasting"
+        return (
+            "https://www.kaggle.com/c/recruit-restaurant-visitor-forecasting"
+        )
 
-    def _extract_data(self, path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _extract_data(
+        self, path: Path
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         # Read the raw data
         data = cast(pd.DataFrame, pd.read_csv(path / "air_visit_data.csv"))
         store_ids = np.sort(data.air_store_id.unique())
@@ -1186,13 +1209,17 @@ class RestaurantDatasetConfig(KaggleDatasetConfig):
             store_id = np.where(store_ids == store)[0][0]
             sorted_data = group_data.sort_values("visit_date")
             visitors = pd.Series(
-                sorted_data.visitors.to_numpy(), index=pd.DatetimeIndex(sorted_data.visit_date)
+                sorted_data.visitors.to_numpy(),
+                index=pd.DatetimeIndex(sorted_data.visit_date),
             )
             series.append(
                 {
                     "item_id": i,
                     "start": sorted_data.visit_date.min(),
-                    "target": visitors.resample("D").first().fillna(value=0).to_list(),
+                    "target": visitors.resample("D")
+                    .first()
+                    .fillna(value=0)
+                    .to_list(),
                     "feat_static_cat": [
                         int(store_id),
                     ],

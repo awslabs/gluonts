@@ -43,7 +43,9 @@ def main(
 
     # First, get the tracker
     print("Fetching the data...")
-    tracker = ModelTracker.from_directory(Path(evaluations_path), data_path=Path(data_path))
+    tracker = ModelTracker.from_directory(
+        Path(evaluations_path), data_path=Path(data_path)
+    )
 
     # Evaluate the ensemble that can be built
     print("Evaluating the ensemble...")
@@ -51,7 +53,9 @@ def main(
         tracker,
         ensemble_size=size,
         ensemble_weighting=weighting,
-        config_class=MODEL_REGISTRY[model_class] if model_class is not None else None,
+        config_class=MODEL_REGISTRY[model_class]
+        if model_class is not None
+        else None,
     )
     df, configs = evaluator.run()
 

@@ -91,12 +91,12 @@ typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
 
 [tool.black]
-line-length = 99
+line-length = 79
 
 [tool.isort]
 force_alphabetical_sort_within_sections = true
 include_trailing_comma = true
-line_length = 99
+line_length = 79
 lines_between_sections = 0
 profile = "black"
 skip_gitignore = true

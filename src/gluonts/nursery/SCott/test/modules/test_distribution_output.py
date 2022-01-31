@@ -204,7 +204,7 @@ def test_independent_normal() -> None:
 
     loc = np.arange(0, dim) / float(dim)
     diag = np.arange(dim) / dim + 0.5
-    Sigma = diag ** 2
+    Sigma = diag**2
 
     distr = Independent(
         Normal(loc=torch.Tensor(loc), scale=torch.Tensor(diag)), 1

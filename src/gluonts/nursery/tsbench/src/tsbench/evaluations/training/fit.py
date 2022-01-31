@@ -56,7 +56,8 @@ def fit_estimator(  # pylint: disable=too-many-statements
         saver_callback: ModelSaverCallback
         if isinstance(config, TrainConfig):
             hyperband_milestones = [
-                training_time * (1 / 3) ** i for i in reversed(range(num_model_checkpoints))
+                training_time * (1 / 3) ** i
+                for i in reversed(range(num_model_checkpoints))
             ]
 
             # Save at the first half of milestones as well as multiples of the middle milestone
@@ -64,7 +65,9 @@ def fit_estimator(  # pylint: disable=too-many-statements
                 milestones += [hyperband_milestones[i]]
 
             pivot = hyperband_milestones[len(hyperband_milestones) // 2]
-            milestones += np.arange(pivot, training_time + pivot / 2, pivot).tolist()
+            milestones += np.arange(
+                pivot, training_time + pivot / 2, pivot
+            ).tolist()
 
             saver_callback = ModelSaverCallback(Path(tmp_dir), milestones)
             callbacks += [saver_callback]
@@ -131,7 +134,9 @@ def fit_estimator(  # pylint: disable=too-many-statements
                 predictors.append(copied_predictor)
 
                 # Log everything
-                log_metric("num_model_parameters", count_callback.num_parameters)
+                log_metric(
+                    "num_model_parameters", count_callback.num_parameters
+                )
                 log_metric(
                     "num_gradient_updates",
                     saver_callback.num_gradient_updates[i],  # type: ignore

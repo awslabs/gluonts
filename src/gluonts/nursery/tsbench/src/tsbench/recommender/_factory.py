@@ -3,7 +3,9 @@ from tsbench.config import EnsembleConfig, ModelConfig
 from ._base import Recommender
 
 RECOMMENDER_REGISTRY: Dict[str, Type[Recommender[ModelConfig]]] = {}
-ENSEMBLE_RECOMMENDER_REGISTRY: Dict[str, Type[Recommender[EnsembleConfig]]] = {}
+ENSEMBLE_RECOMMENDER_REGISTRY: Dict[
+    str, Type[Recommender[EnsembleConfig]]
+] = {}
 
 R = TypeVar("R", bound=Type[Recommender[ModelConfig]])
 E = TypeVar("E", bound=Type[Recommender[EnsembleConfig]])
@@ -42,10 +44,14 @@ def create_recommender(name: str, **kwargs: Any) -> Recommender[ModelConfig]:
     return recommender_cls(**kwargs)
 
 
-def create_ensemble_recommender(name: str, **kwargs: Any) -> Recommender[EnsembleConfig]:
+def create_ensemble_recommender(
+    name: str, **kwargs: Any
+) -> Recommender[EnsembleConfig]:
     """
     Creates a recommender using the specified parameters.
     """
-    assert name in ENSEMBLE_RECOMMENDER_REGISTRY, f"Unknown recommender {name}."
+    assert (
+        name in ENSEMBLE_RECOMMENDER_REGISTRY
+    ), f"Unknown recommender {name}."
     recommender_cls = ENSEMBLE_RECOMMENDER_REGISTRY[name]
     return recommender_cls(**kwargs)

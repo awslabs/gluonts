@@ -19,7 +19,9 @@ class ModelTracker(Tracker[ModelConfig]):
     """
 
     @classmethod
-    def for_experiment(cls, name: str, force_refresh: bool = False, **kwargs: Any) -> ModelTracker:
+    def for_experiment(
+        cls, name: str, force_refresh: bool = False, **kwargs: Any
+    ) -> ModelTracker:
         """
         Loads the data associated with a set of training jobs run on AWS Sagemaker. The tracker is
         cached such that it does not need to re-download data in case no new evaluations are
@@ -35,19 +37,28 @@ class ModelTracker(Tracker[ModelConfig]):
             The tracker with all the available data.
         """
         # Generate the filename including all kwargs
-        kwargs_suffix = "-".join(f"{k}_{v}" for k, v in sorted(kwargs.items(), key=lambda i: i[0]))
+        kwargs_suffix = "-".join(
+            f"{k}_{v}" for k, v in sorted(kwargs.items(), key=lambda i: i[0])
+        )
         if len(kwargs_suffix) > 0:
             kwargs_suffix = f"+{kwargs_suffix}"
 
         # If available in cache, return
-        cache = Path.home() / ".cache" / "tsbench" / f"experiment-{name}{kwargs_suffix}.pickle"
+        cache = (
+            Path.home()
+            / ".cache"
+            / "tsbench"
+            / f"experiment-{name}{kwargs_suffix}.pickle"
+        )
         if cache.exists() and not force_refresh:
             with cache.open("rb") as f:
                 return pickle.load(f)
 
         # Initialize connection to AWS
         analysis = aws.Analysis(name)
-        assert all(job.status == "Completed" for job in analysis), "Not all jobs have completed."
+        assert all(
+            job.status == "Completed" for job in analysis
+        ), "Not all jobs have completed."
 
         # Initialize tracker
         jobs = load_jobs_from_analysis(analysis)
@@ -72,7 +83,9 @@ class ModelTracker(Tracker[ModelConfig]):
             The tracker with all the available data.
         """
         # Generate the filename including all kwargs
-        kwargs_suffix = "-".join(f"{k}_{v}" for k, v in sorted(kwargs.items(), key=lambda i: i[0]))
+        kwargs_suffix = "-".join(
+            f"{k}_{v}" for k, v in sorted(kwargs.items(), key=lambda i: i[0])
+        )
         if len(kwargs_suffix) > 0:
             kwargs_suffix = f"+{kwargs_suffix}"
 
@@ -151,7 +164,9 @@ class ModelTracker(Tracker[ModelConfig]):
         """
         return self.config_map[config].jobs
 
-    def get_forecasts(self, config: Config[ModelConfig]) -> List[QuantileForecasts]:
+    def get_forecasts(
+        self, config: Config[ModelConfig]
+    ) -> List[QuantileForecasts]:
         """
         Returns the quantile forecasts of all models associated with the provided configuration,
         i.e. forecasts for the same model trained on different seeds.
@@ -168,7 +183,9 @@ class ModelTracker(Tracker[ModelConfig]):
             result.append(job.get_forecast(info.model_indices[i]))
         return result
 
-    def get_validation_scores(self, config: Config[ModelConfig]) -> Optional[ValidationScores]:
+    def get_validation_scores(
+        self, config: Config[ModelConfig]
+    ) -> Optional[ValidationScores]:
         """
         Returns the validation scores associated with the provided configuration if available.
 

@@ -33,5 +33,7 @@ class OptimalRecommender(Recommender[ModelConfig]):
         super().__init__(objectives, focus, generator=generator)
         self.tracker = tracker
 
-    def _get_performances(self, configs: List[Config[ModelConfig]]) -> List[Performance]:
+    def _get_performances(
+        self, configs: List[Config[ModelConfig]]
+    ) -> List[Performance]:
         return [self.tracker.get_performance(c) for c in configs]

@@ -55,7 +55,9 @@ class Recommender(ABC, Generic[T]):
         """
         return 1
 
-    def fit(self, configs: List[Config[T]], _performances: List[Performance]) -> None:
+    def fit(
+        self, configs: List[Config[T]], _performances: List[Performance]
+    ) -> None:
         """
         Fits the recommender, including surrogate model and generator, on the provided
         configurations.
@@ -99,7 +101,9 @@ class Recommender(ABC, Generic[T]):
         # Then, we perform a nondominated sort
         argsort = argsort_nondominated(
             df.to_numpy(),  # type: ignore
-            dim=df.columns.tolist().index(self.focus) if self.focus is not None else None,
+            dim=df.columns.tolist().index(self.focus)
+            if self.focus is not None
+            else None,
             max_items=max_count,
         )
 

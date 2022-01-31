@@ -51,7 +51,9 @@ def compute_stats(dataset: Optional[str], data_path: str, output_path: str):
         if file.exists():
             continue
 
-        stats = calculate_dataset_statistics(config(source).data.train(val=False).gluonts())
+        stats = calculate_dataset_statistics(
+            config(source).data.train(val=False).gluonts()
+        )
         with file.open("w+") as f:
             json.dump(
                 {

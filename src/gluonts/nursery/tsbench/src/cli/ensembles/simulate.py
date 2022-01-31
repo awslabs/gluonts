@@ -98,7 +98,9 @@ def simulate(
 
     # Load the experiments
     print("Loading experiments...")
-    tracker = ModelTracker.from_directory(Path(evaluations_path), data_path=Path(data_path))
+    tracker = ModelTracker.from_directory(
+        Path(evaluations_path), data_path=Path(data_path)
+    )
 
     # Sample configurations
     print("Sampling configurations...")
@@ -131,7 +133,9 @@ def simulate(
                 c
                 for c in unique_configurations
                 if isinstance(c, config.__class__)
-                and (not isinstance(c, TrainConfig) or c.training_fraction == 1)
+                and (
+                    not isinstance(c, TrainConfig) or c.training_fraction == 1
+                )
             ]
             if len(all_configs) == 1:
                 continue
@@ -145,7 +149,9 @@ def simulate(
         if hyperensemble_samples == -1:
             choices.extend(available_ensembles)
         else:
-            choices.extend(random.sample(available_ensembles, hyperensemble_samples))
+            choices.extend(
+                random.sample(available_ensembles, hyperensemble_samples)
+            )
 
     # Then, we add some randomly sampled ensembles of model configurations
     for _ in range(random_samples):
@@ -155,9 +161,13 @@ def simulate(
 
     # Then, we either evaluate each chosen configuration on all datasets or on a randomly sampled
     # one.
-    datasets = list({c.dataset for c in tracker.get_evaluations().configurations})
+    datasets = list(
+        {c.dataset for c in tracker.get_evaluations().configurations}
+    )
     if sample_datasets:
-        evaluations = [(model_config, random.choice(datasets)) for model_config in choices]
+        evaluations = [
+            (model_config, random.choice(datasets)) for model_config in choices
+        ]
     else:
         evaluations = list(product(choices, datasets))
 
@@ -190,4 +200,6 @@ def _evaluate_ensemble(
     ensemble: Tuple[Tuple[ModelConfig], DatasetConfig],
     evaluator: EnsembleAnalyzer,
 ) -> Performance:
-    return evaluator.get_ensemble_performance(list(ensemble[0]), ensemble[1], num_samples=3)
+    return evaluator.get_ensemble_performance(
+        list(ensemble[0]), ensemble[1], num_samples=3
+    )

@@ -1,7 +1,11 @@
 from pathlib import Path
+import click
 import yaml
-from black import click
-from cli.utils import explode_key_values, iterate_configurations, run_sacred_script
+from cli.utils import (
+    explode_key_values,
+    iterate_configurations,
+    run_sacred_script,
+)
 from tsbench.constants import DEFAULT_DATA_PATH, DEFAULT_EVALUATIONS_PATH
 from ._main import analysis
 
@@ -37,7 +41,13 @@ from ._main import analysis
     show_default=True,
     help="The number of configurations to skip. Useful if some set of experiments failed.",
 )
-def ensemble(experiment: str, config_path: str, data_path: str, evaluations_path: str, nskip: int):
+def ensemble(
+    experiment: str,
+    config_path: str,
+    data_path: str,
+    evaluations_path: str,
+    nskip: int,
+):
     """
     Evaluates the performance of an ensemble of best-performing models. This allows also to only
     consider models of a particular type (thus building hyper-ensembles).

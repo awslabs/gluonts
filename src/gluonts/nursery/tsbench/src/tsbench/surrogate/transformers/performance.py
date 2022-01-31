@@ -52,7 +52,9 @@ class PerformanceTransformer(TransformerMixin):
         """
         return self.encoder.transform(y)
 
-    def inverse_transform(self, y: npt.NDArray[np.float32]) -> List[Performance]:
+    def inverse_transform(
+        self, y: npt.NDArray[np.float32]
+    ) -> List[Performance]:
         """
         Transforms the provided NumPy arrays back into performance objects according to the fitted
         transformer.
@@ -87,12 +89,22 @@ class PerformanceEncoder:
             self.feature_names_ = self.metrics
         return self
 
-    def transform(self, X: List[Performance], _y: Any = None) -> npt.NDArray[np.float32]:
+    def transform(
+        self, X: List[Performance], _y: Any = None
+    ) -> npt.NDArray[np.float32]:
         df = Performance.to_dataframe(X)
         return df[self.feature_names_].to_numpy()
 
-    def inverse_transform(self, X: npt.NDArray[np.float32], _y: Any = None) -> List[Performance]:
+    def inverse_transform(
+        self, X: npt.NDArray[np.float32], _y: Any = None
+    ) -> List[Performance]:
         df = pd.DataFrame(X, columns=self.feature_names_).assign(
-            **{col: np.nan for col in set(self.all_feature_names_) - set(self.feature_names_)}
+            **{
+                col: np.nan
+                for col in set(self.all_feature_names_)
+                - set(self.feature_names_)
+            }
         )
-        return [Performance.from_dict(row.to_dict()) for _, row in df.iterrows()]
+        return [
+            Performance.from_dict(row.to_dict()) for _, row in df.iterrows()
+        ]

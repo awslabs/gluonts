@@ -58,7 +58,9 @@ def compute_owa(
         data = split.evaluation()
         seasonal_error = naive_error(data.past, get_seasonality(meta.freq))
 
-        naive_mase += mase(naive_forecast.median, data.future, seasonal_error) * weight
+        naive_mase += (
+            mase(naive_forecast.median, data.future, seasonal_error) * weight
+        )
         naive_smape += smape(naive_forecast.median, data.future) * weight
 
         actual_mase += metric[0] * weight
@@ -67,6 +69,8 @@ def compute_owa(
     return 0.5 * (actual_smape / naive_smape + actual_mase / naive_mase)
 
 
-def _naive_2_forecasts(dataset: Dataset, freq: str, prediction_length: int) -> QuantileForecasts:
+def _naive_2_forecasts(
+    dataset: Dataset, freq: str, prediction_length: int
+) -> QuantileForecasts:
     naive_predictor = Naive2Predictor(freq, prediction_length)
     return generate_forecasts(naive_predictor, dataset)[0]

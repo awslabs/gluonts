@@ -44,7 +44,9 @@ class SeasonalNaiveModelConfig(ModelConfig):
         callbacks: List[Callback],
     ) -> Estimator:
         return DummyEstimator(
-            SeasonalNaivePredictor, freq=freq, prediction_length=prediction_length
+            SeasonalNaivePredictor,
+            freq=freq,
+            prediction_length=prediction_length,
         )
 
 
@@ -95,7 +97,9 @@ class Naive2ModelConfig(ModelConfig):
         validation_milestones: List[float],
         callbacks: List[Callback],
     ) -> Estimator:
-        return DummyEstimator(Naive2Predictor, freq=freq, prediction_length=prediction_length)
+        return DummyEstimator(
+            Naive2Predictor, freq=freq, prediction_length=prediction_length
+        )
 
 
 @register_model
@@ -135,7 +139,9 @@ class DeepARModelConfig(ModelConfig, TrainConfig):
     def name(cls) -> str:
         return "deepar"
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         deepar_estimator = cast(DeepAREstimator, estimator)
         transform = deepar_estimator.create_transformation()
         return deepar_estimator.create_predictor(transform, network)
@@ -181,7 +187,9 @@ class MQCnnModelConfig(ModelConfig, TrainConfig):
     def name(cls) -> str:
         return "mqcnn"
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         mqcnn_estimator = cast(MQCNNEstimator, estimator)
         transform = mqcnn_estimator.create_transformation()
         return mqcnn_estimator.create_predictor(transform, cast)  # type: ignore
@@ -227,7 +235,9 @@ class MQRnnModelConfig(ModelConfig, TrainConfig):
     def name(cls) -> str:
         return "mqrnn"
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         mqrnn_estimator = cast(MQRNNEstimator, estimator)
         transform = mqrnn_estimator.create_transformation()
         return mqrnn_estimator.create_predictor(transform, network)  # type: ignore
@@ -267,7 +277,9 @@ class SimpleFeedforwardModelConfig(ModelConfig, TrainConfig):
     def name(cls) -> str:
         return "simple_feedforward"
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         ff_estimator = cast(SimpleFeedForwardEstimator, estimator)
         transform = ff_estimator.create_transformation()
         return ff_estimator.create_predictor(transform, network)
@@ -308,7 +320,9 @@ class TemporalFusionTransformerModelConfig(ModelConfig, TrainConfig):
     def name(cls) -> str:
         return "tft"
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         tft_estimator = cast(TemporalFusionTransformerEstimator, estimator)
         transform = tft_estimator.create_transformation()
         return tft_estimator.create_predictor(transform, network)
@@ -356,7 +370,9 @@ class NBeatsModelConfig(ModelConfig, TrainConfig):
     def prediction_samples(self) -> int:
         return 1
 
-    def create_predictor(self, estimator: Estimator, network: nn.HybridBlock) -> Predictor:
+    def create_predictor(
+        self, estimator: Estimator, network: nn.HybridBlock
+    ) -> Predictor:
         nb_estimator = cast(NBEATSEstimator, estimator)
         transform = nb_estimator.create_transformation()
         return nb_estimator.create_predictor(transform, network)
@@ -399,14 +415,20 @@ class ProphetModelConfig(ModelConfig):
         file = path / "metadata.pickle"
         with file.open("w") as f:
             json.dump(
-                {"freq": predictor.freq, "prediction_length": predictor.prediction_length}, f
+                {
+                    "freq": predictor.freq,
+                    "prediction_length": predictor.prediction_length,
+                },
+                f,
             )
 
     def load_predictor(self, path: Path) -> Predictor:
         file = path / "metadata.pickle"
         with file.open("r") as f:
             meta = json.load(f)
-        return ProphetPredictor(freq=meta["freq"], prediction_length=meta["prediction_length"])
+        return ProphetPredictor(
+            freq=meta["freq"], prediction_length=meta["prediction_length"]
+        )
 
     def create_estimator(
         self,
@@ -417,7 +439,9 @@ class ProphetModelConfig(ModelConfig):
         validation_milestones: List[float],
         callbacks: List[Callback],
     ) -> Estimator:
-        return DummyEstimator(ProphetPredictor, freq=freq, prediction_length=prediction_length)
+        return DummyEstimator(
+            ProphetPredictor, freq=freq, prediction_length=prediction_length
+        )
 
 
 @register_model

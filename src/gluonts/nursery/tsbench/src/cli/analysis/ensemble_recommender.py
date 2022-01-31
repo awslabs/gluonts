@@ -1,12 +1,18 @@
 from pathlib import Path
+import click
 import yaml
-from black import click
-from cli.utils import explode_key_values, iterate_configurations, run_sacred_script
+from cli.utils import (
+    explode_key_values,
+    iterate_configurations,
+    run_sacred_script,
+)
 from tsbench.constants import DEFAULT_ENSEMBLE_EVALUATIONS_PATH
 from ._main import analysis
 
 
-@analysis.command(short_help="Evaluate the performance of recommended ensembles.")
+@analysis.command(
+    short_help="Evaluate the performance of recommended ensembles."
+)
 @click.option(
     "--experiment",
     required=True,
