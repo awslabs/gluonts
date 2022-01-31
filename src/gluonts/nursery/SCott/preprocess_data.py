@@ -17,7 +17,7 @@ def _get_mixed_pattern(x, pattern):
     elif pattern == "linear":
         return x * 2 + torch.normal(0, 1, size=x.shape)
     elif pattern == "quadratic":
-        return x ** 1.5 + torch.normal(0, 5, size=x.shape)
+        return x**1.5 + torch.normal(0, 5, size=x.shape)
     else:
         return torch.sqrt(x) + torch.normal(0, 1, size=x.shape)
 
