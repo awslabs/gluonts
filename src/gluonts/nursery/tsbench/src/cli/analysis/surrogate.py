@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-import click
 import yaml
+from black import click
 from cli.utils import (
     explode_key_values,
     iterate_configurations,
