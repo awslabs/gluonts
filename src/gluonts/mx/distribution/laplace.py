@@ -69,7 +69,7 @@ class Laplace(Distribution):
 
     @property
     def stddev(self) -> Tensor:
-        return 2.0 ** 0.5 * self.b
+        return 2.0**0.5 * self.b
 
     def cdf(self, x: Tensor) -> Tensor:
         y = (x - self.mu) / self.b

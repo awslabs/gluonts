@@ -88,7 +88,7 @@ def test_radial_basis_function_kernel(
     length_scale = length_scale.reshape(batch_size, 1, 1)
     rbf = RBFKernel(amplitude, length_scale)
 
-    exact = amplitude * nd.exp(-0.5 * exact / length_scale ** 2)
+    exact = amplitude * nd.exp(-0.5 * exact / length_scale**2)
 
     res = rbf.kernel_matrix(x1, x2)
     assert nd.norm(exact - res) < tol
