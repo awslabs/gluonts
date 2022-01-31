@@ -32,7 +32,7 @@ def thinning_sampler(rng, lamb, xmin=0, lamb_min=1e-10):
 
 
 def Hawkes(rng, background, kernel, xmin, xmax, N_max=1e6):
-    """ requires int x kernel(x)<infty """
+    """requires int x kernel(x)<infty"""
     X = []
     while len(X) < N_max:
         lamb = lambda x: background + np.sum(  # noqa

@@ -143,13 +143,13 @@ class NBEATSTrendBlock(NBEATSBlock):
         self.register_buffer(
             "T_backcast",
             torch.tensor(
-                [backcast_linspace ** i for i in range(thetas_dim)]
+                [backcast_linspace**i for i in range(thetas_dim)]
             ).float(),
         )
         self.register_buffer(
             "T_forecast",
             torch.tensor(
-                [forecast_linspace ** i for i in range(thetas_dim)]
+                [forecast_linspace**i for i in range(thetas_dim)]
             ).float(),
         )
 
