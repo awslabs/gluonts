@@ -1,0 +1,7 @@
+seeds: [42, 137]
+datasets:
+  - wind_farms
+models:
+  prophet:
+    - key: __instance_type__
+      values: [ml.m5.2xlarge]

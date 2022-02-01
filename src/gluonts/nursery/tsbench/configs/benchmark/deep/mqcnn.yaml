@@ -1,0 +1,52 @@
+seeds: [42, 137]
+datasets:
+  - exchange_rate
+  - electricity
+  - solar
+  - wiki
+  - taxi
+  - m3_monthly
+  - m3_quarterly
+  - m3_yearly
+  - m3_other
+  - m4_hourly
+  - m4_daily
+  - m4_weekly
+  - m4_monthly
+  - m4_quarterly
+  - m4_yearly
+  - m5
+  - tourism_monthly
+  - tourism_quarterly
+  - tourism_yearly
+  - nn5
+  - london_smart_meters
+  - wind_farms
+  - car_parts
+  - dominick
+  - fred_md
+  - san_francisco_traffic
+  - pedestrian_count
+  - hospital
+  - covid_deaths
+  - kdd_2018
+  - cif_2016
+  - australian_electricity_demand
+  - bitcoin
+  - rideshare
+  - vehicle_trips
+  - weather
+  - temperature_rain
+  - m1_yearly
+  - m1_quarterly
+  - m1_monthly
+  - rossmann
+  - corporacion_favorita
+  - walmart
+  - restaurant
+models:
+  mqcnn:
+    - key: context_length_multiple
+      values: [1, 2, 4, 8]
+    - key: [num_filters, kernel_size_first, kernel_size_hidden, kernel_size_last]
+      values: [[20, 3, 3, 2], [30, 7, 3, 3], [40, 14, 7, 3]]

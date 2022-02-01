@@ -1,0 +1,11 @@
+seeds: [42, 137]
+datasets:
+  - corporacion_favorita
+models:
+  deepar:
+    - key: __instance_type__
+      values: [ml.m5.2xlarge]
+    - key: context_length_multiple
+      values: [1, 2, 4, 8]
+    - key: [num_layers, num_cells]
+      values: [[1, 20], [2, 40], [4, 80]]

@@ -17,4 +17,7 @@ jobs:
         python -m pip install -U pip
         pip install flake8
     - name: Flake8
-      run: flake8 --ignore E501,E203,W503,W291,E741 src --exclude src/gluonts/nursery/SCott
+      run: |
+        flake8 \
+          --ignore E501,E203,W503,W291,E741 src \
+          --exclude src/gluonts/nursery/SCott,src/gluonts/nursery/tsbench
