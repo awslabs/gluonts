@@ -109,6 +109,7 @@ class PyTorchLightningEstimator(Estimator):
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
         **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
@@ -156,6 +157,7 @@ class PyTorchLightningEstimator(Estimator):
             model=training_network,
             train_dataloaders=training_data_loader,
             val_dataloaders=validation_data_loader,
+            ckpt_path=ckpt_path,
         )
 
         logger.info(f"Loading best model from {checkpoint.best_model_path}")
@@ -181,6 +183,7 @@ class PyTorchLightningEstimator(Estimator):
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
         **kwargs,
     ) -> PyTorchPredictor:
         return self.train_model(
@@ -189,5 +192,6 @@ class PyTorchLightningEstimator(Estimator):
             num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
+            ckpt_path=ckpt_path,
             **kwargs,
         ).predictor
