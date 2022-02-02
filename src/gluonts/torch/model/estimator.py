@@ -141,6 +141,7 @@ class PyTorchLightningEstimator(Estimator):
                 if not cache_data
                 else Cached(transformed_validation_data),
                 training_network,
+                num_workers=num_workers,
             )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
