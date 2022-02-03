@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Type
 
 import numpy as np
 import pandas as pd
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.time_feature import TimeFeature
 
@@ -25,7 +25,7 @@ from .split import shift_timestamp
 
 
 def target_transformation_length(
-    target: np.array, pred_length: int, is_train: bool
+    target: np.ndarray, pred_length: int, is_train: bool
 ) -> int:
     return target.shape[-1] + (0 if is_train else pred_length)
 
@@ -221,7 +221,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         imputation_method: Optional[
             MissingValueImputation
         ] = DummyValueImputation(0.0),
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         self.target_field = target_field
         self.output_field = output_field
@@ -274,7 +274,7 @@ class AddConstFeature(MapTransformation):
         target_field: str,
         pred_length: int,
         const: float = 1.0,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         self.pred_length = pred_length
         self.const = const
@@ -321,7 +321,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         self.date_features = time_features
         self.pred_length = pred_length
@@ -330,7 +330,7 @@ class AddTimeFeatures(MapTransformation):
         self.output_field = output_field
         self._min_time_point: pd.Timestamp = None
         self._max_time_point: pd.Timestamp = None
-        self._full_range_date_features: np.ndarray = None
+        self._full_range_date_features: Optional[np.ndarray] = None
         self._date_index: pd.DatetimeIndex = None
         self.dtype = dtype
 
@@ -369,10 +369,11 @@ class AddTimeFeatures(MapTransformation):
             data[self.target_field], self.pred_length, is_train=is_train
         )
         self._update_cache(start, length)
+
         i0 = self._date_index[start]
         features = (
             self._full_range_date_features[..., i0 : i0 + length]
-            if self.date_features
+            if self._full_range_date_features is not None
             else None
         )
         data[self.output_field] = features
@@ -410,7 +411,7 @@ class AddAgeFeature(MapTransformation):
         output_field: str,
         pred_length: int,
         log_scale: bool = True,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         self.pred_length = pred_length
         self.target_field = target_field
@@ -476,7 +477,7 @@ class AddAggregateLags(MapTransformation):
         agg_freq: str,
         agg_lags: List[int],
         agg_fun: str = "mean",
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         self.pred_length = pred_length
         self.target_field = target_field

@@ -1,0 +1,7 @@
+seeds: [42, 137]
+datasets:
+  - taxi
+models:
+  arima:
+    - key: __instance_type__
+      values: [ml.c5.18xlarge]
