@@ -87,7 +87,6 @@ class TypeCheckCommand(distutils.cmd.Command):
             "--allow-redefinition",
             "--follow-imports=silent",
             "--ignore-missing-imports",
-            "--install-types",
         ]
 
         folders = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
