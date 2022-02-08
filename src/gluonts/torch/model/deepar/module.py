@@ -204,12 +204,14 @@ class DeepARModel(nn.Module):
             for s in state
         ]
 
-        distr = self.output_distribution(params, trailing_n=1, scale=scale)
-
-        next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
-        next_sample = next_sample.transpose(0, 1).reshape(
-            (next_sample.shape[0] * next_sample.shape[1], -1)
+        repeated_params = [
+            s.repeat_interleave(repeats=self.num_parallel_samples, dim=0)
+            for s in params
+        ]
+        distr = self.output_distribution(
+            repeated_params, trailing_n=1, scale=repeated_scale
         )
+        next_sample = distr.sample()
         future_samples = [next_sample]
 
         for k in range(1, self.prediction_length):
