@@ -1,6 +1,14 @@
 # Scientific Articles
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
+# 2022
+* Robust Probabilistic Time Series Forecasting, *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
+* [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://arxiv.org/abs/2111.06581), *Youngsuk Park, Danielle C. Maddix, Francois-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, AISTATS 2022
+* Multivariate Quantile Function Forecaster, *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022
+* [Deep Generative model with Hierarchical Latent Factors for Timeseries Anomaly Detection](https://openreview.net/pdf?id=FwkZ4m3VjFi), *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, AISTATS 2022
+* Testing Granger Non-Causality in Panels with Cross-Sectional Dependencies, *Lenon Minorics, Caner Turkmen, Patrick Bloebaum, David Kernert, Laurent Callot, Dominik Janzing*, AISTATS 2022
+* [PSA-GAN: Progressive Self Attention GANs for Synthetic Time Series](https://arxiv.org/abs/2108.00981), *Paul Jeha, Michael Bohlke-Schneider, Pedro Mercado, Shubham Kapoor, Rajbir Singh Nirwan, Valentin Flunkert, Jan Gasthaus, Tim Januschowski*, ICLR 2022
+* Not All Domains Are Created Equal: Graph-Relational Domain Adaptation, *Zihao Xu, Hao He, Guang-He Lee, Yuyang Wang, Hao Wang*, ICLR 2022
 
 # 2021
 
@@ -11,17 +19,17 @@ We encourage you to also check out the time series work by the group behind Gluo
 * [Detecting Anomalous Event Sequences with Temporal Point Processes](https://proceedings.neurips.cc/paper/2021/file/6faa8040da20ef399b63a72d0e4ab575-Paper.pdf), *Oleksandr Shchur, Ali Caner Turkmen, Tim Januschowski, Jan Gasthaus, Stephan Günnemann*, NeurIPS 2021
 * [Online false discovery rate control for anomaly detection in time series](https://proceedings.neurips.cc/paper/2021/file/def130d0b67eb38b7a8f4e7121ed432c-Paper.pdf), *Quentin Rebjock, Baris Kurt, Tim Januschowski, Laurent Callot*, NeurIPS 2021
 * Symmetry-breaking for Variational Bayesian Neural Networks, *Richard Kurle, Yuyang Wang, Tim Januschowski, Jan Gasthaus*, NeurIPS 2021 Workshop on Bayesian Deep Learning
-* [GOPHER: Categorical probabilistic forecasting withgraph structure via local continuous-time dynamics](https://openreview.net/pdf?id=v2DmCzi1gfh), *Alex Wang, Danielle Maddix, Yuyang Wang*, NeurIPS 2021 Workshop on ICBINB
-* Modeling Advection on Directed Graphs using Graph Matern Gaussian Processes for Traffic Flow, *Danielle Maddix, Nadim Saad, Yuyang Wang*, NeurIPS 2021 Workshop on Machine Learning and The Physical Sciences
+* [GOPHER: Categorical probabilistic forecasting withgraph structure via local continuous-time dynamics](https://openreview.net/pdf?id=v2DmCzi1gfh), *Alex Wang, Danielle C. Maddix, Yuyang Wang*, NeurIPS 2021 Workshop on ICBINB
+* [Modeling Advection on Directed Graphs using Graph Matern Gaussian Processes for Traffic Flow](https://ml4physicalsciences.github.io/2021/files/NeurIPS_ML4PS_2021_13.pdf), *Danielle C. Maddix, Nadim Saad, Yuyang Wang*, NeurIPS 2021 Workshop on Machine Learning and The Physical Sciences
 * Deep Generative model with Hierarchical Latent Factors for Timeseries Anomaly Detection, *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, NeurIPS 2021 Workshop on Deep Generative Models
 * [Neural Temporal Point Processes: A Review](https://arxiv.org/abs/2104.03528), *Oleksandr Shchur, Ali Caner Türkmen, Tim Januschowski, Stephan Günnemann*, IJCAI 2021
-* [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://arxiv.org/pdf/2111.06581), *Youngsuk Park, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, ICML 2021 Workshop on Distribution-Free Uncertainty Quantification
+* [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://arxiv.org/pdf/2111.06581), *Youngsuk Park, Danielle C. Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, ICML 2021 Workshop on Distribution-Free Uncertainty Quantification
 * [Revisiting Dynamic Regret of Strongly Adaptive Methods](http://roseyu.com/time-series-workshop/submissions/2021/TSW-ICML2021_paper_41.pdf), *Dheeraj Baby, Hilaf Hasson, Yuyang Wang*, ICML Workshop on Time Series, 2021
 * [A Study of Joint Graph Inference and Forecasting](https://arxiv.org/pdf/2109.04979), *Daniel Zügner, François-Xavier Aubet, Victor Garcia Satorras, Tim Januschowski, Stephan Günnemann, Jan Gasthaus*, ICML Workshop on Time Series, 2021
 * [PSA-GAN: Progressive Self Attention GANs for Synthetic Time Series](https://arxiv.org/abs/2108.00981), *Jeha Paul, Bohlke-Schneider Michael, Mercado Pedro, Singh Nirwan Rajbir, Kapoor Shubham, Flunkert Valentin, Gasthaus Jan, Januschowski Tim*, ICML Workshop on Time Series, 2021
 * [Variance Reduced Training with Stratified Sampling for Forecasting Models](http://proceedings.mlr.press/v139/lu21d/lu21d.pdf), *Yucheng Lu, Youngsuk Park, Lifan Chen, Yuyang Wang, Christopher De Sa, Dean Foster*, ICML 2021
 * [End-to-end learning of coherent probabilistic forecasts for hierarchical time series](http://proceedings.mlr.press/v139/rangapuram21a/rangapuram21a.pdf), *Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski*, ICML 2021
-* [Bridging Physics-based and Data-driven modeling for Learning Dynamical Systems](http://proceedings.mlr.press/v144/wang21a/wang21a.pdf), *Ray Wang, Danielle Maddix, Christos Faloutsos, Yuyang Wang, Rose Yu*, L4DC 2021
+* [Bridging Physics-based and Data-driven modeling for Learning Dynamical Systems](http://proceedings.mlr.press/v144/wang21a/wang21a.pdf), *Ray Wang, Danielle C. Maddix, Christos Faloutsos, Yuyang Wang, Rose Yu*, L4DC 2021
 * Forecasting with Trees, *Tim Januschowski, Yuyang Wang, Kari Torkkola, Timo Erkkila, Hilaf Hasson, Jan Gasthaus*, International Journal of Forecasting (IJF) 2021
 * [Forecasting: Theory and Practice](https://arxiv.org/abs/2012.03854), *Fotios Petroupolos et al and Tim Januschowski*, International Journal of Forecasting (IJF) 2021
 * The M5 Competition: A Critial Appraisal, *Tim Januschowski, Jan Gasthaus, Yuyang Wang*, Foresight, 2021
@@ -30,7 +38,7 @@ We encourage you to also check out the time series work by the group behind Gluo
 # 2020
 * [Deep Rao-Blackwellised Particle Filters for Time Series Forecasting](https://proceedings.neurips.cc/paper/2020/hash/afb0b97df87090596ae7c503f60bb23f-Abstract.html), *Richard Kurle, Syama Rangapuram, Emmanuel de Bezenac, Stepuhan Günnemann, Jan Gasthaus*, NeurIPS 2020
 * [Normalizing Kalman Filters for Multivariate Time Series Analysis](https://papers.nips.cc/paper/2020/hash/1f47cef5e38c952f94c5d61726027439-Abstract.html), *Emmanuel de B\'{e}zenac, Syama S. Rangapuram, Konstantinos Benidis, Michael Bohlke-Schneider, Richard Kurle, Lorenzo Stella, Hilaf Hasson, Patrick Gallinari, Tim Januschowski*, NeurIPS 2020
-* [Physics-based vs. Data-driven: A Benchmark Study on COVID-19 Forecasting](https://arxiv.org/pdf/2011.10616.pdf), *Ray Wang, Danielle Maddix, Christos Faloutsos, Yuyang Wang, Rose Yu*, **Best Paper Award**, NeurIPS 2020 Machine Learning in Public Health (MLPH) Workshop
+* [Physics-based vs. Data-driven: A Benchmark Study on COVID-19 Forecasting](https://arxiv.org/pdf/2011.10616.pdf), *Ray Wang, Danielle C. Maddix, Christos Faloutsos, Yuyang Wang, Rose Yu*, **Best Paper Award**, NeurIPS 2020 Machine Learning in Public Health (MLPH) Workshop
 * [Criteria for classifying forecasting methods](https://www.sciencedirect.com/science/article/pii/S0169207019301529), *Tim Januschowski, Jan Gasthaus, Yuyang Wang, David Salinas, Valentin Flunkert, Michael Bohlke-Schneider, Laurent Callot*, International Journal of Forecasting, 2020
 * [DeepAR: Probabilistic forecasting with autoregressive recurrent networks](https://www.sciencedirect.com/science/article/pii/S0169207019301888), *David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski*, International Journal of Forecasting, 2020
 * [Anomaly Detection at Scale: The Case for Deep Distributional Time Series Models](https://arxiv.org/abs/2007.15541), 
@@ -44,7 +52,7 @@ We encourage you to also check out the time series work by the group behind Gluo
 * [FastPoint: Scalable Deep Point Processes](https://ecmlpkdd2019.org/downloads/paper/861.pdf), *Ali Caner Turkmen, Yuyang Wang, Alex Smola*, **Best Paper Award**, ECML 2019
 * [Forecasting Big Time Series: Theory and Practice](https://dl.acm.org/citation.cfm?id=3332289), *Christos Faloutsos, Jan Gasthaus, Tim Januschowski, Yuyang Wang*, KDD 2019
 * [Classical and Contemporary Approaches to Big Time Series Forecasting](https://dl.acm.org/citation.cfm?id=3314033&dl=ACM&coll=DL), *Christos Faloutsos, Jan Gasthaus, Tim Januschowski, Yuyang Wang*, SIGMOD 2019
-* [Deep factors for forecasting](http://proceedings.mlr.press/v97/wang19k.html), *Yuyang Wang, Alex Smola, Danielle Maddix, Jan Gasthaus, Dean Foster, Tim Januschowski*, ICML 2019
+* [Deep factors for forecasting](http://proceedings.mlr.press/v97/wang19k.html), *Yuyang Wang, Alex Smola, Danielle C. Maddix, Jan Gasthaus, Dean Foster, Tim Januschowski*, ICML 2019
 * [Probabilistic Forecasting with Spline Quantile Function RNNs](http://proceedings.mlr.press/v89/gasthaus19a.html), *Jan Gasthaus, Konstantinos Benidis, Yuyang Wang, Syama Sundar Rangapuram, David Salinas, Valentin Flunkert, Tim Januschowski*, AISTATS 2019
 * Open-Source Forecasting Tools in Python, *Tim Januschowski, Jan Gasthaus, Yuyang Wang*, Foresight: The International Journal of Applied Forecasting, 2019
 * [Deep state space models for time series forecasting](https://papers.nips.cc/paper/8004-deep-state-space-models-for-time-series-forecasting), *Syama Sundar Rangapuram, Matthias W. Seeger, Jan Gasthaus, Lorenzo Stella, Yuyang Wang, Tim Januschowski*, NeurIPS 2018
