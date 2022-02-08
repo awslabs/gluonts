@@ -163,7 +163,7 @@ def get_git_archive_version(fallback):
 
 def get_git_version(fallback):
     def format_version(release, is_dev, labels):
-        dev = ".dev" if is_dev else ""
+        dev = ".dev0" if is_dev else ""
         labels = "+" + ".".join(labels) if labels else ""
         return "".join([release, dev, labels])
 
@@ -174,7 +174,7 @@ def get_git_version(fallback):
         # TODO: Do we really need this check?
         if repo.root() != dist_root_:
             return None
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         # can fail if git is not installed, or command fails
         return None
 

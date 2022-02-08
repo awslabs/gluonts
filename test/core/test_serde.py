@@ -14,20 +14,14 @@
 from functools import partial
 from operator import add
 from pathlib import Path
-from typing import List, NamedTuple
+from typing import NamedTuple
 
-import mxnet as mx
 import numpy as np
 import pandas as pd
 import pytest
-from pydantic import BaseModel
 
-from gluonts.core import serde
-import gluonts.mx.prelude as _
-
-# Example Types
-# -------------
 from gluonts.core.component import equals, equals_list
+from gluonts.core import serde
 
 
 class Span(NamedTuple):
@@ -41,35 +35,6 @@ class BestEpochInfo(NamedTuple):
     metric_value: float
 
 
-class CategoricalFeatureInfo(BaseModel):
-    name: str
-    cardinality: int
-
-
-class MyGluonBlock(mx.gluon.HybridBlock):
-    def __init__(
-        self,
-        feature_infos: List[CategoricalFeatureInfo],
-        feature_dims: List[int],
-    ) -> None:
-        super().__init__()
-        self.feature_infos = feature_infos
-        self.feature_dims = feature_dims
-
-    def hybrid_forward(self, F, x, *args, **kwargs):
-        raise NotImplementedError
-
-    # required for all user-defined types
-    def __getnewargs_ex__(self):
-        return (self.feature_infos, self.feature_dims), dict()
-
-    def __eq__(self, that) -> bool:
-        if isinstance(that, MyGluonBlock):
-            return self.__getnewargs_ex__() == that.__getnewargs_ex__()
-        else:
-            return False
-
-
 # Example Instances
 # -----------------
 
@@ -77,16 +42,11 @@ best_epoch_info = BestEpochInfo(
     params_path=Path("foo/bar"), epoch_no=1, metric_value=0.5
 )
 
-feature_info = CategoricalFeatureInfo(name="cat", cardinality=10)
-
-custom_type = MyGluonBlock(feature_infos=[feature_info], feature_dims=[10])
 
 numpy_array = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float64)
 
 list_container = [
     best_epoch_info,
-    feature_info,
-    custom_type,
     42,
     0.7,
     "fx",
@@ -95,11 +55,7 @@ list_container = [
 
 set_container = {best_epoch_info, 42, 0.7, "fx"}
 
-dict_container = dict(
-    best_epoch_info=best_epoch_info,
-    feature_info=feature_info,
-    custom_type=custom_type,
-)
+dict_container = dict(best_epoch_info=best_epoch_info)
 
 simple_types = [
     1,
@@ -112,8 +68,6 @@ simple_types = [
 complex_types = [
     Path("foo/bar"),
     best_epoch_info,
-    feature_info,
-    custom_type,
     numpy_array,
 ]
 
@@ -148,33 +102,6 @@ def test_json_serialization(e) -> None:
 def test_code_serialization(e) -> None:
     expected, actual = e, serde.load_code(serde.dump_code(e))
     assert check_equality(expected, actual)
-
-
-@pytest.mark.parametrize(
-    "a",
-    [
-        mx.nd.random.uniform(shape=(3, 5, 2), dtype="float16"),
-        mx.nd.random.uniform(shape=(3, 5, 2), dtype="float32"),
-        mx.nd.random.uniform(shape=(3, 5, 2), dtype="float64"),
-        mx.nd.array([[1, 2, 3], [-1, -2, 0]], dtype=np.uint8),
-        mx.nd.array([[1, 2, 3], [-1, -2, 0]], dtype=np.int32),
-        mx.nd.array([[1, 2, 3], [-1, -2, 0]], dtype=np.int64),
-        mx.nd.array([[1, 2, 3], [1, 2, 0]], dtype=np.uint8),
-    ],
-)
-@pytest.mark.parametrize(
-    "serialize_fn",
-    [
-        lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_code(serde.dump_code(x)),
-    ],
-)
-def test_ndarray_serialization(a, serialize_fn) -> None:
-    b = serialize_fn(a)
-    assert type(a) == type(b)
-    assert a.dtype == b.dtype
-    assert a.shape == b.shape
-    assert np.all((a == b).asnumpy())
 
 
 def test_timestamp_encode_decode() -> None:

@@ -407,7 +407,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         """
 
         d_bias = (
-            inv_softplus(self.sigma_init ** 2)
+            inv_softplus(self.sigma_init**2)
             if self.sigma_init > 0.0
             else 0.0
         )
@@ -417,7 +417,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         # take longer to converge. This needs to be re-evaluated.
         D_diag = (
             F.Activation(D_vector + d_bias, act_type="softrelu")
-            + self.sigma_minimum ** 2
+            + self.sigma_minimum**2
         )
 
         if self.rank == 0:

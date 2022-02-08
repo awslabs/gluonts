@@ -1,0 +1,66 @@
+mlp:
+  - key: __repeat__
+    values: [5]
+  - key:
+      [
+        inputs.use_simple_dataset_features,
+        inputs.use_seasonal_naive_performance,
+        inputs.use_catch22_features,
+      ]
+    values:
+      - [false, false, false]
+      - [true, true, true]
+  - key: [outputs.normalization, mlp.objective, mlp.discount]
+    values:
+      - [quantile, regression, null]
+      - [null, ranking, null]
+      - [null, ranking, linear]
+
+nonparametric:
+  - key:
+      [
+        inputs.use_simple_dataset_features,
+        inputs.use_seasonal_naive_performance,
+        inputs.use_catch22_features,
+      ]
+    values:
+      - [false, false, false]
+      - [true, true, true]
+  - key: outputs.normalization
+    values: [quantile]
+
+random:
+  - key: __repeat__
+    values: [5]
+
+randomforest:
+  - key: __repeat__
+    values: [5]
+  - key:
+      [
+        inputs.use_simple_dataset_features,
+        inputs.use_seasonal_naive_performance,
+        inputs.use_catch22_features,
+      ]
+    values:
+      - [false, false, false]
+      - [true, true, true]
+  - key: outputs.normalization
+    values: [quantile]
+
+xgboost:
+  - key: __repeat__
+    values: [5]
+  - key: xgboost.objective
+    values: [regression, ranking]
+  - key:
+      [
+        inputs.use_simple_dataset_features,
+        inputs.use_seasonal_naive_performance,
+        inputs.use_catch22_features,
+      ]
+    values:
+      - [false, false, false]
+      - [true, true, true]
+  - key: outputs.normalization
+    values: [quantile]

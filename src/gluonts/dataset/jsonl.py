@@ -84,7 +84,7 @@ class JsonLinesFile:
     def __len__(self):
         if self._len is None:
             # 1MB
-            BUF_SIZE = 1024 ** 2
+            BUF_SIZE = 1024**2
 
             with self.open(self.path, "rb") as file_obj:
                 read_chunk = functools.partial(file_obj.read, BUF_SIZE)

@@ -69,7 +69,7 @@ def _encode(data: Any, path: str, result: dict):
             for name, value in data["kwargs"].items():
                 _encode(value, join(path, name), result)
 
-        elif kind == Kind:
+        elif kind == Kind.Type:
             result[join(path, "#")] = data["class"]
 
         else:
