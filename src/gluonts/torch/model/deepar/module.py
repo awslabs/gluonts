@@ -215,21 +215,23 @@ class DeepARModel(nn.Module):
         future_samples = [next_sample]
 
         for k in range(1, self.prediction_length):
+            scaled_next_sample = next_sample / repeated_scale
             next_features = torch.cat(
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
             output, repeated_state = self.lagged_rnn(
                 repeated_past_target,
-                next_sample / repeated_scale,
+                scaled_next_sample,
                 next_features,
                 repeated_state,
             )
+            repeated_past_target = torch.cat(
+                (repeated_past_target, scaled_next_sample), dim=1
+            )
+
             params = self.param_proj(output)
             distr = self.output_distribution(params, scale=repeated_scale)
-            repeated_past_target = torch.cat(
-                (repeated_past_target, next_sample / repeated_scale), dim=1
-            )
             next_sample = distr.sample()
             future_samples.append(next_sample)
 
