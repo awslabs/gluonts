@@ -77,7 +77,6 @@ def main(
     recommender_args: Dict[str, Any] = {
         "objectives": objectives.split(","),
         "focus": focus_objective,
-        "recommends_ensembles": True,
     }
 
     print("Initializing the surrogate...")

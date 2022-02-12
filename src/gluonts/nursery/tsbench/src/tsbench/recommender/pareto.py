@@ -16,11 +16,12 @@ from tsbench.config import Config
 from tsbench.evaluations.metrics import Performance
 from tsbench.surrogate import Surrogate
 from ._base import Recommender, T
-from ._factory import register_recommender
+from ._factory import register_ensemble_recommender, register_recommender
 from .generator import CandidateGenerator
 
 
 @register_recommender("pareto")
+@register_ensemble_recommender("pareto")
 class ParetoRecommender(Recommender[T]):
     """
     The pareto recommender recommends models by predicting their performance using a surrogate
