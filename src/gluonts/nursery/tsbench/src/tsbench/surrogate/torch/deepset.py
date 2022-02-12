@@ -60,7 +60,11 @@ class DeepSetModel(nn.Module):
         # Run decoder
         return self.decoder(
             torch.cat(
-                [encodings / lengths, lengths.float().unsqueeze(1)], dim=1
+                [
+                    encodings / lengths.unsqueeze(-1),
+                    lengths.float().unsqueeze(1),
+                ],
+                dim=1,
             )
         )
 

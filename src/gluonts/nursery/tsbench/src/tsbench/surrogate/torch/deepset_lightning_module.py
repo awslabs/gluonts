@@ -55,7 +55,8 @@ class DeepSetLightningModule(pl.LightningModule):
         batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
         _batch_idx: int,
     ) -> torch.Tensor:
-        X, X_lengths, y_true, group_ids = batch
+        X_padded, X_lengths, y_true, group_ids = batch
+        X = torch.cat([x[:n] for x, n in zip(X_padded, X_lengths)])
         y_pred = self.model(X, X_lengths)
 
         if self.uses_ranking:
@@ -69,5 +70,6 @@ class DeepSetLightningModule(pl.LightningModule):
     def predict_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], _batch_idx: int
     ) -> torch.Tensor:
-        X, X_lengths = batch
+        X_padded, X_lengths = batch
+        X = torch.cat([x[:n] for x, n in zip(X_padded, X_lengths)])
         return self.model(X, X_lengths)
