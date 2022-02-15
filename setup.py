@@ -89,7 +89,7 @@ class TypeCheckCommand(distutils.cmd.Command):
             "--ignore-missing-imports",
         ]
 
-        folders = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
+        folders = [str(p.parent.resolve()) for p in ROOT.glob("**/.typesafe")]
 
         print(
             "The following folders contain a `.typesafe` marker file "

@@ -9,7 +9,11 @@ from subprocess import CalledProcessError, check_output
 
 
 def type_check() -> int:
-    mypy_opts = ['--follow-imports=silent', '--ignore-missing-imports']
+    mypy_opts = [
+        '--allow-redefinition',
+        '--follow-imports=silent',
+        '--ignore-missing-imports'
+    ]
     mypy_args = [
         str(p.parent.resolve())
         for p in Path(__file__).parents[2].glob('**/.typesafe')

@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Any, Dict
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -80,7 +82,7 @@ BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
     ],
 )
 def test_call_and_repr(func) -> None:
-    global_state = {}
+    global_state: Dict[Any, Any] = {}
     x = evaluate(BASE_RECIPE, length=10, global_state=global_state)
     kwargs = dict(foo=42, bar=23)
     np.random.seed(0)
@@ -150,6 +152,7 @@ def test_recipe_dataset(recipe) -> None:
 
     generated = data.generate()
     generated_train = list(generated.train)
+    assert generated.test is not None
     generated_test = list(generated.test)
     train_lengths = np.array([len(x["target"]) for x in generated_train])
     test_lengths = np.array([len(x["target"]) for x in generated_test])
