@@ -123,8 +123,8 @@ DISTRIBUTIONS_WITH_QUANTILE_FUNCTION = (Gaussian, Uniform, Laplace, Binned)
             mu=mx.nd.zeros(shape=BATCH_SHAPE), b=mx.nd.ones(shape=BATCH_SHAPE)
         ),
         NegativeBinomial(
-            mu=mx.nd.zeros(shape=BATCH_SHAPE),
-            alpha=mx.nd.ones(shape=BATCH_SHAPE),
+            count=mx.nd.ones(shape=BATCH_SHAPE),
+            logit=mx.nd.zeros(shape=BATCH_SHAPE),
         ),
         Poisson(rate=mx.nd.ones(shape=BATCH_SHAPE)),
         Uniform(

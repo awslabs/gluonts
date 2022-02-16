@@ -31,27 +31,29 @@ class NegativeBinomial(Distribution):
 
     Parameters
     ----------
-    mu
-        Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
-    alpha
-        Tensor of the shape parameters, of shape `(*batch_shape, *event_shape)`.
+    count
+        Non-negative Tensor containing the number of failed Bernoulli trials
+        for the process to stop. Shape is `(*batch_shape, *event_shape)`.
+    logit
+        Tensor containing the log-odds of success in the Bernoulli trials.
+        Shape is `(*batch_shape, *event_shape)`.
     F
     """
 
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, mu: Tensor, alpha: Tensor) -> None:
-        self.mu = mu
-        self.alpha = alpha
+    def __init__(self, count: Tensor, logit: Tensor) -> None:
+        self.count = count
+        self.logit = logit
 
     @property
     def F(self):
-        return getF(self.mu)
+        return getF(self.count)
 
     @property
     def batch_shape(self) -> Tuple:
-        return self.mu.shape
+        return self.count.shape
 
     @property
     def event_shape(self) -> Tuple:
@@ -62,55 +64,59 @@ class NegativeBinomial(Distribution):
         return 0
 
     def log_prob(self, x: Tensor) -> Tensor:
-        alphaInv = 1.0 / self.alpha
-        alpha_times_mu = self.alpha * self.mu
         F = self.F
-        ll = (
-            x * F.log(alpha_times_mu / (1.0 + alpha_times_mu))
-            - alphaInv * F.log1p(alpha_times_mu)
-            + F.gammaln(x + alphaInv)
-            - F.gammaln(x + 1.0)
-            - F.gammaln(alphaInv)
+
+        log_unnormalized_prob = (
+            self.count * F.log(F.sigmoid(-self.logit)) +
+            x * F.log(F.sigmoid(self.logit))
         )
-        return ll
+
+        log_normalization = (
+            F.gammaln(1. + x) +
+            F.gammaln(self.count) -
+            F.gammaln(self.count + x)
+        )
+
+        return log_unnormalized_prob - log_normalization
 
     @property
     def mean(self) -> Tensor:
-        return self.mu
+        return self.count * self.F.exp(self.logit)
 
     @property
     def stddev(self) -> Tensor:
-        return self.F.sqrt(self.mu * (1.0 + self.mu * self.alpha))
+        return self.F.sqrt(self.mean / self.F.sigmoid(-self.logit))
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
-        def s(mu: Tensor, alpha: Tensor) -> Tensor:
+        def s(count: Tensor, logit: Tensor) -> Tensor:
             F = self.F
-            r = 1.0 / alpha
-            theta = alpha * mu
-            return F.random.poisson(lam=F.random.gamma(r, theta), dtype=dtype)
+            return F.random.poisson(
+                lam=F.random.gamma(
+                    count,
+                    F.exp(logit),
+                ),
+                dtype=dtype
+            )
 
         return _sample_multiple(
-            s, mu=self.mu, alpha=self.alpha, num_samples=num_samples
+            s, count=self.count, logit=self.logit, num_samples=num_samples
         )
 
     @property
     def args(self) -> List:
-        return [self.mu, self.alpha]
+        return [self.count, self.logit]
 
 
 class NegativeBinomialOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "alpha": 1}
+    args_dim: Dict[str, int] = {"count": 1, "logit": 1}
     distr_cls: type = NegativeBinomial
 
     @classmethod
-    def domain_map(cls, F, mu, alpha):
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        mu = softplus(F, mu) + epsilon
-        alpha = softplus(F, alpha) + epsilon
-        return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
+    def domain_map(cls, F, count, logit):
+        count = F.maximum(softplus(F, count), np.finfo(cls._dtype).eps)
+        return count.squeeze(-1), logit.squeeze(-1)
 
     # Overwrites the parent class method.
     # We cannot scale using the affine transformation since negative binomial should return integers.
@@ -121,13 +127,12 @@ class NegativeBinomialOutput(DistributionOutput):
         loc: Optional[Tensor] = None,
         scale: Optional[Tensor] = None,
     ) -> NegativeBinomial:
-        mu, alpha = distr_args
-        if scale is None:
-            return NegativeBinomial(mu, alpha)
-        else:
-            F = getF(mu)
-            mu = F.broadcast_mul(mu, scale)
-            return NegativeBinomial(mu, alpha, F)
+        count, logit = distr_args
+
+        if scale is not None:
+            logit = getF(count).broadcast_add(logit, scale.log())
+
+        return NegativeBinomial(count=count, logit=logit)
 
     @property
     def event_shape(self) -> Tuple:

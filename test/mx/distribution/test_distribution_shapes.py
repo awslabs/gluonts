@@ -101,8 +101,8 @@ from gluonts.mx.util import make_nd_diag
         ),
         (
             NegativeBinomial(
-                mu=mx.nd.zeros(shape=(3, 4, 5)),
-                alpha=mx.nd.ones(shape=(3, 4, 5)),
+                count=mx.nd.ones(shape=(3, 4, 5)),
+                logit=mx.nd.zeros(shape=(3, 4, 5)),
             ),
             (3, 4, 5),
             (),

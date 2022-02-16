@@ -17,7 +17,7 @@ distributions exposed to the user.
 """
 from functools import reduce
 
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
 
 import mxnet as mx
 import numpy as np
@@ -752,28 +752,31 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
     ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
 
 
-@pytest.mark.parametrize("mu_alpha", [(2.5, 0.7)])
+@pytest.mark.parametrize("count_logit", [
+    (1.4, 0.56),
+    (1.4, 2.0)
+])
 @pytest.mark.parametrize("hybridize", [True, False])
-def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
+def test_neg_binomial(count_logit: Tuple[float, float], hybridize: bool) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
     # test instance
-    mu, alpha = mu_alpha
+    count, logit = count_logit
 
     # generate samples
-    mus = mx.nd.zeros((NUM_SAMPLES,)) + mu
-    alphas = mx.nd.zeros((NUM_SAMPLES,)) + alpha
+    counts = mx.nd.zeros((NUM_SAMPLES,)) + count
+    logits = mx.nd.zeros((NUM_SAMPLES,)) + logit
 
-    neg_bin_distr = NegativeBinomial(mu=mus, alpha=alphas)
+    neg_bin_distr = NegativeBinomial(count=counts, logit=logits)
     samples = neg_bin_distr.sample()
 
     init_biases = [
-        inv_softplus(mu - START_TOL_MULTIPLE * TOL * mu),
-        inv_softplus(alpha + START_TOL_MULTIPLE * TOL * alpha),
+        inv_softplus(count - START_TOL_MULTIPLE * TOL * count),
+        logit - START_TOL_MULTIPLE * TOL * logit,
     ]
 
-    mu_hat, alpha_hat = maximum_likelihood_estimate_sgd(
+    count_hat, logit_hat = maximum_likelihood_estimate_sgd(
         NegativeBinomialOutput(),
         samples,
         hybridize=hybridize,
@@ -782,11 +785,11 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     )
 
     assert (
-        np.abs(mu_hat - mu) < TOL * mu
-    ), f"mu did not match: mu = {mu}, mu_hat = {mu_hat}"
+        np.abs(count_hat - count) < TOL * count
+    ), f"count did not match: count = {count}, count_hat = {count_hat}"
     assert (
-        np.abs(alpha_hat - alpha) < TOL * alpha
-    ), f"alpha did not match: alpha = {alpha}, alpha_hat = {alpha_hat}"
+        np.abs(logit_hat - logit) < TOL * logit
+    ), f"logit did not match: logit = {logit}, logit_hat = {logit_hat}"
 
 
 @pytest.mark.parametrize("mu_b", [(3.3, 0.7)])

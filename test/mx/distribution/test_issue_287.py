@@ -15,15 +15,11 @@ import mxnet as mx
 import numpy as np
 import pytest
 
-from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.beta import BetaOutput
 from gluonts.mx.distribution.gamma import GammaOutput
-from gluonts.mx.distribution.neg_binomial import NegativeBinomialOutput
-
-test_cases = [NegativeBinomialOutput, GammaOutput, BetaOutput]
 
 
-@pytest.mark.parametrize("distr_out_class", test_cases)
+@pytest.mark.parametrize("distr_out_class", [GammaOutput, BetaOutput])
 def test_issue_287(distr_out_class):
     network_output = mx.nd.ones(shape=(10,))
     distr_output = distr_out_class()

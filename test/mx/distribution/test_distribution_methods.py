@@ -76,7 +76,7 @@ test_cases = [
     ),
     (
         NegativeBinomial,
-        {"mu": mx.nd.array([1000.0, 1.0]), "alpha": mx.nd.array([1.0, 2.0])},
+        {"count": mx.nd.array([1.0, 0.5]), "logit": mx.nd.array([6.9077554, 0.6931472])},
     ),
     (
         Uniform,
