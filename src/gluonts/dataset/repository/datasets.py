@@ -204,7 +204,10 @@ dataset_recipes = OrderedDict(
             prediction_length=6,
         ),
         "m5": partial(
-            generate_m5_dataset, pandas_freq="D", prediction_length=28
+            generate_m5_dataset,
+            pandas_freq="D",
+            prediction_length=28,
+            m5_file_path=get_download_path() / "m5",
         ),
     }
 )
