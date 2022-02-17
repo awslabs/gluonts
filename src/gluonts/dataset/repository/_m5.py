@@ -38,6 +38,9 @@ def generate_m5_dataset(
             f"After you have done that, please supply the files at {m5_file_path}."
         )
 
+    # Prepare directory
+    dataset_path.mkdir(exist_ok=True)
+
     # Read M5 data from dataset_path
     calendar = pd.read_csv(cal_path)
     sales_train_validation = pd.read_csv(sales_path)
