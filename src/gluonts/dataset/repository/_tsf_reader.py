@@ -128,15 +128,16 @@ class TSFReader:
         return False
 
     def _read_data_section(self, lines):
-        lines = list(lines)
-
-        lines = glide.imap_unordered(
-            self._read_data, lines, num_workers=cpu_count(), batch_size=8092
+        # Enumerate here to keep the indices
+        data = list(enumerate(lines))
+        result = glide.imap_unordered(
+            self._read_data, data, num_workers=cpu_count(), batch_size=8092
         )
+        # Sort by index here to ensure that the order is deterministic
+        return [x[1] for x in sorted(result, key=lambda x: x[0])]
 
-        return list(lines)
-
-    def _read_data(self, line):
+    def _read_data(self, data):
+        idx, line = data
         parts = line.split(":")
 
         assert len(parts) == len(
@@ -152,7 +153,7 @@ class TSFReader:
         for (column, ty), attr in zip(self.meta.columns.items(), attributes):
             record[column] = parse_attribute(ty, attr)
 
-        return record
+        return idx, record
 
     def _data_target(self, s):
         s = s.replace("?", '"nan"')

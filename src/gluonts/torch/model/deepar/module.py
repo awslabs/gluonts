@@ -204,37 +204,40 @@ class DeepARModel(nn.Module):
             for s in state
         ]
 
-        distr = self.output_distribution(params, trailing_n=1)
-
-        next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
-        next_sample = next_sample.transpose(0, 1).reshape(
-            (next_sample.shape[0] * next_sample.shape[1], -1)
+        repeated_params = [
+            s.repeat_interleave(repeats=self.num_parallel_samples, dim=0)
+            for s in params
+        ]
+        distr = self.output_distribution(
+            repeated_params, trailing_n=1, scale=repeated_scale
         )
+        next_sample = distr.sample()
         future_samples = [next_sample]
 
         for k in range(1, self.prediction_length):
+            scaled_next_sample = next_sample / repeated_scale
             next_features = torch.cat(
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
             output, repeated_state = self.lagged_rnn(
                 repeated_past_target,
-                next_sample,
+                scaled_next_sample,
                 next_features,
                 repeated_state,
             )
-            params = self.param_proj(output)
-            distr = self.output_distribution(params)
             repeated_past_target = torch.cat(
-                (repeated_past_target, next_sample), dim=1
+                (repeated_past_target, scaled_next_sample), dim=1
             )
+
+            params = self.param_proj(output)
+            distr = self.output_distribution(params, scale=repeated_scale)
             next_sample = distr.sample()
             future_samples.append(next_sample)
 
-        unscaled_future_samples = (
-            torch.cat(future_samples, dim=1) * repeated_scale
-        )
-        return unscaled_future_samples.reshape(
+        future_samples_concat = torch.cat(future_samples, dim=1)
+
+        return future_samples_concat.reshape(
             (-1, self.num_parallel_samples, self.prediction_length)
             + self.target_shape,
         )
