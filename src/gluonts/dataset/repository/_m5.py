@@ -23,17 +23,23 @@ from gluonts.dataset.repository._util import metadata, save_to_file
 
 
 def generate_m5_dataset(
-    dataset_path: Path, pandas_freq: str, prediction_length: int
+    dataset_path: Path,
+    pandas_freq: str,
+    prediction_length: int,
+    m5_file_path: Path,
 ):
-    cal_path = f"{dataset_path}/calendar.csv"
-    sales_path = f"{dataset_path}/sales_train_validation.csv"
+    cal_path = f"{m5_file_path}/calendar.csv"
+    sales_path = f"{m5_file_path}/sales_train_validation.csv"
 
     if not os.path.exists(cal_path) or not os.path.exists(sales_path):
         raise RuntimeError(
             f"M5 data is available on Kaggle (https://www.kaggle.com/c/m5-forecasting-accuracy/data). "
             f"You first need to agree to the terms of the competition before being able to download the data. "
-            f"After you have done that, please supply the files at {dataset_path}."
+            f"After you have done that, please supply the files at {m5_file_path}."
         )
+
+    # Prepare directory
+    dataset_path.mkdir(exist_ok=True)
 
     # Read M5 data from dataset_path
     calendar = pd.read_csv(cal_path)
