@@ -72,7 +72,7 @@ class Uniform(Distribution):
 
     @property
     def stddev(self) -> Tensor:
-        return (self.high - self.low) / (12 ** 0.5)
+        return (self.high - self.low) / (12**0.5)
 
     def sample(
         self, num_samples: Optional[int] = None, dtype=np.float32

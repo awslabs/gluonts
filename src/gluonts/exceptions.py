@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Any
 
 from pydantic.error_wrappers import ValidationError, display_errors
 
@@ -68,7 +69,7 @@ class GluonTSDateBoundsError(GluonTSException):
 
 
 def assert_gluonts(
-    exception_class: type, condition: bool, message: str, *args, **kwargs
+    exception_class: type, condition: Any, message: str, *args, **kwargs
 ) -> None:
     """
     If the given ``condition`` is ``False``, raises an exception of type
@@ -94,7 +95,7 @@ def assert_gluonts(
         raise exception_class(message.format(*args, **kwargs))
 
 
-def assert_data_error(condition: bool, message: str, *args, **kwargs) -> None:
+def assert_data_error(condition: Any, message: str, *args, **kwargs) -> None:
     """
     Delegates to :func:`assert_gluonts` with a fixed ``exception_class`` value
     of ``GluonTSDataError``.

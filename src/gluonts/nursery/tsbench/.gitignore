@@ -1,0 +1,28 @@
+# MacOS
+*.DS_Store
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+
+# Editor
+.vscode/
+
+# Sensitive
+.env
+.ec2
+
+# Logs
+lightning_logs/
+
+# Autogluon
+AutogluonModels/
+
+# Submodules
+vendor/

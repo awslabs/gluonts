@@ -16,7 +16,6 @@ import inspect
 import logging
 from collections import OrderedDict
 from functools import singledispatch
-from pydoc import locate
 from typing import Any, Type, TypeVar
 
 import numpy as np
@@ -169,7 +168,7 @@ def equals_dict(this: dict, that: dict) -> bool:
 
 @equals.register(np.ndarray)
 def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
-    return np.shape == np.shape and np.all(this == that)
+    return np.array_equal(this, that)
 
 
 @singledispatch
@@ -350,31 +349,3 @@ def validated(base_model=None):
         return init_wrapper
 
     return validator
-
-
-class DType:
-    """
-    Defines `custom data type validation
-    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for ``type``
-    instances.
-
-    Parameters annotated with :class:`DType` can be bound to string arguments
-    representing the fully-qualified type name. The validation logic
-    defined here attempts to automatically load the type as part of the
-    conversion process.
-    """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, str):
-            return locate(v)
-        if isinstance(v, type):
-            return v
-        else:
-            raise ValueError(
-                f"bad value {v} of type {type(v)}, expected a type or a string"
-            )

@@ -12,12 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -182,7 +182,7 @@ class DeepAREstimator(GluonEstimator):
         imputation_method: Optional[MissingValueImputation] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         alpha: float = 0.0,
         beta: float = 0.0,
         batch_size: int = 32,

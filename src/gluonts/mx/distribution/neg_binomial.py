@@ -87,13 +87,9 @@ class NegativeBinomial(Distribution):
     ) -> Tensor:
         def s(mu: Tensor, alpha: Tensor) -> Tensor:
             F = self.F
-            tol = 1e-5
             r = 1.0 / alpha
             theta = alpha * mu
-            r = F.minimum(F.maximum(tol, r), 1e10)
-            theta = F.minimum(F.maximum(tol, theta), 1e10)
-            x = F.minimum(F.random.gamma(r, theta), 1e6)
-            return F.random.poisson(lam=x, dtype=dtype)
+            return F.random.poisson(lam=F.random.gamma(r, theta), dtype=dtype)
 
         return _sample_multiple(
             s, mu=self.mu, alpha=self.alpha, num_samples=num_samples
@@ -111,9 +107,8 @@ class NegativeBinomialOutput(DistributionOutput):
     @classmethod
     def domain_map(cls, F, mu, alpha):
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        mu = softplus(F, mu) + epsilon
-        alpha = softplus(F, alpha) + epsilon
+        mu = F.maximum(softplus(F, mu), epsilon)
+        alpha = F.maximum(softplus(F, alpha), epsilon)
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
     # Overwrites the parent class method.

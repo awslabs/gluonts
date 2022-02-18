@@ -23,10 +23,12 @@ from typing import Dict, Any, List
 import numpy as np
 import pytest
 
+from gluonts.core.component import equals
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import DataEntry, DataBatch, FileDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    Batch,
     TrainDataLoader,
     ValidationDataLoader,
     InferenceDataLoader,
@@ -210,3 +212,8 @@ def test_inference_data_loader(dataset_context):
 
         for entry in dataset:
             assert counter[entry[FieldName.ITEM_ID]] == 1
+
+
+def test_equals_batch():
+    assert equals(Batch(batch_size=10), Batch(batch_size=10))
+    assert not equals(Batch(batch_size=10), Batch(batch_size=100))

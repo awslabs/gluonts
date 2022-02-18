@@ -159,7 +159,12 @@ def save_metadata(
         )
 
 
-def save_datasets(path: Path, data: List[Dict], train_offset: int):
+def save_datasets(
+    path: Path,
+    data: List[Dict],
+    train_offset: int,
+    default_start_timestamp: Optional[str] = None,
+):
     train = path / "train"
     test = path / "test"
 
@@ -169,12 +174,19 @@ def save_datasets(path: Path, data: List[Dict], train_offset: int):
     with open(train / "data.json", "w") as train_fp, open(
         test / "data.json", "w"
     ) as test_fp:
-        for data_entry in tqdm(
-            data, total=len(data), desc="creating json files"
+        for i, data_entry in tqdm(
+            enumerate(data), total=len(data), desc="creating json files"
         ):
+            # Convert the data to a GluonTS dataset...
+            # - `default_start_timestamp` is required for some datasets which are not listed here
+            #   since some datasets do not define start timestamps
+            # - `item_id` is added for all datasets ... many datasets provide the "series_name"
             dic = to_dict(
                 target_values=data_entry["target"],
-                start=str(data_entry["start_timestamp"]),
+                start=str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                item_id=data_entry.get("series_name", i),
             )
 
             jsonl.dump([dic], test_fp)

@@ -95,7 +95,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The list of quantiles that will be optimized for, and predicted by, the model.
         Optimizing for more quantiles than are of direct interest to you can result
         in improved performance due to a regularizing effect.
-        (default: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+        (default: [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975])
     distr_output
         DistributionOutput to use. Only one between `quantile` and `distr_output`
         can be set. (Default: None)
@@ -183,7 +183,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
-            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
         self.is_iqf = is_iqf
 
@@ -349,7 +349,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
-            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
         self.is_iqf = is_iqf
 

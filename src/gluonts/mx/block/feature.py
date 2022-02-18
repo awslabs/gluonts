@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, List, Optional  # noqa: F401
+from typing import Callable, List, Optional, Type
 
 import mxnet.gluon.nn as nn
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 
@@ -41,7 +41,7 @@ class FeatureEmbedder(nn.HybridBlock):
         self,
         cardinalities: List[int],
         embedding_dims: List[int],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -51,7 +51,7 @@ class FeatureEmbedder(nn.HybridBlock):
         ), "Length of `cardinalities` list must be greater than zero"
         assert len(cardinalities) == len(
             embedding_dims
-        ), "Length of `embedding_dims` and `embedding_dims` should match"
+        ), "Length of `cardinalities` and `embedding_dims` should match"
         assert all(
             [c > 0 for c in cardinalities]
         ), "Elements of `cardinalities` should be > 0"
@@ -202,7 +202,7 @@ class FeatureAssembler(nn.HybridBlock):
         use_dynamic_real: bool = False,
         embed_static: Optional[FeatureEmbedder] = None,
         embed_dynamic: Optional[FeatureEmbedder] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)

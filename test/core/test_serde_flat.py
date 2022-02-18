@@ -33,3 +33,7 @@ def test_nested_params():
 
     b2 = serde.flat.clone(b, {"a.value": 999})
     assert b2.a.value == 999
+
+
+def test_kind():
+    assert serde.flat.clone(A) is A

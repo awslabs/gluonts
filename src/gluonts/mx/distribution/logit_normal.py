@@ -68,7 +68,7 @@ class LogitNormal(Distribution):
             + F.log(1 - x)
             + (
                 (F.log(x) - F.log(1 - x) - self.mu) ** 2
-                / (2 * (self.sigma ** 2))
+                / (2 * (self.sigma**2))
             )
         )
         return log_prob

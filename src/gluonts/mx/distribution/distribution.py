@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, List, Optional, Tuple
+from typing import cast, Any, List, Optional, Tuple
 
 import mxnet as mx
 import numpy as np
@@ -19,7 +19,7 @@ from mxnet import autograd
 
 from gluonts.mx import Tensor
 
-MAX_SUPPORT_VAL = np.finfo(np.float64).max
+MAX_SUPPORT_VAL = cast(float, np.finfo(np.float64).max)
 
 
 def nans_like(x: Tensor) -> Tensor:

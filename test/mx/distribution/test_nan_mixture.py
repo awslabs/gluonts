@@ -59,7 +59,7 @@ mu_grad_true[p == 1] = 0
 
 sigma_grad_true = -(
     np.square(mu) - 2 * mu * x_gauss - np.square(sigma) + np.square(x_gauss)
-) / (sigma ** 3)
+) / (sigma**3)
 
 sigma_grad_true[x_gauss != x_gauss] = 0
 sigma_grad_true[p == 1] = 0
