@@ -15,18 +15,18 @@ from typing import Dict, Optional, Tuple, List, cast
 
 import torch
 
-from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
-
 from torch.distributions import (
     AffineTransform,
     TransformedDistribution,
 )
 
 from torch.distributions.normal import Normal
+
+from gluonts.core.component import validated
+from gluonts.torch.modules.distribution_output import (
+    Distribution,
+    DistributionOutput,
+)
 
 
 class MQF2Distribution(Distribution):
@@ -125,8 +125,7 @@ class MQF2Distribution(Distribution):
             (batch_size * context_length, prediction_length)
         """
 
-        prediction_length = self.prediction_length
-        z = z.unfold(dimension=-1, size=prediction_length, step=1)
+        z = z.unfold(dimension=-1, size=self.prediction_length, step=1)
         z = z.reshape(-1, z.shape[-1])
 
         return z
@@ -154,16 +153,12 @@ class MQF2Distribution(Distribution):
             Tesnor of shape (batch_size * context_length,)
         """
 
-        hidden_state = self.hidden_state
-        picnn = self.picnn
-        threshold_input = self.threshold_input
-
-        z = torch.clamp(z, min=-threshold_input, max=threshold_input)
-
+        z = torch.clamp(z, min=-self.threshold_input, max=self.threshold_input)
         z = self.stack_sliding_view(z)
-        hidden_state = hidden_state.reshape(-1, hidden_state.shape[-1])
 
-        loss = picnn.logp(z, context=hidden_state)
+        loss = self.picnn.logp(
+            z, self.hidden_state.reshape(-1, self.hidden_state.shape[-1])
+        )
 
         return loss
 
@@ -192,15 +187,15 @@ class MQF2Distribution(Distribution):
         """
 
         es_num_samples = self.es_num_samples
-        hidden_state = self.hidden_state
-        picnn = self.picnn
         beta = self.beta
 
         z = self.stack_sliding_view(z)
-        hidden_state = hidden_state.reshape(-1, hidden_state.shape[-1])
+        reshaped_hidden_state = self.hidden_state.reshape(
+            -1, self.hidden_state.shape[-1]
+        )
 
-        loss = picnn.energy_score(
-            z, hidden_state, es_num_samples=es_num_samples, beta=beta
+        loss = self.picnn.energy_score(
+            z, reshaped_hidden_state, es_num_samples=es_num_samples, beta=beta
         )
 
         return loss
@@ -221,21 +216,20 @@ class MQF2Distribution(Distribution):
         """
 
         numel_batch = self.numel_batch
-        hidden_state = self.hidden_state
         prediction_length = self.prediction_length
 
         num_samples_per_batch = MQF2Distribution.get_numel(sample_shape)
         num_samples = num_samples_per_batch * numel_batch
 
-        hidden_state_repeat = hidden_state.repeat_interleave(
+        hidden_state_repeat = self.hidden_state.repeat_interleave(
             repeats=num_samples_per_batch, dim=0
         )
 
         alpha = torch.rand(
             (num_samples, prediction_length),
-            dtype=hidden_state.dtype,
-            device=hidden_state.device,
-            layout=hidden_state.layout,
+            dtype=self.hidden_state.dtype,
+            device=self.hidden_state.device,
+            layout=self.hidden_state.layout,
         )
 
         return self.quantile(alpha, hidden_state_repeat).reshape(
@@ -262,7 +256,6 @@ class MQF2Distribution(Distribution):
             predicted paths of shape = (batch_shape, prediction_length)
         """
 
-        picnn = self.picnn
         if hidden_state is None:
             hidden_state = self.hidden_state
 
@@ -272,9 +265,9 @@ class MQF2Distribution(Distribution):
         # In the MLE (Normalizing flows) approach, we need to invert the picnn
         # (go backward through the flow) to draw samples
         if self.is_energy_score:
-            result = picnn(normal_quantile, context=hidden_state)
+            result = self.picnn(normal_quantile, context=hidden_state)
         else:
-            result = picnn.reverse(normal_quantile, context=hidden_state)
+            result = self.picnn.reverse(normal_quantile, context=hidden_state)
 
         return result
 

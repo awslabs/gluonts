@@ -238,8 +238,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
-        picnn = self.picnn
-
+        # TODO in future: add function to make use of all relevant time feat
         hidden_state, scale = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
@@ -249,7 +248,9 @@ class MQF2MultiHorizonModel(DeepARModel):
             future_time_feat[:, :1],
         )
 
-        distr = self.output_distribution(picnn, hidden_state, inference=True)
+        distr = self.output_distribution(
+            self.picnn, hidden_state, inference=True
+        )
 
         unscaled_future_samples = distr.sample(
             sample_shape=(num_parallel_samples,)
