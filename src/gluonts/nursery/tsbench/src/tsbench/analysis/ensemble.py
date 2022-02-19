@@ -31,7 +31,6 @@ from tsbench.config import (
     ModelConfig,
     TrainConfig,
 )
-from tsbench.config.model.models import SeasonalNaiveModelConfig
 from tsbench.constants import DEFAULT_DATA_PATH
 from tsbench.evaluations.metrics.performance import Metric, Performance
 from tsbench.evaluations.tracking import ModelTracker
@@ -137,16 +136,6 @@ class EnsembleAnalyzer:
         else:
             order = np.argsort([s.ncrps for s in val_scores])  # type: ignore
         choices = order[: (self.ensemble_size or len(order))]
-
-        # In case no model is selected, seasonal naïve is selected (this should always be
-        # fast enough to satisfy the latency constraint unless our measurement is faulty or
-        # the implementation inefficient)
-        if len(choices) == 0:
-            choices = [
-                i
-                for i, c in enumerate(X_test)
-                if isinstance(c.model, SeasonalNaiveModelConfig)
-            ]
 
         # Eventually, we get the ensemble members and compute the ensemble performance
         members = [X_test[i].model for i in choices]

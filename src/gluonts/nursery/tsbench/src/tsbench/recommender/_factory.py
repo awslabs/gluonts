@@ -36,13 +36,13 @@ def register_recommender(name: str) -> Callable[[R], R]:
     return register
 
 
-def register_ensemble_recommender(name: str) -> Callable[[R], R]:
+def register_ensemble_recommender(name: str) -> Callable[[E], E]:
     """
     Registers the provided class with the given name in the global ensemble recommender registry.
     """
 
-    def register(cls: R) -> R:
-        RECOMMENDER_REGISTRY[name] = cls
+    def register(cls: E) -> E:
+        ENSEMBLE_RECOMMENDER_REGISTRY[name] = cls
         return cls
 
     return register

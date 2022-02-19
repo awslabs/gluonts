@@ -18,6 +18,7 @@ import pytorch_lightning as pl
 import torch
 from lightkit.data import DataLoader
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import TensorDataset
 from tsbench.config import Config, EnsembleConfig
 from tsbench.evaluations.tracking import EnsembleTracker
@@ -97,9 +98,11 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
     ) -> None:
         # Fit transformers to infer dimensionality
         X_numpy_list = self.config_transformer.fit_transform(X)
-        X_numpy = np.concatenate(X_numpy_list)
+        X_numpy = pad_sequence(
+            [torch.from_numpy(x).float() for x in X_numpy_list],
+            batch_first=True,
+        )
         X_lengths_numpy = np.array([x.shape[0] for x in X_numpy_list])
-
         input_dim = len(self.config_transformer.feature_names_)
         output_dim = y.shape[1]
 
@@ -116,7 +119,7 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
 
             # Train on output variable i
             dataset = TensorDataset(
-                torch.from_numpy(X_numpy).float(),
+                X_numpy,
                 torch.from_numpy(X_lengths_numpy).long(),
                 torch.from_numpy(y[:, i : i + 1]).float(),
                 torch.as_tensor(
@@ -134,12 +137,14 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
     ) -> npt.NDArray[np.float32]:
         # Get data
         X_numpy_list = self.config_transformer.transform(X)
-        X_numpy = np.concatenate(X_numpy_list)
+        X_numpy = pad_sequence(
+            [torch.from_numpy(x).float() for x in X_numpy_list],
+            batch_first=True,
+        )
         X_lengths_numpy = np.array([x.shape[0] for x in X_numpy_list])
 
         dataset = TensorDataset(
-            torch.from_numpy(X_numpy).float(),
-            torch.from_numpy(X_lengths_numpy).long(),
+            X_numpy, torch.from_numpy(X_lengths_numpy).long()
         )
         test_loader = DataLoader(dataset, batch_size=len(dataset))
 

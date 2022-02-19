@@ -37,7 +37,7 @@ class EnsembleTracker(Tracker[EnsembleConfig]):
         for file in os.listdir(directory):
             if not file.endswith(".pickle"):
                 continue
-            with Path(file).open("rb") as f:
+            with Path(directory / file).open("rb") as f:
                 data = pickle.load(f)
                 configurations.extend(
                     [
