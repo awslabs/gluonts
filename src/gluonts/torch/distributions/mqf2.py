@@ -412,4 +412,4 @@ class TransformedMQF2Distribution(TransformedDistribution):
 
         repeated_scale = self.repeat_scale(scale)
 
-        return loss * (repeated_scale ** beta)
+        return loss * (repeated_scale**beta)
