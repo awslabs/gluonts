@@ -28,4 +28,4 @@ jobs:
         pip install -r requirements/requirements-pytorch.txt
     - name: Test with pytest
       run: |
-        pytest -n2 --doctest-modules test
+        pytest -n2 --doctest-modules --ignore test/nursery test
