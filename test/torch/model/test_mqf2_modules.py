@@ -15,89 +15,35 @@ from typing import List, Optional
 import torch
 import pytest
 
-from gluonts.torch.model.deepar import (
-    DeepARModel,
-    DeepARLightningModule,
+from gluonts.torch.model.mqf2 import (
+    MQF2MultiHorizonModel,
+    MQF2MultiHorizonLightningModule,
 )
-from gluonts.torch.model.deepar.module import LaggedLSTM
+from gluonts.torch.distributions.mqf2 import MQF2DistributionOutput
 
 
 @pytest.mark.parametrize(
-    "model, prior_input, input, features, more_input, more_features",
+    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality",
     [
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100)),
-            torch.ones((4, 8)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 1)),
-            torch.ones((4, 8, 1)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 1)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=2, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 2)),
-            torch.ones((4, 8, 2)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 2)),
-            torch.ones((4, 5, 3)),
-        ),
+        (5, 4, 1, [1]),
+        (1, 4, 2, [2, 3]),
+        (5, 1, 3, [4, 5, 6]),
+        (5, 4, 1, [1]),
     ],
 )
-def test_lagged_lstm(
-    model: LaggedLSTM,
-    prior_input: torch.Tensor,
-    input: torch.Tensor,
-    features: torch.Tensor,
-    more_input: torch.Tensor,
-    more_features: torch.Tensor,
-):
-    torch.jit.script(model)
-    output, state = model(prior_input, input, features=features)
-    assert output.shape[:2] == input.shape[:2]
-    more_output, state = model(
-        torch.cat((prior_input, input), dim=1),
-        more_input,
-        features=more_features,
-        state=state,
-    )
-    assert more_output.shape[:2] == more_input.shape[:2]
-
-
-@pytest.mark.parametrize(
-    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality, scaling",
-    [
-        (5, 4, 1, [1], True),
-        (1, 4, 2, [2, 3], False),
-        (5, 1, 3, [4, 5, 6], True),
-        (5, 4, 1, [1], False),
-    ],
-)
-def test_deepar_modules(
+def test_mqf2_modules(
     num_feat_dynamic_real: int,
     num_feat_static_real: int,
     num_feat_static_cat: int,
     cardinality: Optional[List[int]],
-    scaling: bool,
 ):
     batch_size = 4
     prediction_length = 6
     context_length = 12
 
-    model = DeepARModel(
+    distr_output = MQF2DistributionOutput(prediction_length)
+
+    model = MQF2MultiHorizonModel(
         freq="1H",
         context_length=context_length,
         prediction_length=prediction_length,
@@ -105,11 +51,8 @@ def test_deepar_modules(
         num_feat_static_real=num_feat_static_real,
         num_feat_static_cat=num_feat_static_cat,
         cardinality=cardinality,
-        scaling=scaling,
+        distr_output=distr_output,
     )
-
-    # TODO uncomment the following
-    # torch.jit.script(model)
 
     feat_static_cat = torch.zeros(
         batch_size, num_feat_static_cat, dtype=torch.long
@@ -126,7 +69,7 @@ def test_deepar_modules(
     future_target = torch.ones(batch_size, prediction_length)
     future_observed_values = torch.ones(batch_size, prediction_length)
 
-    params, scale, _, _, _ = model.unroll_lagged_rnn(
+    hidden_state, scale = model.unroll_lagged_rnn(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -137,21 +80,28 @@ def test_deepar_modules(
     )
 
     assert scale.shape == (batch_size, 1)
-    for p in params:
-        assert p.shape == (batch_size, context_length + prediction_length - 1)
 
-    distr = model.output_distribution(params, scale)
+    hidden_size = model.lagged_rnn.rnn.hidden_size
+
+    assert hidden_state.shape == (batch_size, context_length, hidden_size)
+
+    distr = model.output_distribution(
+        model.picnn, hidden_state, inference=False
+    )
 
     assert distr.batch_shape == (
         batch_size,
-        context_length + prediction_length - 1,
+        context_length,
     )
+
     assert distr.event_shape == ()
 
-    sliced_distr = model.output_distribution(params, scale, trailing_n=2)
+    distr_infer = model.output_distribution(
+        model.picnn, hidden_state, inference=True
+    )
 
-    assert sliced_distr.batch_shape == (batch_size, 2)
-    assert sliced_distr.event_shape == ()
+    assert distr_infer.batch_shape == (batch_size,)
+    assert distr_infer.event_shape == ()
 
     samples = model(
         feat_static_cat,
@@ -175,7 +125,7 @@ def test_deepar_modules(
         future_observed_values=future_observed_values,
     )
 
-    lightning_module = DeepARLightningModule(model=model)
+    lightning_module = MQF2MultiHorizonLightningModule(model=model)
 
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()

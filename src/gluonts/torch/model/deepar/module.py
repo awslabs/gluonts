@@ -105,6 +105,7 @@ class DeepARModel(nn.Module):
     ) -> Tuple[
         Tuple[torch.Tensor, ...],
         torch.Tensor,
+        torch.Tensor,
         Tuple[torch.Tensor, torch.Tensor],
     ]:
         context = past_target[:, -self.context_length :]
@@ -151,7 +152,7 @@ class DeepARModel(nn.Module):
         output, new_state = self.lagged_rnn(prior_input, input, features)
 
         params = self.param_proj(output)
-        return params, scale, static_feat, new_state
+        return params, scale, output, static_feat, new_state
 
     @torch.jit.ignore
     def output_distribution(
@@ -175,7 +176,7 @@ class DeepARModel(nn.Module):
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
-        params, scale, static_feat, state = self.unroll_lagged_rnn(
+        params, scale, _, static_feat, state = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
