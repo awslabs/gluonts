@@ -45,7 +45,7 @@ class DeepARLightningModule(pl.LightningModule):
         past_observed_values = batch["past_observed_values"]
         future_observed_values = batch["future_observed_values"]
 
-        params, scale, _, _ = self.model.unroll_lagged_rnn(
+        params, scale, _, _, _ = self.model.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,

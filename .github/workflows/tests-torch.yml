@@ -26,6 +26,7 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install torch==1.10.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip install -r requirements/requirements-pytorch.txt
+        pip install -r requirements/requirements-extras-cpflows.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules --ignore test/nursery test
