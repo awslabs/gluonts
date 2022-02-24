@@ -13,8 +13,6 @@
 
 from typing import List, Optional, Iterable, Dict, Any
 
-import numpy as np
-
 import torch
 from torch.utils.data import DataLoader
 
@@ -94,14 +92,15 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
-        trainer_kwargs: Optional[Dict[str, Any]] = dict(),
+        trainer_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-        trainer_kwargs = {
+        default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
-            **trainer_kwargs,
         }
-        super().__init__(trainer_kwargs=trainer_kwargs)
+        if trainer_kwargs is not None:
+            default_trainer_kwargs.update(trainer_kwargs)
+        super().__init__(trainer_kwargs=default_trainer_kwargs)
 
         self.freq = freq
         self.context_length = (
@@ -166,7 +165,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_CAT,
                     expected_ndim=1,
-                    dtype=np.long,
+                    dtype=int,
                 ),
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_REAL,
