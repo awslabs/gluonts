@@ -72,7 +72,7 @@ class PyTorchLightningEstimator(Estimator):
 
         Returns
         -------
-        nn.Module
+        pl.LightningModule
             The network that computes the loss given input data.
         """
         raise NotImplementedError
@@ -80,10 +80,17 @@ class PyTorchLightningEstimator(Estimator):
     def create_predictor(
         self,
         transformation: Transformation,
-        network: nn.Module,
+        module,
     ) -> PyTorchPredictor:
         """
         Create and return a predictor object.
+
+        Parameters
+        ----------
+        transformation
+            Transformation to be applied to data before it goes into the model.
+        module
+            A trained `pl.LightningModule` object.
 
         Returns
         -------
@@ -93,12 +100,12 @@ class PyTorchLightningEstimator(Estimator):
         raise NotImplementedError
 
     def create_training_data_loader(
-        self, data: Dataset, network: nn.Module, **kwargs
+        self, data: Dataset, module, **kwargs
     ) -> Iterable:
         raise NotImplementedError
 
     def create_validation_data_loader(
-        self, data: Dataset, network: nn.Module, **kwargs
+        self, data: Dataset, module, **kwargs
     ) -> Iterable:
         raise NotImplementedError
 

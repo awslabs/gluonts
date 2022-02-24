@@ -77,7 +77,7 @@ class DeepARLightningModule(pl.LightningModule):
 
         return weighted_average(loss_values, weights=loss_weights)
 
-    def training_step(self, batch, batch_idx: int):
+    def training_step(self, batch, batch_idx: int):  # type: ignore
         """Execute training step"""
         train_loss = self._compute_loss(batch)
         self.log(
@@ -89,7 +89,7 @@ class DeepARLightningModule(pl.LightningModule):
         )
         return train_loss
 
-    def validation_step(self, batch, batch_idx: int):
+    def validation_step(self, batch, batch_idx: int):  # type: ignore
         """Execute validation step"""
         val_loss = self._compute_loss(batch)
         self.log(

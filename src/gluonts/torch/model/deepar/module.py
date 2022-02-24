@@ -74,10 +74,10 @@ class DeepARModel(nn.Module):
         self.lagged_rnn = LaggedLSTM(
             input_size=1,  # TODO fix
             features_size=self._number_of_features,
+            lags_seq=[lag - 1 for lag in self.lags_seq],
             num_layers=num_layers,
             hidden_size=hidden_size,
             dropout_rate=dropout_rate,
-            lags_seq=[lag - 1 for lag in self.lags_seq],
         )
 
     @property
@@ -104,6 +104,7 @@ class DeepARModel(nn.Module):
         future_target: Optional[torch.Tensor] = None,
     ) -> Tuple[
         Tuple[torch.Tensor, ...],
+        torch.Tensor,
         torch.Tensor,
         torch.Tensor,
         Tuple[torch.Tensor, torch.Tensor],
@@ -249,10 +250,10 @@ class LaggedLSTM(nn.Module):
         self,
         input_size: int,
         features_size: int,
+        lags_seq: List[int],
         num_layers: int = 2,
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
-        lags_seq: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
         self.input_size = input_size
@@ -329,7 +330,7 @@ class LaggedLSTM(nn.Module):
         input: torch.Tensor,
         features: Optional[torch.Tensor] = None,
         state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
-    ):
+    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         self._check_shapes(prior_input, input, features)
 
         sequence = torch.cat((prior_input, input), dim=1)
