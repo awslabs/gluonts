@@ -114,6 +114,13 @@ class GluonEstimator(Estimator):
         """
         Create and return a predictor object.
 
+        Parameters
+        ----------
+        transformation
+            Transformation to be applied to data before it goes into the model.
+        module
+            A trained `HybridBlock` object.
+
         Returns
         -------
         Predictor
