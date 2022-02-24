@@ -102,11 +102,41 @@ class PyTorchLightningEstimator(Estimator):
     def create_training_data_loader(
         self, data: Dataset, module, **kwargs
     ) -> Iterable:
+        """
+        Create a data loader for training purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+        module
+            The `pl.LightningModule` object that will receive the batches from the data loader.
+
+        Returns
+        -------
+        Iterable
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def create_validation_data_loader(
         self, data: Dataset, module, **kwargs
     ) -> Iterable:
+        """
+        Create a data loader for validation purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+        module
+            The `pl.LightningModule` object that will receive the batches from the data loader.
+
+        Returns
+        -------
+        Iterable
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def train_model(

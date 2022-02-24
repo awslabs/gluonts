@@ -131,11 +131,37 @@ class GluonEstimator(Estimator):
     def create_training_data_loader(
         self, data: Dataset, **kwargs
     ) -> DataLoader:
+        """
+        Create a data loader for training purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+
+        Returns
+        -------
+        DataLoader
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def create_validation_data_loader(
         self, data: Dataset, **kwargs
     ) -> DataLoader:
+        """
+        Create a data loader for validation purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+
+        Returns
+        -------
+        DataLoader
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def train_model(
