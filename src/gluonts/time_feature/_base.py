@@ -180,8 +180,11 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
 
     features_by_offsets = {
+        offsets.YearBegin: [],
         offsets.YearEnd: [],
+        offsets.QuarterBegin: [MonthOfYear],
         offsets.QuarterEnd: [MonthOfYear],
+        offsets.MonthBegin: [MonthOfYear],
         offsets.MonthEnd: [MonthOfYear],
         offsets.Week: [DayOfMonth, WeekOfYear],
         offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],
@@ -209,6 +212,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
         Y   - yearly
             alias: A
+        Q   - quarterly
         M   - monthly
         W   - weekly
         D   - daily
