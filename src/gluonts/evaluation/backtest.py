@@ -28,7 +28,7 @@ from gluonts.evaluation import Evaluator
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import AdhocTransform
 
 

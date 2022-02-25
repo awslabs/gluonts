@@ -21,10 +21,10 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.support.pandas import forecast_start
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
@@ -57,7 +57,7 @@ class RotbaumForecast(Forecast):
         self.item_id = None
         self.lead_time = None
 
-    def quantile(self, q: float) -> np.array:
+    def quantile(self, q: float) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is the estimate of the q
         quantile of the conditional distribution of the value of the i^th
@@ -73,7 +73,7 @@ class RotbaumForecast(Forecast):
             )
         )
 
-    def estimate_dists(self) -> np.array:
+    def estimate_dists(self) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is an estimated sampling from
         the conditional distribution of the value of the i^th step in the

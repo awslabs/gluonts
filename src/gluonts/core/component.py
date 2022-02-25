@@ -16,7 +16,6 @@ import inspect
 import logging
 from collections import OrderedDict
 from functools import singledispatch
-from pydoc import locate
 from typing import Any, Type, TypeVar
 
 import numpy as np
@@ -25,7 +24,6 @@ from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 from gluonts.core.serde import dump_code
 from gluonts.exceptions import GluonTSHyperparametersError
 
-from . import fqname_for
 
 logger = logging.getLogger(__name__)
 
@@ -58,17 +56,13 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
     """
     Model = getattr(cls.__init__, "Model", None)
 
-    if not Model:
-        raise AttributeError(
-            f"Cannot find attribute Model attached to the "
-            f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-            f"the class initializer as @validated()."
-        )
-
     try:
-        return cls(**Model(**hyperparameters).__dict__)  # type: ignore
-    except ValidationError as e:
-        raise GluonTSHyperparametersError from e
+        if Model is not None:
+            return cls(**Model(**hyperparameters).__dict__)  # type: ignore
+        else:
+            return cls(**hyperparameters)  # type: ignore
+    except ValidationError as error:
+        raise GluonTSHyperparametersError from error
 
 
 @singledispatch
@@ -174,12 +168,17 @@ def equals_dict(this: dict, that: dict) -> bool:
 
 @equals.register(np.ndarray)
 def equals_ndarray(this: np.ndarray, that: np.ndarray) -> bool:
-    return np.shape == np.shape and np.all(this == that)
+    return np.array_equal(this, that)
 
 
 @singledispatch
 def tensor_to_numpy(tensor) -> np.ndarray:
     raise NotImplementedError
+
+
+@tensor_to_numpy.register(np.ndarray)
+def _numpy_to_numpy(tensor: np.ndarray) -> np.ndarray:
+    return tensor
 
 
 @singledispatch
@@ -350,31 +349,3 @@ def validated(base_model=None):
         return init_wrapper
 
     return validator
-
-
-class DType:
-    """
-    Defines `custom data type validation
-    <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for ``type``
-    instances.
-
-    Parameters annotated with :class:`DType` can be bound to string arguments
-    representing the fully-qualified type name. The validation logic
-    defined here attempts to automatically load the type as part of the
-    conversion process.
-    """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, str):
-            return locate(v)
-        if isinstance(v, type):
-            return v
-        else:
-            raise ValueError(
-                f"bad value {v} of type {type(v)}, expected a type or a string"
-            )

@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import MultivariateGaussian
 from gluonts.mx.distribution.distribution import getF
@@ -37,7 +36,7 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        float_type: DType = np.float64,
+        float_type: Type = np.float64,
         jitter_method: str = "iter",
         max_iter_jitter: int = 10,
         neg_tol: float = -1e-8,
@@ -132,7 +131,7 @@ class GaussianProcess:
             kernel_matrix = self.F.broadcast_plus(
                 kernel_matrix,
                 self.F.broadcast_mul(
-                    self.sigma ** 2,
+                    self.sigma**2,
                     self.F.eye(num_data_points, dtype=self.float_type),
                 ),
             )
@@ -304,7 +303,7 @@ class GaussianProcess:
         # If self.sample_noise = True, predictive covariance has sigma^2 on the diagonal
         if self.sample_noise:
             predictive_std = self.F.broadcast_add(
-                predictive_std, self.sigma ** 2
+                predictive_std, self.sigma**2
             )
         predictive_std = self.F.sqrt(predictive_std).squeeze(axis=-1)
         # Compute sample from GP predictive distribution

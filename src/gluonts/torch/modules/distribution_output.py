@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, Type
 
 import numpy as np
 import torch
@@ -29,7 +29,7 @@ from torch.distributions import (
     TransformedDistribution,
 )
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 
 from .lambda_layer import LambdaLayer
 
@@ -75,19 +75,18 @@ class PtArgProj(nn.Module):
 
 
 class Output:
-    r"""
-    Class to connect a network to some output
-    """
+    """Class to connect a network to some output."""
+
     in_features: int
     args_dim: Dict[str, int]
-    _dtype: DType = np.float32
+    _dtype: Type = np.float32
 
     @property
     def dtype(self):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, dtype: DType):
+    def dtype(self, dtype: Type):
         self._dtype = dtype
 
     def get_args_proj(self, in_features: int) -> nn.Module:
@@ -112,6 +111,9 @@ class DistributionOutput(Output):
     def __init__(self) -> None:
         pass
 
+    def _base_distribution(self, distr_args):
+        return self.distr_cls(*distr_args)
+
     def distribution(
         self,
         distr_args,
@@ -133,19 +135,15 @@ class DistributionOutput(Output):
             Optional tensor, of the same shape as the
             batch_shape+event_shape of the resulting distribution.
         """
+        distr = self._base_distribution(distr_args)
         if loc is None and scale is None:
-            return self.distr_cls(*distr_args)
+            return distr
         else:
-            distr = self.distr_cls(*distr_args)
-            return TransformedDistribution(
-                distr,
-                [
-                    AffineTransform(
-                        loc=0.0 if loc is None else loc,
-                        scale=1.0 if scale is None else scale,
-                    )
-                ],
+            transform = AffineTransform(
+                loc=0.0 if loc is None else loc,
+                scale=1.0 if scale is None else scale,
             )
+            return TransformedDistribution(distr, [transform])
 
     @property
     def event_shape(self) -> Tuple:
@@ -277,6 +275,26 @@ class NegativeBinomialOutput(DistributionOutput):
     def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
         total_count = F.softplus(total_count)
         return total_count.squeeze(-1), logits.squeeze(-1)
+
+    def _base_distribution(self, distr_args) -> Distribution:
+        total_count, logits = distr_args
+        return self.distr_cls(total_count=total_count, logits=logits)
+
+    # Overwrites the parent class method.
+    # We cannot scale using the affine transformation since negative binomial should return integers.
+    # Instead we scale the parameters.
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
+        total_count, logits = distr_args
+
+        if scale is not None:
+            logits += scale.log()
+
+        return NegativeBinomial(total_count=total_count, logits=logits)
 
     @property
     def event_shape(self) -> Tuple:

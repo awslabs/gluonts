@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -19,7 +19,6 @@ from pydantic import ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import (
-    DType,
     from_hyperparameters,
     validated,
     GluonTSHyperparametersError,
@@ -55,7 +54,7 @@ class GluonEstimator(Estimator):
         trainer: Trainer,
         batch_size: int = 32,
         lead_time: int = 0,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
 
@@ -115,6 +114,13 @@ class GluonEstimator(Estimator):
         """
         Create and return a predictor object.
 
+        Parameters
+        ----------
+        transformation
+            Transformation to be applied to data before it goes into the model.
+        module
+            A trained `HybridBlock` object.
+
         Returns
         -------
         Predictor
@@ -125,11 +131,37 @@ class GluonEstimator(Estimator):
     def create_training_data_loader(
         self, data: Dataset, **kwargs
     ) -> DataLoader:
+        """
+        Create a data loader for training purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+
+        Returns
+        -------
+        DataLoader
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def create_validation_data_loader(
         self, data: Dataset, **kwargs
     ) -> DataLoader:
+        """
+        Create a data loader for validation purposes.
+
+        Parameters
+        ----------
+        data
+            Dataset from which to create the data loader.
+
+        Returns
+        -------
+        DataLoader
+            The data loader, i.e. and iterable over batches of data.
+        """
         raise NotImplementedError
 
     def train_model(

@@ -58,9 +58,9 @@ class PointProcessSampleForecast(Forecast):
 
     prediction_interval_length: float
 
-    # not used
+    # TODO: not used
     prediction_length = cast(int, None)
-    mean = None
+    mean = cast(np.ndarray, None)
     _index = None
 
     def __init__(

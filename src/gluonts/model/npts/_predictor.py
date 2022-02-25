@@ -205,6 +205,8 @@ class NPTSPredictor(RepresentablePredictor):
             # depending on which ever is minimum
             train_length = min(len(target), self.context_length)
             ts = pd.Series(index=index, data=target)[-train_length:]
+
+            custom_features: Optional[np.ndarray]
             if "feat_dynamic_real" in data.keys():
                 custom_features = np.array(
                     [

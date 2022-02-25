@@ -95,7 +95,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The list of quantiles that will be optimized for, and predicted by, the model.
         Optimizing for more quantiles than are of direct interest to you can result
         in improved performance due to a regularizing effect.
-        (default: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+        (default: [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975])
     distr_output
         DistributionOutput to use. Only one between `quantile` and `distr_output`
         can be set. (Default: None)
@@ -109,6 +109,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN.
     max_ts_len
         Returns the length of the longest time series in the dataset to be used in bounding context_length.
+    is_iqf
+        Determines whether to use IQF or QF. (default: True).
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -141,6 +143,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
+        is_iqf: bool = True,
         batch_size: int = 32,
     ) -> None:
 
@@ -180,8 +183,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
-            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
+        self.is_iqf = is_iqf
 
         assert (
             len(self.channels_seq)
@@ -216,7 +220,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         )
 
         quantile_output = (
-            QuantileOutput(self.quantiles) if self.quantiles else None
+            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+            if self.quantiles
+            else None
         )
 
         super().__init__(
@@ -323,6 +329,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         num_forking: Optional[int] = None,
+        is_iqf: bool = True,
         batch_size: int = 32,
     ) -> None:
 
@@ -342,8 +349,9 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         self.quantiles = (
             quantiles
             if (quantiles is not None) or (distr_output is not None)
-            else [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
+        self.is_iqf = is_iqf
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
@@ -365,7 +373,9 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         )
 
         quantile_output = (
-            QuantileOutput(self.quantiles) if self.quantiles else None
+            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
+            if self.quantiles
+            else None
         )
 
         super().__init__(

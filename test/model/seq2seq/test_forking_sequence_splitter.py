@@ -28,7 +28,7 @@ from gluonts.transform import ValidationSplitSampler
 
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
-    n = 2 ** N - 1
+    n = 2**N - 1
 
     targets = np.arange(n * train_length).reshape((n, train_length))
 
@@ -91,7 +91,7 @@ def test_forking_sequence_splitter() -> None:
 def test_forking_sequence_with_features(is_train) -> None:
     def make_dataset(N, train_length):
         # generates 2 ** N - 1 timeseries with constant increasing values
-        n = 2 ** N - 1
+        n = 2**N - 1
 
         targets = np.arange(n * train_length).reshape((n, train_length))
 

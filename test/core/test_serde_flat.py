@@ -11,15 +11,29 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from pydantic import BaseModel
+
 from gluonts.core import serde
 from gluonts.core.component import equals
-from gluonts.model.deepar import DeepAREstimator
+
+
+class A(BaseModel):
+    value: int
+
+
+class B(BaseModel):
+    a: A
+    b: int
 
 
 def test_nested_params():
-    deepar = DeepAREstimator(prediction_length=7, freq="D")
+    b = B(a=A(value=42), b=99)
 
-    assert equals(deepar, serde.flat.decode(serde.flat.encode(deepar)))
+    assert equals(b, serde.flat.decode(serde.flat.encode(b)))
 
-    deepar2 = serde.flat.clone(deepar, {"trainer.epochs": 999})
-    assert deepar2.trainer.epochs == 999
+    b2 = serde.flat.clone(b, {"a.value": 999})
+    assert b2.a.value == 999
+
+
+def test_kind():
+    assert serde.flat.clone(A) is A

@@ -15,18 +15,25 @@ import tempfile
 from itertools import islice
 from pathlib import Path
 
+import pytest
+
 import pytorch_lightning as pl
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
+from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.deepar import DeepAREstimator
+from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 
 
-def test_torch_deepar():
+@pytest.mark.parametrize(
+    "estimator_class", [DeepAREstimator, MQF2MultiHorizonEstimator]
+)
+def test_torch_deepar(estimator_class):
     constant = get_dataset("constant")
 
-    estimator = DeepAREstimator(
+    estimator = estimator_class(
         freq=constant.metadata.freq,
         prediction_length=constant.metadata.prediction_length,
         batch_size=4,
@@ -50,7 +57,10 @@ def test_torch_deepar():
         f.mean
 
 
-def test_torch_deepar_with_features():
+@pytest.mark.parametrize(
+    "estimator_class", [DeepAREstimator, MQF2MultiHorizonEstimator]
+)
+def test_torch_deepar_with_features(estimator_class):
     freq = "1h"
     prediction_length = 12
 
@@ -94,7 +104,7 @@ def test_torch_deepar_with_features():
         freq=freq,
     )
 
-    estimator = DeepAREstimator(
+    estimator = estimator_class(
         freq=freq,
         prediction_length=prediction_length,
         batch_size=4,

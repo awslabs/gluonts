@@ -22,14 +22,12 @@ from gluonts.exceptions import GluonTSDataError
 
 
 def load(file_obj):
-    for line in file_obj:
-        yield json.loads(line)
+    return map(json.loads, file_obj)
 
 
 def dump(objects, file_obj):
     for object_ in objects:
-        file_obj.write(json.dumps(object_))
-        file_obj.write("\n")
+        json.dump(object_, file_obj, nl=True)
 
 
 class Span(NamedTuple):
@@ -86,7 +84,7 @@ class JsonLinesFile:
     def __len__(self):
         if self._len is None:
             # 1MB
-            BUF_SIZE = 1024 ** 2
+            BUF_SIZE = 1024**2
 
             with self.open(self.path, "rb") as file_obj:
                 read_chunk = functools.partial(file_obj.read, BUF_SIZE)

@@ -37,7 +37,7 @@ from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
@@ -243,7 +243,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             validation_transform.apply(data),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
         )
 
     def create_training_network(self) -> DeepRenewalTrainingNetwork:

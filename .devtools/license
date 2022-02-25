@@ -15,7 +15,7 @@
 
 # Standard library imports
 import sys
-from itertools import filterfalse
+from itertools import filterfalse, islice
 from pathlib import Path
 
 # Third-party imports
@@ -42,23 +42,24 @@ license = dedent(
 ).strip()
 
 
-miniver = (
-    "# This file is part of 'miniver': https://github.com/jbweston/miniver"
-)
+external_license = "# LICENSE: EXTERNAL"
 
 
 def check_file(path: Path) -> bool:
     """Check whether `path` is complicit.
+
     The license header needs to start on the 3rd line latest. This allows
     to have a shebang on top of the file.
     """
     num_lines = len(license.splitlines()) + 2
 
     with path.open() as in_file:
-        lines = list(in_file)[:num_lines]
+        lines = islice(in_file, num_lines)
 
-    head = "".join(lines)
-    return license in head or miniver in head
+        # lines contain `\n` character, so no need to add another one
+        head = "".join(lines)
+
+    return license in head or external_license in head
 
 
 def iter_paths(roots: List[str]) -> Iterator[Path]:
@@ -66,7 +67,11 @@ def iter_paths(roots: List[str]) -> Iterator[Path]:
         if root.is_file():
             yield root
         else:
-            yield from root.glob("**/*.py")
+            if not (root / ".no-license-check").exists():
+                yield from root.glob("*.py")
+                yield from iter_paths(
+                    subpath for subpath in root.iterdir() if subpath.is_dir()
+                )
 
 
 @click.group()

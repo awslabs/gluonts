@@ -248,7 +248,7 @@ class MultiHeadAttentionBase(HybridBlock):
         """
 
         # scale by 1/sqrt(dim_per_head)
-        queries = queries * (self.dim_per_head ** -0.5)
+        queries = queries * (self.dim_per_head**-0.5)
 
         # (batch_size * heads, length, dim/heads)
         queries = split_heads(F, queries, self.dim_per_head, self.heads)

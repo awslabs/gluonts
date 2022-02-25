@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -41,7 +41,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     AddAgeFeature,
@@ -174,7 +174,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         trainer: Trainer = Trainer(),
         scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         num_forking: Optional[int] = None,
         max_ts_len: Optional[int] = None,
         train_sampler: Optional[InstanceSampler] = None,
@@ -418,6 +418,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                     if not self.enable_decoder_dynamic_feature
                     else []
                 ),
+                prediction_time_decoder_exclude=[FieldName.OBSERVED_VALUES],
             )
         )
 
