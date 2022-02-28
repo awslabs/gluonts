@@ -53,11 +53,11 @@ Temporal Fusion Transformer      | Global       | Univariate               | LST
 Transformer                      | Global       | Univariate               | MLP, multi-head attention | [MXNet](src/gluonts/model/transformer/_estimator.py) | [paper](https://papers.nips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)
 WaveNet                          | Global       | Univariate               | Dilated convolution | [MXNet](src/gluonts/model/wavenet/_estimator.py) | [paper](https://arxiv.org/abs/1609.03499)
 DeepVAR                          | Global       | Multivariate             | RNN | [MXNet](src/gluonts/model/deepvar/_estimator.py) | [paper](https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html)
-GPVAR                            | Global       | Multivariate             | MLP | [MXNet](src/gluonts/model/gpvar/_estimator.py) | [paper](https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html)
+GPVAR                            | Global       | Multivariate             | RNN, Gaussian process | [MXNet](src/gluonts/model/gpvar/_estimator.py) | [paper](https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html)
 LSTNet                           | Global       | Multivariate             | LSTM | [MXNet](src/gluonts/model/lstnet/_estimator.py) | [paper](https://doi.org/10.1145/3209978.3210006)
 DeepTPP                          | Global       | Multivariate events      | RNN, temporal point process | [MXNet](src/gluonts/model/tpp/deeptpp/_estimator.py) | [paper](https://arxiv.org/pdf/1909.12127)
-RForecast                        | Local        | Univariate               | - | [Wrapper](src/gluonts/model/r_forecast/_predictor.py) | [paper](https://www.jstatsoft.org/article/view/v027i03)
-Prophet                          | Local        | Univariate               | - | [Wrapper](src/gluonts/model/prophet/_predictor.py) | [paper](https://doi.org/10.1080/00031305.2017.1380080)
+RForecast                        | Local        | Univariate               | - | [Wrapped R package](src/gluonts/model/r_forecast/_predictor.py) | [paper](https://www.jstatsoft.org/article/view/v027i03)
+Prophet                          | Local        | Univariate               | - | [Wrapped Python package](src/gluonts/model/prophet/_predictor.py) | [paper](https://doi.org/10.1080/00031305.2017.1380080)
 NaiveSeasonal                    | Local        | Univariate               | - | [Numpy](src/gluonts/model/seasonal_naive/_predictor.py) | -
 Naive2                           | Local        | Univariate               | - | [Numpy](src/gluonts/model/naive_2/_predictor.py) | -
 NPTS                             | Local        | Univariate               | - | [Numpy](src/gluonts/model/npts/_predictor.py) | -
