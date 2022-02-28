@@ -1,20 +1,23 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
+[stable docs url]: https://ts.gluon.ai/
+[development docs url]: https://ts.gluon.ai/master/index.html
+
 [![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
 [![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)][stable docs url]
 [![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=blue&style=flat-square)][development docs url]
 [![PyPI Downloads](https://pepy.tech/badge/gluonts)](https://pypi.org/project/gluonts/)
 
-GluonTS is a Python toolkit for probabilistic time series modeling,
-built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
+GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models.
 
-GluonTS provides utilities for loading and iterating over time series datasets,
-state of the art models ready to be trained, and building blocks to define
-your own models and quickly experiment with different solutions.
+## Features
 
-[stable docs url]: https://ts.gluon.ai/
-[development docs url]: https://ts.gluon.ai/master/index.html
+* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/)
+* Utilities for loading and iterating over time series datasets
+* Utilities to evaluate models performance and compare their accuracy
+* Building blocks to define your own models and quickly experiment with different solutions
+* AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/)
 
 ## Installation
 
