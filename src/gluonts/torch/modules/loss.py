@@ -65,7 +65,7 @@ class QuantileLoss(DistributionLoss):
     ) -> torch.Tensor:
         return input.quantile_loss(target)
 
-      
+
 class EnergyScore(DistributionLoss):
     def forward(self, input, target: torch.Tensor) -> torch.Tensor:
         return input.energy_score(target)
