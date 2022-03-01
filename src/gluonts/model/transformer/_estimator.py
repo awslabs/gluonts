@@ -357,7 +357,7 @@ class TransformerEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
+            scaling=self.scaling,
         )
 
     def create_predictor(
@@ -375,7 +375,7 @@ class TransformerEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
+            scaling=self.scaling,
             num_parallel_samples=self.num_parallel_samples,
         )
 
