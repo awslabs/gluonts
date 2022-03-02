@@ -32,9 +32,10 @@ def simple_add_time_features(
             ListDataset(
                 data_iter=[
                     {"start": "2021-01-01 00:00:00", "target": [1.0] * 20},
-                    {"start": "2021-02-15 00:00:00", "target": [1.0] * 20}
+                    {"start": "2021-02-15 00:45:00", "target": [1.0] * 20},
+                    {"start": "2021-05-06 12:00:00", "target": [1.0] * 20}
                 ],
-                freq="2M"
+                freq="3M"
             ),
             [MonthOfYear()]
         ),
@@ -42,7 +43,8 @@ def simple_add_time_features(
             ListDataset(
                 data_iter=[
                     {"start": "2021-01-01 00:00:00", "target": [1.0] * 20},
-                    {"start": "2021-02-15 00:00:00", "target": [1.0] * 20}
+                    {"start": "2021-02-15 00:45:00", "target": [1.0] * 20},
+                    {"start": "2021-05-06 12:00:00", "target": [1.0] * 20}
                 ],
                 freq="3W"
             ),
