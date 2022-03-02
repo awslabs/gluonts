@@ -336,9 +336,9 @@ class AddTimeFeatures(MapTransformation):
         self.dtype = dtype
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
-        assert self._freq_base is None or self._freq_base == start.freq.base, (
-            f"data with base frequency other than {self._freq_base} cannot be processed; got {start.freq.base}"
-        )
+        assert (
+            self._freq_base is None or self._freq_base == start.freq.base
+        ), f"data with base frequency other than {self._freq_base} cannot be processed; got {start.freq.base}"
         if self._freq_base is None:
             self._freq_base = start.freq.base
         end = shift_timestamp(start, length)
@@ -378,7 +378,9 @@ class AddTimeFeatures(MapTransformation):
 
         i0 = self._date_index[start]
         features = (
-            self._full_range_date_features[..., i0 : i0 + length * start.freq.n : start.freq.n]
+            self._full_range_date_features[
+                ..., i0 : i0 + length * start.freq.n : start.freq.n
+            ]
             if self._full_range_date_features is not None
             else None
         )
