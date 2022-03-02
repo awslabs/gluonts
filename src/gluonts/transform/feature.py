@@ -376,6 +376,8 @@ class AddTimeFeatures(MapTransformation):
         )
         self._update_cache(start, length)
 
+        assert self._date_index is not None
+
         i0 = self._date_index[start]
         features = (
             self._full_range_date_features[
