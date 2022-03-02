@@ -41,84 +41,84 @@ class MinuteOfHour(TimeFeature):
     """Minute of hour encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.minute / 59.0 - 0.5
+        return index.minute.values / 59.0 - 0.5
 
 
 class MinuteOfHourIndex(TimeFeature):
     """Minute of hour encoded as zero-based index, between 0 and 59"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.minute.map(float)
+        return index.minute.astype(float).values
 
 
 class HourOfDay(TimeFeature):
     """Hour of day encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.hour / 23.0 - 0.5
+        return index.hour.values / 23.0 - 0.5
 
 
 class HourOfDayIndex(TimeFeature):
     """Hour of day encoded as zero-based index, between 0 and 23"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.hour.map(float)
+        return index.hour.astype(float).values
 
 
 class DayOfWeek(TimeFeature):
     """Hour of day encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.dayofweek / 6.0 - 0.5
+        return index.dayofweek.values / 6.0 - 0.5
 
 
 class DayOfWeekIndex(TimeFeature):
     """Hour of day encoded as zero-based index, between 0 and 6"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.dayofweek.map(float)
+        return index.dayofweek.astype(float).values
 
 
 class DayOfMonth(TimeFeature):
     """Day of month encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.day - 1) / 30.0 - 0.5
+        return (index.day.values - 1) / 30.0 - 0.5
 
 
 class DayOfMonthIndex(TimeFeature):
     """Day of month encoded as zero-based index, between 0 and 11"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.day - 1).map(float)
+        return index.day.astype(float).values - 1
 
 
 class DayOfYear(TimeFeature):
     """Day of year encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.dayofyear - 1) / 365.0 - 0.5
+        return (index.dayofyear.values - 1) / 365.0 - 0.5
 
 
 class DayOfYearIndex(TimeFeature):
     """Day of year encoded as zero-based index, between 0 and 365"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.dayofyear - 1).map(float)
+        return index.dayofyear.astype(float).values - 1
 
 
 class MonthOfYear(TimeFeature):
     """Month of year encoded as value between [-0.5, 0.5]"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.month - 1) / 11.0 - 0.5
+        return (index.month.values - 1) / 11.0 - 0.5
 
 
 class MonthOfYearIndex(TimeFeature):
     """Month of year encoded as zero-based index, between 0 and 11"""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.month - 1).map(float)
+        return index.month.astype(float).values - 1
 
 
 class WeekOfYear(TimeFeature):
@@ -133,7 +133,7 @@ class WeekOfYear(TimeFeature):
             week = index.isocalendar().week
         except AttributeError:
             week = index.week
-        return (week - 1) / 52.0 - 0.5
+        return (week.astype(float).values - 1) / 52.0 - 0.5
 
 
 class WeekOfYearIndex(TimeFeature):
@@ -148,7 +148,7 @@ class WeekOfYearIndex(TimeFeature):
             week = index.isocalendar().week
         except AttributeError:
             week = index.week
-        return (week - 1).map(float)
+        return week.astype(float).values - 1
 
 
 class Constant(TimeFeature):
