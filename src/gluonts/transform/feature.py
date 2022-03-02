@@ -339,6 +339,8 @@ class AddTimeFeatures(MapTransformation):
         assert self._freq_base is None or self._freq_base == start.freq.base, (
             f"data with base frequency other than {self._freq_base} cannot be processed; got {start.freq.base}"
         )
+        if self._freq_base is None:
+            self._freq_base = start.freq.base
         end = shift_timestamp(start, length)
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
@@ -353,7 +355,7 @@ class AddTimeFeatures(MapTransformation):
             shift_timestamp(end, 50), self._max_time_point
         )
         self.full_date_range = pd.date_range(
-            self._min_time_point, self._max_time_point, freq=start.freq.base
+            self._min_time_point, self._max_time_point, freq=self._freq_base
         )
         self._full_range_date_features = (
             np.vstack(
