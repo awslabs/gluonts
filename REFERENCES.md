@@ -2,9 +2,9 @@
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
 # 2022
-* Robust Probabilistic Time Series Forecasting, *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
+* [Robust Probabilistic Time Series Forecasting](https://arxiv.org/abs/2202.11910), *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
 * [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://arxiv.org/abs/2111.06581), *Youngsuk Park, Danielle C. Maddix, Francois-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, AISTATS 2022
-* Multivariate Quantile Function Forecaster, *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022
+* [Multivariate Quantile Function Forecaster](https://arxiv.org/abs/2202.11316?context=cs), *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022
 * [Deep Generative model with Hierarchical Latent Factors for Timeseries Anomaly Detection](https://openreview.net/pdf?id=FwkZ4m3VjFi), *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, AISTATS 2022
 * Testing Granger Non-Causality in Panels with Cross-Sectional Dependencies, *Lenon Minorics, Caner Turkmen, Patrick Bloebaum, David Kernert, Laurent Callot, Dominik Janzing*, AISTATS 2022
 * [PSA-GAN: Progressive Self Attention GANs for Synthetic Time Series](https://arxiv.org/abs/2108.00981), *Paul Jeha, Michael Bohlke-Schneider, Pedro Mercado, Shubham Kapoor, Rajbir Singh Nirwan, Valentin Flunkert, Jan Gasthaus, Tim Januschowski*, ICLR 2022
@@ -19,7 +19,7 @@ We encourage you to also check out the time series work by the group behind Gluo
 * [Detecting Anomalous Event Sequences with Temporal Point Processes](https://proceedings.neurips.cc/paper/2021/file/6faa8040da20ef399b63a72d0e4ab575-Paper.pdf), *Oleksandr Shchur, Ali Caner Turkmen, Tim Januschowski, Jan Gasthaus, Stephan Günnemann*, NeurIPS 2021
 * [Online false discovery rate control for anomaly detection in time series](https://proceedings.neurips.cc/paper/2021/file/def130d0b67eb38b7a8f4e7121ed432c-Paper.pdf), *Quentin Rebjock, Baris Kurt, Tim Januschowski, Laurent Callot*, NeurIPS 2021
 * Symmetry-breaking for Variational Bayesian Neural Networks, *Richard Kurle, Yuyang Wang, Tim Januschowski, Jan Gasthaus*, NeurIPS 2021 Workshop on Bayesian Deep Learning
-* [GOPHER: Categorical probabilistic forecasting withgraph structure via local continuous-time dynamics](https://openreview.net/pdf?id=v2DmCzi1gfh), *Alex Wang, Danielle C. Maddix, Yuyang Wang*, NeurIPS 2021 Workshop on ICBINB
+* [GOPHER: Categorical probabilistic forecasting with graph structure via local continuous-time dynamics](https://proceedings.mlr.press/v163/wang22a/wang22a.pdf), *Alex Wang, Danielle C. Maddix, Yuyang Wang*, NeurIPS 2021 Workshop on ICBINB
 * [Modeling Advection on Directed Graphs using Graph Matern Gaussian Processes for Traffic Flow](https://ml4physicalsciences.github.io/2021/files/NeurIPS_ML4PS_2021_13.pdf), *Danielle C. Maddix, Nadim Saad, Yuyang Wang*, NeurIPS 2021 Workshop on Machine Learning and The Physical Sciences
 * Deep Generative model with Hierarchical Latent Factors for Timeseries Anomaly Detection, *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, NeurIPS 2021 Workshop on Deep Generative Models
 * [Neural Temporal Point Processes: A Review](https://arxiv.org/abs/2104.03528), *Oleksandr Shchur, Ali Caner Türkmen, Tim Januschowski, Stephan Günnemann*, IJCAI 2021
