@@ -10,7 +10,7 @@ from gluonts.transform.feature import AddTimeFeatures
 from gluonts.time_feature import TimeFeature, WeekOfYear, MonthOfYear
 
 
-def simple_add_time_features(
+def compute_time_features(
     entry: Dict,
     time_features: List[TimeFeature],
     pred_length: int = 0,
@@ -71,7 +71,7 @@ def test_AddTimeFeatures_correctness(
     for entry, transformed_entry in zip(
         dataset, transform(dataset, is_train=(pred_length == 0))
     ):
-        expected_features = simple_add_time_features(
+        expected_features = compute_time_features(
             entry, time_features, pred_length
         )
         assert np.allclose(expected_features, transformed_entry["features"])
