@@ -20,7 +20,7 @@ import pytest
 from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.util import to_pandas
 from gluonts.transform.feature import AddTimeFeatures
-from gluonts.time_feature import TimeFeature, WeekOfYear, MonthOfYear
+from gluonts.time_feature import TimeFeature, WeekOfYear, MonthOfYear, time_features_from_frequency_str
 
 
 def compute_time_features(
@@ -55,7 +55,7 @@ def compute_time_features(
                 ],
                 freq="3M",
             ),
-            [MonthOfYear()],
+            time_features_from_frequency_str("3M"),
         ),
         (
             ListDataset(
@@ -67,7 +67,31 @@ def compute_time_features(
                 ],
                 freq="3W",
             ),
-            [WeekOfYear(), MonthOfYear()],
+            time_features_from_frequency_str("3W") + [MonthOfYear()],
+        ),
+        (
+            ListDataset(
+                data_iter=[
+                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 40},
+                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 40},
+                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 40},
+                    {"start": "2021-05-20 07:10:39", "target": [1.0] * 40},
+                ],
+                freq="2D",
+            ),
+            time_features_from_frequency_str("2D") + [MonthOfYear()],
+        ),
+        (
+            ListDataset(
+                data_iter=[
+                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 100},
+                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 100},
+                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 100},
+                    {"start": "2021-05-20 07:10:39", "target": [1.0] * 100},
+                ],
+                freq="5H",
+            ),
+            time_features_from_frequency_str("5H") + [MonthOfYear()],
         ),
     ],
 )
