@@ -20,7 +20,12 @@ import pytest
 from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.util import to_pandas
 from gluonts.transform.feature import AddTimeFeatures
-from gluonts.time_feature import TimeFeature, WeekOfYear, MonthOfYear, time_features_from_frequency_str
+from gluonts.time_feature import (
+    TimeFeature,
+    WeekOfYear,
+    MonthOfYear,
+    time_features_from_frequency_str,
+)
 
 
 def compute_time_features(
