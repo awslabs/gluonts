@@ -54,50 +54,28 @@ def compute_time_features(
         (
             ListDataset(
                 data_iter=[
-                    {"start": "2021-01-01 00:00:01", "target": [1.0] * 20},
-                    {"start": "2021-02-15 00:45:23", "target": [1.0] * 20},
-                    {"start": "2021-05-06 12:00:45", "target": [1.0] * 20},
+                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 50},
+                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 50},
+                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 50},
+                    {"start": "2021-05-27 07:10:39", "target": [1.0] * 50},
                 ],
-                freq="3M",
+                freq=freq_str,
             ),
-            time_features_from_frequency_str("3M"),
-        ),
-        (
-            ListDataset(
-                data_iter=[
-                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 20},
-                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 20},
-                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 20},
-                    {"start": "2021-05-20 07:10:39", "target": [1.0] * 20},
-                ],
-                freq="3W",
-            ),
-            time_features_from_frequency_str("3W") + [MonthOfYear()],
-        ),
-        (
-            ListDataset(
-                data_iter=[
-                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 40},
-                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 40},
-                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 40},
-                    {"start": "2021-05-20 07:10:39", "target": [1.0] * 40},
-                ],
-                freq="2D",
-            ),
-            time_features_from_frequency_str("2D") + [MonthOfYear()],
-        ),
-        (
-            ListDataset(
-                data_iter=[
-                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 100},
-                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 100},
-                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 100},
-                    {"start": "2021-05-20 07:10:39", "target": [1.0] * 100},
-                ],
-                freq="5H",
-            ),
-            time_features_from_frequency_str("5H") + [MonthOfYear()],
-        ),
+            time_features_from_frequency_str(freq_str) + [MonthOfYear()],
+        )
+        for freq_str in [
+            "2M",
+            "2MS",
+            "3W",
+            "3W-MON",
+            "3W-TUE",
+            "3W-WED",
+            "3W-THU",
+            "3W-FRI",
+            "3W-SAT",
+            "2D",
+            "5H",
+        ]
     ],
 )
 @pytest.mark.parametrize("pred_length", [0, 1, 2, 10])
