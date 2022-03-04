@@ -20,10 +20,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.itertools import Cached
-from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
+from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import (
@@ -120,7 +117,9 @@ class DeepNPTSEstimator:
         # pytorch requires the number of input nodes upfront (not only for MLP but also for RNN).
         # That is why counting the number of time features and passing it to the network.
         # The count here includes the user-provided dynamic features as well as age feature (that's why +1).
-        self.num_time_features = len(self.time_features) + num_feat_dynamic_real + 1
+        self.num_time_features = (
+            len(self.time_features) + num_feat_dynamic_real + 1
+        )
         self.input_scaling = input_scaling
         self.dropout = dropout
         self.batch_norm = batch_norm
