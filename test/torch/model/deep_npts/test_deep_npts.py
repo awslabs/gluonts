@@ -112,7 +112,8 @@ def test_torch_deep_npts_with_features(network_type: DeepNPTSNetwork):
         network_type=network_type,
         use_feat_static_cat=True,
         cardinality=[2, 2],
-        num_feat_dynamic_real=0,
+        num_feat_static_real=1,
+        num_feat_dynamic_real=3,
     )
 
     predictor = estimator.train(

@@ -122,9 +122,10 @@ class DeepNPTSNetwork(nn.Module):
         )
         total_embedding_dim = sum(embedding_dimension)
 
-        # We have two target related features: past_target and observed value indicator.
+        # We have two target related features: past_target and observed value indicator each of length `context_length`.
+        # Also, +1 for the static real feature.
         dimensions = [
-            context_length * (num_time_features + 2) + total_embedding_dim
+            context_length * (num_time_features + 2) + total_embedding_dim + 1
         ] + num_hidden_nodes
         modules = []
         for in_features, out_features in zip(dimensions[:-1], dimensions[1:]):
@@ -140,6 +141,7 @@ class DeepNPTSNetwork(nn.Module):
     def forward(
         self,
         feat_static_cat,
+        feat_static_real,
         past_target,
         past_observed_values,
         past_time_feat,
@@ -147,10 +149,11 @@ class DeepNPTSNetwork(nn.Module):
         """
         TODO: Handle missing values using the observed value indicator.
 
+        :param feat_static_cat: shape (-1, num_features)
+        :param feat_static_real: shape (-1, num_features)
         :param past_target: shape (-1, context_length)
         :param past_observed_values: shape (-1, context_length)
         :param past_time_feat: shape (-1, context_length, self.num_time_features)
-        :param feat_static_cat: shape (-1, num_features)
         :return:
         """
         x = past_target
@@ -161,6 +164,10 @@ class DeepNPTSNetwork(nn.Module):
             x_scaled = x
 
         embedded_cat = self.embedder(feat_static_cat)
+        static_feat = torch.cat(
+            (embedded_cat, torch.tensor(feat_static_real, requires_grad=True)),
+            dim=1,
+        )
         time_features = torch.cat(
             [
                 x_scaled.unsqueeze(dim=-1),
@@ -173,7 +180,7 @@ class DeepNPTSNetwork(nn.Module):
         features = torch.cat(
             [
                 time_features.reshape(time_features.shape[0], -1),
-                embedded_cat,
+                static_feat,
             ],
             dim=-1,
         )
@@ -195,12 +202,14 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     def forward(
         self,
         feat_static_cat,
+        feat_static_real,
         past_target,
         past_observed_values,
         past_time_feat,
     ):
         h = super().forward(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_target=past_target,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
@@ -230,12 +239,14 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     def forward(
         self,
         feat_static_cat,
+        feat_static_real,
         past_target,
         past_observed_values,
         past_time_feat,
     ):
         h = super().forward(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_target=past_target,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
@@ -267,6 +278,7 @@ class DeepNPTSMultiStepPredictor(nn.Module):
     def forward(
         self,
         feat_static_cat,
+        feat_static_real,
         past_target,
         past_observed_values,
         past_time_feat,
@@ -275,6 +287,8 @@ class DeepNPTSMultiStepPredictor(nn.Module):
         """
         Generates samples from the forecast distribution.
 
+        :param feat_static_cat: shape (-1, num_features)
+        :param feat_static_real: shape (-1, num_features)
         :param past_target: shape (-1, context_length)
         :param past_observed_values: shape (-1, context_length)
         :param past_time_feat: shape (-1, context_length, self.num_time_features)
@@ -308,10 +322,15 @@ class DeepNPTSMultiStepPredictor(nn.Module):
             self.num_parallel_samples, dim=0
         )
 
+        feat_static_real = feat_static_real.repeat_interleave(
+            self.num_parallel_samples, dim=0
+        )
+
         future_samples = []
         for t in range(self.prediction_length):
             distr = self.net(
                 feat_static_cat=feat_static_cat,
+                feat_static_real=feat_static_real,
                 past_target=past_target,
                 past_observed_values=observed_values[
                     :, t : -self.prediction_length + t

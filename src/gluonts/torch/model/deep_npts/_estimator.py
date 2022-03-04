@@ -31,6 +31,7 @@ from gluonts.transform import (
     AsNumpyArray,
     InstanceSplitter,
     ExpectedNumInstanceSampler,
+    RemoveFields,
     SetField,
     TestSplitSampler,
     Transformation,
@@ -57,6 +58,39 @@ LOSS_SCALING_MAP = {
 
 
 class DeepNPTSEstimator:
+    """
+    Construct a DeepNPTS estimator.
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict
+    prediction_length
+        Length of the prediction horizon
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length)
+    num_hidden_nodes
+        A list containing the number of nodes in each hidden layer.
+    batch_norm
+        Flag to indicate if batch normalization should be applied at every layer.
+    use_feat_static_cat
+        Whether to use the ``feat_static_cat`` field from the data
+        (default: False)
+    num_feat_dynamic_real
+        Number of dynamic features in the data set. These features are added to the time series features that are
+        automatically created based on the frequency.
+    cardinality
+        Number of values of each categorical feature.
+        This must be set if ``use_feat_static_cat == True`` (default: None)
+    embedding_dimension
+        Dimension of the embeddings for categorical features
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
+    input_scaling
+    dropout
+    network_type
+    """
+
     def __init__(
         self,
         freq: str,
@@ -65,6 +99,7 @@ class DeepNPTSEstimator:
         num_hidden_nodes: Optional[List[int]] = None,
         batch_norm: bool = False,
         use_feat_static_cat: bool = False,
+        num_feat_static_real: int = 0,
         num_feat_dynamic_real: int = 0,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
@@ -99,15 +134,20 @@ class DeepNPTSEstimator:
             if embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
+        self.num_feat_static_real = num_feat_static_real
         self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.features_fields = [FieldName.FEAT_STATIC_CAT] + [
-            "past_" + field
-            for field in [
-                FieldName.TARGET,
-                FieldName.OBSERVED_VALUES,
-                FieldName.FEAT_TIME,
+        self.features_fields = (
+            [FieldName.FEAT_STATIC_CAT]
+            + [FieldName.FEAT_STATIC_REAL]
+            + [
+                "past_" + field
+                for field in [
+                    FieldName.TARGET,
+                    FieldName.OBSERVED_VALUES,
+                    FieldName.FEAT_TIME,
+                ]
             ]
-        ]
+        )
         self.prediction_features_field = ["future_" + FieldName.FEAT_TIME]
         self.target_field = "future_target"
         self.past_target_field = "past_" + FieldName.TARGET
@@ -127,15 +167,35 @@ class DeepNPTSEstimator:
 
     def input_transform(self) -> Transformation:
         # Note: Any change here should be reflected in the `self.num_time_features` field as well.
+        remove_field_names = []
+        if self.num_feat_static_real == 0:
+            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
+        if self.num_feat_dynamic_real == 0:
+            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
+
         return Chain(
-            (
+            [RemoveFields(field_names=remove_field_names)]
+            + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat
+                else []
+            )
+            + (
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
+                if not self.num_feat_static_real > 0
                 else []
             )
             + [
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL,
                     expected_ndim=1,
                 ),
                 AddObservedValuesIndicator(
