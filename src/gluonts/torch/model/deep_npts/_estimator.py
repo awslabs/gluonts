@@ -68,9 +68,9 @@ class DeepNPTSEstimator:
         num_hidden_nodes: Optional[List[int]] = None,
         batch_norm: bool = False,
         use_feat_static_cat: bool = False,
+        num_feat_dynamic_real: int = 0,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
         input_scaling: Optional[Union[Callable, str]] = None,
         dropout: Optional[float] = None,
         network_type: DeepNPTSNetwork = DeepNPTSNetworkDiscrete,
@@ -102,6 +102,7 @@ class DeepNPTSEstimator:
             if embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
+        self.num_feat_dynamic_real = num_feat_dynamic_real
         self.features_fields = [FieldName.FEAT_STATIC_CAT] + [
             "past_" + field
             for field in [
@@ -113,17 +114,13 @@ class DeepNPTSEstimator:
         self.prediction_features_field = ["future_" + FieldName.FEAT_TIME]
         self.target_field = "future_target"
         self.past_target_field = "past_" + FieldName.TARGET
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(self.freq)
-        )
+        self.time_features = time_features_from_frequency_str(self.freq)
 
         # Note that unlike mxnet, which delays the determination of the the number of input nodes until first forward,
         # pytorch requires the number of input nodes upfront (not only for MLP but also for RNN).
         # That is why counting the number of time features and passing it to the network.
-        # The count here includes the age feature as well (that's why +1).
-        self.num_time_features = len(self.time_features) + 1
+        # The count here includes the user-provided dynamic features as well as age feature (that's why +1).
+        self.num_time_features = len(self.time_features) + num_feat_dynamic_real + 1
         self.input_scaling = input_scaling
         self.dropout = dropout
         self.batch_norm = batch_norm
@@ -161,7 +158,12 @@ class DeepNPTSEstimator:
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
+                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.num_feat_dynamic_real > 0
+                        else []
+                    ),
                 ),
             ]
         )

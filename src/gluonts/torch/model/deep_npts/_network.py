@@ -205,9 +205,9 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
         )
-        # outputs = self.output_layer(h)  # TODO: `outputs` not used??
-        probs = h[:, :-1]
-        kernel_width = h[:, -1:]
+        outputs = self.output_layer(h)
+        probs = outputs[:, :-1]
+        kernel_width = outputs[:, -1:]
         mix = Categorical(probs)
         components = Normal(loc=past_target, scale=kernel_width)
         return MixtureSameFamily(
@@ -321,6 +321,9 @@ class DeepNPTSMultiStepPredictor(nn.Module):
                 ],
             )
             samples = distr.sample()
+            if past_target.dim() != samples.dim():
+                samples = samples.unsqueeze(dim=-1)
+
             future_samples.append(samples)
             past_target = torch.cat([past_target[:, 1:], samples], dim=1)
 
