@@ -71,24 +71,31 @@ class DeepNPTSEstimator:
         Number of steps to unroll the RNN for before computing predictions
         (default: None, in which case context_length = prediction_length)
     num_hidden_nodes
-        A list containing the number of nodes in each hidden layer.
+        A list containing the number of nodes in each hidden layer
     batch_norm
-        Flag to indicate if batch normalization should be applied at every layer.
+        Flag to indicate if batch normalization should be applied at every layer
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
+    num_feat_static_real
+        Number of static real features in the data set
     num_feat_dynamic_real
         Number of dynamic features in the data set. These features are added to the time series features that are
-        automatically created based on the frequency.
+        automatically created based on the frequency
     cardinality
-        Number of values of each categorical feature.
+        Number of values of each categorical feature
         This must be set if ``use_feat_static_cat == True`` (default: None)
     embedding_dimension
         Dimension of the embeddings for categorical features
         (default: [min(50, (cat+1)//2) for cat in cardinality])
     input_scaling
-    dropout
+        The scaling to be applied to the target values.
+        Available options: "min_max_scaling" and "standard_normal_scaling" (default: no scaling)
+    dropout_rate
+        Dropout regularization parameter (default: no dropout)
     network_type
+        The network to be used: either the discrete version `DeepNPTSNetworkDiscrete` or
+        the smoothed version `DeepNPTSNetworkSmooth` (default: DeepNPTSNetworkDiscrete)
     """
 
     def __init__(
@@ -104,7 +111,7 @@ class DeepNPTSEstimator:
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
         input_scaling: Optional[Union[Callable, str]] = None,
-        dropout: Optional[float] = None,
+        dropout_rate: Optional[float] = None,
         network_type: DeepNPTSNetwork = DeepNPTSNetworkDiscrete,
     ):
         assert (
@@ -160,8 +167,18 @@ class DeepNPTSEstimator:
         self.num_time_features = (
             len(self.time_features) + num_feat_dynamic_real + 1
         )
+
+        if isinstance(input_scaling, str):
+            assert input_scaling in [
+                "min_max_scaling",
+                "standard_normal_scaling",
+            ], (
+                f'`input_scaling` must be one of "min_max_scaling" and "standard_normal_scaling", '
+                f'but provided "{input_scaling}".'
+            )
         self.input_scaling = input_scaling
-        self.dropout = dropout
+
+        self.dropout_rate = dropout_rate
         self.batch_norm = batch_norm
         self.network_type = network_type
 
@@ -301,7 +318,7 @@ class DeepNPTSEstimator:
             embedding_dimension=self.embedding_dimension,
             num_time_features=self.num_time_features,
             input_scaling=self.input_scaling,
-            dropout=self.dropout,
+            dropout_rate=self.dropout_rate,
             batch_norm=self.batch_norm,
         )
 

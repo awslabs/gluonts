@@ -14,6 +14,7 @@
 import tempfile
 from itertools import islice
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -28,16 +29,29 @@ from gluonts.torch.model.deep_npts import (
 )
 
 
+@pytest.mark.parametrize("batch_norm", [True, False])
+@pytest.mark.parametrize(
+    "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
+)
+@pytest.mark.parametrize("dropout_rate", [None, 0.0, 0.1])
 @pytest.mark.parametrize(
     "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]
 )
-def test_torch_deep_npts(network_type: DeepNPTSNetwork):
+def test_torch_deep_npts(
+    batch_norm: bool,
+    input_scaling: Optional[str],
+    dropout_rate: Optional[float],
+    network_type: DeepNPTSNetwork,
+):
     constant = get_dataset("constant")
 
     estimator = DeepNPTSEstimator(
         freq=constant.metadata.freq,
         prediction_length=constant.metadata.prediction_length,
         context_length=2 * constant.metadata.prediction_length,
+        batch_norm=batch_norm,
+        input_scaling=input_scaling,
+        dropout_rate=dropout_rate,
         network_type=network_type,
     )
 
@@ -58,10 +72,20 @@ def test_torch_deep_npts(network_type: DeepNPTSNetwork):
         f.mean
 
 
+@pytest.mark.parametrize("batch_norm", [True, False])
+@pytest.mark.parametrize(
+    "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
+)
+@pytest.mark.parametrize("dropout_rate", [None, 0.0, 0.1])
 @pytest.mark.parametrize(
     "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]
 )
-def test_torch_deep_npts_with_features(network_type: DeepNPTSNetwork):
+def test_torch_deep_npts_with_features(
+    batch_norm: bool,
+    input_scaling: Optional[str],
+    dropout_rate: Optional[float],
+    network_type: DeepNPTSNetwork,
+):
     freq = "1h"
     prediction_length = 12
 
@@ -109,11 +133,14 @@ def test_torch_deep_npts_with_features(network_type: DeepNPTSNetwork):
         freq=freq,
         prediction_length=prediction_length,
         context_length=2 * prediction_length,
+        batch_norm=batch_norm,
         network_type=network_type,
         use_feat_static_cat=True,
         cardinality=[2, 2],
         num_feat_static_real=1,
         num_feat_dynamic_real=3,
+        input_scaling=input_scaling,
+        dropout_rate=dropout_rate,
     )
 
     predictor = estimator.train(

@@ -102,7 +102,7 @@ class DeepNPTSNetwork(nn.Module):
         num_time_features: int,
         batch_norm: bool = False,
         input_scaling: Optional[Union[Callable, str]] = None,
-        dropout: Optional[float] = None,
+        dropout_rate: Optional[float] = None,
     ):
         super().__init__()
 
@@ -114,7 +114,7 @@ class DeepNPTSNetwork(nn.Module):
             if isinstance(input_scaling, str)
             else input_scaling
         )
-        self.dropout = dropout
+        self.dropout_rate = dropout_rate
 
         # Embedding for categorical features
         self.embedder = FeatureEmbedder(
@@ -129,11 +129,11 @@ class DeepNPTSNetwork(nn.Module):
         ] + num_hidden_nodes
         modules = []
         for in_features, out_features in zip(dimensions[:-1], dimensions[1:]):
-            if self.dropout:
-                modules.append(nn.Dropout(self.dropout))
-            modules += [nn.Linear(in_features, out_features), nn.ReLU()]
+            if self.dropout_rate:
+                modules.append(nn.Dropout(self.dropout_rate))
             if self.batch_norm:
                 modules.append(nn.BatchNorm1d(in_features))
+            modules += [nn.Linear(in_features, out_features), nn.ReLU()]
 
         self.model = nn.Sequential(*modules)
         self.model.apply(partial(init_weights, scale=0.07))
@@ -191,7 +191,11 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     @validated()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        modules = [] if self.dropout is None else [nn.Dropout(self.dropout)]
+        modules = (
+            []
+            if self.dropout_rate is None
+            else [nn.Dropout(self.dropout_rate)]
+        )
         modules += [
             nn.Linear(self.num_hidden_nodes[-1], self.context_length + 1),
             nn.Softplus(),
@@ -229,7 +233,11 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     def __init__(self, *args, use_softmax: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.use_softmax = use_softmax
-        modules = [] if self.dropout is None else [nn.Dropout(self.dropout)]
+        modules = (
+            []
+            if self.dropout_rate is None
+            else [nn.Dropout(self.dropout_rate)]
+        )
         modules.append(
             nn.Linear(self.num_hidden_nodes[-1], self.context_length)
         )
