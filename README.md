@@ -13,11 +13,11 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 
 ## Features
 
-* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/)
+* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/) (see [list](#available-models))
+* Easy AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) (see [here](#running-on-amazon-sagemaker))
 * Utilities for loading and iterating over time series datasets
 * Utilities to evaluate models performance and compare their accuracy
-* Building blocks to define your own models and quickly experiment with different solutions
-* AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/)
+* Building blocks to define custom models and quickly experiment
 
 ## Installation
 
@@ -35,7 +35,7 @@ pip install --upgrade gluonts torch~=1.10  # to be able to use PyTorch-based mod
 * [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
 * [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 
-## Implemented models
+## Available models
 
 Name                             | Local/global | Data layout              | Architecture/method | Implementation | References
 ---------------------------------|--------------|--------------------------|---------------------|----------------|-----------
@@ -63,7 +63,7 @@ NaiveSeasonal                    | Local        | Univariate               | - |
 Naive2                           | Local        | Univariate               | - | [Numpy](src/gluonts/model/naive_2/_predictor.py) | [book section](https://www.wiley.com/en-ie/Forecasting:+Methods+and+Applications,+3rd+Edition-p-9780471532330)
 NPTS                             | Local        | Univariate               | - | [Numpy](src/gluonts/model/npts/_predictor.py) | -
 
-## Running models on Amazon SageMaker
+## Running on Amazon SageMaker
 
 Training and deploying GluonTS models on [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) is easily done by using the `gluonts.shell` package, see [its README](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/shell) for more information.
 Dockerfiles compatible with Amazon SageMaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
