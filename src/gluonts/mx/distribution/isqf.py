@@ -346,7 +346,7 @@ class ISQF(Distribution):
             qk_x_plus = F.expand_dims(qk_x_plus, axis=axis)
 
         quantile = F.where(
-            alpha < qk_x_l,
+            alpha < F.broadcast_like(qk_x_l, alpha),
             self.quantile_tail(alpha, axis=axis, left_tail=True),
             self.quantile_tail(alpha, axis=axis, left_tail=False),
         )
@@ -356,14 +356,19 @@ class ISQF(Distribution):
         for spline_idx in range(self.num_qk - 1):
 
             is_in_between = F.broadcast_logical_and(
-                F.slice_axis(
-                    qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
-                ).squeeze(-1)
-                <= alpha,
+                F.broadcast_like(
+                    F.slice_axis(
+                        qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
+                    ).squeeze(-1),
+                    alpha
+                ) <= alpha,
                 alpha
-                < F.slice_axis(
-                    qk_x_plus, axis=-1, begin=spline_idx, end=spline_idx + 1
-                ).squeeze(-1),
+                < F.broadcast_like(
+                    F.slice_axis(
+                        qk_x_plus, axis=-1, begin=spline_idx, end=spline_idx + 1
+                    ).squeeze(-1),
+                    alpha
+                )
             )
 
             quantile = F.where(
