@@ -384,7 +384,9 @@ class ISQF(Distribution):
         return quantile
 
     def quantile_spline(
-        self, alpha: Tensor, axis: Optional[int] = None,
+        self,
+        alpha: Tensor,
+        axis: Optional[int] = None,
     ) -> Tensor:
         r"""
         Evaluates the spline functions at the
@@ -618,8 +620,8 @@ class ISQF(Distribution):
                 self.qk_x_l,
                 self.qk_y_l,
             )
-            term1 = (z - tail_b) * (qk_x ** 2 - 2 * qk_x + 2 * alpha_tilde)
-            term2 = qk_x ** 2 * tail_a * (-F.log(qk_x) + 0.5)
+            term1 = (z - tail_b) * (qk_x**2 - 2 * qk_x + 2 * alpha_tilde)
+            term2 = qk_x**2 * tail_a * (-F.log(qk_x) + 0.5)
             term2 = term2 + 2 * F.where(
                 z < qk_y,
                 qk_x * tail_a * (F.log(qk_x) - 1)
@@ -633,10 +635,10 @@ class ISQF(Distribution):
                 self.qk_x_r,
                 self.qk_y_r,
             )
-            term1 = (z - tail_b) * (-1 - qk_x ** 2 + 2 * alpha_tilde)
+            term1 = (z - tail_b) * (-1 - qk_x**2 + 2 * alpha_tilde)
             term2 = tail_a * (
                 -0.5 * (qk_x + 1) ** 2
-                + (qk_x ** 2 - 1) * F.log(1 - qk_x)
+                + (qk_x**2 - 1) * F.log(1 - qk_x)
                 + 2 * alpha_tilde
             )
             term2 = term2 + 2 * F.where(
@@ -678,23 +680,23 @@ class ISQF(Distribution):
         )
 
         coeff1 = (
-            -2 / 3 * sk_x_plus ** 3
-            + sk_x * sk_x_plus ** 2
-            + sk_x_plus ** 2
-            - (1 / 3) * sk_x ** 3
+            -2 / 3 * sk_x_plus**3
+            + sk_x * sk_x_plus**2
+            + sk_x_plus**2
+            - (1 / 3) * sk_x**3
             - 2 * sk_x * sk_x_plus
-            - r ** 2
+            - r**2
             + 2 * sk_x * r
         )
 
         coeff2 = F.broadcast_add(
             -2 * F.broadcast_maximum(alpha_tilde_expand, sk_x_plus)
-            + sk_x_plus ** 2,
-            2 * qk_x_plus_expand - qk_x_plus_expand ** 2,
+            + sk_x_plus**2,
+            2 * qk_x_plus_expand - qk_x_plus_expand**2,
         )
 
         result = (
-            (qk_x_plus ** 2 - qk_x ** 2) * F.broadcast_sub(z_expand, qk_y)
+            (qk_x_plus**2 - qk_x**2) * F.broadcast_sub(z_expand, qk_y)
             + 2
             * F.broadcast_sub(qk_x_plus, alpha_tilde)
             * F.broadcast_sub(qk_y, z_expand)
@@ -869,7 +871,10 @@ class ISQFOutput(DistributionOutput):
 
     @classmethod
     def domain_map(
-        cls, F, *args: Tensor, tol: float = 1e-4,
+        cls,
+        F,
+        *args: Tensor,
+        tol: float = 1e-4,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
         Domain map function
