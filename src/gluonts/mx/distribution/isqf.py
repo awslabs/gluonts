@@ -346,7 +346,7 @@ class ISQF(Distribution):
             qk_x_plus = F.expand_dims(qk_x_plus, axis=axis)
 
         quantile = F.where(
-            alpha < qk_x_l,
+            F.broadcast_lesser(alpha, qk_x_l),
             self.quantile_tail(alpha, axis=axis, left_tail=True),
             self.quantile_tail(alpha, axis=axis, left_tail=False),
         )
@@ -356,14 +356,21 @@ class ISQF(Distribution):
         for spline_idx in range(self.num_qk - 1):
 
             is_in_between = F.broadcast_logical_and(
-                F.slice_axis(
-                    qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
-                ).squeeze(-1)
-                <= alpha,
-                alpha
-                < F.slice_axis(
-                    qk_x_plus, axis=-1, begin=spline_idx, end=spline_idx + 1
-                ).squeeze(-1),
+                F.broadcast_lesser_equal(
+                    F.slice_axis(
+                        qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
+                    ).squeeze(-1),
+                    alpha,
+                ),
+                F.broadcast_lesser(
+                    alpha,
+                    F.slice_axis(
+                        qk_x_plus,
+                        axis=-1,
+                        begin=spline_idx,
+                        end=spline_idx + 1,
+                    ).squeeze(-1),
+                ),
             )
 
             quantile = F.where(
@@ -471,8 +478,9 @@ class ISQF(Distribution):
             alpha = 1 - alpha
 
         if axis is not None:
-            tail_a, tail_b = F.expand_dims(tail_a, axis=axis), F.expand_dims(
-                tail_b, axis=axis
+            tail_a, tail_b = (
+                F.expand_dims(tail_a, axis=axis),
+                F.expand_dims(tail_b, axis=axis),
             )
 
         return F.broadcast_add(F.broadcast_mul(tail_a, F.log(alpha)), tail_b)
@@ -659,8 +667,9 @@ class ISQF(Distribution):
         sk_x, sk_x_plus = self.sk_x, self.sk_x_plus
         delta_sk_x, delta_sk_y = self.delta_sk_x, self.delta_sk_y
 
-        z_expand, qk_x_plus_expand = F.expand_dims(z, axis=-1), F.expand_dims(
-            qk_x_plus, axis=-1
+        z_expand, qk_x_plus_expand = (
+            F.expand_dims(z, axis=-1),
+            F.expand_dims(qk_x_plus, axis=-1),
         )
 
         alpha_tilde = self.cdf_spline(z)
