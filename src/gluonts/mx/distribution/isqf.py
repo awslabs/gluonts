@@ -358,6 +358,12 @@ class ISQF(Distribution):
             F.broadcast_lesser(F.expand_dims(alpha, axis=-1), qk_x_plus),
         )
 
+        # Assert that:
+        # (1) there's at most one place where is_in_between is True
+        # (2) there are places where points have is_in_between False everwhere
+        # assert F.max(F.sum(is_in_between, axis=-1)).asnumpy().item() == 1
+        # assert F.min(F.sum(is_in_between, axis=-1)).asnumpy().item() == 0
+
         # Where we evaluate in between points, use spline value for the one region.
         # Where outside, use quantile value.
         quantile = F.sum(
