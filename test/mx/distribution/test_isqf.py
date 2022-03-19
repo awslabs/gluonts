@@ -279,3 +279,50 @@ def test_robustness():
     # check that 0 <= crps
     crps_x = distr.crps(x)
     assert mx.nd.min(crps_x).asscalar() >= 0.0
+
+
+@pytest.mark.parametrize(
+    "batch_shape, num_pieces, num_qk, num_samples",
+    [
+        ((100, 200, 100), 5, 5, 10),
+    ],
+)
+def test_time(
+    batch_shape: Tuple,
+    num_pieces: int,
+    num_qk: int,
+    num_samples: int,
+):
+
+    spline_knots = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu())
+    spline_heights = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu())
+    beta_l = mx.nd.ones(shape=batch_shape, ctx=mx.cpu())
+    beta_r = mx.nd.ones(shape=batch_shape, ctx=mx.cpu())
+
+    # quantile knot positions are non-decreasing
+    qk_y = mx.nd.cumsum(
+        mx.nd.ones(shape=(*batch_shape, num_qk)), axis=len(batch_shape) - 1
+    )
+    qk_x = mx.nd.cumsum(
+        mx.nd.ones(shape=(*batch_shape, num_qk)), axis=len(batch_shape) - 1
+    )
+
+    distr = ISQF(
+        spline_knots=spline_knots,
+        spline_heights=spline_heights,
+        beta_l=beta_l,
+        beta_r=beta_r,
+        qk_y=qk_y,
+        qk_x=qk_x,
+        num_qk=num_qk,
+        num_pieces=num_pieces,
+    )
+
+    # assert that the samples and the quantile values shape when num_samples is None is correct
+    samples = distr.sample()
+
+    from timeit import default_timer as timer
+    start = timer()
+    distr.quantile_internal(samples, axis=0)
+    end = timer()
+    print(f"batch_shape {batch_shape} | num_qk {num_qk} | num_pieces {num_pieces} | time {end-start}")
