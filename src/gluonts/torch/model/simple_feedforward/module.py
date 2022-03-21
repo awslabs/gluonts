@@ -24,6 +24,13 @@ def mean_abs_scaling(seq, min_scale=1e-5):
     return seq.abs().mean(1).clamp(min_scale, None).unsqueeze(1)
 
 
+def make_linear_layer(dim_in, dim_out):
+    lin = nn.Linear(dim_in, dim_out)
+    torch.nn.init.uniform_(lin.weight, -0.07, 0.07)
+    torch.nn.init.zeros_(lin.bias)
+    return lin
+
+
 class SimpleFeedForwardModel(nn.Module):
     @validated()
     def __init__(
@@ -52,24 +59,17 @@ class SimpleFeedForwardModel(nn.Module):
 
         modules = []
         for in_size, out_size in zip(dimensions[:-1], dimensions[1:]):
-            modules += [self.__make_lin(in_size, out_size), nn.ReLU()]
+            modules += [make_linear_layer(in_size, out_size), nn.ReLU()]
             if batch_norm:
                 modules.append(nn.BatchNorm1d(out_size))
         modules.append(
-            self.__make_lin(
+            make_linear_layer(
                 dimensions[-1], prediction_length * hidden_dimensions[-1]
             )
         )
 
         self.nn = nn.Sequential(*modules)
         self.args_proj = self.distr_output.get_args_proj(hidden_dimensions[-1])
-
-    @staticmethod
-    def __make_lin(dim_in, dim_out):
-        lin = nn.Linear(dim_in, dim_out)
-        torch.nn.init.uniform_(lin.weight, -0.07, 0.07)
-        torch.nn.init.zeros_(lin.bias)
-        return lin
 
     def forward(
         self,

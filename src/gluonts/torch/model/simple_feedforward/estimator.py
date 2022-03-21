@@ -63,9 +63,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
-        hidden_dimensions: Optional[
-            List[int]
-        ] = None,  # TODO enforce same defaults to network and estimator
+        hidden_dimensions: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         batch_norm: bool = False,
@@ -86,6 +84,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or 10 * prediction_length
+        # TODO find way to enforce same defaults to network and estimator somehow
         self.hidden_dimensions = hidden_dimensions or [20, 20]
         self.distr_output = distr_output
         self.loss = loss
