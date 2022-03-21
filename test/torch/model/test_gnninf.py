@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 # If you use this code in your work please cite:
-# Multivariate Time Series Forecasting with Latent Graph Inference (https://arxiv.org/abs/2203.03423)
+# Multivariate Time Series Forecasting with Latent Graph Inference
+# (https://arxiv.org/abs/2203.03423)
 
 
 from typing import Type, Union

@@ -12,25 +12,28 @@
 # permissions and limitations under the License.
 
 # If you use this code in your work please cite:
-# Multivariate Time Series Forecasting with Latent Graph Inference (https://arxiv.org/abs/2203.03423)
+# Multivariate Time Series Forecasting with Latent Graph Inference
+# (https://arxiv.org/abs/2203.03423)
 
 
 from torch import nn
 import torch
 from typing import Tuple, List
 
+
 class GCL(nn.Module):
-    def __init__(self,
+    def __init__(
+        self,
         input_nf: int,
         output_nf: int,
         hidden_nf: int,
-        edges_in_d: int=0,
-        act_fn: nn.Module=nn.SiLU(),
-        residual: bool=True,
-        attention: bool=False,
-        del_edges: bool=False,
-        edge_nf_ratio: int=2,
-        clamp=False
+        edges_in_d: int = 0,
+        act_fn: nn.Module = nn.SiLU(),
+        residual: bool = True,
+        attention: bool = False,
+        del_edges: bool = False,
+        edge_nf_ratio: int = 2,
+        clamp=False,
     ) -> None:
         super(GCL, self).__init__()
         input_edge = input_nf * 2
@@ -38,7 +41,7 @@ class GCL(nn.Module):
         self.attention = attention
         self.del_edges = del_edges
         self.clamp = clamp
-        edges_nf = hidden_nf // edge_nf_ratio * (1-del_edges)
+        edges_nf = hidden_nf // edge_nf_ratio * (1 - del_edges)
         out_edges_nf = edges_nf
 
         if not del_edges:
@@ -46,22 +49,29 @@ class GCL(nn.Module):
                 nn.Linear(input_edge + edges_in_d, edges_nf),
                 act_fn,
                 nn.Linear(edges_nf, out_edges_nf),
-                act_fn)
+                act_fn,
+            )
 
             if self.attention:
                 self.att_mlp = nn.Sequential(
-                    nn.Linear(out_edges_nf, 1),
-                    nn.Sigmoid())
+                    nn.Linear(out_edges_nf, 1), nn.Sigmoid()
+                )
 
         self.node_mlp = nn.Sequential(
             nn.Linear(out_edges_nf + input_nf, hidden_nf),
             act_fn,
-            nn.Linear(hidden_nf, output_nf))
+            nn.Linear(hidden_nf, output_nf),
+        )
 
         if not del_edges:
             self.node_linear = nn.Linear(out_edges_nf, output_nf)
 
-    def edge_model(self, source: torch.Tensor, target: torch.Tensor, edge_attr: torch.Tensor):
+    def edge_model(
+        self,
+        source: torch.Tensor,
+        target: torch.Tensor,
+        edge_attr: torch.Tensor,
+    ):
         if edge_attr is None:  # Unused.
             out = torch.cat([source, target], dim=1)
         else:
@@ -76,8 +86,15 @@ class GCL(nn.Module):
             att_val = None
         return out, att_val
 
-    def node_model(self, x: torch.Tensor, edge_index: List[torch.Tensor], edge_attr: torch.Tensor,
-                   node_attr: torch.Tensor, update_mask: torch.Tensor, C: float) -> Tuple:
+    def node_model(
+        self,
+        x: torch.Tensor,
+        edge_index: List[torch.Tensor],
+        edge_attr: torch.Tensor,
+        node_attr: torch.Tensor,
+        update_mask: torch.Tensor,
+        C: float,
+    ) -> Tuple:
         row, col = edge_index
         agg = unsorted_segment_sum(edge_attr, row, num_segments=x.size(0)) * C
 
@@ -94,10 +111,14 @@ class GCL(nn.Module):
         if self.residual:
             out = x + out
         else:
-            raise Exception('Warning: BPGNN has only been coded for the residual case')
+            raise Exception(
+                "Warning: BPGNN has only been coded for the residual case"
+            )
         return out, agg
 
-    def node_model_noedges(self, x: torch.Tensor, node_attr: torch.Tensor) -> torch.Tensor:
+    def node_model_noedges(
+        self, x: torch.Tensor, node_attr: torch.Tensor
+    ) -> torch.Tensor:
         if node_attr is not None:
             agg = torch.cat([x, node_attr], dim=1)
         else:
@@ -107,15 +128,24 @@ class GCL(nn.Module):
             out = x + out
         return out
 
-    def forward(self, h: torch.Tensor, edge_index:torch.Tensor, edge_attr: torch.Tensor=None,
-                node_attr: torch.Tensor=None, update_mask: torch.Tensor=None, C: float=1.0) -> Tuple:
+    def forward(
+        self,
+        h: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: torch.Tensor = None,
+        node_attr: torch.Tensor = None,
+        update_mask: torch.Tensor = None,
+        C: float = 1.0,
+    ) -> Tuple:
         if self.del_edges:
             h = self.node_model_noedges(h, node_attr)
             att_val = None
         else:
             row, col = edge_index
             edge_feat, att_val = self.edge_model(h[row], h[col], edge_attr)
-            h, _ = self.node_model(h, edge_index, edge_feat, node_attr, update_mask, C)
+            h, _ = self.node_model(
+                h, edge_index, edge_feat, node_attr, update_mask, C
+            )
 
         return h, att_val
 
