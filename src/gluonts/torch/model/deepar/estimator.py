@@ -35,6 +35,7 @@ from gluonts.transform import (
     AddTimeFeatures,
     AddAgeFeature,
     VstackFeatures,
+    InstanceSampler,
     InstanceSplitter,
     ValidationSplitSampler,
     TestSplitSampler,
@@ -93,6 +94,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
@@ -131,11 +134,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
-        # TODO expose these
-        self.train_sampler = ExpectedNumInstanceSampler(
+        self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
-        self.validation_sampler = ValidationSplitSampler(
+        self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
 
