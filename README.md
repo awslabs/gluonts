@@ -52,7 +52,7 @@ Causal Convolutional Transformer | Global       | Univariate               | Cau
 Temporal Fusion Transformer      | Global       | Univariate               | LSTM, self attention | [MXNet](src/gluonts/model/tft/_estimator.py) | [paper](https://doi.org/10.1016/j.ijforecast.2021.03.012)
 Transformer                      | Global       | Univariate               | MLP, multi-head attention | [MXNet](src/gluonts/model/transformer/_estimator.py) | [paper](https://papers.nips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html)
 WaveNet                          | Global       | Univariate               | Dilated convolution | [MXNet](src/gluonts/model/wavenet/_estimator.py) | [paper](https://arxiv.org/abs/1609.03499)
-SimpleFeedForward                | Global       | Univariate               | MLP | [MXNet](src/gluonts/model/simple_feedforward/_estimator.py) | -
+SimpleFeedForward                | Global       | Univariate               | MLP | [MXNet](src/gluonts/model/simple_feedforward/_estimator.py), [PyTorch](src/gluonts/torch/model/simple_feedforward/estimator.py) | -
 DeepVAR                          | Global       | Multivariate             | RNN | [MXNet](src/gluonts/model/deepvar/_estimator.py) | [paper](https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html)
 GPVAR                            | Global       | Multivariate             | RNN, Gaussian process | [MXNet](src/gluonts/model/gpvar/_estimator.py) | [paper](https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html)
 LSTNet                           | Global       | Multivariate             | LSTM | [MXNet](src/gluonts/model/lstnet/_estimator.py) | [paper](https://doi.org/10.1145/3209978.3210006)
