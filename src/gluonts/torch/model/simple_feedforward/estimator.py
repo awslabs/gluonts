@@ -107,7 +107,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> pl.LightningModule:
         model = SimpleFeedForwardModel(
-            freq=self.freq,
             prediction_length=self.prediction_length,
             context_length=self.context_length,
             hidden_dimensions=self.hidden_dimensions,
