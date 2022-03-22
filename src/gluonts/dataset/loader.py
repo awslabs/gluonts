@@ -16,6 +16,7 @@ import logging
 import multiprocessing as mp
 import pickle
 import sys
+from dataclasses import dataclass
 from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Optional
@@ -67,18 +68,20 @@ def worker_fn(
         try:
             result_queue.put(raw)
         except (EOFError, BrokenPipeError):
-            return
+            break
+
+    result_queue.put(_encode(None))
 
 
 DataLoader = Iterable[DataBatch]
 
 
-class MultiProcessLoader(DataLoader):
+class MultiProcessIterator(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
         num_workers: int,
-        max_queue_size: Optional[int],
+        max_queue_size: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
     ):
         assert num_workers >= 1
@@ -90,6 +93,8 @@ class MultiProcessLoader(DataLoader):
 
         self.decode_fn = decode_fn
         self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
+        self.num_workers = num_workers
+        self.num_finished = 0
 
         create_worker = partial(
             mp.Process,
@@ -107,24 +112,38 @@ class MultiProcessLoader(DataLoader):
         for process in self.processes:
             process.start()
 
-    def _has_values(self):
-        alive = any(proc.is_alive() for proc in self.processes)
-        return alive or not self.result_queue.empty()
-
     def __iter__(self):
-        while self._has_values():
-            yield self._get()
+        return self
 
-        self._terminate()
+    def __next__(self):
+        while self.num_finished < self.num_workers:
+            data = self._get()
+            if data is None:
+                self.num_finished += 1
+                continue
+            return data
+        raise StopIteration
 
     def _get(self):
         # TODO make timeout configurable
         raw = self.result_queue.get(timeout=120)
         return self.decode_fn(pickle.loads(raw))
 
-    def _terminate(self):
-        for process in self.processes:
-            process.terminate()
+
+@dataclass
+class MultiProcessIterable(DataLoader):
+    dataset: Dataset
+    num_workers: int
+    max_queue_size: Optional[int] = None
+    decode_fn: Callable = lambda x: x
+
+    def __iter__(self):
+        yield from MultiProcessIterator(
+            dataset=self.dataset,
+            num_workers=self.num_workers,
+            max_queue_size=self.max_queue_size,
+            decode_fn=self.decode_fn,
+        )
 
 
 # TODO: the following are for backward compatibility
@@ -206,13 +225,12 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
-        loader = MultiProcessLoader(
+        return MultiProcessIterator(
             transformed_dataset,
             decode_fn=decode_fn,
             num_workers=num_workers,
             max_queue_size=num_prefetch,
         )
-        batches = iter(loader)
     else:
         batches = iter(transformed_dataset)
 
@@ -228,6 +246,9 @@ def ValidationDataLoader(
     transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
+    num_prefetch: Optional[int] = None,
+    num_workers: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
 ):
     """Construct an iterator of batches for validation purposes.
 
@@ -244,6 +265,14 @@ def ValidationDataLoader(
         Function to use to stack data entries into batches.
         This can be used to set a specific array type or computing device
         the arrays should end up onto (CPU, GPU).
+    num_workers
+        Number of worker processes to use. Default: None.
+    num_prefetch
+        Sets the length of the queue of batches being produced by worker
+        processes. (Only meaningful when ``num_workers is not None``).
+    decode_fn
+        A function called on each batch after it's been taken out of the queue.
+        (Only meaningful when ``num_workers is not None``).
 
     Returns
     -------
@@ -252,7 +281,17 @@ def ValidationDataLoader(
     """
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
-    return transform.apply(dataset, is_train=True)
+    transformed_dataset = transform.apply(dataset, is_train=True)
+
+    if num_workers is None:
+        return transformed_dataset
+
+    return MultiProcessIterable(
+        transformed_dataset,
+        decode_fn=decode_fn,
+        num_workers=num_workers,
+        max_queue_size=num_prefetch,
+    )
 
 
 def InferenceDataLoader(
