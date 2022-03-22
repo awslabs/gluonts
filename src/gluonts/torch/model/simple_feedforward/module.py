@@ -35,7 +35,6 @@ class SimpleFeedForwardModel(nn.Module):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: int,
         hidden_dimensions: List[int],
@@ -48,7 +47,6 @@ class SimpleFeedForwardModel(nn.Module):
         assert context_length > 0
         assert len(hidden_dimensions) > 0
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.hidden_dimensions = hidden_dimensions
