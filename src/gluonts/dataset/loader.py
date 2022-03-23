@@ -95,8 +95,9 @@ class MultiProcessLoader(DataLoader):
 
         self.decode_fn = decode_fn
         self.queue_timeout_seconds = queue_timeout_seconds
-        self.output_queue = mp.Manager().Queue(maxsize=max_queue_size)
-        self.input_queues = [mp.Manager().Queue() for _ in range(num_workers)]
+        self.manager = mp.Manager()
+        self.output_queue = self.manager.Queue(maxsize=max_queue_size)
+        self.input_queues = [self.manager.Queue() for _ in range(num_workers)]
         self.num_workers = num_workers
 
         self.processes = [
