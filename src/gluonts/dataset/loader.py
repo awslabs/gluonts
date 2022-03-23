@@ -16,7 +16,6 @@ import logging
 import multiprocessing as mp
 import pickle
 import sys
-from dataclasses import dataclass
 from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Optional
@@ -57,28 +56,28 @@ def worker_fn(
     worker_id: int,
     dataset,
     num_workers: int,
-    result_queue: mp.Queue,
-    termination_queue: mp.Queue,
+    input_queue: mp.Queue,
+    output_queue: mp.Queue,
 ):
     MPWorkerInfo.set_worker_info(
         num_workers=num_workers,
         worker_id=worker_id,
     )
 
-    for raw in map(_encode, dataset):
+    while True:
         try:
-            result_queue.put(raw)
+            input_queue.get()
+            for encoded_entry in map(_encode, dataset):
+                output_queue.put(encoded_entry)
+            output_queue.put(_encode(None))
         except (EOFError, BrokenPipeError):
             return
-
-    result_queue.put(_encode(None))
-    termination_queue.get()
 
 
 DataLoader = Iterable[DataBatch]
 
 
-class MultiProcessIterator(DataLoader):
+class MultiProcessIterable(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
@@ -96,62 +95,38 @@ class MultiProcessIterator(DataLoader):
 
         self.decode_fn = decode_fn
         self.queue_timeout_seconds = queue_timeout_seconds
-        self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
-        self.termination_queue = mp.Manager().Queue()
+        self.output_queue = mp.Manager().Queue(maxsize=max_queue_size)
+        self.input_queues = [mp.Manager().Queue() for _ in range(num_workers)]
         self.num_workers = num_workers
-        self.num_finished = 0
-
-        create_worker = partial(
-            mp.Process,
-            target=worker_fn,
-            kwargs={
-                "dataset": dataset,
-                "num_workers": num_workers,
-                "result_queue": self.result_queue,
-                "termination_queue": self.termination_queue,
-            },
-        )
 
         self.processes = [
-            create_worker(args=[worker_id]) for worker_id in range(num_workers)
+            mp.Process(
+                target=worker_fn,
+                kwargs={
+                    "worker_id": worker_id,
+                    "dataset": dataset,
+                    "num_workers": num_workers,
+                    "input_queue": input_queue,
+                    "output_queue": self.output_queue,
+                }
+            )
+            for worker_id, input_queue in enumerate(self.input_queues)
         ]
+
         for process in self.processes:
             process.start()
 
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        while self.num_finished < self.num_workers:
-            raw = self.result_queue.get(timeout=self.queue_timeout_seconds)
+        num_finished = 0
+        for input_queue in self.input_queues:
+            input_queue.put(_encode(True))
+        while num_finished < self.num_workers:
+            raw = self.output_queue.get(timeout=self.queue_timeout_seconds)
             data = pickle.loads(raw)
             if data is None:
-                self.num_finished += 1
+                num_finished += 1
                 continue
-            return self.decode_fn(data)
-        for _ in range(self.num_workers):
-            self.termination_queue.put(_encode(True))
-        for p in self.processes:
-            p.join()
-        raise StopIteration
-
-
-@dataclass
-class MultiProcessIterable(DataLoader):
-    dataset: Dataset
-    num_workers: int
-    max_queue_size: Optional[int] = None
-    decode_fn: Callable = lambda x: x
-    queue_timeout_seconds: int = 120
-
-    def __iter__(self):
-        yield from MultiProcessIterator(
-            dataset=self.dataset,
-            num_workers=self.num_workers,
-            max_queue_size=self.max_queue_size,
-            decode_fn=self.decode_fn,
-            queue_timeout_seconds=self.queue_timeout_seconds,
-        )
+            yield self.decode_fn(data)
 
 
 # TODO: the following are for backward compatibility
@@ -233,12 +208,12 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
-        return MultiProcessIterator(
+        return iter(MultiProcessIterable(
             transformed_dataset,
             decode_fn=decode_fn,
             num_workers=num_workers,
             max_queue_size=num_prefetch,
-        )
+        ))
     else:
         batches = iter(transformed_dataset)
 
