@@ -108,7 +108,7 @@ class MultiProcessLoader(DataLoader):
                     "num_workers": num_workers,
                     "input_queue": input_queue,
                     "output_queue": self.output_queue,
-                }
+                },
             )
             for worker_id, input_queue in enumerate(self.input_queues)
         ]
