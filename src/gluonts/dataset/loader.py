@@ -15,6 +15,7 @@ import io
 import logging
 import multiprocessing as mp
 import pickle
+import queue
 import sys
 from dataclasses import dataclass
 from functools import partial
@@ -83,6 +84,7 @@ class MultiProcessIterator(DataLoader):
         num_workers: int,
         max_queue_size: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
+        queue_timeout_seconds: int = 120,
     ):
         assert num_workers >= 1
 
@@ -92,6 +94,7 @@ class MultiProcessIterator(DataLoader):
             assert max_queue_size >= num_workers
 
         self.decode_fn = decode_fn
+        self.queue_timeout_seconds = queue_timeout_seconds
         self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
         self.num_workers = num_workers
         self.num_finished = 0
@@ -117,8 +120,7 @@ class MultiProcessIterator(DataLoader):
 
     def __next__(self):
         while self.num_finished < self.num_workers:
-            # TODO make timeout configurable
-            raw = self.result_queue.get(timeout=120)
+            raw = self.result_queue.get(timeout=self.queue_timeout_seconds)
             data = pickle.loads(raw)
             if data is None:
                 self.num_finished += 1
@@ -133,6 +135,7 @@ class MultiProcessIterable(DataLoader):
     num_workers: int
     max_queue_size: Optional[int] = None
     decode_fn: Callable = lambda x: x
+    queue_timeout_seconds: int = 120
 
     def __iter__(self):
         yield from MultiProcessIterator(
@@ -140,6 +143,7 @@ class MultiProcessIterable(DataLoader):
             num_workers=self.num_workers,
             max_queue_size=self.max_queue_size,
             decode_fn=self.decode_fn,
+            queue_timeout_seconds=self.queue_timeout_seconds,
         )
 
 
