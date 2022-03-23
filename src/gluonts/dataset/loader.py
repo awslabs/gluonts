@@ -16,7 +16,6 @@ import logging
 import multiprocessing as mp
 import pickle
 import sys
-from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Optional
 
