@@ -77,7 +77,7 @@ def worker_fn(
 DataLoader = Iterable[DataBatch]
 
 
-class MultiProcessIterable(DataLoader):
+class MultiProcessLoader(DataLoader):
     def __init__(
         self,
         dataset: Dataset,
@@ -208,12 +208,13 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     if num_workers is not None:
-        return iter(MultiProcessIterable(
+        loader = MultiProcessLoader(
             transformed_dataset,
             decode_fn=decode_fn,
             num_workers=num_workers,
             max_queue_size=num_prefetch,
-        ))
+        )
+        batches = iter(loader)
     else:
         batches = iter(transformed_dataset)
 
@@ -269,7 +270,7 @@ def ValidationDataLoader(
     if num_workers is None:
         return transformed_dataset
 
-    return MultiProcessIterable(
+    return MultiProcessLoader(
         transformed_dataset,
         decode_fn=decode_fn,
         num_workers=num_workers,
