@@ -69,7 +69,7 @@ def worker_fn(
         try:
             result_queue.put(raw)
         except (EOFError, BrokenPipeError):
-            break
+            return
 
     result_queue.put(_encode(None))
 
