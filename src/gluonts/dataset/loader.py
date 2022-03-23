@@ -117,17 +117,14 @@ class MultiProcessIterator(DataLoader):
 
     def __next__(self):
         while self.num_finished < self.num_workers:
-            data = self._get()
+            # TODO make timeout configurable
+            raw = self.result_queue.get(timeout=120)
+            data = pickle.loads(raw)
             if data is None:
                 self.num_finished += 1
                 continue
-            return data
+            return self.decode_fn(data)
         raise StopIteration
-
-    def _get(self):
-        # TODO make timeout configurable
-        raw = self.result_queue.get(timeout=120)
-        return self.decode_fn(pickle.loads(raw))
 
 
 @dataclass
