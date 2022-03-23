@@ -15,7 +15,6 @@ import io
 import logging
 import multiprocessing as mp
 import pickle
-import queue
 import sys
 from dataclasses import dataclass
 from functools import partial
@@ -59,6 +58,7 @@ def worker_fn(
     dataset,
     num_workers: int,
     result_queue: mp.Queue,
+    termination_queue: mp.Queue,
 ):
     MPWorkerInfo.set_worker_info(
         num_workers=num_workers,
@@ -72,6 +72,7 @@ def worker_fn(
             return
 
     result_queue.put(_encode(None))
+    termination_queue.get()
 
 
 DataLoader = Iterable[DataBatch]
@@ -96,6 +97,7 @@ class MultiProcessIterator(DataLoader):
         self.decode_fn = decode_fn
         self.queue_timeout_seconds = queue_timeout_seconds
         self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
+        self.termination_queue = mp.Manager().Queue()
         self.num_workers = num_workers
         self.num_finished = 0
 
@@ -104,8 +106,9 @@ class MultiProcessIterator(DataLoader):
             target=worker_fn,
             kwargs={
                 "dataset": dataset,
-                "result_queue": self.result_queue,
                 "num_workers": num_workers,
+                "result_queue": self.result_queue,
+                "termination_queue": self.termination_queue,
             },
         )
 
@@ -126,6 +129,10 @@ class MultiProcessIterator(DataLoader):
                 self.num_finished += 1
                 continue
             return self.decode_fn(data)
+        for _ in range(self.num_workers):
+            self.termination_queue.put(_encode(True))
+        for p in self.processes:
+            p.join()
         raise StopIteration
 
 
