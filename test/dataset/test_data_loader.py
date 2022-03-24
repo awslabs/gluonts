@@ -163,28 +163,30 @@ def test_training_data_loader(dataset_context, num_workers):
         default_file_dataset,
     ],
 )
-def test_validation_data_loader(dataset_context):
+@pytest.mark.parametrize(
+    "num_workers",
+    [None, 1, 2, 5],
+)
+def test_validation_data_loader(dataset_context, num_workers):
     with dataset_context() as dataset:
         dl = ValidationDataLoader(
             dataset=dataset,
             transform=default_transformation(),
             batch_size=4,
             stack_fn=batchify,
+            num_workers=num_workers,
         )
 
-        batches = list(dl)
+        for _ in range(3):
+            batches = list(dl)
 
-        for batch in batches:
-            assert all(batch["is_train"])
+            for batch in batches:
+                assert all(batch["is_train"])
 
-        counter = count_item_ids(batches)
+            counter = count_item_ids(batches)
 
-        for entry in dataset:
-            assert counter[entry[FieldName.ITEM_ID]] == 1
-
-        batches_again = list(dl)
-
-        assert (b1 == b2 for b1, b2 in zip(batches, batches_again))
+            for entry in dataset:
+                assert counter[entry[FieldName.ITEM_ID]] == 1
 
 
 @pytest.mark.parametrize(
