@@ -195,6 +195,8 @@ class GluonEstimator(Estimator):
                 transformed_validation_data
                 if not cache_data
                 else Cached(transformed_validation_data),
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
             )
 
         training_network = self.create_training_network()
