@@ -29,3 +29,15 @@ def test_repr(repr_test):
 
 def test_serialize(serialize_test):
     serialize_test(NPTSEstimator, hyperparameters)
+
+
+def test_train_with_validation_data(dsinfo):
+    estimator = NPTSEstimator.from_hyperparameters(
+        freq=dsinfo.freq,
+        prediction_length=dsinfo.prediction_length,
+        **hyperparameters,
+    )
+    predictor = estimator.train(
+        training_data=dsinfo.train_ds,
+        validation_data=dsinfo.train_ds,
+    )
