@@ -41,6 +41,7 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     SelectFields,
 )
+from gluonts.transform.sampler import PredictionSplitSampler
 from gluonts.torch.util import (
     IterableDataset,
 )
@@ -83,6 +84,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
         num_feat_static_real: int = 0,
+        lead_time: int = 0,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
@@ -103,7 +105,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
         }
         if trainer_kwargs is not None:
             default_trainer_kwargs.update(trainer_kwargs)
-        super().__init__(trainer_kwargs=default_trainer_kwargs)
+        super().__init__(
+            trainer_kwargs=default_trainer_kwargs, lead_time=lead_time
+        )
 
         self.freq = freq
         self.context_length = (
@@ -135,10 +139,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.num_batches_per_epoch = num_batches_per_epoch
 
         self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
-            num_instances=1.0, min_future=prediction_length
+            num_instances=1.0, min_future=prediction_length + self.lead_time
         )
         self.validation_sampler = validation_sampler or ValidationSplitSampler(
-            min_future=prediction_length
+            min_future=prediction_length + self.lead_time
         )
 
     def create_transformation(self) -> Transformation:
@@ -216,7 +220,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
         instance_sampler = {
             "training": self.train_sampler,
             "validation": self.validation_sampler,
-            "test": TestSplitSampler(),
+            "test": PredictionSplitSampler(
+                allow_empty_interval=False,
+                axis=-1,
+                min_past=0,
+                min_future=self.lead_time,
+            ),  # TestSplitSampler(),
         }[mode]
 
         return InstanceSplitter(
@@ -227,6 +236,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             instance_sampler=instance_sampler,
             past_length=module.model._past_length,
             future_length=self.prediction_length,
+            lead_time=self.lead_time,
             time_series_fields=[
                 FieldName.FEAT_TIME,
                 FieldName.OBSERVED_VALUES,
@@ -319,6 +329,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             batch_size=self.batch_size,
             freq=self.freq,
             prediction_length=self.prediction_length,
+            lead_time=self.lead_time,
             device=torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu"
             ),

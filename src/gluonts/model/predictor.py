@@ -49,6 +49,8 @@ class Predictor:
         Prediction horizon.
     freq
         Frequency of the predicted data.
+    lead_time
+        Number of steps to predict ahead.
     """
 
     __version__: str = gluonts.__version__
@@ -150,6 +152,8 @@ class RepresentablePredictor(Predictor):
         Prediction horizon.
     freq
         Frequency of the predicted data.
+    lead_time
+        Number of steps to predict ahead.
     """
 
     @validated()
