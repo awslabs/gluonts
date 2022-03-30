@@ -98,6 +98,6 @@ class DummyEstimator(Estimator):
     def train(
         self,
         training_data: Dataset,
-        validation_dataset: Optional[Dataset] = None,
+        validation_data: Optional[Dataset] = None,
     ) -> Predictor:
         return self.predictor
