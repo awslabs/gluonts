@@ -208,6 +208,12 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     constitute the one-step-ahead forecast distribution. Specifically, the forecast is always one of the values observed
     in the context window with the corresponding predicted probability.
 
+    Parameters
+    ----------
+    args
+    use_softmax Flag indicating whether to use softmax or normalization for converting the outputs of the base network
+        to probabilities.
+    kwargs
     """
 
     @validated()

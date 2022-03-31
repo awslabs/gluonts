@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import tempfile
+from functools import partial
 from itertools import islice
 from pathlib import Path
 from typing import Optional
@@ -19,7 +20,6 @@ from typing import Optional
 import pytest
 
 from gluonts.dataset.common import ListDataset
-from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deep_npts import (
     DeepNPTSEstimator,
@@ -35,7 +35,12 @@ from gluonts.torch.model.deep_npts import (
 )
 @pytest.mark.parametrize("dropout_rate", [None, 0.0, 0.1])
 @pytest.mark.parametrize(
-    "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]
+    "network_type",
+    [
+        partial(DeepNPTSNetworkDiscrete, use_softmax=True),
+        partial(DeepNPTSNetworkDiscrete, use_softmax=False),
+        DeepNPTSNetworkSmooth,
+    ],
 )
 def test_torch_deep_npts_with_features(
     batch_norm: bool,
