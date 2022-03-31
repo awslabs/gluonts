@@ -260,7 +260,7 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     """
     Extends `DeepNTPSNetwork` by implementing the output layer which converts the ouptuts from the base network into a
-    smoothed mixture distribution. The components of the mixture are Gaussians centered around values observed in the
+    smoothed mixture distribution. The components of the mixture are Gaussians centered around the observations in the
     context window. The mixing probabilities as well as the width of the Gaussians are predicted by the network.
 
     This mixture distribution represents the one-step-ahead forecast distribution. Note that the forecast can contain

@@ -59,7 +59,15 @@ LOSS_SCALING_MAP = {
 
 class DeepNPTSEstimator:
     """
-    Construct a DeepNPTS estimator.
+    Construct a DeepNPTS estimator. This is a tunable extension of NPTS where the sampling probabilities are learned
+    from the data. This is a global-model unlike NPTS.
+
+    Currently two variants of the model are implemented:
+    (i) `DeepNPTSNetworkDiscrete`: the forecast distribution is a discrete distribution similar to NPTS and
+    the forecasts are sampled from the observations in the context window.
+    (ii) `DeepNPTSNetworkSmooth`: the forecast distribution is a smoothed mixture distribution where the components of
+    the mixture are Gaussians centered around the observations in the context window. The mixing probabilities and
+    the width of the Gaussians are learned. Here the forecast can contain values not observed in the context window.
 
     Parameters
     ----------
