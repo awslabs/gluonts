@@ -33,46 +33,6 @@ from gluonts.torch.model.deep_npts import (
 @pytest.mark.parametrize(
     "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
 )
-@pytest.mark.parametrize(
-    "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]
-)
-def test_torch_deep_npts(
-    batch_norm: bool,
-    input_scaling: Optional[str],
-    network_type: DeepNPTSNetwork,
-):
-    constant = get_dataset("constant")
-
-    estimator = DeepNPTSEstimator(
-        freq=constant.metadata.freq,
-        prediction_length=constant.metadata.prediction_length,
-        context_length=2 * constant.metadata.prediction_length,
-        batch_norm=batch_norm,
-        input_scaling=input_scaling,
-        network_type=network_type,
-    )
-
-    predictor = estimator.train(
-        train_dataset=constant.train,
-        epochs=5,
-        batch_size=4,
-        num_batches_per_epoch=3,
-    )
-
-    with tempfile.TemporaryDirectory() as td:
-        predictor.serialize(Path(td))
-        predictor_copy = Predictor.deserialize(Path(td))
-
-    forecasts = predictor_copy.predict(constant.test)
-
-    for f in islice(forecasts, 5):
-        f.mean
-
-
-@pytest.mark.parametrize("batch_norm", [True, False])
-@pytest.mark.parametrize(
-    "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
-)
 @pytest.mark.parametrize("dropout_rate", [None, 0.0, 0.1])
 @pytest.mark.parametrize(
     "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]

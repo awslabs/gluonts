@@ -29,6 +29,7 @@ class DiscreteDistribution(torch.distributions.Distribution):
     `log_prob` is implemented as the negative RPS.
 
     """
+
     def __init__(
         self,
         values: torch.Tensor,

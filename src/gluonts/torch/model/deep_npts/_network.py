@@ -50,6 +50,7 @@ class FeatureEmbedder(nn.Module):
     Creates a feature embedding for the static categorical features.
 
     """
+
     @validated()
     def __init__(
         self,
@@ -104,6 +105,7 @@ class DeepNPTSNetwork(nn.Module):
     Note that the dynamic features are just treated as independent features without considering their temporal nature.
 
     """
+
     @validated()
     def __init__(
         self,
@@ -207,6 +209,7 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     in the context window with the corresponding predicted probability.
 
     """
+
     @validated()
     def __init__(self, *args, use_softmax: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -258,6 +261,7 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     values not observed in the context window.
 
     """
+
     @validated()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -304,6 +308,7 @@ class DeepNPTSMultiStepPredictor(nn.Module):
     distribution.
 
     """
+
     @validated()
     def __init__(
         self,
