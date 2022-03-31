@@ -46,6 +46,10 @@ def init_weights(module: nn.Module, scale: float = 1.0):
 
 
 class FeatureEmbedder(nn.Module):
+    """
+    Creates a feature embedding for the static categorical features.
+
+    """
     @validated()
     def __init__(
         self,
@@ -92,6 +96,14 @@ class FeatureEmbedder(nn.Module):
 
 
 class DeepNPTSNetwork(nn.Module):
+    """
+    Base class implementing a simple feed-forward neural network that takes in static and dynamic features and
+    produces `num_hidden_nodes` independent outptus. These outputs are then used by derived classes to construct
+    the forecast distribution for a single time step.
+
+    Note that the dynamic features are just treated as independent features without considering their temporal nature.
+
+    """
     @validated()
     def __init__(
         self,
@@ -187,48 +199,14 @@ class DeepNPTSNetwork(nn.Module):
         return self.model(features)
 
 
-class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
-    @validated()
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        modules = (
-            []
-            if self.dropout_rate is None
-            else [nn.Dropout(self.dropout_rate)]
-        )
-        modules += [
-            nn.Linear(self.num_hidden_nodes[-1], self.context_length + 1),
-            nn.Softplus(),
-        ]
-        self.output_layer = nn.Sequential(*modules)
-        self.output_layer.apply(init_weights)
-
-    def forward(
-        self,
-        feat_static_cat,
-        feat_static_real,
-        past_target,
-        past_observed_values,
-        past_time_feat,
-    ):
-        h = super().forward(
-            feat_static_cat=feat_static_cat,
-            feat_static_real=feat_static_real,
-            past_target=past_target,
-            past_observed_values=past_observed_values,
-            past_time_feat=past_time_feat,
-        )
-        outputs = self.output_layer(h)
-        probs = outputs[:, :-1]
-        kernel_width = outputs[:, -1:]
-        mix = Categorical(probs)
-        components = Normal(loc=past_target, scale=kernel_width)
-        return MixtureSameFamily(
-            mixture_distribution=mix, component_distribution=components
-        )
-
-
 class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
+    """
+    Extends `DeepNTPSNetwork` by implementing the output layer which converts the ouptuts from the base network into
+    probabilities of length `context_length`. These probabilities together with the past values in the context window
+    constitute the one-step-ahead forecast distribution. Specifically, the forecast is always one of the values observed
+    in the context window with the corresponding predicted probability.
+
+    """
     @validated()
     def __init__(self, *args, use_softmax: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -270,7 +248,62 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
         return DiscreteDistribution(values=past_target, probs=probs)
 
 
+class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
+    """
+    Extends `DeepNTPSNetwork` by implementing the output layer which converts the ouptuts from the base network into a
+    smoothed mixture distribution. The components of the mixture are Gaussians centered around values observed in the
+    context window. The mixing probabilities as well as the width of the Gaussians are predicted by the network.
+
+    This mixture distribution represents the one-step-ahead forecast distribution. Note that the forecast can contain
+    values not observed in the context window.
+
+    """
+    @validated()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        modules = (
+            []
+            if self.dropout_rate is None
+            else [nn.Dropout(self.dropout_rate)]
+        )
+        modules += [
+            nn.Linear(self.num_hidden_nodes[-1], self.context_length + 1),
+            nn.Softplus(),
+        ]
+        self.output_layer = nn.Sequential(*modules)
+        self.output_layer.apply(init_weights)
+
+    def forward(
+        self,
+        feat_static_cat,
+        feat_static_real,
+        past_target,
+        past_observed_values,
+        past_time_feat,
+    ):
+        h = super().forward(
+            feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_time_feat=past_time_feat,
+        )
+        outputs = self.output_layer(h)
+        probs = outputs[:, :-1]
+        kernel_width = outputs[:, -1:]
+        mix = Categorical(probs)
+        components = Normal(loc=past_target, scale=kernel_width)
+        return MixtureSameFamily(
+            mixture_distribution=mix, component_distribution=components
+        )
+
+
 class DeepNPTSMultiStepPredictor(nn.Module):
+    """
+    Implements multi-step prediction given a trained `DeepNPTSNewtork` model that outputs one-step-ahead forecast
+    distribution.
+
+    """
     @validated()
     def __init__(
         self,

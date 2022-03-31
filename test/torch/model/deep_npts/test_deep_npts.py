@@ -33,14 +33,12 @@ from gluonts.torch.model.deep_npts import (
 @pytest.mark.parametrize(
     "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
 )
-@pytest.mark.parametrize("dropout_rate", [None, 0.0, 0.1])
 @pytest.mark.parametrize(
     "network_type", [DeepNPTSNetworkDiscrete, DeepNPTSNetworkSmooth]
 )
 def test_torch_deep_npts(
     batch_norm: bool,
     input_scaling: Optional[str],
-    dropout_rate: Optional[float],
     network_type: DeepNPTSNetwork,
 ):
     constant = get_dataset("constant")
@@ -51,7 +49,6 @@ def test_torch_deep_npts(
         context_length=2 * constant.metadata.prediction_length,
         batch_norm=batch_norm,
         input_scaling=input_scaling,
-        dropout_rate=dropout_rate,
         network_type=network_type,
     )
 
