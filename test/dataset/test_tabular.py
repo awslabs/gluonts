@@ -15,10 +15,6 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx import Trainer
-from gluonts.evaluation import make_evaluation_predictions
-from gluonts.evaluation import Evaluator
 from gluonts.dataset import tabular
 
 
@@ -37,9 +33,9 @@ def long_dataframe():
 
 
 @pytest.fixture
-def long_dataset(long_dataframe):
-    return tabular.DataFrameDataset(
-        data=long_dataframe,
+def long_dataset(long_dataframe):  # initialized with dict
+    return tabular.LongDataFrameDataset(
+        dataframe=long_dataframe,
         target="target",
         timestamp="time",
         item_id="item",
@@ -49,41 +45,50 @@ def long_dataset(long_dataframe):
     )
 
 
-def test_DataFrameDataset_iter(long_dataset):
+def test_DataFramesDataset_init_with_list(long_dataframe):
+    dataframes = list(map(lambda x: x[1], long_dataframe.groupby("item")))
+    dataset = tabular.DataFramesDataset(
+        dataframes=dataframes,
+        target="target",
+        timestamp="time",
+        freq="1H",
+        feat_dynamic_real=["dyn_real_1"],
+        feat_static_cat=["stat_cat_1"],
+    )
+    for i in dataset:
+        assert isinstance(i, dict)
+
+
+def test_DataFramesDataset_init_with_single_dataframe(long_dataframe):
+    dataframe = long_dataframe.loc[long_dataframe.loc[:, "item"] == "A", :]
+    dataset = tabular.DataFramesDataset(
+        dataframes=dataframe,
+        target="target",
+        timestamp="time",
+        freq="1H",
+        feat_dynamic_real=["dyn_real_1"],
+        feat_static_cat=["stat_cat_1"],
+    )
+    for i in dataset:
+        assert isinstance(i, dict)
+
+
+def test_LongDataFrameDataset_iter(long_dataset):
     for i in long_dataset:
         assert isinstance(i, dict)
         assert "start" in i
         assert "target" in i
+        assert "feat_dynamic_real" in i
+        assert "feat_static_cat" in i
 
 
-def test_DataFrameDataset_len(long_dataset):
+def test_LongDataFrameDataset_len(long_dataset):
     assert len(long_dataset) == 2
 
 
-def test_DataFrameDataset_train_eval_loop(long_dataset):
-    freq, pl = long_dataset.freq, 5
-    model = DeepAREstimator(
-        freq=freq,
-        prediction_length=pl,
-        batch_size=2,
-        trainer=Trainer(epochs=1),
-    )
-    predictor = model.train(long_dataset)
-    forecast_it, ts_it = make_evaluation_predictions(
-        dataset=long_dataset,
-        predictor=predictor,
-        num_samples=2,
-    )
-    predictions = list(predictor.predict(long_dataset))
-    evaluator = Evaluator(quantiles=[0.5])
-    agg_metrics, item_metrics = evaluator(
-        ts_it, forecast_it, num_series=len(long_dataset)
-    )
-
-
-def test_dataframeTS_to_dataentry(long_dataframe):
+def test_as_dataentry(long_dataframe):
     df = long_dataframe.groupby("item").get_group("A")
-    dataentry = tabular.dataframeTS_to_dataentry(
+    dataentry = tabular.as_dataentry(
         data=df,
         target="target",
         timestamp="time",
@@ -97,38 +102,47 @@ def test_dataframeTS_to_dataentry(long_dataframe):
 
 
 def test_prepare_prediction_data():
-    assert tabular.prepare_prediction_data(
-        {"target": np.arange(20).tolist()}, prediction_length=5
-    ) == {"target": np.arange(15).tolist()}
+    assert np.all(
+        tabular.prepare_prediction_data(
+            {"target": np.arange(20)}, ignore_last_n_targets=5
+        )["target"]
+        == np.arange(15)
+    )
 
 
 def test_prepare_prediction_data_nested():
-    assert tabular.prepare_prediction_data(
-        {"target": 2 * [np.arange(20).tolist()]},
-        prediction_length=5,
-    ) == {"target": 2 * [np.arange(15).tolist()]}
+    assert np.all(
+        tabular.prepare_prediction_data(
+            {"target": np.ones(shape=(3, 20))},
+            ignore_last_n_targets=5,
+        )["target"]
+        == np.ones(shape=(3, 15))
+    )
 
 
 def test_prepare_prediction_data_with_features():
-    assert tabular.prepare_prediction_data(
+    res = tabular.prepare_prediction_data(
         {
-            "start": "2021-01-01",
-            "target": [1.0, 2.0, np.nan],
-            "feat_dynamic_real": [[1.0, 2.0, 3.0]],
-            "past_feat_dynamic_real": [[1.0, 2.0, np.nan]],
+            "start": pd.Timestamp("2021-01-01", freq="1H"),
+            "target": np.array([1.0, 2.0, np.nan]),
+            "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
+            "past_feat_dynamic_real": np.array([[1.0, 2.0, np.nan]]),
         },
-        prediction_length=1,
-    ) == {
-        "start": "2021-01-01",
-        "target": [1.0, 2.0],
-        "feat_dynamic_real": [[1.0, 2.0, 3.0]],
-        "past_feat_dynamic_real": [[1.0, 2.0]],
+        ignore_last_n_targets=1,
+    )
+    expected = {
+        "start": pd.Timestamp("2021-01-01", freq="1H"),
+        "target": np.array([1.0, 2.0]),
+        "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
+        "past_feat_dynamic_real": np.array([[1.0, 2.0]]),
     }
+    for key in res:
+        assert np.all(res[key] == expected[key])
 
 
 def test_check_timestamps():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    tabular.check_timestamps(timestamps, freq="2H")
+    assert tabular.check_timestamps(timestamps, freq="2H")
 
 
 @pytest.mark.parametrize(
@@ -141,4 +155,4 @@ def test_check_timestamps():
 )
 def test_check_timestamps_fail(timestamps):
     with pytest.raises(AssertionError):
-        tabular.check_timestamps(timestamps, freq="2H")
+        assert tabular.check_timestamps(timestamps, freq="2H")
