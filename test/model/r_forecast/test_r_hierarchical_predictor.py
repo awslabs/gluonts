@@ -14,6 +14,7 @@
 import pytest
 
 from gluonts.core import serde
+from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import MultivariateEvaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.r_forecast import (
@@ -22,7 +23,6 @@ from gluonts.model.r_forecast import (
     RPY2_IS_INSTALLED,
     SUPPORTED_HIERARCHICAL_METHODS,
 )
-from gluonts.support.pandas import forecast_start
 
 
 # conditionally skip these tests if `R` and `rpy2` are not installed

@@ -19,7 +19,7 @@ from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
-    RUnivariateForecastPredictor,
+    RForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
     UNIVARIATE_QUANTILE_FORECAST_METHODS,
@@ -64,7 +64,7 @@ def test_forecasts(method_name):
         freq=freq, prediction_length=prediction_length, method_name=method_name
     )
 
-    predictor = RUnivariateForecastPredictor(**params)
+    predictor = RForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
 
     forecast_type = (
@@ -110,5 +110,5 @@ def test_forecasts(method_name):
 
 
 def test_r_predictor_serialization():
-    predictor = RUnivariateForecastPredictor(freq="1D", prediction_length=3)
+    predictor = RForecastPredictor(freq="1D", prediction_length=3)
     assert predictor == serde.decode(serde.encode(predictor))

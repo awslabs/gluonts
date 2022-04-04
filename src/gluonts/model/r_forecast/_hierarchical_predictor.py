@@ -21,7 +21,7 @@ import pandas as pd
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.r_forecast import RForecastPredictor
+from gluonts.model.r_forecast import RBasePredictor
 
 
 R_FILE_PREFIX = "hierarchical"
@@ -40,9 +40,10 @@ SUPPORTED_HIERARCHICAL_METHODS = (
 )
 
 
-class RHierarchicalForecastPredictor(RForecastPredictor):
+class RHierarchicalForecastPredictor(RBasePredictor):
     """
-    The RHierarchicalForecastPredictor is a thin wrapper for calling the R HTS package.
+    Wrapper for calling the `R hts package
+    <https://www.r-pkg.org/pkg/hts>`_.
 
     In order to use it you need to install R and run
 

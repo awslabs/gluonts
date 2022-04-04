@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 from ._predictor import (
-    RForecastPredictor,
+    RBasePredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
 )
 from ._univariate_predictor import (
     SUPPORTED_UNIVARIATE_METHODS,
-    RUnivariateForecastPredictor,
+    RForecastPredictor,
     UNIVARIATE_POINT_FORECAST_METHODS,
     UNIVARIATE_QUANTILE_FORECAST_METHODS,
     UNIVARIATE_SAMPLE_FORECAST_METHODS,
@@ -33,9 +33,9 @@ from ._hierarchical_predictor import (
 __all__ = [
     "HIERARCHICAL_POINT_FORECAST_METHODS",
     "HIERARCHICAL_SAMPLE_FORECAST_METHODS",
-    "RForecastPredictor",
+    "RBasePredictor",
     "RHierarchicalForecastPredictor",
-    "RUnivariateForecastPredictor",
+    "RForecastPredictor",
     "R_IS_INSTALLED",
     "RPY2_IS_INSTALLED",
     "SUPPORTED_HIERARCHICAL_METHODS",

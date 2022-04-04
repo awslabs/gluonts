@@ -52,18 +52,15 @@ repos="https://cloud.r-project.org")'
 """
 
 
-class RForecastPredictor(RepresentablePredictor):
+class RBasePredictor(RepresentablePredictor):
     """
-    Wrapper for calling the `R forecast package.
-
-    <http://pkg.robjhyndman.com/forecast/>`_.
-
-    The `RForecastPredictor` is a thin wrapper for calling R `forecast` and `hts` packages.
+    The `RBasePredictor` is a thin wrapper for calling R packages.
     In order to use it you need to install R and run::
 
         pip install 'rpy2>=2.9.*,<3.*'
-        R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
-        R -e 'install.packages(c("hts"), repos="https://cloud.r-project.org")'
+
+    Note that specific R packages need to be installed, depending on which wrapper one needs to run.
+    See `RForecastPredictor` and `RHierarchicalForecastPredictor` to know which packages are needed.
 
     Parameters
     ----------

@@ -18,7 +18,7 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.model.forecast import SampleForecast, QuantileForecast
-from gluonts.model.r_forecast import RForecastPredictor
+from gluonts.model.r_forecast import RBasePredictor
 
 
 R_FILE_PREFIX = "univariate"
@@ -33,13 +33,12 @@ SUPPORTED_UNIVARIATE_METHODS = (
 )
 
 
-class RUnivariateForecastPredictor(RForecastPredictor):
+class RForecastPredictor(RBasePredictor):
     """
     Wrapper for calling the `R forecast package
     <http://pkg.robjhyndman.com/forecast/>`_.
 
-    The `RForecastPredictor` is a thin wrapper for calling the R forecast
-    package.  In order to use it you need to install R and run::
+    In order to use it you need to install R and run::
 
         pip install 'rpy2>=2.9.*,<3.*'
         R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
