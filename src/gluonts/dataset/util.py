@@ -10,10 +10,11 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+from typing import Optional
+
+import pandas as pd
 
 from .field_names import FieldName
-from typing import Optional
-import pandas as pd
 
 
 def forecast_start(entry, time_axis: int = -1):
