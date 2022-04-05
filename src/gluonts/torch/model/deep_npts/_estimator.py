@@ -18,8 +18,9 @@ import torch
 
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import TrainDataLoader
+from gluonts.dataset.loader import DataLoader, TrainDataLoader
 from gluonts.itertools import Cached
+from gluonts.model.estimator import Estimator
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -57,7 +58,7 @@ LOSS_SCALING_MAP = {
 }
 
 
-class DeepNPTSEstimator:
+class DeepNPTSEstimator(Estimator):
     """
     Construct a DeepNPTS estimator. This is a tunable extension of NPTS where the sampling probabilities are learned
     from the data. This is a global-model unlike NPTS.
@@ -273,10 +274,10 @@ class DeepNPTSEstimator:
 
     def training_data_loader(
         self,
-        training_dataset: Dataset,
+        training_dataset,
         batch_size: int,
         num_batches_per_epoch: int,
-    ) -> TrainDataLoader:
+    ) -> DataLoader:
         instance_sampler = ExpectedNumInstanceSampler(
             num_instances=self.prediction_length,
             min_past=self.context_length,
@@ -384,7 +385,8 @@ class DeepNPTSEstimator:
     def train(
         self,
         train_dataset: Dataset,
-        epochs: int,
+        validation_dataset: Optional[Dataset]=None,
+        epochs: int = 100,
         lr: float = 1e-5,
         batch_size: int = 32,
         num_batches_per_epoch: int = 100,

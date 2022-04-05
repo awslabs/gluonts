@@ -48,7 +48,6 @@ def init_weights(module: nn.Module, scale: float = 1.0):
 class FeatureEmbedder(nn.Module):
     """
     Creates a feature embedding for the static categorical features.
-
     """
 
     @validated()
@@ -79,12 +78,17 @@ class FeatureEmbedder(nn.Module):
         for embedder in self.embedders:
             embedder.apply(init_weights)
 
-    def forward(self, features):
+    def forward(self, features: torch.Tensor):
         """
+        Parameters
+        ----------
+        features
+            Input features to the model, shape: (-1, num_features).
 
-        :param features: (-1, num_features)
-        :return:
-            Embedding with shape (-1, sum([self.embedding_dimensions]))
+        Returns
+        -------
+        torch.Tensor
+            Embedding, shape: (-1, sum(self.embedding_dimensions)).
         """
         embedded_features = torch.cat(
             [
@@ -103,7 +107,6 @@ class DeepNPTSNetwork(nn.Module):
     the forecast distribution for a single time step.
 
     Note that the dynamic features are just treated as independent features without considering their temporal nature.
-
     """
 
     @validated()
@@ -141,7 +144,7 @@ class DeepNPTSNetwork(nn.Module):
         dimensions = [
             context_length * (num_time_features + 2) + total_embedding_dim + 1
         ] + num_hidden_nodes
-        modules = []
+        modules: List[nn.Module] = []
         for in_features, out_features in zip(dimensions[:-1], dimensions[1:]):
             if self.dropout_rate:
                 modules.append(nn.Dropout(self.dropout_rate))
@@ -152,23 +155,28 @@ class DeepNPTSNetwork(nn.Module):
         self.model = nn.Sequential(*modules)
         self.model.apply(partial(init_weights, scale=0.07))
 
+    # TODO: Handle missing values using the observed value indicator.
     def forward(
         self,
-        feat_static_cat,
-        feat_static_real,
-        past_target,
-        past_observed_values,
-        past_time_feat,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        past_time_feat: torch.Tensor,
     ):
         """
-        TODO: Handle missing values using the observed value indicator.
-
-        :param feat_static_cat: shape (-1, num_features)
-        :param feat_static_real: shape (-1, num_features)
-        :param past_target: shape (-1, context_length)
-        :param past_observed_values: shape (-1, context_length)
-        :param past_time_feat: shape (-1, context_length, self.num_time_features)
-        :return:
+        Parameters
+        ----------
+        feat_static_cat
+            Shape (-1, num_features).
+        feat_static_real
+            Shape (-1, num_features).
+        past_target
+            Shape (-1, context_length).
+        past_observed_values
+            Shape (-1, context_length).
+        past_time_feat
+            Shape (-1, context_length, self.num_time_features).
         """
         x = past_target
         if self.input_scaling:
@@ -210,17 +218,20 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 
     Parameters
     ----------
-    args
-    use_softmax Flag indicating whether to use softmax or normalization for converting the outputs of the base network
+    *args
+        Arguments to ``DeepNPTSNetwork``.
+    use_softmax
+        Flag indicating whether to use softmax or normalization for converting the outputs of the base network
         to probabilities.
     kwargs
+        Keyword arguments to ``DeepNPTSNetwork``.
     """
 
     @validated()
     def __init__(self, *args, use_softmax: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
         self.use_softmax = use_softmax
-        modules = (
+        modules: List[nn.Module] = (
             []
             if self.dropout_rate is None
             else [nn.Dropout(self.dropout_rate)]
@@ -233,12 +244,12 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 
     def forward(
         self,
-        feat_static_cat,
-        feat_static_real,
-        past_target,
-        past_observed_values,
-        past_time_feat,
-    ):
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        past_time_feat: torch.Tensor,
+    ) -> DiscreteDistribution:
         h = super().forward(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -285,12 +296,12 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
 
     def forward(
         self,
-        feat_static_cat,
-        feat_static_real,
-        past_target,
-        past_observed_values,
-        past_time_feat,
-    ):
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        past_time_feat: torch.Tensor,
+    ) -> MixtureSameFamily:
         h = super().forward(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -312,7 +323,6 @@ class DeepNPTSMultiStepPredictor(nn.Module):
     """
     Implements multi-step prediction given a trained `DeepNPTSNewtork` model that outputs one-step-ahead forecast
     distribution.
-
     """
 
     @validated()
@@ -329,24 +339,36 @@ class DeepNPTSMultiStepPredictor(nn.Module):
 
     def forward(
         self,
-        feat_static_cat,
-        feat_static_real,
-        past_target,
-        past_observed_values,
-        past_time_feat,
-        future_time_feat,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        future_time_feat: torch.Tensor,
     ):
         """
         Generates samples from the forecast distribution.
 
-        :param feat_static_cat: shape (-1, num_features)
-        :param feat_static_real: shape (-1, num_features)
-        :param past_target: shape (-1, context_length)
-        :param past_observed_values: shape (-1, context_length)
-        :param past_time_feat: shape (-1, context_length, self.num_time_features)
-        :param future_time_feat: shape (-1, prediction_length, self.num_time_features)
-        :return:
-        :return:
+        Parameters
+        ----------
+        feat_static_cat
+            Shape (-1, num_features).
+        feat_static_real
+            Shape (-1, num_features).
+        past_target
+            Shape (-1, context_length).
+        past_observed_values
+            Shape (-1, context_length).
+        past_time_feat
+            Shape (-1, context_length, self.num_time_features).
+        future_time_feat
+            Shape (-1, prediction_length, self.num_time_features).
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing samples from the predicted distribution.
+            Shape is (-1, self.num_parallel_samples, self.prediction_length).
         """
         # Blow up the initial `x` by the number of parallel samples required.
         # (batch_size * num_parallel_samples, context_length)
