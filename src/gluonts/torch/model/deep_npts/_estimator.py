@@ -385,7 +385,7 @@ class DeepNPTSEstimator(Estimator):
     def train(
         self,
         train_dataset: Dataset,
-        validation_dataset: Optional[Dataset]=None,
+        validation_dataset: Optional[Dataset] = None,
         epochs: int = 100,
         lr: float = 1e-5,
         batch_size: int = 32,
