@@ -20,6 +20,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader, TrainDataLoader
 from gluonts.itertools import Cached
+from gluonts.model.estimator import Estimator
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -57,7 +58,7 @@ LOSS_SCALING_MAP = {
 }
 
 
-class DeepNPTSEstimator:
+class DeepNPTSEstimator(Estimator):
     """
     Construct a DeepNPTS estimator. This is a tunable extension of NPTS where the sampling probabilities are learned
     from the data. This is a global-model unlike NPTS.
@@ -360,8 +361,19 @@ class DeepNPTSEstimator:
             print(f"{epoch_num}: {sum_epoch_loss / num_batches_per_epoch}")
 
         print(f"best loss: {best_loss / num_batches_per_epoch}")
-        net.load_state_dict(torch.load("best-model-params.pt"))
-        return net
+
+        best_net = self.network_type(
+            context_length=self.context_length,
+            num_hidden_nodes=self.num_hidden_nodes,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            num_time_features=self.num_time_features,
+            input_scaling=self.input_scaling,
+            dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm,
+        )
+        best_net.load_state_dict(torch.load("best-model-params.pt"))
+        return best_net
 
     def get_predictor(
         self, net: torch.nn.Module, batch_size: int, device=torch.device("cpu")
