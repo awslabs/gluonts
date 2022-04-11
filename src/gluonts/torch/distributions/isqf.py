@@ -527,8 +527,8 @@ class ISQF(Distribution):
                 self.qk_x_l,
                 self.qk_y_l,
             )
-            term1 = (z - tail_b) * (qk_x ** 2 - 2 * qk_x + 2 * alpha_tilde)
-            term2 = qk_x ** 2 * tail_a * (-torch.log(qk_x) + 0.5)
+            term1 = (z - tail_b) * (qk_x**2 - 2 * qk_x + 2 * alpha_tilde)
+            term2 = qk_x**2 * tail_a * (-torch.log(qk_x) + 0.5)
             term2 = term2 + 2 * torch.where(
                 z < qk_y,
                 qk_x * tail_a * (torch.log(qk_x) - 1)
@@ -542,10 +542,10 @@ class ISQF(Distribution):
                 self.qk_x_r,
                 self.qk_y_r,
             )
-            term1 = (z - tail_b) * (-1 - qk_x ** 2 + 2 * alpha_tilde)
+            term1 = (z - tail_b) * (-1 - qk_x**2 + 2 * alpha_tilde)
             term2 = tail_a * (
                 -0.5 * (qk_x + 1) ** 2
-                + (qk_x ** 2 - 1) * torch.log(1 - qk_x)
+                + (qk_x**2 - 1) * torch.log(1 - qk_x)
                 + 2 * alpha_tilde
             )
             term2 = term2 + 2 * torch.where(
@@ -582,24 +582,24 @@ class ISQF(Distribution):
         r = torch.minimum(torch.maximum(alpha_tilde_expand, sk_x), sk_x_plus)
 
         coeff1 = (
-            -2 / 3 * sk_x_plus ** 3
-            + sk_x * sk_x_plus ** 2
-            + sk_x_plus ** 2
-            - (1 / 3) * sk_x ** 3
+            -2 / 3 * sk_x_plus**3
+            + sk_x * sk_x_plus**2
+            + sk_x_plus**2
+            - (1 / 3) * sk_x**3
             - 2 * sk_x * sk_x_plus
-            - r ** 2
+            - r**2
             + 2 * sk_x * r
         )
 
         coeff2 = (
             -2 * torch.maximum(alpha_tilde_expand, sk_x_plus)
-            + sk_x_plus ** 2
+            + sk_x_plus**2
             + 2 * qk_x_plus_expand
-            - qk_x_plus_expand ** 2
+            - qk_x_plus_expand**2
         )
 
         result = (
-            (qk_x_plus ** 2 - qk_x ** 2) * (z_expand - qk_y)
+            (qk_x_plus**2 - qk_x**2) * (z_expand - qk_y)
             + 2 * (qk_x_plus - alpha_tilde) * (qk_y - z_expand)
             + torch.sum((delta_sk_y / delta_sk_x) * coeff1, dim=-1)
             + torch.sum(delta_sk_y * coeff2, dim=-1)

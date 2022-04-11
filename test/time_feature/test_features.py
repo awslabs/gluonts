@@ -60,6 +60,7 @@ def test_feature_normalized_bounds(
     feature: TimeFeature, index: pd.DatetimeIndex
 ):
     values = feature(index)
+    assert isinstance(values, np.ndarray)
     for v in values:
         assert -0.5 <= v <= 0.5
 
@@ -110,6 +111,7 @@ def test_feature_unnormalized_bounds(
     feature: TimeFeature, index: pd.DatetimeIndex, cardinality: int
 ):
     values = feature(index)
+    assert isinstance(values, np.ndarray)
     counts = [0] * cardinality
     for v in values:
         assert 0 <= int(v) < cardinality

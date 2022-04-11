@@ -16,7 +16,6 @@ import logging
 import multiprocessing as mp
 import pickle
 import sys
-from functools import partial
 from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Optional
 
@@ -56,16 +55,20 @@ def worker_fn(
     worker_id: int,
     dataset,
     num_workers: int,
-    result_queue: mp.Queue,
+    input_queue: mp.Queue,
+    output_queue: mp.Queue,
 ):
     MPWorkerInfo.set_worker_info(
         num_workers=num_workers,
         worker_id=worker_id,
     )
 
-    for raw in map(_encode, dataset):
+    while True:
         try:
-            result_queue.put(raw)
+            input_queue.get()
+            for encoded_entry in map(_encode, dataset):
+                output_queue.put(encoded_entry)
+            output_queue.put(_encode(None))
         except (EOFError, BrokenPipeError):
             return
 
@@ -78,8 +81,9 @@ class MultiProcessLoader(DataLoader):
         self,
         dataset: Dataset,
         num_workers: int,
-        max_queue_size: Optional[int],
+        max_queue_size: Optional[int] = None,
         decode_fn: Callable = lambda x: x,
+        queue_timeout_seconds: int = 120,
     ):
         assert num_workers >= 1
 
@@ -89,42 +93,40 @@ class MultiProcessLoader(DataLoader):
             assert max_queue_size >= num_workers
 
         self.decode_fn = decode_fn
-        self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
-
-        create_worker = partial(
-            mp.Process,
-            target=worker_fn,
-            kwargs={
-                "dataset": dataset,
-                "result_queue": self.result_queue,
-                "num_workers": num_workers,
-            },
-        )
+        self.queue_timeout_seconds = queue_timeout_seconds
+        self.manager = mp.Manager()
+        self.output_queue = self.manager.Queue(maxsize=max_queue_size)
+        self.input_queues = [self.manager.Queue() for _ in range(num_workers)]
+        self.num_workers = num_workers
 
         self.processes = [
-            create_worker(args=[worker_id]) for worker_id in range(num_workers)
+            mp.Process(
+                target=worker_fn,
+                kwargs={
+                    "worker_id": worker_id,
+                    "dataset": dataset,
+                    "num_workers": num_workers,
+                    "input_queue": input_queue,
+                    "output_queue": self.output_queue,
+                },
+            )
+            for worker_id, input_queue in enumerate(self.input_queues)
         ]
+
         for process in self.processes:
             process.start()
 
-    def _has_values(self):
-        alive = any(proc.is_alive() for proc in self.processes)
-        return alive or not self.result_queue.empty()
-
     def __iter__(self):
-        while self._has_values():
-            yield self._get()
-
-        self._terminate()
-
-    def _get(self):
-        # TODO make timeout configurable
-        raw = self.result_queue.get(timeout=120)
-        return self.decode_fn(pickle.loads(raw))
-
-    def _terminate(self):
-        for process in self.processes:
-            process.terminate()
+        num_finished = 0
+        for input_queue in self.input_queues:
+            input_queue.put(_encode(True))
+        while num_finished < self.num_workers:
+            raw = self.output_queue.get(timeout=self.queue_timeout_seconds)
+            data = pickle.loads(raw)
+            if data is None:
+                num_finished += 1
+                continue
+            yield self.decode_fn(data)
 
 
 # TODO: the following are for backward compatibility
@@ -228,6 +230,9 @@ def ValidationDataLoader(
     transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
+    num_prefetch: Optional[int] = None,
+    num_workers: Optional[int] = None,
+    decode_fn: Callable = lambda x: x,
 ):
     """Construct an iterator of batches for validation purposes.
 
@@ -244,6 +249,14 @@ def ValidationDataLoader(
         Function to use to stack data entries into batches.
         This can be used to set a specific array type or computing device
         the arrays should end up onto (CPU, GPU).
+    num_workers
+        Number of worker processes to use. Default: None.
+    num_prefetch
+        Sets the length of the queue of batches being produced by worker
+        processes. (Only meaningful when ``num_workers is not None``).
+    decode_fn
+        A function called on each batch after it's been taken out of the queue.
+        (Only meaningful when ``num_workers is not None``).
 
     Returns
     -------
@@ -252,7 +265,17 @@ def ValidationDataLoader(
     """
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
-    return transform.apply(dataset, is_train=True)
+    transformed_dataset = transform.apply(dataset, is_train=True)
+
+    if num_workers is None:
+        return transformed_dataset
+
+    return MultiProcessLoader(
+        transformed_dataset,
+        decode_fn=decode_fn,
+        num_workers=num_workers,
+        max_queue_size=num_prefetch,
+    )
 
 
 def InferenceDataLoader(

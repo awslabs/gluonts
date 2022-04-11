@@ -102,7 +102,7 @@ class GPArgProj(gluon.HybridBlock):
         d_bias = (
             0.0
             if self.sigma_init == 0.0
-            else inv_softplus(self.sigma_init ** 2)
+            else inv_softplus(self.sigma_init**2)
         )
 
         D_positive = (

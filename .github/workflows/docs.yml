@@ -41,4 +41,4 @@ jobs:
     - name: Publish docs
       if: ${{ github.event_name == 'push' }}
       run: |
-        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --grants full=id=db2be0c99f6a43966125f78e615a12abd95ff1257da4e4fa148631c0d73d25c8
+        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control

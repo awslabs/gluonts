@@ -45,7 +45,7 @@ class DeepARLightningModule(pl.LightningModule):
         past_observed_values = batch["past_observed_values"]
         future_observed_values = batch["future_observed_values"]
 
-        params, scale, _, _ = self.model.unroll_lagged_rnn(
+        params, scale, _, _, _ = self.model.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
@@ -77,7 +77,7 @@ class DeepARLightningModule(pl.LightningModule):
 
         return weighted_average(loss_values, weights=loss_weights)
 
-    def training_step(self, batch, batch_idx: int):
+    def training_step(self, batch, batch_idx: int):  # type: ignore
         """Execute training step"""
         train_loss = self._compute_loss(batch)
         self.log(
@@ -89,7 +89,7 @@ class DeepARLightningModule(pl.LightningModule):
         )
         return train_loss
 
-    def validation_step(self, batch, batch_idx: int):
+    def validation_step(self, batch, batch_idx: int):  # type: ignore
         """Execute validation step"""
         val_loss = self._compute_loss(batch)
         self.log(

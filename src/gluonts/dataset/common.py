@@ -315,10 +315,13 @@ class ProcessStartField(pydantic.BaseModel):
 
     @staticmethod
     @lru_cache(maxsize=10000)
-    def process(string: str, freq: str) -> pd.Timestamp:
-        """Create timestamp and align it according to frequency."""
+    def process(timestamp_input: Any, freq: str) -> pd.Timestamp:
+        """
+        Create timestamp from datetime-like, str, int or float input
+        and align it according to frequency.
+        """
 
-        timestamp = pd.Timestamp(string, freq=freq)
+        timestamp = pd.Timestamp(timestamp_input, freq=freq)
 
         # operate on time information (days, hours, minute, second)
         if isinstance(timestamp.freq, Tick):

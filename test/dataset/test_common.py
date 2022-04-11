@@ -13,24 +13,21 @@
 
 import pandas as pd
 import pytest
-
-from gluonts.dataset.common import Dataset, ListDataset, ProcessStartField
+from gluonts.dataset.common import Dataset, ProcessStartField
 
 
 @pytest.mark.parametrize(
-    "freq, expected",
+    "freq, expected, given",
     [
-        ("B", "2019-11-01"),
-        ("W", "2019-11-03"),
-        ("M", "2019-11-30"),
-        ("12M", "2019-11-30"),
-        ("A-DEC", "2019-12-31"),
+        ("B", "2019-11-01", "2019-11-01 12:34:56"),
+        ("W", "2019-11-03", pd.Timestamp("2019-11-01 12:34:56")),
+        ("M", "2019-11-30", "2019-11-01 12:34:56"),
+        ("12M", "2019-11-30", pd.Timestamp("2019-11-01 12:34:56")),
+        ("A-DEC", "2019-12-31", "2019-11-01 12:34:56"),
     ],
 )
-def test_process_start_field(freq, expected):
+def test_process_start_field(freq, expected, given):
     process = ProcessStartField.process
-    given = "2019-11-01 12:34:56"
-
     assert process(given, freq) == pd.Timestamp(expected, freq)
 
 

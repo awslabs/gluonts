@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     sagemaker_batch_strategy: str = "SINGLE_RECORD"
 
     sagemaker_max_payload_in_mb: int = 6
-    sagemaker_max_concurrent_transforms: int = 2 ** 32 - 1
+    sagemaker_max_concurrent_transforms: int = 2**32 - 1
 
     @property
     def sagemaker_server_bind(self) -> str:

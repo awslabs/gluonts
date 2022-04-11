@@ -394,14 +394,14 @@ class LowRankMultivariateNormalOutput(DistributionOutput):
 
     def domain_map(self, loc, cov_factor, cov_diag):
         diag_bias = (
-            self.inv_softplus(self.sigma_init ** 2)
+            self.inv_softplus(self.sigma_init**2)
             if self.sigma_init > 0.0
             else 0.0
         )
 
         shape = cov_factor.shape[:-1] + (self.dim, self.rank)
         cov_factor = cov_factor.reshape(shape)
-        cov_diag = F.softplus(cov_diag + diag_bias) + self.sigma_minimum ** 2
+        cov_diag = F.softplus(cov_diag + diag_bias) + self.sigma_minimum**2
 
         return loc, cov_factor, cov_diag
 

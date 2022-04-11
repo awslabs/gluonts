@@ -328,13 +328,19 @@ class AddTimeFeatures(MapTransformation):
         self.start_field = start_field
         self.target_field = target_field
         self.output_field = output_field
-        self._min_time_point: pd.Timestamp = None
-        self._max_time_point: pd.Timestamp = None
+        self._freq_base: Optional[pd.offsets.DateOffset] = None
+        self._min_time_point: Optional[pd.Timestamp] = None
+        self._max_time_point: Optional[pd.Timestamp] = None
         self._full_range_date_features: Optional[np.ndarray] = None
-        self._date_index: pd.DatetimeIndex = None
+        self._date_index: Optional[pd.DatetimeIndex] = None
         self.dtype = dtype
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
+        assert (
+            self._freq_base is None or self._freq_base == start.freq.base
+        ), f"data with base frequency other than {self._freq_base} cannot be processed; got {start.freq.base}"
+        if self._freq_base is None:
+            self._freq_base = start.freq.base
         end = shift_timestamp(start, length)
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
@@ -349,7 +355,7 @@ class AddTimeFeatures(MapTransformation):
             shift_timestamp(end, 50), self._max_time_point
         )
         self.full_date_range = pd.date_range(
-            self._min_time_point, self._max_time_point, freq=start.freq
+            self._min_time_point, self._max_time_point, freq=self._freq_base
         )
         self._full_range_date_features = (
             np.vstack(
@@ -370,9 +376,13 @@ class AddTimeFeatures(MapTransformation):
         )
         self._update_cache(start, length)
 
+        assert self._date_index is not None
+
         i0 = self._date_index[start]
         features = (
-            self._full_range_date_features[..., i0 : i0 + length]
+            self._full_range_date_features[
+                ..., i0 : i0 + length * start.freq.n : start.freq.n
+            ]
             if self._full_range_date_features is not None
             else None
         )

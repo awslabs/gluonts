@@ -155,7 +155,7 @@ class TransformedDistribution(Distribution):
         for t in self.transforms[::-1]:
             x = t.f_inv(y)
             ladj = t.log_abs_det_jac(x, y)
-            lp -= sum_trailing_axes(F, ladj, self.event_dim - t.event_dim)
+            lp = lp - sum_trailing_axes(F, ladj, self.event_dim - t.event_dim)
             y = x
 
         return self.base_distribution.log_prob(x) + lp
@@ -229,7 +229,7 @@ class AffineTransformedDistribution(TransformedDistribution):
         return (
             self.base_distribution.variance
             if self.scale is None
-            else self.base_distribution.variance * self.scale ** 2
+            else self.base_distribution.variance * self.scale**2
         )
 
     # TODO: crps

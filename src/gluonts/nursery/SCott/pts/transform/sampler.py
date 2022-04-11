@@ -155,7 +155,7 @@ class BucketInstanceSampler(InstanceSampler):
         # probability of sampling a bucket i is the inverse of its number of
         # elements
         self.scale_histogram = scale_histogram
-        self.lookup = np.arange(2 ** 13)
+        self.lookup = np.arange(2**13)
 
     def __call__(self, ts: np.ndarray, a: int, b: int) -> None:
         while ts.shape[-1] >= len(self.lookup):
