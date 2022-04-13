@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import torch
-from typing import Optional, List, cast, Dict, Tuple
+from typing import Optional, cast, Dict, Tuple
 import torch.nn.functional as F
 
 from torch.distributions import Distribution, constraints
@@ -49,7 +49,7 @@ class BinnedUniforms(Distribution):
         ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
         assert (
             logits.shape[-1] == numb_bins
-        ), f"The distribution requires one logit per bin."
+        ), "The distribution requires one logit per bin."
 
         self.logits = logits
         setattr(self, "logits", self.logits)

@@ -11,10 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, List, cast, Dict, Tuple
+from typing import Optional, cast, Dict, Tuple
 
 import torch
-from torch.distributions import Distribution, constraints
+from torch.distributions import constraints
 
 from gluonts.torch.distribution.binned_uniforms import BinnedUniforms
 from gluonts.torch.distribution.generalized_pareto import GeneralizedPareto
@@ -223,7 +223,6 @@ class SplicedBinnedPareto(BinnedUniforms):
                 x.shape[i] == self.batch_shape[i]
             ), "We expect the input to be a tensor of size batch_shape"
 
-        bin_cdf_relative = torch.tensor([0.0])
         lower_percentile_value = self.icdf(self.tail_percentile_gen_pareto)
         upper_percentile_value = self.icdf(1 - self.tail_percentile_gen_pareto)
 
@@ -238,9 +237,10 @@ class SplicedBinnedPareto(BinnedUniforms):
 
         # The cdf for the upper tail:
         adjusted_x_for_upper = x - upper_percentile_value
-        cdf_upper = (
-            self.upper_gen_pareto.cdf(adjusted_x_for_upper)
-            * self.tail_percentile_gen_pareto
+        cdf_upper = self.upper_gen_pareto.cdf(
+            adjusted_x_for_upper
+        ) * self.tail_percentile_gen_pareto + (
+            1 - self.tail_percentile_gen_pareto
         )
 
         # Putting them together:
@@ -250,7 +250,7 @@ class SplicedBinnedPareto(BinnedUniforms):
             x < lower_percentile_value, cdf_lower, cdf_value
         )
 
-        icdf_value = torch.where(
+        cdf_value = torch.where(
             x > upper_percentile_value,
             cdf_upper,
             cdf_value,

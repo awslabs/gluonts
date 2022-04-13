@@ -20,7 +20,7 @@ import numpy as np
 import torch
 from torch.distributions import Distribution, constraints
 
-from typing import Optional, List, cast, Dict, Tuple
+from typing import Optional, cast, Dict, Tuple
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.distribution_output import DistributionOutput
@@ -160,7 +160,7 @@ class GeneralizedParetoOutput(DistributionOutput):
         cls,
         xi: torch.Tensor,
         beta: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor,]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, ]:
 
         xi = torch.abs(xi)
         beta = torch.abs(beta)
