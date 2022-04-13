@@ -49,7 +49,6 @@ class ModelTracker(Tracker[ModelConfig]):
 
         Returns:
             The tracker with all the available data.
-
         """
         # Generate the filename including all kwargs
         kwargs_suffix = "-".join(
@@ -96,7 +95,6 @@ class ModelTracker(Tracker[ModelConfig]):
 
         Returns:
             The tracker with all the available data.
-
         """
         # Generate the filename including all kwargs
         kwargs_suffix = "-".join(
@@ -165,7 +163,6 @@ class ModelTracker(Tracker[ModelConfig]):
 
         Returns:
             The list of available model configurations.
-
         """
         return list({c.model for c in self.config_map.keys()})
 
@@ -178,7 +175,6 @@ class ModelTracker(Tracker[ModelConfig]):
 
         Returns:
             The list of all training jobs.
-
         """
         return self.config_map[config].jobs
 
@@ -195,7 +191,6 @@ class ModelTracker(Tracker[ModelConfig]):
 
         Returns:
             The list of forecasts for all models.
-
         """
         info = self.config_map[config]
         result = []
@@ -216,7 +211,6 @@ class ModelTracker(Tracker[ModelConfig]):
         Returns:
             The validation scores. Available if the model associated with the provided
             configuration is trainable (i.e. a deep learning model).
-
         """
         return self.config_map[config].val_scores
 

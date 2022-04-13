@@ -45,7 +45,6 @@ class DeepSetModel(nn.Module):
 
         Then passes the averaged latent representations along with the number
         of members that have been averaged to the decoder.
-
         """
         # Run encoder
         z = self.encoder(x)

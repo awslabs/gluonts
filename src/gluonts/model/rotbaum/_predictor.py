@@ -97,7 +97,6 @@ class TreePredictor(RepresentablePredictor):
     (In other words, there's a total of prediction_length many models being
     trained. In particular, this predictor does not learn a multivariate
     distribution.) The list of these models is saved under self.model_list.
-
     """
 
     @validated()
@@ -280,7 +279,6 @@ class TreePredictor(RepresentablePredictor):
         So: first it would give
         the quantile prediction for the first time step for all time series,
         then the second time step for all time series ˜˜ , and so forth.
-
         """
         context_length = self.preprocess_object.context_window_size
 

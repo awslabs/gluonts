@@ -16,7 +16,6 @@ class Timer:
     ...     with timer("expensive operation"):
     ...         x = torch.randn(100)
     ... print(timer.summary())
-
     """
 
     def __init__(self, verbosity_level=1, skip_first=True, on_cuda=True):

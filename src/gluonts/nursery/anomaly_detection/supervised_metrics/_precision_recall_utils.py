@@ -158,7 +158,6 @@ def aggregate_precision_recall_curve(
     thresholds : array, shape = [n_thresholds <= len(np.unique(scores))]
         Increasing thresholds on the decision function used to compute
         precision and recall.
-
     """
     if thresholds is None:
         thresholds = np.unique(
@@ -224,7 +223,6 @@ def aggregate_precision_recall(
     Returns
     -------
     A tuple containing average precision and recall in that order.
-
     """
     total_prec, total_reca, total_prec_w, total_reca_w = 0.0, 0.0, 0.0, 0.0
     for true_labels, pred_labels in labels_pred_iterable:

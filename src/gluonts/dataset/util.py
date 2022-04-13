@@ -131,7 +131,6 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     -------
     pandas.Series
         Pandas time series object.
-
     """
     target = instance["target"]
     start = instance["start"]
@@ -148,7 +147,6 @@ def dct_reduce(reduce_fn, dcts):
 
     >>> dct_reduce(sum, [{"a": 1}, {"a": 2}])
     {'a': 3}
-
     """
     keys = dcts[0].keys()
 

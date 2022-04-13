@@ -33,7 +33,6 @@ def range_overlap(
     Returns
     -------
     True or False depending on the overlap.
-
     """
     if left_range[0] <= right_range[-1] and left_range[-1] >= right_range[0]:
         return True
@@ -55,7 +54,6 @@ def labels_to_ranges_numba(labels: np.ndarray) -> List[Tuple]:
     Returns
     -------
     List of ranges.
-
     """
 
     ranges_ls = []
@@ -95,7 +93,6 @@ def labels_to_ranges(labels: List[bool]) -> List[range]:
     Returns
     -------
     List of ranges.
-
     """
 
     labels_np = np.array(labels)
@@ -119,7 +116,6 @@ def ranges_to_singletons(
     Returns
     -------
     List of singleton ranges.
-
     """
     assert all(
         r.step == 1 and r.start >= 0 and r.stop >= 0 for r in ranges

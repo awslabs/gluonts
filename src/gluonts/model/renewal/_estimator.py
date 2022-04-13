@@ -106,7 +106,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
-
     """
 
     @validated()

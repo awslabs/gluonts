@@ -33,7 +33,6 @@ class GreedyRecommender(Recommender[ModelConfig]):
     provide the lowest joint error. In the multi-dimensional setting, it
     greedily picks the configurations which provide the lowest joint
     hypervolume error.
-
     """
 
     metrics: np.ndarray  # shape [num_datasets, num_models, num_objectives]

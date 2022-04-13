@@ -59,7 +59,6 @@ def download(
     the publicly available evaluations.
 
     The evaluations are downloaded to the provided directory.
-
     """
     target = Path(evaluations_path)
     target.mkdir(parents=True, exist_ok=True)

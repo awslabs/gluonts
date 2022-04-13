@@ -33,7 +33,6 @@ def bounded_pr_auc(
     Returns
     -------
     bounded PR-AUC : float
-
     """
     sorted_recalls, sorted_precisions = zip(
         *sorted(zip(recalls, precisions), key=lambda x: (x[0], x[1]))

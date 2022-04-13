@@ -34,7 +34,6 @@ class PreprocessGeneric:
     Class for the purpose of preprocessing time series.
 
     The method make_features needs to be custom-made by inherited classes.
-
     """
 
     @validated()
@@ -100,7 +99,6 @@ class PreprocessGeneric:
         Returns
         -------
         list
-
         """
         raise NotImplementedError()
 
@@ -131,7 +129,6 @@ class PreprocessGeneric:
         -------
         tuple
             list of feature datapoints, list of target datapoints
-
         """
         altered_time_series = time_series.copy()
         if self.n_ignore_last > 0:
@@ -219,7 +216,6 @@ class PreprocessGeneric:
         tuple
             If change_internal_variables is False, then returns:
             list of feature datapoints, list of target datapoints
-
         """
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
@@ -332,7 +328,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             'mean': np.mean(time_series_window),
             'std': np.std(time_series_window)
         }
-
         """
         mean_value = np.mean(time_series_window)
         return (
@@ -382,7 +377,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         Returns
         -------
         list
-
         """
         end_index = starting_index + self.context_window_size
         if starting_index < 0:

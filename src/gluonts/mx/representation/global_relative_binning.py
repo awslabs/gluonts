@@ -51,7 +51,6 @@ class GlobalRelativeBinning(Representation):
         The quantile scaling limit. Values which are larger than the quantile evaluated at quantile_scaling_limit
         will be capped at the quantile evaluated at quantile_scaling_limit.
         (default: 0.99)
-
     """
 
     @validated()

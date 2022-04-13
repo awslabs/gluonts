@@ -43,7 +43,6 @@ class PyTorchLightningEstimator(Estimator):
     To extend this class, one needs to implement three methods:
     `create_transformation`, `create_training_network`, `create_predictor`,
     `create_training_data_loader`, and `create_validation_data_loader`.
-
     """
 
     @validated()
@@ -64,7 +63,6 @@ class PyTorchLightningEstimator(Estimator):
         Transformation
             The transformation that will be applied entry-wise to datasets,
             at training and inference time.
-
         """
         raise NotImplementedError
 
@@ -77,7 +75,6 @@ class PyTorchLightningEstimator(Estimator):
         -------
         pl.LightningModule
             The network that computes the loss given input data.
-
         """
         raise NotImplementedError
 
@@ -100,7 +97,6 @@ class PyTorchLightningEstimator(Estimator):
         -------
         Predictor
             A predictor wrapping a `nn.Module` used for inference.
-
         """
         raise NotImplementedError
 
@@ -121,7 +117,6 @@ class PyTorchLightningEstimator(Estimator):
         -------
         Iterable
             The data loader, i.e. and iterable over batches of data.
-
         """
         raise NotImplementedError
 
@@ -142,7 +137,6 @@ class PyTorchLightningEstimator(Estimator):
         -------
         Iterable
             The data loader, i.e. and iterable over batches of data.
-
         """
         raise NotImplementedError
 

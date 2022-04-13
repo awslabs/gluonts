@@ -119,7 +119,6 @@ def schedule(
 
     As AWS Sagemaker does not allow queuing jobs, this script is running as
     long as not all evaluation runs have been scheduled.
-
     """
     assert instance_type[:5] not in (
         "ml.p3",

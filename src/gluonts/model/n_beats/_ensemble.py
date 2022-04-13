@@ -64,7 +64,6 @@ class NBEATSEnsemblePredictor(Predictor):
         The method by which to aggregate the individual predictions of the models.
         Either 'median', 'mean' or 'none', in which case no aggregation happens.
         Default is 'median'.
-
     """
 
     def __init__(
@@ -120,7 +119,6 @@ class NBEATSEnsemblePredictor(Predictor):
         ctx
             Optional mxnet context parameter to be used with the predictor.
             If nothing is passed will use the GPU if available and CPU otherwise.
-
         """
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
@@ -315,7 +313,6 @@ class NBEATSEnsembleEstimator(Estimator):
         Recommended value for interpretable mode: ["T","S"]
     **kwargs
         Arguments passed down to the individual estimators.
-
     """
 
     # The validated() decorator makes sure that parameters are checked by

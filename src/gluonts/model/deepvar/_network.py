@@ -206,7 +206,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
         # (batch_size, sub_seq_len, target_dim, num_lags)
         lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
@@ -309,7 +308,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
 
         past_observed_values = F.broadcast_minimum(
@@ -401,7 +399,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             Distribution instance
         distr_args
             Distribution arguments
-
         """
         distr_args = self.proj_dist_args(rnn_outputs)
 
@@ -426,7 +423,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         -------
         Loss
             Tensor with shape (batch_size, seq_length, 1)
-
         """
         # we sum the last axis to have the same shape for all likelihoods
         # (batch_size, subseq_length, 1)
@@ -484,7 +480,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         distr_args
             Distribution arguments (context + prediction_length,
             number_of_arguments)
-
         """
 
         seq_len = self.context_length + self.prediction_length
@@ -587,7 +582,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         sample_paths : Tensor
             A tensor containing sampled paths. Shape: (1, num_sample_paths,
             prediction_length, target_dim).
-
         """
 
         def repeat(tensor):
@@ -675,7 +669,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
             List of initial states
-
         """
 
         def repeat(tensor):
@@ -768,7 +761,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
             Tensor of samples with the same shape.
-
         """
         return samples
 
@@ -828,7 +820,6 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
         distr_args
             Distribution arguments (context + prediction_length,
             number_of_arguments)
-
         """
         return self.train_hybrid_forward(
             F,

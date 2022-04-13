@@ -34,7 +34,6 @@ class SurrogateAnalyzer:
 
     The analysis is run in parallel and should, thus, not be used in a Jupyter
     notebook. Instead, consider using the `tsbench` CLI.
-
     """
 
     def __init__(
@@ -61,7 +60,6 @@ class SurrogateAnalyzer:
         Returns:
             A data frame with the results for each fold, the metrics being the columns. The rows
                 are indexed by the dataset which was left out.
-
         """
         if isinstance(self.surrogate, AutoGluonSurrogate):
             metrics = [

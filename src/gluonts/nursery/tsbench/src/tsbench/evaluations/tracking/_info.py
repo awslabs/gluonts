@@ -45,7 +45,6 @@ class JobInfo:
 
     It also provides the underlying training jobs. Lastly, it provides the
     indices of the models chosen from the training job to extract forecasts.
-
     """
 
     config: Config[ModelConfig]

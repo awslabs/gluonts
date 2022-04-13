@@ -80,7 +80,6 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
     -------
     Numpy ND array
         Projection matrix, shape (total_num_time_series, total_num_time_series)
-
     """
     num_ts = A.shape[1]
     return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
@@ -175,7 +174,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         case these are automatically determined based on freq)
     batch_size
         The size of the batches to be used training and prediction.
-
     """
 
     @validated()

@@ -125,7 +125,6 @@ class NBEATSEstimator(GluonEstimator):
         if True scales the input observations by the mean
     kwargs
         Arguments passed to 'GluonEstimator'.
-
     """
 
     @validated()

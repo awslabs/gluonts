@@ -773,7 +773,6 @@ class ISQFOutput(DistributionOutput):
         quantile_knots:
         parameterizing the y-positions of the quantile knots,
         shape = (*batch_shape, num_qk)
-
         """
 
         # Add tol to prevent the y-distance of

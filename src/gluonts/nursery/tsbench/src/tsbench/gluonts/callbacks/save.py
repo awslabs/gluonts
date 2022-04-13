@@ -29,7 +29,6 @@ class ModelSaverCallback(Callback):  # type: ignore
             accessed after training has finished and should not be modified.
         training_times: The training times in seconds for the different milestones.
         num_gradient_updates: The number of gradient updates for the different milestones.
-
     """
 
     def __init__(

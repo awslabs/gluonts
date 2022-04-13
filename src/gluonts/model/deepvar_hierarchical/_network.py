@@ -59,7 +59,6 @@ def reconcile_samples(
     -------
     Tensor, shape same as that of `samples`
         Coherent samples
-
     """
     if not seq_axis:
         return mx.nd.dot(samples, reconciliation_mat, transpose_b=True)
@@ -200,7 +199,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         -------
         samples
             Tensor with shape (num_samples, batch_size, seq_len, target_dim)
-
         """
         samples = distr.sample_rep(
             num_samples=self.num_samples_for_loss, dtype="float32"
@@ -249,7 +247,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         -------
         Loss
             Tensor with shape (batch_size, seq_length, 1)
-
         """
 
         # Sample from the predicted distribution if we are computing CRPS loss or likelihood using the distribution
@@ -289,7 +286,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         Returns
         -------
             Tensor of coherent samples.
-
         """
         if not self.coherent_pred_samples:
             return samples

@@ -92,7 +92,6 @@ class Quantile(NamedTuple):
         Quantile
             A tuple containing both a float and a string representation of the
             input quantile level.
-
         """
         if isinstance(quantile, Quantile):
             return quantile

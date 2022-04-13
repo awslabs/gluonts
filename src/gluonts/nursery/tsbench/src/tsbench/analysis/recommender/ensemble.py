@@ -27,7 +27,6 @@ class EnsembleRecommenderAnalyzer:
 
     The analysis is run in parallel and should, thus, not be used in a Jupyter
     notebook. Instead, consider using the `tsbench` CLI.
-
     """
 
     def __init__(
@@ -56,7 +55,6 @@ class EnsembleRecommenderAnalyzer:
             The recommended models. The outer list provides the index of the recommendations, i.e.
                 the first item of the list provides all the first recommendations of the
                 recommender, etc.
-
         """
         data = list(loocv_split(self.tracker))
         results = run_parallel(

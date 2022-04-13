@@ -35,7 +35,6 @@ class DeepSetSurrogate(Surrogate[EnsembleConfig]):
     for ensembles rather than single models.
 
     Currently, it does not support the use of dataset features.
-
     """
 
     trainer_: pl.Trainer

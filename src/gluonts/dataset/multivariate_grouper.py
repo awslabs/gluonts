@@ -66,7 +66,6 @@ class MultivariateGrouper:
     test_fill_rule
         Implements the rule that fills missing data after alignment of the
         time series for the test dataset.
-
     """
 
     @validated()
@@ -97,7 +96,6 @@ class MultivariateGrouper:
 
         This includes     1) Storing first/last timestamp in the dataset     2)
         Storing the frequency of the dataset
-
         """
         for data in dataset:
             timestamp = data[FieldName.START]
@@ -199,7 +197,6 @@ class MultivariateGrouper:
         DataEntry
             data multivariate data entry with
             (max_target_dimension, num_timesteps) target field
-
         """
 
         if self.max_target_dimension is not None:

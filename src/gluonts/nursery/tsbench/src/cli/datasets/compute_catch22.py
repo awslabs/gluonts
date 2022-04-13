@@ -53,7 +53,6 @@ def compute_catch22(dataset: Optional[str], data_path: str, output_path: str):
 
     Computations are either run for a single dataset or all datasets in the
     registry.
-
     """
     target = Path(data_path)
     target.mkdir(parents=True, exist_ok=True)

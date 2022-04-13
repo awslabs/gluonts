@@ -56,7 +56,6 @@ class SacredExperiment:
 
         Returns:
             The parquet file loaded as data frame.
-
         """
         matches = [
             a["file_id"]
@@ -75,7 +74,6 @@ class SacredExperiment:
 
         Returns:
             The data that was pickled.
-
         """
         matches = [
             a["file_id"]

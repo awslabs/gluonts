@@ -244,7 +244,6 @@ class WaveNet(nn.HybridBlock):
         Tensor
             A tensor containing all the features ready to be passed through the network.
             Shape: (batch_size, num_features, receptive_field + pred_length)
-
         """
         embedded_cat = self.feature_embedder(feat_static_cat)
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
@@ -290,7 +289,6 @@ class WaveNet(nn.HybridBlock):
         Tensor
             A tensor containing a joint embedding of target and features.
             Shape: (batch_size, n_residue, sequence_length)
-
         """
         # (batch_size, embed_dim, sequence_length)
         o = self.target_embed(target).swapaxes(1, 2)
@@ -318,7 +316,6 @@ class WaveNet(nn.HybridBlock):
             A tensor containing the unnormalized outputs of the network. Shape: (batch_size, pred_length, num_bins).
             A list containing the convolutional queues for each layer. The queue corresponding to layer `l` has
             shape: (batch_size, n_residue, 2^l).
-
         """
         if one_step_prediction:
             assert (
@@ -391,7 +388,6 @@ class WaveNetTraining(WaveNet):
         -------
         Tensor
             Returns loss with shape (batch_size,)
-
         """
         full_target = F.concat(past_target, future_target, dim=-1).astype(
             "int32"
@@ -446,7 +442,6 @@ class WaveNetSampler(WaveNet):
         most likely sample at each step is chosen.
     post_transform
         An optional post transform that will be applied to the samples
-
     """
 
     @validated()
@@ -479,7 +474,6 @@ class WaveNetSampler(WaveNet):
         List
             A list containing the convolutional queues for each layer. The queue corresponding to layer `l` has
             shape: (batch_size, n_residue, 2^l).
-
         """
         o = self.target_feature_embedding(F, past_target, features)
 
@@ -527,7 +521,6 @@ class WaveNetSampler(WaveNet):
         -------
         Tensor
             Prediction samples with shape (batch_size, num_samples, pred_length)
-
         """
 
         def blow_up(u):

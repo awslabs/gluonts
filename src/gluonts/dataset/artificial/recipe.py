@@ -488,7 +488,6 @@ def lift(input: Union[int, Callable]):
     with all all arguments being already resolved.
 
     Note that you cannot serialize recipes that use the lift decorated functions.
-
     """
     if isinstance(input, int):
         num_outs = input
@@ -1014,7 +1013,6 @@ class ARp(Lifted):
         Draw samples from an ARp process. Parametrized as in.
 
         https://en.wikipedia.org/wiki/Autoregressive_model#Graphs_of_AR(p)_processes
-
         """
         self.phi = phi
         self.sigma = sigma

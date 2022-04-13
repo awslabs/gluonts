@@ -33,7 +33,6 @@ class TPPDistribution(Distribution):
     This class must implement new methods log_intensity, log_survival that are
     necessary for computing log-likelihood of TPP realizations. Also,
     sample_conditional is necessary for sampling TPPs.
-
     """
 
     def log_intensity(self, x: Tensor) -> Tensor:
@@ -75,7 +74,6 @@ class TPPTransformedDistribution(TransformedDistribution):
 
     Additionally, the sequence of transformations passed to the constructor
     must be increasing.
-
     """
 
     # Necessary for Mypy to understand that base_distribution is TPPDistribution
@@ -102,7 +100,6 @@ class TPPTransformedDistribution(TransformedDistribution):
 
         This condition significantly simplifies the log_survival and
         sample_conditional functions.
-
         """
         sign = 1.0
         for t in transforms:
@@ -164,7 +161,6 @@ class TPPTransformedDistribution(TransformedDistribution):
         x
             Transformed samples drawn from the base distribution.
             Shape: `(num_samples, *batch_size)`
-
         """
         with autograd.pause():
             if lower_bound is not None:

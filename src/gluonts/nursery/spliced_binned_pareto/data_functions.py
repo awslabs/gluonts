@@ -26,7 +26,6 @@ def add_spikes(ts: torch.Tensor, only_upper_spikes: bool = False):
     Arguments:
         ts: time series
         only_upper_spikes: boolean to indicate upper-tailed or two-tailed spikes
-
     """
     num_spikes = int(0.15 * ts.shape[0])
     indices_for_gp_spikes = np.random.choice(
@@ -75,7 +74,6 @@ def create_ds_iid(num_points: int, noise_mult: float = 0.25):
     Arguments:
       num_points: int, number of points in the dataset.
       noise_mult: float, standard deviation
-
     """
     values = np.random.normal(0, noise_mult, size=num_points)
     values = add_spikes(values)
@@ -92,7 +90,6 @@ def add_spikes_asymmetric(
     Arguments:
         ts: time series
         xi: [float, float], GenPareto heaviness parameter for [lower, upper] noise respectively
-
     """
     num_spikes = int(0.15 * ts.shape[0])
     half_num_spikes = [int(num_spikes / 2)]

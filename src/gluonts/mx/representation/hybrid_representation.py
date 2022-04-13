@@ -34,7 +34,6 @@ class HybridRepresentation(Representation):
     ----------
     representations
         A list of representations. Elements must be of type Representation.
-
     """
 
     @validated()

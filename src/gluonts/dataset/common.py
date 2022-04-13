@@ -116,7 +116,6 @@ class TrainDatasets(NamedTuple):
             Where to save the dataset.
         overwrite
             Whether to delete previous version in this folder.
-
         """
         path = Path(path_str)
 
@@ -157,7 +156,6 @@ class FileDataset(Dataset):
         Whether to accept only univariate target time series.
     cache
         Indicates whether the dataset should be cached or not.
-
     """
 
     def __init__(
@@ -210,7 +208,6 @@ class FileDataset(Dataset):
         -------
         List[Path]
             List of the paths of all files composing the dataset.
-
         """
         return util.find_files(self.path, self.is_valid)
 
@@ -236,7 +233,6 @@ class ListDataset(Dataset):
         Must be a valid Pandas frequency.
     one_dim_target
         Whether to accept only univariate target time series.
-
     """
 
     def __init__(
@@ -283,7 +279,6 @@ class ProcessStartField(pydantic.BaseModel):
         Name of the field to transform.
     freq
         Frequency to use. This must be a valid Pandas frequency string.
-
     """
 
     class Config:
@@ -370,7 +365,6 @@ class ProcessTimeSeriesField:
         Whether the field refers to categorical (i.e. integer) values.
     is_static
         Whether the field is supposed to have a time dimension.
-
     """
 
     # TODO: find a fast way to assert absence of nans.
@@ -494,7 +488,6 @@ def load_datasets(
     -------
     TrainDatasets
         An object collecting metadata, training data, test data.
-
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
     train_ds = FileDataset(
@@ -529,7 +522,6 @@ def serialize_data_entry(data):
     Dict
         The transformed dictionary, where all fields where transformed into
         strings.
-
     """
 
     def serialize_field(field):

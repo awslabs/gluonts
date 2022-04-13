@@ -126,7 +126,6 @@ class PeriodicKernelOutput(KernelOutputDict):
         Tuple
             Three scaled GP hyper-parameters for the Periodic Kernel and scaled model noise hyper-parameter.
             Each is a Tensor of shape (batch_size, 1, 1).
-
         """
         axis = 1
         sigma_scaling = (

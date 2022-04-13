@@ -184,7 +184,6 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
     """
 
     def __init__(
@@ -214,7 +213,6 @@ class SpecialDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
-
         """
         return np.vstack(
             [

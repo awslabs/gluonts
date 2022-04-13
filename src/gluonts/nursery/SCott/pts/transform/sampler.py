@@ -40,7 +40,6 @@ class InstanceSampler(ABC):
     -------
     np.ndarray
         Selected points to sample
-
     """
 
     @abstractmethod
@@ -56,7 +55,6 @@ class UniformSplitSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
-
     """
 
     def __init__(self, p: float) -> None:
@@ -80,7 +78,6 @@ class CustomUniformSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
-
     """
 
     def __init__(self) -> None:
@@ -103,7 +100,6 @@ class TestSplitSampler(InstanceSampler):
 
     Always selects the last time point for splitting i.e. the forecast point
     for the time series.
-
     """
 
     def __init__(self) -> None:
@@ -124,7 +120,6 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
     num_instances
         number of training examples generated per time series on average
-
     """
 
     @validated()
@@ -156,7 +151,6 @@ class BucketInstanceSampler(InstanceSampler):
     scale_histogram
         The histogram of scale for the time series. Here scale is the mean abs
         value of the time series.
-
     """
 
     def __init__(self, scale_histogram: ScaleHistogram) -> None:

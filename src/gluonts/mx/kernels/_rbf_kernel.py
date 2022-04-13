@@ -105,7 +105,6 @@ class RBFKernelOutput(KernelOutputDict):
         Tuple
             Two scaled GP hyper-parameters for the RBF Kernel and scaled model noise hyper-parameter.
             Each is a Tensor of shape (batch_size, 1, 1).
-
         """
         axis = 1
         sigma_scaling = (
@@ -138,7 +137,6 @@ class RBFKernelOutput(KernelOutputDict):
         Tuple[Tensor, Tenspr]
             Two GP RBF kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
-
         """
         amplitude = softplus(F, amplitude)
         length_scale = softplus(F, length_scale)

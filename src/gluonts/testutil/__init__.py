@@ -54,7 +54,6 @@ def empirical_cdf(
 
     Tensor
         Bin edges corresponding to the cdf values. shape (num_bins + 1, batch_shape)
-
     """
 
     # calculate histogram separately for each dimension in the batch size

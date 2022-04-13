@@ -27,7 +27,6 @@ class MXContext:
 
     <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for
     the :class:`~mxnet.context.Context` data type.
-
     """
 
     @classmethod

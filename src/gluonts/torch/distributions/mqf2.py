@@ -123,7 +123,6 @@ class MQF2Distribution(Distribution):
         Tensor
             Unfolded time series with shape
             (batch_size * context_length, prediction_length)
-
         """
 
         z = z.unfold(dimension=-1, size=self.prediction_length, step=1)
@@ -152,7 +151,6 @@ class MQF2Distribution(Distribution):
         -------
         loss
             Tesnor of shape (batch_size * context_length,)
-
         """
 
         z = torch.clamp(z, min=-self.threshold_input, max=self.threshold_input)
@@ -187,7 +185,6 @@ class MQF2Distribution(Distribution):
         -------
         loss
             Tensor of shape (batch_size * context_length,)
-
         """
 
         es_num_samples = self.es_num_samples
@@ -217,7 +214,6 @@ class MQF2Distribution(Distribution):
         -------
         sample_paths
             Tesnor of shape (batch_size, *sample_shape, prediction_length)
-
         """
 
         numel_batch = self.numel_batch
@@ -260,7 +256,6 @@ class MQF2Distribution(Distribution):
         -------
         results
             predicted paths of shape = (batch_shape, prediction_length)
-
         """
 
         if hidden_state is None:

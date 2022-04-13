@@ -112,7 +112,6 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             transformed tensor `\text{iResnet}(x)`
-
         """
         if x is self._cached_x:
             return self._cached_y
@@ -136,7 +135,6 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             transformed tensor `\text{iResnet}^{-1}(y)`
-
         """
         if y is self._cached_y:
             return self._cached_x
@@ -162,7 +160,6 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             Jacobian evaluated for x as input or y as output
-
         """
         if self._ignore_logdet:
             assert x is not None

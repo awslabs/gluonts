@@ -191,7 +191,6 @@ class MultiHeadAttentionBase(HybridBlock):
         Output dimension (number of output units)
     dropout
         Dropout rate on attention scores
-
     """
 
     def __init__(

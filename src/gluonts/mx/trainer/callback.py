@@ -34,7 +34,6 @@ class Callback:
     Callback, you can subclass Callback and overwrite one or more of the hook
     methods. Hook methods with boolean return value stop the training if False
     is returned.
-
     """
 
     def on_train_start(self, max_epochs: int) -> None:
@@ -48,7 +47,6 @@ class Callback:
             The maximum number of epochs that training is running. The actual
             number of epochs may be fewer if another callback hook stops
             training early.
-
         """
 
     def on_network_initializing_end(
@@ -62,7 +60,6 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
-
         """
 
     def on_train_epoch_start(self, training_network: nn.HybridBlock) -> None:
@@ -73,7 +70,6 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
-
         """
 
     def on_validation_epoch_start(
@@ -87,7 +83,6 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
-
         """
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
@@ -98,7 +93,6 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
-
         """
 
     def on_validation_batch_end(
@@ -112,7 +106,6 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
-
         """
 
     def on_train_epoch_end(
@@ -141,7 +134,6 @@ class Callback:
         -------
         bool
             A boolean whether the training should continue. Defaults to `True`.
-
         """
         return True
 
@@ -174,7 +166,6 @@ class Callback:
         -------
         bool
             A boolean whether the training should continue. Defaults to `True`.
-
         """
         return True
 
@@ -217,7 +208,6 @@ class Callback:
         -------
         bool
             A boolean whether the training should continue. Defaults to `True`.
-
         """
         return True
 
@@ -239,7 +229,6 @@ class Callback:
             The directory where model parameters are logged throughout training.
         ctx
             An MXNet context used.
-
         """
 
 
@@ -253,7 +242,6 @@ class CallbackList(Callback):
     ----------
     callbacks
         A list of gluonts.mx.trainer.callback.Callback's.
-
     """
 
     @validated()

@@ -27,7 +27,6 @@ def upload_directory(
         directory: The path to the directory to upload.
         bucket: The bucket where to upload the directory.
         prefix: The prefix to use when uploading the directory.
-
     """
     for root, _, files in os.walk(directory):
         for file in files:

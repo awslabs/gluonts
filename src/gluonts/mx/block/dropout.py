@@ -44,7 +44,6 @@ class VariationalZoneoutCell(ModifierCell):
     zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
-
     """
 
     @validated()

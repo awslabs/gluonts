@@ -31,7 +31,6 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     as the average performance across all known datasets.
 
     Performances are either predicted as ranks or actual values.
-
     """
 
     model_performances_: Dict[ModelConfig, npt.NDArray[np.float32]]

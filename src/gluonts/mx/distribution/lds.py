@@ -58,7 +58,6 @@ def _safe_split(x, num_outputs, axis, squeeze_axis, *args, **kwargs):
     of length num_outputs, whose elements will have one less axis than x
     in case x.shape[axis]==num_outputs and squeeze_axis==True, and the same
     number of axes as x otherwise.
-
     """
     if num_outputs > 1:
         return x.split(
@@ -224,7 +223,6 @@ class LDS(Distribution):
             Final mean, shape (batch_size, latent_dim)
         Tensor
             Final covariance, shape (batch_size, latent_dim, latent_dim)
-
         """
         if scale is not None:
             x = self.F.broadcast_div(x, scale.expand_dims(axis=1))
@@ -264,7 +262,6 @@ class LDS(Distribution):
         Tensor
             Covariance of p(l_T | l_{T-1}), where T is seq_length, with shape
             (batch_size, latent_dim, latent_dim)
-
         """
         F = self.F
         # targets[t]: (batch_size, obs_dim)
@@ -627,7 +624,6 @@ def kalman_filter_step(
         Filtered_covariance, shape (batch_size, latent_dim, latent_dim)
     Tensor
         Log probability, shape (batch_size, )
-
     """
     # output_mean: mean of the target (batch_size, obs_dim)
     output_mean = F.linalg_gemm2(

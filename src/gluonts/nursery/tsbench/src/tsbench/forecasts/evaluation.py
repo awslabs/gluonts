@@ -44,7 +44,6 @@ def evaluate_forecasts(
 
     Returns:
         The evaluation of the forecasts.
-
     """
     assert len(forecasts) > 0, "At least one forecast must be given."
     assert len(forecasts) == len(
@@ -94,7 +93,6 @@ class Evaluation:
         Returns:
             The performance object. Since this is not part of the evaluation, it has the
                 `num_model_parameters` attribute unset (set to zero).
-
         """
         metrics = [e.summary for e in evaluations]
         kwargs = {

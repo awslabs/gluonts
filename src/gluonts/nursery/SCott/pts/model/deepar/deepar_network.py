@@ -352,7 +352,6 @@ class DeepARPredictionNetwork(DeepARNetwork):
         Tensor
             A tensor containing sampled paths.
             Shape: (batch_size, num_sample_paths, prediction_length).
-
         """
 
         # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism

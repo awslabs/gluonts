@@ -99,7 +99,6 @@ class QRX:
         min_bin_size
             Hyperparameter that determines the minimal size of the list of
             true values associated with each prediction.
-
         """
         if model:
             self.model = copy.deepcopy(model)
@@ -150,7 +149,6 @@ class QRX:
         the ids of their associated bins, and self.ids_to_bins whose keys are
         the ids of the bins and whose values are associated lists of true
         values.
-
         """
         self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = defaultdict(dict)
@@ -252,7 +250,6 @@ class QRX:
         dict
             float to list; with the values often having the same list object
             appear multiple times
-
         """
         if sorted_keys is None:
             sorted_keys = sorted(dic)
@@ -292,7 +289,6 @@ class QRX:
             going from predictions from the set of predictions on the
             training set to lists of associated true values, with the length
             of each being at least min_bin_size.
-
         """
         dic = dict(df.groupby("y_pred")["y_true"].apply(list))
         dic = self.clump(dic, min_bin_size, self.sorted_train_preds)
@@ -304,7 +300,6 @@ class QRX:
         Given a sorted list of floats, returns the number closest to num.
 
         Implements a binary search.
-
         """
         assert sorted_list
         if len(sorted_list) == 1:
@@ -339,7 +334,6 @@ class QRX:
         -------
         float
             The quantile of the associated true value bin.
-
         """
         if feature_vector_in_train not in self.quantile_dicts[quantile]:
             self.quantile_dicts[quantile][
@@ -366,7 +360,6 @@ class QRX:
         -------
         list
             list of floats
-
         """
         if self.x_train_is_dataframe:
             preds = self.model.predict(x_test)
@@ -405,7 +398,6 @@ class QRX:
         -------
         list
             list of lists
-
         """
         predicted_samples = []
         for pt in x_test:

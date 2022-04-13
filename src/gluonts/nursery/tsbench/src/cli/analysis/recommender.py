@@ -69,7 +69,6 @@ def recommender(
 
     This call runs the Sacred script for each provided configuration
     sequentially and returns only once all runs have completed.
-
     """
     with Path(config_path).open("r", encoding="utf-8") as f:
         content = yaml.safe_load(f)

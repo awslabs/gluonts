@@ -348,7 +348,6 @@ class GaussianProcess:
             GP samples of shape (batch_size, prediction_length, num_samples).
         axis
             Plot axes limits
-
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be

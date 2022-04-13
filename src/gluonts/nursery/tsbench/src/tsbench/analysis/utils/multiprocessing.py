@@ -41,7 +41,6 @@ def num_fitting_processes(
 
     Returns:
         The number of processes to use.
-
     """
     num_processes_cpu = math.floor(
         cast(int, os.cpu_count()) / cpus_per_process
@@ -67,7 +66,6 @@ def run_parallel(
 
     Returns:
         The outputs of the function calls, ordered in the same way as the data.
-
     """
 
     def factory(_i: int) -> mp.Process:

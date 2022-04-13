@@ -42,7 +42,6 @@ def batch_diagonal(
     -------
     Tensor
         Diagonals of kernel_matrix of shape (batch_size, num_data_points, 1).
-
     """
     return F.linalg.gemm2(
         F.broadcast_mul(F.eye(num_data_points, dtype=float_type), matrix),
@@ -70,7 +69,6 @@ def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
     Tensor
         Tensor of shape (d, d) consisting of ones in the strictly lower
         triangular part, and zeros elsewhere.
-
     """
     mask = F.zeros_like(F.eye(d))
     for k in range(offset, d):
@@ -108,7 +106,6 @@ def jitter_cholesky_eig(
     Tensor
         Returns the approximate lower triangular Cholesky factor `L`
         of shape (batch_size, num_data_points, num_data_points)
-
     """
     diag = batch_diagonal(
         F, matrix, num_data_points, float_type
@@ -176,7 +173,6 @@ def jitter_cholesky(
         The method either fails to make the matrix positive definite within the maximum number of iterations
         and outputs an error or succeeds and returns the lower triangular Cholesky factor `L`
         of shape (batch_size, num_data_points, num_data_points)
-
     """
     num_iter = 0
     diag = batch_diagonal(

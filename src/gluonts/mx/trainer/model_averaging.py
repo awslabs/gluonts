@@ -289,7 +289,6 @@ class ModelAveraging(Callback):
     avg_strategy
         AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from
         gluonts.mx.trainer.model_averaging.
-
     """
 
     @validated()

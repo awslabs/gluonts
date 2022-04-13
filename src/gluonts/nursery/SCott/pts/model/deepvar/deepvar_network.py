@@ -250,7 +250,6 @@ class DeepVARTrainingNetwork(nn.Module):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
 
         past_observed_values = torch.min(
@@ -322,7 +321,6 @@ class DeepVARTrainingNetwork(nn.Module):
             Distribution instance
         distr_args
             Distribution arguments
-
         """
         distr_args = self.proj_dist_args(rnn_outputs)
 
@@ -382,7 +380,6 @@ class DeepVARTrainingNetwork(nn.Module):
         distr_args
             Distribution arguments (context + prediction_length,
             number_of_arguments)
-
         """
 
         seq_len = self.context_length + self.prediction_length
@@ -490,7 +487,6 @@ class DeepVARPredictionNetwork(DeepVARTrainingNetwork):
         sample_paths : Tensor
             A tensor containing sampled paths. Shape: (1, num_sample_paths,
             prediction_length, target_dim).
-
         """
 
         def repeat(tensor, dim=0):

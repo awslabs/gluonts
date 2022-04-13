@@ -34,7 +34,6 @@ class RepresentationChain(Representation):
     ----------
     chain
         A list of representations. Elements must be of type Representation.
-
     """
 
     @validated()

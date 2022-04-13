@@ -37,7 +37,6 @@ class GluonTSPredictor(RealTimePredictor):
 
     This is able to serialize and deserialize datasets in the gluonts data
     format.
-
     """
 
     def __init__(
@@ -54,7 +53,6 @@ class GluonTSPredictor(RealTimePredictor):
             Session object which manages interactions with Amazon SageMaker APIs and any other
             AWS services needed. If not specified, the estimator creates one
             using the default AWS configuration chain.
-
         """
 
         # TODO: implement custom data serializer and deserializer: convert between gluonts dataset and bytes
@@ -118,7 +116,6 @@ class GluonTSModel(FrameworkModel):
             server will use one worker per vCPU.
         **kwargs:
             Keyword arguments passed to the ``FrameworkModel`` initializer.
-
         """
 
         super().__init__(
@@ -160,7 +157,6 @@ class GluonTSModel(FrameworkModel):
         --------
         Dict[str, str]:
             A container definition object usable with the CreateModel API.
-
         """
 
         is_mms_version = parse_version(

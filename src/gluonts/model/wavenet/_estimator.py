@@ -73,7 +73,6 @@ class QuantizeScaled(SimpleTransformation):
     Then the bin_edges are used to quantize the rescaled target.
 
     The calculated scale is included as a new field "scale"
-
     """
 
     @validated()
@@ -149,7 +148,6 @@ class WaveNetEstimator(GluonEstimator):
         Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
-
     """
 
     @validated()

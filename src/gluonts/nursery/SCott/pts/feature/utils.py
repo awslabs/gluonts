@@ -27,7 +27,6 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
 
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
-
     """
     freq_regex = r"\s*((\d+)?)\s*([^\d]\w*)"
     m = re.match(freq_regex, freq_str)
@@ -44,7 +43,6 @@ def get_seasonality(freq: str) -> int:
     Returns the default seasonality for a given freq str. E.g. for.
 
     2H -> 12
-
     """
     match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"

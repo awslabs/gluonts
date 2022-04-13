@@ -207,7 +207,6 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
-
     """
 
     features_by_offsets = {

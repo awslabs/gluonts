@@ -47,7 +47,6 @@ def ensemble_forecasts(
 
     Returns:
         The averaged forecasts.
-
     """
     # First, compute the weights via the provided quantile losses
     if weighting == "relative":

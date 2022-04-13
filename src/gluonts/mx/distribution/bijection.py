@@ -28,7 +28,6 @@ class Bijection:
 
     This is defined through the forward transformation (computed by the `f`
     method) and the inverse transformation (`f_inv`).
-
     """
 
     @validated()
@@ -90,7 +89,6 @@ class InverseBijection(Bijection):
     ----------
     bijection
         The transformation to invert.
-
     """
 
     @validated()
@@ -152,7 +150,6 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Transformation of x by the forward composition of bijections
-
         """
         y = x
         for t in self._bijections:
@@ -172,7 +169,6 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Transformation of y by the inverse composition of bijections
-
         """
         x = y
         for t in reversed(self._bijections):
@@ -195,7 +191,6 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Jacobian evaluated for x as input or y as output
-
         """
         ladj = 0.0
         for t in reversed(self._bijections):
@@ -344,7 +339,6 @@ class AffineTransformation(Bijection):
         Translation parameter. If unspecified or `None`, this will be zero.
     scale
         Scaling parameter. If unspecified or `None`, this will be one.
-
     """
 
     @validated()

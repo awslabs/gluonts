@@ -27,7 +27,6 @@ class RenameFields(SimpleTransformation):
     ----------
     mapping
         Name mapping `input_name -> output_name`
-
     """
 
     @validated()
@@ -69,7 +68,6 @@ class SetField(SimpleTransformation):
         Name of the field that will be set
     value
         Value to be set
-
     """
 
     @validated()
@@ -93,7 +91,6 @@ class SetFieldIfNotPresent(SimpleTransformation):
         Name of the field that will be set
     value
         Value to be set
-
     """
 
     @validated()
@@ -115,7 +112,6 @@ class SelectFields(MapTransformation):
     ----------
     input_fields
         List of fields to keep.
-
     """
 
     @validated()

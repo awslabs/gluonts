@@ -211,7 +211,6 @@ class LSTNetBase(nn.HybridBlock):
             Shape (batch_size, num_series, 1) if `horizon` was specified
             and of shape (batch_size, num_series, prediction_length)
             if `prediction_length` was provided
-
         """
         context_target = past_target.slice_axis(
             axis=2, begin=-self.context_length, end=None
@@ -314,7 +313,6 @@ class LSTNetTrain(LSTNetBase):
         -------
         Tensor
             Loss values of shape (batch_size,)
-
         """
 
         pred, scale = super().hybrid_forward(
@@ -347,7 +345,6 @@ class LSTNetPredict(LSTNetBase):
         -------
         Tensor
             Predicted samples of shape (batch_size, num_samples, prediction_length, num_series)
-
         """
 
         ret, scale = super().hybrid_forward(

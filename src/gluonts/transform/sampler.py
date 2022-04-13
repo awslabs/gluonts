@@ -26,7 +26,6 @@ class InstanceSampler(BaseModel):
 
     The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
     and ``b = ts.shape[axis] - min_future``.
-
     """
 
     axis: int = -1
@@ -54,7 +53,6 @@ class UniformSplitSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
-
     """
 
     p: float
@@ -76,7 +74,6 @@ class PredictionSplitSampler(InstanceSampler):
 
     Always selects the last time point for splitting i.e. the forecast point
     for the time series.
-
     """
 
     allow_empty_interval: bool = False
@@ -120,7 +117,6 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
     num_instances
         number of training examples generated per time series on average
-
     """
 
     num_instances: float
@@ -159,7 +155,6 @@ class BucketInstanceSampler(InstanceSampler):
     scale_histogram
         The histogram of scale for the time series. Here scale is the mean abs
         value of the time series.
-
     """
 
     scale_histogram: ScaleHistogram

@@ -68,7 +68,6 @@ class SacredMongoClient:
 
         Returns:
             The sacred experiment describing the experiment.
-
         """
         full_query = {
             **self.base_query,
@@ -97,7 +96,6 @@ class SacredMongoClient:
 
         Returns:
             The sacred experiments found via the query.
-
         """
         full_query = {
             **self.base_query,

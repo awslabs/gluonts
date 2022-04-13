@@ -41,7 +41,6 @@ class Artifact:
 
     Attributes:
         path: The path of the artifact's managed directory.
-
     """
 
     def __init__(self, path: Path, cleanup: bool):
@@ -50,7 +49,6 @@ class Artifact:
 
         **Note: Do not call this initializer yourself. It is merely returned when accessing the
         artifacts of a training job.**
-
         """
         self.path = path
         self.cleanup = cleanup
@@ -75,7 +73,6 @@ class TrainingJob:
 
         **Note: This method should only be called in the context of an Analysis object. Do not use
         this initializer yourself.**
-
         """
         self.info = info
 
@@ -172,7 +169,6 @@ class TrainingJob:
         job's logs.
 
         For each metric, it returns a 1D NumPy array (ordered chronologically).
-
         """
         # Check if the logs are already available locally
         metrics_file = self._cache_dir() / "metrics.json"
@@ -210,7 +206,6 @@ class TrainingJob:
         Returns:
             The artifact which contains the untarred model artifact directory. The artifact should
                 be wrapped in a `with` statement such that the directory is cleaned up after usage.
-
         """
         cache_dir = self._cache_dir() / "artifacts"
 
@@ -320,7 +315,6 @@ class Analysis:
                 will be passed to this callback.
             resolve_duplicates: Whether to exclude the older experiments if experiments with the
                 same hyperparameters are found.
-
         """
         self.experiment_name = experiment
         training_jobs, duplicates = _fetch_training_jobs(

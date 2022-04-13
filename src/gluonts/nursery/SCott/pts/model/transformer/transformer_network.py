@@ -153,7 +153,6 @@ class TransformerNetwork(nn.Module):
         Creates inputs for the transformer network.
 
         All tensor arguments should have NTC layout.
-
         """
 
         if future_time_feat is None or future_target is None:

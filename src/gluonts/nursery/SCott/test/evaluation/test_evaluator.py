@@ -54,7 +54,6 @@ def iterator(it):
 
     :param it:
     :return: it (as iterator)
-
     """
     return iter(it)
 
@@ -66,7 +65,6 @@ def iterable(it):
 
     :param it:
     :return: it (as iterable)
-
     """
     return list(it)
 

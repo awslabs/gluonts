@@ -140,7 +140,6 @@ class SelfAttention(HybridBlock):
             dropout rate, by default 0.0
         temperature : float, optional
             softmax temperature, by default 1.0
-
         """
         super().__init__(**kwargs)
         n_groups = len(kernel_sizes)
@@ -228,7 +227,6 @@ class SelfAttention(HybridBlock):
         Returns
         -------
             Tensor [batch, n_head, length, d_head]
-
         """
         x = F.reshape(data=x, shape=(0, 0, -4, self.n_head, self.d_head))
         x = F.swapaxes(data=x, dim1=1, dim2=2)
@@ -245,7 +243,6 @@ class SelfAttention(HybridBlock):
         Returns
         -------
             Tensor [batch, length, d_hidden]
-
         """
         x = F.swapaxes(data=x, dim1=1, dim2=2)
         x = F.reshape(data=x, shape=(0, 0, self.d_hidden))

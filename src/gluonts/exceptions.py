@@ -90,7 +90,6 @@ def assert_gluonts(
     kwargs
         An optional list of key-value arguments to use when formatting the
         exception message.
-
     """
     if not condition:
         raise exception_class(message.format(*args, **kwargs))
@@ -113,6 +112,5 @@ def assert_data_error(condition: Any, message: str, *args, **kwargs) -> None:
     kwargs
         An optional list of key-value arguments to use when formatting the
         exception message.
-
     """
     assert_gluonts(GluonTSDataError, condition, message, *args, **kwargs)

@@ -41,7 +41,6 @@ class Config(Generic[T]):
         The model is translated into columns of the data frame automatically.
         The dataset is converted to a single column by being represented by its
         name.
-
         """
         rows: list[dict[str, str | float | int | bool]] = [
             {

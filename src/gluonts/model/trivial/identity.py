@@ -35,7 +35,6 @@ class IdentityPredictor(RepresentablePredictor):
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
-
     """
 
     @validated()

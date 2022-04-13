@@ -115,7 +115,6 @@ class AdhocTransform(SimpleTransformation):
 
     It is OK to use this for experiments and outside of a model pipeline that
     needs to be serialized.
-
     """
 
     def __init__(self, func: Callable[[DataEntry], DataEntry]) -> None:

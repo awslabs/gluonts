@@ -76,7 +76,6 @@ class Chomp1d(torch.nn.Module):
         chomp_size : Number of elements to remove.
         last : If True, removes the last elements in the time dimension,
             If False, removes the fist elements.
-
     """
 
     def __init__(self, chomp_size: int, last: bool = True):
@@ -113,7 +112,6 @@ class TCNBlock(torch.nn.Module):
         fwd_time : If True, the network "causal" direction is from past to future (forward),
             if False, the relation is from future to past (backward).
         final : If True, the last activation function is disabled.
-
     """
 
     def __init__(
@@ -214,7 +212,6 @@ class TCN(torch.nn.Module):
         bias : If True, adds a learnable bias to the convolutions.
         fwd_time : If True the network is the relation relation if from past to future (forward),
             if False, the relation from future to past (backward).
-
     """
 
     def __init__(

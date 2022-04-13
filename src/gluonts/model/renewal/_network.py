@@ -123,7 +123,6 @@ class DeepRenewalNetwork(gluon.HybridBlock):
         A : nd.NDArray
             Shape (N, T, ...), the tensor in which the entries will be shifted
             forward by one
-
         """
         F = getF(A)
         A = F.Concat(
@@ -160,7 +159,6 @@ class DeepRenewalNetwork(gluon.HybridBlock):
         rnn_out_state
             output state of the RNN, returned only if the input `state` is not
             None
-
         """
         data = self.forwardshift(data) if shift else data
 
@@ -205,7 +203,6 @@ class DeepRenewalTrainingNetwork(DeepRenewalNetwork):
         -------
         loss
             negative log likelihood with shape (batch_size, history_length)
-
         """
         cond_mean = self.mu_map(past_target, shift=True)
         dist_interval, dist_size = self.distribution(
@@ -265,7 +262,6 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
         -------
         samples
             samples of shape (batch_size, num_parallel_samples, 2, sequence_length)
-
         """
         if time_remaining is None:
             time_remaining = F.broadcast_like(

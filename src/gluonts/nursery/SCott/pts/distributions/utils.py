@@ -12,7 +12,6 @@ def broadcast_shape(*shapes, **kwargs):
     :returns: broadcasted shape
     :rtype: tuple
     :raises: ValueError
-
     """
     strict = kwargs.pop("strict", False)
     reversed_shape = []

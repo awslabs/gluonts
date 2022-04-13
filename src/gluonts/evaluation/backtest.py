@@ -60,7 +60,6 @@ def make_evaluation_predictions(
     Tuple[Iterator[Forecast], Iterator[pd.Series]]
         A pair of iterators, the first one yielding the forecasts, and the second
         one yielding the corresponding ground truth series.
-
     """
 
     prediction_length = predictor.prediction_length

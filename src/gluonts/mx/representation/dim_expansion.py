@@ -29,7 +29,6 @@ class DimExpansion(Representation):
     axis
         Axis on which to expand the tensor.
         (default: -1)
-
     """
 
     @validated()

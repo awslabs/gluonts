@@ -43,7 +43,6 @@ def get_dataset_config(
 
     Returns:
         The dataset configuration.
-
     """
     # Get the dataset
     assert name in DATASET_REGISTRY, f"Dataset name '{name}' is unknown."

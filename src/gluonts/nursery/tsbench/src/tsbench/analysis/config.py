@@ -48,7 +48,6 @@ class ConfigAnalyzer:
 
         Returns:
             The metrics on individual datasets.
-
         """
         results = []
         for dataset in self.datasets:

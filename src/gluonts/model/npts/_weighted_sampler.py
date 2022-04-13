@@ -30,7 +30,6 @@ class WeightedSampler:
         :param weights:
         :param num_samples:
         :return:
-
         """
         assert all(weights >= 0.0), "Sampling weights must be non-negative"
         # In the special case where all the weights are zeros, we want to

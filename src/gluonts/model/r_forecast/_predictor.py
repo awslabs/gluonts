@@ -90,7 +90,6 @@ class RForecastPredictor(RepresentablePredictor):
     params
         Parameters to be used when calling the forecast method default.
         Note that currently only `output_type = 'samples'` is supported.
-
     """
 
     @validated()

@@ -23,7 +23,6 @@ class ParameterCountCallback(Callback):  # type: ignore
     Attributes:
         num_parameters: The number of parameters of the model. This attribute should only be
             accessed after training.
-
     """
 
     def __init__(self) -> None:

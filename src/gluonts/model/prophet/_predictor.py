@@ -117,7 +117,6 @@ class ProphetPredictor(RepresentablePredictor):
         ...         name='weekly', period=7, fourier_order=3, prior_scale=0.1
         ...     )
         ...     return model
-
     """
 
     @validated()

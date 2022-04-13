@@ -38,7 +38,6 @@ class AsNumpyArray(SimpleTransformation):
         dimensions does not match.
     dtype
         numpy dtype to use.
-
     """
 
     @validated()
@@ -84,7 +83,6 @@ class ExpandDimArray(SimpleTransformation):
         Field in dictionary to use
     axis
         Axis to expand (see np.expand_dims for details)
-
     """
 
     @validated()
@@ -112,7 +110,6 @@ class VstackFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
-
     """
 
     @validated()
@@ -159,7 +156,6 @@ class ConcatFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
-
     """
 
     @validated()
@@ -202,7 +198,6 @@ class SwapAxes(SimpleTransformation):
         Field to apply to
     axes
         Axes to use
-
     """
 
     @validated()
@@ -239,7 +234,6 @@ class ListFeatures(SimpleTransformation):
         Fields to combine into list
     drop_inputs
         If true the input fields will be removed from the result.
-
     """
 
     @validated()
@@ -337,7 +331,6 @@ class CDFtoGaussianTransform(MapTransformation):
     To be used in conjunction with a multivariate gaussian to from a copula.
     Note that this transformation is currently intended for multivariate
     targets only.
-
     """
 
     @validated()
@@ -364,7 +357,6 @@ class CDFtoGaussianTransform(MapTransformation):
             Suffix to mark the field with the transformed target.
         max_context_length
             Sets the maximum context length for the empirical CDF.
-
         """
         self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
@@ -408,7 +400,6 @@ class CDFtoGaussianTransform(MapTransformation):
             avoid zero slopes in the piece-wise linear function.
         Returns
         -------
-
         """
         # (target_length, target_dim)
         past_target_vec = data[self.past_target_field].copy()
@@ -469,7 +460,6 @@ class CDFtoGaussianTransform(MapTransformation):
 
         Returns
         -------
-
         """
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
@@ -523,7 +513,6 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         quantiles
             Empirical CDF quantiles in [0, 1] interval with winzorized cutoff.
-
         """
         m = sorted_values.shape[0]
         quantiles = self._forward_transform(
@@ -568,7 +557,6 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         indices
             Indices mapping to the active linear function.
-
         """
         indices_left = np.searchsorted(sorted_vec, to_insert_vec, side="left")
         indices_right = np.searchsorted(
@@ -607,7 +595,6 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         transformed_target
             Transformed target vector.
-
         """
         transformed = list()
         for sorted, t, slope, intercept in zip(
@@ -646,7 +633,6 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         res
             Truncated empirical CDf values.
-
         """
         res = 1 / (4 * m**0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1
@@ -666,7 +652,6 @@ class CDFtoGaussianTransform(MapTransformation):
         Returns
         -------
             array of shape (target_length, dim)
-
         """
 
         current_length, target_dim = target.shape
@@ -705,7 +690,6 @@ def cdf_to_gaussian_forward_transform(
     -------
     outputs
         Forward transformed outputs.
-
     """
 
     def _empirical_cdf_inverse_transform(
@@ -732,7 +716,6 @@ def cdf_to_gaussian_forward_transform(
         -------
         outputs
             Forward transformed outputs.
-
         """
         slopes = slopes.cpu().numpy()
         intercepts = intercepts.cpu().numpy()

@@ -22,7 +22,6 @@ def fill_forward(a: np.ndarray, fill_start=None) -> np.ndarray:
 
     If `fill_start` is not None, then the NaNs in the beginning of the array
     will be filled with `fill_start`.
-
     """
     a = np.array(a)
     assert a.ndim == 1
@@ -97,7 +96,6 @@ def n_k_filter(
         to clear an anomaly. defaults to num_clear.
     initial_label
         1 if the initial state is an anomaly, 0 if not. default 0.
-
     """
     num_open_suff = num_open_suff or num_open
     num_clear_suff = num_clear_suff or num_clear

@@ -52,7 +52,6 @@ class FitResult:
             dataset_split: The split of the dataset for which to make predictions for.
             directory: The directory where to store forecasts.
             validation: Whether to log only the mean weighted quantile loss with a `val_` prefix.
-
         """
         length = self.config.max_time_series_length(  # pylint: disable=assignment-from-none
             dataset_config
@@ -105,7 +104,6 @@ class FitResult:
 
         Args:
             directory: The directory where the predictors should be serialized to.
-
         """
         for i, predictor in enumerate(self.predictors):
             logging.info(

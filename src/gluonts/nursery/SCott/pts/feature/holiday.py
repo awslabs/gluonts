@@ -186,7 +186,6 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
     """
 
     def __init__(
@@ -216,7 +215,6 @@ class SpecialDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
-
         """
         return np.vstack(
             [
@@ -273,7 +271,6 @@ class CustomDateFeatureSet:
             0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
             1.52299797e-08, 3.72665317e-06, 3.35462628e-04, 1.11089965e-02,
             1.35335283e-01, 6.06530660e-01]])
-
     """
 
     def __init__(
@@ -302,7 +299,6 @@ class CustomDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
-
         """
         return np.vstack(
             [
@@ -356,7 +352,6 @@ class CustomHolidayFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
     """
 
     def __init__(
@@ -385,7 +380,6 @@ class CustomHolidayFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
-
         """
         return np.vstack(
             [

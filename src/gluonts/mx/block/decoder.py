@@ -45,7 +45,6 @@ class Seq2SeqDecoder(nn.HybridBlock):
             dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
             + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
-
         """
         raise NotImplementedError
 
@@ -68,7 +67,6 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
 
     hidden_dimension_sequence
         number of hidden units for each MLP layer.
-
     """
 
     @validated()
@@ -127,7 +125,6 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         -------
         Tensor
             mlp output, shape (batch_size, sequence_length, decoder_length, decoder_mlp_dim_seq[0]).
-
         """
         mlp_output = self.model(dynamic_input)
         mlp_output = mlp_output.reshape(
@@ -148,7 +145,6 @@ class OneShotDecoder(Seq2SeqDecoder):
         dimensions of the hidden layers
     static_outputs_per_time_step
         number of outputs per time step
-
     """
 
     @validated()
@@ -191,7 +187,6 @@ class OneShotDecoder(Seq2SeqDecoder):
         -------
         Tensor
             mlp output, shape (batch_size, decoder_length, size of last layer)
-
         """
         static_input_tile = self.expander(static_input).reshape(
             (0, self.decoder_length, self.static_outputs_per_time_step)

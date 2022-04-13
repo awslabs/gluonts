@@ -177,7 +177,6 @@ def encode(v: Any) -> Any:
         Serializes an object to a JSON string.
     dump_code
         Serializes an object to a Python code string.
-
     """
     if v is None:
         return None
@@ -308,7 +307,6 @@ def decode(r: Any) -> Any:
     --------
     encode
         Inverse function.
-
     """
 
     # structural recursion over the possible shapes of r

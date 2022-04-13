@@ -251,7 +251,6 @@ class NPTSPredictor(RepresentablePredictor):
         -------
         Forecast
           A prediction for the supplied `ts` and `custom_features`.
-
         """
 
         if np.all(np.isnan(ts.values[-self.context_length :])):
@@ -315,7 +314,6 @@ class NPTSPredictor(RepresentablePredictor):
         -------
         a tuple of (training, prediction) feature tensors
             shape: (num_features, train_length/pred_length)
-
         """
 
         train_length = len(train_index)

@@ -42,7 +42,6 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         for every prediction.
     freq
         Frequency of the predicted data.
-
     """
 
     @validated()
@@ -98,7 +97,6 @@ class MovingAveragePredictor(RepresentablePredictor):
         Length of the prediction horizon.
     freq
         Frequency of the predicted data.
-
     """
 
     @validated()
@@ -151,7 +149,6 @@ class MeanEstimator(Estimator):
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
-
     """
 
     @validated()

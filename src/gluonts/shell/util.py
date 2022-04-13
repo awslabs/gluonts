@@ -43,7 +43,6 @@ def forecaster_type_by_name(name: str) -> Forecaster:
                 'model_b = my_models.model_b:MyPredictor',
             ]
         }
-
     """
     forecaster = None
 

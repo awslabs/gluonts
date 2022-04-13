@@ -66,7 +66,6 @@ class MeanScaler(Scaler):
     ----------
     minimum_scale
         default scale that is used if the time series has only zeros.
-
     """
 
     def __init__(self, minimum_scale: float = 1e-10, *args, **kwargs):

@@ -46,7 +46,6 @@ def generate_forecasts(
     Returns:
         The forecasts for the dataset.
         The average latency for generating a single forecast.
-
     """
     if parallelize:
         predictor = ParallelizedPredictor(

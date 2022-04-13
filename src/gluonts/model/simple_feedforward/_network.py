@@ -48,7 +48,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
     distr_output
         Distribution to fit.
     kwargs
-
     """
 
     # Needs the validated decorator so that arguments types are checked and
@@ -114,7 +113,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
             An array containing the location (shift) of the distribution.
         Tensor
             An array containing the scale of the distribution.
-
         """
         scaled_target, target_scale = self.scaler(
             past_target,
@@ -157,7 +155,6 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         -------
         Tensor
             Loss tensor. Shape: (batch_size, ).
-
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         distr = self.distr_output.distribution(
@@ -200,7 +197,6 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
         -------
         Tensor
             Prediction sample. Shape: (batch_size, samples, prediction_length).
-
         """
 
         distr_args, loc, scale = self.get_distr_args(F, past_target)
@@ -244,7 +240,6 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
             An array containing the location (shift) of the distribution.
         Tensor
             An array containing the scale of the distribution.
-
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale

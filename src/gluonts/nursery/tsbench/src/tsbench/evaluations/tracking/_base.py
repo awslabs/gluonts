@@ -40,5 +40,4 @@ class Tracker(ABC, Generic[T]):
 
         Returns:
             The performance metrics.
-
         """

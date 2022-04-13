@@ -103,7 +103,6 @@ class TrainEnv:
         we take its content to determine which channels are available. To
         support a local development setup, we just list the contents of the
         data folder to get the available channels.
-
         """
         if self.inputdataconfig is not None:
             return {

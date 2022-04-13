@@ -45,7 +45,6 @@ class GluonEstimator(Estimator):
     To extend this class, one needs to implement three methods:
     `create_transformation`, `create_training_network`, `create_predictor`,
     `create_training_data_loader`, and `create_validation_data_loader`.
-
     """
 
     @validated()
@@ -94,7 +93,6 @@ class GluonEstimator(Estimator):
         Transformation
             The transformation that will be applied entry-wise to datasets,
             at training and inference time.
-
         """
         raise NotImplementedError
 
@@ -107,7 +105,6 @@ class GluonEstimator(Estimator):
         -------
         HybridBlock
             The network that computes the loss given input data.
-
         """
         raise NotImplementedError
 
@@ -128,7 +125,6 @@ class GluonEstimator(Estimator):
         -------
         Predictor
             A predictor wrapping a `HybridBlock` used for inference.
-
         """
         raise NotImplementedError
 
@@ -147,7 +143,6 @@ class GluonEstimator(Estimator):
         -------
         DataLoader
             The data loader, i.e. and iterable over batches of data.
-
         """
         raise NotImplementedError
 
@@ -166,7 +161,6 @@ class GluonEstimator(Estimator):
         -------
         DataLoader
             The data loader, i.e. and iterable over batches of data.
-
         """
         raise NotImplementedError
 

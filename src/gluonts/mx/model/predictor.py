@@ -73,7 +73,6 @@ class GluonPredictor(Predictor):
         MXNet context to use for computation
     forecast_generator
         Class to generate forecasts from network outputs
-
     """
 
     BlockType = mx.gluon.Block
@@ -116,7 +115,6 @@ class GluonPredictor(Predictor):
         batch
             A batch of data to use for the required forward pass after the
             `hybridize()` call.
-
         """
         self.prediction_net.hybridize(active=True)
         self.prediction_net(*[batch[k] for k in self.input_names])
@@ -230,7 +228,6 @@ class SymbolBlockPredictor(GluonPredictor):
 
     Used by the training shell if training is invoked with a hyperparameter
     `use_symbol_block_predictor = True`.
-
     """
 
     BlockType = mx.gluon.SymbolBlock
@@ -290,7 +287,6 @@ class RepresentableBlockPredictor(GluonPredictor):
     ...        prediction_net=prediction_network,
     ...        **kwargs
     ...    )
-
     """
 
     BlockType = mx.gluon.HybridBlock

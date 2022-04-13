@@ -25,7 +25,6 @@ def run_sacred_script(script: str, **kwargs: Any) -> None:
     Args:
         script: The name of the script in `cli/sacred`.
         kwargs: Parameters to pass to the script.
-
     """
     subprocess.call(
         [

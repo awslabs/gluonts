@@ -165,7 +165,6 @@ class NBEATSEnsembleEstimator(Estimator):
         Recommended value for interpretable mode: ["T","S"]
     **kwargs
         Arguments passed down to the individual estimators.
-
     """
 
     def __init__(

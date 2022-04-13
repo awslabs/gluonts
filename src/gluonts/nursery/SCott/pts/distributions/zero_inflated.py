@@ -22,7 +22,6 @@ class ZeroInflatedDistribution(Distribution):
 
     :param torch.Tensor gate: probability of extra zeros given via a Bernoulli distribution.
     :param TorchDistribution base_dist: the base distribution.
-
     """
 
     arg_constraints = {"gate": constraints.unit_interval}
@@ -93,7 +92,6 @@ class ZeroInflatedPoisson(ZeroInflatedDistribution):
 
     :param torch.Tensor gate: probability of extra zeros.
     :param torch.Tensor rate: rate of poisson distribution.
-
     """
 
     arg_constraints = {
@@ -122,7 +120,6 @@ class ZeroInflatedNegativeBinomial(ZeroInflatedDistribution):
     :type total_count: float or torch.Tensor
     :param torch.Tensor probs: Event probabilities of success in the half open interval [0, 1).
     :param torch.Tensor logits: Event log-odds for probabilities of success.
-
     """
 
     arg_constraints = {

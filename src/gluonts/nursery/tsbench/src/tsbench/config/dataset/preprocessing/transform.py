@@ -30,7 +30,6 @@ def read_transform_write(
         file: The path from where to read the data.
         filters: An optional list of filters to apply to modify the items in the datset.
         source: An optional source to read from. Defaults to the path to write to.
-
     """
     # Read
     data = []

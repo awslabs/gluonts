@@ -41,7 +41,6 @@ def _extract_instances(x: Any) -> Any:
 
     For (nested) tuples of tensors `(a, (b, c))`
       _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
-
     """
     if isinstance(x, (np.ndarray, torch.Tensor)):
         for i in range(x.shape[0]):

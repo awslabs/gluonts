@@ -24,7 +24,6 @@ In addition, we define `bdump` and `bdumps`, which emit `byte` instead of
 
 Both `dump` and `bdump` expose a `nl` interpreter, which appends a newline
 character if set to `True`.
-
 """
 
 __all__ = [  # noqa

@@ -35,7 +35,6 @@ class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
 
     The MLP converts inputs into feature vectors of the same size and uses
     either ranking or regression to predict metrics.
-
     """
 
     trainer_: pl.Trainer

@@ -114,7 +114,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Determines whether to use IQF or QF. (default: True).
     batch_size
         The size of the batches to be used training and prediction.
-
     """
 
     @validated()
@@ -318,7 +317,6 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
     encoder and a multi-quantile MLP as a decoder.
 
     Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
-
     """
 
     @validated()

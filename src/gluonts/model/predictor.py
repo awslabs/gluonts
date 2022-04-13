@@ -103,7 +103,6 @@ class Predictor:
         **kwargs
             Optional context/device parameter to be used with the predictor.
             If nothing is passed will use the GPU if available and CPU otherwise.
-
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
@@ -152,7 +151,6 @@ class RepresentablePredictor(Predictor):
         Prediction horizon.
     freq
         Frequency of the predicted data.
-
     """
 
     @validated()
@@ -206,7 +204,6 @@ def _worker_loop(
 
     Loads the predictor serialized in predictor_path reads inputs from
     input_queue and writes forecasts to output_queue
-
     """
 
     predictor = Predictor.deserialize(predictor_path)

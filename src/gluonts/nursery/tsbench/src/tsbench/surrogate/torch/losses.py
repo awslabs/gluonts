@@ -22,7 +22,6 @@ class ListMLELoss(nn.Module):
 
     For each feature, ranking is performed independently. A lower score
     indicates a lower rank (i.e. "better" value).
-
     """
 
     def __init__(
@@ -57,7 +56,6 @@ class ListMLELoss(nn.Module):
 
         Returns:
             Tensor of shape [1] containing the loss.
-
         """
         # We compute the loss for each group and subsequently average
         log_likelihoods = []

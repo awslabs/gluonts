@@ -50,7 +50,6 @@ class QuantileLoss(Loss):
 
         batch_axis
             indicates axis that represents the batch.
-
         """
         super().__init__(weight, batch_axis, **kwargs)
 
@@ -88,7 +87,6 @@ class QuantileLoss(Loss):
         -------
         Tensor
             weighted sum of the quantile losses, shape N1 x N1 x ... Nk
-
         """
         if self.num_quantiles > 1:
             y_pred_all = F.split(
@@ -141,7 +139,6 @@ class QuantileLoss(Loss):
         -------
         Tensor
             quantile loss, shape: (N1 x N2 x ... x Nk x 1)
-
         """
 
         under_bias = p * F.maximum(y_true - y_pred_p, 0)
@@ -166,7 +163,6 @@ class QuantileLoss(Loss):
         -------
         List
             weights of the quantiles.
-
         """
         assert (
             self.num_quantiles >= 0
@@ -198,7 +194,6 @@ class ProjectParams(nn.HybridBlock):
         number of quantiles to compute the projection.
     is_iqf
         determines whether to use IQF or QF.
-
     """
 
     @validated()
@@ -271,7 +266,6 @@ class QuantileOutput:
 
     is_iqf
         determines whether to use IQF or QF.
-
     """
 
     @validated()

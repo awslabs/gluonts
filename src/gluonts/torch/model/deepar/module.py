@@ -291,7 +291,6 @@ class LaggedLSTM(nn.Module):
             a tensor of shape (N, S, C, I), where S = subsequences_length and
             I = len(indices), containing lagged subsequences. Specifically,
             lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
-
         """
         sequence_length = sequence.shape[1]
         indices = self.lags_seq

@@ -54,7 +54,6 @@ class DatasetInfo(NamedTuple):
     When downloading from the repository, the dataset repository checks that
     the obtained version matches the one declared in
     dataset_info/dataset_name.json.
-
     """
 
     name: str
@@ -369,7 +368,6 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     level and have additional spikes on each sunday.
 
     TODO: This could be converted to a RecipeDataset to avoid code duplication.
-
     """
 
     def __init__(
@@ -568,15 +566,13 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             if self.clip_values:
                 np.clip(v, a_min=self.min_val, a_max=self.max_val, out=v)
             else:
-                """
-                Rather than mapping [v_min, v_max] to [self.min_val,
-                self.max_val] which would lead to all the time series having
-                the same min and max, we want to keep the same interval length.
+                # Rather than mapping [v_min, v_max] to
+                # [self.min_val, self.max_val] which would lead to all the
+                # time series having the same min and max, we want to keep the
+                # same interval length.
+                # (v_max - v_min). We thus shift the interval [v_min, v_max] in
+                # [self.min_val, self.max_val] and clip it if needed.
 
-                (v_max - v_min). We thus shift the interval [v_min, v_max] in [self.min_val, self.max_val]
-                and clip it if needed.
-
-                """
                 v_min, v_max = v.min(), v.max()
                 p_min, p_max = (
                     max(self.min_val, v_min),
@@ -644,7 +640,6 @@ class RecipeDataset(ArtificialDataset):
     which is processed sequentially, with data initially set to {},
     and each entry updating data[field] to the output of the function
     call.
-
     """
 
     def __init__(

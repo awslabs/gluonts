@@ -37,7 +37,6 @@ class ScaleHistogram:
         Log-width of the histogram's buckets.
     bin_counts
     empty_target_count
-
     """
 
     @validated()
@@ -152,7 +151,6 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     -------
     DatasetStatistics
         NamedTuple containing the statistics.
-
     """
     num_time_observations = 0
     num_time_series = 0

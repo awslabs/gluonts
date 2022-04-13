@@ -70,7 +70,6 @@ class TabularEstimator(Estimator):
         Whether to forecast in quantile way. If assigned with quantile values,
         this will train model using quantile prediction model. If None, then the model
         will be trained in a regular way.
-
     """
 
     @validated()

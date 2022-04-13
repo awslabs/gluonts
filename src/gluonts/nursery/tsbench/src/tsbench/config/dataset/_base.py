@@ -50,7 +50,6 @@ class DatasetConfig:
         applies necessary preprocessing steps.
 
         This function must be called on a machine prior to using the dataset.
-
         """
         raise NotImplementedError
 
@@ -90,7 +89,6 @@ class DatasetConfig:
         Returns the dataset's splits, i.e. training, validation, and test data.
 
         This is a noop, the datasets are only loaded at a later point.
-
         """
         return DatasetSplits(self.meta, self.root)
 
@@ -110,7 +108,6 @@ class DatasetConfig:
 
         Args:
             root: The directory which contains the stats files.
-
         """
         file = Path(root) / f"{self.name()}.json"
         with file.open("r") as f:
@@ -124,7 +121,6 @@ class DatasetConfig:
 
         Args:
             root: The directory which contains the catch22 feature files.
-
         """
         file = Path(root) / f"{self.name()}.parquet"
         return pd.read_parquet(file)
@@ -138,7 +134,6 @@ class DatasetSplits:
 
     Calling any of the functions here, is a noop. Data is only loaded once a
     particular representation of the data is accessed.
-
     """
 
     _metadata: MetaData
@@ -151,7 +146,6 @@ class DatasetSplits:
         Args:
             val: Whether validation data is used. If not, this returns the validation data, i.e.
                 the same time series that are longer by the prediction length.
-
         """
         return DatasetSplit(
             self._metadata, self._directory, "train" if val else "val"
@@ -162,7 +156,6 @@ class DatasetSplits:
         Returns the validation data for the dataset.
 
         This is the same as :meth:`train(False)`.
-
         """
         return DatasetSplit(self._metadata, self._directory, "val")
 
@@ -189,7 +182,6 @@ class DatasetSplit:
         Returns the GluonTS dataset for the dataset split.
 
         This loads the associated JSON file and is, thus, potentially slow.
-
         """
         return FileDataset(
             self._directory / "gluonts" / self._split, freq=self._metadata.freq
@@ -251,7 +243,6 @@ class EvaluationDataset:
     (masked) array of the past values that a model sees during training.
 
     This representation is very efficient for evaluation.
-
     """
 
     future: np.ndarray

@@ -33,7 +33,6 @@ class StepStrategy(BaseModel):
         used with
     step_size
         The number of points to remove for each iteration.
-
     """
 
     prediction_length: int
@@ -52,7 +51,6 @@ class StepStrategy(BaseModel):
         Returns
         ----------
         A generator yielding split versions of the window
-
         """
         assert (
             self.prediction_length > 0
@@ -76,7 +74,6 @@ class NumSplitsStrategy(BaseModel):
         used with
     num_splits
         The number of segments which the window should be split into
-
     """
 
     prediction_length: int
@@ -95,7 +92,6 @@ class NumSplitsStrategy(BaseModel):
         Returns
         ----------
         A generator yielding split versions of the window
-
         """
         assert self.num_splits > 1, """num_splits should be > 1"""
         for slice_idx in np.linspace(
@@ -215,7 +211,6 @@ def generate_rolling_dataset(
     ----------
     Dataset
         The augmented dataset
-
     """
     assert dataset, "a dataset to perform rolling evaluation on is needed"
     assert start_time, "a pandas Timestamp object is needed for the start time"

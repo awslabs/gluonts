@@ -62,7 +62,6 @@ class NPTS:
         Returns
         -------
         iterator over sampling weights
-
         """
 
         assert len(np.shape(train_features)) == 2, (
@@ -142,7 +141,6 @@ class NPTS:
         -------
         SampleForecast
            a :class:`SampleForecast` object for the given targets
-
         """
 
         # Note that to generate prediction from the second time step onwards,

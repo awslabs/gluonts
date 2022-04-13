@@ -35,7 +35,6 @@ class SNDense(mx.gluon.HybridBlock):
     Dense layer with spectral normalization applied to weights, as in.
 
     [BJC19]_.
-
     """
 
     @validated()

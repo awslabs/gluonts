@@ -199,7 +199,6 @@ def TrainDataLoader(
     -------
     Iterator[DataBatch]
         An iterator of batches.
-
     """
     dataset: Dataset = Cyclic(dataset)
 
@@ -265,7 +264,6 @@ def ValidationDataLoader(
     -------
     Iterable[DataBatch]
         An iterable sequence of batches.
-
     """
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
@@ -310,7 +308,6 @@ def InferenceDataLoader(
     -------
     Iterable[DataBatch]
         An iterable sequence of batches.
-
     """
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=False)

@@ -31,7 +31,6 @@ class XGBoostSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     using independent XGBoost regressors for each performance metric.
 
     For this, models and hyperparameters are converted to feature vectors.
-
     """
 
     def __init__(

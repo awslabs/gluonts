@@ -132,10 +132,6 @@ class Settings:
             self._dependency(name, fn)
 
     def _reduce(self):
-        """
-        
-        """
-
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
 
@@ -226,7 +222,6 @@ class Settings:
         Helper method to assign item to a given dictionary.
 
         Uses `_types` to type-check the value, before assigning.
-
         """
 
         assert key not in self._dependencies, "Can't override dependency."
@@ -265,7 +260,6 @@ class Settings:
         Add new entry to our chain-map.
 
         Values are type-checked.
-
         """
         self._chain.append({})
         # Since we want to type-check, we add the entries manually.
@@ -292,7 +286,6 @@ class Settings:
         `_let` does not push a new context, but returns a `_ScopedSettings`
         object, that pushes the context, when entered through a
         `with`-statement.
-
         """
         return _ScopedSettings(self, kwargs)
 
@@ -317,7 +310,6 @@ class Settings:
 
                 # Directly passed values always take precedence.
                 assert fn(3) == 3
-
         """
 
         def dec(fn):

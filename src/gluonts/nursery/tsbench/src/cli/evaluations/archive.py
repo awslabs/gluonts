@@ -40,7 +40,6 @@ def archive(evaluations_path: str, archive_path: str):
 
     This is most probably only necessary for publishing the metrics in an
     easier format.
-
     """
     source = Path(evaluations_path)
     target = Path(archive_path)

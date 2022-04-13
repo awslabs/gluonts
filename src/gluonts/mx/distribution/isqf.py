@@ -887,7 +887,6 @@ class ISQFOutput(DistributionOutput):
         shape = (*batch_shape, num_qk)
         beta_l, beta_r:
         parameterizing the left/right tail, shape = (*batch_shape, 1)
-
         """
 
         try:

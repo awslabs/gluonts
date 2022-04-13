@@ -30,7 +30,6 @@ class TransformedDataset(Dataset):
         Dataset to transform
     transformations
         List of transformations to apply
-
     """
 
     def __init__(

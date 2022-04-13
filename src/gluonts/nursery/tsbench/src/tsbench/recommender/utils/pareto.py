@@ -29,7 +29,6 @@ def pareto_efficiency_mask(X: npt.NDArray[np.float32]) -> np.ndarray:
     Returns:
         A boolean array of shape [N], indicating for each allocation whether it is Pareto
             efficient.
-
     """
     # First, we assume that all allocations are Pareto efficient, i.e. not dominated
     mask = np.ones(X.shape[0], dtype=bool)
@@ -70,7 +69,6 @@ def epsilon_net_indices(
     Returns:
         An array of shape [N] providing the item indices that define a sparsified order of the
             items.
-
     """
     indices = set(range(X.shape[0]))
 
@@ -126,7 +124,6 @@ def argsort_nondominated(
     Returns:
         The indices of the sorted items, either globally or within each of the Pareto fronts,
         depending on the value of `flatten`.
-
     """
     remaining = np.arange(X.shape[0])
     indices = []

@@ -109,7 +109,6 @@ class PointProcessGluonPredictor(GluonPredictor):
     ----------
     prediction_interval_length
         The length of the prediction interval
-
     """
 
     def __init__(

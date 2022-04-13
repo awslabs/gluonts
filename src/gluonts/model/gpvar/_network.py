@@ -77,7 +77,6 @@ class GPVARNetwork(DeepVARNetwork):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
         # (batch_size, sub_seq_len, target_dim, num_lags)
         lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
@@ -164,7 +163,6 @@ class GPVARNetwork(DeepVARNetwork):
             Distribution instance
         distr_args
             Distribution arguments
-
         """
         F = getF(rnn_outputs)
 
@@ -253,7 +251,6 @@ class GPVARTrainingNetwork(GPVARNetwork):
         distr_args
             Distribution arguments (context + prediction_length,
             number_of_arguments)
-
         """
 
         return self.train_hybrid_forward(
@@ -293,7 +290,6 @@ class GPVARPredictionNetwork(GPVARNetwork):
         Returns
         -------
             List of list of initial states
-
         """
 
         def repeat(tensor):

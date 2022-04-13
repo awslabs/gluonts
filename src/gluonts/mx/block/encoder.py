@@ -29,7 +29,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
     An encoder takes a `target` sequence with corresponding covariates and maps
     it into a static latent and a dynamic latent code with the same length as
     the `target` sequence.
-
     """
 
     # noinspection PyMethodOverriding
@@ -99,7 +98,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
             combined features,
             shape (batch_size, sequence_length,
                    num_feat_static + num_feat_dynamic + 1)
-
         """
 
         helper_ones = F.ones_like(target)  # Ones of (N, T, 1)
@@ -135,7 +133,6 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
         flag to toggle whether to use use_dynamic_feat as input to the encoder
-
     """
 
     @validated()
@@ -258,7 +255,6 @@ class RNNEncoder(Seq2SeqEncoder):
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
         flag to toggle whether to use use_dynamic_feat as input to the encoder
-
     """
 
     @validated()
@@ -345,7 +341,6 @@ class MLPEncoder(Seq2SeqEncoder):
     layer_sizes
         number of hidden units per layer.
     kwargs
-
     """
 
     @validated()

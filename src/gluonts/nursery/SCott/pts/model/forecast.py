@@ -66,7 +66,6 @@ class Forecast(ABC):
         -------
         numpy.ndarray
             Value of the quantile across the prediction range.
-
         """
         pass
 
@@ -109,7 +108,6 @@ class Forecast(ABC):
             Other arguments are passed to main plot() call
         kwargs :
             Other keyword arguments are passed to main plot() call
-
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be
@@ -218,7 +216,6 @@ class SampleForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     def __init__(
@@ -306,7 +303,6 @@ class SampleForecast(Forecast):
         ----------
         dim
             The returned forecast object will only represent this dimension.
-
         """
         if len(self.samples.shape) == 2:
             samples = self.samples
@@ -336,7 +332,6 @@ class SampleForecast(Forecast):
         agg_fun
             Aggregation function that defines the aggregation operation
             (typically mean or sum).
-
         """
         if len(self.samples.shape) == 2:
             samples = self.samples
@@ -406,7 +401,6 @@ class QuantileForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     def __init__(
@@ -508,7 +502,6 @@ class DistributionForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     def __init__(

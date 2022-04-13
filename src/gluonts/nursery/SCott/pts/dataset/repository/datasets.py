@@ -135,7 +135,6 @@ def materialize_dataset(
     Returns
     -------
         the path where the dataset is materialized
-
     """
     assert dataset_name in dataset_recipes.keys(), (
         f"{dataset_name} is not present, please choose one from "
@@ -186,7 +185,6 @@ def get_dataset(
     Returns
     -------
         dataset obtained by either downloading or reloading from local file.
-
     """
     dataset_path = materialize_dataset(dataset_name, path, regenerate)
 

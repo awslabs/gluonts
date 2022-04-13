@@ -55,7 +55,6 @@ class KernelOutput:
         -------
         Tensor
             The standard deviation of the given data.
-
         """
         return F.sqrt(
             F.mean(
@@ -91,7 +90,6 @@ class KernelOutputDict(KernelOutput):
         Returns
         -------
         ArgProj
-
         """
         return ArgProj(
             args_dim=self.args_dim,

@@ -44,7 +44,6 @@ class Performance:
 
         Metrics are expected to be provided via `<metric>_mean` and
         `<metric>_std` keys.
-
         """
         kwargs = {
             m: Metric(metrics[f"{m}_mean"], metrics[f"{m}_std"])

@@ -58,7 +58,6 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     Simplest class for passing encoder tensors do decoder.
 
     Passes through tensors, except that future_features_dynamic is dropped.
-
     """
 
     def hybrid_forward(

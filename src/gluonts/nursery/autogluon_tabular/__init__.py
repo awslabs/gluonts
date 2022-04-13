@@ -22,7 +22,6 @@ def LocalTabularPredictor(*args, **kwargs) -> Localizer:
     given to predict.
 
     The constructor arguments are the same as for ``TabularEstimator``.
-
     """
     return Localizer(TabularEstimator(*args, **kwargs))
 

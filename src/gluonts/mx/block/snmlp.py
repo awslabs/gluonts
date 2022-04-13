@@ -43,7 +43,6 @@ def jacobian_sn_mlp_block_bf(
     -------
     Tensor
         Jacobian of the SNMLPBlock computed at a given input
-
     """
     for i, (layer, input) in enumerate(layers[::-1]):
         if isinstance(layer, SNDense):

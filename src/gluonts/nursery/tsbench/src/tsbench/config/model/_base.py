@@ -31,7 +31,6 @@ class ModelConfig:
     Compared to an estimator, this configuration class can easily be hashed and
     different objects with the same configuration are considered equal under
     the `==` operator.
-
     """
 
     @classmethod
@@ -50,7 +49,6 @@ class ModelConfig:
 
         For each hyperparameter, it provides a boolean whether there exists a
         default value.
-
         """
         # pylint: disable=no-member
         return {
@@ -66,7 +64,6 @@ class ModelConfig:
         Args:
             predictor: The predictor to save.
             path: The directory where to save the predictor.
-
         """
         predictor.serialize(path)
 
@@ -79,7 +76,6 @@ class ModelConfig:
 
         Returns:
             The predictor which was loaded.
-
         """
         return Predictor.deserialize(path)
 
@@ -105,7 +101,6 @@ class ModelConfig:
 
         Args:
             config: The dataset for which to determine the maximum time series length.
-
         """
         return None
 
@@ -130,7 +125,6 @@ class ModelConfig:
 
         Returns:
             An initialized GluonTS estimator.
-
         """
         raise NotImplementedError
 
@@ -170,7 +164,6 @@ class TrainConfig:
 
         Returns:
             The list of training hyperparameters.
-
         """
         # pylint: disable=no-member
         return list(cls.__dataclass_fields__.keys())  # type: ignore
@@ -194,7 +187,6 @@ class TrainConfig:
 
         Returns:
             The predictor created from the network.
-
         """
         raise NotImplementedError
 

@@ -34,7 +34,6 @@ class CustomBinning(Representation):
     bin_centers
         The bins to be used to discretize the data.
         (default: 1024)
-
     """
 
     @validated()

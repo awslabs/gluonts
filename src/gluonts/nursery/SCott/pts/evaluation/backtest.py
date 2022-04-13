@@ -53,7 +53,6 @@ def make_evaluation_predictions(
 
     Returns
     -------
-
     """
 
     prediction_length = predictor.prediction_length

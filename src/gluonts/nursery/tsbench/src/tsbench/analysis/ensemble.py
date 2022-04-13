@@ -50,7 +50,6 @@ class EnsembleAnalyzer:
 
     The analysis is run in parallel and should, thus, not be used in a Jupyter
     notebook. Instead, consider using the `tsbench` CLI.
-
     """
 
     def __init__(
@@ -84,7 +83,6 @@ class EnsembleAnalyzer:
         Returns:
             The metrics on the individual datasets.
             The model choices for each dataset.
-
         """
         results = run_parallel(
             self._run_on_dataset,
@@ -185,7 +183,6 @@ class EnsembleAnalyzer:
 
         Returns:
             The expected performance of the ensemble.
-
         """
         if member_performances is None:
             member_performances = [

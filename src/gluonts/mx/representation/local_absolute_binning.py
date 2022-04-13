@@ -41,7 +41,6 @@ class LocalAbsoluteBinning(Representation):
         Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
         distribution function, while linear binning allocates evenly spaced bins.
         (default: True, i.e. quantile binning)
-
     """
 
     @validated()

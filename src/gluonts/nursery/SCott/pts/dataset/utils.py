@@ -47,7 +47,6 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     -------
     pandas.Series
         Pandas time series object.
-
     """
     target = instance["target"]
     start = instance["start"]
@@ -98,7 +97,6 @@ def save_datasets(
         Where to save the dataset.
     overwrite
         Whether to delete previous version in this folder.
-
     """
     path = Path(path_str)
 
@@ -140,7 +138,6 @@ def serialize_data_entry(data):
     Dict
         The transformed dictionary, where all fields where transformed into
         strings.
-
     """
 
     def serialize_field(field):

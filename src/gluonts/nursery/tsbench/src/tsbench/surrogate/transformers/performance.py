@@ -48,7 +48,6 @@ class PerformanceTransformer(TransformerMixin):
 
         Args:
             y: The performance objects.
-
         """
         self.encoder.fit(y)
         return self
@@ -64,7 +63,6 @@ class PerformanceTransformer(TransformerMixin):
         Returns:
             An array of shape [N, K] of transformed performance objects (N: the number of
                 performance objects, K: number of performance metrics).
-
         """
         return self.encoder.transform(y)
 
@@ -81,7 +79,6 @@ class PerformanceTransformer(TransformerMixin):
 
         Returns:
             The performance objects.
-
         """
         return self.encoder.inverse_transform(y)
 

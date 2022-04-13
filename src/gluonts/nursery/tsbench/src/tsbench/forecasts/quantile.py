@@ -61,7 +61,6 @@ class QuantileForecasts:
 
         This method should typically only be used for visualizing single
         forecasts.
-
         """
         return QuantileForecast(
             forecast_arrays=self.values[index],
@@ -78,7 +77,6 @@ class QuantileForecasts:
 
         NumPy array of shape [N, T] (N: number of forecasts, T: forecast
         horizon).
-
         """
         i = self.quantiles.index("0.5")
         return self.values[:, i]
@@ -105,7 +103,6 @@ class QuantileForecasts:
 
         Args:
             path: The path from where to load the forecasts.
-
         """
         try:
             with (path / "values.npy").open("rb") as f:
@@ -131,7 +128,6 @@ class QuantileForecasts:
 
         Args:
             path: The path of the file where to save the forecasts to.
-
         """
         assert path.is_dir()
 

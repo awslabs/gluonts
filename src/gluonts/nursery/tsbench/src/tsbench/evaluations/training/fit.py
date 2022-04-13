@@ -52,7 +52,6 @@ def fit_estimator(  # pylint: disable=too-many-statements
         The result from fitting, contains most notably the list of predictors fitted during
             training. Contains a single entry if the model is not trainable or `verbose` is set to
             false.
-
     """
     count_callback = ParameterCountCallback()
     callbacks: List[Callback] = [count_callback]

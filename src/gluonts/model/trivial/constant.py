@@ -32,7 +32,6 @@ class ConstantPredictor(RepresentablePredictor):
         prediction.
     freq
         Frequency of the predicted data.
-
     """
 
     @validated()
@@ -61,7 +60,6 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         Prediction horizon.
     freq
         Frequency of the predicted data.
-
     """
 
     @validated()

@@ -35,7 +35,6 @@ class Filter(ABC):
 
         Returns:
             The filtered items.
-
         """
 
 
@@ -47,7 +46,6 @@ class ConstantTargetFilter(Filter):
     A filter which removes items having only constant target values.
 
     This filter should be used whenever metrics such as the MASE are required.
-
     """
 
     def __init__(self, prediction_length: int, required_length: int = 0):

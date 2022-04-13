@@ -37,7 +37,6 @@ class Surrogate(ABC, Generic[T]):
     predict performance metrics from model configurations.
 
     Subclasses may decide to only predict some performance metrics.
-
     """
 
     def __init__(
@@ -85,7 +84,6 @@ class Surrogate(ABC, Generic[T]):
         Args:
             X: The input configurations.
             y: The performance values associated with the input configurations.
-
         """
         y_numpy = self.performance_transformer.fit_transform(y)
 
@@ -124,7 +122,6 @@ class Surrogate(ABC, Generic[T]):
 
         Returns:
             The predicted performance metrics for the input configurations.
-
         """
         y = self._predict(X)
         performances = self.performance_transformer.inverse_transform(y)

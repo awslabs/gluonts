@@ -28,7 +28,6 @@ class Recommender(ABC, Generic[T]):
     based on desired target metrics.
 
     This class implements the general interface.
-
     """
 
     def __init__(
@@ -83,7 +82,6 @@ class Recommender(ABC, Generic[T]):
                 model configurations).
             performances: The performances that the surrogate should fit on. The performances must
                 align with the provided configurations.
-
         """
         self.generator.fit(list({c.model for c in configs}))
 
@@ -106,7 +104,6 @@ class Recommender(ABC, Generic[T]):
 
         Returns:
             The recommendations which (approximately) satisfy the provided constraints.
-
         """
         model_configs = self.generator.generate(candidates)
         configs = [Config(m, dataset) for m in model_configs]

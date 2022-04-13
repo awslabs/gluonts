@@ -51,7 +51,6 @@ class DistributionForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     @validated()

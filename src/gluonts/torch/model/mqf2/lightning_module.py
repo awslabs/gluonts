@@ -75,7 +75,6 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         -------
         loss
             Mean of the loss values
-
         """
 
         feat_static_cat = batch["feat_static_cat"]

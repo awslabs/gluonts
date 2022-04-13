@@ -53,7 +53,6 @@ def from_hyperparameters(cls: Type[A], **hyperparameters) -> A:
     GluonTSHyperparametersError
         Wraps a :class:`ValidationError` thrown when validating the
         initializer parameters.
-
     """
     Model = getattr(cls.__init__, "Model", None)
 
@@ -99,7 +98,6 @@ def equals(this: Any, that: Any) -> bool:
     equals_parameter_dict
         Specialization for Gluon :class:`~mxnet.gluon.ParameterDict` input
         arguments.
-
     """
     return equals_default_impl(this, that)
 
@@ -128,7 +126,6 @@ def equals_default_impl(this: Any, that: Any) -> bool:
     bool
         A boolean value indicating whether ``this`` and ``that`` are
         structurally equal.
-
     """
     if type(this) != type(that):
         return False
@@ -208,7 +205,6 @@ class BaseValidatedInitializerModel(BaseModel):
     --------
     validated
         Decorates an initializer methods with argument validation logic.
-
     """
 
     class Config(BaseConfig):
@@ -217,7 +213,6 @@ class BaseValidatedInitializerModel(BaseModel):
         Pydantic model inherited by all :func:`validated` initializers.
 
         Allows the use of arbitrary type annotations in initializer parameters.
-
         """
 
         arbitrary_types_allowed = True
@@ -277,7 +272,6 @@ def validated(base_model=None):
     --------
     BaseValidatedInitializerModel
         Default base class for all synthesized Pydantic models.
-
     """
 
     def validator(init):

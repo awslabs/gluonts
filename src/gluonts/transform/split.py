@@ -32,7 +32,6 @@ def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
 
     Basic wrapping around pandas ``ts + offset`` with caching and exception
     handling.
-
     """
     return _shift_timestamp_helper(ts, ts.freq, offset)
 
@@ -50,7 +49,6 @@ def _shift_timestamp_helper(
       pd.Timestamp(x, freq='1D')  and pd.Timestamp(x, freq='1min')
 
     hash to the same value.
-
     """
     try:
         # this line looks innocent, but can create a date which is out of
@@ -109,7 +107,6 @@ class InstanceSplitter(FlatMapTransformation):
         as the target (default: None)
     dummy_value
         Value to use for padding. (default: 0.0)
-
     """
 
     @validated()
@@ -257,7 +254,6 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     prediction_length
         length of the prediction range, must be set if
         use_prediction_features is True
-
     """
 
     @validated()
@@ -409,7 +405,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         field containing the end date of the point process observation
     forecast_start_field
         output field that will contain the time point where the forecast starts
-
     """
 
     @validated()

@@ -112,7 +112,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
-
     """
 
     # The validated() decorator makes sure that parameters are checked by
@@ -141,7 +140,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         Defines an estimator.
 
         All parameters should be serializable.
-
         """
         super().__init__(trainer=trainer, batch_size=batch_size)
 

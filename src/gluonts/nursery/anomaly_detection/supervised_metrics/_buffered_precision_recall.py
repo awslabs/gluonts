@@ -34,7 +34,6 @@ def extend_ranges(
     Returns
     -------
     out_ranges: List[range]
-
     """
     if not ranges:
         return []
@@ -127,7 +126,6 @@ def buffered_precision_recall(
     recall: float
         Recall. Ratio of (extended) anomaly ranges that were caught by (overlaps with)
         at least one prediction range.
-
     """
     if len(real_ranges) == 0 and len(pred_ranges) == 0:
         return 1.0, 1.0

@@ -248,7 +248,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
         RNN output tensor, state, and sequence with imputed values
-
         """
         state = begin_state
         imputed_sequence = sequence
@@ -412,7 +411,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
         Target (imputed/zero if unobserved).
-
         """
         distr_args = self.proj_distr_args(output)
         distr = self.distr_output.distribution(distr_args, scale=scale)
@@ -651,7 +649,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns outputs and state of the encoder, plus the scale of past_target
         and a vector of static features that was constructed and fed as input
         to the encoder. All tensor arguments should have NTC layout.
-
         """
 
         if future_time_feat is None or future_target is None:
@@ -840,7 +837,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
         Tensor
             (optional) when return_rnn_outputs=True, rnn_outputs will be
             returned so that it could be used for regularization
-
         """
         # unroll the decoder in "training mode"
         # i.e. by providing future data as well
@@ -903,7 +899,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         Returns loss with shape (batch_size, context + prediction_length, 1)
         -------
-
         """
 
         outputs = self.distribution(
@@ -1021,7 +1016,6 @@ class DeepARPredictionNetwork(DeepARNetwork):
         Tensor
             A tensor containing sampled paths.
             Shape: (batch_size, num_sample_paths, prediction_length).
-
         """
 
         # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism

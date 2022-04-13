@@ -43,7 +43,6 @@ class DistributionLoss(torch.nn.Module):
         ------
         NotImplementedError
             [description]
-
         """
         raise NotImplementedError
 

@@ -51,7 +51,6 @@ class DeepTPPNetworkBase(mx.gluon.HybridBlock):
         this argument if the average inter-arrival time is much larger than 1.
     apply_log_to_rnn_inputs
         Apply logarithm to inter-event times that are fed into the RNN.
-
     """
 
     @validated()
@@ -135,7 +134,6 @@ class DeepTPPTrainingNetwork(DeepTPPNetworkBase):
         -------
         Tensor
             Loss tensor. Shape: (batch_size,).
-
         """
         if F is mx.sym:
             raise ValueError(
@@ -259,7 +257,6 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         sampled_valid_length: Tensor
             The number of valid entries in the time axis of each sample.
             Shape (samples, batch_size)
-
         """
         # Variable-length generation (while t < t_max) is a potential problem
         if F is mx.sym:

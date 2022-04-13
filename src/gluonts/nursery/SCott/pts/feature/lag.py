@@ -50,7 +50,6 @@ def get_lags_for_frequency(
 
     num_lags
         Maximum number of lags; by default all generated lags are returned
-
     """
 
     multiple, granularity = get_granularity(freq_str)

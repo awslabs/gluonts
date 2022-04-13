@@ -47,7 +47,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
         result.
-
     """
 
     @validated()
@@ -101,7 +100,6 @@ class AddConstFeature(MapTransformation):
         Constant value to use.
     dtype
         Numpy dtype to use for resulting array.
-
     """
 
     @validated()
@@ -148,7 +146,6 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
-
     """
 
     @validated()
@@ -237,7 +234,6 @@ class AddAgeFeature(MapTransformation):
     log_scale
         If set to true the age feature grows logarithmically otherwise linearly
         over time.
-
     """
 
     @validated()

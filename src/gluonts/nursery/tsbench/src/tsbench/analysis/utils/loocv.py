@@ -41,7 +41,6 @@ def loocv_split(
     Yields:
         The training data, including configurations and performances, and the test data, including
         configurations and performances.
-
     """
     data = tracker.get_evaluations()
     groups = [c.dataset.name() for c in data.configurations]

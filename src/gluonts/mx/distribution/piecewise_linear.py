@@ -405,7 +405,6 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
 
         For more information on the piecewise linear quantile function, refer to
         :code:`gluonts.distribution.PiecewiseLinear`.
-
     """
 
     distr_cls: type = PiecewiseLinear

@@ -118,7 +118,6 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         Returns
         -------
         bool value indicating, whether to continue training
-
         """
         if self.curr_lr is None:
             self.curr_lr = self.base_lr

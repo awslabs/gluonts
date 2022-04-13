@@ -36,7 +36,6 @@ class Evaluations(Generic[T]):
 
         Args:
             std: Whether to include the standard deviation of performance metrics in the dataframe.
-
         """
         # Should implement this for ensembles as well
         index_df = Config.to_dataframe(

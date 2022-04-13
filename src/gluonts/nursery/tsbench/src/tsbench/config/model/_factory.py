@@ -44,7 +44,6 @@ def get_model_config(name: str, **kwargs: Any) -> ModelConfig:
 
     Returns:
         The model configuration.
-
     """
     # Get the model
     assert name in MODEL_REGISTRY, f"Model name '{name}' is unknown."

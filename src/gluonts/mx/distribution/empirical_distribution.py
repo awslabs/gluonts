@@ -138,7 +138,6 @@ class EmpiricalDistribution(Distribution):
         -------
         Tensor
             Quantile losses of shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
-
         """
         obs = obs.expand_dims(axis=-1)
         assert obs.shape[:-1] == quantiles.shape[:-1]
@@ -216,7 +215,6 @@ class EmpiricalDistributionOutput(DistributionOutput):
     See the inference test `test_empirical_distribution` in
     `test.distribution.test_mx_distribution_inference` which checks if the CRPS
     loss is correctly implemented.
-
     """
 
     @validated()

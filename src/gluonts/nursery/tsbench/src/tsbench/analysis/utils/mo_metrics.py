@@ -31,7 +31,6 @@ def hypervolume(points: npt.NDArray[np.float32], box: float = 1) -> float:
 
     Returns:
         The hypervolume.
-
     """
     dim = points.shape[1]
     ref = np.ones(dim) * box
@@ -48,7 +47,6 @@ def maximum_spread(solution: npt.NDArray[np.float32]) -> float:
 
     Returns:
         The modified maximum spread of the solution.
-
     """
     solution_min = np.min(solution, axis=0)
     solution_max = np.max(solution, axis=0)
@@ -66,7 +64,6 @@ def pure_diversity(solution: npt.NDArray[np.float32]) -> float:
 
     Returns:
         The modified maximum spread of the solution.
-
     """
     distances = spt.distance_matrix(solution, solution, p=2)
     np.fill_diagonal(distances, float("inf"))

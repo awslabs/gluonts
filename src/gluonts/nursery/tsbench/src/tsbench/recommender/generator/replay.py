@@ -21,7 +21,6 @@ class ReplayCandidateGenerator(CandidateGenerator[T]):
     during training.
 
     If candidates are provided, they are returned as is.
-
     """
 
     def __init__(self) -> None:

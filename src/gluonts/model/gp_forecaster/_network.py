@@ -120,7 +120,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
                 Each is a Tensor of shape (batch_size, 1, 1).
             Model noise sigma.
                 Tensor of shape (batch_size, 1, 1).
-
         """
         output = self.embedding(
             feat_static_cat.squeeze()

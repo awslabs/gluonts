@@ -53,7 +53,6 @@ class DummyEstimator(Estimator):
         `Predictor` class to instantiate.
     **kwargs
         Keyword arguments to pass to the predictor constructor.
-
     """
 
     def __init__(self, predictor_cls: type, **kwargs) -> None:
@@ -84,7 +83,6 @@ class PTSEstimator(Estimator):
         Transformation
             The transformation that will be applied entry-wise to datasets,
             at training and inference time.
-
         """
         pass
 
@@ -98,7 +96,6 @@ class PTSEstimator(Estimator):
         -------
         nn.Module
             The network that computes the loss given input data.
-
         """
         pass
 
@@ -116,7 +113,6 @@ class PTSEstimator(Estimator):
         -------
         Predictor
             A predictor wrapping a `nn.Module` used for inference.
-
         """
         pass
 

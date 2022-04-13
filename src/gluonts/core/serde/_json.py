@@ -51,7 +51,6 @@ def dump_json(o: Any, indent: Optional[int] = None) -> str:
     --------
     load_json
         Inverse function.
-
     """
     return json.dumps(encode(o), indent=indent, sort_keys=True)
 
@@ -74,6 +73,5 @@ def load_json(s: str) -> Any:
     --------
     dump_json
         Inverse function.
-
     """
     return decode(json.loads(s))

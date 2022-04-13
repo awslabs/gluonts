@@ -54,7 +54,6 @@ class CausalConv1D(gluon.HybridBlock):
         Activation function to use. See :func:`~mxnet.ndarray.Activation`.
         If you don't specify anything, no activation is applied
         (ie. "linear" activation: `a(x) = x`).
-
     """
 
     def __init__(
@@ -94,7 +93,6 @@ class CausalConv1D(gluon.HybridBlock):
         -------
         Tensor
             causal conv1d output. Shape (batch_size, num_features, sequence_length)
-
         """
         ct = self.conv1d(data)
         if self.kernel_size > 0:
@@ -120,7 +118,6 @@ class DilatedCausalGated(gluon.HybridBlock):
 
     dilation
         Specifies the dilation rate to use for dilated convolution.
-
     """
 
     def __init__(
@@ -163,7 +160,6 @@ class DilatedCausalGated(gluon.HybridBlock):
         -------
         Tensor
             output, shape (batch_size, num_features, sequence_length)
-
         """
         x1 = self.conv1(x)
         x2 = self.conv2(x)

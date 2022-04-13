@@ -31,7 +31,6 @@ class CandidateGenerator(ABC, Generic[T]):
 
         Args:
             configs: The model configurations seen during training.
-
         """
 
     @abstractmethod
@@ -46,5 +45,4 @@ class CandidateGenerator(ABC, Generic[T]):
 
         Returns:
             The generated model configurations.
-
         """

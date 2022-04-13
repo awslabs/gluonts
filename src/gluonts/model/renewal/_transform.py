@@ -36,7 +36,6 @@ class AddAxisLength(SimpleTransformation):
         Axis to output lengths (dimensions) on. Default 0.
     output_field
         Name of newly created field
-
     """
 
     @validated()

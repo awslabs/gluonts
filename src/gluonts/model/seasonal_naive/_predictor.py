@@ -44,7 +44,6 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         Number of time points to predict
     season_length
         Length of the seasonality pattern of the input data
-
     """
 
     @validated()

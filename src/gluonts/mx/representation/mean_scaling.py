@@ -33,7 +33,6 @@ class MeanScaling(Representation):
         The maximum value to which re-scaled values will be clipped to.
         Negative values will be clipped at -clip_max and positive values at clip_max.
         (default: None)
-
     """
 
     @validated()

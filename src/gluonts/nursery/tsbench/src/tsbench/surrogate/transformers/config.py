@@ -104,7 +104,6 @@ class ConfigTransformer(TransformerMixin):
 
         Args:
             X: The input configurations.
-
         """
         self.pipeline.fit(X)
         return self
@@ -122,7 +121,6 @@ class ConfigTransformer(TransformerMixin):
         Returns:
             A NumPy array of shape [N, D]. N is the number of input configurations, D the dimension
                 of the vectorized representation.
-
         """
         return cast(npt.NDArray[np.float32], self.pipeline.transform(X))
 
@@ -159,7 +157,6 @@ class EnsembleConfigTransformer(TransformerMixin):
 
         Args:
             X: The input configurations.
-
         """
         configs = [model for ensemble in X for model in ensemble.model]
 
@@ -198,7 +195,6 @@ class EnsembleConfigTransformer(TransformerMixin):
         Returns:
             A NumPy array of shape [N, D] for every ensemble configuration where N is the number of
                 ensemble members and D the dimensionality. N might differ for list members.
-
         """
         configs = [model for ensemble in X for model in ensemble.model]
         out = self._transform(configs)

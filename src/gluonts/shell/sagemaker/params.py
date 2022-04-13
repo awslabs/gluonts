@@ -28,7 +28,6 @@ def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
 
     Integer values (e.g. `"1"`) are handled by pydantic models further down the
     pipeline.
-
     """
     value = value.strip()
 
@@ -65,7 +64,6 @@ def decode_sagemaker_parameters(encoded_params: dict) -> dict:
     ...     "bar": "hello"
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
-
     """
     return valmap(decode_sagemaker_parameter, encoded_params)
 
@@ -81,7 +79,6 @@ def encode_sagemaker_parameters(decoded_params: dict) -> dict:
     ...     "bar": "hello"
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
-
     """
     return valmap(encode_sagemaker_parameter, decoded_params)
 
@@ -100,7 +97,6 @@ def detrim_and_decode_sagemaker_parameters(trimmed_params: dict) -> dict:
     ...     '_1_bar': 'o'
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
-
     """
     encoded_params = detrim_sagemaker_parameters(trimmed_params)
     return valmap(decode_sagemaker_parameter, encoded_params)
@@ -122,7 +118,6 @@ def encode_and_trim_sagemaker_parameters(
      '_2_foo': ']',
      '_0_bar': 'hell',
      '_1_bar': 'o'}
-
     """
     endoded_params = valmap(encode_sagemaker_parameter, decoded_params)
     return trim_encoded_sagemaker_parameters(endoded_params, max_len)
@@ -145,7 +140,6 @@ def trim_encoded_sagemaker_parameters(
      '_2_foo': ']',
      '_0_bar': 'hell',
      '_1_bar': 'o'}
-
     """
     trimmed_params = {}
     for key, value in encoded_params.items():
@@ -171,7 +165,6 @@ def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
     ...     '_1_bar': 'o'
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
-
     """
     detrimmed_params = trimmed_params.copy()
 

@@ -31,7 +31,6 @@ def iterate_configurations(
 
     Yields:
         The configuration.
-
     """
     for i, config_item in enumerate(configs):
         if i < skip:
@@ -52,7 +51,6 @@ def generate_configurations(path: Path) -> List[Any]:
 
     Returns:
         The configurations.
-
     """
     if path.is_file():
         with path.open() as f:

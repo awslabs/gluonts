@@ -43,7 +43,6 @@ def compute_owa(
 
     Returns:
         The OWA metric value.
-
     """
     assert (
         len(metrics) == len(datasets) == len(metadata)

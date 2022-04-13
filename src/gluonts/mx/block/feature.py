@@ -34,7 +34,6 @@ class FeatureEmbedder(nn.HybridBlock):
 
     dtype
         Data type of the embedded features.
-
     """
 
     @validated()
@@ -192,7 +191,6 @@ class FeatureAssembler(nn.HybridBlock):
 
     However, relative order of `static_cat` and `dynamic_cat` in the call above is determined by the fact that
     `use_static_cat` is defined before `use_dynamic_cat` in the class constructor.
-
     """
 
     @validated()

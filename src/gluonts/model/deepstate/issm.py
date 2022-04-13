@@ -67,7 +67,6 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     -------
     Tensor
         Block diagonal matrix of shape (batch_size, seq_length, m+n, m+n)
-
     """
     # shape (batch_size, seq_length, m, n)
     zeros_off_diag = F.broadcast_add(

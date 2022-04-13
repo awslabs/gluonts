@@ -146,7 +146,6 @@ class MQF2MultiHorizonModel(DeepARModel):
             RNN hidden state (batch_size, context_length, hidden_size)
         scale
             Scale calculated from the context window (batch_size, 1)
-
         """
 
         _, scale, hidden_state, _, _ = super().unroll_lagged_rnn(
@@ -192,7 +191,6 @@ class MQF2MultiHorizonModel(DeepARModel):
         -------
         MQF2Distribution instance
             MQF2 parametrized by hidden_state
-
         """
 
         if inference:
@@ -235,7 +233,6 @@ class MQF2MultiHorizonModel(DeepARModel):
         -------
         sample_paths
             Sample paths (batch_size, num_parallel_samples, prediction_length)
-
         """
 
         if num_parallel_samples is None:

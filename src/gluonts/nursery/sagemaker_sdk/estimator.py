@@ -371,7 +371,6 @@ class GluonTSFramework(Framework):
             gluonts.sagemaker.GluonTSModel
                 A ``GluonTSModel`` object.
                 See :func:`~gluonts.sagemaker.GluonTSModel` for full details.
-
         """
 
         return GluonTSModel(
@@ -410,7 +409,6 @@ class GluonTSFramework(Framework):
         -------
         Dict:
             The transformed init_params
-
         """
 
         init_params = super()._prepare_init_params_from_job_description(
@@ -565,7 +563,6 @@ class GluonTSFramework(Framework):
         --------
         job_name
             The job name used during training.
-
         """
 
         if not job_name:
@@ -756,7 +753,6 @@ class GluonTSFramework(Framework):
         --------
             Tuple[Framework, str]:
                 The GluonTSFramework and the job name of the training job.
-
         """
 
         experiment = GluonTSFramework(

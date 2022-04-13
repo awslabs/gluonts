@@ -35,7 +35,6 @@ class Embedding(Representation):
         The desired embedding size. By default, the following heuristic is used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
-
     """
 
     @validated()

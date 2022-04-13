@@ -37,7 +37,6 @@ def mean_abs_scaling(series: pd.Series, minimum_scale=1e-6):
     Scales a Series by the mean of its absolute value.
 
     Returns the scaled Series and the scale itself.
-
     """
     scale = max(minimum_scale, series.abs().mean())
     return series / scale, scale
@@ -72,7 +71,6 @@ def get_features_dataframe(
     -------
     pd.DataFrame
         A DataFrame containing the features. This has the same index as `series`.
-
     """
     # TODO check if anything can be optimized here
 

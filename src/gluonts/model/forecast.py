@@ -104,7 +104,6 @@ class Quantile(NamedTuple):
         Quantile
             A tuple containing both a float and a string representation of the
             input quantile level.
-
         """
         if isinstance(quantile, Quantile):
             return quantile
@@ -140,7 +139,6 @@ class Forecast:
         -------
         numpy.ndarray
             Value of the quantile across the prediction range.
-
         """
         raise NotImplementedError()
 
@@ -183,7 +181,6 @@ class Forecast:
             Other arguments are passed to main plot() call
         kwargs :
             Other keyword arguments are passed to main plot() call
-
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be
@@ -270,7 +267,6 @@ class Forecast:
         ----------
         dim
             The returned forecast object will only represent this dimension.
-
         """
         raise NotImplementedError()
 
@@ -284,7 +280,6 @@ class Forecast:
         agg_fun
             Aggregation function that defines the aggregation operation
             (typically mean or sum).
-
         """
         raise NotImplementedError()
 
@@ -325,7 +320,6 @@ class SampleForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     @validated()
@@ -499,7 +493,6 @@ class QuantileForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
-
     """
 
     def __init__(

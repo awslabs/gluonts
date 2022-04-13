@@ -103,7 +103,6 @@ def deriv_tanh(F, x: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     return 1 - F.tanh(x) ** 2
 
@@ -123,7 +122,6 @@ def deriv_softrelu(F, x: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     e = mx.nd.exp(x)
     return e / (1 + e)
@@ -146,7 +144,6 @@ def deriv_elu(F, x: Tensor, alpha: float = 1.0) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     m = x > 0
     return m + (1 - m) * (F.LeakyReLU(x, act_type="elu", slope=alpha) + alpha)
@@ -169,7 +166,6 @@ def deriv_swish(F, x: Tensor, beta: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     f = x * F.sigmoid(beta * x, name="fwd")
     return beta * f + F.sigmoid(beta * x) * (1 - beta * f)

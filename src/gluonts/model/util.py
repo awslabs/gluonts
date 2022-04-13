@@ -28,7 +28,6 @@ class LinearInterpolation:
         y-coordinates of the data points - may be a list of lists.
     tol
         tolerance when performing the division in the linear interpolation.
-
     """
 
     def __init__(
@@ -66,7 +65,6 @@ class LinearInterpolation:
         -------
         np.ndarray
             Interpolated values same shape as self.y_coord
-
         """
         if self.x_coord[0] >= x:
             return self.y_coord[0]
@@ -95,7 +93,6 @@ class ExponentialTailApproximation:
     tol
         tolerance when performing the division and computing the log in the
         exponential extrapolation.
-
     """
 
     def __init__(
@@ -126,7 +123,6 @@ class ExponentialTailApproximation:
         -------
         Tuple
             beta coefficient for left and right tails.
-
         """
         q_log_diff = np.log(
             (self.x_coord[1] + self.tol) / (self.x_coord[0] + self.tol)
@@ -159,7 +155,6 @@ class ExponentialTailApproximation:
         ----------
         x
             x-coordinate to evaluate the right tail.
-
         """
         return (
             self.beta_inv_left
@@ -180,7 +175,6 @@ class ExponentialTailApproximation:
         ----------
         x
             x-coordinate to evaluate the right tail.
-
         """
         return (
             self.beta_inv_right

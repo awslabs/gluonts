@@ -138,7 +138,6 @@ def temporary_server(
     ContextManager[ServerFacade]
         A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
-
     """
     context = multiprocessing.get_context("fork")
     context = typing.cast(ForkContext, context)  # cast to make mypi pass
@@ -194,7 +193,6 @@ def temporary_train_env(
     -------
     ContextManager[gluonts.shell.env.TrainEnv]
         A context manager that yields the `TrainEnv` instance.
-
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-train-env") as base:
@@ -236,7 +234,6 @@ def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     -------
     ContextManager[gluonts.shell.env.ServeEnv]
         A context manager that yields the `ServeEnv` instance.
-
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-serve-env") as base:

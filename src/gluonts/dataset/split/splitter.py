@@ -187,7 +187,6 @@ class AbstractBaseSplitter(ABC):
         max_history:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.
-
     """
 
     # @property

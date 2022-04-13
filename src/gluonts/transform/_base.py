@@ -25,7 +25,6 @@ class Transformation(metaclass=abc.ABCMeta):
     Base class for all Transformations.
 
     A Transformation processes works on a stream (iterator) of dictionaries.
-
     """
 
     @abc.abstractmethod
@@ -82,7 +81,6 @@ class TransformedDataset(Dataset):
         Dataset to transform
     transformations
         List of transformations to apply
-
     """
 
     def __init__(
@@ -153,7 +151,6 @@ class AdhocTransform(SimpleTransformation):
 
     It is OK to use this for experiments and outside of a model pipeline that
     needs to be serialized.
-
     """
 
     def __init__(self, func: Callable[[DataEntry], DataEntry]) -> None:

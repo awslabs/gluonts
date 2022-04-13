@@ -171,7 +171,6 @@ class SequentialNet(SequentialFlow):
         -------
         samples
             samples drawn (num_samples, dimension)
-
         """
 
         num_samples = hidden_state.shape[0]
@@ -225,7 +224,6 @@ class SequentialNet(SequentialFlow):
         -------
         loss
             energy score (numel_batch)
-
         """
 
         numel_batch, dimension = z.shape[0], z.shape[1]

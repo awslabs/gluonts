@@ -155,7 +155,6 @@ class DeepAREstimator(GluonEstimator):
     num_imputation_samples
         How many samples to use to impute values when
         impute_missing_values=True
-
     """
 
     @validated()

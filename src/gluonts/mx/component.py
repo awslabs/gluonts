@@ -58,7 +58,6 @@ def equals_parameter_dict(
     --------
     equals
         Dispatching function.
-
     """
     if type(this) != type(that):
         return False
@@ -126,7 +125,6 @@ def equals_representable_block(
     equals_parameter_dict
         Specialization of :func:`equals` for Gluon
         :class:`~mxnet.gluon.ParameterDict` input arguments.
-
     """
     if not equals_default_impl(this, that):
         return False

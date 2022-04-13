@@ -35,7 +35,6 @@ class MissingValueImputation:
     The parent class for all the missing value imputation classes.
 
     You can just implement your own inheriting this class.
-
     """
 
     @validated()
@@ -90,7 +89,6 @@ class MeanValueImputation(MissingValueImputation):
     Careful this is not a 'causal' method in the sense that it leaks
     information about the furture in the imputation. You may prefer to use
     CausalMeanValueImputation instead.
-
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -108,7 +106,6 @@ class LastValueImputation(MissingValueImputation):
 
     (If the first values are missing, they are replaced by the closest non
     missing value.)
-
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -138,7 +135,6 @@ class CausalMeanValueImputation(MissingValueImputation):
 
     (If the first values are missing, they are replaced by the closest non
     missing value.)
-
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -176,7 +172,6 @@ class RollingMeanValueImputation(MissingValueImputation):
 
     (If the first values are missing, they are replaced by the closest non
     missing value.)
-
     """
 
     @validated()
@@ -229,7 +224,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
     imputation_method
         One of the methods from ImputationStrategy. If set to None, no imputation is
         done and only the indicator is included.
-
     """
 
     @validated()
@@ -284,7 +278,6 @@ class AddConstFeature(MapTransformation):
         Constant value to use.
     dtype
         Numpy dtype to use for resulting array.
-
     """
 
     @validated()
@@ -331,7 +324,6 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
-
     """
 
     @validated()
@@ -433,7 +425,6 @@ class AddAgeFeature(MapTransformation):
     log_scale
         If set to true the age feature grows logarithmically otherwise linearly
         over time.
-
     """
 
     @validated()
@@ -497,7 +488,6 @@ class AddAggregateLags(MapTransformation):
         they are ignored.
     agg_fun
         Aggregation function. Default is 'mean'.
-
     """
 
     @validated()
@@ -610,7 +600,6 @@ class CountTrailingZeros(SimpleTransformation):
         Field with target values (array) of time series
     as_array
         if True, the returned field will be a numpy array of shape (1,)
-
     """
 
     @validated()

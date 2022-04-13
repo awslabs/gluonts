@@ -110,7 +110,6 @@ def dump_code(o: Any) -> str:
     --------
     load_code
         Inverse function.
-
     """
 
     return as_repr(encode(o))

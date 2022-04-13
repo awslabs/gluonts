@@ -41,7 +41,6 @@ class DeepRenewalProcessSampleOutputTransform:
     sample trajectory and converting them to the sparse (intermittent)
     representation. Converts a (N, S, 2, T) array corresponding to the
     interval-size format to a (N, S, T) array.
-
     """
 
     def __call__(self, entry: DataEntry, output: np.ndarray) -> np.ndarray:
