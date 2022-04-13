@@ -37,7 +37,7 @@ class Performance:
     nd: Metric
 
     @classmethod
-    def from_dict(cls, metrics: Dict[str, Union[float, int]]) -> Performance:
+    def from_dict(cls, metrics: dict[str, float | int]) -> Performance:
         """
         Initializes a new performance object from the given 1D dictionary. Metrics are expected to
         be provided via `<metric>_mean` and `<metric>_std` keys.
@@ -49,7 +49,7 @@ class Performance:
         return Performance(**kwargs)  # type: ignore
 
     @classmethod
-    def metrics(cls) -> List[str]:
+    def metrics(cls) -> list[str]:
         """
         Returns the list of metrics that are exposed by the performance class.
         """
@@ -58,7 +58,7 @@ class Performance:
 
     @classmethod
     def to_dataframe(
-        cls, performances: List[Performance], std: bool = True
+        cls, performances: list[Performance], std: bool = True
     ) -> pd.DataFrame:
         """
         Returns a data frame representing the provided performances.

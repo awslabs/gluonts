@@ -114,7 +114,7 @@ class SelfAttentionNetwork(HybridBlock):
         self.d_hidden = d_hidden
         assert (n_output % 2 == 1) and (n_output <= 9)
         self.quantiles = sum(
-            [[i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)],
+            ([i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)),
             [0.5],
         )
         self.normalizer_eps = normalizer_eps

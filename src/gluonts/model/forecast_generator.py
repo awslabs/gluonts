@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
-LOG_CACHE = set([])
+LOG_CACHE = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )
@@ -77,7 +77,7 @@ def _(x: np.ndarray) -> Iterator[list]:
 @recursively_zip_arrays.register(tuple)
 def _(x: tuple) -> Iterator[tuple]:
     for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield tuple([r for r in m])
+        yield tuple(r for r in m)
 
 
 @recursively_zip_arrays.register(list)

@@ -105,7 +105,7 @@ def save_datasets(
 
     def dump_line(f, line):
         f.write(json.dumps(line).encode("utf-8"))
-        f.write("\n".encode("utf-8"))
+        f.write(b"\n")
 
     (path / "metadata").mkdir(parents=True)
     with open(path / "metadata/metadata.json", "wb") as f:

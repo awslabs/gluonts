@@ -114,7 +114,7 @@ class ConstantDataset(ArtificialDataset):
         ] = None,  # Determines whether to add holidays to the target time series
         # and to store in metadata
     ) -> None:
-        super(ConstantDataset, self).__init__(freq)
+        super().__init__(freq)
         self.num_timeseries = num_timeseries
         self.num_steps = num_steps
         self.num_training_steps = self.num_steps // 10 * 8
@@ -405,7 +405,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
-        super(ComplexSeasonalTimeSeries, self).__init__(freq_str)
+        super().__init__(freq_str)
         self.num_series = num_series
         self.prediction_length = prediction_length
         self.length_low = length_low

@@ -113,7 +113,7 @@ class Predictor:
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
-            raise IOError(
+            raise OSError(
                 f"Class {fqname_for(tpe)} is not "
                 f"a subclass of {fqname_for(Predictor)}"
             )
@@ -325,8 +325,7 @@ class ParallelizedPredictor(Predictor):
                 while self._next_idx in self._data_buffer:
                     result_batch = self._data_buffer.pop(self._next_idx)
                     self._next_idx += 1
-                    for result in result_batch:
-                        yield result
+                    yield from result_batch
 
             def send(worker_id, chunk):
                 q = self._input_queues[worker_id]
@@ -341,8 +340,7 @@ class ParallelizedPredictor(Predictor):
 
                 while True:
                     idx, wid, result = receive()
-                    for res in get_next_from_buffer():
-                        yield res
+                    yield from get_next_from_buffer()
                     chunk = next(chunked_data)
                     send(wid, chunk)
             except StopIteration:
@@ -356,8 +354,7 @@ class ParallelizedPredictor(Predictor):
                 if idx is None:
                     self._num_running_workers -= 1
                     continue
-                for res in get_next_from_buffer():
-                    yield res
+                yield from get_next_from_buffer()
             assert len(self._data_buffer) == 0
             assert self._send_idx == self._next_idx
 

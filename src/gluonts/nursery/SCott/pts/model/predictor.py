@@ -72,7 +72,7 @@ class Predictor(ABC):
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
-            raise IOError(
+            raise OSError(
                 f"Class {fqname_for(tpe)} is not "
                 f"a subclass of {fqname_for(Predictor)}"
             )

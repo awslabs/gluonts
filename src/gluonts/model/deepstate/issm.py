@@ -223,7 +223,7 @@ class SeasonalityISSM(LevelISSM):
 
     @validated()
     def __init__(self, num_seasons: int, time_feature: TimeFeature) -> None:
-        super(SeasonalityISSM, self).__init__()
+        super().__init__()
         self.num_seasons = num_seasons
         self.time_feature = time_feature
 
@@ -274,7 +274,7 @@ class CompositeISSM(ISSM):
         seasonal_issms: List[SeasonalityISSM],
         add_trend: bool = DEFAULT_ADD_TREND,
     ) -> None:
-        super(CompositeISSM, self).__init__()
+        super().__init__()
         self.seasonal_issms = seasonal_issms
         self.nonseasonal_issm = (
             LevelISSM() if add_trend is False else LevelTrendISSM()
@@ -282,7 +282,7 @@ class CompositeISSM(ISSM):
 
     def latent_dim(self) -> int:
         return (
-            sum([issm.latent_dim() for issm in self.seasonal_issms])
+            sum(issm.latent_dim() for issm in self.seasonal_issms)
             + self.nonseasonal_issm.latent_dim()
         )
 

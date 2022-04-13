@@ -173,13 +173,11 @@ class InstanceSplitter(FlatMapTransformation):
             # mask the loss.
             if self.is_full_batch:
                 sampled_indices = tuple(
-                    [
-                        i
-                        for i in range(
-                            self.past_length,
-                            len_target - self.future_length + 1,
-                        )
-                    ]
+                    i
+                    for i in range(
+                        self.past_length,
+                        len_target - self.future_length + 1,
+                    )
                 )
             else:
                 sampled_indices = (

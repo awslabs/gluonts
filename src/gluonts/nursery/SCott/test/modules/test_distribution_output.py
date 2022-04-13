@@ -72,7 +72,7 @@ def maximum_likelihood_estimate_sgd(
 
             num_batches += 1
             cumulative_loss += loss.item()
-        print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
+        print("Epoch {}, loss: {}".format(e, cumulative_loss / num_batches))
 
     if len(distr_args[0].shape) == 1:
         return [

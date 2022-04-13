@@ -435,11 +435,9 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
         # (batch_size, num_samples, prediction_length, *target_shape)
         return samples.reshape(
-            (
-                (-1, self.num_parallel_samples)
-                + (self.prediction_length,)
-                + self.target_shape
-            )
+            (-1, self.num_parallel_samples)
+            + (self.prediction_length,)
+            + self.target_shape
         )
 
     # noinspection PyMethodOverriding,PyPep8Naming

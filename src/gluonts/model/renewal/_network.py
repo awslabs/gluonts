@@ -33,7 +33,7 @@ class DeepRenewalNetwork(gluon.HybridBlock):
         dropout_rate: float = 0.1,
         **kwargs,
     ):
-        super(DeepRenewalNetwork, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.prediction_length = prediction_length
         self.context_length = context_length

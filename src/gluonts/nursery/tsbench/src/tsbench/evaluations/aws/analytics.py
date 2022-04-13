@@ -97,7 +97,7 @@ class TrainingJob:
         return self.info["CreationTime"]
 
     @property
-    def hyperparameters(self) -> Dict[str, Any]:
+    def hyperparameters(self) -> dict[str, Any]:
         """
         Returns all user-defined hyper parameters.
         """
@@ -109,7 +109,7 @@ class TrainingJob:
         }
 
     @lru_cache()
-    def pull_logs(self) -> List[str]:
+    def pull_logs(self) -> list[str]:
         """
         Pulls the training job's logs such that subsequent accesses to the `logs` property are
         noops.
@@ -153,7 +153,7 @@ class TrainingJob:
         return res
 
     @property
-    def logs(self) -> List[str]:
+    def logs(self) -> list[str]:
         """
         Retrieves the logs emitted by this training job.
         """
@@ -162,7 +162,7 @@ class TrainingJob:
         return self.pull_logs()
 
     @cached_property
-    def metrics(self) -> Dict[str, np.ndarray]:
+    def metrics(self) -> dict[str, np.ndarray]:
         """
         Fetches the metrics defined by the training script from the training job's logs. For each
         metric, it returns a 1D NumPy array (ordered chronologically).
@@ -333,7 +333,7 @@ class Analysis:
         return self.map[name]
 
     @property
-    def status(self) -> Dict[str, int]:
+    def status(self) -> dict[str, int]:
         """
         Returns the aggregate statistics about the status of all jobs.
         """
@@ -356,7 +356,7 @@ def _fetch_training_jobs(
     experiment: str,
     only_completed: bool,
     resolve_duplicates: bool,
-) -> Tuple[List[TrainingJob], List[TrainingJob]]:
+) -> tuple[list[TrainingJob], list[TrainingJob]]:
     """
     Fetches all training jobs which are associated with this experiment.
     """
@@ -435,7 +435,7 @@ def _fetch_training_jobs(
 
 
 # -------------------------------------------------------------------------------------------------
-def _process_hyperparameter_value(v: str) -> Union[str, float, int, bool]:
+def _process_hyperparameter_value(v: str) -> str | float | int | bool:
     if re.match(r'^"(.*)"$', v):  # value is a string
         return v[1:-1]
     if v in ("false", "False", "true", "True"):

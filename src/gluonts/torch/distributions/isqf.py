@@ -65,7 +65,7 @@ class ISQF(Distribution):
         self.qk_y_all = qk_y
         self.tol = tol
 
-        super(ISQF, self).__init__(
+        super().__init__(
             batch_shape=self.batch_shape, validate_args=validate_args
         )
 

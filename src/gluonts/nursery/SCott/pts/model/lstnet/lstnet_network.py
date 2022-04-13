@@ -41,7 +41,7 @@ class LSTNetBase(nn.Module):
             ar_window > 0
         ), "auto-regressive window must be a positive integer"
         self.ar_window = ar_window
-        assert not ((horizon is None)) == (
+        assert not (horizon is None) == (
             prediction_length is None
         ), "Exactly one of `horizon` and `prediction_length` must be set at a time"
         assert (

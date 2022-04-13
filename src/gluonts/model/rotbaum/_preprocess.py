@@ -248,16 +248,14 @@ class PreprocessGeneric:
         each time series at training time.
         """
         n_time_series = sum(
-            [
-                len(time_series["target"])
-                - self.context_window_size
-                - self.forecast_horizon
-                >= 0
-                for time_series in ts_list
-            ]
+            len(time_series["target"])
+            - self.context_window_size
+            - self.forecast_horizon
+            >= 0
+            for time_series in ts_list
         )
         max_size_ts = max(
-            [len(time_series["target"]) for time_series in ts_list]
+            len(time_series["target"]) for time_series in ts_list
         )
         n_windows_per_time_series = self.max_n_datapts // n_time_series
         if n_time_series * 1000 < n_windows_per_time_series:

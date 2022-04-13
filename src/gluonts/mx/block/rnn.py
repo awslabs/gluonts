@@ -46,7 +46,7 @@ class RNN(HybridBlock):
         bidirectional: bool = False,
         **kwargs,
     ):
-        super(RNN, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         with self.name_scope():
             if mode == "rnn_relu":

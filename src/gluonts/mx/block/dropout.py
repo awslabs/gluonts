@@ -65,7 +65,7 @@ class VariationalZoneoutCell(ModifierCell):
             "Bidirectional SequentialRNNCell doesn't support zoneout. "
             "Please add VariationalZoneoutCell to the cells underneath instead."
         )
-        super(VariationalZoneoutCell, self).__init__(base_cell)
+        super().__init__(base_cell)
         self.zoneout_outputs = zoneout_outputs
         self.zoneout_states = zoneout_states
         self._prev_output = None
@@ -82,7 +82,7 @@ class VariationalZoneoutCell(ModifierCell):
         return "variationalzoneout"
 
     def reset(self):
-        super(VariationalZoneoutCell, self).reset()
+        super().reset()
         self._prev_output = None
 
         self.zoneout_states_mask = None
@@ -179,7 +179,7 @@ class RNNZoneoutCell(ModifierCell):
             "Bidirectional SequentialRNNCell doesn't support zoneout. "
             "Please add RNNZoneoutCell to the cells underneath instead."
         )
-        super(RNNZoneoutCell, self).__init__(base_cell)
+        super().__init__(base_cell)
         self.zoneout_outputs = zoneout_outputs
         self.zoneout_states = zoneout_states
         self._prev_output = None
@@ -192,7 +192,7 @@ class RNNZoneoutCell(ModifierCell):
         return "rnnzoneout"
 
     def reset(self):
-        super(RNNZoneoutCell, self).reset()
+        super().reset()
         self._prev_output = None
 
     def hybrid_forward(

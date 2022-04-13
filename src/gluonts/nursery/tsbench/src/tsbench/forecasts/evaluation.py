@@ -76,13 +76,13 @@ class Evaluation:
     An evaluation instance provides per time-series metrics as well as overall metrics.
     """
 
-    summary: Dict[str, float]
+    summary: dict[str, float]
     """
     The metrics summarizing the overall performance of the model.
     """
 
     @classmethod
-    def performance(cls, evaluations: List[Evaluation]) -> Performance:
+    def performance(cls, evaluations: list[Evaluation]) -> Performance:
         """
         Aggregates the provided evaluations into a single performance object.
 

@@ -277,7 +277,7 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         num_parallel_samples: int = 100,
     ) -> None:
         encoder = MLPEncoder(layer_sizes=encoder_mlp_layer)
-        super(MLP2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,
@@ -321,7 +321,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
             use_static_feat=True,
             use_dynamic_feat=True,
         )
-        super(RNN2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,
@@ -362,7 +362,7 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             use_static_feat=True,
         )
 
-        super(CNN2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,

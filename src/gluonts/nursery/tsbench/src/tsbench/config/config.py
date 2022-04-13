@@ -32,14 +32,14 @@ class Config(Generic[T]):
     @classmethod
     def to_dataframe(
         cls,
-        configs: List[Config[ModelConfig]],
+        configs: list[Config[ModelConfig]],
     ) -> pd.DataFrame:
         """
         Returns a data frame representing the provided configurations. The model is translated into
         columns of the data frame automatically. The dataset is converted to a single column by
         being represented by its name.
         """
-        rows: List[Dict[str, Union[str, float, int, bool]]] = [
+        rows: list[dict[str, str | float | int | bool]] = [
             {
                 "model": c.model.name(),
                 "dataset": c.dataset.name(),

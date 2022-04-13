@@ -272,11 +272,11 @@ class Trainer:
             def base_path() -> str:
                 return os.path.join(
                     gluonts_temp,
-                    "{}_{}".format(STATE_ARTIFACT_FILE_NAME, uuid.uuid4()),
+                    f"{STATE_ARTIFACT_FILE_NAME}_{uuid.uuid4()}",
                 )
 
             best_epoch_info = {
-                "params_path": "%s-%s.params" % (base_path(), "init"),
+                "params_path": "{}-{}.params".format(base_path(), "init"),
                 "epoch_no": -1,
                 "score": np.Inf,
             }

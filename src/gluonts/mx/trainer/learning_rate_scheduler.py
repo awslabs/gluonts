@@ -86,7 +86,7 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
             "max",
         ], f"objective should be 'min' or 'max', got {objective}"
 
-        super(MetricAttentiveScheduler, self).__init__(base_lr=base_lr)
+        super().__init__(base_lr=base_lr)
 
         self.decay_factor = decay_factor
         self.patience = patience

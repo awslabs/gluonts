@@ -26,7 +26,7 @@ class PerformanceTransformer(TransformerMixin):
     as well as model outputs to performance objects.
     """
 
-    def __init__(self, metrics: Optional[List[str]] = None):
+    def __init__(self, metrics: list[str] | None = None):
         """
         Args:
             metrics: The performance metrics to transform. If `None`, all performance metrics are
@@ -35,13 +35,13 @@ class PerformanceTransformer(TransformerMixin):
         self.encoder = PerformanceEncoder(metrics)
 
     @property
-    def features_names_(self) -> List[str]:
+    def features_names_(self) -> list[str]:
         """
         Returns the feature names for the columns of the transformed performance objects.
         """
         return self.encoder.feature_names_
 
-    def fit(self, y: List[Performance]) -> PerformanceTransformer:
+    def fit(self, y: list[Performance]) -> PerformanceTransformer:
         """
         Uses the provided performances to fit the performance transformer.
 
@@ -51,7 +51,7 @@ class PerformanceTransformer(TransformerMixin):
         self.encoder.fit(y)
         return self
 
-    def transform(self, y: List[Performance]) -> npt.NDArray[np.float32]:
+    def transform(self, y: list[Performance]) -> npt.NDArray[np.float32]:
         """
         Transforms the provided performance object into NumPy arrays according to the fitted
         transformer.
@@ -67,7 +67,7 @@ class PerformanceTransformer(TransformerMixin):
 
     def inverse_transform(
         self, y: npt.NDArray[np.float32]
-    ) -> List[Performance]:
+    ) -> list[Performance]:
         """
         Transforms the provided NumPy arrays back into performance objects according to the fitted
         transformer.
@@ -87,12 +87,12 @@ class PerformanceTransformer(TransformerMixin):
 
 
 class PerformanceEncoder:
-    def __init__(self, metrics: Optional[List[str]] = None):
+    def __init__(self, metrics: list[str] | None = None):
         self.metrics = metrics
-        self.all_feature_names_: List[str]
-        self.feature_names_: List[str]
+        self.all_feature_names_: list[str]
+        self.feature_names_: list[str]
 
-    def fit(self, X: List[Performance], _y: Any = None) -> PerformanceEncoder:
+    def fit(self, X: list[Performance], _y: Any = None) -> PerformanceEncoder:
         df = Performance.to_dataframe(X)
         self.all_feature_names_ = df.columns.tolist()
         if self.metrics is None:
@@ -103,14 +103,14 @@ class PerformanceEncoder:
         return self
 
     def transform(
-        self, X: List[Performance], _y: Any = None
+        self, X: list[Performance], _y: Any = None
     ) -> npt.NDArray[np.float32]:
         df = Performance.to_dataframe(X)
         return df[self.feature_names_].to_numpy()
 
     def inverse_transform(
         self, X: npt.NDArray[np.float32], _y: Any = None
-    ) -> List[Performance]:
+    ) -> list[Performance]:
         df = pd.DataFrame(X, columns=self.feature_names_).assign(
             **{
                 col: np.nan

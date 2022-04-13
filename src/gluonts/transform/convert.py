@@ -51,7 +51,7 @@ def erf(x: np.ndarray) -> np.ndarray:
     for c in coefficients[::-1]:
         inner = t * (c + inner)
 
-    res = ones - t * np.exp((inner - 1.26551223 - np.square(x)))
+    res = ones - t * np.exp(inner - 1.26551223 - np.square(x))
     return np.where(x >= zeros, res, -1.0 * res)
 
 

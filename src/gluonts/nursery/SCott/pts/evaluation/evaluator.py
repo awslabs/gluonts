@@ -397,7 +397,7 @@ class Evaluator:
 
     @staticmethod
     def coverage(target, quantile_forecast):
-        return np.mean((target < quantile_forecast))
+        return np.mean(target < quantile_forecast)
 
     @staticmethod
     def mase(target, forecast, seasonal_error):
@@ -658,7 +658,7 @@ class MultivariateEvaluator(Evaluator):
         Dict[str, float]
             dictionary with aggregate datasets metrics
         """
-        agg_metrics, _ = super(MultivariateEvaluator, self).__call__(
+        agg_metrics, _ = super().__call__(
             self.extract_aggregate_target(ts_iterator, agg_fun),
             self.extract_aggregate_forecast(forecast_iterator, agg_fun),
         )
@@ -716,9 +716,7 @@ class MultivariateEvaluator(Evaluator):
         )
 
         for dim in eval_dims:
-            agg_metrics, metrics_per_ts = super(
-                MultivariateEvaluator, self
-            ).__call__(
+            agg_metrics, metrics_per_ts = super().__call__(
                 self.extract_target_by_dim(ts_iterator_set[dim], dim),
                 self.extract_forecast_by_dim(fcst_iterator_set[dim], dim),
             )

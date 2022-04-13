@@ -95,8 +95,8 @@ class DatasetConfig:
         return self.base_path / self.name()
 
     def stats(
-        self, root: Union[str, Path] = DEFAULT_DATA_STATS_PATH
-    ) -> Dict[str, float]:
+        self, root: str | Path = DEFAULT_DATA_STATS_PATH
+    ) -> dict[str, float]:
         """
         Returns basic statistics of the dataset.
 
@@ -108,7 +108,7 @@ class DatasetConfig:
             return json.load(f)
 
     def catch22(
-        self, root: Union[str, Path] = DEFAULT_DATA_CATCH22_PATH
+        self, root: str | Path = DEFAULT_DATA_CATCH22_PATH
     ) -> pd.DataFrame:
         """
         Returns the catch22 features of all time series in the dataset.
@@ -241,7 +241,7 @@ class EvaluationDataset:
 
 def _generate_evaluation_dataset(
     dataset: Dataset, prediction_length: int
-) -> Tuple[np.ndarray, ma.MaskedArray]:
+) -> tuple[np.ndarray, ma.MaskedArray]:
     # Extract data from all the values in the dataset
     pasts = []
     past_lengths = []

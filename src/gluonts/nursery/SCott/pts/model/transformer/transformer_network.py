@@ -415,11 +415,9 @@ class TransformerPredictionNetwork(TransformerNetwork):
 
         # (batch_size, num_samples, *target_shape, prediction_length)
         return samples.reshape(
-            (
-                (-1, self.num_parallel_samples)
-                + self.target_shape
-                + (self.prediction_length,)
-            )
+            (-1, self.num_parallel_samples)
+            + self.target_shape
+            + (self.prediction_length,)
         )
 
     def forward(

@@ -34,7 +34,7 @@ class QuantileForecasts:
     start_dates: npt.NDArray[np.float32]
     item_ids: npt.NDArray[np.float32]
     freq: pd.DateOffset
-    quantiles: List[str]
+    quantiles: list[str]
 
     @property
     def prediction_length(self) -> int:

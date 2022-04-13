@@ -44,7 +44,7 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
     None
     """
 
-    with open("{}-{}.json".format(tmp_path, EPOCH_INFO_STRING), "w") as f:
+    with open(f"{tmp_path}-{EPOCH_INFO_STRING}.json", "w") as f:
         json.dump(epoch_info, f)
 
 
@@ -113,12 +113,12 @@ class AveragingStrategy:
         checkpoint path).
         """
         epoch_info_files = glob.glob(
-            "{}/*-{}.json".format(model_path, EPOCH_INFO_STRING)
+            f"{model_path}/*-{EPOCH_INFO_STRING}.json"
         )
 
         assert (
             len(epoch_info_files) >= 1
-        ), "No checkpoints found in {}.".format(model_path)
+        ), f"No checkpoints found in {model_path}."
 
         all_checkpoint_info = list()
         for epoch_info in epoch_info_files:

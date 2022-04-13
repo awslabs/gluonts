@@ -55,7 +55,7 @@ class GluonTSPredictor(RealTimePredictor):
         # TODO: implement custom data serializer and deserializer: convert between gluonts dataset and bytes
         # Use the default functions from MXNet (they handle more than we need
         # (e.g: np.ndarrays), but that should be fine)
-        super(GluonTSPredictor, self).__init__(
+        super().__init__(
             endpoint_name,
             sagemaker_session,
             json_serializer,  # change this
@@ -112,7 +112,7 @@ class GluonTSModel(FrameworkModel):
             Keyword arguments passed to the ``FrameworkModel`` initializer.
         """
 
-        super(GluonTSModel, self).__init__(
+        super().__init__(
             model_data,
             image,
             role,

@@ -41,7 +41,7 @@ class Surrogate(ABC, Generic[T]):
     def __init__(
         self,
         tracker: Tracker[T],
-        predict: Optional[List[str]] = None,
+        predict: list[str] | None = None,
         output_normalization: OutputNormalization = None,
         impute_simulatable: bool = False,
     ):
@@ -75,7 +75,7 @@ class Surrogate(ABC, Generic[T]):
         """
         return 1
 
-    def fit(self, X: List[Config[T]], y: List[Performance]) -> None:
+    def fit(self, X: list[Config[T]], y: list[Performance]) -> None:
         """
         Uses the provided data to fit a model which is able to predict the target variables from
         the input.
@@ -111,7 +111,7 @@ class Surrogate(ABC, Generic[T]):
 
         self._fit(X, y_numpy)
 
-    def predict(self, X: List[Config[T]]) -> List[Performance]:
+    def predict(self, X: list[Config[T]]) -> list[Performance]:
         """
         Predicts the target variables for the given inputs. Typically requires `fit` to be called
         first.
@@ -139,11 +139,11 @@ class Surrogate(ABC, Generic[T]):
         return performances
 
     @abstractmethod
-    def _fit(self, X: List[Config[T]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(self, X: list[Config[T]], y: npt.NDArray[np.float32]) -> None:
         pass
 
     @abstractmethod
-    def _predict(self, X: List[Config[T]]) -> npt.NDArray[np.float32]:
+    def _predict(self, X: list[Config[T]]) -> npt.NDArray[np.float32]:
         pass
 
 

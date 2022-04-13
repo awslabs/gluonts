@@ -408,7 +408,7 @@ class LDS(Distribution):
             # transition_coeff_t:
             #   (num_samples, batch_size, latent_dim, latent_dim)
             # innovation_coeff_t: (num_samples, batch_size, 1, latent_dim)
-            emission_coeff_t, transition_coeff_t, innovation_coeff_t = [
+            emission_coeff_t, transition_coeff_t, innovation_coeff_t = (
                 _broadcast_param(coeff, axes=[0], sizes=[num_samples])
                 if num_samples is not None
                 else coeff
@@ -417,7 +417,7 @@ class LDS(Distribution):
                     self.transition_coeff[t],
                     self.innovation_coeff[t],
                 ]
-            ]
+            )
 
             # Expand residuals as well
             # residual_t: (num_samples, batch_size, obs_dim, 1)

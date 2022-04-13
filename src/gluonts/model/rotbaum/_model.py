@@ -49,13 +49,12 @@ class QuantileReg:
         from lightgbm import LGBMRegressor
 
         self.quantiles = quantiles
-        self.models = dict(
-            (
-                quantile,
-                LGBMRegressor(objective="quantile", alpha=quantile, **params),
+        self.models = {
+            quantile: LGBMRegressor(
+                objective="quantile", alpha=quantile, **params
             )
             for quantile in quantiles
-        )
+        }
 
     def fit(self, x_train, y_train):
         for model in self.models.values():

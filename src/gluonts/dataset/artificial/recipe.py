@@ -57,7 +57,7 @@ def resolve(val_or_callable: ValueOrCallable, context: Env, *args, **kwargs):
         return [resolve(v, context, *args, **kwargs) for v in val_or_callable]
     elif isinstance(val_or_callable, tuple):
         return tuple(
-            [resolve(v, context, *args, **kwargs) for v in val_or_callable]
+            resolve(v, context, *args, **kwargs) for v in val_or_callable
         )
     else:
         return val_or_callable
@@ -811,9 +811,7 @@ class Add(Lifted):
         self.inputs = inputs
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
-        return sum(
-            [resolve(k, x, length, *args, **kwargs) for k in self.inputs]
-        )
+        return sum(resolve(k, x, length, *args, **kwargs) for k in self.inputs)
 
 
 class Mul(Lifted):

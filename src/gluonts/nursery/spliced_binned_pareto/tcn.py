@@ -78,7 +78,7 @@ class Chomp1d(torch.nn.Module):
     """
 
     def __init__(self, chomp_size: int, last: bool = True):
-        super(Chomp1d, self).__init__()
+        super().__init__()
         self.chomp_size = chomp_size
         self.last = last
 
@@ -123,7 +123,7 @@ class TCNBlock(torch.nn.Module):
         final: bool = False,
     ):
 
-        super(TCNBlock, self).__init__()
+        super().__init__()
 
         in_channels = int(in_channels)
         kernel_size = int(kernel_size)
@@ -222,7 +222,7 @@ class TCN(torch.nn.Module):
         fwd_time: bool = True,
     ):
 
-        super(TCN, self).__init__()
+        super().__init__()
 
         layers = int(layers)
 

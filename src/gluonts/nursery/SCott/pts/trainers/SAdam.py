@@ -226,7 +226,7 @@ class SAdam:
                     )
                 )
             else:
-                print("\nTraining Loss: {:.4f} \n".format(avg_epoch_loss))
+                print(f"\nTraining Loss: {avg_epoch_loss:.4f} \n")
             print("Epoch ", epoch_no, " is done!")
 
         writer.close()

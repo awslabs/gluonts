@@ -103,10 +103,10 @@ def evaluate(
                 field_name=k,
                 global_state=global_state,
                 *args,
-                **kwargs
+                **kwargs,
             )
         except ValueError as e:
-            raise ValueError('Error while evaluating key "{}"'.format(k), e)
+            raise ValueError(f'Error while evaluating key "{k}"', e)
 
     return data
 
@@ -127,7 +127,7 @@ def make_func(
                 field_name=k,
                 global_state=global_state,
                 *args,
-                **kwargs
+                **kwargs,
             )
         return data
 
@@ -181,7 +181,7 @@ class Lifted:
         field_name: str,
         global_state: Dict,
         *args,
-        **kwargs
+        **kwargs,
     ):
         pass
 
@@ -404,7 +404,7 @@ class ForEachCat(Lifted):
         field_name: str,
         global_state: Dict,
         *args,
-        **kwargs
+        **kwargs,
     ):
         c = x[self.cat_field][self.cat_idx]
         if field_name not in global_state:
@@ -447,9 +447,7 @@ class Add(Lifted):
         self.inputs = inputs
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
-        return sum(
-            [resolve(k, x, length, *args, **kwargs) for k in self.inputs]
-        )
+        return sum(resolve(k, x, length, *args, **kwargs) for k in self.inputs)
 
 
 class Mul(Lifted):

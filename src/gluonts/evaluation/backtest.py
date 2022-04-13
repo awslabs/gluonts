@@ -193,7 +193,7 @@ class BacktestInformation(NamedTuple):
 
     @staticmethod
     def make_from_log(log_file):
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             return BacktestInformation.make_from_log_contents(
                 "\n".join(f.readlines())
             )

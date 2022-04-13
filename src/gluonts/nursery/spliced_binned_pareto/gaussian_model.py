@@ -31,7 +31,7 @@ class GaussianModel(nn.Module):
     """
 
     def __init__(self, mu, sigma, device=None):
-        super(GaussianModel, self).__init__()
+        super().__init__()
         if device is not None:
             self.device = device
             mu = mu.to(device)

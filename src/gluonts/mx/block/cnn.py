@@ -65,7 +65,7 @@ class CausalConv1D(gluon.HybridBlock):
         activation: Optional[str] = None,
         **kwargs,
     ):
-        super(CausalConv1D, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.dilation = _get_int(dilation)
         self.kernel_size = _get_int(kernel_size)
@@ -129,7 +129,7 @@ class DilatedCausalGated(gluon.HybridBlock):
         dilation: Union[int, Tuple[int], List[int]],
         **kwargs,
     ) -> None:
-        super(DilatedCausalGated, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         with self.name_scope():
             self.conv1 = CausalConv1D(
                 channels=inner_channels,
@@ -173,7 +173,7 @@ class ResidualSequential(gluon.nn.HybridSequential):
     """
 
     def __init__(self, **kwargs):
-        super(ResidualSequential, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:

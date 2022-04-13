@@ -72,10 +72,10 @@ class Job:
         self,
         model: str,
         dataset: str,
-        config: Dict[str, Any],
-        performance: Dict[str, Any],
-        source_path: Optional[Path] = None,
-        source_job: Optional[TrainingJob] = None,
+        config: dict[str, Any],
+        performance: dict[str, Any],
+        source_path: Path | None = None,
+        source_job: TrainingJob | None = None,
     ):
         """
         Args:
@@ -101,21 +101,21 @@ class Job:
         self.source_job = source_job
 
     @property
-    def hyperparameters(self) -> Dict[str, Any]:
+    def hyperparameters(self) -> dict[str, Any]:
         """
         Returns the hyperparameters associated with the job.
         """
         return self.config["hyperparameters"]
 
     @property
-    def static_metrics(self) -> Dict[str, Union[float, int]]:
+    def static_metrics(self) -> dict[str, float | int]:
         """
         Returns job metrics for which there exists only a single value.
         """
         return self.performance["meta"]
 
     @property
-    def metrics(self) -> List[Dict[str, Dict[str, Union[float, int]]]]:
+    def metrics(self) -> list[dict[str, dict[str, float | int]]]:
         """
         Returns job metrics that might be available for several models (i.e. checkpoints). The
         returned list provides the metrics, ordered by model.
@@ -123,7 +123,7 @@ class Job:
         return self.performance["performances"]
 
     @property
-    def performances(self) -> List[Performance]:
+    def performances(self) -> list[Performance]:
         """
         Returns the list of performances for all models associated with this job. The variances of
         all metrics will be set to 0.
@@ -234,7 +234,7 @@ class Job:
 # -------------------------------------------------------------------------------------------------
 
 
-def load_jobs_from_analysis(analysis: Analysis) -> List[Job]:
+def load_jobs_from_analysis(analysis: Analysis) -> list[Job]:
     """
     Returns all jobs loaded from the provided analysis object.
 
@@ -248,7 +248,7 @@ def load_jobs_from_analysis(analysis: Analysis) -> List[Job]:
     return [Job.from_training_job(job) for job in analysis]
 
 
-def load_jobs_from_directory(directory: Path) -> List[Job]:
+def load_jobs_from_directory(directory: Path) -> list[Job]:
     """
     Returns all jobs stored in the provided directory, assuming that the directory is structured as
     `<model>/<dataset>/<job>`.
@@ -267,7 +267,7 @@ def load_jobs_from_directory(directory: Path) -> List[Job]:
 # -------------------------------------------------------------------------------------------------
 
 
-def _extract_configuration(job: TrainingJob) -> Dict[str, Any]:
+def _extract_configuration(job: TrainingJob) -> dict[str, Any]:
     model = job.hyperparameters["model"]
 
     hyperparameters = {}
@@ -285,7 +285,7 @@ def _extract_configuration(job: TrainingJob) -> Dict[str, Any]:
     }
 
 
-def _extract_performance(job: TrainingJob) -> Dict[str, Any]:
+def _extract_performance(job: TrainingJob) -> dict[str, Any]:
     num_models = len(job.metrics["training_time"])
 
     # We need to keep the "mean_weighted_quantile_loss" for legacy experiments

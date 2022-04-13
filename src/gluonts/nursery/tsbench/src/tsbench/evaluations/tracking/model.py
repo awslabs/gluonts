@@ -127,8 +127,8 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def __init__(
         self,
-        jobs: List[Job],
-        validation_metric: Optional[ValidationMetric] = "val_ncrps",
+        jobs: list[Job],
+        validation_metric: ValidationMetric | None = "val_ncrps",
         group_seeds: bool = True,
         data_path: Path = DEFAULT_DATA_PATH,
     ):
@@ -155,7 +155,7 @@ class ModelTracker(Tracker[ModelConfig]):
             [info.performance for info in self.infos],
         )
 
-    def unique_model_configs(self) -> List[ModelConfig]:
+    def unique_model_configs(self) -> list[ModelConfig]:
         """
         Returns the unique model configurations that are available in the experiments managed by
         this tracker.
@@ -165,7 +165,7 @@ class ModelTracker(Tracker[ModelConfig]):
         """
         return list({c.model for c in self.config_map.keys()})
 
-    def get_training_jobs(self, config: Config[ModelConfig]) -> List[Job]:
+    def get_training_jobs(self, config: Config[ModelConfig]) -> list[Job]:
         """
         Returns all training jobs associated with the provided configuration.
 
@@ -179,7 +179,7 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def get_forecasts(
         self, config: Config[ModelConfig]
-    ) -> List[QuantileForecasts]:
+    ) -> list[QuantileForecasts]:
         """
         Returns the quantile forecasts of all models associated with the provided configuration,
         i.e. forecasts for the same model trained on different seeds.
@@ -198,7 +198,7 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def get_validation_scores(
         self, config: Config[ModelConfig]
-    ) -> Optional[ValidationScores]:
+    ) -> ValidationScores | None:
         """
         Returns the validation scores associated with the provided configuration if available.
 

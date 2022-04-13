@@ -54,7 +54,7 @@ class Digitize(mx.operator.CustomOp):
 @mx.operator.register("digitize")
 class DigitizeProp(mx.operator.CustomOpProp):
     def __init__(self):
-        super(DigitizeProp, self).__init__(True)
+        super().__init__(True)
 
     def list_arguments(self):
         return ["data", "bins"]
