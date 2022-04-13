@@ -40,7 +40,6 @@ def getF(var: Tensor):
 
 
 def _index_tensor(x: Tensor, item: Any) -> Tensor:
-    """ """
     squeeze: List[int] = []
     if not isinstance(item, tuple):
         item = (item,)
