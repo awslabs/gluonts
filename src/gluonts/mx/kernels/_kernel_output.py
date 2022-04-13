@@ -24,9 +24,7 @@ from . import Kernel
 
 
 class KernelOutput:
-    """
-    Class to connect a network to a kernel.
-    """
+    """Class to connect a network to a kernel."""
 
     def get_args_proj(self, float_type: Type) -> gluon.HybridBlock:
         raise NotImplementedError()
@@ -55,6 +53,7 @@ class KernelOutput:
         -------
         Tensor
             The standard deviation of the given data.
+
         """
         return F.sqrt(
             F.mean(
@@ -90,6 +89,7 @@ class KernelOutputDict(KernelOutput):
         Returns
         -------
         ArgProj
+
         """
         return ArgProj(
             args_dim=self.args_dim,

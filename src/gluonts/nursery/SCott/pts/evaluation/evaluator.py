@@ -40,8 +40,8 @@ from pts.model import Quantile, Forecast
 
 class Evaluator:
     """
-    Evaluator class, to compute accuracy metrics by comparing observations
-    to forecasts.
+    Evaluator class, to compute accuracy metrics by comparing observations to
+    forecasts.
 
     Parameters
     ----------
@@ -71,6 +71,7 @@ class Evaluator:
     chunk_size
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
+
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -121,6 +122,7 @@ class Evaluator:
             Dictionary of aggregated metrics
         pd.DataFrame
             DataFrame containing per-time-series metrics
+
         """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
@@ -519,10 +521,9 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-
     The MultivariateEvaluator class owns functionality for evaluating
-    multidimensional target arrays of shape
-    (target_dimensionality, prediction_length).
+    multidimensional target arrays of shape (target_dimensionality,
+    prediction_length).
 
     Evaluations of individual dimensions will be stored with the corresponding
     dimension prefix and contain the metrics calculated by only this dimension.
@@ -544,6 +545,7 @@ class MultivariateEvaluator(Evaluator):
         'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
         (if target_agg_funcs is set).
         'm_sum_abs_error': 4.2}
+
     """
 
     def __init__(

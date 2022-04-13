@@ -38,8 +38,7 @@ def ar_p(
     noise: Optional[np.ndarray] = None,
 ):
     """
-    Generate samples from an AR(p) process.
-    Parametrized as in
+    Generate samples from an AR(p) process. Parametrized as in.
 
     https://en.wikipedia.org/wiki/Autoregressive_model#Graphs_of_AR(p)_processes
 
@@ -58,6 +57,7 @@ def ar_p(
     noise
         An optional vector of noise samples to use. If provided it should have len `length`.
         If it is not provided, samples from a standard normal are used.
+
     """
     phi_ = np.asarray(phi, dtype=np.float64)
     xhist_ = np.asarray(xhist, dtype=np.float64)

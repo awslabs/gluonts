@@ -26,9 +26,7 @@ def maybe_len(obj) -> Optional[int]:
 
 
 def prod(xs: Iterable[T]) -> T:
-    """
-    Computes the product of the elements of an iterable object.
-    """
+    """Computes the product of the elements of an iterable object."""
     p = 1
     for x in xs:
         p *= x
@@ -36,9 +34,7 @@ def prod(xs: Iterable[T]) -> T:
 
 
 class Cyclic(Iterable):
-    """
-    Like `itertools.cycle`, but does not store the data.
-    """
+    """Like `itertools.cycle`, but does not store the data."""
 
     def __init__(self, iterable: Iterable) -> None:
         self.iterable = iterable
@@ -57,13 +53,15 @@ class Cyclic(Iterable):
 
 
 def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
-    """Groups elements from `iterable` into batches of size `batch_size`.
+    """
+    Groups elements from `iterable` into batches of size `batch_size`.
 
     >>> list(batcher("ABCDEFG", 3))
     [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
 
     Unlike the grouper proposed in the documentation of itertools, `batcher`
     doesn't fill up missing values.
+
     """
     it: Iterator[T] = iter(iterable)
 
@@ -76,7 +74,8 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
 
 class Cached(Iterable):
     """
-    An iterable wrapper, which caches values in a list the first time it is iterated.
+    An iterable wrapper, which caches values in a list the first time it is
+    iterated.
 
     The primary use-case for this is to avoid re-computing the element of the sequence,
     in case the inner iterable does it on demand.
@@ -84,6 +83,7 @@ class Cached(Iterable):
     This should be used to wrap deterministic iterables, i.e. iterables where the data
     generation process is not random, and that yield the same elements when iterated
     multiple times.
+
     """
 
     def __init__(self, iterable: Iterable) -> None:
@@ -104,9 +104,7 @@ class Cached(Iterable):
 
 
 class PseudoShuffled(Iterable):
-    """
-    Yields items from a given iterable in a pseudo-shuffled order.
-    """
+    """Yields items from a given iterable in a pseudo-shuffled order."""
 
     def __init__(self, iterable: Iterable, shuffle_buffer_length: int) -> None:
         self.iterable = iterable
@@ -128,10 +126,8 @@ class PseudoShuffled(Iterable):
 
 
 class IterableSlice(Iterable):
-    """
-    An iterable version of `itertools.islice`, i.e. one that can be iterated
-    over multiple times.
-    """
+    """An iterable version of `itertools.islice`, i.e. one that can be iterated
+    over multiple times."""
 
     def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
         self.iterable = iterable

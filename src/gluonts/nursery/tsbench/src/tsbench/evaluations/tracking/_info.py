@@ -29,9 +29,7 @@ ValidationMetric = Literal["train_loss", "val_loss", "val_ncrps"]
 
 @dataclass
 class ValidationScores:
-    """
-    Scores obtained during validation.
-    """
+    """Scores obtained during validation."""
 
     ncrps: float
     loss: float
@@ -40,9 +38,12 @@ class ValidationScores:
 @dataclass
 class JobInfo:
     """
-    The job info class aggregates all information available for a particular model configuration.
-    It also provides the underlying training jobs. Lastly, it provides the indices of the models
-    chosen from the training job to extract forecasts.
+    The job info class aggregates all information available for a particular
+    model configuration.
+
+    It also provides the underlying training jobs. Lastly, it provides the
+    indices of the models chosen from the training job to extract forecasts.
+
     """
 
     config: Config[ModelConfig]
@@ -61,9 +62,8 @@ def extract_job_infos(
     group_seeds: bool,
     data_path: Union[str, Path] = DEFAULT_DATA_PATH,
 ) -> List[JobInfo]:
-    """
-    Returns a list of the job information objects available for all training jobs provided.
-    """
+    """Returns a list of the job information objects available for all training
+    jobs provided."""
     # We group the jobs by hyperparameters, excluding the seed
     if group_seeds:
         grouped_jobs = defaultdict(list)

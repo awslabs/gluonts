@@ -64,7 +64,8 @@ import torch
 
 
 class Chomp1d(torch.nn.Module):
-    """Removes leading or trailing elements of a time series.
+    """
+    Removes leading or trailing elements of a time series.
 
     Takes as input a three-dimensional tensor (`B`, `C`, `L`) where `B` is the
     batch size, `C` is the number of input channels, and `L` is the length of
@@ -75,6 +76,7 @@ class Chomp1d(torch.nn.Module):
         chomp_size : Number of elements to remove.
         last : If True, removes the last elements in the time dimension,
             If False, removes the fist elements.
+
     """
 
     def __init__(self, chomp_size: int, last: bool = True):
@@ -92,7 +94,8 @@ class Chomp1d(torch.nn.Module):
 
 
 class TCNBlock(torch.nn.Module):
-    """Temporal Convolutional Network block.
+    """
+    Temporal Convolutional Network block.
 
     Composed sequentially of two causal convolutions (with leaky ReLU activation functions),
     and a parallel residual connection.
@@ -110,6 +113,7 @@ class TCNBlock(torch.nn.Module):
         fwd_time : If True, the network "causal" direction is from past to future (forward),
             if False, the relation is from future to past (backward).
         final : If True, the last activation function is disabled.
+
     """
 
     def __init__(
@@ -191,7 +195,8 @@ class TCNBlock(torch.nn.Module):
 
 
 class TCN(torch.nn.Module):
-    """Temporal Convolutional Network.
+    """
+    Temporal Convolutional Network.
 
     Composed of a sequence of causal convolution blocks.
 
@@ -209,6 +214,7 @@ class TCN(torch.nn.Module):
         bias : If True, adds a learnable bias to the convolutions.
         fwd_time : If True the network is the relation relation if from past to future (forward),
             if False, the relation from future to past (backward).
+
     """
 
     def __init__(

@@ -26,10 +26,12 @@ from gluonts.time_feature import get_seasonality
 
 def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     """
-    Test the time-series for seasonal patterns by performing a 90% auto-correlation test:
+    Test the time-series for seasonal patterns by performing a 90% auto-
+    correlation test:
 
     As described here: https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     Code based on: https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
+
     """
     critical_z_score = 1.645  # corresponds to 90% confidence interval
     if len(past_ts_data) < 3 * season_length:
@@ -65,6 +67,7 @@ def naive_2(
 
     As described here: https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     Code based on: https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
+
     """
     assert freq is not None or season_length is not None, (
         "Either the frequency or season length of the time series "
@@ -111,7 +114,8 @@ def naive_2(
 class Naive2Predictor(RepresentablePredictor):
     """
     Naïve 2 forecaster as described in the M4 Competition Guide:
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-
+    Guide.pdf.
 
     The python analogue implementation to:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R#L118
@@ -124,6 +128,7 @@ class Naive2Predictor(RepresentablePredictor):
         Number of time points to predict
     season_length
         Length of the seasonality pattern of the input data
+
     """
 
     @validated()

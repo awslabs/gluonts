@@ -23,8 +23,9 @@ class Estimator:
     """
     An abstract class representing a trainable model.
 
-    The underlying model is trained by calling the `train` method with
-    a training `Dataset`, producing a `Predictor` object.
+    The underlying model is trained by calling the `train` method with a
+    training `Dataset`, producing a `Predictor` object.
+
     """
 
     __version__: str = gluonts.__version__
@@ -57,6 +58,7 @@ class Estimator:
         -------
         Predictor
             The predictor containing the trained model.
+
         """
         raise NotImplementedError
 
@@ -88,6 +90,7 @@ class DummyEstimator(Estimator):
         `Predictor` class to instantiate.
     **kwargs
         Keyword arguments to pass to the predictor constructor.
+
     """
 
     @validated()

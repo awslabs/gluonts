@@ -53,10 +53,10 @@ from ._network import (
 
 class NBEATSEstimator(GluonEstimator):
     """
-    An Estimator based on a single (!) NBEATS Network (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
-    The actual NBEATS model is an ensemble of NBEATS Networks, and is implemented by
-    the "NBEATSEnsembleEstimator".
+    An Estimator based on a single (!) NBEATS Network (approximately) as
+    described in the paper:  https://arxiv.org/abs/1905.10437. The actual
+    NBEATS model is an ensemble of NBEATS Networks, and is implemented by the
+    "NBEATSEnsembleEstimator".
 
     Noteworthy differences in this implementation compared to the paper:
     * The parameter L_H is not implemented; we sample training sequences
@@ -125,6 +125,7 @@ class NBEATSEstimator(GluonEstimator):
         if True scales the input observations by the mean
     kwargs
         Arguments passed to 'GluonEstimator'.
+
     """
 
     @validated()

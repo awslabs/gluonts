@@ -22,9 +22,7 @@ from ._weighted_sampler import WeightedSampler
 
 
 class NPTS:
-    """
-    Here we collect all the methods needed for generating NPTS Forecasts.
-    """
+    """Here we collect all the methods needed for generating NPTS Forecasts."""
 
     @staticmethod
     def compute_weights(
@@ -62,6 +60,7 @@ class NPTS:
         Returns
         -------
         iterator over sampling weights
+
         """
 
         assert len(np.shape(train_features)) == 2, (
@@ -119,8 +118,8 @@ class NPTS:
         item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
-        Given the `targets`, generates `Forecast` containing prediction
-        samples for `predcition_length` time points.
+        Given the `targets`, generates `Forecast` containing prediction samples
+        for `predcition_length` time points.
 
         Predictions are generated via weighted sampling where the weights are
         specified in `sampling_weights_iterator`.
@@ -141,6 +140,7 @@ class NPTS:
         -------
         SampleForecast
            a :class:`SampleForecast` object for the given targets
+
         """
 
         # Note that to generate prediction from the second time step onwards,

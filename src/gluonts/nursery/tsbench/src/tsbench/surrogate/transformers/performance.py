@@ -21,10 +21,8 @@ from tsbench.evaluations.metrics import Performance
 
 
 class PerformanceTransformer(TransformerMixin):
-    """
-    The performance transformer transforms performances into model outputs for supervised learning
-    as well as model outputs to performance objects.
-    """
+    """The performance transformer transforms performances into model outputs
+    for supervised learning as well as model outputs to performance objects."""
 
     def __init__(self, metrics: list[str] | None = None):
         """
@@ -36,9 +34,8 @@ class PerformanceTransformer(TransformerMixin):
 
     @property
     def features_names_(self) -> list[str]:
-        """
-        Returns the feature names for the columns of the transformed performance objects.
-        """
+        """Returns the feature names for the columns of the transformed
+        performance objects."""
         return self.encoder.feature_names_
 
     def fit(self, y: list[Performance]) -> PerformanceTransformer:
@@ -47,14 +44,15 @@ class PerformanceTransformer(TransformerMixin):
 
         Args:
             y: The performance objects.
+
         """
         self.encoder.fit(y)
         return self
 
     def transform(self, y: list[Performance]) -> npt.NDArray[np.float32]:
         """
-        Transforms the provided performance object into NumPy arrays according to the fitted
-        transformer.
+        Transforms the provided performance object into NumPy arrays according
+        to the fitted transformer.
 
         Args:
             y: The performance objects.
@@ -62,6 +60,7 @@ class PerformanceTransformer(TransformerMixin):
         Returns:
             An array of shape [N, K] of transformed performance objects (N: the number of
                 performance objects, K: number of performance metrics).
+
         """
         return self.encoder.transform(y)
 
@@ -69,8 +68,8 @@ class PerformanceTransformer(TransformerMixin):
         self, y: npt.NDArray[np.float32]
     ) -> list[Performance]:
         """
-        Transforms the provided NumPy arrays back into performance objects according to the fitted
-        transformer.
+        Transforms the provided NumPy arrays back into performance objects
+        according to the fitted transformer.
 
         Args:
             y: A NumPy array of shape [N, K] of performances (N: number of performances, K: number
@@ -78,6 +77,7 @@ class PerformanceTransformer(TransformerMixin):
 
         Returns:
             The performance objects.
+
         """
         return self.encoder.inverse_transform(y)
 

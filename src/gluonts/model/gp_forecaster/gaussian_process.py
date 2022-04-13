@@ -325,9 +325,10 @@ class GaussianProcess:
         axis: Optional[List] = None,
     ) -> None:
         """
-        This method plots the sampled GP distribution at the test points in solid colors, as well as the predictive
-        mean as the dashed red line.  Plus and minus 2 predictive standard deviations are shown in the grey region.
-        The training points are shown as the blue dots.
+        This method plots the sampled GP distribution at the test points in
+        solid colors, as well as the predictive mean as the dashed red line.
+        Plus and minus 2 predictive standard deviations are shown in the grey
+        region. The training points are shown as the blue dots.
 
         Parameters
         ----------
@@ -347,6 +348,7 @@ class GaussianProcess:
             GP samples of shape (batch_size, prediction_length, num_samples).
         axis
             Plot axes limits
+
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be

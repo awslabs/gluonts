@@ -31,8 +31,9 @@ def compute_owa(
     metadata: List[MetaData],
 ) -> float:
     """
-    Computes the OWA metric from the M4 competition, using a weighted average of the relative
-    MASE and sMAPE metrics depending on the size of the datasets.
+    Computes the OWA metric from the M4 competition, using a weighted average
+    of the relative MASE and sMAPE metrics depending on the size of the
+    datasets.
 
     Args:
         metrics: The forecast's metrics (MASE and sMAPE).
@@ -42,6 +43,7 @@ def compute_owa(
 
     Returns:
         The OWA metric value.
+
     """
     assert (
         len(metrics) == len(datasets) == len(metadata)

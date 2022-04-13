@@ -103,6 +103,7 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         lagged : Tensor
             a tensor of shape (N, S, C, I), where S = subsequences_length and I = len(indices), containing lagged
             subsequences. Specifically, lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
+
         """
         # we must have: sequence_length - lag_index - subsequences_length >= 0
         # for all lag_index, hence the following assert
@@ -138,7 +139,9 @@ class TransformerNetwork(mx.gluon.HybridBlock):
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Creates inputs for the transformer network.
+
         All tensor arguments should have NTC layout.
+
         """
 
         if future_time_feat is None or future_target is None:
@@ -239,7 +242,8 @@ class TransformerTrainingNetwork(TransformerNetwork):
         future_target: Tensor,
     ) -> Tensor:
         """
-        Computes the loss for training Transformer, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training Transformer, all inputs tensors
+        representing time series have NTC layout.
 
         Parameters
         ----------
@@ -254,6 +258,7 @@ class TransformerTrainingNetwork(TransformerNetwork):
         Returns
         -------
         Loss with shape (batch_size, context + prediction_length, 1)
+
         """
 
         # create the inputs for the encoder
@@ -312,7 +317,8 @@ class TransformerPredictionNetwork(TransformerNetwork):
         enc_out: Tensor,
     ) -> Tensor:
         """
-        Computes sample paths by unrolling the LSTM starting with a initial input and state.
+        Computes sample paths by unrolling the LSTM starting with a initial
+        input and state.
 
         Parameters
         ----------
@@ -331,6 +337,7 @@ class TransformerPredictionNetwork(TransformerNetwork):
         --------
         sample_paths : Tensor
             a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
+
         """
 
         # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism

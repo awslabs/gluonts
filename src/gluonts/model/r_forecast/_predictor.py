@@ -61,7 +61,8 @@ SUPPORTED_METHODS = (
 
 class RForecastPredictor(RepresentablePredictor):
     """
-    Wrapper for calling the `R forecast package
+    Wrapper for calling the `R forecast package.
+
     <http://pkg.robjhyndman.com/forecast/>`_.
 
     The `RForecastPredictor` is a thin wrapper for calling the R forecast
@@ -89,6 +90,7 @@ class RForecastPredictor(RepresentablePredictor):
     params
         Parameters to be used when calling the forecast method default.
         Note that currently only `output_type = 'samples'` is supported.
+
     """
 
     @validated()

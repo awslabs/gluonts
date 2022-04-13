@@ -266,9 +266,7 @@ class BoxCoxTransformOutput(BijectionOutput):
 
 
 class InverseBoxCoxTransform(InverseBijection):
-    """
-    Implements the inverse of Box-Cox transformation as a bijection.
-    """
+    """Implements the inverse of Box-Cox transformation as a bijection."""
 
     arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 

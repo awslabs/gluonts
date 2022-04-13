@@ -26,8 +26,9 @@ class Bijection:
     """
     A bijective transformation.
 
-    This is defined through the forward transformation (computed by the
-    `f` method) and the inverse transformation (`f_inv`).
+    This is defined through the forward transformation (computed by the `f`
+    method) and the inverse transformation (`f_inv`).
+
     """
 
     @validated()
@@ -72,9 +73,7 @@ class Bijection:
 
     @property
     def sign(self) -> Union[float, Tensor]:
-        """
-        Return the sign of the Jacobian's determinant.
-        """
+        """Return the sign of the Jacobian's determinant."""
         raise NotImplementedError()
 
 
@@ -89,6 +88,7 @@ class InverseBijection(Bijection):
     ----------
     bijection
         The transformation to invert.
+
     """
 
     @validated()
@@ -118,9 +118,8 @@ class InverseBijection(Bijection):
 
 
 class ComposedBijection(Bijection):
-    """
-    Encapsulates a series of bijections and implements functions associated to their composition.
-    """
+    """Encapsulates a series of bijections and implements functions associated
+    to their composition."""
 
     @validated()
     def __init__(self, bijections: Optional[List[Bijection]] = None) -> None:
@@ -169,6 +168,7 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Transformation of y by the inverse composition of bijections
+
         """
         x = y
         for t in reversed(self._bijections):
@@ -177,7 +177,8 @@ class ComposedBijection(Bijection):
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         """
-        Logarithm of the absolute value of the Jacobian determinant corresponding to the composed bijection
+        Logarithm of the absolute value of the Jacobian determinant
+        corresponding to the composed bijection.
 
         Parameters
         ----------
@@ -231,13 +232,11 @@ class ComposedBijection(Bijection):
 
 
 class BijectionHybridBlock(HybridBlock, Bijection):
-    """Allows a Bijection to have parameters"""
+    """Allows a Bijection to have parameters."""
 
 
 class ComposedBijectionHybridBlock(BijectionHybridBlock, ComposedBijection):
-    """
-    Allows a ComposedBijection object to have parameters
-    """
+    """Allows a ComposedBijection object to have parameters."""
 
     @validated()
     def __init__(
@@ -337,6 +336,7 @@ class AffineTransformation(Bijection):
         Translation parameter. If unspecified or `None`, this will be zero.
     scale
         Scaling parameter. If unspecified or `None`, this will be one.
+
     """
 
     @validated()

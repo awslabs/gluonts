@@ -107,8 +107,9 @@ class PeriodicKernelOutput(KernelOutputDict):
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP Periodic Kernel hyper-parameters by using the standard deviations
-        of the past_target and past_time_features.
+        This function returns the scales for the GP Periodic Kernel hyper-
+        parameters by using the standard deviations of the past_target and
+        past_time_features.
 
         Parameters
         ----------
@@ -125,6 +126,7 @@ class PeriodicKernelOutput(KernelOutputDict):
         Tuple
             Three scaled GP hyper-parameters for the Periodic Kernel and scaled model noise hyper-parameter.
             Each is a Tensor of shape (batch_size, 1, 1).
+
         """
         axis = 1
         sigma_scaling = (

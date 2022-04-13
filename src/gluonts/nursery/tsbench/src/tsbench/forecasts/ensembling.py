@@ -35,8 +35,8 @@ def ensemble_forecasts(
     ncrps: Optional[List[float]] = None,
 ) -> QuantileForecasts:
     """
-    Ensembles the provided forecasts by computing a weighted average across quantile and time
-    steps.
+    Ensembles the provided forecasts by computing a weighted average across
+    quantile and time steps.
 
     Args:
         forecasts: The forecasts to ensemble. Each list item should contain the forecasts of a
@@ -47,6 +47,7 @@ def ensemble_forecasts(
 
     Returns:
         The averaged forecasts.
+
     """
     # First, compute the weights via the provided quantile losses
     if weighting == "relative":

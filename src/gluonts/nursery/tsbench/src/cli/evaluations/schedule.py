@@ -114,9 +114,12 @@ def schedule(
     local: bool,
 ):
     """
-    Schedules evaluations on AWS Sagemaker by running a grid search over the configurations
-    provided in the given file(s). As AWS Sagemaker does not allow queuing jobs, this script is
-    running as long as not all evaluation runs have been scheduled.
+    Schedules evaluations on AWS Sagemaker by running a grid search over the
+    configurations provided in the given file(s).
+
+    As AWS Sagemaker does not allow queuing jobs, this script is running as
+    long as not all evaluation runs have been scheduled.
+
     """
     assert instance_type[:5] not in (
         "ml.p3",

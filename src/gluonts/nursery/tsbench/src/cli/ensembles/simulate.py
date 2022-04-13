@@ -100,8 +100,11 @@ def simulate(
     seed: int,
 ):
     """
-    Simulates the performance of various ensembles. The ensembles are built from configurations
-    (i.e. model types and hyperparameters) for which offline evaluations are available.
+    Simulates the performance of various ensembles.
+
+    The ensembles are built from configurations (i.e. model types and
+    hyperparameters) for which offline evaluations are available.
+
     """
     assert any(
         [default_samples != 0, hyperensemble_samples != 0, random_samples != 0]

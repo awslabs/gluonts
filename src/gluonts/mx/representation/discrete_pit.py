@@ -45,6 +45,7 @@ class DiscretePIT(Representation):
         following heuristic is used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
+
     """
 
     @validated()

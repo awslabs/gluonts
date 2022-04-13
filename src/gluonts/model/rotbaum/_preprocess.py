@@ -31,8 +31,10 @@ Cardinality = Union[List[int], CardinalityLabel]
 
 class PreprocessGeneric:
     """
-    Class for the purpose of preprocessing time series. The method
-    make_features needs to be custom-made by inherited classes.
+    Class for the purpose of preprocessing time series.
+
+    The method make_features needs to be custom-made by inherited classes.
+
     """
 
     @validated()
@@ -98,6 +100,7 @@ class PreprocessGeneric:
         Returns
         -------
         list
+
         """
         raise NotImplementedError()
 
@@ -128,6 +131,7 @@ class PreprocessGeneric:
         -------
         tuple
             list of feature datapoints, list of target datapoints
+
         """
         altered_time_series = time_series.copy()
         if self.n_ignore_last > 0:
@@ -200,7 +204,7 @@ class PreprocessGeneric:
     ) -> Tuple:
         """
         Applies self.preprocess_from_single_ts for each time series in ts_list,
-        and collates the results into self.feature_data and self.target_data
+        and collates the results into self.feature_data and self.target_data.
 
         Parameters
         ----------
@@ -215,6 +219,7 @@ class PreprocessGeneric:
         tuple
             If change_internal_variables is False, then returns:
             list of feature datapoints, list of target datapoints
+
         """
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
@@ -243,10 +248,8 @@ class PreprocessGeneric:
             return feature_data, target_data
 
     def get_num_samples(self, ts_list) -> int:
-        """
-        Outputs a reasonable choice for number of windows to sample from
-        each time series at training time.
-        """
+        """Outputs a reasonable choice for number of windows to sample from
+        each time series at training time."""
         n_time_series = sum(
             len(time_series["target"])
             - self.context_window_size
@@ -310,10 +313,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
         """
-        Makes features given time series window. Returns list of features,
-        one for every step of the lag (equaling mean-adjusted lag features);
-        and a dictionary of statistics features (one for mean and one for
-        standard deviation).
+        Makes features given time series window. Returns list of features, one
+        for every step of the lag (equaling mean-adjusted lag features); and a
+        dictionary of statistics features (one for mean and one for standard
+        deviation).
 
         Parameters
         ----------
@@ -327,6 +330,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             'mean': np.mean(time_series_window),
             'std': np.std(time_series_window)
         }
+
         """
         mean_value = np.mean(time_series_window)
         return (
@@ -376,6 +380,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         Returns
         -------
         list
+
         """
         end_index = starting_index + self.context_window_size
         if starting_index < 0:

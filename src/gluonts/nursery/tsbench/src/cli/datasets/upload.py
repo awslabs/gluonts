@@ -41,9 +41,7 @@ from ._main import datasets
     help="The prefix in the S3 bucket.",
 )
 def upload(path: str, bucket: str, prefix: str):
-    """
-    Uploads the data for all datasets available locally to an S3 bucket.
-    """
+    """Uploads the data for all datasets available locally to an S3 bucket."""
     s3 = default_session().client("s3")
     for config in tqdm(DATASET_REGISTRY.values()):
         upload_directory(

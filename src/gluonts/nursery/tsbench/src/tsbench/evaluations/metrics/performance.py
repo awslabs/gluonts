@@ -21,9 +21,8 @@ from .metric import Metric
 
 @dataclass
 class Performance:
-    """
-    The performance class encapsulates the metrics that are recorded for configurations.
-    """
+    """The performance class encapsulates the metrics that are recorded for
+    configurations."""
 
     training_time: Metric
     latency: Metric
@@ -39,8 +38,11 @@ class Performance:
     @classmethod
     def from_dict(cls, metrics: dict[str, float | int]) -> Performance:
         """
-        Initializes a new performance object from the given 1D dictionary. Metrics are expected to
-        be provided via `<metric>_mean` and `<metric>_std` keys.
+        Initializes a new performance object from the given 1D dictionary.
+
+        Metrics are expected to be provided via `<metric>_mean` and
+        `<metric>_std` keys.
+
         """
         kwargs = {
             m: Metric(metrics[f"{m}_mean"], metrics[f"{m}_std"])
@@ -50,9 +52,8 @@ class Performance:
 
     @classmethod
     def metrics(cls) -> list[str]:
-        """
-        Returns the list of metrics that are exposed by the performance class.
-        """
+        """Returns the list of metrics that are exposed by the performance
+        class."""
         # pylint: disable=no-member
         return list(cls.__dataclass_fields__.keys())  # type: ignore
 
@@ -60,9 +61,7 @@ class Performance:
     def to_dataframe(
         cls, performances: list[Performance], std: bool = True
     ) -> pd.DataFrame:
-        """
-        Returns a data frame representing the provided performances.
-        """
+        """Returns a data frame representing the provided performances."""
         fields = sorted(
             Performance.__dataclass_fields__.keys()
         )  # pylint: disable=no-member

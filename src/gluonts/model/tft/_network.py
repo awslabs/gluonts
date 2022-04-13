@@ -56,6 +56,7 @@ class FeatureProjector(HybridBlock):
 
     dtype
         Data type of the embedded features.
+
     """
 
     @validated()

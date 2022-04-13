@@ -34,8 +34,8 @@ def evaluate_forecasts(
     forecasts: QuantileForecasts, data: EvaluationDataset
 ) -> Evaluation:
     """
-    Evaluates the forecasts on the provided dataset and returns the metrics averaged over all time
-    series.
+    Evaluates the forecasts on the provided dataset and returns the metrics
+    averaged over all time series.
 
     Args:
         forecasts: The per time-series forecasts. The forecasts *must* align with the time series
@@ -44,6 +44,7 @@ def evaluate_forecasts(
 
     Returns:
         The evaluation of the forecasts.
+
     """
     assert len(forecasts) > 0, "At least one forecast must be given."
     assert len(forecasts) == len(
@@ -72,9 +73,8 @@ def evaluate_forecasts(
 
 @dataclass
 class Evaluation:
-    """
-    An evaluation instance provides per time-series metrics as well as overall metrics.
-    """
+    """An evaluation instance provides per time-series metrics as well as
+    overall metrics."""
 
     summary: dict[str, float]
     """
@@ -92,6 +92,7 @@ class Evaluation:
         Returns:
             The performance object. Since this is not part of the evaluation, it has the
                 `num_model_parameters` attribute unset (set to zero).
+
         """
         metrics = [e.summary for e in evaluations]
         kwargs = {

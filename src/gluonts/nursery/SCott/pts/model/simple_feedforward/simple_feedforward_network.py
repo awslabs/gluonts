@@ -34,6 +34,7 @@ class SimpleFeedForwardNetworkBase(nn.Module):
     distr_output
         Distribution to fit.
     kwargs
+
     """
 
     @validated()

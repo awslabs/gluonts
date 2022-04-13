@@ -68,7 +68,9 @@ from torch.distributions.normal import Normal
 
 
 class DistributionalTCN(torch.nn.Module):
-    """Distributional Temporal Convolutional Network: a TCN to learn a time-varying distribution.
+    """
+    Distributional Temporal Convolutional Network: a TCN to learn a time-
+    varying distribution.
 
     Composed of a sequence of causal convolution blocks.
 
@@ -87,6 +89,7 @@ class DistributionalTCN(torch.nn.Module):
         fwd_time : If True the network is the relation relation if from past to future (forward),
                 if False, the relation from future to past (backward).
         output_distr: Distribution whose parameters will be specified by the network output
+
     """
 
     def __init__(

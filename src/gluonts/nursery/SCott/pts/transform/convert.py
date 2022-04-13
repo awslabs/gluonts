@@ -38,6 +38,7 @@ class AsNumpyArray(SimpleTransformation):
         dimensions does not match.
     dtype
         numpy dtype to use.
+
     """
 
     @validated()
@@ -83,6 +84,7 @@ class ExpandDimArray(SimpleTransformation):
         Field in dictionary to use
     axis
         Axis to expand (see np.expand_dims for details)
+
     """
 
     @validated()
@@ -110,6 +112,7 @@ class VstackFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
+
     """
 
     @validated()
@@ -156,6 +159,7 @@ class ConcatFeatures(SimpleTransformation):
         Fields to stack together
     drop_inputs
         If set to true the input fields will be dropped.
+
     """
 
     @validated()
@@ -198,6 +202,7 @@ class SwapAxes(SimpleTransformation):
         Field to apply to
     axes
         Axes to use
+
     """
 
     @validated()
@@ -234,6 +239,7 @@ class ListFeatures(SimpleTransformation):
         Fields to combine into list
     drop_inputs
         If true the input fields will be removed from the result.
+
     """
 
     @validated()
@@ -261,9 +267,7 @@ class ListFeatures(SimpleTransformation):
 
 
 class TargetDimIndicator(SimpleTransformation):
-    """
-    Label-encoding of the target dimensions.
-    """
+    """Label-encoding of the target dimensions."""
 
     @validated()
     def __init__(self, field_name: str, target_field: str) -> None:
@@ -276,9 +280,7 @@ class TargetDimIndicator(SimpleTransformation):
 
 
 class SampleTargetDim(FlatMapTransformation):
-    """
-    Samples random dimensions from the target at training time.
-    """
+    """Samples random dimensions from the target at training time."""
 
     @validated()
     def __init__(
@@ -325,12 +327,13 @@ class SampleTargetDim(FlatMapTransformation):
 
 class CDFtoGaussianTransform(MapTransformation):
     """
-    Marginal transformation that transforms the target via an empirical CDF
-    to a standard gaussian as described here: https://arxiv.org/abs/1910.03002
+    Marginal transformation that transforms the target via an empirical CDF to
+    a standard gaussian as described here: https://arxiv.org/abs/1910.03002.
 
     To be used in conjunction with a multivariate gaussian to from a copula.
     Note that this transformation is currently intended for multivariate
     targets only.
+
     """
 
     @validated()
@@ -357,6 +360,7 @@ class CDFtoGaussianTransform(MapTransformation):
             Suffix to mark the field with the transformed target.
         max_context_length
             Sets the maximum context length for the empirical CDF.
+
         """
         self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
@@ -387,10 +391,9 @@ class CDFtoGaussianTransform(MapTransformation):
     def _preprocess_data(self, data: DataEntry, is_train: bool):
         """
         Performs several preprocess operations for computing the empirical CDF.
-        1) Reshaping the data.
-        2) Normalizing the target length.
-        3) Adding noise to avoid zero slopes (training only)
-        4) Sorting the target to compute the empirical CDF
+        1) Reshaping the data. 2) Normalizing the target length. 3) Adding
+        noise to avoid zero slopes (training only) 4) Sorting the target to
+        compute the empirical CDF.
 
         Parameters
         ----------
@@ -448,8 +451,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _calc_pw_linear_params(self, data: DataEntry):
         """
-        Calculates the piece-wise linear parameters to interpolate between
-        the observed values in the empirical CDF.
+        Calculates the piece-wise linear parameters to interpolate between the
+        observed values in the empirical CDF.
 
         Once current limitation is that we use a zero slope line as the last
         piece. Thus, we cannot forecast anything higher than the highest
@@ -561,6 +564,7 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         indices
             Indices mapping to the active linear function.
+
         """
         indices_left = np.searchsorted(sorted_vec, to_insert_vec, side="left")
         indices_right = np.searchsorted(
@@ -599,6 +603,7 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         transformed_target
             Transformed target vector.
+
         """
         transformed = list()
         for sorted, t, slope, intercept in zip(
@@ -626,7 +631,7 @@ class CDFtoGaussianTransform(MapTransformation):
     def winsorized_cutoff(m: np.array) -> np.array:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
-        described here: https://arxiv.org/abs/0903.0649
+        described here: https://arxiv.org/abs/0903.0649.
 
         Parameters
         ----------
@@ -637,6 +642,7 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         res
             Truncated empirical CDf values.
+
         """
         res = 1 / (4 * m**0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1
@@ -656,6 +662,7 @@ class CDFtoGaussianTransform(MapTransformation):
         Returns
         -------
             array of shape (target_length, dim)
+
         """
 
         current_length, target_dim = target.shape

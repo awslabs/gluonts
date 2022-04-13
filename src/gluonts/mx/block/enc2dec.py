@@ -20,10 +20,8 @@ from gluonts.mx import Tensor
 
 
 class Seq2SeqEnc2Dec(nn.HybridBlock):
-    """
-    Abstract class for any module that pass encoder to decoder, such as
-    attention network.
-    """
+    """Abstract class for any module that pass encoder to decoder, such as
+    attention network."""
 
     @validated()
     def __init__(self, **kwargs):
@@ -55,8 +53,10 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
 
 class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     """
-    Simplest class for passing encoder tensors do decoder. Passes through
-    tensors, except that future_features_dynamic is dropped.
+    Simplest class for passing encoder tensors do decoder.
+
+    Passes through tensors, except that future_features_dynamic is dropped.
+
     """
 
     def hybrid_forward(
@@ -92,10 +92,8 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
 
 
 class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
-    """
-    Integrates the encoder_output_dynamic and future_features_dynamic into one
-    and passes them through as the dynamic input to the decoder.
-    """
+    """Integrates the encoder_output_dynamic and future_features_dynamic into
+    one and passes them through as the dynamic input to the decoder."""
 
     def hybrid_forward(
         self,

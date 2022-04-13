@@ -88,7 +88,8 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
     """
-    Constructs a DeepVARHierarchical estimator, which is a hierachical extension of DeepVAR.
+    Constructs a DeepVARHierarchical estimator, which is a hierachical
+    extension of DeepVAR.
 
     The model has been described in the ICML 2021 paper:
     http://proceedings.mlr.press/v139/rangapuram21a.html
@@ -174,6 +175,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         case these are automatically determined based on freq)
     batch_size
         The size of the batches to be used training and prediction.
+
     """
 
     @validated()

@@ -31,6 +31,7 @@ class Scaler(nn.HybridBlock):
     axis
         specify the axis over which to scale. Default is 1 for (N, T, C)
         shaped input tensor.
+
     """
 
     def __init__(self, keepdims: bool = False, axis: int = 1):
@@ -56,6 +57,7 @@ class Scaler(nn.HybridBlock):
             observed_indicator: binary tensor with the same shape as
             ``data``, that has 1 in correspondence of observed data points,
             and 0 in correspondence of missing data points.
+
         """
         raise NotImplementedError()
 
@@ -113,6 +115,7 @@ class MeanScaler(Scaler):
     ----------
     minimum_scale
         default scale that is used if the time series has only zeros.
+
     """
 
     @validated()
@@ -185,9 +188,8 @@ class MeanScaler(Scaler):
 
 
 class MinMax(Scaler):
-    """
-    The 'MinMax' scales the input data using a min-max approach along the specified axis.
-    """
+    """The 'MinMax' scales the input data using a min-max approach along the
+    specified axis."""
 
     @validated()
     def __init__(self, *args, **kwargs):
@@ -254,10 +256,8 @@ class MinMax(Scaler):
 
 
 class NOPScaler(Scaler):
-    """
-    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
-    no scaling is applied upon calling the ``NOPScaler``.
-    """
+    """The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
+    no scaling is applied upon calling the ``NOPScaler``."""
 
     @validated()
     def __init__(self, *args, **kwargs):

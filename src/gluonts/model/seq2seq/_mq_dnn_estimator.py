@@ -34,7 +34,8 @@ from gluonts.mx.trainer import Trainer
 class MQCNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
-    encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN Forecaster, proposed in [WTN+17]_.
+    encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN
+    Forecaster, proposed in [WTN+17]_.
 
     Parameters
     ----------
@@ -113,6 +114,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Determines whether to use IQF or QF. (default: True).
     batch_size
         The size of the batches to be used training and prediction.
+
     """
 
     @validated()
@@ -313,7 +315,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 class MQRNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Recurrent Neural Network (RNN) as an
-    encoder and a multi-quantile MLP as a decoder. Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
+    encoder and a multi-quantile MLP as a decoder.
+
+    Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
+
     """
 
     @validated()

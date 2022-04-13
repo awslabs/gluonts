@@ -50,6 +50,7 @@ class QuantileLoss(Loss):
 
         batch_axis
             indicates axis that represents the batch.
+
         """
         super().__init__(weight, batch_axis, **kwargs)
 
@@ -87,6 +88,7 @@ class QuantileLoss(Loss):
         -------
         Tensor
             weighted sum of the quantile losses, shape N1 x N1 x ... Nk
+
         """
         if self.num_quantiles > 1:
             y_pred_all = F.split(
@@ -117,7 +119,7 @@ class QuantileLoss(Loss):
         F, y_true: Tensor, y_pred_p: Tensor, p: float
     ) -> Tensor:
         """
-        Compute the quantile loss of the given quantile
+        Compute the quantile loss of the given quantile.
 
         Parameters
         ----------
@@ -139,6 +141,7 @@ class QuantileLoss(Loss):
         -------
         Tensor
             quantile loss, shape: (N1 x N2 x ... x Nk x 1)
+
         """
 
         under_bias = p * F.maximum(y_true - y_pred_p, 0)
@@ -150,7 +153,8 @@ class QuantileLoss(Loss):
 
     def compute_quantile_weights(self) -> List:
         """
-        Compute the exact weights of the approximated integral
+        Compute the exact weights of the approximated integral.
+
         CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i})
         under the assumption of linear interpolation or SQF, where z_i is the
         ith quantile prediction q_i. The inner terms cancel due to the telescoping sum
@@ -162,6 +166,7 @@ class QuantileLoss(Loss):
         -------
         List
             weights of the quantiles.
+
         """
         assert (
             self.num_quantiles >= 0
@@ -193,6 +198,7 @@ class ProjectParams(nn.HybridBlock):
         number of quantiles to compute the projection.
     is_iqf
         determines whether to use IQF or QF.
+
     """
 
     @validated()
@@ -265,6 +271,7 @@ class QuantileOutput:
 
     is_iqf
         determines whether to use IQF or QF.
+
     """
 
     @validated()

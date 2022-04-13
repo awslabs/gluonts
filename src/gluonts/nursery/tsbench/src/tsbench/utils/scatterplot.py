@@ -21,7 +21,8 @@ from tsbench.recommender.utils import pareto_efficiency_mask
 
 @dataclass
 class Dimension:
-    """A dimension describes a combination of metric name and its display name."""
+    """A dimension describes a combination of metric name and its display
+    name."""
 
     metric: str
     displayName: str
@@ -29,9 +30,8 @@ class Dimension:
 
 @dataclass
 class DataEntry:
-    """
-    A data entry describes a set of datapoints to be displayed and how they should be displayed.
-    """
+    """A data entry describes a set of datapoints to be displayed and how they
+    should be displayed."""
 
     data: pd.DataFrame
     color: str
@@ -58,9 +58,8 @@ def plot_scatter_matrix(  # pylint: disable=too-many-statements
     xmul: float = 1,
     plot_pareto_front: bool = False,
 ) -> None:
-    """
-    Creates a set of plots that visualize the data entries along the provided dimensions.
-    """
+    """Creates a set of plots that visualize the data entries along the
+    provided dimensions."""
     n = len(dimensions)
     fig, axes = plt.subplots(
         n - 1, n - 1, figsize=((n - 1) * size[0], (n - 1) * size[1]), dpi=150

@@ -272,7 +272,8 @@ class GluonTSFramework(Framework):
         image_uri: str = None,
         **kwargs,
     ) -> GluonTSModel:
-        """Create a ``GluonTSModel`` object that can be deployed to an
+        """
+        Create a ``GluonTSModel`` object that can be deployed to an
         ``Endpoint``.
 
         Parameters
@@ -370,6 +371,7 @@ class GluonTSFramework(Framework):
             gluonts.sagemaker.GluonTSModel
                 A ``GluonTSModel`` object.
                 See :func:`~gluonts.sagemaker.GluonTSModel` for full details.
+
         """
 
         return GluonTSModel(
@@ -395,7 +397,7 @@ class GluonTSFramework(Framework):
     ):
         """
         Convert the job description to init params that can be handled by the
-        class constructor
+        class constructor.
 
         Parameters
         ----------
@@ -408,6 +410,7 @@ class GluonTSFramework(Framework):
         -------
         Dict:
             The transformed init_params
+
         """
 
         init_params = super()._prepare_init_params_from_job_description(
@@ -562,6 +565,7 @@ class GluonTSFramework(Framework):
         --------
         job_name
             The job name used during training.
+
         """
 
         if not job_name:
@@ -609,9 +613,10 @@ class GluonTSFramework(Framework):
         **kwargs,
     ) -> Tuple[Framework, str]:
         """
-        Use this function to run a custom script specified in 'entry_point' in GluonTSFramework.
-        To access files on s3 specify them in inputs. If you want to access local files you should
-        have specified them in 'dependencies' in GluonTSFramework.
+        Use this function to run a custom script specified in 'entry_point' in
+        GluonTSFramework. To access files on s3 specify them in inputs. If you
+        want to access local files you should have specified them in
+        'dependencies' in GluonTSFramework.
 
         Parameters
         ----------
@@ -751,6 +756,7 @@ class GluonTSFramework(Framework):
         --------
             Tuple[Framework, str]:
                 The GluonTSFramework and the job name of the training job.
+
         """
 
         experiment = GluonTSFramework(

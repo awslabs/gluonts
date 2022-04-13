@@ -151,7 +151,9 @@ class TransformerNetwork(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Creates inputs for the transformer network.
+
         All tensor arguments should have NTC layout.
+
         """
 
         if future_time_feat is None or future_target is None:

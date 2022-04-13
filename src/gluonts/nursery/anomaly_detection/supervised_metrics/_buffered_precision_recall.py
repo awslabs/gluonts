@@ -34,6 +34,7 @@ def extend_ranges(
     Returns
     -------
     out_ranges: List[range]
+
     """
     if not ranges:
         return []
@@ -76,8 +77,8 @@ def buffered_precision_recall(
     buffer_length: int = 5,
 ) -> Tuple[float, float]:
     """
-    Implements a new range-based precision recall metric, that measures how well anomalies
-    (`real_ranges`) are caught with labels (`pred_ranges`).
+    Implements a new range-based precision recall metric, that measures how
+    well anomalies (`real_ranges`) are caught with labels (`pred_ranges`).
 
     We extend anomaly ranges by a number of time steps (`buffer_length`) to accomodate
     those raised with a lag. For example, if an annotator has marked `range(5, 9)`, and the
@@ -126,6 +127,7 @@ def buffered_precision_recall(
     recall: float
         Recall. Ratio of (extended) anomaly ranges that were caught by (overlaps with)
         at least one prediction range.
+
     """
     if len(real_ranges) == 0 and len(pred_ranges) == 0:
         return 1.0, 1.0

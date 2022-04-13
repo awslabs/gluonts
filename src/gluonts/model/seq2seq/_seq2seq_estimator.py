@@ -59,10 +59,7 @@ from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
 
 
 class Seq2SeqEstimator(GluonEstimator):
-    """
-    Quantile-Regression Sequence-to-Sequence Estimator
-
-    """
+    """Quantile-Regression Sequence-to-Sequence Estimator."""
 
     @validated()
     def __init__(

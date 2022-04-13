@@ -32,14 +32,16 @@ from .session import default_session
 # -------------------------------------------------------------------------------------------------
 class Artifact:
     """
-    An artifact manages an untarred model artifact of a training job. More precisely, it manages
-    a local temporary directory which contains all files stored as artifacts.
+    An artifact manages an untarred model artifact of a training job. More
+    precisely, it manages a local temporary directory which contains all files
+    stored as artifacts.
 
     The artifact ought to be used within a `with` statement. Upon exit, the temporary directory is
     cleaned up.
 
     Attributes:
         path: The path of the artifact's managed directory.
+
     """
 
     def __init__(self, path: Path, cleanup: bool):
@@ -48,6 +50,7 @@ class Artifact:
 
         **Note: Do not call this initializer yourself. It is merely returned when accessing the
         artifacts of a training job.**
+
         """
         self.path = path
         self.cleanup = cleanup
@@ -62,9 +65,8 @@ class Artifact:
 
 # -------------------------------------------------------------------------------------------------
 class TrainingJob:
-    """
-    A training job represents a Sagemaker training job within an experiment.
-    """
+    """A training job represents a Sagemaker training job within an
+    experiment."""
 
     def __init__(self, info: Any):
         """
@@ -72,35 +74,28 @@ class TrainingJob:
 
         **Note: This method should only be called in the context of an Analysis object. Do not use
         this initializer yourself.**
+
         """
         self.info = info
 
     @property
     def name(self) -> str:
-        """
-        Returns the name of the training job.
-        """
+        """Returns the name of the training job."""
         return self.info["TrainingJobName"]
 
     @property
     def status(self) -> str:
-        """
-        Returns the status of the training job.
-        """
+        """Returns the status of the training job."""
         return self.info["TrainingJobStatus"]
 
     @property
     def date_created(self) -> datetime.datetime:
-        """
-        Returns the date and time when the training job was created.
-        """
+        """Returns the date and time when the training job was created."""
         return self.info["CreationTime"]
 
     @property
     def hyperparameters(self) -> dict[str, Any]:
-        """
-        Returns all user-defined hyper parameters.
-        """
+        """Returns all user-defined hyper parameters."""
         return {
             k: _process_hyperparameter_value(v)
             for k, v in self.info["HyperParameters"].items()
@@ -110,10 +105,8 @@ class TrainingJob:
 
     @lru_cache()
     def pull_logs(self) -> list[str]:
-        """
-        Pulls the training job's logs such that subsequent accesses to the `logs` property are
-        noops.
-        """
+        """Pulls the training job's logs such that subsequent accesses to the
+        `logs` property are noops."""
         # Check if the logs are already available locally
         log_file = self._cache_dir() / "logs.txt"
         if log_file.exists():
@@ -154,9 +147,7 @@ class TrainingJob:
 
     @property
     def logs(self) -> list[str]:
-        """
-        Retrieves the logs emitted by this training job.
-        """
+        """Retrieves the logs emitted by this training job."""
         # We can't put the `pull_logs` code here directly since `cached_property` seems to be CPU-
         # bound for some odd reason.
         return self.pull_logs()
@@ -164,8 +155,11 @@ class TrainingJob:
     @cached_property
     def metrics(self) -> dict[str, np.ndarray]:
         """
-        Fetches the metrics defined by the training script from the training job's logs. For each
-        metric, it returns a 1D NumPy array (ordered chronologically).
+        Fetches the metrics defined by the training script from the training
+        job's logs.
+
+        For each metric, it returns a 1D NumPy array (ordered chronologically).
+
         """
         # Check if the logs are already available locally
         metrics_file = self._cache_dir() / "metrics.json"
@@ -194,7 +188,8 @@ class TrainingJob:
 
     def artifact(self, cache: bool = True) -> Artifact:
         """
-        Retrieves the model artifact from S3 and stores it locally in a temporary directory.
+        Retrieves the model artifact from S3 and stores it locally in a
+        temporary directory.
 
         Args:
             cache: Whether to cache the extracted artifact.
@@ -202,6 +197,7 @@ class TrainingJob:
         Returns:
             The artifact which contains the untarred model artifact directory. The artifact should
                 be wrapped in a `with` statement such that the directory is cleaned up after usage.
+
         """
         cache_dir = self._cache_dir() / "artifacts"
 
@@ -235,9 +231,7 @@ class TrainingJob:
         return Artifact(target, cleanup=not cache)
 
     def move_to(self, experiment: str) -> None:
-        """
-        Updates the experiment tag to the provided name.
-        """
+        """Updates the experiment tag to the provided name."""
         client = default_session().client("sagemaker")
         client.add_tags(
             ResourceArn=self.info["TrainingJobArn"],
@@ -245,9 +239,7 @@ class TrainingJob:
         )
 
     def delete(self) -> None:
-        """
-        Deletes the training job by removing all tags associated with it.
-        """
+        """Deletes the training job by removing all tags associated with it."""
         client = default_session().client("sagemaker")
 
         existing_tags = client.list_tags(
@@ -284,9 +276,8 @@ class TrainingJob:
 
 # -------------------------------------------------------------------------------------------------
 class Analysis:
-    """
-    The analysis object allows analyzing a set of training jobs that belong to the same experiment.
-    """
+    """The analysis object allows analyzing a set of training jobs that belong
+    to the same experiment."""
 
     def __init__(
         self,
@@ -296,9 +287,9 @@ class Analysis:
         resolve_duplicates: bool = True,
     ):
         """
-        Initializes a new analysis object, using the specified session to make requests to AWS and
-        Sagemaker. The initializer already fetches all training jobs belonging to the provided
-        experiment.
+        Initializes a new analysis object, using the specified session to make
+        requests to AWS and Sagemaker. The initializer already fetches all
+        training jobs belonging to the provided experiment.
 
         Args:
             session: The session to interact with AWS services.
@@ -310,6 +301,7 @@ class Analysis:
                 will be passed to this callback.
             resolve_duplicates: Whether to exclude the older experiments if experiments with the
                 same hyperparameters are found.
+
         """
         self.experiment_name = experiment
         training_jobs, duplicates = _fetch_training_jobs(
@@ -327,16 +319,12 @@ class Analysis:
             )
 
     def get(self, name: str) -> TrainingJob:
-        """
-        Returns the training job with the specified name.
-        """
+        """Returns the training job with the specified name."""
         return self.map[name]
 
     @property
     def status(self) -> dict[str, int]:
-        """
-        Returns the aggregate statistics about the status of all jobs.
-        """
+        """Returns the aggregate statistics about the status of all jobs."""
         c = Counter([t.status for t in self.map.values()])
         return dict(c)
 
@@ -357,9 +345,7 @@ def _fetch_training_jobs(
     only_completed: bool,
     resolve_duplicates: bool,
 ) -> tuple[list[TrainingJob], list[TrainingJob]]:
-    """
-    Fetches all training jobs which are associated with this experiment.
-    """
+    """Fetches all training jobs which are associated with this experiment."""
     client = session.client("sagemaker")
     search_params = {
         "MaxResults": 100,

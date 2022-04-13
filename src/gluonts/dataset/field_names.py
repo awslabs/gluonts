@@ -13,10 +13,8 @@
 
 
 class FieldName:
-    """
-    A bundle of default field names to be used by clients when instantiating
-    transformer instances.
-    """
+    """A bundle of default field names to be used by clients when instantiating
+    transformer instances."""
 
     ITEM_ID = "item_id"
 

@@ -26,9 +26,7 @@ from gluonts.core.component import validated
 class QRF:
     @validated()
     def __init__(self, params: Optional[dict] = None):
-        """
-        Implements Quantile Random Forests using skgarden.
-        """
+        """Implements Quantile Random Forests using skgarden."""
         from skgarden import RandomForestQuantileRegressor
 
         self.model = RandomForestQuantileRegressor(**params)
@@ -43,9 +41,7 @@ class QRF:
 class QuantileReg:
     @validated()
     def __init__(self, quantiles: List, params: Optional[dict] = None):
-        """
-        Implements quantile regression using lightgbm.
-        """
+        """Implements quantile regression using lightgbm."""
         from lightgbm import LGBMRegressor
 
         self.quantiles = quantiles
@@ -99,6 +95,7 @@ class QRX:
         min_bin_size
             Hyperparameter that determines the minimal size of the list of
             true values associated with each prediction.
+
         """
         if model:
             self.model = copy.deepcopy(model)
@@ -113,9 +110,7 @@ class QRX:
 
     @staticmethod
     def _create_xgboost_model(model_params: Optional[dict] = None):
-        """
-        Creates an xgboost model using specified or default parameters.
-        """
+        """Creates an xgboost model using specified or default parameters."""
         if model_params is None:
             model_params = {
                 "max_depth": 5,
@@ -142,11 +137,14 @@ class QRX:
         **kwargs
     ):
         """
-        Fits self.model and partitions R^n into cells. More accurately,
-        it creates two dictionaries: self.preds_to_ids whose keys are the
-        predictions of the training dataset and whose values are the ids of
-        their associated bins, and self.ids_to_bins whose keys are the ids
-        of the bins and whose values are associated lists of true values.
+        Fits self.model and partitions R^n into cells.
+
+        More accurately, it creates two dictionaries: self.preds_to_ids whose
+        keys are the predictions of the training dataset and whose values are
+        the ids of their associated bins, and self.ids_to_bins whose keys are
+        the ids of the bins and whose values are associated lists of true
+        values.
+
         """
         self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = defaultdict(dict)
@@ -213,12 +211,12 @@ class QRX:
         dic: Dict, min_num: int, sorted_keys: Optional[List] = None
     ) -> Dict:
         """
-        Returns a new dictionary whose keys are the same as dic's keys.
-        Runs over dic's keys, from smallest to largest, and every time that
-        the sum of the lengths of the values goes over min_num, it makes the
-        new dictionary's values for the associated keys reference a single
-        list object whose elements are the with-multiplicity union of the
-        lists that appear as values in dic.
+        Returns a new dictionary whose keys are the same as dic's keys. Runs
+        over dic's keys, from smallest to largest, and every time that the sum
+        of the lengths of the values goes over min_num, it makes the new
+        dictionary's values for the associated keys reference a single list
+        object whose elements are the with-multiplicity union of the lists that
+        appear as values in dic.
 
         Note that in the dictionary that is being output by this function,
         while the keys are the same number of keys as in dic, the number of
@@ -248,6 +246,7 @@ class QRX:
         dict
             float to list; with the values often having the same list object
             appear multiple times
+
         """
         if sorted_keys is None:
             sorted_keys = sorted(dic)
@@ -287,6 +286,7 @@ class QRX:
             going from predictions from the set of predictions on the
             training set to lists of associated true values, with the length
             of each being at least min_bin_size.
+
         """
         dic = dict(df.groupby("y_pred")["y_true"].apply(list))
         dic = self.clump(dic, min_bin_size, self.sorted_train_preds)
@@ -296,7 +296,9 @@ class QRX:
     def get_closest_pt(cls, sorted_list: List, num: int) -> int:
         """
         Given a sorted list of floats, returns the number closest to num.
+
         Implements a binary search.
+
         """
         assert sorted_list
         if len(sorted_list) == 1:
@@ -318,7 +320,8 @@ class QRX:
         self, feature_vector_in_train: List, quantile: float
     ):
         """
-        Updates self.quantile_dicts[quantile][feature_vector_in_train] to be the quantile of the associated true value bin.
+        Updates self.quantile_dicts[quantile][feature_vector_in_train] to be
+        the quantile of the associated true value bin.
 
         Parameters
         ----------
@@ -330,6 +333,7 @@ class QRX:
         -------
         float
             The quantile of the associated true value bin.
+
         """
         if feature_vector_in_train not in self.quantile_dicts[quantile]:
             self.quantile_dicts[quantile][
@@ -356,6 +360,7 @@ class QRX:
         -------
         list
             list of floats
+
         """
         if self.x_train_is_dataframe:
             preds = self.model.predict(x_test)
@@ -384,7 +389,7 @@ class QRX:
 
     def estimate_dist(self, x_test: List[List[float]]) -> List:
         """
-        Get estimate of sampling of Y|X=x for each x in x_test
+        Get estimate of sampling of Y|X=x for each x in x_test.
 
         Parameters
         ----------
@@ -394,6 +399,7 @@ class QRX:
         -------
         list
             list of lists
+
         """
         predicted_samples = []
         for pt in x_test:

@@ -280,15 +280,16 @@ class SelectNBestMean(AveragingStrategy):
 
 class ModelAveraging(Callback):
     """
-    Callback to implement model averaging strategies.
-    Selects the checkpoints with the best loss values and computes the model
-    average or weighted model average depending on the chosen avg_strategy.
+    Callback to implement model averaging strategies. Selects the checkpoints
+    with the best loss values and computes the model average or weighted model
+    average depending on the chosen avg_strategy.
 
     Parameters
     ----------
     avg_strategy
         AveragingStrategy, one of SelectNBestSoftmax or SelectNBestMean from
         gluonts.mx.trainer.model_averaging.
+
     """
 
     @validated()

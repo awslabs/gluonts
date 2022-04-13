@@ -42,6 +42,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         for every prediction.
     freq
         Frequency of the predicted data.
+
     """
 
     @validated()
@@ -77,8 +78,8 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
 
 class MovingAveragePredictor(RepresentablePredictor):
     """
-    A :class:`Predictor` that predicts the moving average based on the
-    last `context_length` elements of the input target.
+    A :class:`Predictor` that predicts the moving average based on the last
+    `context_length` elements of the input target.
 
     If `prediction_length` = 1, the output is the moving average
     based on the last `context_length` elements of the input target.
@@ -97,6 +98,7 @@ class MovingAveragePredictor(RepresentablePredictor):
         Length of the prediction horizon.
     freq
         Frequency of the predicted data.
+
     """
 
     @validated()
@@ -136,9 +138,9 @@ class MovingAveragePredictor(RepresentablePredictor):
 
 class MeanEstimator(Estimator):
     """
-    An `Estimator` that computes the mean targets in the training data,
-    in the trailing `prediction_length` observations, and produces
-    a `ConstantPredictor` that always predicts such mean value.
+    An `Estimator` that computes the mean targets in the training data, in the
+    trailing `prediction_length` observations, and produces a
+    `ConstantPredictor` that always predicts such mean value.
 
     Parameters
     ----------
@@ -149,6 +151,7 @@ class MeanEstimator(Estimator):
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
+
     """
 
     @validated()

@@ -39,9 +39,7 @@ from ._factory import register_model
 @register_model
 @dataclass(frozen=True)
 class SeasonalNaiveModelConfig(ModelConfig):
-    """
-    The seasonal naive estimator.
-    """
+    """The seasonal naive estimator."""
 
     @classmethod
     def name(cls) -> str:
@@ -66,9 +64,7 @@ class SeasonalNaiveModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class ThetaModelConfig(ModelConfig):
-    """
-    The Theta R estimator config.
-    """
+    """The Theta R estimator config."""
 
     @classmethod
     def name(cls) -> str:
@@ -93,9 +89,7 @@ class ThetaModelConfig(ModelConfig):
 
 @dataclass(frozen=True)
 class Naive2ModelConfig(ModelConfig):
-    """
-    The Naïve 2 model as used in the M4 competition.
-    """
+    """The Naïve 2 model as used in the M4 competition."""
 
     @classmethod
     def name(cls) -> str:
@@ -118,9 +112,7 @@ class Naive2ModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class NptsModelConfig(ModelConfig):
-    """
-    The NPTS estimator config.
-    """
+    """The NPTS estimator config."""
 
     @classmethod
     def name(cls) -> str:
@@ -141,9 +133,7 @@ class NptsModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class DeepARModelConfig(ModelConfig, TrainConfig):
-    """
-    The DeepAR estimator config.
-    """
+    """The DeepAR estimator config."""
 
     num_layers: int = 2
     num_cells: int = 40
@@ -186,9 +176,7 @@ class DeepARModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class MQCnnModelConfig(ModelConfig, TrainConfig):
-    """
-    The MQCNN estimator config.
-    """
+    """The MQCNN estimator config."""
 
     context_length_multiple: int = 4
     num_filters: int = 30
@@ -238,9 +226,7 @@ class MQCnnModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class MQRnnModelConfig(ModelConfig, TrainConfig):
-    """
-    The MQRNN estimator config.
-    """
+    """The MQRNN estimator config."""
 
     context_length_multiple: int = 4
 
@@ -279,9 +265,7 @@ class MQRnnModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class SimpleFeedforwardModelConfig(ModelConfig, TrainConfig):
-    """
-    The simple feedforward estimator config.
-    """
+    """The simple feedforward estimator config."""
 
     hidden_dim: int = 40
     num_layers: int = 2
@@ -322,9 +306,7 @@ class SimpleFeedforwardModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class TemporalFusionTransformerModelConfig(ModelConfig, TrainConfig):
-    """
-    The temporal fusion transformer estimator config.
-    """
+    """The temporal fusion transformer estimator config."""
 
     hidden_dim: int = 32
     num_heads: int = 4
@@ -367,9 +349,7 @@ class TemporalFusionTransformerModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class NBeatsModelConfig(ModelConfig, TrainConfig):
-    """
-    The NBeats estimator config.
-    """
+    """The NBeats estimator config."""
 
     context_length_multiple: int = 2
     num_stacks: int = 30
@@ -416,9 +396,7 @@ class NBeatsModelConfig(ModelConfig, TrainConfig):
 @register_model
 @dataclass(frozen=True)
 class ProphetModelConfig(ModelConfig):
-    """
-    The Prophet estimator config.
-    """
+    """The Prophet estimator config."""
 
     @classmethod
     def name(cls) -> str:
@@ -460,9 +438,7 @@ class ProphetModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class STLARModelConfig(ModelConfig):
-    """
-    The STL-AR estimator config.
-    """
+    """The STL-AR estimator config."""
 
     @classmethod
     def name(cls) -> str:
@@ -488,9 +464,7 @@ class STLARModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class ARIMAModelConfig(ModelConfig):
-    """
-    The ARIMA estimator config.
-    """
+    """The ARIMA estimator config."""
 
     @classmethod
     def name(cls) -> str:
@@ -525,9 +499,7 @@ class ARIMAModelConfig(ModelConfig):
 @register_model
 @dataclass(frozen=True)
 class ETSModelConfig(ModelConfig):
-    """
-    The ETS estimator config.
-    """
+    """The ETS estimator config."""
 
     @classmethod
     def name(cls) -> str:

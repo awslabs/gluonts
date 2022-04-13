@@ -43,9 +43,8 @@ AGGREGATION_METHODS = "median", "mean", "none"
 
 
 class NBEATSEnsemblePredictor(Predictor):
-    """ "
-    An ensemble predictor for N-BEATS.
-    Calling '.predict' will result in::
+    """
+    " An ensemble predictor for N-BEATS. Calling '.predict' will result in::
 
         |predictors|x|dataset|
 
@@ -65,6 +64,7 @@ class NBEATSEnsemblePredictor(Predictor):
         The method by which to aggregate the individual predictions of the models.
         Either 'median', 'mean' or 'none', in which case no aggregation happens.
         Default is 'median'.
+
     """
 
     def __init__(
@@ -111,7 +111,7 @@ class NBEATSEnsemblePredictor(Predictor):
         cls, path: Path, ctx: Optional[mx.Context] = None, **kwargs
     ) -> "NBEATSEnsemblePredictor":
         """
-        Load a serialized NBEATSEnsemblePredictor from the given path
+        Load a serialized NBEATSEnsemblePredictor from the given path.
 
         Parameters
         ----------
@@ -120,6 +120,7 @@ class NBEATSEnsemblePredictor(Predictor):
         ctx
             Optional mxnet context parameter to be used with the predictor.
             If nothing is passed will use the GPU if available and CPU otherwise.
+
         """
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
@@ -212,10 +213,9 @@ class NBEATSEnsemblePredictor(Predictor):
             )
 
     def __eq__(self, that):
-        """
-        Unfortunately it cannot be guaranteed that two predictors are not equal if this returns false
-        if for some reason the order of the predictors list has been altered.
-        """
+        """Unfortunately it cannot be guaranteed that two predictors are not
+        equal if this returns false if for some reason the order of the
+        predictors list has been altered."""
         if type(self) != type(that):
             return False
 
@@ -241,8 +241,8 @@ class NBEATSEnsemblePredictor(Predictor):
 
 class NBEATSEnsembleEstimator(Estimator):
     """
-    An ensemble N-BEATS Estimator (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
+    An ensemble N-BEATS Estimator (approximately) as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
     together define the way the sub-models are assembled together.
@@ -313,6 +313,7 @@ class NBEATSEnsembleEstimator(Estimator):
         Recommended value for interpretable mode: ["T","S"]
     **kwargs
         Arguments passed down to the individual estimators.
+
     """
 
     # The validated() decorator makes sure that parameters are checked by

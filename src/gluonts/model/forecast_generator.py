@@ -64,6 +64,7 @@ def recursively_zip_arrays(x) -> Iterator:
     For (nested) tuples of arrays `(a, (b, c))`
 
         _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
+
     """
     raise NotImplementedError
 
@@ -98,9 +99,7 @@ def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
 
 
 class ForecastGenerator:
-    """
-    Classes used to bring the output of a network into a class.
-    """
+    """Classes used to bring the output of a network into a class."""
 
     def __call__(
         self,

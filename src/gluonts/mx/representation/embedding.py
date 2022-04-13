@@ -23,8 +23,9 @@ from .representation import Representation
 
 class Embedding(Representation):
     """
-    A class representing an embedding operation on top of a given binning.
-    Note that this representation is intended to applied on top of categorical/binned data.
+    A class representing an embedding operation on top of a given binning. Note
+    that this representation is intended to applied on top of
+    categorical/binned data.
 
     Parameters
     ----------
@@ -34,6 +35,7 @@ class Embedding(Representation):
         The desired embedding size. By default, the following heuristic is used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
+
     """
 
     @validated()

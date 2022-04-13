@@ -22,20 +22,19 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 @dataclass
 class Evaluations(Generic[T]):
-    """
-    Generic base for evaluations of models.
-    """
+    """Generic base for evaluations of models."""
 
     configurations: List[Config[T]]
     performances: List[Performance]
 
     def dataframe(self, std: bool = True) -> pd.DataFrame:
         """
-        Returns a dataframe which contains the performance metrics as columns and the
-        configurations as multi-index.
+        Returns a dataframe which contains the performance metrics as columns
+        and the configurations as multi-index.
 
         Args:
             std: Whether to include the standard deviation of performance metrics in the dataframe.
+
         """
         # Should implement this for ensembles as well
         index_df = Config.to_dataframe(

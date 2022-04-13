@@ -254,6 +254,7 @@ class Trainer:
         validation_iter
             Similar to `train_iter` but the batches produced here are used to
             compute validation metrics.
+
         """
         is_validation_available = validation_iter is not None
 

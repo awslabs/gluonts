@@ -209,11 +209,13 @@ class EmpiricalDistribution(Distribution):
 
 class EmpiricalDistributionOutput(DistributionOutput):
     """
-    This allows us to wrap `EmpiricalDistribution` by any parametric distribution and learn the parameters by
-    minimizing CRPS loss on the samples of `EmpiricalDistribution`.
+    This allows us to wrap `EmpiricalDistribution` by any parametric
+    distribution and learn the parameters by minimizing CRPS loss on the
+    samples of `EmpiricalDistribution`.
 
-    See the inference test `test_empirical_distribution` in `test.distribution.test_mx_distribution_inference` which
-    checks if the CRPS loss is correctly implemented.
+    See the inference test `test_empirical_distribution` in
+    `test.distribution.test_mx_distribution_inference` which checks if the CRPS
+    loss is correctly implemented.
 
     """
 

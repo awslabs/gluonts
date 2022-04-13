@@ -47,9 +47,8 @@ mx.autograd = autograd  # type: ignore
 
 
 class TimedTrainer(Trainer):
-    """
-    A custom trainer whose training duration is based on wall clock time instead of epochs.
-    """
+    """A custom trainer whose training duration is based on wall clock time
+    instead of epochs."""
 
     @validated()
     def __init__(

@@ -93,8 +93,8 @@ class NBEATSEnsemblePredictor(Predictor):
 
 class NBEATSEnsembleEstimator(Estimator):
     """
-    An ensemble N-BEATS Estimator (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
+    An ensemble N-BEATS Estimator (approximately) as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
     together define the way the sub-models are assembled together.
@@ -165,6 +165,7 @@ class NBEATSEnsembleEstimator(Estimator):
         Recommended value for interpretable mode: ["T","S"]
     **kwargs
         Arguments passed down to the individual estimators.
+
     """
 
     def __init__(

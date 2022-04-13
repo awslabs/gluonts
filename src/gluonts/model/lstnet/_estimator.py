@@ -110,6 +110,7 @@ class LSTNetEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     dtype
         Data type (default: np.float32)
+
     """
 
     @validated()

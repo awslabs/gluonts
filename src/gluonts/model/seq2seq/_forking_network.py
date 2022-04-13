@@ -60,6 +60,7 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
     kwargs: dict
         dictionary of Gluon HybridBlock parameters
+
     """
 
     @validated()

@@ -212,6 +212,7 @@ class DeepVAREstimator(GluonEstimator):
         Controls the sampling of windows during validation.
     batch_size
         The size of the batches to be used training and prediction.
+
     """
 
     @validated()

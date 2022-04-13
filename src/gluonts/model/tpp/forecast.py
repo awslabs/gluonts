@@ -23,10 +23,10 @@ from gluonts.model.forecast import Config, Forecast, OutputType
 
 class PointProcessSampleForecast(Forecast):
     """
-    Sample forecast object used for temporal point process inference.
-    Differs from standard forecast objects as it does not implement
-    fixed length samples. Each sample has a variable length, that is
-    kept in a separate :code:`valid_length` attribute.
+    Sample forecast object used for temporal point process inference. Differs
+    from standard forecast objects as it does not implement fixed length
+    samples. Each sample has a variable length, that is kept in a separate
+    :code:`valid_length` attribute.
 
     Importantly, PointProcessSampleForecast does not implement some
     methods (such as :code:`quantile` or :code:`plot`) that are available
@@ -54,6 +54,7 @@ class PointProcessSampleForecast(Forecast):
         Item ID, if available.
     info
         Optional dictionary of additional information.
+
     """
 
     prediction_interval_length: float

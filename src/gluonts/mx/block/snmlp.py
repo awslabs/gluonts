@@ -31,8 +31,8 @@ def jacobian_sn_mlp_block_bf(
     layers: List[Tuple[mx.gluon.HybridBlock, Tensor]]
 ) -> Tensor:
     """
-    Brute force computation of the jacobian of a SNMlpBlock
-    jac is of shape (Batch dim1, ..., Output dim, Input dim)
+    Brute force computation of the jacobian of a SNMlpBlock jac is of shape
+    (Batch dim1, ..., Output dim, Input dim)
 
     Parameters
     ----------

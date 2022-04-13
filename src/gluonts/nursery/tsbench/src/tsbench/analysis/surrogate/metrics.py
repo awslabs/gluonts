@@ -29,6 +29,7 @@ def nrmse(
 
     Returns:
         Array of shape [D] with the average NRMSE for each metric.
+
     """
     rmse = np.sqrt((y_pred - y_true) ** 2).mean(0)
     return rmse / np.abs(y_true).mean(0)
@@ -47,6 +48,7 @@ def smape(
 
     Returns:
         Array of shape [D] with the average sMAPE for each metric.
+
     """
     num = np.abs(y_pred - y_true)
     denom = (np.abs(y_pred) + np.abs(y_true)) / 2
@@ -66,6 +68,7 @@ def mrr(
 
     Returns:
         Array of shape [D] with the average MRR for each metric.
+
     """
     minimum_indices = y_pred.argmin(0)  # [D]
     true_ranks = st.rankdata(y_true, method="min", axis=0)  # [N, D]
@@ -90,6 +93,7 @@ def precision_k(
 
     Returns:
         Array of shape [D] with the precisions@k for each metric.
+
     """
     pred_ranks = st.rankdata(y_pred, method="ordinal", axis=0) - 1  # [N, D]
     true_ranks = st.rankdata(y_true, method="ordinal", axis=0) - 1  # [N, D]
@@ -113,6 +117,7 @@ def ndcg(
 
     Returns:
         Array of shape [D] with the nDCG for each metric.
+
     """
     n = y_pred.shape[0]
 

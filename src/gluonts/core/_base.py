@@ -27,6 +27,7 @@ def fqname_for(obj: Any) -> str:
     -------
     str
         The fully qualified name of ``obj``.
+
     """
 
     if "<locals>" in obj.__qualname__:

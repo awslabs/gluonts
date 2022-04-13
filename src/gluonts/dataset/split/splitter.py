@@ -52,9 +52,8 @@ from gluonts.dataset.field_names import FieldName
 
 
 class TimeSeriesSlice(pydantic.BaseModel):
-    """Like DataEntry, but all time-related fields are of type pd.Series
-    and is indexable, e.g `ts_slice['2018':]`.
-    """
+    """Like DataEntry, but all time-related fields are of type pd.Series and is
+    indexable, e.g `ts_slice['2018':]`."""
 
     class Config:
         arbitrary_types_allowed = True
@@ -176,7 +175,8 @@ class TrainTestSplit(pydantic.BaseModel):
 
 
 class AbstractBaseSplitter(ABC):
-    """Base class for all other splitter.
+    """
+    Base class for all other splitter.
 
     Args:
         param prediction_length:
@@ -185,6 +185,7 @@ class AbstractBaseSplitter(ABC):
         max_history:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.
+
     """
 
     # @property
@@ -264,7 +265,7 @@ class AbstractBaseSplitter(ABC):
 
 
 class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
-    "Requires uniform data."
+    """Requires uniform data."""
 
     prediction_length: int
     split_offset: int

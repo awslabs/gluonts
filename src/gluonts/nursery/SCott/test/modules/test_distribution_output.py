@@ -86,9 +86,7 @@ def maximum_likelihood_estimate_sgd(
 
 @pytest.mark.parametrize("concentration1, concentration0", [(3.75, 1.25)])
 def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
-    """
-    Test to check that maximizing the likelihood recovers the parameters
-    """
+    """Test to check that maximizing the likelihood recovers the parameters."""
 
     # generate samples
     concentration1s = torch.zeros((NUM_SAMPLES,)) + concentration1
@@ -130,9 +128,7 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
 
 @pytest.mark.parametrize("total_count_logit", [(2.5, 0.7)])
 def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
-    """
-    Test to check that maximizing the likelihood recovers the parameters
-    """
+    """Test to check that maximizing the likelihood recovers the parameters."""
     # test instance
     total_count, logit = total_count_logit
 

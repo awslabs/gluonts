@@ -33,7 +33,9 @@ def target_transformation_length(
 class MissingValueImputation:
     """
     The parent class for all the missing value imputation classes.
+
     You can just implement your own inheriting this class.
+
     """
 
     @validated()
@@ -56,18 +58,15 @@ class MissingValueImputation:
 
 
 class LeavesMissingValues(MissingValueImputation):
-    """
-    Just leaves the missing values untouched.
-    """
+    """Just leaves the missing values untouched."""
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
         return values
 
 
 class DummyValueImputation(MissingValueImputation):
-    """
-    This class replaces all the missing values with the same dummy value given in advance.
-    """
+    """This class replaces all the missing values with the same dummy value
+    given in advance."""
 
     @validated()
     def __init__(self, dummy_value: float = 0.0) -> None:
@@ -81,9 +80,13 @@ class DummyValueImputation(MissingValueImputation):
 
 class MeanValueImputation(MissingValueImputation):
     """
-    This class replaces all the missing values with the mean of the non missing values.
-    Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
-    You may prefer to use CausalMeanValueImputation instead.
+    This class replaces all the missing values with the mean of the non missing
+    values.
+
+    Careful this is not a 'causal' method in the sense that it leaks
+    information about the furture in the imputation. You may prefer to use
+    CausalMeanValueImputation instead.
+
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -96,8 +99,12 @@ class MeanValueImputation(MissingValueImputation):
 
 class LastValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the last value that was not missing.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the last value that was not
+    missing.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
+
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -122,8 +129,12 @@ class LastValueImputation(MissingValueImputation):
 
 class CausalMeanValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the average of all the values up to this point.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the average of all the values
+    up to this point.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
+
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -156,8 +167,12 @@ class CausalMeanValueImputation(MissingValueImputation):
 
 class RollingMeanValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the average of all the last window_size (default=10) values.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the average of all the last
+    window_size (default=10) values.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
+
     """
 
     @validated()
@@ -201,7 +216,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
     an "observed"-indicator that is ``1`` when values are observed and ``0``
     when values are missing.
 
-
     Parameters
     ----------
     target_field
@@ -211,6 +225,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
     imputation_method
         One of the methods from ImputationStrategy. If set to None, no imputation is
         done and only the indicator is included.
+
     """
 
     @validated()
@@ -245,9 +260,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
 class AddConstFeature(MapTransformation):
     """
-    Expands a `const` value along the time axis as a dynamic feature, where
-    the T-dimension is defined as the sum of the `pred_length` parameter and
-    the length of a time series specified by the `target_field`.
+    Expands a `const` value along the time axis as a dynamic feature, where the
+    T-dimension is defined as the sum of the `pred_length` parameter and the
+    length of a time series specified by the `target_field`.
 
     If `is_train=True` the feature matrix has the same length as the `target` field.
     If `is_train=False` the feature matrix has length len(target) + pred_length
@@ -265,6 +280,7 @@ class AddConstFeature(MapTransformation):
         Constant value to use.
     dtype
         Numpy dtype to use for resulting array.
+
     """
 
     @validated()
@@ -311,6 +327,7 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
+
     """
 
     @validated()
@@ -412,6 +429,7 @@ class AddAgeFeature(MapTransformation):
     log_scale
         If set to true the age feature grows logarithmically otherwise linearly
         over time.
+
     """
 
     @validated()
@@ -475,6 +493,7 @@ class AddAggregateLags(MapTransformation):
         they are ignored.
     agg_fun
         Aggregation function. Default is 'mean'.
+
     """
 
     @validated()
@@ -570,8 +589,8 @@ class AddAggregateLags(MapTransformation):
 
 class CountTrailingZeros(SimpleTransformation):
     """
-    Add the number of 'trailing' zeros in each univariate time series as a feature, to be
-    used when dealing with sparse (intermittent) time series.
+    Add the number of 'trailing' zeros in each univariate time series as a
+    feature, to be used when dealing with sparse (intermittent) time series.
 
     For example, for 1-d a time series `[0, 0, 2, 3, 0]`, the number of trailing
     zeros will be 1. If an n-dimensional array is provided, the first 1-d array along the `axis`
@@ -587,6 +606,7 @@ class CountTrailingZeros(SimpleTransformation):
         Field with target values (array) of time series
     as_array
         if True, the returned field will be a numpy array of shape (1,)
+
     """
 
     @validated()

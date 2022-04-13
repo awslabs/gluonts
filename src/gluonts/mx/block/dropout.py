@@ -26,10 +26,9 @@ from gluonts.mx import Tensor
 
 class VariationalZoneoutCell(ModifierCell):
     """
-    Applies Variational Zoneout on base cell.
-    The implementation follows [GG16]_.
-    Variational zoneout uses the same mask across time-steps. It can be applied to RNN
-    outputs, and states. The masks for them are not shared.
+    Applies Variational Zoneout on base cell. The implementation follows
+    [GG16]_. Variational zoneout uses the same mask across time-steps. It can
+    be applied to RNN outputs, and states. The masks for them are not shared.
 
     The mask is initialized when stepping forward for the first time and will remain
     the same until .reset() is called. Thus, if using the cell and stepping manually without calling

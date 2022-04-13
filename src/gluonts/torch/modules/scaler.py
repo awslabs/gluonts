@@ -34,6 +34,7 @@ class MeanScaler(nn.Module):
     minimum_scale
         default scale that is used for elements that are constantly zero
         along dimension ``dim``.
+
     """
 
     @validated()
@@ -98,6 +99,7 @@ class NOPScaler(nn.Module):
     keepdim
         controls whether to retain dimension ``dim`` (of length 1) in the
         scale tensor, or suppress it.
+
     """
 
     @validated()

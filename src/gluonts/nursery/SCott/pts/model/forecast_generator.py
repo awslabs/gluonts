@@ -34,14 +34,14 @@ OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 def _extract_instances(x: Any) -> Any:
     """
-    Helper function to extract individual instances from batched
-    mxnet results.
+    Helper function to extract individual instances from batched mxnet results.
 
     For a tensor `a`
       _extract_instances(a) -> [a[0], a[1], ...]
 
     For (nested) tuples of tensors `(a, (b, c))`
       _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
+
     """
     if isinstance(x, (np.ndarray, torch.Tensor)):
         for i in range(x.shape[0]):
@@ -61,9 +61,7 @@ def _extract_instances(x: Any) -> Any:
 
 
 class ForecastGenerator(ABC):
-    """
-    Classes used to bring the output of a network into a class.
-    """
+    """Classes used to bring the output of a network into a class."""
 
     @abstractmethod
     def __call__(

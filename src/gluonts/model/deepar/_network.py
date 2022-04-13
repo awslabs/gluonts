@@ -248,6 +248,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
         RNN output tensor, state, and sequence with imputed values
+
         """
         state = begin_state
         imputed_sequence = sequence
@@ -325,9 +326,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         state,
         i: int,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """
-        Prepares inputs for the next LSTM unrolling step at step i.
-        """
+        """Prepares inputs for the next LSTM unrolling step at step i."""
         lags = self.get_lagged_subsequences(
             F=F,
             sequence=imputed_sequence,
@@ -411,6 +410,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
         Target (imputed/zero if unobserved).
+
         """
         distr_args = self.proj_distr_args(output)
         distr = self.distr_output.distribution(distr_args, scale=scale)
@@ -465,10 +465,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
-        """
-        Unrolls the RNN encoder in "imputation mode" which will fill imputed
-        values with samples from the DeepAR model.
-        """
+        """Unrolls the RNN encoder in "imputation mode" which will fill imputed
+        values with samples from the DeepAR model."""
 
         if future_time_feat is None or future_target is None:
             time_feat = past_time_feat.slice_axis(
@@ -645,10 +643,11 @@ class DeepARNetwork(mx.gluon.HybridBlock):
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
+
         Returns outputs and state of the encoder, plus the scale of past_target
         and a vector of static features that was constructed and fed as input
-        to the encoder.
-        All tensor arguments should have NTC layout.
+        to the encoder. All tensor arguments should have NTC layout.
+
         """
 
         if future_time_feat is None or future_target is None:
@@ -819,7 +818,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
         return_rnn_outputs: bool = False,
     ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
         """
-
         Returns the distribution predicted by the model on the range of
         past_target and future_target.
 
@@ -838,6 +836,7 @@ class DeepARTrainingNetwork(DeepARNetwork):
         Tensor
             (optional) when return_rnn_outputs=True, rnn_outputs will be
             returned so that it could be used for regularization
+
         """
         # unroll the decoder in "training mode"
         # i.e. by providing future data as well
@@ -1018,6 +1017,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
         Tensor
             A tensor containing sampled paths.
             Shape: (batch_size, num_sample_paths, prediction_length).
+
         """
 
         # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism

@@ -30,8 +30,8 @@ class TPPDistribution(Distribution):
     """
     Distribution used in temporal point processes.
 
-    This class must implement new methods log_intensity, log_survival
-    that are necessary for computing log-likelihood of TPP realizations. Also,
+    This class must implement new methods log_intensity, log_survival that are
+    necessary for computing log-likelihood of TPP realizations. Also,
     sample_conditional is necessary for sampling TPPs.
 
     """
@@ -102,6 +102,7 @@ class TPPTransformedDistribution(TransformedDistribution):
 
         This condition significantly simplifies the log_survival and
         sample_conditional functions.
+
         """
         sign = 1.0
         for t in transforms:
@@ -145,7 +146,6 @@ class TPPTransformedDistribution(TransformedDistribution):
     ) -> Tensor:
         """
         Draw samples from the distribution.
-
 
         Parameters
         ----------

@@ -151,9 +151,9 @@ def squared_exponential_kernel(alpha=1.0, tol=1e-9):
 class SpecialDateFeatureSet:
     """
     Implements calculation of holiday features. The SpecialDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -216,6 +216,7 @@ class SpecialDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
+
         """
         return np.vstack(
             [
@@ -235,8 +236,8 @@ class SpecialDateFeatureSet:
 class CustomDateFeatureSet:
     """
     Implements calculation of date features. The CustomDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 1D array of
-    the shape (1, len(date_indices)).
+    applied on a pandas Series with Datetimeindex and returns a 1D array of the
+    shape (1, len(date_indices)).
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -272,6 +273,7 @@ class CustomDateFeatureSet:
             0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
             1.52299797e-08, 3.72665317e-06, 3.35462628e-04, 1.11089965e-02,
             1.35335283e-01, 6.06530660e-01]])
+
     """
 
     def __init__(
@@ -300,6 +302,7 @@ class CustomDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
+
         """
         return np.vstack(
             [
@@ -317,9 +320,9 @@ class CustomDateFeatureSet:
 class CustomHolidayFeatureSet:
     """
     Implements calculation of holiday features. The CustomHolidayFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -382,6 +385,7 @@ class CustomHolidayFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
+
         """
         return np.vstack(
             [

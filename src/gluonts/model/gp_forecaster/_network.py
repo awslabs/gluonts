@@ -24,9 +24,7 @@ from .gaussian_process import GaussianProcess
 
 
 class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
-    """
-    Defines a Gluon block used for GP training and predictions.
-    """
+    """Defines a Gluon block used for GP training and predictions."""
 
     # The two subclasses GaussianProcessTrainingNetwork and
     # GaussianProcessPredictionNetwork define how to
@@ -120,6 +118,7 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
                 Each is a Tensor of shape (batch_size, 1, 1).
             Model noise sigma.
                 Tensor of shape (batch_size, 1, 1).
+
         """
         output = self.embedding(
             feat_static_cat.squeeze()

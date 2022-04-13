@@ -53,8 +53,8 @@ def _make_block_diagonal(blocks: List[Tensor]) -> Tensor:
 
 def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     """
-    Creates a block diagonal matrix of shape (batch_size, m+n, m+n) where m and n are the sizes of
-    the axis 1 of left and right respectively.
+    Creates a block diagonal matrix of shape (batch_size, m+n, m+n) where m and
+    n are the sizes of the axis 1 of left and right respectively.
 
     Parameters
     ----------
@@ -67,6 +67,7 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     -------
     Tensor
         Block diagonal matrix of shape (batch_size, seq_length, m+n, m+n)
+
     """
     # shape (batch_size, seq_length, m, n)
     zeros_off_diag = F.broadcast_add(
@@ -217,9 +218,8 @@ class LevelTrendISSM(LevelISSM):
 
 
 class SeasonalityISSM(LevelISSM):
-    """
-    Implements periodic seasonality which is entirely determined by the period `num_seasons`.
-    """
+    """Implements periodic seasonality which is entirely determined by the
+    period `num_seasons`."""
 
     @validated()
     def __init__(self, num_seasons: int, time_feature: TimeFeature) -> None:

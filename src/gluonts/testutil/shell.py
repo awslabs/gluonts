@@ -35,10 +35,8 @@ from gluonts.shell.serve import Settings, make_gunicorn_app
 
 
 class ServerFacade:
-    """
-    A convenience wrapper for sending requests and handling responses to
-    an inference server located at the given address.
-    """
+    """A convenience wrapper for sending requests and handling responses to an
+    inference server located at the given address."""
 
     def __init__(self, base_address: str) -> None:
         self.base_address = base_address
@@ -136,6 +134,7 @@ def temporary_server(
     ContextManager[ServerFacade]
         A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
+
     """
     context = multiprocessing.get_context("fork")
     context = typing.cast(ForkContext, context)  # cast to make mypi pass
@@ -191,6 +190,7 @@ def temporary_train_env(
     -------
     ContextManager[gluonts.shell.env.TrainEnv]
         A context manager that yields the `TrainEnv` instance.
+
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-train-env") as base:
@@ -221,8 +221,7 @@ def temporary_train_env(
 def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     """
     A context manager that instantiates a serve environment for a given
-    `Predictor` in a temporary directory and removes the directory on
-    exit.
+    `Predictor` in a temporary directory and removes the directory on exit.
 
     Parameters
     ----------
@@ -233,6 +232,7 @@ def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     -------
     ContextManager[gluonts.shell.env.ServeEnv]
         A context manager that yields the `ServeEnv` instance.
+
     """
 
     with tempfile.TemporaryDirectory(prefix="gluonts-serve-env") as base:

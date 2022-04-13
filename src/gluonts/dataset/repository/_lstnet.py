@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-"""
-Here we reuse the datasets used by LSTNet as the processed url of the datasets
-are available on GitHub.
-"""
+"""Here we reuse the datasets used by LSTNet as the processed url of the
+datasets are available on GitHub."""
 import json
 import os
 from pathlib import Path

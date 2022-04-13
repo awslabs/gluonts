@@ -19,11 +19,13 @@ from typing import Any
 
 def run_sacred_script(script: str, **kwargs: Any) -> None:
     """
-    Runs the Sacred script with the provided name in a subprocess, passing the provided parameters.
+    Runs the Sacred script with the provided name in a subprocess, passing the
+    provided parameters.
 
     Args:
         script: The name of the script in `cli/sacred`.
         kwargs: Parameters to pass to the script.
+
     """
     subprocess.call(
         [

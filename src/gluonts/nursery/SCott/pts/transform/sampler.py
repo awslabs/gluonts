@@ -21,9 +21,9 @@ from pts.dataset.stat import ScaleHistogram
 
 class InstanceSampler(ABC):
     """
-    An InstanceSampler is called with the time series and the valid
-    index bounds a, b and should return a set of indices a <= i <= b
-    at which training instances will be generated.
+    An InstanceSampler is called with the time series and the valid index
+    bounds a, b and should return a set of indices a <= i <= b at which
+    training instances will be generated.
 
     The object should be called with:
 
@@ -40,6 +40,7 @@ class InstanceSampler(ABC):
     -------
     np.ndarray
         Selected points to sample
+
     """
 
     @abstractmethod
@@ -55,6 +56,7 @@ class UniformSplitSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
+
     """
 
     def __init__(self, p: float) -> None:
@@ -78,6 +80,7 @@ class CustomUniformSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
+
     """
 
     def __init__(self) -> None:
@@ -96,8 +99,11 @@ class CustomUniformSampler(InstanceSampler):
 
 class TestSplitSampler(InstanceSampler):
     """
-    Sampler used for prediction. Always selects the last time point for
-    splitting i.e. the forecast point for the time series.
+    Sampler used for prediction.
+
+    Always selects the last time point for splitting i.e. the forecast point
+    for the time series.
+
     """
 
     def __init__(self) -> None:
@@ -118,6 +124,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
     num_instances
         number of training examples generated per time series on average
+
     """
 
     @validated()
@@ -139,8 +146,8 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
-    skewed distributions. For instance, if the dataset contains many time series
-    with small values and few with large values.
+    skewed distributions. For instance, if the dataset contains many time
+    series with small values and few with large values.
 
     The probability of sampling from bucket i is the inverse of its number of elements.
 
@@ -149,6 +156,7 @@ class BucketInstanceSampler(InstanceSampler):
     scale_histogram
         The histogram of scale for the time series. Here scale is the mean abs
         value of the time series.
+
     """
 
     def __init__(self, scale_histogram: ScaleHistogram) -> None:
@@ -167,11 +175,9 @@ class BucketInstanceSampler(InstanceSampler):
 
 
 class ContinuousTimePointSampler(ABC):
-    """
-    Abstract class for "continuous time" samplers, which, given a lower bound
-    and upper bound, sample "points" (events) in continuous time from a
-    specified interval.
-    """
+    """Abstract class for "continuous time" samplers, which, given a lower
+    bound and upper bound, sample "points" (events) in continuous time from a
+    specified interval."""
 
     def __init__(self, num_instances: int) -> None:
         self.num_instances = num_instances
@@ -193,10 +199,8 @@ class ContinuousTimePointSampler(ABC):
 
 
 class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
-    """
-    Implements a simple random sampler to sample points in the continuous
-    interval between :code:`a` and :code:`b`.
-    """
+    """Implements a simple random sampler to sample points in the continuous
+    interval between :code:`a` and :code:`b`."""
 
     def __call__(self, a: float, b: float) -> np.ndarray:
         assert a <= b, "Interval start time must be before interval end time."

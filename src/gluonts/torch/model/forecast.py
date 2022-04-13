@@ -46,6 +46,7 @@ class DistributionForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     def __init__(
@@ -73,9 +74,7 @@ class DistributionForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         if self._mean is not None:
             return self._mean
         else:
@@ -84,9 +83,7 @@ class DistributionForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
+        """Forecast mean, as a pandas.Series object."""
         return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:

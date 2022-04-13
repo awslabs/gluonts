@@ -314,6 +314,7 @@ class ModelIterationAveraging(Callback):
     avg_strategy
         IterationAveragingStrategy, one of NTA or Alpha_Suffix from
         gluonts.mx.trainer.model_iteration_averaging
+
     """
 
     @validated()

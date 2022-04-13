@@ -30,9 +30,9 @@ from .representation import Representation
 
 class GlobalRelativeBinning(Representation):
     """
-    A class representing a global relative binning approach.
-    This binning first rescales all input series by their respective mean (relative) and then performs one binning
-    across all series (global).
+    A class representing a global relative binning approach. This binning first
+    rescales all input series by their respective mean (relative) and then
+    performs one binning across all series (global).
 
     Parameters
     ----------
@@ -51,6 +51,7 @@ class GlobalRelativeBinning(Representation):
         The quantile scaling limit. Values which are larger than the quantile evaluated at quantile_scaling_limit
         will be capped at the quantile evaluated at quantile_scaling_limit.
         (default: 0.99)
+
     """
 
     @validated()

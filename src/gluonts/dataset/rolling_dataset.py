@@ -23,8 +23,8 @@ from pydantic import BaseModel
 
 class StepStrategy(BaseModel):
     """
-    Removes datapoints equivalent to step_size for each iteration until
-    amount of data left is less than prediction_length
+    Removes datapoints equivalent to step_size for each iteration until amount
+    of data left is less than prediction_length.
 
     Parameters
     ----------
@@ -33,6 +33,7 @@ class StepStrategy(BaseModel):
         used with
     step_size
         The number of points to remove for each iteration.
+
     """
 
     prediction_length: int
@@ -51,6 +52,7 @@ class StepStrategy(BaseModel):
         Returns
         ----------
         A generator yielding split versions of the window
+
         """
         assert (
             self.prediction_length > 0
@@ -64,7 +66,8 @@ class StepStrategy(BaseModel):
 
 class NumSplitsStrategy(BaseModel):
     """
-    The NumSplitsStrategy splits a window into *num_splits* chunks of equal size.
+    The NumSplitsStrategy splits a window into *num_splits* chunks of equal
+    size.
 
     Parameters
     ----------
@@ -73,6 +76,7 @@ class NumSplitsStrategy(BaseModel):
         used with
     num_splits
         The number of segments which the window should be split into
+
     """
 
     prediction_length: int
@@ -91,6 +95,7 @@ class NumSplitsStrategy(BaseModel):
         Returns
         ----------
         A generator yielding split versions of the window
+
         """
         assert self.num_splits > 1, """num_splits should be > 1"""
         for slice_idx in np.linspace(
@@ -101,7 +106,7 @@ class NumSplitsStrategy(BaseModel):
 
 
 def truncate_features(timeseries: dict, max_len: int) -> dict:
-    """truncate dynamic features to match `max_len` length"""
+    """truncate dynamic features to match `max_len` length."""
     for key in (
         FieldName.FEAT_DYNAMIC_CAT,
         FieldName.FEAT_DYNAMIC_REAL,
@@ -124,8 +129,8 @@ def generate_rolling_dataset(
     """
     Returns an augmented version of the input dataset where each timeseries has
     been rolled upon based on the parameters supplied. Below follows an
-    explanation and examples of how the different parameters can be used to generate
-    differently rolled datasets.
+    explanation and examples of how the different parameters can be used to
+    generate differently rolled datasets.
 
     The *rolling* happens on the data available in the provided window between the
     *start_time* and the *end_time* for each timeseries. If *end_time* is omitted, rolling
@@ -208,7 +213,6 @@ def generate_rolling_dataset(
     ----------
     Dataset
         The augmented dataset
-
 
     """
     assert dataset, "a dataset to perform rolling evaluation on is needed"

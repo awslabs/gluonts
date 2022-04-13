@@ -24,9 +24,12 @@ from gluonts.mx.block.rnn import RNN
 
 class Seq2SeqEncoder(nn.HybridBlock):
     """
-    Abstract class for the encoder. An encoder takes a `target` sequence with
-    corresponding covariates and maps it into a static latent and
-    a dynamic latent code with the same length as the `target` sequence.
+    Abstract class for the encoder.
+
+    An encoder takes a `target` sequence with corresponding covariates and maps
+    it into a static latent and a dynamic latent code with the same length as
+    the `target` sequence.
+
     """
 
     # noinspection PyMethodOverriding
@@ -96,6 +99,7 @@ class Seq2SeqEncoder(nn.HybridBlock):
             combined features,
             shape (batch_size, sequence_length,
                    num_feat_static + num_feat_dynamic + 1)
+
         """
 
         helper_ones = F.ones_like(target)  # Ones of (N, T, 1)
@@ -131,6 +135,7 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
         flag to toggle whether to use use_dynamic_feat as input to the encoder
+
     """
 
     @validated()
@@ -235,7 +240,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
 
 class RNNEncoder(Seq2SeqEncoder):
     """
-    Defines RNN encoder that uses covariates and target as input to the RNN if desired.
+    Defines RNN encoder that uses covariates and target as input to the RNN if
+    desired.
 
     Parameters
     ----------
@@ -252,6 +258,7 @@ class RNNEncoder(Seq2SeqEncoder):
         flag to toggle whether to use use_static_feat as input to the encoder
     use_dynamic_feat
         flag to toggle whether to use use_dynamic_feat as input to the encoder
+
     """
 
     @validated()
@@ -338,6 +345,7 @@ class MLPEncoder(Seq2SeqEncoder):
     layer_sizes
         number of hidden units per layer.
     kwargs
+
     """
 
     @validated()
@@ -387,9 +395,7 @@ class MLPEncoder(Seq2SeqEncoder):
 
 
 class RNNCovariateEncoder(RNNEncoder):
-    """
-    Deprecated class only for compatibility; use RNNEncoder instead.
-    """
+    """Deprecated class only for compatibility; use RNNEncoder instead."""
 
     @validated()
     def __init__(

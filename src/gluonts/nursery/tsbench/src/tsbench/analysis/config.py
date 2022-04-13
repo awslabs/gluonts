@@ -19,10 +19,9 @@ from tsbench.evaluations.tracking import ModelTracker
 
 
 class ConfigAnalyzer:
-    """
-    The config analyzer evaluates a single model configuration by obtaining its performance from a
-    tracker across datasets and compiling it into a dataframe.
-    """
+    """The config analyzer evaluates a single model configuration by obtaining
+    its performance from a tracker across datasets and compiling it into a
+    dataframe."""
 
     def __init__(self, tracker: ModelTracker):
         """
@@ -38,7 +37,8 @@ class ConfigAnalyzer:
         self, model_config: Union[ModelConfig, Dict[str, ModelConfig]]
     ) -> pd.DataFrame:
         """
-        Runs the evaluation, providing a configuration's performances for all datasets.
+        Runs the evaluation, providing a configuration's performances for all
+        datasets.
 
         Args:
             model_config: A single configuration for which to obtain performances or a mapping from
@@ -46,6 +46,7 @@ class ConfigAnalyzer:
 
         Returns:
             The metrics on individual datasets.
+
         """
         results = []
         for dataset in self.datasets:

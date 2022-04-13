@@ -28,6 +28,7 @@ class RenameFields(SimpleTransformation):
     ----------
     mapping
         Name mapping `input_name -> output_name`
+
     """
 
     @validated()
@@ -48,13 +49,14 @@ class RenameFields(SimpleTransformation):
 
 
 class RemoveFields(SimpleTransformation):
-    """ "
-    Remove field names if present.
+    """
+    " Remove field names if present.
 
     Parameters
     ----------
     field_names
         List of names of the fields that will be removed
+
     """
 
     @validated()
@@ -77,6 +79,7 @@ class SetField(SimpleTransformation):
         Name of the field that will be set
     value
         Value to be set
+
     """
 
     @validated()
@@ -90,7 +93,8 @@ class SetField(SimpleTransformation):
 
 
 class SetFieldIfNotPresent(SimpleTransformation):
-    """Sets a field in the dictionary with the given value, in case it does not
+    """
+    Sets a field in the dictionary with the given value, in case it does not
     exist already.
 
     Parameters
@@ -99,6 +103,7 @@ class SetFieldIfNotPresent(SimpleTransformation):
         Name of the field that will be set
     value
         Value to be set
+
     """
 
     @validated()
@@ -114,12 +119,13 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
 class SelectFields(MapTransformation):
     """
-    Only keep the listed fields
+    Only keep the listed fields.
 
     Parameters
     ----------
     input_fields
         List of fields to keep.
+
     """
 
     @validated()

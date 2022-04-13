@@ -23,9 +23,7 @@ D = TypeVar("D", bound=Type[DatasetConfig])
 
 
 def register_dataset(cls: D) -> D:
-    """
-    Registers the provided class in the global dataset registry.
-    """
+    """Registers the provided class in the global dataset registry."""
     DATASET_REGISTRY[cls.name()] = cls
     return cls
 
@@ -34,7 +32,8 @@ def get_dataset_config(
     name: str, path: Union[Path, str] = DEFAULT_DATA_PATH
 ) -> DatasetConfig:
     """
-    This method creates the dataset configuration of the model with the specified name.
+    This method creates the dataset configuration of the model with the
+    specified name.
 
     Args:
         name: The canonical name of the dataset. See `DATASET_REGISTRY`.
@@ -42,6 +41,7 @@ def get_dataset_config(
 
     Returns:
         The dataset configuration.
+
     """
     # Get the dataset
     assert name in DATASET_REGISTRY, f"Dataset name '{name}' is unknown."

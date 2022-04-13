@@ -62,6 +62,7 @@ def aggregate_all(
     No filtering applied.
 
     Both `nan` and `inf` possible in aggregate metrics.
+
     """
     return {
         key: metric_per_ts[key].agg(agg, skipna=False)
@@ -75,8 +76,9 @@ def aggregate_no_nan(
     """
     Filter all `nan` but keep `inf`.
 
-    `nan` is only possible in the aggregate metric if all timeseries
-    for a metric resulted in `nan`.
+    `nan` is only possible in the aggregate metric if all timeseries for a
+    metric resulted in `nan`.
+
     """
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
@@ -90,8 +92,9 @@ def aggregate_valid(
     """
     Filter all `nan` & `inf` values from `metric_per_ts`.
 
-    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the
-    result will be `np.ma.masked` for that column.
+    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the result
+    will be `np.ma.masked` for that column.
+
     """
     metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
     return {
@@ -102,8 +105,8 @@ def aggregate_valid(
 
 class Evaluator:
     """
-    Evaluator class, to compute accuracy metrics by comparing observations
-    to forecasts.
+    Evaluator class, to compute accuracy metrics by comparing observations to
+    forecasts.
 
     Parameters
     ----------
@@ -150,6 +153,7 @@ class Evaluator:
         Available options are:
         aggregate_valid | aggregate_all | aggregate_no_nan
         The default function is aggregate_no_nan.
+
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -201,6 +205,7 @@ class Evaluator:
             Dictionary of aggregated metrics
         pd.DataFrame
             DataFrame containing per-time-series metrics
+
         """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
@@ -490,10 +495,9 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-
     The MultivariateEvaluator class owns functionality for evaluating
-    multidimensional target arrays of shape
-    (target_dimensionality, prediction_length).
+    multidimensional target arrays of shape (target_dimensionality,
+    prediction_length).
 
     Evaluations of individual dimensions will be stored with the corresponding
     dimension prefix and contain the metrics calculated by only this dimension.
@@ -515,6 +519,7 @@ class MultivariateEvaluator(Evaluator):
         'm_sum_MSE': 0.02 # MSE of aggregated target and aggregated forecast
         (if target_agg_funcs is set).
         'm_sum_abs_error': 4.2}
+
     """
 
     def __init__(

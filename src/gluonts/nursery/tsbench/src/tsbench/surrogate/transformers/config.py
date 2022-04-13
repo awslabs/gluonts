@@ -38,9 +38,8 @@ from tsbench.evaluations.tracking import ModelTracker
 
 
 class ConfigTransformer(TransformerMixin):
-    """
-    The config transformer transforms a configuration (model + dataset) into a real-valued vector.
-    """
+    """The config transformer transforms a configuration (model + dataset) into
+    a real-valued vector."""
 
     def __init__(
         self,
@@ -86,9 +85,8 @@ class ConfigTransformer(TransformerMixin):
 
     @property
     def feature_names_(self) -> list[str]:
-        """
-        Returns the feature names for the columns of transformed configurations.
-        """
+        """Returns the feature names for the columns of transformed
+        configurations."""
         return [
             f
             for e in self.encoders
@@ -102,6 +100,7 @@ class ConfigTransformer(TransformerMixin):
 
         Args:
             X: The input configurations.
+
         """
         self.pipeline.fit(X)
         return self
@@ -110,7 +109,8 @@ class ConfigTransformer(TransformerMixin):
         self, X: list[Config[ModelConfig]]
     ) -> npt.NDArray[np.float32]:
         """
-        Transforms the given configurations according to the fitted transformer pipeline.
+        Transforms the given configurations according to the fitted transformer
+        pipeline.
 
         Args:
             X: The input configurations.
@@ -118,14 +118,14 @@ class ConfigTransformer(TransformerMixin):
         Returns:
             A NumPy array of shape [N, D]. N is the number of input configurations, D the dimension
                 of the vectorized representation.
+
         """
         return cast(npt.NDArray[np.float32], self.pipeline.transform(X))
 
 
 class EnsembleConfigTransformer(TransformerMixin):
-    """
-    The config transformer transforms a set of model configs into a set of NumPy arrays.
-    """
+    """The config transformer transforms a set of model configs into a set of
+    NumPy arrays."""
 
     model_type_map: dict[str, int]
     attribute_map: dict[str, int]
@@ -137,9 +137,8 @@ class EnsembleConfigTransformer(TransformerMixin):
 
     @property
     def feature_names_(self) -> list[str]:
-        """
-        Returns the feature names for the columns of transformed configurations.
-        """
+        """Returns the feature names for the columns of transformed
+        configurations."""
         return [f"model={m}" for m in self.model_type_map] + list(
             self.attribute_map.keys()
         )
@@ -152,6 +151,7 @@ class EnsembleConfigTransformer(TransformerMixin):
 
         Args:
             X: The input configurations.
+
         """
         configs = [model for ensemble in X for model in ensemble.model]
 
@@ -181,7 +181,8 @@ class EnsembleConfigTransformer(TransformerMixin):
         self, X: list[Config[EnsembleConfig]]
     ) -> list[npt.NDArray[np.float32]]:
         """
-        Transforms the given configurations according to the fitted transformer pipeline.
+        Transforms the given configurations according to the fitted transformer
+        pipeline.
 
         Args:
             X: The input configurations.
@@ -189,6 +190,7 @@ class EnsembleConfigTransformer(TransformerMixin):
         Returns:
             A NumPy array of shape [N, D] for every ensemble configuration where N is the number of
                 ensemble members and D the dimensionality. N might differ for list members.
+
         """
         configs = [model for ensemble in X for model in ensemble.model]
         out = self._transform(configs)

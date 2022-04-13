@@ -35,6 +35,7 @@ def copy_parameters(
         whether to strictly enforce that the keys
         in :attr:`state_dict` match the keys returned by this module's
         :meth:`~torch.nn.Module.state_dict` function. Default: ``True``
+
     """
 
     net_dest.load_state_dict(net_source.state_dict(), strict=strict)
@@ -56,6 +57,7 @@ def weighted_average(
     """
     Computes the weighted average of a given tensor across a given dim, masking
     values associated with weight zero,
+
     meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters
@@ -71,6 +73,7 @@ def weighted_average(
     -------
     Tensor:
         The tensor with values averaged along the specified `dim`.
+
     """
     if weights is not None:
         weighted_tensor = torch.where(

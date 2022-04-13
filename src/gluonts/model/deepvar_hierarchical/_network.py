@@ -39,7 +39,8 @@ def reconcile_samples(
     seq_axis: Optional[List] = None,
 ) -> Tensor:
     """
-    Computes coherent samples by multiplying unconstrained `samples` with `reconciliation_mat`.
+    Computes coherent samples by multiplying unconstrained `samples` with
+    `reconciliation_mat`.
 
     Parameters
     ----------
@@ -58,7 +59,6 @@ def reconcile_samples(
     -------
     Tensor, shape same as that of `samples`
         Coherent samples
-
 
     """
     if not seq_axis:
@@ -187,8 +187,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
         """
-        Get samples to compute the final loss. These are samples directly drawn from the given `distr` if coherence is
-        not enforced yet; otherwise the drawn samples are reconciled.
+        Get samples to compute the final loss. These are samples directly drawn
+        from the given `distr` if coherence is not enforced yet; otherwise the
+        drawn samples are reconciled.
 
         Parameters
         ----------
@@ -226,8 +227,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
     def loss(self, F, target: Tensor, distr: Distribution) -> Tensor:
         """
-        Computes loss given the output of the network in the form of distribution.
-        The loss is given by:
+        Computes loss given the output of the network in the form of
+        distribution. The loss is given by:
 
             `self.CRPS_weight` * `loss_CRPS` + `self.likelihood_weight` * `neg_likelihoods`,
 

@@ -21,10 +21,8 @@ from .transform import Chain, Transformation
 class TransformedDataset(Dataset):
     """
     A dataset that corresponds to applying a list of transformations to each
-    element in the base_dataset.
-    This only supports SimpleTransformations, which do the same thing at
-    prediction and training time.
-
+    element in the base_dataset. This only supports SimpleTransformations,
+    which do the same thing at prediction and training time.
 
     Parameters
     ----------
@@ -32,6 +30,7 @@ class TransformedDataset(Dataset):
         Dataset to transform
     transformations
         List of transformations to apply
+
     """
 
     def __init__(

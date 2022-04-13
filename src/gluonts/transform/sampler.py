@@ -21,11 +21,12 @@ from gluonts.dataset.stat import ScaleHistogram
 
 class InstanceSampler(BaseModel):
     """
-    An InstanceSampler is called with the time series ``ts``, and returns
-    a set of indices at which training instances will be generated.
+    An InstanceSampler is called with the time series ``ts``, and returns a set
+    of indices at which training instances will be generated.
 
     The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
     and ``b = ts.shape[axis] - min_future``.
+
     """
 
     axis: int = -1
@@ -53,6 +54,7 @@ class UniformSplitSampler(InstanceSampler):
     ----------
     p
         Probability of selecting a time point
+
     """
 
     p: float
@@ -70,8 +72,11 @@ class UniformSplitSampler(InstanceSampler):
 
 class PredictionSplitSampler(InstanceSampler):
     """
-    Sampler used for prediction. Always selects the last time point for
-    splitting i.e. the forecast point for the time series.
+    Sampler used for prediction.
+
+    Always selects the last time point for splitting i.e. the forecast point
+    for the time series.
+
     """
 
     allow_empty_interval: bool = False
@@ -115,6 +120,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
     num_instances
         number of training examples generated per time series on average
+
     """
 
     num_instances: float
@@ -143,8 +149,8 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
-    skewed distributions. For instance, if the dataset contains many time series
-    with small values and few with large values.
+    skewed distributions. For instance, if the dataset contains many time
+    series with small values and few with large values.
 
     The probability of sampling from bucket i is the inverse of its number of elements.
 
@@ -153,6 +159,7 @@ class BucketInstanceSampler(InstanceSampler):
     scale_histogram
         The histogram of scale for the time series. Here scale is the mean abs
         value of the time series.
+
     """
 
     scale_histogram: ScaleHistogram
@@ -165,11 +172,9 @@ class BucketInstanceSampler(InstanceSampler):
 
 
 class ContinuousTimePointSampler(BaseModel):
-    """
-    Abstract class for "continuous time" samplers, which, given a lower bound
-    and upper bound, sample "points" (events) in continuous time from a
-    specified interval.
-    """
+    """Abstract class for "continuous time" samplers, which, given a lower
+    bound and upper bound, sample "points" (events) in continuous time from a
+    specified interval."""
 
     min_past: float = 0.0
     min_future: float = 0.0
@@ -196,10 +201,8 @@ class ContinuousTimePointSampler(BaseModel):
 
 
 class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
-    """
-    Implements a simple random sampler to sample points in the continuous
-    interval between :code:`a` and :code:`b`.
-    """
+    """Implements a simple random sampler to sample points in the continuous
+    interval between :code:`a` and :code:`b`."""
 
     num_instances: int
 

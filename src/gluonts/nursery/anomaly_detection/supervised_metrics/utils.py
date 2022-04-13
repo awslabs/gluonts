@@ -22,8 +22,8 @@ def range_overlap(
     right_range: range,
 ) -> bool:
     """
-    Checks if two ranges have an overlap.
-    Here each range is assumed to be consecutive, i.e., `step` field of `range` is always 1.
+    Checks if two ranges have an overlap. Here each range is assumed to be
+    consecutive, i.e., `step` field of `range` is always 1.
 
     Parameters
     ----------
@@ -43,8 +43,9 @@ def range_overlap(
 @jit(nopython=True)
 def labels_to_ranges_numba(labels: np.ndarray) -> List[Tuple]:
     """
-    Converts the given list of labels to list of anomaly (defined by positive label) ranges where range is represented
-    by a pair of integers (to make numba work).
+    Converts the given list of labels to list of anomaly (defined by positive
+    label) ranges where range is represented by a pair of integers (to make
+    numba work).
 
     Parameters
     ----------
@@ -83,7 +84,8 @@ def labels_to_ranges_numba(labels: np.ndarray) -> List[Tuple]:
 
 def labels_to_ranges(labels: List[bool]) -> List[range]:
     """
-    Converts the given list of labels to list of anomaly (defined by positive label) ranges.
+    Converts the given list of labels to list of anomaly (defined by positive
+    label) ranges.
 
     Parameters
     ----------
@@ -106,7 +108,8 @@ def ranges_to_singletons(
     ranges: List[range],
 ) -> List[range]:
     """
-    Convenient function to convert list of consecutive ranges to list of singleton ranges.
+    Convenient function to convert list of consecutive ranges to list of
+    singleton ranges.
 
     Parameters
     ----------

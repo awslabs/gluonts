@@ -65,8 +65,9 @@ class Quantile(NamedTuple):
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
-        """Produces equivalent float and string representation of a given
-        quantile level.
+        """
+        Produces equivalent float and string representation of a given quantile
+        level.
 
         >>> Quantile.parse(0.1)
         Quantile(value=0.1, name='0.1')
@@ -91,6 +92,7 @@ class Quantile(NamedTuple):
         Quantile
             A tuple containing both a float and a string representation of the
             input quantile level.
+
         """
         if isinstance(quantile, Quantile):
             return quantile

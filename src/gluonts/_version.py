@@ -58,6 +58,7 @@ In `setup.py`, you need to import and use this file like this:
     setup(
         cmdclass={**mycmdclass, **vercmdclass},
     )
+
 """
 
 import subprocess

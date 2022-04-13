@@ -46,10 +46,7 @@ def log_abs_det(A: Tensor) -> Tensor:
 
 
 class InvertibleResnetHybridBlock(BijectionHybridBlock):
-    """
-    Based on [BJC19]_,
-    apart from f and f_inv that are swapped.
-    """
+    """Based on [BJC19]_, apart from f and f_inv that are swapped."""
 
     @validated()
     def __init__(
@@ -102,7 +99,7 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
 
     def f(self, x: Tensor) -> Tensor:
         """
-        Forward transformation of iResnet
+        Forward transformation of iResnet.
 
         Parameters
         ----------
@@ -149,7 +146,8 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         """
-        Logarithm of the absolute value of the Jacobian determinant corresponding to the iResnet Transform
+        Logarithm of the absolute value of the Jacobian determinant
+        corresponding to the iResnet Transform.
 
         Parameters
         ----------
@@ -162,6 +160,7 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             Jacobian evaluated for x as input or y as output
+
         """
         if self._ignore_logdet:
             assert x is not None

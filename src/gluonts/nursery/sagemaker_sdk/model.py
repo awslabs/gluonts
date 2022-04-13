@@ -34,13 +34,17 @@ logger = logging.getLogger(__name__)
 class GluonTSPredictor(RealTimePredictor):
     """
     A RealTimePredictor for inference against GluonTS Endpoints.
-    This is able to serialize and deserialize datasets in the gluonts data format.
+
+    This is able to serialize and deserialize datasets in the gluonts data
+    format.
+
     """
 
     def __init__(
         self, endpoint_name: str, sagemaker_session: session.Session = None
     ):
-        """Initialize an ``GluonTSPredictor``.
+        """
+        Initialize an ``GluonTSPredictor``.
 
         Parameters
         ----------
@@ -50,6 +54,7 @@ class GluonTSPredictor(RealTimePredictor):
             Session object which manages interactions with Amazon SageMaker APIs and any other
             AWS services needed. If not specified, the estimator creates one
             using the default AWS configuration chain.
+
         """
 
         # TODO: implement custom data serializer and deserializer: convert between gluonts dataset and bytes
@@ -64,7 +69,8 @@ class GluonTSPredictor(RealTimePredictor):
 
 
 class GluonTSModel(FrameworkModel):
-    """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
+    """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker
+    ``Endpoint``."""
 
     __framework_name__ = FRAMEWORK_NAME
     _LOWEST_MMS_VERSION = LOWEST_MMS_VERSION
@@ -110,6 +116,7 @@ class GluonTSModel(FrameworkModel):
             server will use one worker per vCPU.
         **kwargs:
             Keyword arguments passed to the ``FrameworkModel`` initializer.
+
         """
 
         super().__init__(
@@ -128,8 +135,8 @@ class GluonTSModel(FrameworkModel):
         self, instance_type, accelerator_type=None
     ) -> Dict[str, str]:
         """
-        Return a container definition with framework configuration set in
-        model environment variables.
+        Return a container definition with framework configuration set in model
+        environment variables.
 
         Parameters
         ----------
@@ -151,6 +158,7 @@ class GluonTSModel(FrameworkModel):
         --------
         Dict[str, str]:
             A container definition object usable with the CreateModel API.
+
         """
 
         is_mms_version = parse_version(

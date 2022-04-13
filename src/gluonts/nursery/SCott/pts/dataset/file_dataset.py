@@ -49,6 +49,7 @@ class JsonLinesFile:
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
+
     """
 
     def __init__(self, path: Path, shuffle: bool = True) -> None:
@@ -96,6 +97,7 @@ class FileDataset(Dataset):
         Whether to accept only univariate target time series.
     shuffle
         Whether to shuffle the time series when making the batches
+
     """
 
     def __init__(
@@ -131,6 +133,7 @@ class FileDataset(Dataset):
         -------
         List[Path]
             List of the paths of all files composing the dataset.
+
         """
         files = glob.glob(str(self.path))
         if self.shuffle:

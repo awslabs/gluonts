@@ -391,10 +391,10 @@ class FixedKnotsArgProj(ArgProj):
 
 class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
     """
-    A simple extension of PiecewiseLinearOutput that "fixes" the knot
-    positions in the quantile function representation. That is, instead
-    of initializing with the number of pieces, the quantiles are provided
-    directly at initialization.
+    A simple extension of PiecewiseLinearOutput that "fixes" the knot positions
+    in the quantile function representation. That is, instead of initializing
+    with the number of pieces, the quantiles are provided directly at
+    initialization.
 
     Parameters
     ----------
@@ -405,6 +405,7 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
 
         For more information on the piecewise linear quantile function, refer to
         :code:`gluonts.distribution.PiecewiseLinear`.
+
     """
 
     distr_cls: type = PiecewiseLinear

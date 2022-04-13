@@ -26,9 +26,7 @@ from .logging import log_metric
 
 @dataclass
 class FitResult:
-    """
-    A result object obtained when fitting a model.
-    """
+    """A result object obtained when fitting a model."""
 
     config: ModelConfig
     predictors: List[Predictor]
@@ -43,15 +41,16 @@ class FitResult:
         validation: bool = False,
     ) -> None:
         """
-        Evaluates the given predictors on the specified dataset, logs the resulting metrics and
-        stores the forecasts in the given directory. The forecasts of predictor `i` are stored in
-        the subdirectory `model_<i>`.
+        Evaluates the given predictors on the specified dataset, logs the
+        resulting metrics and stores the forecasts in the given directory. The
+        forecasts of predictor `i` are stored in the subdirectory `model_<i>`.
 
         Args:
             dataset_config: The configuration of the dataset to make predictions for.
             dataset_split: The split of the dataset for which to make predictions for.
             directory: The directory where to store forecasts.
             validation: Whether to log only the mean weighted quantile loss with a `val_` prefix.
+
         """
         length = self.config.max_time_series_length(  # pylint: disable=assignment-from-none
             dataset_config
@@ -99,11 +98,12 @@ class FitResult:
 
     def serialize_predictors(self, directory: Path) -> None:
         """
-        Serializes all predictos managed by the fit result into the given directory. Predictor `i`
-        is saved to subdirectory `model_<i>`.
+        Serializes all predictos managed by the fit result into the given
+        directory. Predictor `i` is saved to subdirectory `model_<i>`.
 
         Args:
             directory: The directory where the predictors should be serialized to.
+
         """
         for i, predictor in enumerate(self.predictors):
             logging.info(

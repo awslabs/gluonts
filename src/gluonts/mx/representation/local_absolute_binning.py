@@ -28,9 +28,9 @@ from .representation import Representation
 
 class LocalAbsoluteBinning(Representation):
     """
-    A class representing a local absolute binning approach.
-    This binning estimates a binning for every single time series on a local level and therefore implicitly acts as
-    a scaling mechanism.
+    A class representing a local absolute binning approach. This binning
+    estimates a binning for every single time series on a local level and
+    therefore implicitly acts as a scaling mechanism.
 
     Parameters
     ----------
@@ -41,6 +41,7 @@ class LocalAbsoluteBinning(Representation):
         Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
         distribution function, while linear binning allocates evenly spaced bins.
         (default: True, i.e. quantile binning)
+
     """
 
     @validated()

@@ -55,8 +55,11 @@ def download(
     experiment: Optional[str], include_forecasts: bool, evaluations_path: str
 ):
     """
-    Downloads either the evaluations of a single AWS Sagemaker experiment or the publicly
-    available evaluations. The evaluations are downloaded to the provided directory.
+    Downloads either the evaluations of a single AWS Sagemaker experiment or
+    the publicly available evaluations.
+
+    The evaluations are downloaded to the provided directory.
+
     """
     target = Path(evaluations_path)
     target.mkdir(parents=True, exist_ok=True)

@@ -53,12 +53,14 @@ def ensemble_recommender(
     experiment: str, config_path: str, evaluations_path: str, nskip: int
 ):
     """
-    Evaluates the performance of the models ensembles by a recommender on a hold-out dataset.
-    Recommendations are made for each dataset by providing recommenders with the offline
-    evaluations of ensembles on the remaining datasets in the registry.
+    Evaluates the performance of the models ensembles by a recommender on a
+    hold-out dataset. Recommendations are made for each dataset by providing
+    recommenders with the offline evaluations of ensembles on the remaining
+    datasets in the registry.
 
-    This call runs the Sacred script for each provided configuration sequentially and returns only
-    once all runs have completed.
+    This call runs the Sacred script for each provided configuration
+    sequentially and returns only once all runs have completed.
+
     """
     with Path(config_path).open("r", encoding="utf-8") as f:
         content = yaml.safe_load(f)

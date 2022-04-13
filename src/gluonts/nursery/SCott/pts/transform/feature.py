@@ -35,7 +35,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
     an "observed"-indicator that is ``1`` when values are observed and ``0``
     when values are missing.
 
-
     Parameters
     ----------
     target_field
@@ -48,6 +47,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         If set to true (default) missing values will be replaced. Otherwise
         they will not be replaced. In any case the indicator is included in the
         result.
+
     """
 
     @validated()
@@ -81,9 +81,9 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
 class AddConstFeature(MapTransformation):
     """
-    Expands a `const` value along the time axis as a dynamic feature, where
-    the T-dimension is defined as the sum of the `pred_length` parameter and
-    the length of a time series specified by the `target_field`.
+    Expands a `const` value along the time axis as a dynamic feature, where the
+    T-dimension is defined as the sum of the `pred_length` parameter and the
+    length of a time series specified by the `target_field`.
 
     If `is_train=True` the feature matrix has the same length as the `target` field.
     If `is_train=False` the feature matrix has length len(target) + pred_length
@@ -101,6 +101,7 @@ class AddConstFeature(MapTransformation):
         Constant value to use.
     dtype
         Numpy dtype to use for resulting array.
+
     """
 
     @validated()
@@ -147,6 +148,7 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
+
     """
 
     @validated()
@@ -235,6 +237,7 @@ class AddAgeFeature(MapTransformation):
     log_scale
         If set to true the age feature grows logarithmically otherwise linearly
         over time.
+
     """
 
     @validated()

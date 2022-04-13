@@ -33,8 +33,9 @@ def generate_forecasts(
     parallelize: bool = False,
 ) -> Tuple[QuantileForecasts, float]:
     """
-    Generates the predictions of the given predictor for the provided dataset. The returned
-    prediction object provides the forecasts along with some metadata.
+    Generates the predictions of the given predictor for the provided dataset.
+    The returned prediction object provides the forecasts along with some
+    metadata.
 
     Args:
         predictor: The predictor which is used to make forecasts.
@@ -45,6 +46,7 @@ def generate_forecasts(
     Returns:
         The forecasts for the dataset.
         The average latency for generating a single forecast.
+
     """
     if parallelize:
         predictor = ParallelizedPredictor(

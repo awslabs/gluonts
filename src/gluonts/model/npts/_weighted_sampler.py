@@ -15,22 +15,20 @@ import numpy as np
 
 
 class WeightedSampler:
-    """
-    Utility class for sampling indices based on unnormalized weights.
-
-    """
+    """Utility class for sampling indices based on unnormalized weights."""
 
     @staticmethod
     def sample(weights, num_samples):
         """
-        Sample indices according to `weights`:
-            `ix` is chosen with probability `weights`[`ix`]
+        Sample indices according to `weights`: `ix` is chosen with probability
+        `weights`[`ix`]
 
         `weights` need not sum to 1.
 
         :param weights:
         :param num_samples:
         :return:
+
         """
         assert all(weights >= 0.0), "Sampling weights must be non-negative"
         # In the special case where all the weights are zeros, we want to

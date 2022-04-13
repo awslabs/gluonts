@@ -18,7 +18,8 @@ from sklearn.metrics import auc
 def bounded_pr_auc(
     precisions: np.array, recalls: np.array, lower_bound: float = 0
 ) -> float:
-    """Bounded PR AUC --> AUC when recall > lower_bound
+    """
+    Bounded PR AUC --> AUC when recall > lower_bound.
 
     Parameters
     ----------
@@ -32,6 +33,7 @@ def bounded_pr_auc(
     Returns
     -------
     bounded PR-AUC : float
+
     """
     sorted_recalls, sorted_precisions = zip(
         *sorted(zip(recalls, precisions), key=lambda x: (x[0], x[1]))

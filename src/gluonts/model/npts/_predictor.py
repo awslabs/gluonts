@@ -251,6 +251,7 @@ class NPTSPredictor(RepresentablePredictor):
         -------
         Forecast
           A prediction for the supplied `ts` and `custom_features`.
+
         """
 
         if np.all(np.isnan(ts.values[-self.context_length :])):
@@ -295,9 +296,9 @@ class NPTSPredictor(RepresentablePredictor):
         custom_features: np.ndarray = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Internal method for computing default, (optional) seasonal features
-        for the training and prediction ranges given time index for the
-        training range and the prediction length.
+        Internal method for computing default, (optional) seasonal features for
+        the training and prediction ranges given time index for the training
+        range and the prediction length.
 
         Appends `custom_features` if provided.
 
@@ -314,6 +315,7 @@ class NPTSPredictor(RepresentablePredictor):
         -------
         a tuple of (training, prediction) feature tensors
             shape: (num_features, train_length/pred_length)
+
         """
 
         train_length = len(train_index)

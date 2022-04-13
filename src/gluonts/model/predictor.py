@@ -94,7 +94,7 @@ class Predictor:
     @classmethod
     def deserialize(cls, path: Path, **kwargs) -> "Predictor":
         """
-        Load a serialized predictor from the given path
+        Load a serialized predictor from the given path.
 
         Parameters
         ----------
@@ -103,6 +103,7 @@ class Predictor:
         **kwargs
             Optional context/device parameter to be used with the predictor.
             If nothing is passed will use the GPU if available and CPU otherwise.
+
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
@@ -142,7 +143,8 @@ class RepresentablePredictor(Predictor):
     """
     An abstract predictor that can be subclassed by models that are not based
     on Gluon. Subclasses should have @validated() constructors.
-    (De)serialization and value equality are all implemented on top of the
+    (De)serialization and value equality are all implemented on top of the.
+
     @validated() logic.
     Parameters
     ----------
@@ -150,6 +152,7 @@ class RepresentablePredictor(Predictor):
         Prediction horizon.
     freq
         Frequency of the predicted data.
+
     """
 
     @validated()
@@ -168,10 +171,8 @@ class RepresentablePredictor(Predictor):
         raise NotImplementedError
 
     def __eq__(self, that):
-        """
-        Two RepresentablePredictor instances are considered equal if they
-        have the same constructor arguments.
-        """
+        """Two RepresentablePredictor instances are considered equal if they
+        have the same constructor arguments."""
         return equals(self, that)
 
     def serialize(self, path: Path) -> None:
@@ -200,8 +201,10 @@ def _worker_loop(
 ):
     """
     Worker loop for multiprocessing Predictor.
-    Loads the predictor serialized in predictor_path
-    reads inputs from input_queue and writes forecasts to output_queue
+
+    Loads the predictor serialized in predictor_path reads inputs from
+    input_queue and writes forecasts to output_queue
+
     """
 
     predictor = Predictor.deserialize(predictor_path)

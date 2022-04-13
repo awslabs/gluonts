@@ -23,5 +23,6 @@ def image_uri(path: str) -> str:
 
     Returns:
         The image URI.
+
     """
     return f"{account_id()}.dkr.ecr.{default_session().region_name}.amazonaws.com/{path}"

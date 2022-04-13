@@ -152,7 +152,8 @@ def TrainDataLoader(
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ):
-    """Construct an iterator of batches for training purposes.
+    """
+    Construct an iterator of batches for training purposes.
 
     This function wraps around ``DataLoader`` to offer training-specific
     behaviour and options, as follows:
@@ -198,6 +199,7 @@ def TrainDataLoader(
     -------
     Iterator[DataBatch]
         An iterator of batches.
+
     """
     dataset: Dataset = Cyclic(dataset)
 
@@ -234,7 +236,8 @@ def ValidationDataLoader(
     num_workers: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ):
-    """Construct an iterator of batches for validation purposes.
+    """
+    Construct an iterator of batches for validation purposes.
 
     Parameters
     ----------
@@ -262,6 +265,7 @@ def ValidationDataLoader(
     -------
     Iterable[DataBatch]
         An iterable sequence of batches.
+
     """
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
@@ -285,7 +289,8 @@ def InferenceDataLoader(
     batch_size: int,
     stack_fn: Callable,
 ):
-    """Construct an iterator of batches for inference purposes.
+    """
+    Construct an iterator of batches for inference purposes.
 
     Parameters
     ----------
@@ -305,6 +310,7 @@ def InferenceDataLoader(
     -------
     Iterable[DataBatch]
         An iterable sequence of batches.
+
     """
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=False)

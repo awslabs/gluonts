@@ -77,8 +77,9 @@ class Quantile(NamedTuple):
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
-        """Produces equivalent float and string representation of a given
-        quantile level.
+        """
+        Produces equivalent float and string representation of a given quantile
+        level.
 
         >>> Quantile.parse(0.1)
         Quantile(value=0.1, name='0.1')
@@ -103,6 +104,7 @@ class Quantile(NamedTuple):
         Quantile
             A tuple containing both a float and a string representation of the
             input quantile level.
+
         """
         if isinstance(quantile, Quantile):
             return quantile
@@ -113,9 +115,7 @@ class Quantile(NamedTuple):
 
 
 class Forecast:
-    """
-    A abstract class representing predictions.
-    """
+    """A abstract class representing predictions."""
 
     start_date: pd.Timestamp
     freq: str
@@ -138,6 +138,7 @@ class Forecast:
         -------
         numpy.ndarray
             Value of the quantile across the prediction range.
+
         """
         raise NotImplementedError()
 
@@ -180,6 +181,7 @@ class Forecast:
             Other arguments are passed to main plot() call
         kwargs :
             Other keyword arguments are passed to main plot() call
+
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be
@@ -253,9 +255,7 @@ class Forecast:
         return self._index
 
     def dim(self) -> int:
-        """
-        Returns the dimensionality of the forecast object.
-        """
+        """Returns the dimensionality of the forecast object."""
         raise NotImplementedError()
 
     def copy_dim(self, dim: int):
@@ -266,6 +266,7 @@ class Forecast:
         ----------
         dim
             The returned forecast object will only represent this dimension.
+
         """
         raise NotImplementedError()
 
@@ -279,6 +280,7 @@ class Forecast:
         agg_fun
             Aggregation function that defines the aggregation operation
             (typically mean or sum).
+
         """
         raise NotImplementedError()
 
@@ -319,6 +321,7 @@ class SampleForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     @validated()
@@ -361,23 +364,17 @@ class SampleForecast(Forecast):
 
     @property
     def num_samples(self):
-        """
-        The number of samples representing the forecast.
-        """
+        """The number of samples representing the forecast."""
         return self.samples.shape[0]
 
     @property
     def prediction_length(self):
-        """
-        Time length of the forecast.
-        """
+        """Time length of the forecast."""
         return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         if self._mean is not None:
             return self._mean
         else:
@@ -385,9 +382,7 @@ class SampleForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
+        """Forecast mean, as a pandas.Series object."""
         return pd.Series(self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
@@ -475,7 +470,7 @@ class SampleForecast(Forecast):
 
 class QuantileForecast(Forecast):
     """
-    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean.
 
     Parameters
     ----------
@@ -492,6 +487,7 @@ class QuantileForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     def __init__(
@@ -560,9 +556,7 @@ class QuantileForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
 

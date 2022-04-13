@@ -23,9 +23,7 @@ from gluonts.mx import Tensor
 
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):
-    """
-    Pytorch-style gather_nd
-    """
+    """Pytorch-style gather_nd."""
     ndim = 4
     if axis < 0:
         axis = ndim + axis
@@ -113,7 +111,7 @@ class SelfAttention(HybridBlock):
         **kwargs,
     ):
         """
-        Self-attention module with q,k,v from the same input
+        Self-attention module with q,k,v from the same input.
 
         Parameters
         ----------
@@ -140,6 +138,7 @@ class SelfAttention(HybridBlock):
             dropout rate, by default 0.0
         temperature : float, optional
             softmax temperature, by default 1.0
+
         """
         super().__init__(**kwargs)
         n_groups = len(kernel_sizes)
@@ -218,7 +217,7 @@ class SelfAttention(HybridBlock):
 
     def _split_head(self, F, x: Tensor) -> Tensor:
         """
-        Split hidden state into multi-heads
+        Split hidden state into multi-heads.
 
         Args
         ----------
@@ -227,6 +226,7 @@ class SelfAttention(HybridBlock):
         Returns
         -------
             Tensor [batch, n_head, length, d_head]
+
         """
         x = F.reshape(data=x, shape=(0, 0, -4, self.n_head, self.d_head))
         x = F.swapaxes(data=x, dim1=1, dim2=2)
@@ -234,7 +234,7 @@ class SelfAttention(HybridBlock):
 
     def _merge_head(self, F, x: Tensor) -> Tensor:
         """
-        Merge multi-heads into one hidden state
+        Merge multi-heads into one hidden state.
 
         Args
         ----------
@@ -243,6 +243,7 @@ class SelfAttention(HybridBlock):
         Returns
         -------
             Tensor [batch, length, d_hidden]
+
         """
         x = F.swapaxes(data=x, dim1=1, dim2=2)
         x = F.reshape(data=x, shape=(0, 0, self.d_hidden))

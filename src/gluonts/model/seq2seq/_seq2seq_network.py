@@ -42,6 +42,7 @@ class Seq2SeqNetworkBase(mx.gluon.HybridBlock):
         quantile regression output
     kwargs : dict
         a dict of parameters to be passed to the parent initializer
+
     """
 
     @validated()

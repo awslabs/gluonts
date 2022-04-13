@@ -44,8 +44,11 @@ def seasonality_model(
     is_forecast: bool,
 ) -> Tensor:
     """
-    Creates a fourier series basis with num_coefficients coefficients for sine and cosine each.
+    Creates a fourier series basis with num_coefficients coefficients for sine
+    and cosine each.
+
     So the total number of learned coefficients amounts to 2*num_coefficients.
+
     """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
@@ -67,9 +70,7 @@ def trend_model(
     prediction_length: int,
     is_forecast: bool,
 ) -> Tensor:
-    """
-    Creates a polynomial basis of degree num_coefficients-1.
-    """
+    """Creates a polynomial basis of degree num_coefficients-1."""
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
@@ -79,7 +80,8 @@ def trend_model(
 
 class NBEATSBlock(mx.gluon.HybridBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     Parameters
     ----------
@@ -100,6 +102,7 @@ class NBEATSBlock(mx.gluon.HybridBlock):
         Only the last block of the network doesn't.
     kwargs
         Arguments passed to 'HybridBlock'.
+
     """
 
     # Needs the validated decorator so that arguments types are checked and
@@ -175,8 +178,8 @@ class NBEATSBlock(mx.gluon.HybridBlock):
 
 class NBEATSGenericBlock(NBEATSBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the GenericBlock variant.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the GenericBlock variant.
 
     Parameters
     ----------
@@ -195,6 +198,7 @@ class NBEATSGenericBlock(NBEATSBlock):
         Only the last block of the network doesn't.
     kwargs
         Arguments passed to 'HybridBlock'.
+
     """
 
     # Needs the validated decorator so that arguments types are checked and
@@ -225,8 +229,8 @@ class NBEATSGenericBlock(NBEATSBlock):
 
 class NBEATSSeasonalBlock(NBEATSBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the Seasonal block variant.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the Seasonal block variant.
 
     Parameters
     ----------
@@ -245,6 +249,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
         Only the last block of the network doesn't.
     kwargs
         Arguments passed to 'HybridBlock'.
+
     """
 
     # Needs the validated decorator so that arguments types are checked and
@@ -298,9 +303,9 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 
 class NBEATSTrendBlock(NBEATSBlock):
-    """ "
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the Trend block variant.
+    """
+    " The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the Trend block variant.
 
     Parameters
     ----------
@@ -321,6 +326,7 @@ class NBEATSTrendBlock(NBEATSBlock):
         Only the last block of the network doesn't.
     kwargs
         Arguments passed to 'HybridBlock'.
+
     """
 
     # Needs the validated decorator so that arguments types are checked and
@@ -370,9 +376,10 @@ class NBEATSTrendBlock(NBEATSBlock):
 
 class NBEATSNetwork(mx.gluon.HybridBlock):
     """
-    The NBEATS Network as described in the paper: https://arxiv.org/abs/1905.10437.
-    This does not constitute the whole NBEATS model, which is en ensemble model
-    comprised of a multitude of NBEATS Networks.
+    The NBEATS Network as described in the paper:
+    https://arxiv.org/abs/1905.10437. This does not constitute the whole NBEATS
+    model, which is en ensemble model comprised of a multitude of NBEATS
+    Networks.
 
     Parameters
     ----------
@@ -421,6 +428,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         if True scales the input observations by the mean
     kwargs
         Arguments passed to 'HybridBlock'.
+
     """
 
     # Needs the validated decorator so that arguments types are checked and

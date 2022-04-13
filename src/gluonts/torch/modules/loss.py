@@ -15,15 +15,15 @@ import torch
 
 
 class DistributionLoss(torch.nn.Module):
-    """A ``torch.nn.Module`` extensions that computes loss values by comparing a ``Distribution``
-    (prediction) to a ``Tensor`` (ground-truth).
-    """
+    """A ``torch.nn.Module`` extensions that computes loss values by comparing
+    a ``Distribution`` (prediction) to a ``Tensor`` (ground-truth)."""
 
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute the loss of predicting ``target`` with the ``input`` distribution.
+        Compute the loss of predicting ``target`` with the ``input``
+        distribution.
 
         Parameters
         ----------
@@ -41,6 +41,7 @@ class DistributionLoss(torch.nn.Module):
         ------
         NotImplementedError
             [description]
+
         """
         raise NotImplementedError
 

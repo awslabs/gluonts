@@ -21,9 +21,7 @@ from .distribution_output import Output
 
 
 class BijectionOutput(Output):
-    """
-    Class to connect a network to a bijection
-    """
+    """Class to connect a network to a bijection."""
 
     bij_cls: type
 

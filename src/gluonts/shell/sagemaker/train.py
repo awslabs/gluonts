@@ -92,7 +92,8 @@ class TrainEnv:
         return None
 
     def _load_channels(self) -> Dict[str, Path]:
-        """Lists the available channels in `/opt/ml/input/data`.
+        """
+        Lists the available channels in `/opt/ml/input/data`.
 
         Return:
         Dict of channel-names mapping to the corresponding path.
@@ -102,6 +103,7 @@ class TrainEnv:
         we take its content to determine which channels are available. To
         support a local development setup, we just list the contents of the
         data folder to get the available channels.
+
         """
         if self.inputdataconfig is not None:
             return {

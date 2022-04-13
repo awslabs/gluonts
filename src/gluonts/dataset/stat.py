@@ -25,7 +25,7 @@ from gluonts.gluonts_tqdm import tqdm
 
 class ScaleHistogram:
     """
-    Scale histogram of a timeseries dataset
+    Scale histogram of a timeseries dataset.
 
     This counts the number of timeseries whose mean of absolute values is in
     the `[base ** i, base ** (i+1)]` range for all possible `i`.
@@ -37,6 +37,7 @@ class ScaleHistogram:
         Log-width of the histogram's buckets.
     bin_counts
     empty_target_count
+
     """
 
     @validated()
@@ -102,9 +103,7 @@ class ScaleHistogram:
 
 
 class DatasetStatistics(NamedTuple):
-    """
-    A NamedTuple to store the statistics of a Dataset.
-    """
+    """A NamedTuple to store the statistics of a Dataset."""
 
     integer_dataset: bool
     max_target: float
@@ -151,6 +150,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     -------
     DatasetStatistics
         NamedTuple containing the statistics.
+
     """
     num_time_observations = 0
     num_time_series = 0

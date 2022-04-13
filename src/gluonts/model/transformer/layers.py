@@ -112,9 +112,7 @@ def combine_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
 
 
 class LayerNormalization(HybridBlock):
-    """
-    Implements layer normalization as proposed in [BKH16]_.
-    """
+    """Implements layer normalization as proposed in [BKH16]_."""
 
     def __init__(
         self,
@@ -191,6 +189,7 @@ class MultiHeadAttentionBase(HybridBlock):
         Output dimension (number of output units)
     dropout
         Dropout rate on attention scores
+
     """
 
     def __init__(

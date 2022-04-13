@@ -24,8 +24,11 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 class Recommender(ABC, Generic[T]):
     """
-    A recommender uses a surrogate to recommend models and their configurations based on desired
-    target metrics. This class implements the general interface.
+    A recommender uses a surrogate to recommend models and their configurations
+    based on desired target metrics.
+
+    This class implements the general interface.
+
     """
 
     def __init__(
@@ -56,30 +59,27 @@ class Recommender(ABC, Generic[T]):
 
     @property
     def required_cpus(self) -> int:
-        """
-        The number of CPUs required for fitting the recommender.
-        """
+        """The number of CPUs required for fitting the recommender."""
         return 1
 
     @property
     def required_memory(self) -> int:
-        """
-        The amount of memory in GiB required for fitting the recommender.
-        """
+        """The amount of memory in GiB required for fitting the recommender."""
         return 1
 
     def fit(
         self, configs: List[Config[T]], _performances: List[Performance]
     ) -> None:
         """
-        Fits the recommender, including surrogate model and generator, on the provided
-        configurations.
+        Fits the recommender, including surrogate model and generator, on the
+        provided configurations.
 
         Args:
             configs: The configurations to train on (the generator typically extracts the unique
                 model configurations).
             performances: The performances that the surrogate should fit on. The performances must
                 align with the provided configurations.
+
         """
         self.generator.fit(list({c.model for c in configs}))
 
@@ -90,9 +90,9 @@ class Recommender(ABC, Generic[T]):
         max_count: int = 10,
     ) -> List[Recommendation[T]]:
         """
-        This method takes a dataset and a set of constraints and outputs a set of recommendations.
-        The recommendations provide both the configurations of the recommended model as well as the
-        expected performance.
+        This method takes a dataset and a set of constraints and outputs a set
+        of recommendations. The recommendations provide both the configurations
+        of the recommended model as well as the expected performance.
 
         Args:
             dataset: The configuration of the dataset for which to recommend a model.
@@ -102,6 +102,7 @@ class Recommender(ABC, Generic[T]):
 
         Returns:
             The recommendations which (approximately) satisfy the provided constraints.
+
         """
         model_configs = self.generator.generate(candidates)
         configs = [Config(m, dataset) for m in model_configs]

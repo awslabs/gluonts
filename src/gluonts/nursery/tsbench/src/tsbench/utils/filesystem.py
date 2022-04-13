@@ -27,6 +27,7 @@ def compress_directory(
         directory: The directory to compress.
         target: The `.tar.gz` file where the compressed archive should be written.
         include: The filenames to include. If not provided, all files are included.
+
     """
     with target.open("wb+") as f:
         with tarfile.open(fileobj=f, mode="w:gz") as tar:

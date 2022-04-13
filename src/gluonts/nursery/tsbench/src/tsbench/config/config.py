@@ -25,9 +25,8 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 @dataclass(frozen=True)
 class Config(Generic[T]):
-    """
-    A configuration is a tuple of a model configuration and a dataset configuration.
-    """
+    """A configuration is a tuple of a model configuration and a dataset
+    configuration."""
 
     @classmethod
     def to_dataframe(
@@ -35,9 +34,12 @@ class Config(Generic[T]):
         configs: list[Config[ModelConfig]],
     ) -> pd.DataFrame:
         """
-        Returns a data frame representing the provided configurations. The model is translated into
-        columns of the data frame automatically. The dataset is converted to a single column by
-        being represented by its name.
+        Returns a data frame representing the provided configurations.
+
+        The model is translated into columns of the data frame automatically.
+        The dataset is converted to a single column by being represented by its
+        name.
+
         """
         rows: list[dict[str, str | float | int | bool]] = [
             {

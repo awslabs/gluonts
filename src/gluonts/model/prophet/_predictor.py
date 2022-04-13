@@ -50,10 +50,8 @@ def feat_name(i: int) -> str:
 
 
 class ProphetDataEntry(NamedTuple):
-    """
-    A named tuple containing relevant base and derived data that is
-    required in order to call Prophet.
-    """
+    """A named tuple containing relevant base and derived data that is required
+    in order to call Prophet."""
 
     train_length: int
     prediction_length: int
@@ -115,6 +113,7 @@ class ProphetPredictor(RepresentablePredictor):
         ...         name='weekly', period=7, fourier_order=3, prior_scale=0.1
         ...     )
         ...     return model
+
     """
 
     @validated()

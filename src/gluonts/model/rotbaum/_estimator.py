@@ -30,6 +30,7 @@ class ThirdPartyEstimator(Estimator):
         `Predictor` class to instantiate.
     **kwargs
         Keyword arguments to pass to the predictor constructor.
+
     """
 
     @validated()

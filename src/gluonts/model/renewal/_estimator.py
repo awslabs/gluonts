@@ -57,8 +57,9 @@ from gluonts.transform.feature import CountTrailingZeros
 
 class DeepRenewalProcessEstimator(GluonEstimator):
     """
-    Implements a deep renewal process estimator designed to forecast intermittent time series
-    sampled in discrete time, as described in [TWJ19]_.
+    Implements a deep renewal process estimator designed to forecast
+    intermittent time series sampled in discrete time, as described in
+    [TWJ19]_.
 
     In short, instead of viewing sparse time series as a univariate stochastic process, this
     estimator transforms a sparse time series [0, 0, 0, 3, 0, 0, 7] to an interval-size format,
@@ -104,6 +105,7 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     num_parallel_samples
         Number of evaluation samples per time series to increase parallelism during inference.
         This is a model optimization that does not affect the accuracy (default: 100)
+
     """
 
     @validated()

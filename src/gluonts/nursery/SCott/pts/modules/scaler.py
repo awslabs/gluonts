@@ -66,6 +66,7 @@ class MeanScaler(Scaler):
     ----------
     minimum_scale
         default scale that is used if the time series has only zeros.
+
     """
 
     def __init__(self, minimum_scale: float = 1e-10, *args, **kwargs):
@@ -108,10 +109,8 @@ class MeanScaler(Scaler):
 
 
 class NOPScaler(Scaler):
-    """
-    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
-    no scaling is applied upon calling the ``NOPScaler``.
-    """
+    """The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
+    no scaling is applied upon calling the ``NOPScaler``."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

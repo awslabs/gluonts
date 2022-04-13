@@ -18,8 +18,11 @@ from torch import nn
 
 class ListMLELoss(nn.Module):
     """
-    Loss that is used for ListMLE. For each feature, ranking is performed independently. A lower
-    score indicates a lower rank (i.e. "better" value).
+    Loss that is used for ListMLE.
+
+    For each feature, ranking is performed independently. A lower score
+    indicates a lower rank (i.e. "better" value).
+
     """
 
     def __init__(
@@ -54,6 +57,7 @@ class ListMLELoss(nn.Module):
 
         Returns:
             Tensor of shape [1] containing the loss.
+
         """
         # We compute the loss for each group and subsequently average
         log_likelihoods = []

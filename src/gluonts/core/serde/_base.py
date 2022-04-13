@@ -177,6 +177,7 @@ def encode(v: Any) -> Any:
         Serializes an object to a JSON string.
     dump_code
         Serializes an object to a Python code string.
+
     """
     if v is None:
         return None
@@ -254,10 +255,8 @@ def encode_from_state(v: Stateful) -> Any:
 
 @encode.register(PurePath)
 def encode_path(v: PurePath) -> Any:
-    """
-    Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~PurePath` class.
-    """
+    """Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~PurePath` class."""
     return {
         "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),
@@ -267,10 +266,8 @@ def encode_path(v: PurePath) -> Any:
 
 @encode.register(BaseModel)
 def encode_pydantic_model(v: BaseModel) -> Any:
-    """
-    Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~BaseModel` class.
-    """
+    """Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~BaseModel` class."""
     return {
         "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),
@@ -307,6 +304,7 @@ def decode(r: Any) -> Any:
     --------
     encode
         Inverse function.
+
     """
 
     # structural recursion over the possible shapes of r

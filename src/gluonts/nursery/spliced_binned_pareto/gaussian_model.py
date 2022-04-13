@@ -41,15 +41,11 @@ class GaussianModel(nn.Module):
         self.distr = Normal(self.mu, self.sigma)
 
     def to_device(self, device):
-        """
-        Moves members to a specified torch.device
-        """
+        """Moves members to a specified torch.device."""
         self.device = device
 
     def forward(self, x):
-        """
-        Takes input x as new distribution parameters
-        """
+        """Takes input x as new distribution parameters."""
         # If mini-batching
         if len(x.shape) > 1:
             self.mu_batch = x[:, 0]

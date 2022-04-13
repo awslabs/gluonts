@@ -107,8 +107,8 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
     def step(self, metric_value: float) -> bool:
         """
         Inform the scheduler of the new value of the metric that is being
-        optimized. This method should be invoked at regular intervals (e.g.
-        at the end of every epoch, after computing a validation score).
+        optimized. This method should be invoked at regular intervals (e.g. at
+        the end of every epoch, after computing a validation score).
 
         Parameters
         ----------
@@ -118,6 +118,7 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         Returns
         -------
         bool value indicating, whether to continue training
+
         """
         if self.curr_lr is None:
             self.curr_lr = self.base_lr

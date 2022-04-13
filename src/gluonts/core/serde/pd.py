@@ -20,10 +20,8 @@ from ._base import Kind, encode
 
 @encode.register(pd.Timestamp)
 def encode_pd_timestamp(v: pd.Timestamp) -> Any:
-    """
-    Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~pandas.Timestamp` class.
-    """
+    """Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~pandas.Timestamp` class."""
     return {
         "__kind__": Kind.Instance,
         "class": "pandas.Timestamp",

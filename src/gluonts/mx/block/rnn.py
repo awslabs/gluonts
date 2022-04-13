@@ -35,6 +35,7 @@ class RNN(HybridBlock):
 
     bidirectional
         toggle use of bi-directional RNN as encoder.
+
     """
 
     @validated()

@@ -66,6 +66,7 @@ class Forecast(ABC):
         -------
         numpy.ndarray
             Value of the quantile across the prediction range.
+
         """
         pass
 
@@ -108,6 +109,7 @@ class Forecast(ABC):
             Other arguments are passed to main plot() call
         kwargs :
             Other keyword arguments are passed to main plot() call
+
         """
 
         # matplotlib==2.0.* gives errors in Brazil builds and has to be
@@ -216,6 +218,7 @@ class SampleForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     def __init__(
@@ -261,23 +264,17 @@ class SampleForecast(Forecast):
 
     @property
     def num_samples(self):
-        """
-        The number of samples representing the forecast.
-        """
+        """The number of samples representing the forecast."""
         return self.samples.shape[0]
 
     @property
     def prediction_length(self):
-        """
-        Time length of the forecast.
-        """
+        """Time length of the forecast."""
         return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         if self._mean is not None:
             return self._mean
         else:
@@ -285,9 +282,7 @@ class SampleForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
+        """Forecast mean, as a pandas.Series object."""
         return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
@@ -303,6 +298,7 @@ class SampleForecast(Forecast):
         ----------
         dim
             The returned forecast object will only represent this dimension.
+
         """
         if len(self.samples.shape) == 2:
             samples = self.samples
@@ -332,6 +328,7 @@ class SampleForecast(Forecast):
         agg_fun
             Aggregation function that defines the aggregation operation
             (typically mean or sum).
+
         """
         if len(self.samples.shape) == 2:
             samples = self.samples
@@ -347,9 +344,7 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        """
-        Returns the dimensionality of the forecast object.
-        """
+        """Returns the dimensionality of the forecast object."""
         if self._dim is not None:
             return self._dim
         else:
@@ -384,7 +379,7 @@ class SampleForecast(Forecast):
 
 class QuantileForecast(Forecast):
     """
-    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean.
 
     Parameters
     ----------
@@ -401,6 +396,7 @@ class QuantileForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     def __init__(
@@ -444,15 +440,11 @@ class QuantileForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         return self._forecast_dict.get("mean", self._nan_out)
 
     def dim(self) -> int:
-        """
-        Returns the dimensionality of the forecast object.
-        """
+        """Returns the dimensionality of the forecast object."""
         if self._dim is not None:
             return self._dim
         else:
@@ -480,10 +472,10 @@ class QuantileForecast(Forecast):
 
 class DistributionForecast(Forecast):
     """
-    A `Forecast` object that uses a distribution directly.
-    This can for instance be used to represent marginal probability
-    distributions for each time point -- although joint distributions are
-    also possible, e.g. when using MultiVariateGaussian).
+    A `Forecast` object that uses a distribution directly. This can for
+    instance be used to represent marginal probability distributions for each
+    time point -- although joint distributions are also possible, e.g. when
+    using MultiVariateGaussian).
 
     Parameters
     ----------
@@ -502,6 +494,7 @@ class DistributionForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+
     """
 
     def __init__(
@@ -531,9 +524,7 @@ class DistributionForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """
-        Forecast mean.
-        """
+        """Forecast mean."""
         if self._mean is not None:
             return self._mean
         else:
@@ -542,9 +533,7 @@ class DistributionForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
+        """Forecast mean, as a pandas.Series object."""
         return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:

@@ -85,7 +85,6 @@ class CausalConv1D(gluon.HybridBlock):
         In Gluon's conv1D implementation, input has dimension NCW where N is
         batch_size, C is channel, and W is time (sequence_length).
 
-
         Parameters
         ----------
         data
@@ -95,6 +94,7 @@ class CausalConv1D(gluon.HybridBlock):
         -------
         Tensor
             causal conv1d output. Shape (batch_size, num_features, sequence_length)
+
         """
         ct = self.conv1d(data)
         if self.kernel_size > 0:
@@ -104,7 +104,8 @@ class CausalConv1D(gluon.HybridBlock):
 
 class DilatedCausalGated(gluon.HybridBlock):
     """
-    1D convolution with Gated mechanism, see the Wavenet papers described above.
+    1D convolution with Gated mechanism, see the Wavenet papers described
+    above.
 
     Parameters
     ----------
@@ -119,6 +120,7 @@ class DilatedCausalGated(gluon.HybridBlock):
 
     dilation
         Specifies the dilation rate to use for dilated convolution.
+
     """
 
     def __init__(
@@ -161,6 +163,7 @@ class DilatedCausalGated(gluon.HybridBlock):
         -------
         Tensor
             output, shape (batch_size, num_features, sequence_length)
+
         """
         x1 = self.conv1(x)
         x2 = self.conv2(x)
@@ -168,9 +171,8 @@ class DilatedCausalGated(gluon.HybridBlock):
 
 
 class ResidualSequential(gluon.nn.HybridSequential):
-    """
-    Adding residual connection to each layer of the hybrid sequential blocks
-    """
+    """Adding residual connection to each layer of the hybrid sequential
+    blocks."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

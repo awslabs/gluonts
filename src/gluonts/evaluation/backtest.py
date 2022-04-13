@@ -38,8 +38,8 @@ def make_evaluation_predictions(
     num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
-    Returns predictions for the trailing prediction_length observations of the given
-    time series, using the given predictor.
+    Returns predictions for the trailing prediction_length observations of the
+    given time series, using the given predictor.
 
     The predictor will take as input the given time series without the trailing
     prediction_length observations.
@@ -60,6 +60,7 @@ def make_evaluation_predictions(
     Tuple[Iterator[Forecast], Iterator[pd.Series]]
         A pair of iterators, the first one yielding the forecasts, and the second
         one yielding the corresponding ground truth series.
+
     """
 
     prediction_length = predictor.prediction_length

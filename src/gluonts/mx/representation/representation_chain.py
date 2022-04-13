@@ -26,13 +26,15 @@ from .representation import Representation
 
 class RepresentationChain(Representation):
     """
-    A class representing a hybrid approach of combining multiple representations into a single representation.
-    Representations will be combined by concatenating them on dim=-1.
+    A class representing a hybrid approach of combining multiple
+    representations into a single representation. Representations will be
+    combined by concatenating them on dim=-1.
 
     Parameters
     ----------
     chain
         A list of representations. Elements must be of type Representation.
+
     """
 
     @validated()

@@ -58,6 +58,7 @@ def dump_code(o: Any) -> str:
     --------
     load_code
         Inverse function.
+
     """
 
     def _dump_code(x: Any) -> str:
@@ -281,6 +282,7 @@ def encode(v: Any) -> Any:
         Serializes an object to a JSON string.
     dump_code
         Serializes an object to a Python code string.
+
     """
     if isinstance(v, type(None)):
         return None
@@ -343,6 +345,7 @@ def decode(r: Any) -> Any:
     --------
     encode
         Inverse function.
+
     """
 
     # structural recursion over the possible shapes of r

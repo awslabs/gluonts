@@ -21,9 +21,7 @@ from gluonts.mx.block.mlp import MLP
 
 
 class Seq2SeqDecoder(nn.HybridBlock):
-    """
-    Abstract class for the Decoder block in sequence-to-sequence models.
-    """
+    """Abstract class for the Decoder block in sequence-to-sequence models."""
 
     @validated()
     def __init__(self, **kwargs):
@@ -45,6 +43,7 @@ class Seq2SeqDecoder(nn.HybridBlock):
             dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
             + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
+
         """
         raise NotImplementedError
 
@@ -67,6 +66,7 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
 
     hidden_dimension_sequence
         number of hidden units for each MLP layer.
+
     """
 
     @validated()
@@ -146,6 +146,7 @@ class OneShotDecoder(Seq2SeqDecoder):
         dimensions of the hidden layers
     static_outputs_per_time_step
         number of outputs per time step
+
     """
 
     @validated()
@@ -168,7 +169,7 @@ class OneShotDecoder(Seq2SeqDecoder):
         self, F, static_input: Tensor, dynamic_input: Tensor
     ) -> Tensor:
         """
-        OneShotDecoder forward call
+        OneShotDecoder forward call.
 
         Parameters
         ----------
@@ -188,6 +189,7 @@ class OneShotDecoder(Seq2SeqDecoder):
         -------
         Tensor
             mlp output, shape (batch_size, decoder_length, size of last layer)
+
         """
         static_input_tile = self.expander(static_input).reshape(
             (0, self.decoder_length, self.static_outputs_per_time_step)

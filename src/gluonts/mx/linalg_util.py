@@ -88,8 +88,8 @@ def jitter_cholesky_eig(
 ) -> Tensor:
     """
     This function applies the jitter method using the eigenvalue decomposition.
-    The eigenvalues are bound below by the jitter, which is proportional to the mean of the
-    diagonal elements
+    The eigenvalues are bound below by the jitter, which is proportional to the
+    mean of the diagonal elements.
 
     Parameters
     ----------
@@ -108,6 +108,7 @@ def jitter_cholesky_eig(
     Tensor
         Returns the approximate lower triangular Cholesky factor `L`
         of shape (batch_size, num_data_points, num_data_points)
+
     """
     diag = batch_diagonal(
         F, matrix, num_data_points, float_type
@@ -147,9 +148,10 @@ def jitter_cholesky(
     increase_jitter: int = 10,
 ) -> Optional[Tensor]:
     """
-    This function applies the jitter method.  It iteratively tries to compute the Cholesky decomposition and
-    adds a positive tolerance to the diagonal that increases at each iteration until the matrix is positive definite
-    or the maximum number of iterations has been reached.
+    This function applies the jitter method.  It iteratively tries to compute
+    the Cholesky decomposition and adds a positive tolerance to the diagonal
+    that increases at each iteration until the matrix is positive definite or
+    the maximum number of iterations has been reached.
 
     Parameters
     ----------
@@ -174,6 +176,7 @@ def jitter_cholesky(
         The method either fails to make the matrix positive definite within the maximum number of iterations
         and outputs an error or succeeds and returns the lower triangular Cholesky factor `L`
         of shape (batch_size, num_data_points, num_data_points)
+
     """
     num_iter = 0
     diag = batch_diagonal(

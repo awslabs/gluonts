@@ -62,13 +62,14 @@ def surrogate(
     nskip: int,
 ):
     """
-    Evaluates the performance of a set of surrogate models using the available offline
-    evaluations. Performance is evaluated via ranking metrics and performed via stratified
-    leave-one-out cross-validation where each stratum consists of the evaluations on a single
-    evaluation dataset.
+    Evaluates the performance of a set of surrogate models using the available
+    offline evaluations. Performance is evaluated via ranking metrics and
+    performed via stratified leave-one-out cross-validation where each stratum
+    consists of the evaluations on a single evaluation dataset.
 
-    This call runs the Sacred script for each provided configuration sequentially and returns only
-    once all runs have completed.
+    This call runs the Sacred script for each provided configuration
+    sequentially and returns only once all runs have completed.
+
     """
     with Path(config_path).open("r", encoding="utf-8") as f:
         content = yaml.safe_load(f)

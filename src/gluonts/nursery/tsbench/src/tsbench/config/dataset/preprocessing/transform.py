@@ -23,13 +23,14 @@ def read_transform_write(
     source: Optional[Path] = None,
 ) -> None:
     """
-    Reads the dataset from the provided path, applies the given transform and writes it back to the
-    same file.
+    Reads the dataset from the provided path, applies the given transform and
+    writes it back to the same file.
 
     Args:
         file: The path from where to read the data.
         filters: An optional list of filters to apply to modify the items in the datset.
         source: An optional source to read from. Defaults to the path to write to.
+
     """
     # Read
     data = []

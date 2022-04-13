@@ -34,6 +34,7 @@ class FeatureEmbedder(nn.HybridBlock):
 
     dtype
         Data type of the embedded features.
+
     """
 
     @validated()
@@ -117,7 +118,8 @@ class FeatureEmbedder(nn.HybridBlock):
 
 class FeatureAssembler(nn.HybridBlock):
     """
-    Assemble features into an MXNet tensor. Input features are distinguished based on the following criteria:
+    Assemble features into an MXNet tensor. Input features are distinguished
+    based on the following criteria:
 
     - static (time-independent) features vs dynamic (that is, time-dependent)
     - categorical vs real-valued features.
@@ -190,6 +192,7 @@ class FeatureAssembler(nn.HybridBlock):
 
     However, relative order of `static_cat` and `dynamic_cat` in the call above is determined by the fact that
     `use_static_cat` is defined before `use_dynamic_cat` in the class constructor.
+
     """
 
     @validated()

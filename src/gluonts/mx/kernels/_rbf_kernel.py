@@ -86,8 +86,9 @@ class RBFKernelOutput(KernelOutputDict):
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP RBF Kernel hyper-parameters by using the standard deviations
-        of the past_target and past_time_features.
+        This function returns the scales for the GP RBF Kernel hyper-parameters
+        by using the standard deviations of the past_target and
+        past_time_features.
 
         Parameters
         ----------
@@ -104,6 +105,7 @@ class RBFKernelOutput(KernelOutputDict):
         Tuple
             Two scaled GP hyper-parameters for the RBF Kernel and scaled model noise hyper-parameter.
             Each is a Tensor of shape (batch_size, 1, 1).
+
         """
         axis = 1
         sigma_scaling = (
@@ -136,6 +138,7 @@ class RBFKernelOutput(KernelOutputDict):
         Tuple[Tensor, Tenspr]
             Two GP RBF kernel hyper-parameters.
             Each is a Tensor of shape: (batch_size, 1, 1).
+
         """
         amplitude = softplus(F, amplitude)
         length_scale = softplus(F, length_scale)

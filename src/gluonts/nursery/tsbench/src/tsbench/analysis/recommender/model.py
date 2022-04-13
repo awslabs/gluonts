@@ -22,9 +22,12 @@ from tsbench.recommender import Recommender
 
 class ModelRecommenderAnalyzer:
     """
-    The recommender analyzer evaluates the performance of a recommender across datasets. The
-    analysis is run in parallel and should, thus, not be used in a Jupyter notebook. Instead,
-    consider using the `tsbench` CLI.
+    The recommender analyzer evaluates the performance of a recommender across
+    datasets.
+
+    The analysis is run in parallel and should, thus, not be used in a Jupyter
+    notebook. Instead, consider using the `tsbench` CLI.
+
     """
 
     def __init__(
@@ -45,14 +48,15 @@ class ModelRecommenderAnalyzer:
 
     def run(self) -> List[Dict[str, ModelConfig]]:
         """
-        Runs the evaluation on all datasets and returns the selected models for each dataset.
-        The config evaluator can be used to construct a data frame of performances from the
-        configurations.
+        Runs the evaluation on all datasets and returns the selected models for
+        each dataset. The config evaluator can be used to construct a data
+        frame of performances from the configurations.
 
         Returns:
             The recommended models. The outer list provides the index of the recommendations, i.e.
                 the first item of the list provides all the first recommendations of the
                 recommender, etc.
+
         """
         data = list(loocv_split(self.tracker))
         results = run_parallel(

@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class TabularEstimator(Estimator):
-    """An estimator that trains an Autogluon Tabular model for time series
+    """
+    An estimator that trains an Autogluon Tabular model for time series
     forecasting.
 
     Additional keyword arguments to the constructor, other than the ones documented
@@ -69,6 +70,7 @@ class TabularEstimator(Estimator):
         Whether to forecast in quantile way. If assigned with quantile values,
         this will train model using quantile prediction model. If None, then the model
         will be trained in a regular way.
+
     """
 
     @validated()

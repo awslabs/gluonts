@@ -29,9 +29,10 @@ def loocv_split(
     ]
 ]:
     """
-    Iterates over the configurations and associated performances obtained from a collector. For
-    each item it yields, it leaves out configurations/performances for a single dataset for testing
-    and provides the configurations/performances for training.
+    Iterates over the configurations and associated performances obtained from
+    a collector. For each item it yields, it leaves out
+    configurations/performances for a single dataset for testing and provides
+    the configurations/performances for training.
 
     Args:
         tracker: The tracker to retrieve data from.
@@ -40,6 +41,7 @@ def loocv_split(
     Yields:
         The training data, including configurations and performances, and the test data, including
         configurations and performances.
+
     """
     data = tracker.get_evaluations()
     groups = [c.dataset.name() for c in data.configurations]

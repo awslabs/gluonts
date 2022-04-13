@@ -23,6 +23,7 @@ def jsonify_floats(json_object):
     ----------
     json_object
         JSON object
+
     """
     if isinstance(json_object, dict):
         return {k: jsonify_floats(v) for k, v in json_object.items()}

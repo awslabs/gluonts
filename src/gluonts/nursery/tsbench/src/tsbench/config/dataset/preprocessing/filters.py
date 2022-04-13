@@ -20,20 +20,21 @@ Item = Dict[str, Any]
 
 
 class Filter(ABC):
-    """
-    A filter enables filtering the set of time series contained in a dataset.
-    """
+    """A filter enables filtering the set of time series contained in a
+    dataset."""
 
     @abstractmethod
     def __call__(self, items: List[Item]) -> List[Item]:
         """
-        Filters the given items and returns the ones that should be kept in the dataset.
+        Filters the given items and returns the ones that should be kept in the
+        dataset.
 
         Args:
             items:  The items to filter.
 
         Returns:
             The filtered items.
+
         """
 
 
@@ -42,8 +43,10 @@ class Filter(ABC):
 
 class ConstantTargetFilter(Filter):
     """
-    A filter which removes items having only constant target values. This filter should be used
-    whenever metrics such as the MASE are required.
+    A filter which removes items having only constant target values.
+
+    This filter should be used whenever metrics such as the MASE are required.
+
     """
 
     def __init__(self, prediction_length: int, required_length: int = 0):
@@ -63,9 +66,8 @@ class ConstantTargetFilter(Filter):
 
 
 class AbsoluteValueFilter(Filter):
-    """
-    A filter which removes items having absolute average values of more than the provided value.
-    """
+    """A filter which removes items having absolute average values of more than
+    the provided value."""
 
     def __init__(self, value: float):
         self.value = value
@@ -79,9 +81,7 @@ class AbsoluteValueFilter(Filter):
 
 
 class EndOfSeriesCutFilter(Filter):
-    """
-    A filter which removes the last `n` time steps from a time series.
-    """
+    """A filter which removes the last `n` time steps from a time series."""
 
     def __init__(self, prediction_length: int):
         self.prediction_length = prediction_length
@@ -99,9 +99,8 @@ class EndOfSeriesCutFilter(Filter):
 
 
 class MinLengthFilter(Filter):
-    """
-    A filter which ensures that time series have the specified minimum length.
-    """
+    """A filter which ensures that time series have the specified minimum
+    length."""
 
     def __init__(self, length: int):
         self.length = length

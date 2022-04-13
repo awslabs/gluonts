@@ -244,9 +244,7 @@ def plot_prediction(
 
 
 def highlight_min(data, color="lightgreen"):
-    """
-    Highlights the minimum in a Series or DataFrame
-    """
+    """Highlights the minimum in a Series or DataFrame."""
     attr = f"background-color: {color}"
     if data.ndim == 1:  # Series from .apply(axis=0) or axis=1
         is_min = data == data.min()

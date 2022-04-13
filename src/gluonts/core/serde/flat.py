@@ -158,9 +158,11 @@ def decode(data: dict) -> Any:
 
 
 def encode(obj) -> dict:
-    """Encode a given object into a flat-dictionary.
+    """
+    Encode a given object into a flat-dictionary.
 
     It uses the default-encoding, to then flatten the output.
+
     """
     encoded = base_encode(obj)
 
@@ -170,9 +172,11 @@ def encode(obj) -> dict:
 
 
 def clone(data, kwargs=None):
-    """Create a copy of a given value, by calling `encode` and `decode` on it.
+    """
+    Create a copy of a given value, by calling `encode` and `decode` on it.
 
     If `kwargs` is provided, it's possible to overwrite nested values.
+
     """
     encoded = encode(data)
     if kwargs:

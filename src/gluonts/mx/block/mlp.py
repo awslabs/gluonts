@@ -33,6 +33,7 @@ class MLP(nn.HybridBlock):
 
     activation
         activation function of the MLP, default is relu.
+
     """
 
     @validated()

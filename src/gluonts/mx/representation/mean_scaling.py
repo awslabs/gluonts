@@ -21,8 +21,8 @@ from .representation import Representation
 
 class MeanScaling(Representation):
     """
-    A class representing a mean scaling approach.
-    Inputs are simply rescaled based on their mean.
+    A class representing a mean scaling approach. Inputs are simply rescaled
+    based on their mean.
 
     Parameters
     ----------
@@ -33,6 +33,7 @@ class MeanScaling(Representation):
         The maximum value to which re-scaled values will be clipped to.
         Negative values will be clipped at -clip_max and positive values at clip_max.
         (default: None)
+
     """
 
     @validated()

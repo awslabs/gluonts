@@ -62,11 +62,13 @@ def ensemble(
     nskip: int,
 ):
     """
-    Evaluates the performance of an ensemble of best-performing models. This allows also to only
-    consider models of a particular type (thus building hyper-ensembles).
+    Evaluates the performance of an ensemble of best-performing models. This
+    allows also to only consider models of a particular type (thus building
+    hyper-ensembles).
 
-    This call runs the Sacred script for each provided configuration sequentially and returns only
-    once all runs have completed.
+    This call runs the Sacred script for each provided configuration
+    sequentially and returns only once all runs have completed.
+
     """
     with Path(config_path).open("r", encoding="utf-8") as f:
         content = yaml.safe_load(f)

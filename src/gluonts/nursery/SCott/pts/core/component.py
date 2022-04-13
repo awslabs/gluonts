@@ -31,6 +31,7 @@ class BaseValidatedInitializerModel(BaseModel):
     --------
     validated
         Decorates an initializer methods with argument validation logic.
+
     """
 
     class Config(BaseConfig):
@@ -39,6 +40,7 @@ class BaseValidatedInitializerModel(BaseModel):
         Pydantic model inherited by all :func:`validated` initializers.
 
         Allows the use of arbitrary type annotations in initializer parameters.
+
         """
 
         arbitrary_types_allowed = True
@@ -46,8 +48,8 @@ class BaseValidatedInitializerModel(BaseModel):
 
 def validated(base_model=None):
     """
-    Decorates an ``__init__`` method with typed parameters with validation
-    and auto-conversion logic.
+    Decorates an ``__init__`` method with typed parameters with validation and
+    auto-conversion logic.
 
     >>> class ComplexNumber:
     ...     @validated()
@@ -98,6 +100,7 @@ def validated(base_model=None):
     --------
     BaseValidatedInitializerModel
         Default base class for all synthesized Pydantic models.
+
     """
 
     def validator(init):

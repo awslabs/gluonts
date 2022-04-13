@@ -32,6 +32,7 @@ def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
 
     Basic wrapping around pandas ``ts + offset`` with caching and exception
     handling.
+
     """
     return _shift_timestamp_helper(ts, ts.freq, offset)
 
@@ -49,6 +50,7 @@ def _shift_timestamp_helper(
       pd.Timestamp(x, freq='1D')  and pd.Timestamp(x, freq='1min')
 
     hash to the same value.
+
     """
     try:
         # this line looks innocent, but can create a date which is out of
@@ -107,6 +109,7 @@ class InstanceSplitter(FlatMapTransformation):
         as the target (default: None)
     dummy_value
         Value to use for padding. (default: 0.0)
+
     """
 
     @validated()
@@ -203,10 +206,9 @@ class InstanceSplitter(FlatMapTransformation):
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
     """
-    Selects instances, by slicing the target and other time series
-    like arrays at random points in training mode or at the last time point in
-    prediction mode. Assumption is that all time like arrays start at the same
-    time point.
+    Selects instances, by slicing the target and other time series like arrays
+    at random points in training mode or at the last time point in prediction
+    mode. Assumption is that all time like arrays start at the same time point.
 
     In training mode, the returned instances contain past_`target_field`
     as well as past_`time_series_fields`.
@@ -255,6 +257,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     prediction_length
         length of the prediction range, must be set if
         use_prediction_features is True
+
     """
 
     @validated()
@@ -363,10 +366,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     """
     Selects training instances by slicing "intervals" from a continous-time
-    process instantiation. Concretely, the input data is expected to describe an
-    instantiation from a point (or jump) process, with the "target"
-    identifying inter-arrival times and other features (marks), as described
-    in detail below.
+    process instantiation. Concretely, the input data is expected to describe
+    an instantiation from a point (or jump) process, with the "target"
+    identifying inter-arrival times and other features (marks), as described in
+    detail below.
 
     The splitter will then take random points in continuous time from each
     given observation, and return a (variable-length) array of points in
@@ -406,6 +409,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         field containing the end date of the point process observation
     forecast_start_field
         output field that will contain the time point where the forecast starts
+
     """
 
     @validated()

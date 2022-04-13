@@ -99,9 +99,7 @@ class ScaleHistogram:
 
 
 class DatasetStatistics(NamedTuple):
-    """
-    A NamedTuple to store the statistics of a Dataset.
-    """
+    """A NamedTuple to store the statistics of a Dataset."""
 
     integer_dataset: bool
     max_target: float
@@ -146,6 +144,7 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     -------
     DatasetStatistics
         NamedTuple containing the statistics.
+
     """
     num_time_observations = 0
     num_time_series = 0

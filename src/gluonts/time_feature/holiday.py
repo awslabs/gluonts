@@ -149,9 +149,9 @@ def squared_exponential_kernel(alpha=1.0, tol=1e-9):
 class SpecialDateFeatureSet:
     """
     Implements calculation of holiday features. The SpecialDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -214,6 +214,7 @@ class SpecialDateFeatureSet:
         ----------
         dates
             Pandas series with Datetimeindex timestamps.
+
         """
         return np.vstack(
             [

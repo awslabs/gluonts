@@ -39,6 +39,7 @@ class HybridContext:
     kwargs
         A dictionary of optional arguments to pass to the `hybridize()` call
         of the enclosed `HybridBlock` network.
+
     """
 
     def __init__(
@@ -107,6 +108,7 @@ def copy_parameters(
     allow_missing
         Whether to allow additional parameters in the target not
         present in the source.
+
     """
     with tempfile.TemporaryDirectory(
         prefix="gluonts-estimator-temp-"
@@ -161,6 +163,7 @@ def hybrid_block_to_symbol_block(
     -------
     mx.gluon.SymbolBlock
         The resulting Gluon block backed by an MXNet symbol graph.
+
     """
     with tempfile.TemporaryDirectory(
         prefix="gluonts-estimator-temp-"
@@ -204,6 +207,7 @@ def export_symb_block(
     epoch
         The epoch number, which together with the `model_name` identifies the
         model parameters.
+
     """
     hb.export(path=str(model_dir / model_name), epoch=epoch)
 
@@ -238,6 +242,7 @@ def import_symb_block(
     -------
     mx.gluon.SymbolBlock
         The deserialized block.
+
     """
     if num_inputs == 1:
         input_names = ["data"]
@@ -290,6 +295,7 @@ def export_repr_block(
     epoch
         The epoch number, which together with the `model_name` identifies the
         model parameters.
+
     """
     with (model_dir / f"{model_name}-network.json").open("w") as fp:
         print(dump_json(rb), file=fp)
@@ -316,6 +322,7 @@ def import_repr_block(
     -------
     mx.gluon.HybridBlock:
         The deserialized block.
+
     """
     with (model_dir / f"{model_name}-network.json").open("r") as fp:
         rb = cast(mx.gluon.HybridBlock, load_json(fp.read()))
@@ -409,7 +416,9 @@ def weighted_average(
     include_zeros_in_denominator=False,
 ) -> Tensor:
     """
-    Computes the weighted average of a given tensor across a given axis, masking values associated with weight zero,
+    Computes the weighted average of a given tensor across a given axis,
+    masking values associated with weight zero,
+
     meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters
@@ -430,6 +439,7 @@ def weighted_average(
     -------
     Tensor:
         The tensor with values averaged along the specified `axis`.
+
     """
     if weights is not None:
         weighted_tensor = F.where(
@@ -447,7 +457,7 @@ def weighted_average(
 
 def make_nd_diag(F, x: Tensor, d: int) -> Tensor:
     """
-    Make a diagonal tensor, given the diagonal
+    Make a diagonal tensor, given the diagonal.
 
     Parameters
     ----------
@@ -463,6 +473,7 @@ def make_nd_diag(F, x: Tensor, d: int) -> Tensor:
     Tensor
         A tensor y of shape :math:`(..., d, d)` such that
         :math:`y[..., i, i] = x[..., i]`.
+
     """
     return F.broadcast_mul(F.eye(d), x.expand_dims(axis=-1))
 
@@ -501,6 +512,7 @@ def mx_switch(F, *args, **kwargs) -> Tensor:
     -------
     Tensor
         A tensor with the respective switch entries.
+
     """
 
     assert set(kwargs.keys()).issubset({"scope"})

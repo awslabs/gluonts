@@ -30,10 +30,8 @@ class SourceContext(NamedTuple):
 
 
 class FieldName:
-    """
-    A bundle of default field names to be used by clients when instantiating
-    transformer instances.
-    """
+    """A bundle of default field names to be used by clients when instantiating
+    transformer instances."""
 
     ITEM_ID = "item_id"
 
@@ -76,10 +74,8 @@ class MetaData(BaseModel):
 
 
 class TrainDatasets(NamedTuple):
-    """
-    A dataset containing two subsets, one to be used for training purposes,
-    and the other for testing purposes, as well as metadata.
-    """
+    """A dataset containing two subsets, one to be used for training purposes,
+    and the other for testing purposes, as well as metadata."""
 
     metadata: MetaData
     train: Dataset
@@ -87,9 +83,7 @@ class TrainDatasets(NamedTuple):
 
 
 class DateConstants:
-    """
-    Default constants for specific dates.
-    """
+    """Default constants for specific dates."""
 
     OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
     LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)

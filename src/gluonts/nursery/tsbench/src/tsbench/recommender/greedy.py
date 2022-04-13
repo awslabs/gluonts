@@ -26,10 +26,14 @@ from .generator import CandidateGenerator
 @register_recommender("greedy")
 class GreedyRecommender(Recommender[ModelConfig]):
     """
-    Recommender that selects a set of configurations differently in the one-dimensional and two-
-    dimensional setting. In the one-dimensional setting, it greedily picks the configurations which
-    provide the lowest joint error. In the multi-dimensional setting, it greedily picks the
-    configurations which provide the lowest joint hypervolume error.
+    Recommender that selects a set of configurations differently in the one-
+    dimensional and two- dimensional setting.
+
+    In the one-dimensional setting, it greedily picks the configurations which
+    provide the lowest joint error. In the multi-dimensional setting, it
+    greedily picks the configurations which provide the lowest joint
+    hypervolume error.
+
     """
 
     metrics: np.ndarray  # shape [num_datasets, num_models, num_objectives]

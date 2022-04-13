@@ -218,9 +218,11 @@ class Settings:
             return self[key]
 
     def _set_(self, dct, key, value):
-        """Helper method to assign item to a given dictionary.
+        """
+        Helper method to assign item to a given dictionary.
 
         Uses `_types` to type-check the value, before assigning.
+
         """
 
         assert key not in self._dependencies, "Can't override dependency."
@@ -255,9 +257,11 @@ class Settings:
             self[key] = value
 
     def _push(self, **kwargs):
-        """Add new entry to our chain-map.
+        """
+        Add new entry to our chain-map.
 
         Values are type-checked.
+
         """
         self._chain.append({})
         # Since we want to type-check, we add the entries manually.
@@ -275,7 +279,8 @@ class Settings:
         return f"<Settings [{inner}]>"
 
     def _let(self, **kwargs) -> "_ScopedSettings":
-        """Create a new context, where kwargs are added to the chain::
+        """
+        Create a new context, where kwargs are added to the chain::
 
             with settings._let(foo=42):
                 assert settings.foo = 42
@@ -283,11 +288,13 @@ class Settings:
         `_let` does not push a new context, but returns a `_ScopedSettings`
         object, that pushes the context, when entered through a
         `with`-statement.
+
         """
         return _ScopedSettings(self, kwargs)
 
     def _inject(self, *keys, **kwargs):
-        """Dependency injection.
+        """
+        Dependency injection.
 
         This will inject values from settings if avaiable and not passed
         directly::
@@ -306,6 +313,7 @@ class Settings:
 
                 # Directly passed values always take precedence.
                 assert fn(3) == 3
+
         """
 
         def dec(fn):
@@ -359,10 +367,10 @@ class _ScopedSettings:
 
 
 def let(settings, **kwargs):
-    "`let(settings, ...)` is the same as `settings._let(...)`."
+    """`let(settings, ...)` is the same as `settings._let(...)`."""
     return settings._let(**kwargs)
 
 
 def inject(settings, *args, **kwargs):
-    "`inject(settings, ...)` is the same as `settings._inject(...)`."
+    """`inject(settings, ...)` is the same as `settings._inject(...)`."""
     return settings._inject(*args, **kwargs)

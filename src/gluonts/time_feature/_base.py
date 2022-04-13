@@ -22,9 +22,7 @@ from gluonts.core.component import validated
 
 
 class TimeFeature:
-    """
-    Base class for features that only depend on time.
-    """
+    """Base class for features that only depend on time."""
 
     @validated()
     def __init__(self):
@@ -45,7 +43,7 @@ class MinuteOfHour(TimeFeature):
 
 
 class MinuteOfHourIndex(TimeFeature):
-    """Minute of hour encoded as zero-based index, between 0 and 59"""
+    """Minute of hour encoded as zero-based index, between 0 and 59."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.minute.astype(float).values
@@ -59,7 +57,7 @@ class HourOfDay(TimeFeature):
 
 
 class HourOfDayIndex(TimeFeature):
-    """Hour of day encoded as zero-based index, between 0 and 23"""
+    """Hour of day encoded as zero-based index, between 0 and 23."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.hour.astype(float).values
@@ -73,7 +71,7 @@ class DayOfWeek(TimeFeature):
 
 
 class DayOfWeekIndex(TimeFeature):
-    """Hour of day encoded as zero-based index, between 0 and 6"""
+    """Hour of day encoded as zero-based index, between 0 and 6."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofweek.astype(float).values
@@ -87,7 +85,7 @@ class DayOfMonth(TimeFeature):
 
 
 class DayOfMonthIndex(TimeFeature):
-    """Day of month encoded as zero-based index, between 0 and 11"""
+    """Day of month encoded as zero-based index, between 0 and 11."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.day.astype(float).values - 1
@@ -101,7 +99,7 @@ class DayOfYear(TimeFeature):
 
 
 class DayOfYearIndex(TimeFeature):
-    """Day of year encoded as zero-based index, between 0 and 365"""
+    """Day of year encoded as zero-based index, between 0 and 365."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofyear.astype(float).values - 1
@@ -115,7 +113,7 @@ class MonthOfYear(TimeFeature):
 
 
 class MonthOfYearIndex(TimeFeature):
-    """Month of year encoded as zero-based index, between 0 and 11"""
+    """Month of year encoded as zero-based index, between 0 and 11."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.month.astype(float).values - 1
@@ -137,7 +135,7 @@ class WeekOfYear(TimeFeature):
 
 
 class WeekOfYearIndex(TimeFeature):
-    """Week of year encoded as zero-based index, between 0 and 52"""
+    """Week of year encoded as zero-based index, between 0 and 52."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         # TODO:
@@ -169,7 +167,8 @@ def norm_freq_str(freq_str: str) -> str:
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
-    Returns a list of time features that will be appropriate for the given frequency string.
+    Returns a list of time features that will be appropriate for the given
+    frequency string.
 
     Parameters
     ----------

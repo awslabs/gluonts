@@ -49,6 +49,7 @@ class JsonLinesFile:
     path
         Path of the file to load data from. This should be a valid
         JSON Lines file.
+
     """
 
     def __init__(self, path: Path, cache: bool = False) -> None:

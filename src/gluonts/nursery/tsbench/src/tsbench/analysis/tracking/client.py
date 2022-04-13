@@ -18,10 +18,8 @@ from .experiment import SacredExperiment
 
 
 class SacredMongoClient:
-    """
-    The Sacred Mongo client allows to retrieve results from experiments tracked with Sacred from
-    MongoDB.
-    """
+    """The Sacred Mongo client allows to retrieve results from experiments
+    tracked with Sacred from MongoDB."""
 
     base_query: Dict[str, Any]
 
@@ -59,8 +57,8 @@ class SacredMongoClient:
         self, config: Dict[str, Any], others: Optional[Dict[str, Any]] = None
     ) -> SacredExperiment:
         """
-        Queries the experiments associated with the experiment set and returns the one matching
-        the query.
+        Queries the experiments associated with the experiment set and returns
+        the one matching the query.
 
         Args:
             config: The query items that apply to the configuration.
@@ -68,6 +66,7 @@ class SacredMongoClient:
 
         Returns:
             The sacred experiment describing the experiment.
+
         """
         full_query = {
             **self.base_query,
@@ -87,8 +86,8 @@ class SacredMongoClient:
         self, config: Dict[str, Any], others: Optional[Dict[str, Any]] = None
     ) -> List[SacredExperiment]:
         """
-        Queries the experiments associated with the experiment set and returns all matching the
-        query.
+        Queries the experiments associated with the experiment set and returns
+        all matching the query.
 
         Args:
             config: The query items that apply to the configuration.
@@ -96,6 +95,7 @@ class SacredMongoClient:
 
         Returns:
             The sacred experiments found via the query.
+
         """
         full_query = {
             **self.base_query,

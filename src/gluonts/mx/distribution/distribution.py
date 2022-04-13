@@ -394,9 +394,7 @@ class Distribution:
 
 
 def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:
-    """
-    Expand parameters by num_samples along the first dimension.
-    """
+    """Expand parameters by num_samples along the first dimension."""
     if num_samples is None:
         return p
     return p.expand_dims(axis=0).repeat(axis=0, repeats=num_samples)
@@ -405,10 +403,8 @@ def _expand_param(p: Tensor, num_samples: Optional[int] = None) -> Tensor:
 def _sample_multiple(
     sample_func, *args, num_samples: Optional[int] = None, **kwargs
 ) -> Tensor:
-    """
-    Sample from the sample_func, by passing expanded args and kwargs and
-    reshaping the returned samples afterwards.
-    """
+    """Sample from the sample_func, by passing expanded args and kwargs and
+    reshaping the returned samples afterwards."""
     args_expanded = [_expand_param(a, num_samples) for a in args]
     kwargs_expanded = {
         k: _expand_param(v, num_samples)

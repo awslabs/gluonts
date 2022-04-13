@@ -57,10 +57,8 @@ class DataLoadingBounds(NamedTuple):
 
 
 def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
-    """
-    Utility function that returns the bounds for which part of the dataset
-    should be loaded in this worker.
-    """
+    """Utility function that returns the bounds for which part of the dataset
+    should be loaded in this worker."""
     if not MPWorkerInfo.worker_process:
         return DataLoadingBounds(0, dataset_len)
 
@@ -115,8 +113,8 @@ def find_files(
 
 def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     """
-    Transform a dictionary into a pandas.Series object, using its
-    "start" and "target" fields.
+    Transform a dictionary into a pandas.Series object, using its "start" and
+    "target" fields.
 
     Parameters
     ----------
@@ -129,6 +127,7 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     -------
     pandas.Series
         Pandas time series object.
+
     """
     target = instance["target"]
     start = instance["start"]
@@ -139,11 +138,13 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
 
 
 def dct_reduce(reduce_fn, dcts):
-    """Similar to `reduce`, but applies reduce_fn to fields of dicts with the
-    same name.
+    """
+    Similar to `reduce`, but applies reduce_fn to fields of dicts with the same
+    name.
 
     >>> dct_reduce(sum, [{"a": 1}, {"a": 2}])
     {'a': 3}
+
     """
     keys = dcts[0].keys()
 
