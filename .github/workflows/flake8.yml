@@ -21,7 +21,7 @@ jobs:
       run: |
         flake8 \
           --ignore E203,W503,W291,E741 src \
-          --exclude src/gluonts/nursery/SCott,src/gluonts/nursery/tsbench
+          --exclude src/gluonts/nursery
     - name: DocFormatter
       run: |
         docformatter \
