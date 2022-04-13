@@ -89,7 +89,7 @@ class GeneralizedPareto(Distribution):
         xi, beta = self.xi, self.beta
         var = torch.where(
             xi < 1 / 2.0,
-            torch.div(beta ** 2, torch.mul((1 - xi) ** 2, (1 - 2 * xi))),
+            torch.div(beta**2, torch.mul((1 - xi) ** 2, (1 - 2 * xi))),
             np.nan * torch.ones_like(xi),
         )
         return var
