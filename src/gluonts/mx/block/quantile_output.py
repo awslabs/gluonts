@@ -183,74 +183,6 @@ class QuantileLoss(Loss):
         return quantile_weights
 
 
-class ProjectParams(nn.HybridBlock):
-    """
-    Defines a dense layer to compute the projection weights into the quantile
-    space.
-
-    Parameters
-    ----------
-    num_quantiles
-        number of quantiles to compute the projection.
-    is_iqf
-        determines whether to use IQF or QF.
-    """
-
-    @validated()
-    def __init__(self, num_quantiles: int, is_iqf: bool = False, **kwargs):
-        super().__init__(**kwargs)
-
-        self.num_quantiles = num_quantiles
-        self.is_iqf = is_iqf
-        with self.name_scope():
-            if self.is_iqf:
-                self.proj_intrcpt = nn.Dense(1, flatten=False)
-                if self.num_quantiles > 1:
-                    self.proj_incrmnt = nn.Dense(
-                        self.num_quantiles - 1,
-                        flatten=False,
-                        activation="relu",
-                    )  # increments between quantile estimates
-            else:
-                self.projection = nn.Dense(
-                    units=self.num_quantiles, flatten=False
-                )
-
-    # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        """
-
-        Parameters
-        ----------
-        F
-            A module that can either refer to the Symbol API or the NDArray
-            API in MXNet.
-        x
-            input tensor
-
-        Returns
-        -------
-        Tensor
-            output of the projection layer
-        """
-        return (
-            (
-                self.proj_intrcpt(x)
-                if self.num_quantiles == 1
-                else (
-                    F.cumsum(
-                        F.concat(
-                            self.proj_intrcpt(x), self.proj_incrmnt(x), dim=-1
-                        ),
-                        axis=3,
-                    )
-                )
-            )
-            if self.is_iqf
-            else self.projection(x)
-        )
-
-
 class QuantileOutput:
     """
     Output layer using a quantile loss and projection layer to connect the
@@ -263,9 +195,6 @@ class QuantileOutput:
 
     quantile_weights
         weights of the quantiles.
-
-    is_iqf
-        determines whether to use IQF or QF.
     """
 
     @validated()
@@ -273,13 +202,85 @@ class QuantileOutput:
         self,
         quantiles: List[float],
         quantile_weights: Optional[List[float]] = None,
-        is_iqf: bool = False,
     ) -> None:
-        self.quantiles = sorted(quantiles)
+        self.quantiles = quantiles
         self.num_quantiles = len(self.quantiles)
         self.quantile_weights = quantile_weights
-        self.is_iqf = is_iqf
-        self.is_equal_weights = False if self.is_iqf else True
+
+    def get_loss(self) -> nn.HybridBlock:
+        return QuantileLoss(
+            quantiles=self.quantiles,
+            quantile_weights=self.quantile_weights,
+            is_equal_weights=True,
+        )
+
+    def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
+        return nn.Dense(units=self.num_quantiles, flatten=False)
+
+
+class IncrementalDenseLayerProjection(nn.HybridBlock):
+    """
+    A dense layer that outputs non-decreasing values.
+
+    Parameters
+    ----------
+    num_outputs
+        number of outputs of the layer.
+    """
+
+    @validated()
+    def __init__(self, num_outputs: int, **kwargs):
+        super().__init__(**kwargs)
+
+        self.num_outputs = num_outputs
+        with self.name_scope():
+            self.proj_intrcpt = nn.Dense(1, flatten=False)
+            if self.num_outputs > 1:
+                self.proj_incrmnt = nn.Dense(
+                    self.num_outputs - 1,
+                    flatten=False,
+                    activation="relu",
+                )  # increments between quantile estimates
+
+    def hybrid_forward(self, F, x: Tensor) -> Tensor:
+        return (
+            self.proj_intrcpt(x)
+            if self.num_outputs == 1
+            else (
+                F.cumsum(
+                    F.concat(
+                        self.proj_intrcpt(x), self.proj_incrmnt(x), dim=-1
+                    ),
+                    axis=3,
+                )
+            )
+        )
+
+
+class IncrementalQuantileOutput(QuantileOutput):
+    """
+    Output layer using a quantile loss and projection layer to connect the
+    quantile output to the network.
+
+    The given quantile levels are sorted in ascending order, and the
+    projection layer will output the quantile values accordingly.
+
+    Parameters
+    ----------
+    quantiles
+        list of quantiles to compute loss over.
+
+    quantile_weights
+        weights of the quantiles.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        quantiles: List[float],
+        quantile_weights: Optional[List[float]] = None,
+    ) -> None:
+        super().__init__(sorted(quantiles), quantile_weights)
 
     def get_loss(self) -> nn.HybridBlock:
         """
@@ -291,7 +292,7 @@ class QuantileOutput:
         return QuantileLoss(
             quantiles=self.quantiles,
             quantile_weights=self.quantile_weights,
-            is_equal_weights=self.is_equal_weights,
+            is_equal_weights=False,
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
@@ -302,4 +303,4 @@ class QuantileOutput:
             constructs projection parameter object.
 
         """
-        return ProjectParams(self.num_quantiles, self.is_iqf, **kwargs)
+        return IncrementalDenseLayerProjection(self.num_quantiles, **kwargs)
