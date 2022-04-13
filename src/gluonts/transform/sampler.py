@@ -148,7 +148,8 @@ class BucketInstanceSampler(InstanceSampler):
     skewed distributions. For instance, if the dataset contains many time
     series with small values and few with large values.
 
-    The probability of sampling from bucket i is the inverse of its number of elements.
+    The probability of sampling from bucket i is the inverse of its number of
+    elements.
 
     Parameters
     ----------

@@ -54,7 +54,7 @@ def create_masks(
 
     # construct masks
     masks = []
-    for (d0, d1) in zip(degrees[:-1], degrees[1:]):
+    for d0, d1 in zip(degrees[:-1], degrees[1:]):
         masks += [(d1.unsqueeze(-1) >= d0.unsqueeze(0)).float()]
 
     return masks, degrees[0]

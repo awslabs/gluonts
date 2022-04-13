@@ -68,8 +68,8 @@ class Quantile(NamedTuple):
 
             if m is None:
                 raise GluonTSUserError(
-                    "Quantile string should be of the form "
-                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                    'Quantile string should be of the form "p10", "p50", ...'
+                    f' or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
                 quantile_float: float = int(m.group(1)) / 100
@@ -334,10 +334,9 @@ class SampleForecast(Forecast):
         assert isinstance(
             samples, np.ndarray
         ), "samples should be a numpy array"
-        assert (
-            len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
-        ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
-            len(np.shape(samples))
+        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = samples
         self._sorted_samples_value = None

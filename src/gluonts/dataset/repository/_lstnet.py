@@ -146,7 +146,10 @@ def generate_lstnet_dataset(
     assert df.shape == (
         ds_info.num_time_steps,
         ds_info.num_series,
-    ), f"expected num_time_steps/num_series {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    ), (
+        "expected num_time_steps/num_series"
+        f" {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    )
 
     timeseries = load_from_pandas(
         df=df, time_index=time_index, agg_freq=ds_info.agg_freq

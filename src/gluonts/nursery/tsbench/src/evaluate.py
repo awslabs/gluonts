@@ -44,7 +44,10 @@ from tsbench.evaluations.training import fit_estimator
     "--seed",
     type=int,
     default=None,
-    help="The seed to use for reproducibility. Defaults to a random seed if not provided.",
+    help=(
+        "The seed to use for reproducibility. Defaults to a random seed if not"
+        " provided."
+    ),
 )
 @click.option(
     "--data_path",
@@ -62,7 +65,10 @@ from tsbench.evaluations.training import fit_estimator
     type=click.Path(),
     default=os.getenv("SM_MODEL_DIR") or Path.home() / "models",
     show_default=True,
-    help="The directory where the trained model and the forecasts shall be stored.",
+    help=(
+        "The directory where the trained model and the forecasts shall be"
+        " stored."
+    ),
 )
 # Options
 @click.option(

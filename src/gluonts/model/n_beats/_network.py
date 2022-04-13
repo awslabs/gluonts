@@ -658,8 +658,10 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             assert (
                 self.periodicity < self.context_length + self.prediction_length
             ), (
-                "If the 'periodicity' of your data is less than 'context_length' + 'prediction_length' "
-                "the seasonal_error cannot be calculated and thus 'MASE' cannot be used for optimization."
+                "If the 'periodicity' of your data is less than"
+                " 'context_length' + 'prediction_length' the seasonal_error"
+                " cannot be calculated and thus 'MASE' cannot be used for"
+                " optimization."
             )
 
     # noinspection PyMethodOverriding,PyPep8Naming
@@ -721,7 +723,8 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             )
         else:
             raise ValueError(
-                f"Invalid value {self.loss_function} for argument loss_function."
+                f"Invalid value {self.loss_function} for argument"
+                " loss_function."
             )
 
         return loss

@@ -465,9 +465,10 @@ class Length(Lifted):
     def __call__(self, x: Env, length: int, *args, **kwargs):
         l = resolve(self.l, x, length, *args, **kwargs)
         if l is None:
-            assert (
-                length is not None
-            ), "Cannot get value for Length() when length is not provided in evaluate"
+            assert length is not None, (
+                "Cannot get value for Length() when length is not provided in"
+                " evaluate"
+            )
             return length
         return len(l)
 

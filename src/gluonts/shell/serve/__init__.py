@@ -75,7 +75,7 @@ class Settings(BaseSettings):
         if self.model_server_workers:
             logging.info(
                 f"Using {self.model_server_workers} workers "
-                f"(set by MODEL_SERVER_WORKERS environment variable)."
+                "(set by MODEL_SERVER_WORKERS environment variable)."
             )
             return self.model_server_workers
 
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
         ):
             logger.info(
                 f"Using {self.sagemaker_max_concurrent_transforms} workers "
-                f"(set by MaxConcurrentTransforms parameter in batch mode)."
+                "(set by MaxConcurrentTransforms parameter in batch mode)."
             )
             return self.sagemaker_max_concurrent_transforms
 

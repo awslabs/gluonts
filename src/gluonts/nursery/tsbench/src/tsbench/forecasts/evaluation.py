@@ -46,9 +46,10 @@ def evaluate_forecasts(
         The evaluation of the forecasts.
     """
     assert len(forecasts) > 0, "At least one forecast must be given."
-    assert len(forecasts) == len(
-        data.future
-    ), "The number of forecasts does not match the number of time series in the dataset."
+    assert len(forecasts) == len(data.future), (
+        "The number of forecasts does not match the number of time series in"
+        " the dataset."
+    )
 
     # Compute seasonal error for MASE computation
     seasonal_error = naive_error(data.past, forecasts.seasonality)

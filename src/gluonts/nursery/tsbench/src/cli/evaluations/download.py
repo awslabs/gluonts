@@ -34,15 +34,20 @@ from ._main import evaluations
     "--experiment",
     type=str,
     default=None,
-    help="The AWS Sagemaker experiment from which to download the evaluations. If not provided, "
-    "downloads the publicly available evaluations (s3://odp-tsbench).",
+    help=(
+        "The AWS Sagemaker experiment from which to download the evaluations."
+        " If not provided, downloads the publicly available evaluations"
+        " (s3://odp-tsbench)."
+    ),
 )
 @click.option(
     "--include_forecasts",
     type=bool,
     default=False,
-    help="Whether to download forecasts (plenty of data) or "
-    "only the training, validation and testing metrics.",
+    help=(
+        "Whether to download forecasts (plenty of data) or "
+        "only the training, validation and testing metrics."
+    ),
 )
 @click.option(
     "--evaluations_path",

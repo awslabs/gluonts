@@ -291,7 +291,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)
                 and all(c > 0 for c in cardinality)
-            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
+            ), (
+                "You should set `one_hot_encode=True` if and only if"
+                " cardinality is a valid list or not ignored: {}"
+            )
 
         super().__init__(
             context_window_size=context_window_size,

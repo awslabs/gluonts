@@ -199,7 +199,8 @@ class KaggleDatasetConfig(GluonTsDatasetConfig):
         )
         if not data_root.exists():
             raise ValueError(
-                f"download the dataset from Kaggle ({self._link}) and unzip it into {data_root}"
+                f"download the dataset from Kaggle ({self._link}) and unzip it"
+                f" into {data_root}"
             )
 
         # Extract the data and apply filters. The min length filter uses +3 as otherwise, catch22

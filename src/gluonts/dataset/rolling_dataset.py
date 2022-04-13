@@ -130,10 +130,11 @@ def generate_rolling_dataset(
     explanation and examples of how the different parameters can be used to
     generate differently rolled datasets.
 
-    The *rolling* happens on the data available in the provided window between the
-    *start_time* and the *end_time* for each timeseries. If *end_time* is omitted, rolling
-    happens on all datapoints from *start_time* until the end of the timeseries.
-    The way the data is rolled is governed by the strategy used.
+    The *rolling* happens on the data available in the provided window between
+    the *start_time* and the *end_time* for each timeseries. If *end_time* is
+    omitted, rolling happens on all datapoints from *start_time* until the
+    end of the timeseries. The way the data is rolled is governed by the
+    strategy used.
 
     Below examples will be based on this one timeseries long dataset
 
@@ -158,9 +159,10 @@ def generate_rolling_dataset(
         [1, 2, 3, 4, 5, 6, 7, 8]\n
         [1, 2, 3, 4, 5, 6, 7]\n
 
-    i.e. maximum amount of rolls possible between the *end_time* and *start_time*.
-    The StepStrategy only cuts the last value of the target for as long as
-    there is enough values after *start_time* to perform predictions on.
+    i.e. maximum amount of rolls possible between the *end_time* and
+    *start_time*. The StepStrategy only cuts the last value of the target for
+    as long as there is enough values after *start_time* to perform predictions
+    on.
 
     When no end time is provided the output is as below since all datapoints
     from *start_time* will be rolled over.
@@ -182,7 +184,8 @@ def generate_rolling_dataset(
 
     This causes fewer values to be in the output which,
     when prediction_length matches step_size, ensures that each prediction
-    will be done on unique/new data. Below is the output when the above strategy is used.
+    will be done on unique/new data. Below is the output when the above
+    strategy is used.
 
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n
         [1, 2, 3, 4, 5, 6, 7, 8]

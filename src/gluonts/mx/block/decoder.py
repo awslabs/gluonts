@@ -42,8 +42,8 @@ class Seq2SeqDecoder(nn.HybridBlock):
             static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
-            + 1 + decoder_length * num_feat_dynamic)
+            dynamic_features, shape (batch_size, sequence_length,
+            channels_seq[-1] + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
         """
         raise NotImplementedError
@@ -117,14 +117,16 @@ class ForkingMLPDecoder(Seq2SeqDecoder):
         static_input
             not used in this decoder.
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, num_features) or (N, T, C)
-            where sequence_length is equal to the encoder length, and num_features is equal
-            to channels_seq[-1] + 1 + decoder_length * num_feat_dynamic for the MQ-CNN for example.
+            dynamic_features, shape (batch_size, sequence_length, num_features)
+            or (N, T, C) where sequence_length is equal to the encoder length,
+            and num_features is equal to channels_seq[-1] + 1 +
+            decoder_length * num_feat_dynamic for the MQ-CNN for example.
 
         Returns
         -------
         Tensor
-            mlp output, shape (batch_size, sequence_length, decoder_length, decoder_mlp_dim_seq[0]).
+            mlp output, shape (batch_size, sequence_length, decoder_length,
+            decoder_mlp_dim_seq[0]).
         """
         mlp_output = self.model(dynamic_input)
         mlp_output = mlp_output.reshape(
@@ -179,8 +181,8 @@ class OneShotDecoder(Seq2SeqDecoder):
             static features, shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         dynamic_input
-            dynamic_features, shape (batch_size, sequence_length, channels_seq[-1]
-            + 1 + decoder_length * num_feat_dynamic)
+            dynamic_features, shape (batch_size, sequence_length,
+            channels_seq[-1] + 1 + decoder_length * num_feat_dynamic)
             or (N, T, C)
 
         Returns

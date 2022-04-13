@@ -38,8 +38,8 @@ class GluonTSHyperparametersError(GluonTSException, ValueError):
 
     def __str__(self, *args, **kwargs):
         return (
-            f"The following errors occurred when trying to "
-            f"validate the algorithm hyperparameters:\n"
+            "The following errors occurred when trying to "
+            "validate the algorithm hyperparameters:\n"
             f"{display_errors(self.__cause__.errors())}"
         )
 

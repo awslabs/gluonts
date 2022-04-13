@@ -146,10 +146,10 @@ class FlatMapTransformation(Transformation):
                 raise e
             if num_idle_transforms > MAX_IDLE_TRANSFORMS:
                 raise Exception(
-                    f"Reached maximum number of idle transformation calls.\n"
-                    f"This means the transformation looped over "
+                    "Reached maximum number of idle transformation calls.\n"
+                    "This means the transformation looped over "
                     f"MAX_IDLE_TRANSFORMS={MAX_IDLE_TRANSFORMS} "
-                    f"inputs without returning any output.\n"
+                    "inputs without returning any output.\n"
                     f"This occurred in the following transformation:\n{self}"
                 )
 

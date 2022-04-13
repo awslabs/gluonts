@@ -306,8 +306,9 @@ def test_lags():
     for freq_str in freq_strs:
         lags = get_lags_for_frequency(freq_str)
 
-        assert (
-            lags == expected_lags[freq_str]
-        ), "lags do not match for the frequency '{}':\nexpected: {},\nprovided: {}".format(
-            freq_str, expected_lags[freq_str], lags
+        assert lags == expected_lags[freq_str], (
+            "lags do not match for the frequency '{}':\nexpected:"
+            " {},\nprovided: {}".format(
+                freq_str, expected_lags[freq_str], lags
+            )
         )

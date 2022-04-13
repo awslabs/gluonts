@@ -198,7 +198,10 @@ class NBEATSEnsembleEstimator(Estimator):
                 loss_function in VALID_LOSS_FUNCTIONS
                 for loss_function in meta_loss_function
             ]
-        ), f"Each loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
+        ), (
+            "Each loss function has to be one of the following:"
+            f" {VALID_LOSS_FUNCTIONS}."
+        )
         assert meta_context_length is None or all(
             [context_length > 0 for context_length in meta_context_length]
         ), "The value of each `context_length` should be > 0"

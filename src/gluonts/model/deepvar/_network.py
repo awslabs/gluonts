@@ -147,7 +147,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         # that is: history_length - lag_index - sequence_length >= 0
         # hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag "
+            "lags cannot go further than history length, found lag "
             f"{max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)

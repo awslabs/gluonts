@@ -447,8 +447,8 @@ class GluonTSFramework(Framework):
 
         if self.code_location is None:
             code_bucket, _ = parse_s3_url(self.output_path)
-            self.code_location = (
-                f"s3://{code_bucket}"  # for consistency with sagemaker API
+            self.code_location = (  # for consistency with sagemaker API
+                f"s3://{code_bucket}"
             )
 
         locations = Locations(

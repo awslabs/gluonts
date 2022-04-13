@@ -116,8 +116,9 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     Defines a stack of dilated convolutions as the encoder.
 
     See the following paper for details:
-    1. Van Den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O., Graves, A., Kalchbrenner,
-    N., Senior, A.W. and Kavukcuoglu, K., 2016, September. WaveNet: A generative model for raw audio. In SSW (p. 125).
+    1. Van Den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O.,
+    Graves, A., Kalchbrenner, N., Senior, A.W. and Kavukcuoglu, K., 2016,
+    September. WaveNet: A generative model for raw audio. In SSW (p. 125).
 
     Parameters
     ----------
@@ -203,7 +204,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
             shape (batch_size, channel_seqs + (1) if use_residual)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, channel_seqs + (1) if use_residual)
+            shape (batch_size, sequence_length, channel_seqs + (1) if
+            use_residual)
         """
 
         if self.use_dynamic_feat and self.use_static_feat:

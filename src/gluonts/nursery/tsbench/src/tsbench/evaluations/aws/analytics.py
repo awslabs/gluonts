@@ -352,7 +352,10 @@ class Analysis:
         return len(self.map)
 
     def __repr__(self) -> str:
-        return f"Analysis(experiment='{self.experiment_name}', num_jobs={len(self):,})"
+        return (
+            f"Analysis(experiment='{self.experiment_name}',"
+            f" num_jobs={len(self):,})"
+        )
 
 
 # -------------------------------------------------------------------------------------------------

@@ -29,7 +29,10 @@ from ._main import analysis
 @click.option(
     "--experiment",
     required=True,
-    help="The name of the experiment under which the individual training runs are grouped.",
+    help=(
+        "The name of the experiment under which the individual training runs"
+        " are grouped."
+    ),
 )
 @click.option(
     "--config_path",
@@ -47,7 +50,10 @@ from ._main import analysis
     "--nskip",
     default=0,
     show_default=True,
-    help="The number of configurations to skip. Useful if some set of experiments failed.",
+    help=(
+        "The number of configurations to skip. Useful if some set of"
+        " experiments failed."
+    ),
 )
 def ensemble_recommender(
     experiment: str, config_path: str, evaluations_path: str, nskip: int

@@ -99,22 +99,31 @@ class ConstantDataset(ArtificialDataset):
         num_steps: int = 30,
         freq: str = "1H",
         start: str = "2000-01-01 00:00:00",
-        is_nan: bool = False,  # Generates constant dataset of 0s with explicit NaN missing values
-        is_random_constant: bool = False,  # Inserts random constant value for each time series
-        is_different_scales: bool = False,  # Generates constants on various scales
-        is_piecewise: bool = False,  # Determines whether the time series in the test
+        # Generates constant dataset of 0s with explicit NaN missing values
+        is_nan: bool = False,
+        # Inserts random constant value for each time series
+        is_random_constant: bool = False,
+        # Generates constants on various scales
+        is_different_scales: bool = False,
+        # Determines whether the time series in the test
         # and train set should have different constant values
-        is_noise: bool = False,  # Determines whether to add Gaussian noise to the constant dataset
-        is_long: bool = False,  # Determines whether some time series will have very long lengths
-        is_short: bool = False,  # Determines whether some time series will have very short lengths
-        is_trend: bool = False,  # Determines whether to add linear trends
-        num_missing_middle: int = 0,  # Number of missing values in the middle of the time series
-        is_promotions: bool = False,  # Determines whether to add promotions to the target time series
+        is_piecewise: bool = False,
+        # Determines whether to add Gaussian noise to the constant dataset
+        is_noise: bool = False,
+        # Determines whether some time series will have very long lengths
+        is_long: bool = False,
+        # Determines whether some time series will have very short lengths
+        is_short: bool = False,
+        # Determines whether to add linear trends
+        is_trend: bool = False,
+        # Number of missing values in the middle of the time series
+        num_missing_middle: int = 0,
+        # Determines whether to add promotions to the target time series
         # and to store in metadata
-        holidays: Optional[
-            List[pd.Timestamp]
-        ] = None,  # Determines whether to add holidays to the target time series
+        is_promotions: bool = False,
+        # Determines whether to add holidays to the target time series
         # and to store in metadata
+        holidays: Optional[List[pd.Timestamp]] = None,
     ) -> None:
         super().__init__(freq)
         self.num_timeseries = num_timeseries
@@ -222,7 +231,9 @@ class ConstantDataset(ArtificialDataset):
             metadata=self.metadata,
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
-            num_timeseries=1,  # Add 1 time series at a time in the loop for different constant valus per time series
+            # Add 1 time series at a time in the loop for different constant
+            # valus per time series
+            num_timeseries=1,
         )
         generated = data.generate()
         return generated
@@ -272,7 +283,8 @@ class ConstantDataset(ArtificialDataset):
     def insert_nans_and_zeros(ts_len: int) -> List:
         target = []
         for j in range(ts_len):
-            # Place NaNs at even indices. Use convention no NaNs before start date.
+            # Place NaNs at even indices. Use convention no NaNs before start
+            # date.
             if j != 0 and j % 2 == 0:
                 target.append(np.nan)
             # Place zeros at odd indices
@@ -402,10 +414,14 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param proportion_missing_values:
         :param is_noise: whether to add noise
         :param is_scale: whether to add scale
-        :param percentage_unique_timestamps: percentage of random start dates bounded between 0 and 1
-        :param is_out_of_bounds_date: determines whether to use very old start dates and start dates far in the future
-        :param seasonality: Seasonality of the generated data. If not given uses default seasonality for frequency
-        :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
+        :param percentage_unique_timestamps: percentage of random start dates
+            bounded between 0 and 1
+        :param is_out_of_bounds_date: determines whether to use very old start
+            dates and start dates far in the future
+        :param seasonality: Seasonality of the generated data. If not given
+            uses default seasonality for frequency
+        :param clip_values: if True the values will be clipped to
+            [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
         super().__init__(freq_str)
@@ -466,7 +482,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 3,
             )  # Pandas doesn't allot before 1650
             start_h, start_min = 18, 36
-        # assume that only 100 * percentage_unique_timestamps of timestamps are unique
+        # assume that only 100 * percentage_unique_timestamps of timestamps are
+        # unique
         elif my_random.random() < self.percentage_unique_timestamps:
             start_y = my_random.randint(2000, 2018)
             start_m = my_random.randint(1, 12)
@@ -528,8 +545,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
 
     def make_timeseries(self, seed: int = 1) -> List[DataEntry]:
         res = []
-        # Fix seed so that the training set is the same
-        # as the test set from 0:self.prediction_length for the two independent calls
+        # Fix seed so that the training set is the same as the test set from
+        # 0:self.prediction_length for the two independent calls
 
         def sigmoid(x: np.ndarray) -> np.ndarray:
             return 1.0 / (1.0 + np.exp(-x))
@@ -612,7 +629,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 )  # Add one in case this gets zero
                 missing_idx = idx[:num_missing_values]
                 for j in missing_idx:
-                    # Using convention that there are no missing values before the start date.
+                    # Using convention that there are no missing values before
+                    # the start date.
                     if j != 0:
                         v[j] = None if state.rand() < 0.5 else "NaN"
             res.append(

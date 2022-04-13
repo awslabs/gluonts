@@ -289,7 +289,7 @@ class SwapAxes(SimpleTransformation):
         else:
             raise ValueError(
                 f"Unexpected field type {type(v).__name__}, expected "
-                f"np.ndarray or list[np.ndarray]"
+                "np.ndarray or list[np.ndarray]"
             )
 
 
@@ -543,10 +543,13 @@ class CDFtoGaussianTransform(MapTransformation):
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = np.stack(
-            [np.arange(sorted_target_length) for _ in range(target_dim)],
-            axis=1,
-        ) / float(sorted_target_length)
+        quantiles = (
+            np.stack(
+                [np.arange(sorted_target_length) for _ in range(target_dim)],
+                axis=1,
+            )
+            / float(sorted_target_length)
+        )
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)
@@ -713,7 +716,7 @@ class CDFtoGaussianTransform(MapTransformation):
         res
             Truncated empirical CDf value.
         """
-        res = 1 / (4 * m**0.25 * np.sqrt(3.14 * np.log(m)))
+        res = 1 / (4 * m ** 0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1
         return res
 
@@ -840,7 +843,8 @@ class ToIntervalSizeFormat(FlatMapTransformation):
 
     As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
     the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
-    shape (2, M) where M denotes the number of non-zero items in the time series.
+    shape (2, M) where M denotes the number of non-zero items in the time
+    series.
 
     Parameters
     ----------
@@ -850,10 +854,10 @@ class ToIntervalSizeFormat(FlatMapTransformation):
     drop_empty
         If True, all-zero time series will be dropped.
     discard_first
-        If True, the first element in the converted dense series will be dropped,
-        replacing the target with a (2, M-1) tet instead. This can be used
-        when the first 'inter-demand' time is not well-defined. e.g., when the true
-        starting index of the time-series is not known.
+        If True, the first element in the converted dense series will be
+        dropped, replacing the target with a (2, M-1) tet instead. This can be
+        used when the first 'inter-demand' time is not well-defined. e.g.,
+        when the true starting index of the time-series is not known.
     """
 
     @validated()

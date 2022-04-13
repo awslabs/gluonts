@@ -38,9 +38,10 @@ class LocalAbsoluteBinning(Representation):
         The number of discrete bins/buckets that we want values to be mapped to.
         (default: 1024)
     is_quantile
-        Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
-        distribution function, while linear binning allocates evenly spaced bins.
-        (default: True, i.e. quantile binning)
+        Whether the binning is quantile or linear. Quantile binning allocated
+        bins based on the cumulative distribution function, while linear
+        binning allocates evenly spaced bins.(default: True, i.e. quantile
+        binning)
     """
 
     @validated()
@@ -66,7 +67,8 @@ class LocalAbsoluteBinning(Representation):
         observed_indicator_np = observed_indicator.astype("int32").asnumpy()
 
         if scale is None:
-            # Even though local binning implicitly scales the data, we still return the scale as an input to the model.
+            # Even though local binning implicitly scales the data, we still
+            # return the scale as an input to the model.
             scale = F.expand_dims(
                 F.sum(data * observed_indicator, axis=-1)
                 / F.sum(observed_indicator, axis=-1),

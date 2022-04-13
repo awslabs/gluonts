@@ -156,9 +156,10 @@ class Evaluator:
         ), "fcst_iterator has more elements than ts_iterator"
 
         if num_series is not None:
-            assert (
-                len(rows) == num_series
-            ), f"num_series={num_series} did not match number of elements={len(rows)}"
+            assert len(rows) == num_series, (
+                f"num_series={num_series} did not match number of"
+                f" elements={len(rows)}"
+            )
 
         # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
         # handle masked values correctly. Thus we set dtype=np.float64 to convert masked values back to NaNs which
@@ -185,8 +186,9 @@ class Evaluator:
         assert forecast.index.intersection(time_series.index).equals(
             forecast.index
         ), (
-            "Cannot extract prediction target since the index of forecast is outside the index of target\n"
-            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+            "Cannot extract prediction target since the index of forecast is"
+            " outside the index of target\nIndex of forecast:"
+            f" {forecast.index}\n Index of target: {time_series.index}"
         )
 
         # cut the time series using the dates of the forecast object
@@ -216,8 +218,9 @@ class Evaluator:
         assert forecast.index.intersection(time_series.index).equals(
             forecast.index
         ), (
-            "Index of forecast is outside the index of target\n"
-            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+            "Index of forecast is outside the index of target\nIndex of"
+            f" forecast: {forecast.index}\n Index of target:"
+            f" {time_series.index}"
         )
 
         # Remove the prediction range
@@ -618,9 +621,9 @@ class MultivariateEvaluator(Evaluator):
     def get_target_dimensionality(forecast: Forecast) -> int:
         target_dim = forecast.dim()
         assert target_dim > 1, (
-            f"the dimensionality of the forecast should be larger than 1, "
+            "the dimensionality of the forecast should be larger than 1, "
             f"but got {target_dim}. "
-            f"Please use the Evaluator to evaluate 1D forecasts."
+            "Please use the Evaluator to evaluate 1D forecasts."
         )
         return target_dim
 
@@ -631,7 +634,7 @@ class MultivariateEvaluator(Evaluator):
             else list(range(0, target_dimensionality))
         )
         assert max(eval_dims) < target_dimensionality, (
-            f"eval dims should range from 0 to target_dimensionality - 1, "
+            "eval dims should range from 0 to target_dimensionality - 1, "
             f"but got max eval_dim {max(eval_dims)}"
         )
         return eval_dims

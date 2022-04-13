@@ -156,8 +156,8 @@ class TreePredictor(RepresentablePredictor):
             or cardinality
             != "ignore"  # TODO: Figure out how to include 'auto' with no feat_static_cat in this check
         ), (
-            "The value of `prediction_length` should be > 0 or there should be features for model training and "
-            "prediction "
+            "The value of `prediction_length` should be > 0 or there should be"
+            " features for model training and prediction "
         )
 
         self.model_params = model_params if model_params else {}
@@ -170,7 +170,8 @@ class TreePredictor(RepresentablePredictor):
         self.model_list = None
 
         logger.info(
-            "If using the Evaluator class with a TreePredictor, set num_workers=0."
+            "If using the Evaluator class with a TreePredictor, set"
+            " num_workers=0."
         )
 
     def train(
@@ -218,9 +219,8 @@ class TreePredictor(RepresentablePredictor):
                 <= self.preprocess_object.forecast_horizon - 1
             )
             logger.info(
-                f"Training model for step no. {train_QRX_only_using_timestep} in the "
-                f"forecast"
-                f" horizon"
+                "Training model for step no."
+                f" {train_QRX_only_using_timestep} in the forecast horizon"
             )
             self.model_list[train_QRX_only_using_timestep].fit(
                 feature_data,
@@ -243,8 +243,8 @@ class TreePredictor(RepresentablePredictor):
                     if n_step != train_QRX_only_using_timestep:
                         logger.info(
                             f"Training model for step no. {n_step + 1} in the "
-                            f"forecast"
-                            f" horizon"
+                            "forecast"
+                            " horizon"
                         )
                         executor.submit(
                             model.fit,
@@ -258,8 +258,8 @@ class TreePredictor(RepresentablePredictor):
             ) as executor:
                 for n_step, model in enumerate(self.model_list):
                     logger.info(
-                        f"Training model for step no. {n_step + 1} in the forecast"
-                        f" horizon"
+                        f"Training model for step no. {n_step + 1} in the"
+                        " forecast horizon"
                     )
                     executor.submit(
                         model.fit,
@@ -284,7 +284,8 @@ class TreePredictor(RepresentablePredictor):
 
         if num_samples:
             log_once(
-                "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+                "Forecast is not sample based. Ignoring parameter"
+                " `num_samples` from predict method."
             )
 
         for ts in dataset:

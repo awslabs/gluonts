@@ -191,10 +191,9 @@ class AveragingStrategy:
 
         def _assert_shapes(arrays):
             shape_set = {array.shape for array in arrays}
-            assert (
-                len(shape_set) == 1
-            ), "All arrays should be the same shape. Found arrays with these shapes instead :{}".format(
-                shape_set
+            assert len(shape_set) == 1, (
+                "All arrays should be the same shape. Found arrays with these"
+                " shapes instead :{}".format(shape_set)
             )
 
         _assert_shapes(arrays)

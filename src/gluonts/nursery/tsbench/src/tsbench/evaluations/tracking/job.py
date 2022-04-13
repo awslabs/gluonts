@@ -185,9 +185,10 @@ class Job:
         jobs via this function allows to decouple experimental results
         completely from AWS Sagemaker.
         """
-        assert (
-            self.source_job is not None
-        ), "Job cannot be saved if it was not initialized from an AWS Sagemaker job."
+        assert self.source_job is not None, (
+            "Job cannot be saved if it was not initialized from an AWS"
+            " Sagemaker job."
+        )
 
         # First, we generate the folder name
         components = [f"seed-{self.config['seed']}"] + [

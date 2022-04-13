@@ -194,7 +194,7 @@ class WaveNet(nn.HybridBlock):
 
     @staticmethod
     def _get_dilations(dilation_depth, n_stacks):
-        return [2**i for i in range(dilation_depth)] * n_stacks
+        return [2 ** i for i in range(dilation_depth)] * n_stacks
 
     @staticmethod
     def get_receptive_field(dilation_depth, n_stacks):
@@ -229,21 +229,25 @@ class WaveNet(nn.HybridBlock):
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
         past_observed_values
-            Observed value indicator for the past target: (batch_size, receptive_field)
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
         past_time_feat
-            Past time features: (batch_size, num_time_features, receptive_field)
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
         future_time_feat
             Future time features: (batch_size, num_time_features, pred_length)
         future_observed_values
-            Observed value indicator for the future target: (batch_size, pred_length).
-            This will be set to all ones, if not provided (e.g., during prediction).
+            Observed value indicator for the future target:
+            (batch_size, pred_length). This will be set to all ones, if not
+            provided (e.g., during prediction).
         scale
             scale of the time series: (batch_size, 1)
         Returns
         -------
         Tensor
-            A tensor containing all the features ready to be passed through the network.
-            Shape: (batch_size, num_features, receptive_field + pred_length)
+            A tensor containing all the features ready to be passed through the
+            network. Shape:
+            (batch_size, num_features, receptive_field + pred_length)
         """
         embedded_cat = self.feature_embedder(feat_static_cat)
         static_feat = F.concat(embedded_cat, F.log(scale + 1.0), dim=1)
@@ -306,16 +310,19 @@ class WaveNet(nn.HybridBlock):
         inputs
             Inputs to the network: (batch_size, n_residue, sequence_length)
         one_step_prediction
-            Flag indicating whether the network is "unrolled/propagated" one step at a time (prediction phase).
+            Flag indicating whether the network is "unrolled/propagated" one
+            step at a time (prediction phase).
         queues
-            Convolutional queues containing past computations. Should be provided if `one_step_prediction` is True.
+            Convolutional queues containing past computations. Should be
+            provided if `one_step_prediction` is True.
 
         Returns
         -------
         Tuple: (Tensor, List)
-            A tensor containing the unnormalized outputs of the network. Shape: (batch_size, pred_length, num_bins).
-            A list containing the convolutional queues for each layer. The queue corresponding to layer `l` has
-            shape: (batch_size, n_residue, 2^l).
+            A tensor containing the unnormalized outputs of the network. Shape:
+            (batch_size, pred_length, num_bins). A list containing the
+            convolutional queues for each layer. The queue corresponding to
+            layer `l` has shape: (batch_size, n_residue, 2^l).
         """
         if one_step_prediction:
             assert (
@@ -372,15 +379,18 @@ class WaveNetTraining(WaveNet):
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
-            Observed value indicator for the past target: (batch_size, receptive_field)
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
         past_time_feat
-            Past time features: (batch_size, num_time_features, receptive_field)
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
         future_time_feat
             Future time features: (batch_size, num_time_features, pred_length)
         future_target
             Target on which the loss is computed: (batch_size, pred_length)
         future_observed_values
-            Observed value indicator for the future target: (batch_size, pred_length).
+            Observed value indicator for the future target:
+            (batch_size, pred_length).
         scale
             scale of the time series: (batch_size, 1)
 
@@ -438,8 +448,8 @@ class WaveNetSampler(WaveNet):
     num_samples
         Number of sample paths to generate in parallel in the graph
     temperature
-        If set to 1.0 (default), sample according to estimated probabilities, if set to 0.0
-        most likely sample at each step is chosen.
+        If set to 1.0 (default), sample according to estimated probabilities,
+        if set to 0.0 most likely sample at each step is chosen.
     post_transform
         An optional post transform that will be applied to the samples
     """
@@ -472,8 +482,9 @@ class WaveNetSampler(WaveNet):
         Returns
         -------
         List
-            A list containing the convolutional queues for each layer. The queue corresponding to layer `l` has
-            shape: (batch_size, n_residue, 2^l).
+            A list containing the convolutional queues for each layer. The
+            queue corresponding to layer `l` has shape:
+            (batch_size, n_residue, 2^l).
         """
         o = self.target_feature_embedding(F, past_target, features)
 
@@ -509,9 +520,11 @@ class WaveNetSampler(WaveNet):
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
-            Observed value indicator for the past target: (batch_size, receptive_field)
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
         past_time_feat
-            Past time features: (batch_size, num_time_features, receptive_field)
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
         future_time_feat
             Future time features: (batch_size, num_time_features, pred_length)
         scale
@@ -520,7 +533,8 @@ class WaveNetSampler(WaveNet):
         Returns
         -------
         Tensor
-            Prediction samples with shape (batch_size, num_samples, pred_length)
+            Prediction samples with shape (batch_size, num_samples,
+            pred_length)
         """
 
         def blow_up(u):
@@ -562,8 +576,8 @@ class WaveNetSampler(WaveNet):
         res = F.slice_axis(past_target, begin=-2, end=None, axis=-1)
         res = blow_up(res)
         for n in range(self.pred_length):
-            # Generate one-step ahead predictions. The input consists of target and features
-            # corresponding to the last two time steps.
+            # Generate one-step ahead predictions. The input consists of target
+            # and features corresponding to the last two time steps.
             current_target = F.slice_axis(res, begin=-2, end=None, axis=-1)
             current_features = F.slice_axis(
                 full_features,
@@ -582,7 +596,8 @@ class WaveNetSampler(WaveNet):
                 F, embedding, one_step_prediction=True, queues=queues
             )
             if self.temperature > 0:
-                # (batch_size, 1, num_bins) where 1 corresponds to the time axis.
+                # (batch_size, 1, num_bins) where 1 corresponds to the time
+                # axis.
                 probs = F.softmax(
                     unnormalized_outputs / self.temperature, axis=-1
                 )

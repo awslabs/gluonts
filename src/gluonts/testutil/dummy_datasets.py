@@ -52,7 +52,8 @@ def make_dummy_datasets_with_features(
                 for k in range(num_past_feat_dynamic_real)
             ]
         # Since used directly in predict and not in make_evaluate_predictions,
-        # where the test target would be chopped, test and train target have the same lengths
+        # where the test target would be chopped, test and train target have
+        # the same lengths
         data_entry_test = data_entry_train.copy()
         if num_feat_dynamic_real > 0:
             data_entry_train[FieldName.FEAT_DYNAMIC_REAL] = [

@@ -26,8 +26,10 @@ from ._main import datasets
     "--dataset",
     type=str,
     default=None,
-    help="The dataset to compute basic statistics for. "
-    "If not provided, computes statistics for all datasets.",
+    help=(
+        "The dataset to compute basic statistics for. "
+        "If not provided, computes statistics for all datasets."
+    ),
 )
 @click.option(
     "--path",

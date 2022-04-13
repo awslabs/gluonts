@@ -161,7 +161,10 @@ class NBEATSEstimator(GluonEstimator):
         ), "The value of `num_stacks` should be > 0"
         assert (
             loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
-        ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
+        ), (
+            "The loss function has to be one of the following:"
+            f" {VALID_LOSS_FUNCTIONS}."
+        )
 
         self.freq = freq
         self.scale = scale
@@ -208,14 +211,19 @@ class NBEATSEstimator(GluonEstimator):
             argument_name="expansion_coefficient_lengths",
             default_value=[32],
             validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0",
+            invalidation_message=(
+                "Values of 'expansion_coefficient_lengths' should be > 0"
+            ),
         )
         self.stack_types = self._validate_nbeats_argument(
             argument_value=stack_types,
             argument_name="stack_types",
             default_value=["G"],
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
-            invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
+            invalidation_message=(
+                "Values of 'stack_types' should be one of"
+                f" {VALID_N_BEATS_STACK_TYPES}"
+            ),
         )
         self.train_sampler = (
             train_sampler
@@ -245,8 +253,8 @@ class NBEATSEstimator(GluonEstimator):
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
-            f"Invalid lengths of argument {argument_name}: {len(new_value)}. Argument must have "
-            f"length 1 or {self.num_stacks} "
+            f"Invalid lengths of argument {argument_name}: {len(new_value)}."
+            f" Argument must have length 1 or {self.num_stacks} "
         )
 
         # check validity of actual values

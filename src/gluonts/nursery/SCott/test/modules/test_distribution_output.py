@@ -122,10 +122,16 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     )
     assert (
         np.abs(concentration1_hat - concentration1) < TOL * concentration1
-    ), f"concentration1 did not match: concentration1 = {concentration1}, concentration1_hat = {concentration1_hat}"
+    ), (
+        f"concentration1 did not match: concentration1 = {concentration1},"
+        f" concentration1_hat = {concentration1_hat}"
+    )
     assert (
         np.abs(concentration0_hat - concentration0) < TOL * concentration0
-    ), f"concentration0 did not match: concentration0 = {concentration0}, concentration0_hat = {concentration0_hat}"
+    ), (
+        f"concentration0 did not match: concentration0 = {concentration0},"
+        f" concentration0_hat = {concentration0_hat}"
+    )
 
 
 @pytest.mark.parametrize("total_count_logit", [(2.5, 0.7)])
@@ -155,9 +161,10 @@ def test_neg_binomial(total_count_logit: Tuple[float, float]) -> None:
         num_epochs=15,
     )
 
-    assert (
-        np.abs(total_count_hat - total_count) < TOL * total_count
-    ), f"total_count did not match: total_count = {total_count}, total_count_hat = {total_count_hat}"
+    assert np.abs(total_count_hat - total_count) < TOL * total_count, (
+        f"total_count did not match: total_count = {total_count},"
+        f" total_count_hat = {total_count_hat}"
+    )
     assert (
         np.abs(logit_hat - logit) < TOL * logit_hat
     ), f"logit did not match: logit = {logit}, logit_hat = {logit_hat}"
@@ -256,7 +263,10 @@ def test_lowrank_multivariate_normal() -> None:
 
     assert np.allclose(
         distr.covariance_matrix.numpy(), Sigma, atol=0.1, rtol=0.1
-    ), f"did not match: sigma = {Sigma}, sigma_hat = {distr.covariance_matrix.numpy()}"
+    ), (
+        f"did not match: sigma = {Sigma}, sigma_hat ="
+        f" {distr.covariance_matrix.numpy()}"
+    )
 
     samples = distr.sample((num_samples,))
 

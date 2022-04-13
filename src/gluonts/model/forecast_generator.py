@@ -31,7 +31,10 @@ LOG_CACHE = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )
-NOT_SAMPLE_BASED_MSG = "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+NOT_SAMPLE_BASED_MSG = (
+    "Forecast is not sample based. Ignoring parameter `num_samples` from"
+    " predict method."
+)
 
 
 def log_once(msg):

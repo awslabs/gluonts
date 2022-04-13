@@ -324,7 +324,8 @@ class TerminateOnNaN(Callback):
     ) -> bool:
         if math.isnan(epoch_loss):
             logging.warning(
-                f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
+                "TerminateOnNaN Callback initiated stop of training at epoch"
+                f" {epoch_no}."
             )
             return False
         return True

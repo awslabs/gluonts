@@ -84,10 +84,11 @@ class MovingAveragePredictor(RepresentablePredictor):
     based on the last `context_length` elements of the input target.
 
     If `prediction_length` > 1, the output is the moving average based on the
-    last `context_length` elements of the input target, where
-    previously calculated moving averages are appended at the end of the input target.
+    last `context_length` elements of the input target, where previously
+    calculated moving averages are appended at the end of the inputtarget.
     Hence, for `prediction_length` larger than `context_length`, there will be
-    cases where the moving average is calculated on top of previous moving averages.
+    cases where the moving average is calculated on top of previous moving
+    averages.
 
     Parameters
     ----------

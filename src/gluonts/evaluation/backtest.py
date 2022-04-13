@@ -52,14 +52,14 @@ def make_evaluation_predictions(
     predictor
         Model used to draw predictions.
     num_samples
-        Number of samples to draw on the model when evaluating. Only sampling-based
-        models will use this.
+        Number of samples to draw on the model when evaluating. Only
+        sampling-based models will use this.
 
     Returns
     -------
     Tuple[Iterator[Forecast], Iterator[pd.Series]]
-        A pair of iterators, the first one yielding the forecasts, and the second
-        one yielding the corresponding ground truth series.
+        A pair of iterators, the first one yielding the forecasts, and the
+        second one yielding the corresponding ground truth series.
     """
 
     prediction_length = predictor.prediction_length

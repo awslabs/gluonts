@@ -51,9 +51,10 @@ class Binned(torch.nn.Module):
         assert (
             bins_upper_bound.shape.numel() == 1
         ), "bins_upper_bound needs to have shape torch.Size([1])"
-        assert (
-            bins_lower_bound < bins_upper_bound
-        ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
+        assert bins_lower_bound < bins_upper_bound, (
+            f"bins_lower_bound {bins_lower_bound} needs to less than"
+            f" bins_upper_bound {bins_upper_bound}"
+        )
 
         self.nbins = nbins
         self.epsilon = np.finfo(np.float32).eps
@@ -133,7 +134,9 @@ class Binned(torch.nn.Module):
             one_hot_bin_indicator[0] = 1.0
         if not (one_hot_bin_indicator == 1).sum() == 1:
             print(
-                f"Warning in log_p(self, xx): for xx={xx.item()}, one_hot_bin_indicator value_counts are {one_hot_bin_indicator.unique(return_counts=True)}"
+                f"Warning in log_p(self, xx): for xx={xx.item()},"
+                " one_hot_bin_indicator value_counts are"
+                f" {one_hot_bin_indicator.unique(return_counts=True)}"
             )
 
         if self.smooth_indicator == "kernel":

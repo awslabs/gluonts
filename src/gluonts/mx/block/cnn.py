@@ -92,7 +92,8 @@ class CausalConv1D(gluon.HybridBlock):
         Returns
         -------
         Tensor
-            causal conv1d output. Shape (batch_size, num_features, sequence_length)
+            causal conv1d output. Shape (batch_size, num_features,
+            sequence_length)
         """
         ct = self.conv1d(data)
         if self.kernel_size > 0:

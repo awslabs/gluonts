@@ -275,9 +275,9 @@ class DatasetStatisticsExceptions(unittest.TestCase):
 
         # feat_dynamic_{cat, real} different length from target
         check_error_message(
-            "Each feature in feat_dynamic_cat has to have the same length as the "
-            "target. Found an instance with feat_dynamic_cat of length 1 and a "
-            "target of length 20.",
+            "Each feature in feat_dynamic_cat has to have the same length as"
+            " the target. Found an instance with feat_dynamic_cat of length 1"
+            " and a target of length 20.",
             [
                 ts(
                     start=start,
@@ -288,9 +288,9 @@ class DatasetStatisticsExceptions(unittest.TestCase):
             ],
         )
         check_error_message(
-            "Each feature in feat_dynamic_real has to have the same length as the "
-            "target. Found an instance with feat_dynamic_real of length 1 and a "
-            "target of length 20.",
+            "Each feature in feat_dynamic_real has to have the same length as"
+            " the target. Found an instance with feat_dynamic_real of length 1"
+            " and a target of length 20.",
             [
                 ts(
                     start=start,

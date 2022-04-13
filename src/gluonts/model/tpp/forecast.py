@@ -77,9 +77,10 @@ class PointProcessSampleForecast(Forecast):
         assert isinstance(
             samples, (np.ndarray, mx.nd.NDArray)
         ), "samples should be either a numpy or an mxnet array"
-        assert (
-            samples.ndim == 2 or samples.ndim == 3
-        ), f"samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {samples.ndim}"
+        assert samples.ndim == 2 or samples.ndim == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            f" Dimensions found: {samples.ndim}"
+        )
 
         assert isinstance(
             valid_length, (np.ndarray, mx.nd.NDArray)

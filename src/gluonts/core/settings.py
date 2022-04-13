@@ -173,9 +173,10 @@ class Settings:
     def _dependency(self, name, fn):
         dependencies = list(inspect.signature(fn).parameters)
         for dependency in dependencies:
-            assert self._already_declared(
-                dependency
-            ), f"`{name}` depends on `{dependency}`, which has not been declared yet."
+            assert self._already_declared(dependency), (
+                f"`{name}` depends on `{dependency}`, which has not been"
+                " declared yet."
+            )
 
         self._dependencies[name] = Dependency(fn, dependencies)
 

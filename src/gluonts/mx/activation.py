@@ -83,7 +83,7 @@ def get_activation_deriv(act: nn.HybridBlock) -> Callable:
     if isinstance(act, LipSwish):
         return partial(deriv_lipswish, beta=act.params.get("beta").data())
     raise NotImplementedError(
-        f'No derivative function for activation "' f'{act.__class__.__name__}"'
+        f'No derivative function for activation "{act.__class__.__name__}"'
     )
 
 

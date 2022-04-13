@@ -37,7 +37,9 @@ def jacobian_sn_mlp_block_bf(
     Parameters
     ----------
     layers
-        A list of tuples where each tuple (layer, input) is associated to a composing layer of the SNMLPBlock, where layer corresponds to the associated object layer, along with its input tensor.
+        A list of tuples where each tuple (layer, input) is associated to a
+        composing layer of the SNMLPBlock, where layer corresponds to the
+        associated object layer, along with its input tensor.
 
     Returns
     -------
@@ -181,7 +183,8 @@ class SNMLPBlock(mx.gluon.HybridBlock):
                 and self._cached_inputs[0] is not x
             ):
                 warnings.warn(
-                    "Input not the same, recomputing forward for jacobian term..."
+                    "Input not the same, recomputing forward for jacobian"
+                    " term..."
                 )
                 self(x)
             return jacobian_sn_mlp_block_bf(

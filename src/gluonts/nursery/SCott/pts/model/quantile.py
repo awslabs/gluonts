@@ -56,8 +56,8 @@ class Quantile(NamedTuple):
 
             if m is None:
                 raise Exception(
-                    "Quantile string should be of the form "
-                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                    'Quantile string should be of the form "p10", "p50", ...'
+                    f' or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
                 quantile_float: float = int(m.group(1)) / 100

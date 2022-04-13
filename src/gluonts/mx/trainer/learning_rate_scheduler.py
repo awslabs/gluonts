@@ -218,7 +218,8 @@ class LearningRateReduction(Callback):
         should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
         if not should_continue:
             print(
-                "Early stopping based on learning rate scheduler callback (min_lr was reached)."
+                "Early stopping based on learning rate scheduler callback"
+                " (min_lr was reached)."
             )
             return False
 
@@ -230,11 +231,12 @@ class LearningRateReduction(Callback):
         if not trainer.learning_rate == pre_step_learning_rate:
             if best_epoch_info["epoch_no"] == -1:
                 raise GluonTSUserError(
-                    "Got NaN in first epoch. Try reducing initial learning rate."
+                    "Got NaN in first epoch. Try reducing initial learning"
+                    " rate."
                 )
 
             logger.info(
-                f"Loading parameters from best epoch "
+                "Loading parameters from best epoch "
                 f"({best_epoch_info['epoch_no']})"
             )
             training_network.load_parameters(

@@ -55,7 +55,8 @@ def KMeans(x, K=10, Niter=10000, verbose=True):
             torch.cuda.synchronize()
         end = time.time()
         print(
-            f"K-means for the Euclidean metric with {N:,} points in dimension {D:,}, K = {K:,}:"
+            f"K-means for the Euclidean metric with {N:,} points in dimension"
+            f" {D:,}, K = {K:,}:"
         )
         print(
             "Timing for {} iterations: {:.5f}s = {} x {:.5f}s\n".format(

@@ -80,7 +80,8 @@ class MixtureDistribution(Distribution):
             expected_shape = self.batch_shape + (len(components),)
             assert len(expected_shape) == len(self.mixture_probs.shape), (
                 assertion_message
-                + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
+                + " Maybe you need to expand the shape of mixture_probs at the"
+                " zeroth axis."
             )
             for expected_dim, given_dim in zip(
                 expected_shape, self.mixture_probs.shape

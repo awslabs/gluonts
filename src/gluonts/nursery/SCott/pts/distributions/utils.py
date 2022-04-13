@@ -23,8 +23,7 @@ def broadcast_shape(*shapes, **kwargs):
                 reversed_shape[i] = size
             elif reversed_shape[i] != size and (size != 1 or strict):
                 raise ValueError(
-                    "shape mismatch: objects cannot be broadcast to a single shape: {}".format(
-                        " vs ".join(map(str, shapes))
-                    )
+                    "shape mismatch: objects cannot be broadcast to a single"
+                    " shape: {}".format(" vs ".join(map(str, shapes)))
                 )
     return tuple(reversed(reversed_shape))

@@ -80,8 +80,8 @@ class RNN(HybridBlock):
                 )
             else:
                 raise ValueError(
-                    "Invalid mode %s. Options are rnn_relu, rnn_tanh, lstm, and gru "
-                    % mode
+                    "Invalid mode %s. Options are rnn_relu, rnn_tanh, lstm,"
+                    " and gru " % mode
                 )
 
     def hybrid_forward(self, F, inputs: Tensor) -> Tensor:  # NTC in, NTC out

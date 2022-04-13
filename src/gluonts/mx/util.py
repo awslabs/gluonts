@@ -126,11 +126,11 @@ def get_hybrid_forward_input_names(
     params = inspect.signature(hybrid_block_type.hybrid_forward).parameters
     param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "self", (
-        f"Expected first argument of hybrid_forward to be `self`, "
+        "Expected first argument of hybrid_forward to be `self`, "
         f"but found `{param_names[0]}`"
     )
     assert param_names[1] == "F", (
-        f"Expected second argument of hybrid_forward to be `F`, "
+        "Expected second argument of hybrid_forward to be `F`, "
         f"but found `{param_names[1]}`"
     )
     return param_names[2:]  # skip: self, F

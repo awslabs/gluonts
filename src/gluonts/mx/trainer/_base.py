@@ -154,21 +154,25 @@ class Trainer:
         # controlled by altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
-                'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
+                'Trainer argument "learning_rate_decay_factor" is deprecated.'
+                " Use callbacks instead.",
                 DeprecationWarning,
             )
-            assert (
-                0 <= learning_rate_decay_factor < 1
-            ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
+            assert 0 <= learning_rate_decay_factor < 1, (
+                "The value of `learning_rate_decay_factor` should be in the"
+                " [0, 1) range"
+            )
         if patience is not None:
             warnings.warn(
-                'Trainer argument "patience" is deprecated. Use callbacks instead.',
+                'Trainer argument "patience" is deprecated. Use callbacks'
+                " instead.",
                 DeprecationWarning,
             )
             assert 0 <= patience, "The value of `patience` should be >= 0"
         if minimum_learning_rate:
             warnings.warn(
-                'Trainer argument "minimum_learning_rate" is deprecated. Use callbacks instead.',
+                'Trainer argument "minimum_learning_rate" is deprecated. Use'
+                " callbacks instead.",
                 DeprecationWarning,
             )
             assert (
@@ -369,7 +373,8 @@ class Trainer:
 
                     if not np.isfinite(ndarray.sum(loss).asscalar()):
                         logger.warning(
-                            "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                            "Batch [%d] of Epoch[%d] gave NaN loss and it will"
+                            " be ignored",
                             batch_no,
                             epoch_no,
                         )
@@ -402,7 +407,8 @@ class Trainer:
                         net_name = type(net).__name__
                         num_model_param = self.count_model_params(net)
                         logger.info(
-                            f"Number of parameters in {net_name}: {num_model_param}"
+                            f"Number of parameters in {net_name}:"
+                            f" {num_model_param}"
                         )
                 it.close()
 

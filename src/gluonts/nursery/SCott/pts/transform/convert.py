@@ -218,7 +218,7 @@ class SwapAxes(SimpleTransformation):
         else:
             raise ValueError(
                 f"Unexpected field type {type(v).__name__}, expected "
-                f"np.ndarray or list[np.ndarray]"
+                "np.ndarray or list[np.ndarray]"
             )
 
 

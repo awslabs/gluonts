@@ -173,7 +173,8 @@ class FileDataset(Dataset):
         if not self.files():
             raise OSError(f"no valid file found in {path}")
 
-        # necessary, in order to preserve the cached datasets, in case caching was enabled
+        # necessary, in order to preserve the cached datasets, in case caching
+        # was enabled
         self._json_line_files = [
             jsonl.JsonLinesFile(path=path, cache=cache)
             for path in self.files()
@@ -246,8 +247,9 @@ class ListDataset(Dataset):
 
     def __iter__(self) -> Iterator[DataEntry]:
         source_name = "list_data"
-        # Basic idea is to split the dataset into roughly equally sized segments
-        # with lower and upper bound, where each worker is assigned one segment
+        # Basic idea is to split the dataset into roughly equally sized
+        # segments with lower and upper bound, where each worker is assigned
+        # one segment
         bounds = util.get_bounds_for_mp_data_loading(len(self))
         for row_number, data in enumerate(self.list_data):
             if not bounds.lower <= row_number < bounds.upper:

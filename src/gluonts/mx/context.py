@@ -41,7 +41,7 @@ class MXContext:
         else:
             raise ValueError(
                 f"bad MXNet context {v}, expected either an "
-                f"mx.context.Context or its string representation"
+                "mx.context.Context or its string representation"
             )
 
     @classmethod

@@ -103,7 +103,7 @@ class MultivariateGrouper:
             )
             self.frequency = timestamp.freq
         logging.info(
-            f"first/last timestamp found: "
+            "first/last timestamp found: "
             f"{self.first_timestamp}/{self.last_timestamp}"
         )
 

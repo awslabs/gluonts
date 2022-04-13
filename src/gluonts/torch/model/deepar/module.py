@@ -296,8 +296,8 @@ class LaggedLSTM(nn.Module):
         indices = self.lags_seq
 
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            "lags cannot go further than history length, found lag"
+            f" {max(indices)} while history length is only {sequence_length}"
         )
 
         lagged_values = []
