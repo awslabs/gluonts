@@ -191,7 +191,9 @@ class ExponentialTailApproximation:
         ) + self.y_coord[-2]
 
     def tail_range(self, default_left_tail=0.1, default_right_tail=0.9):
-        """Return an effective range of left and right tails."""
+        """
+        Return an effective range of left and right tails.
+        """
         left_tail = max(
             self.x_coord[0],
             min(self.x_coord[1], default_left_tail),

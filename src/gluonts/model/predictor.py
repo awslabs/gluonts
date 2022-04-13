@@ -171,8 +171,10 @@ class RepresentablePredictor(Predictor):
         raise NotImplementedError
 
     def __eq__(self, that):
-        """Two RepresentablePredictor instances are considered equal if they
-        have the same constructor arguments."""
+        """
+        Two RepresentablePredictor instances are considered equal if they have
+        the same constructor arguments.
+        """
         return equals(self, that)
 
     def serialize(self, path: Path) -> None:

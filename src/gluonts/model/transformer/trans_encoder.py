@@ -69,8 +69,10 @@ class TransformerEncoder(HybridBlock):
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
 
-        """A transformer encoder block consists of a self-attention and a feed-
-        forward layer with pre/post process blocks in between."""
+        """
+        A transformer encoder block consists of a self-attention and a feed-
+        forward layer with pre/post process blocks in between.
+        """
 
         # input layer
         inputs = self.enc_input_layer(data)

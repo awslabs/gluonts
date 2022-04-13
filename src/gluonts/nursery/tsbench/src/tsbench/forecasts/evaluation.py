@@ -73,8 +73,10 @@ def evaluate_forecasts(
 
 @dataclass
 class Evaluation:
-    """An evaluation instance provides per time-series metrics as well as
-    overall metrics."""
+    """
+    An evaluation instance provides per time-series metrics as well as overall
+    metrics.
+    """
 
     summary: dict[str, float]
     """

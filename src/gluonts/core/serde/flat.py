@@ -43,7 +43,9 @@ from ._base import encode as base_encode, Kind, decode as base_decode
 
 
 def join(a, b, sep="."):
-    """Joins `a` and `b` using `sep`."""
+    """
+    Joins `a` and `b` using `sep`.
+    """
     if not a:
         return b
 

@@ -17,26 +17,37 @@ from mxnet.gluon import nn
 
 
 class Callback:
-    """A stripped-down callback which is focused on batches rather than
-    epochs."""
+    """
+    A stripped-down callback which is focused on batches rather than epochs.
+    """
 
     def on_train_start(self, trainer: gluon.Trainer) -> None:
-        """Hook called before training is run."""
+        """
+        Hook called before training is run.
+        """
 
     def on_network_initialization_end(self, network: nn.HybridBlock) -> None:
-        """Hook called once the network is initialized."""
+        """
+        Hook called once the network is initialized.
+        """
 
     def on_train_batch_end(
         self, network: nn.HybridBlock, time_elapsed: float
     ) -> None:
-        """Hook called after every training batch."""
+        """
+        Hook called after every training batch.
+        """
 
     def on_validation_epoch_end(self, loss: float) -> None:
-        """Hook called after every validation epoch."""
+        """
+        Hook called after every validation epoch.
+        """
 
 
 class CallbackList(Callback):
-    """Wrapper class for a list of callbacks."""
+    """
+    Wrapper class for a list of callbacks.
+    """
 
     def __init__(self, callbacks: List[Callback]):
         self.callbacks = callbacks

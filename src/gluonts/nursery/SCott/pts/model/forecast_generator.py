@@ -61,7 +61,9 @@ def _extract_instances(x: Any) -> Any:
 
 
 class ForecastGenerator(ABC):
-    """Classes used to bring the output of a network into a class."""
+    """
+    Classes used to bring the output of a network into a class.
+    """
 
     @abstractmethod
     def __call__(

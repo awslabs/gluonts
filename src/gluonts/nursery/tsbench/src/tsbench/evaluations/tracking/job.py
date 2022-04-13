@@ -38,7 +38,9 @@ class Job:
 
     @classmethod
     def from_training_job(cls, job: TrainingJob) -> Job:
-        """Initializes a new job from an AWS Sagemaker training job."""
+        """
+        Initializes a new job from an AWS Sagemaker training job.
+        """
         return Job(
             job.hyperparameters["model"],
             job.hyperparameters["dataset"],
@@ -105,12 +107,16 @@ class Job:
 
     @property
     def hyperparameters(self) -> dict[str, Any]:
-        """Returns the hyperparameters associated with the job."""
+        """
+        Returns the hyperparameters associated with the job.
+        """
         return self.config["hyperparameters"]
 
     @property
     def static_metrics(self) -> dict[str, float | int]:
-        """Returns job metrics for which there exists only a single value."""
+        """
+        Returns job metrics for which there exists only a single value.
+        """
         return self.performance["meta"]
 
     @property
@@ -260,8 +266,10 @@ def load_jobs_from_analysis(analysis: Analysis) -> list[Job]:
 
 
 def load_jobs_from_directory(directory: Path) -> list[Job]:
-    """Returns all jobs stored in the provided directory, assuming that the
-    directory is structured as `<model>/<dataset>/<job>`."""
+    """
+    Returns all jobs stored in the provided directory, assuming that the
+    directory is structured as `<model>/<dataset>/<job>`.
+    """
     return [
         Job.load(directory / model / dataset / job)
         for model in os.listdir(directory)

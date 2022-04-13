@@ -31,8 +31,12 @@ EPSILON = 1e-12
 
 
 class SNDense(mx.gluon.HybridBlock):
-    """Dense layer with spectral normalization applied to weights, as in
-    [BJC19]_."""
+    """
+    Dense layer with spectral normalization applied to weights, as in.
+
+    [BJC19]_.
+
+    """
 
     @validated()
     def __init__(
@@ -126,8 +130,10 @@ class SNDense(mx.gluon.HybridBlock):
         )
 
     def _spectral_norm(self, weight: Tensor, u: Tensor) -> Tensor:
-        """Adapted from https://github.com/apache/incubator-
-        mxnet/blob/master/example/gluon/sn_gan/model.py."""
+        """
+        Adapted from https://github.com/apache/incubator-
+        mxnet/blob/master/example/gluon/sn_gan/model.py.
+        """
         w = weight
         w_mat = nd.reshape(w, [w.shape[0], -1])
 

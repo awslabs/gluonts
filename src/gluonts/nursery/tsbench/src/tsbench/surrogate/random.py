@@ -22,8 +22,10 @@ from ._factory import register_ensemble_surrogate, register_surrogate
 @register_surrogate("random")
 @register_ensemble_surrogate("random")
 class RandomSurrogate(Surrogate[T]):
-    """The random surrogate simply predicts random performance metrics to act
-    as a baseline."""
+    """
+    The random surrogate simply predicts random performance metrics to act as a
+    baseline.
+    """
 
     num_outputs_: int
 

@@ -22,7 +22,9 @@ from ._weighted_sampler import WeightedSampler
 
 
 class NPTS:
-    """Here we collect all the methods needed for generating NPTS Forecasts."""
+    """
+    Here we collect all the methods needed for generating NPTS Forecasts.
+    """
 
     @staticmethod
     def compute_weights(

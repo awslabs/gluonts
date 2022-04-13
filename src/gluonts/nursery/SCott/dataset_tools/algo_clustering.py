@@ -14,7 +14,9 @@ from pykeops.torch import LazyTensor
 
 
 def KMeans(x, K=10, Niter=10000, verbose=True):
-    """Implements Lloyd's algorithm for the Euclidean metric."""
+    """
+    Implements Lloyd's algorithm for the Euclidean metric.
+    """
     use_cuda = torch.cuda.is_available()
     dtype = torch.float32 if use_cuda else torch.float64
 

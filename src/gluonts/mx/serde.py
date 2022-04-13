@@ -21,8 +21,10 @@ from gluonts.core.serde import Kind, encode
 
 @encode.register(mx.Context)
 def encode_mx_context(v: mx.Context) -> Any:
-    """Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~mxnet.Context` class."""
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~mxnet.Context` class.
+    """
     return {
         "__kind__": Kind.Instance,
         "class": fqname_for(v.__class__),

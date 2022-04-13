@@ -17,7 +17,9 @@ from torch import nn
 
 
 class DeepSetModel(nn.Module):
-    """A model built on the DeepSet architecture."""
+    """
+    A model built on the DeepSet architecture.
+    """
 
     def __init__(
         self,

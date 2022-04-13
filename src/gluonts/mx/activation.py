@@ -196,8 +196,10 @@ def deriv_lipswish(F, x: Tensor, beta: Tensor) -> Tensor:
 
 
 class LipSwish(nn.HybridBlock):
-    """Implemented LipSwish activation, i.e. LipSwish(z) := Swish(z)/ 1.1 with
-    a learnable parameter beta."""
+    """
+    Implemented LipSwish activation, i.e. LipSwish(z) := Swish(z)/ 1.1 with a
+    learnable parameter beta.
+    """
 
     @validated()
     def __init__(

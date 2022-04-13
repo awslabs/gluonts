@@ -267,7 +267,9 @@ class ListFeatures(SimpleTransformation):
 
 
 class TargetDimIndicator(SimpleTransformation):
-    """Label-encoding of the target dimensions."""
+    """
+    Label-encoding of the target dimensions.
+    """
 
     @validated()
     def __init__(self, field_name: str, target_field: str) -> None:
@@ -280,7 +282,9 @@ class TargetDimIndicator(SimpleTransformation):
 
 
 class SampleTargetDim(FlatMapTransformation):
-    """Samples random dimensions from the target at training time."""
+    """
+    Samples random dimensions from the target at training time.
+    """
 
     @validated()
     def __init__(

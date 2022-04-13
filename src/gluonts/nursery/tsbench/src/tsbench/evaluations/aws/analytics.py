@@ -65,8 +65,9 @@ class Artifact:
 
 # -------------------------------------------------------------------------------------------------
 class TrainingJob:
-    """A training job represents a Sagemaker training job within an
-    experiment."""
+    """
+    A training job represents a Sagemaker training job within an experiment.
+    """
 
     def __init__(self, info: Any):
         """
@@ -80,22 +81,30 @@ class TrainingJob:
 
     @property
     def name(self) -> str:
-        """Returns the name of the training job."""
+        """
+        Returns the name of the training job.
+        """
         return self.info["TrainingJobName"]
 
     @property
     def status(self) -> str:
-        """Returns the status of the training job."""
+        """
+        Returns the status of the training job.
+        """
         return self.info["TrainingJobStatus"]
 
     @property
     def date_created(self) -> datetime.datetime:
-        """Returns the date and time when the training job was created."""
+        """
+        Returns the date and time when the training job was created.
+        """
         return self.info["CreationTime"]
 
     @property
     def hyperparameters(self) -> dict[str, Any]:
-        """Returns all user-defined hyper parameters."""
+        """
+        Returns all user-defined hyper parameters.
+        """
         return {
             k: _process_hyperparameter_value(v)
             for k, v in self.info["HyperParameters"].items()
@@ -105,8 +114,10 @@ class TrainingJob:
 
     @lru_cache()
     def pull_logs(self) -> list[str]:
-        """Pulls the training job's logs such that subsequent accesses to the
-        `logs` property are noops."""
+        """
+        Pulls the training job's logs such that subsequent accesses to the
+        `logs` property are noops.
+        """
         # Check if the logs are already available locally
         log_file = self._cache_dir() / "logs.txt"
         if log_file.exists():
@@ -147,7 +158,9 @@ class TrainingJob:
 
     @property
     def logs(self) -> list[str]:
-        """Retrieves the logs emitted by this training job."""
+        """
+        Retrieves the logs emitted by this training job.
+        """
         # We can't put the `pull_logs` code here directly since `cached_property` seems to be CPU-
         # bound for some odd reason.
         return self.pull_logs()
@@ -231,7 +244,9 @@ class TrainingJob:
         return Artifact(target, cleanup=not cache)
 
     def move_to(self, experiment: str) -> None:
-        """Updates the experiment tag to the provided name."""
+        """
+        Updates the experiment tag to the provided name.
+        """
         client = default_session().client("sagemaker")
         client.add_tags(
             ResourceArn=self.info["TrainingJobArn"],
@@ -239,7 +254,9 @@ class TrainingJob:
         )
 
     def delete(self) -> None:
-        """Deletes the training job by removing all tags associated with it."""
+        """
+        Deletes the training job by removing all tags associated with it.
+        """
         client = default_session().client("sagemaker")
 
         existing_tags = client.list_tags(
@@ -276,8 +293,10 @@ class TrainingJob:
 
 # -------------------------------------------------------------------------------------------------
 class Analysis:
-    """The analysis object allows analyzing a set of training jobs that belong
-    to the same experiment."""
+    """
+    The analysis object allows analyzing a set of training jobs that belong to
+    the same experiment.
+    """
 
     def __init__(
         self,
@@ -319,12 +338,16 @@ class Analysis:
             )
 
     def get(self, name: str) -> TrainingJob:
-        """Returns the training job with the specified name."""
+        """
+        Returns the training job with the specified name.
+        """
         return self.map[name]
 
     @property
     def status(self) -> dict[str, int]:
-        """Returns the aggregate statistics about the status of all jobs."""
+        """
+        Returns the aggregate statistics about the status of all jobs.
+        """
         c = Counter([t.status for t in self.map.values()])
         return dict(c)
 
@@ -345,7 +368,9 @@ def _fetch_training_jobs(
     only_completed: bool,
     resolve_duplicates: bool,
 ) -> tuple[list[TrainingJob], list[TrainingJob]]:
-    """Fetches all training jobs which are associated with this experiment."""
+    """
+    Fetches all training jobs which are associated with this experiment.
+    """
     client = session.client("sagemaker")
     search_params = {
         "MaxResults": 100,

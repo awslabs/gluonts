@@ -73,7 +73,9 @@ class Bijection:
 
     @property
     def sign(self) -> Union[float, Tensor]:
-        """Return the sign of the Jacobian's determinant."""
+        """
+        Return the sign of the Jacobian's determinant.
+        """
         raise NotImplementedError()
 
 
@@ -118,8 +120,10 @@ class InverseBijection(Bijection):
 
 
 class ComposedBijection(Bijection):
-    """Encapsulates a series of bijections and implements functions associated
-    to their composition."""
+    """
+    Encapsulates a series of bijections and implements functions associated to
+    their composition.
+    """
 
     @validated()
     def __init__(self, bijections: Optional[List[Bijection]] = None) -> None:
@@ -232,11 +236,15 @@ class ComposedBijection(Bijection):
 
 
 class BijectionHybridBlock(HybridBlock, Bijection):
-    """Allows a Bijection to have parameters."""
+    """
+    Allows a Bijection to have parameters.
+    """
 
 
 class ComposedBijectionHybridBlock(BijectionHybridBlock, ComposedBijection):
-    """Allows a ComposedBijection object to have parameters."""
+    """
+    Allows a ComposedBijection object to have parameters.
+    """
 
     @validated()
     def __init__(

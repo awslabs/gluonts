@@ -46,7 +46,9 @@ def log_abs_det(A: Tensor) -> Tensor:
 
 
 class InvertibleResnetHybridBlock(BijectionHybridBlock):
-    """Based on [BJC19]_, apart from f and f_inv that are swapped."""
+    """
+    Based on [BJC19]_, apart from f and f_inv that are swapped.
+    """
 
     @validated()
     def __init__(

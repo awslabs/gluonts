@@ -37,7 +37,9 @@ def forecast_start(entry):
 
 
 class MPWorkerInfo:
-    """Contains the current worker information."""
+    """
+    Contains the current worker information.
+    """
 
     worker_process = False
     num_workers = None
@@ -57,8 +59,10 @@ class DataLoadingBounds(NamedTuple):
 
 
 def get_bounds_for_mp_data_loading(dataset_len: int) -> DataLoadingBounds:
-    """Utility function that returns the bounds for which part of the dataset
-    should be loaded in this worker."""
+    """
+    Utility function that returns the bounds for which part of the dataset
+    should be loaded in this worker.
+    """
     if not MPWorkerInfo.worker_process:
         return DataLoadingBounds(0, dataset_len)
 

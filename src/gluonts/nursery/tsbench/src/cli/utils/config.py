@@ -70,8 +70,10 @@ def explode_key_values(
     mapping: Dict[str, List[Dict[Literal["key", "values"], Any]]],
     process_key: Callable[[str, str], str] = lambda _, s: s,
 ) -> List[Dict[str, Any]]:
-    """Explodes a mapping from primary keys to a list of key to value mappings
-    into independent configurations."""
+    """
+    Explodes a mapping from primary keys to a list of key to value mappings
+    into independent configurations.
+    """
     all_combinations = {
         primary: itertools.product(
             *[

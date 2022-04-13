@@ -175,9 +175,11 @@ class BucketInstanceSampler(InstanceSampler):
 
 
 class ContinuousTimePointSampler(ABC):
-    """Abstract class for "continuous time" samplers, which, given a lower
-    bound and upper bound, sample "points" (events) in continuous time from a
-    specified interval."""
+    """
+    Abstract class for "continuous time" samplers, which, given a lower bound
+    and upper bound, sample "points" (events) in continuous time from a
+    specified interval.
+    """
 
     def __init__(self, num_instances: int) -> None:
         self.num_instances = num_instances
@@ -199,8 +201,10 @@ class ContinuousTimePointSampler(ABC):
 
 
 class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
-    """Implements a simple random sampler to sample points in the continuous
-    interval between :code:`a` and :code:`b`."""
+    """
+    Implements a simple random sampler to sample points in the continuous
+    interval between :code:`a` and :code:`b`.
+    """
 
     def __call__(self, a: float, b: float) -> np.ndarray:
         assert a <= b, "Interval start time must be before interval end time."

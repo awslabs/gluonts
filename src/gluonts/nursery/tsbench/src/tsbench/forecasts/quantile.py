@@ -24,8 +24,10 @@ from gluonts.time_feature import get_seasonality
 
 @dataclass
 class QuantileForecasts:
-    """A type-safe wrapper for a list of quantile forecasts, stored as NumPy
-    arrays."""
+    """
+    A type-safe wrapper for a list of quantile forecasts, stored as NumPy
+    arrays.
+    """
 
     values: npt.NDArray[
         np.float32
@@ -37,13 +39,17 @@ class QuantileForecasts:
 
     @property
     def prediction_length(self) -> int:
-        """Returns the prediction length of the quantile forecasts."""
+        """
+        Returns the prediction length of the quantile forecasts.
+        """
         return self.values.shape[-1]
 
     @property
     def seasonality(self) -> int:
-        """Returns the seasonality of the forecasts (i.e. how many steps to go
-        back to arrive at the value of the previous period)."""
+        """
+        Returns the seasonality of the forecasts (i.e. how many steps to go
+        back to arrive at the value of the previous period).
+        """
         return get_seasonality(self.freq.freqstr)  # type: ignore
 
     # ---------------------------------------------------------------------------------------------

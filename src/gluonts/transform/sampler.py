@@ -172,9 +172,11 @@ class BucketInstanceSampler(InstanceSampler):
 
 
 class ContinuousTimePointSampler(BaseModel):
-    """Abstract class for "continuous time" samplers, which, given a lower
-    bound and upper bound, sample "points" (events) in continuous time from a
-    specified interval."""
+    """
+    Abstract class for "continuous time" samplers, which, given a lower bound
+    and upper bound, sample "points" (events) in continuous time from a
+    specified interval.
+    """
 
     min_past: float = 0.0
     min_future: float = 0.0
@@ -201,8 +203,10 @@ class ContinuousTimePointSampler(BaseModel):
 
 
 class ContinuousTimeUniformSampler(ContinuousTimePointSampler):
-    """Implements a simple random sampler to sample points in the continuous
-    interval between :code:`a` and :code:`b`."""
+    """
+    Implements a simple random sampler to sample points in the continuous
+    interval between :code:`a` and :code:`b`.
+    """
 
     num_instances: int
 

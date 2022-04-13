@@ -65,7 +65,9 @@ class DatasetInfo(NamedTuple):
 
 
 class ArtificialDataset:
-    """Parent class of a dataset that can be generated from code."""
+    """
+    Parent class of a dataset that can be generated from code.
+    """
 
     def __init__(self, freq) -> None:
         self.freq = freq
@@ -693,8 +695,10 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_end(x: DataEntry, length: int) -> DataEntry:
-        """Trim a DataEntry into a training range, by removing the last
-        prediction_length time points from the target and dynamic features."""
+        """
+        Trim a DataEntry into a training range, by removing the last
+        prediction_length time points from the target and dynamic features.
+        """
         y = dict(
             item_id=x[FieldName.ITEM_ID],
             start=x[FieldName.START],
@@ -713,8 +717,10 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_front(x: DataEntry, length: int) -> DataEntry:
-        """Trim a DataEntry into a training range, by removing the first
-        offset_front time points from the target and dynamic features."""
+        """
+        Trim a DataEntry into a training range, by removing the first
+        offset_front time points from the target and dynamic features.
+        """
         assert length <= len(x[FieldName.TARGET])
 
         y = dict(

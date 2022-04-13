@@ -21,7 +21,9 @@ from .losses import ListMLELoss
 
 
 class MLPLightningModule(pl.LightningModule):
-    """Lightning module which trains an MLP until convergence."""
+    """
+    Lightning module which trains an MLP until convergence.
+    """
 
     def __init__(
         self, model: nn.Module, loss: nn.Module, weight_decay: float = 0.0

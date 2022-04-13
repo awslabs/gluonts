@@ -20,8 +20,10 @@ from pymongo.database import Database
 
 
 class SacredExperiment:
-    """A sacred experiment describes a Sacred experiment stored in MongoDB and
-    is retrieved from a Sacred Mongo client."""
+    """
+    A sacred experiment describes a Sacred experiment stored in MongoDB and is
+    retrieved from a Sacred Mongo client.
+    """
 
     def __init__(self, info: Dict[str, Any], db: Database, gridfs: GridFS):
         """
@@ -33,13 +35,16 @@ class SacredExperiment:
 
     @property
     def config(self) -> Dict[str, Any]:
-        """Returns the configuration of the experiment."""
+        """
+        Returns the configuration of the experiment.
+        """
         return self.info["config"]
 
     @property
     def artifacts(self) -> List[str]:
-        """Returns the names of all artifacts associated with the
-        experiment."""
+        """
+        Returns the names of all artifacts associated with the experiment.
+        """
         return [a["name"] for a in self.info["artifacts"]]
 
     def read_parquet(self, artifact: str) -> pd.DataFrame:
@@ -81,8 +86,10 @@ class SacredExperiment:
         return pickle.loads(data)
 
     def delete(self) -> None:
-        """Deletes the experiment by setting the associated experiment name to
-        "Trash"."""
+        """
+        Deletes the experiment by setting the associated experiment name to
+        "Trash".
+        """
         self.db.runs.update_one(
             {"_id": self.info["_id"]},
             {"$set": {"config.name": "Trash"}},

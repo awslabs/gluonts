@@ -35,8 +35,10 @@ logger = logging.getLogger(__name__)
 
 
 def train(arguments):
-    """Generic train method that trains a specified estimator on a specified
-    dataset."""
+    """
+    Generic train method that trains a specified estimator on a specified
+    dataset.
+    """
 
     logger.info("Downloading estimator config.")
     estimator_config = Path(arguments.estimator) / "estimator.json"

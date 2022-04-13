@@ -22,7 +22,9 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 @dataclass
 class Evaluations(Generic[T]):
-    """Generic base for evaluations of models."""
+    """
+    Generic base for evaluations of models.
+    """
 
     configurations: List[Config[T]]
     performances: List[Performance]

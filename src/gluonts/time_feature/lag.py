@@ -20,7 +20,9 @@ from gluonts.time_feature import norm_freq_str
 
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:
-    """Create a set of lags around a middle point including +/- delta."""
+    """
+    Create a set of lags around a middle point including +/- delta.
+    """
     return np.arange(middle - delta, middle + delta + 1).tolist()
 
 

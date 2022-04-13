@@ -21,8 +21,10 @@ from ._base import Kind, encode
 
 @encode.register(np.dtype)
 def encode_np_dtype(v: np.dtype) -> Any:
-    """Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~numpy.dtype` class."""
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~numpy.dtype` class.
+    """
     return {
         "__kind__": Kind.Instance,
         "class": "numpy.dtype",
@@ -32,8 +34,10 @@ def encode_np_dtype(v: np.dtype) -> Any:
 
 @encode.register(np.ndarray)
 def encode_np_ndarray(v: np.ndarray) -> Any:
-    """Specializes :func:`encode` for invocations where ``v`` is an instance of
-    the :class:`~numpy.ndarray` class."""
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~numpy.ndarray` class.
+    """
     return {
         "__kind__": Kind.Instance,
         "class": "numpy.array",  # use "array" ctor instead of "nparray" class

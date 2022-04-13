@@ -20,8 +20,9 @@ Item = Dict[str, Any]
 
 
 class Filter(ABC):
-    """A filter enables filtering the set of time series contained in a
-    dataset."""
+    """
+    A filter enables filtering the set of time series contained in a dataset.
+    """
 
     @abstractmethod
     def __call__(self, items: List[Item]) -> List[Item]:
@@ -66,8 +67,10 @@ class ConstantTargetFilter(Filter):
 
 
 class AbsoluteValueFilter(Filter):
-    """A filter which removes items having absolute average values of more than
-    the provided value."""
+    """
+    A filter which removes items having absolute average values of more than
+    the provided value.
+    """
 
     def __init__(self, value: float):
         self.value = value
@@ -81,7 +84,9 @@ class AbsoluteValueFilter(Filter):
 
 
 class EndOfSeriesCutFilter(Filter):
-    """A filter which removes the last `n` time steps from a time series."""
+    """
+    A filter which removes the last `n` time steps from a time series.
+    """
 
     def __init__(self, prediction_length: int):
         self.prediction_length = prediction_length
@@ -99,8 +104,9 @@ class EndOfSeriesCutFilter(Filter):
 
 
 class MinLengthFilter(Filter):
-    """A filter which ensures that time series have the specified minimum
-    length."""
+    """
+    A filter which ensures that time series have the specified minimum length.
+    """
 
     def __init__(self, length: int):
         self.length = length

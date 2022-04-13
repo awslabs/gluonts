@@ -25,8 +25,10 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 @dataclass(frozen=True)
 class Config(Generic[T]):
-    """A configuration is a tuple of a model configuration and a dataset
-    configuration."""
+    """
+    A configuration is a tuple of a model configuration and a dataset
+    configuration.
+    """
 
     @classmethod
     def to_dataframe(

@@ -97,8 +97,10 @@ class SourceContext(NamedTuple):
 
 
 class TrainDatasets(NamedTuple):
-    """A dataset containing two subsets, one to be used for training purposes,
-    and the other for testing purposes, as well as metadata."""
+    """
+    A dataset containing two subsets, one to be used for training purposes, and
+    the other for testing purposes, as well as metadata.
+    """
 
     metadata: MetaData
     train: Dataset
@@ -319,8 +321,10 @@ class ProcessStartField(pydantic.BaseModel):
     @staticmethod
     @lru_cache(maxsize=10000)
     def process(timestamp_input: Any, freq: str) -> pd.Timestamp:
-        """Create timestamp from datetime-like, str, int or float input and
-        align it according to frequency."""
+        """
+        Create timestamp from datetime-like, str, int or float input and align
+        it according to frequency.
+        """
 
         timestamp = pd.Timestamp(timestamp_input, freq=freq)
 

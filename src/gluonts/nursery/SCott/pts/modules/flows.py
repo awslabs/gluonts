@@ -61,7 +61,9 @@ def create_masks(
 
 
 class FlowSequential(nn.Sequential):
-    """Container for layers of a normalizing flow."""
+    """
+    Container for layers of a normalizing flow.
+    """
 
     def forward(self, x, y):
         sum_log_abs_det_jacobians = 0
@@ -79,7 +81,9 @@ class FlowSequential(nn.Sequential):
 
 
 class BatchNorm(nn.Module):
-    """RealNVP BatchNorm layer."""
+    """
+    RealNVP BatchNorm layer.
+    """
 
     def __init__(self, input_size, momentum=0.9, eps=1e-5):
         super().__init__()
@@ -139,7 +143,9 @@ class BatchNorm(nn.Module):
 
 
 class LinearMaskedCoupling(nn.Module):
-    """Modified RealNVP Coupling Layers per the MAF paper."""
+    """
+    Modified RealNVP Coupling Layers per the MAF paper.
+    """
 
     def __init__(
         self, input_size, hidden_size, n_hidden, mask, cond_label_size=None
@@ -214,7 +220,9 @@ class LinearMaskedCoupling(nn.Module):
 
 
 class MaskedLinear(nn.Linear):
-    """MADE building block layer."""
+    """
+    MADE building block layer.
+    """
 
     def __init__(self, input_size, n_outputs, mask, cond_label_size=None):
         super().__init__(input_size, n_outputs)

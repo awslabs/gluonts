@@ -21,8 +21,10 @@ from tsbench.evaluations.metrics import Performance
 
 
 class PerformanceTransformer(TransformerMixin):
-    """The performance transformer transforms performances into model outputs
-    for supervised learning as well as model outputs to performance objects."""
+    """
+    The performance transformer transforms performances into model outputs for
+    supervised learning as well as model outputs to performance objects.
+    """
 
     def __init__(self, metrics: list[str] | None = None):
         """
@@ -34,8 +36,10 @@ class PerformanceTransformer(TransformerMixin):
 
     @property
     def features_names_(self) -> list[str]:
-        """Returns the feature names for the columns of the transformed
-        performance objects."""
+        """
+        Returns the feature names for the columns of the transformed
+        performance objects.
+        """
         return self.encoder.feature_names_
 
     def fit(self, y: list[Performance]) -> PerformanceTransformer:

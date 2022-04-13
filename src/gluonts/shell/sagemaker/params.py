@@ -45,8 +45,9 @@ def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
 
 
 def encode_sagemaker_parameter(value: Any) -> str:
-    """All values passed through the SageMaker API must be encoded as
-    strings."""
+    """
+    All values passed through the SageMaker API must be encoded as strings.
+    """
     if not isinstance(value, str):
         return dump_json(value)
     else:

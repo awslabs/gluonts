@@ -21,7 +21,9 @@ from gluonts.mx.block.mlp import MLP
 
 
 class Seq2SeqDecoder(nn.HybridBlock):
-    """Abstract class for the Decoder block in sequence-to-sequence models."""
+    """
+    Abstract class for the Decoder block in sequence-to-sequence models.
+    """
 
     @validated()
     def __init__(self, **kwargs):

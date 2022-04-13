@@ -17,7 +17,9 @@ from pydantic.error_wrappers import ValidationError, display_errors
 
 
 class GluonTSException(Exception):
-    """Base class for all GluonTS exceptions."""
+    """
+    Base class for all GluonTS exceptions.
+    """
 
     @classmethod
     def guard(cls, condition, *args, **kwargs):
@@ -26,9 +28,11 @@ class GluonTSException(Exception):
 
 
 class GluonTSHyperparametersError(GluonTSException, ValueError):
-    """An exception wrapping a Pydantic ``ValidationError``, usually thrown
-    when the validation of a :func:`~gluonts.core.component.validated`
-    initializer fails."""
+    """
+    An exception wrapping a Pydantic ``ValidationError``, usually thrown when
+    the validation of a :func:`~gluonts.core.component.validated` initializer
+    fails.
+    """
 
     __cause__: ValidationError
 
@@ -41,19 +45,25 @@ class GluonTSHyperparametersError(GluonTSException, ValueError):
 
 
 class GluonTSDataError(GluonTSException):
-    """An exception indicating an error with the input data."""
+    """
+    An exception indicating an error with the input data.
+    """
 
     pass
 
 
 class GluonTSUserError(GluonTSException):
-    """An exception indicating a user error."""
+    """
+    An exception indicating a user error.
+    """
 
     pass
 
 
 class GluonTSDateBoundsError(GluonTSException):
-    """An exception indicating that ."""
+    """
+    An exception indicating that .
+    """
 
     pass
 

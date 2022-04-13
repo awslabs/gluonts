@@ -23,8 +23,10 @@ from gluonts.dataset.common import DataBatch
 def pad_to_size(
     x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
 ):
-    """Pads `xs` with 0 on the right (default) on the specified axis, which is
-    the first axis by default."""
+    """
+    Pads `xs` with 0 on the right (default) on the specified axis, which is the
+    first axis by default.
+    """
 
     pad_length = size - x.shape[axis]
     if pad_length <= 0:
@@ -37,8 +39,10 @@ def pad_to_size(
 
 
 def _is_stackable(arrays: List, axis: int = 0) -> bool:
-    """Check if elements are scalars, have too few dimensions, or their target
-    axes have equal length; i.e. they are directly `stack` able."""
+    """
+    Check if elements are scalars, have too few dimensions, or their target
+    axes have equal length; i.e. they are directly `stack` able.
+    """
     if isinstance(arrays[0], np.ndarray):
         s = {arr.shape[axis] for arr in arrays}
         return len(s) <= 1 and arrays[0].shape[axis] != 0
@@ -100,7 +104,9 @@ def batchify(
 
 
 def as_in_context(batch: dict, ctx: mx.Context = None) -> DataBatch:
-    """Move data into new context, should only be in main process."""
+    """
+    Move data into new context, should only be in main process.
+    """
     batch = {
         k: v.as_in_context(ctx) if isinstance(v, mx.nd.NDArray)
         # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:

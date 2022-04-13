@@ -39,7 +39,9 @@ from .preprocessing import Filter, read_transform_write
 
 @dataclass(frozen=True)
 class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
-    """A dataset configuration for datasets obtained directly via GluonTS."""
+    """
+    A dataset configuration for datasets obtained directly via GluonTS.
+    """
 
     def generate(self) -> None:
         if self.root.exists():
@@ -109,8 +111,10 @@ class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
 
 @dataclass(frozen=True)
 class MonashDatasetConfig(GluonTsDatasetConfig):
-    """A dataset configuration for datasets obtained through
-    forecastingdata.org, the Monash Forecasting Repository."""
+    """
+    A dataset configuration for datasets obtained through forecastingdata.org,
+    the Monash Forecasting Repository.
+    """
 
     @property
     def _prediction_length(self) -> int:
@@ -156,7 +160,9 @@ class MonashDatasetConfig(GluonTsDatasetConfig):
 
 @dataclass(frozen=True)
 class M3DatasetConfig(GluonTsDatasetConfig):  # pylint: disable=abstract-method
-    """A dataset configuration shared by all M3 datasets."""
+    """
+    A dataset configuration shared by all M3 datasets.
+    """
 
     def generate(self) -> None:
         if self.root.exists():
@@ -179,7 +185,9 @@ class M3DatasetConfig(GluonTsDatasetConfig):  # pylint: disable=abstract-method
 
 @dataclass(frozen=True)
 class KaggleDatasetConfig(GluonTsDatasetConfig):
-    """A dataset configuration for datasets obtained directly from Kaggle."""
+    """
+    A dataset configuration for datasets obtained directly from Kaggle.
+    """
 
     def generate(self) -> None:
         # Check for the existence of the data

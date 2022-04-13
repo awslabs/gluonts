@@ -93,8 +93,10 @@ class TransformerDecoder(HybridBlock):
         is_train: bool = True,
     ) -> Tensor:
 
-        """A transformer encoder block consists of a self-attention and a feed-
-        forward layer with pre/post process blocks in between."""
+        """
+        A transformer encoder block consists of a self-attention and a feed-
+        forward layer with pre/post process blocks in between.
+        """
 
         # embedding
         inputs = self.enc_input_layer(data)

@@ -171,8 +171,9 @@ class DilatedCausalGated(gluon.HybridBlock):
 
 
 class ResidualSequential(gluon.nn.HybridSequential):
-    """Adding residual connection to each layer of the hybrid sequential
-    blocks."""
+    """
+    Adding residual connection to each layer of the hybrid sequential blocks.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -248,8 +248,10 @@ class PreprocessGeneric:
             return feature_data, target_data
 
     def get_num_samples(self, ts_list) -> int:
-        """Outputs a reasonable choice for number of windows to sample from
-        each time series at training time."""
+        """
+        Outputs a reasonable choice for number of windows to sample from each
+        time series at training time.
+        """
         n_time_series = sum(
             len(time_series["target"])
             - self.context_window_size

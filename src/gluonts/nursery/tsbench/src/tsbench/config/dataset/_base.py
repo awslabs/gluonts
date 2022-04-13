@@ -30,14 +30,18 @@ from tsbench.constants import (
 
 @dataclass(frozen=True)
 class DatasetConfig:
-    """A dataset configuration references a dataset containing multiple time
-    series."""
+    """
+    A dataset configuration references a dataset containing multiple time
+    series.
+    """
 
     base_path: Path = field(default=DEFAULT_DATA_PATH, compare=False)
 
     @classmethod
     def name(cls) -> str:
-        """Returns a canonical name for the dataset."""
+        """
+        Returns a canonical name for the dataset.
+        """
         raise NotImplementedError
 
     def generate(self) -> None:
@@ -51,25 +55,33 @@ class DatasetConfig:
         raise NotImplementedError
 
     def prepare(self) -> None:
-        """Generates all necessary representations of the dataset after it has
-        been generated."""
+        """
+        Generates all necessary representations of the dataset after it has
+        been generated.
+        """
         self.data.train().prepare()
         self.data.val().prepare()
         self.data.test().prepare()
 
     @property
     def has_time_features(self) -> bool:
-        """Returns whether the dataset has time features."""
+        """
+        Returns whether the dataset has time features.
+        """
         return True
 
     @property
     def max_training_time(self) -> int:
-        """Returns the maximum training time in seconds for the dataset."""
+        """
+        Returns the maximum training time in seconds for the dataset.
+        """
         raise NotImplementedError
 
     @property
     def meta(self) -> MetaData:
-        """Returns the dataset's metadata."""
+        """
+        Returns the dataset's metadata.
+        """
         return MetaData.parse_file(self.root / "gluonts" / "metadata.json")
 
     @property
@@ -84,8 +96,10 @@ class DatasetConfig:
 
     @property
     def root(self) -> Path:
-        """Returns the directory where all the data pertaining to this dataset
-        is stored."""
+        """
+        Returns the directory where all the data pertaining to this dataset is
+        stored.
+        """
         return self.base_path / self.name()
 
     def stats(
@@ -153,14 +167,18 @@ class DatasetSplits:
         return DatasetSplit(self._metadata, self._directory, "val")
 
     def test(self) -> DatasetSplit:
-        """Returns the test data for the dataset."""
+        """
+        Returns the test data for the dataset.
+        """
         return DatasetSplit(self._metadata, self._directory, "test")
 
 
 @dataclass
 class DatasetSplit:
-    """A dataset split provides all the representations for a particular split
-    (train/val/test) of a dataset."""
+    """
+    A dataset split provides all the representations for a particular split
+    (train/val/test) of a dataset.
+    """
 
     _metadata: MetaData
     _directory: Path
@@ -178,7 +196,9 @@ class DatasetSplit:
         )
 
     def evaluation(self) -> EvaluationDataset:
-        """Returns the NumPy arrays that are used to perform evaluation."""
+        """
+        Returns the NumPy arrays that are used to perform evaluation.
+        """
         if self._split == "train":
             raise ValueError(
                 "training data does not provide an evaluation dataset"
@@ -194,8 +214,10 @@ class DatasetSplit:
         )
 
     def prepare(self) -> None:
-        """Prepares all required representations provided that the GluonTS
-        dataset is already generated."""
+        """
+        Prepares all required representations provided that the GluonTS dataset
+        is already generated.
+        """
         target = self._directory / "numpy" / self._split
         if self._split == "train":
             if target.exists():

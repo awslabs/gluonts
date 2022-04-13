@@ -69,8 +69,10 @@ class GluonTSPredictor(RealTimePredictor):
 
 
 class GluonTSModel(FrameworkModel):
-    """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker
-    ``Endpoint``."""
+    """
+    An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker
+    ``Endpoint``.
+    """
 
     __framework_name__ = FRAMEWORK_NAME
     _LOWEST_MMS_VERSION = LOWEST_MMS_VERSION

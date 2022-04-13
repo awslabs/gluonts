@@ -26,8 +26,10 @@ from .transformers import ConfigTransformer
 
 @register_surrogate("randomforest")
 class RandomForestSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
-    """The Random Forest surrogate uses a random forest model to predict model
-    performances."""
+    """
+    The Random Forest surrogate uses a random forest model to predict model
+    performances.
+    """
 
     def __init__(
         self,

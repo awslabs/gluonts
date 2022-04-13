@@ -59,12 +59,16 @@ class Recommender(ABC, Generic[T]):
 
     @property
     def required_cpus(self) -> int:
-        """The number of CPUs required for fitting the recommender."""
+        """
+        The number of CPUs required for fitting the recommender.
+        """
         return 1
 
     @property
     def required_memory(self) -> int:
-        """The amount of memory in GiB required for fitting the recommender."""
+        """
+        The amount of memory in GiB required for fitting the recommender.
+        """
         return 1
 
     def fit(

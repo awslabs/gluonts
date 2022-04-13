@@ -21,7 +21,9 @@ M = TypeVar("M", bound=Type[ModelConfig])
 
 
 def register_model(cls: M) -> M:
-    """Registers the provided class in the global model registry."""
+    """
+    Registers the provided class in the global model registry.
+    """
     MODEL_REGISTRY[cls.name()] = cls
     return cls
 

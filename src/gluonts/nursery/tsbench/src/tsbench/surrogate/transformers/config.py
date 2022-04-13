@@ -38,8 +38,10 @@ from tsbench.evaluations.tracking import ModelTracker
 
 
 class ConfigTransformer(TransformerMixin):
-    """The config transformer transforms a configuration (model + dataset) into
-    a real-valued vector."""
+    """
+    The config transformer transforms a configuration (model + dataset) into a
+    real-valued vector.
+    """
 
     def __init__(
         self,
@@ -85,8 +87,10 @@ class ConfigTransformer(TransformerMixin):
 
     @property
     def feature_names_(self) -> list[str]:
-        """Returns the feature names for the columns of transformed
-        configurations."""
+        """
+        Returns the feature names for the columns of transformed
+        configurations.
+        """
         return [
             f
             for e in self.encoders
@@ -124,8 +128,10 @@ class ConfigTransformer(TransformerMixin):
 
 
 class EnsembleConfigTransformer(TransformerMixin):
-    """The config transformer transforms a set of model configs into a set of
-    NumPy arrays."""
+    """
+    The config transformer transforms a set of model configs into a set of
+    NumPy arrays.
+    """
 
     model_type_map: dict[str, int]
     attribute_map: dict[str, int]
@@ -137,8 +143,10 @@ class EnsembleConfigTransformer(TransformerMixin):
 
     @property
     def feature_names_(self) -> list[str]:
-        """Returns the feature names for the columns of transformed
-        configurations."""
+        """
+        Returns the feature names for the columns of transformed
+        configurations.
+        """
         return [f"model={m}" for m in self.model_type_map] + list(
             self.attribute_map.keys()
         )

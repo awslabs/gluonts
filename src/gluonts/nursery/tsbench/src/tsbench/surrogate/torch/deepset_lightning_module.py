@@ -21,7 +21,9 @@ from .losses import ListMLELoss
 
 
 class DeepSetLightningModule(pl.LightningModule):
-    """Lightning module which trains a deep set model until convergence."""
+    """
+    Lightning module which trains a deep set model until convergence.
+    """
 
     def __init__(
         self, model: nn.Module, loss: nn.Module, weight_decay: float = 0.0

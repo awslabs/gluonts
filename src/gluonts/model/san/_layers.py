@@ -23,7 +23,9 @@ from gluonts.mx import Tensor
 
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):
-    """Pytorch-style gather_nd."""
+    """
+    Pytorch-style gather_nd.
+    """
     ndim = 4
     if axis < 0:
         axis = ndim + axis

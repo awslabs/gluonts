@@ -24,7 +24,9 @@ from . import Kernel
 
 
 class KernelOutput:
-    """Class to connect a network to a kernel."""
+    """
+    Class to connect a network to a kernel.
+    """
 
     def get_args_proj(self, float_type: Type) -> gluon.HybridBlock:
         raise NotImplementedError()

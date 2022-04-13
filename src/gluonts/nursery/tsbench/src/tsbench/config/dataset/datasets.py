@@ -31,7 +31,9 @@ from .sources import (
 @register_dataset
 @dataclass(frozen=True)
 class ExchangeRateDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `exchange_rate_nips` dataset."""
+    """
+    The dataset configuration for the `exchange_rate_nips` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -49,7 +51,9 @@ class ExchangeRateDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class ElectricityDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `electricity_nips` dataset."""
+    """
+    The dataset configuration for the `electricity_nips` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -63,7 +67,9 @@ class ElectricityDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class SolarDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `solar_nips` dataset."""
+    """
+    The dataset configuration for the `solar_nips` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -81,7 +87,9 @@ class SolarDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class WikiDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `wiki-rolling_nips` dataset."""
+    """
+    The dataset configuration for the `wiki-rolling_nips` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -99,7 +107,9 @@ class WikiDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class TaxiDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `taxi_30min` dataset."""
+    """
+    The dataset configuration for the `taxi_30min` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -117,7 +127,9 @@ class TaxiDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M3MonthlyDatasetConfig(M3DatasetConfig):
-    """The dataset configuration for the `m3_monthly` dataset."""
+    """
+    The dataset configuration for the `m3_monthly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -131,7 +143,9 @@ class M3MonthlyDatasetConfig(M3DatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M3QuarterlyDatasetConfig(M3DatasetConfig):
-    """The dataset configuration for the `m3_quarterly` dataset."""
+    """
+    The dataset configuration for the `m3_quarterly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -145,7 +159,9 @@ class M3QuarterlyDatasetConfig(M3DatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M3YearlyDatasetConfig(M3DatasetConfig):
-    """The dataset configuration for the `m3_yearly` dataset."""
+    """
+    The dataset configuration for the `m3_yearly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -159,7 +175,9 @@ class M3YearlyDatasetConfig(M3DatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M3OtherDatasetConfig(M3DatasetConfig):
-    """The dataset configuration for the `m3_other` dataset."""
+    """
+    The dataset configuration for the `m3_other` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -177,7 +195,9 @@ class M3OtherDatasetConfig(M3DatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4HourlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_hourly` dataset."""
+    """
+    The dataset configuration for the `m4_hourly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -195,7 +215,9 @@ class M4HourlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4DailyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_daily` dataset."""
+    """
+    The dataset configuration for the `m4_daily` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -213,7 +235,9 @@ class M4DailyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4WeeklyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_weekly` dataset."""
+    """
+    The dataset configuration for the `m4_weekly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -231,7 +255,9 @@ class M4WeeklyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4MonthlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_monthly` dataset."""
+    """
+    The dataset configuration for the `m4_monthly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -249,7 +275,9 @@ class M4MonthlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4QuarterlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_quarterly` dataset."""
+    """
+    The dataset configuration for the `m4_quarterly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -267,7 +295,9 @@ class M4QuarterlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M4YearlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m4_yearly` dataset."""
+    """
+    The dataset configuration for the `m4_yearly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -285,7 +315,9 @@ class M4YearlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M5DatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `m5` dataset."""
+    """
+    The dataset configuration for the `m5` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -306,7 +338,9 @@ class M5DatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class TourismMonthlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `tourism_monthly` dataset."""
+    """
+    The dataset configuration for the `tourism_monthly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -320,7 +354,9 @@ class TourismMonthlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class TourismQuarterlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `tourism_quarterly` dataset."""
+    """
+    The dataset configuration for the `tourism_quarterly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -334,7 +370,9 @@ class TourismQuarterlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class TourismYearlyDatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `tourism_yearly` dataset."""
+    """
+    The dataset configuration for the `tourism_yearly` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -348,8 +386,9 @@ class TourismYearlyDatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class NN5DatasetConfig(GluonTsDatasetConfig):
-    """The dataset configuration for the `nn5_daily_without_missing`
-    dataset."""
+    """
+    The dataset configuration for the `nn5_daily_without_missing` dataset.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -367,7 +406,9 @@ class NN5DatasetConfig(GluonTsDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class LondonSmartMetersDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "London Smart Meters"."""
+    """
+    The dataset configuration for "London Smart Meters".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -393,7 +434,9 @@ class LondonSmartMetersDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class WindFarmsDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Wind Farms"."""
+    """
+    The dataset configuration for "Wind Farms".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -424,7 +467,9 @@ class WindFarmsDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class CarPartsDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Car Parts"."""
+    """
+    The dataset configuration for "Car Parts".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -450,7 +495,9 @@ class CarPartsDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class DominickDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Dominick"."""
+    """
+    The dataset configuration for "Dominick".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -484,7 +531,9 @@ class DominickDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class FredMdDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Federal Reserve Economic Dataset"."""
+    """
+    The dataset configuration for "Federal Reserve Economic Dataset".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -510,7 +559,9 @@ class FredMdDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class SanFranciscoTrafficDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "San Francisco Traffic"."""
+    """
+    The dataset configuration for "San Francisco Traffic".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -536,7 +587,9 @@ class SanFranciscoTrafficDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class PedestrianCountDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Pedestrian Counts"."""
+    """
+    The dataset configuration for "Pedestrian Counts".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -562,7 +615,9 @@ class PedestrianCountDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class HospitalDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Hospitals"."""
+    """
+    The dataset configuration for "Hospitals".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -588,7 +643,9 @@ class HospitalDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class CovidDeathsDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "COVID Deaths"."""
+    """
+    The dataset configuration for "COVID Deaths".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -614,7 +671,9 @@ class CovidDeathsDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class KddCupDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "KDD Cup 2018"."""
+    """
+    The dataset configuration for "KDD Cup 2018".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -640,7 +699,9 @@ class KddCupDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class CifDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "CIF 2016"."""
+    """
+    The dataset configuration for "CIF 2016".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -670,7 +731,9 @@ class CifDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class AustralianElectricityDemandDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Australian Electricity Demand"."""
+    """
+    The dataset configuration for "Australian Electricity Demand".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -696,7 +759,9 @@ class AustralianElectricityDemandDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class BitcoinDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Bitcoin"."""
+    """
+    The dataset configuration for "Bitcoin".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -722,7 +787,9 @@ class BitcoinDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class RideshareDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Rideshare"."""
+    """
+    The dataset configuration for "Rideshare".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -748,7 +815,9 @@ class RideshareDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class VehicleTripsDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Vehicle Trips"."""
+    """
+    The dataset configuration for "Vehicle Trips".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -778,7 +847,9 @@ class VehicleTripsDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class WeatherDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Weather"."""
+    """
+    The dataset configuration for "Weather".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -804,7 +875,9 @@ class WeatherDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class TemperatureRainDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "Temperature Rain"."""
+    """
+    The dataset configuration for "Temperature Rain".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -830,7 +903,9 @@ class TemperatureRainDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M1YearlyDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "M1 Yearly"."""
+    """
+    The dataset configuration for "M1 Yearly".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -856,7 +931,9 @@ class M1YearlyDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M1QuarterlyDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "M1 Quarterly"."""
+    """
+    The dataset configuration for "M1 Quarterly".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -882,7 +959,9 @@ class M1QuarterlyDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class M1MonthlyDatasetConfig(MonashDatasetConfig):
-    """The dataset configuration for "M1 Monthly"."""
+    """
+    The dataset configuration for "M1 Monthly".
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -908,8 +987,10 @@ class M1MonthlyDatasetConfig(MonashDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class RossmannDatasetConfig(KaggleDatasetConfig):
-    """The dataset configuration for the "Rossmann Store Sales" Kaggle
-    competition."""
+    """
+    The dataset configuration for the "Rossmann Store Sales" Kaggle
+    competition.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -962,8 +1043,10 @@ class RossmannDatasetConfig(KaggleDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
-    """The dataset configuration for the "Corporación Favorita" Kaggle
-    competition."""
+    """
+    The dataset configuration for the "Corporación Favorita" Kaggle
+    competition.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -1032,8 +1115,9 @@ class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class WalmartDatasetConfig(KaggleDatasetConfig):
-    """The dataset configuration for the "Walmart Recruiting" Kaggle
-    competition."""
+    """
+    The dataset configuration for the "Walmart Recruiting" Kaggle competition.
+    """
 
     @classmethod
     def name(cls) -> str:
@@ -1097,7 +1181,9 @@ class WalmartDatasetConfig(KaggleDatasetConfig):
 @register_dataset
 @dataclass(frozen=True)
 class RestaurantDatasetConfig(KaggleDatasetConfig):
-    """The dataset configuration for the "Restaurant" Kaggle competition."""
+    """
+    The dataset configuration for the "Restaurant" Kaggle competition.
+    """
 
     @classmethod
     def name(cls) -> str:

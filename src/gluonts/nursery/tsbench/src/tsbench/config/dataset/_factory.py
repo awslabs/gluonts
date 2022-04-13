@@ -23,7 +23,9 @@ D = TypeVar("D", bound=Type[DatasetConfig])
 
 
 def register_dataset(cls: D) -> D:
-    """Registers the provided class in the global dataset registry."""
+    """
+    Registers the provided class in the global dataset registry.
+    """
     DATASET_REGISTRY[cls.name()] = cls
     return cls
 

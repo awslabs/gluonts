@@ -37,8 +37,10 @@ from ._main import datasets
     help="The path where the datasets should be downloaded to.",
 )
 def download(dataset: Optional[str], path: str):
-    """Downloads and preprocesses either a single dataset or all datasets in
-    the registry."""
+    """
+    Downloads and preprocesses either a single dataset or all datasets in the
+    registry.
+    """
     base = Path(path)
 
     if dataset is not None:

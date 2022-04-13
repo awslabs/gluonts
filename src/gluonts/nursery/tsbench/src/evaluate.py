@@ -114,9 +114,10 @@ def main(
     # Model hyperparameters
     **kwargs: int,
 ) -> None:
-    """Trains and evaluates a GluonTS model, logging all metrics and storing
-    the generated forecasts on the test set (and, optionally, the validation
-    set)."""
+    """
+    Trains and evaluates a GluonTS model, logging all metrics and storing the
+    generated forecasts on the test set (and, optionally, the validation set).
+    """
     # Basic configuration
     env.use_tqdm = use_tqdm
     logging.basicConfig(level=logging.INFO)

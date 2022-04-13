@@ -47,8 +47,10 @@ from ._main import datasets
     "Statistics are written as `<dataset>.json` files.",
 )
 def compute_stats(dataset: Optional[str], data_path: str, output_path: str):
-    """Computes simple dataset features either for a single dataset or all
-    datasets in the registry."""
+    """
+    Computes simple dataset features either for a single dataset or all
+    datasets in the registry.
+    """
     source = Path(data_path)
     target = Path(output_path)
     target.mkdir(parents=True, exist_ok=True)

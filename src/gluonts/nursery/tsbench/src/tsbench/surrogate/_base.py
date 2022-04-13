@@ -65,12 +65,16 @@ class Surrogate(ABC, Generic[T]):
 
     @property
     def required_cpus(self) -> int:
-        """The number of CPUs required for fitting the surrogate."""
+        """
+        The number of CPUs required for fitting the surrogate.
+        """
         return 1
 
     @property
     def required_memory(self) -> int:
-        """The amount of memory in GiB required for fitting the surrogate."""
+        """
+        The amount of memory in GiB required for fitting the surrogate.
+        """
         return 1
 
     def fit(self, X: list[Config[T]], y: list[Performance]) -> None:
@@ -148,5 +152,7 @@ class Surrogate(ABC, Generic[T]):
 
 
 class DatasetFeaturesMixin:
-    """Simple mixin which can be inherited by surrogates to signal that they
-    (optionally) use dataset features."""
+    """
+    Simple mixin which can be inherited by surrogates to signal that they
+    (optionally) use dataset features.
+    """

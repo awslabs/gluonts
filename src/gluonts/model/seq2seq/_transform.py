@@ -24,7 +24,9 @@ from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
-    """Forking sequence splitter."""
+    """
+    Forking sequence splitter.
+    """
 
     @validated()
     def __init__(

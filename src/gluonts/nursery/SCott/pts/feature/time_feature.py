@@ -34,7 +34,9 @@ class TimeFeature(ABC):
 
 
 class MinuteOfHour(TimeFeature):
-    """Minute of hour encoded as value between [-0.5, 0.5]"""
+    """
+    Minute of hour encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -44,7 +46,9 @@ class MinuteOfHour(TimeFeature):
 
 
 class HourOfDay(TimeFeature):
-    """Hour of day encoded as value between [-0.5, 0.5]"""
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -54,7 +58,9 @@ class HourOfDay(TimeFeature):
 
 
 class DayOfWeek(TimeFeature):
-    """Hour of day encoded as value between [-0.5, 0.5]"""
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -64,7 +70,9 @@ class DayOfWeek(TimeFeature):
 
 
 class DayOfMonth(TimeFeature):
-    """Day of month encoded as value between [-0.5, 0.5]"""
+    """
+    Day of month encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -74,7 +82,9 @@ class DayOfMonth(TimeFeature):
 
 
 class DayOfYear(TimeFeature):
-    """Day of year encoded as value between [-0.5, 0.5]"""
+    """
+    Day of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -84,7 +94,9 @@ class DayOfYear(TimeFeature):
 
 
 class MonthOfYear(TimeFeature):
-    """Month of year encoded as value between [-0.5, 0.5]"""
+    """
+    Month of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:
@@ -94,7 +106,9 @@ class MonthOfYear(TimeFeature):
 
 
 class WeekOfYear(TimeFeature):
-    """Week of year encoded as value between [-0.5, 0.5]"""
+    """
+    Week of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         if self.normalized:

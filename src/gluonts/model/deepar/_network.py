@@ -326,7 +326,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         state,
         i: int,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Prepares inputs for the next LSTM unrolling step at step i."""
+        """
+        Prepares inputs for the next LSTM unrolling step at step i.
+        """
         lags = self.get_lagged_subsequences(
             F=F,
             sequence=imputed_sequence,
@@ -465,8 +467,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             Tensor
         ],  # (batch_size, prediction_length, *target_shape)
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
-        """Unrolls the RNN encoder in "imputation mode" which will fill imputed
-        values with samples from the DeepAR model."""
+        """
+        Unrolls the RNN encoder in "imputation mode" which will fill imputed
+        values with samples from the DeepAR model.
+        """
 
         if future_time_feat is None or future_target is None:
             time_feat = past_time_feat.slice_axis(

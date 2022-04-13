@@ -115,7 +115,9 @@ class Quantile(NamedTuple):
 
 
 class Forecast:
-    """A abstract class representing predictions."""
+    """
+    A abstract class representing predictions.
+    """
 
     start_date: pd.Timestamp
     freq: str
@@ -255,7 +257,9 @@ class Forecast:
         return self._index
 
     def dim(self) -> int:
-        """Returns the dimensionality of the forecast object."""
+        """
+        Returns the dimensionality of the forecast object.
+        """
         raise NotImplementedError()
 
     def copy_dim(self, dim: int):
@@ -364,17 +368,23 @@ class SampleForecast(Forecast):
 
     @property
     def num_samples(self):
-        """The number of samples representing the forecast."""
+        """
+        The number of samples representing the forecast.
+        """
         return self.samples.shape[0]
 
     @property
     def prediction_length(self):
-        """Time length of the forecast."""
+        """
+        Time length of the forecast.
+        """
         return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
-        """Forecast mean."""
+        """
+        Forecast mean.
+        """
         if self._mean is not None:
             return self._mean
         else:
@@ -382,7 +392,9 @@ class SampleForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """Forecast mean, as a pandas.Series object."""
+        """
+        Forecast mean, as a pandas.Series object.
+        """
         return pd.Series(self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
@@ -556,7 +568,9 @@ class QuantileForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """Forecast mean."""
+        """
+        Forecast mean.
+        """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
 

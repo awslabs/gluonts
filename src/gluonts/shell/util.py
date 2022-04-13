@@ -63,8 +63,9 @@ def forecaster_type_by_name(name: str) -> Forecaster:
 
 
 def invoke_with(fn, *args, **kwargs):
-    """Call `fn(*args, **kwargs)`, but only use kwargs that `fn` actually
-    uses."""
+    """
+    Call `fn(*args, **kwargs)`, but only use kwargs that `fn` actually uses.
+    """
 
     # if `fn` has `**kwargs` argument, we can just call it directly
     if inspect.getfullargspec(fn).varkw is not None:

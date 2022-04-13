@@ -47,7 +47,9 @@ class Transformation(metaclass=abc.ABCMeta):
 
 
 class Chain(Transformation):
-    """Chain multiple transformations together."""
+    """
+    Chain multiple transformations together.
+    """
 
     @validated()
     def __init__(self, trans: List[Transformation]) -> None:
@@ -112,8 +114,10 @@ class Identity(Transformation):
 
 
 class MapTransformation(Transformation):
-    """Base class for Transformations that returns exactly one result per input
-    in the stream."""
+    """
+    Base class for Transformations that returns exactly one result per input in
+    the stream.
+    """
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -130,8 +134,9 @@ class MapTransformation(Transformation):
 
 
 class SimpleTransformation(MapTransformation):
-    """Element wise transformations that are the same in train and test
-    mode."""
+    """
+    Element wise transformations that are the same in train and test mode.
+    """
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         return self.transform(data)
@@ -159,8 +164,10 @@ class AdhocTransform(SimpleTransformation):
 
 
 class FlatMapTransformation(Transformation):
-    """Transformations that yield zero or more results per input, but do not
-    combine elements from the input stream."""
+    """
+    Transformations that yield zero or more results per input, but do not
+    combine elements from the input stream.
+    """
 
     @validated()
     def __init__(self):

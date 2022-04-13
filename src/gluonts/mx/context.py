@@ -71,7 +71,9 @@ def num_gpus(refresh=False):
 
 @functools.lru_cache()
 def get_mxnet_context(gpu_number=0) -> mx.Context:
-    """Returns either CPU or GPU context."""
+    """
+    Returns either CPU or GPU context.
+    """
     if num_gpus():
         logger.info("Using GPU")
         return mx.context.gpu(gpu_number)
@@ -81,8 +83,10 @@ def get_mxnet_context(gpu_number=0) -> mx.Context:
 
 
 def check_gpu_support() -> bool:
-    """Emits a log line and returns a boolean that indicate whether the
-    currently installed MXNet version has GPU support."""
+    """
+    Emits a log line and returns a boolean that indicate whether the currently
+    installed MXNet version has GPU support.
+    """
     n = num_gpus()
     logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')
     return n != 0

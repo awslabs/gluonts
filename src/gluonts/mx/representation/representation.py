@@ -24,7 +24,9 @@ from gluonts.mx.context import get_mxnet_context
 
 
 class Representation(nn.HybridBlock):
-    """An abstract class representing input/output representations."""
+    """
+    An abstract class representing input/output representations.
+    """
 
     @validated()
     def __init__(self):

@@ -395,7 +395,9 @@ class MLPEncoder(Seq2SeqEncoder):
 
 
 class RNNCovariateEncoder(RNNEncoder):
-    """Deprecated class only for compatibility; use RNNEncoder instead."""
+    """
+    Deprecated class only for compatibility; use RNNEncoder instead.
+    """
 
     @validated()
     def __init__(

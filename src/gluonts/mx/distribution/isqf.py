@@ -947,8 +947,10 @@ class ISQFOutput(DistributionOutput):
             )
 
     def reshape_spline_args(self, distr_args, qk_x):
-        """auxiliary function reshaping knots and heights to (*batch_shape,
-        num_qk-1, num_pieces) alpha to (*batch_shape, num_qk)"""
+        """
+        auxiliary function reshaping knots and heights to (*batch_shape,
+        num_qk-1, num_pieces) alpha to (*batch_shape, num_qk)
+        """
 
         spline_knots, spline_heights = distr_args[0], distr_args[1]
         beta_l = distr_args[2]

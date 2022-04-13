@@ -16,8 +16,10 @@ from .performance import Performance
 
 
 def metric_definitions() -> List[Dict[str, str]]:
-    """Returns the metric definitions to be used to collect performance
-    measures from AWS Sagemaker."""
+    """
+    Returns the metric definitions to be used to collect performance measures
+    from AWS Sagemaker.
+    """
     # pylint: disable=no-member
     scalar_metrics = [
         {"Name": name, "Regex": _metric_regex(name)}

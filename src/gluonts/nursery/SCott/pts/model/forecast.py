@@ -264,17 +264,23 @@ class SampleForecast(Forecast):
 
     @property
     def num_samples(self):
-        """The number of samples representing the forecast."""
+        """
+        The number of samples representing the forecast.
+        """
         return self.samples.shape[0]
 
     @property
     def prediction_length(self):
-        """Time length of the forecast."""
+        """
+        Time length of the forecast.
+        """
         return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
-        """Forecast mean."""
+        """
+        Forecast mean.
+        """
         if self._mean is not None:
             return self._mean
         else:
@@ -282,7 +288,9 @@ class SampleForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """Forecast mean, as a pandas.Series object."""
+        """
+        Forecast mean, as a pandas.Series object.
+        """
         return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
@@ -344,7 +352,9 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        """Returns the dimensionality of the forecast object."""
+        """
+        Returns the dimensionality of the forecast object.
+        """
         if self._dim is not None:
             return self._dim
         else:
@@ -440,11 +450,15 @@ class QuantileForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """Forecast mean."""
+        """
+        Forecast mean.
+        """
         return self._forecast_dict.get("mean", self._nan_out)
 
     def dim(self) -> int:
-        """Returns the dimensionality of the forecast object."""
+        """
+        Returns the dimensionality of the forecast object.
+        """
         if self._dim is not None:
             return self._dim
         else:
@@ -524,7 +538,9 @@ class DistributionForecast(Forecast):
 
     @property
     def mean(self) -> np.ndarray:
-        """Forecast mean."""
+        """
+        Forecast mean.
+        """
         if self._mean is not None:
             return self._mean
         else:
@@ -533,7 +549,9 @@ class DistributionForecast(Forecast):
 
     @property
     def mean_ts(self) -> pd.Series:
-        """Forecast mean, as a pandas.Series object."""
+        """
+        Forecast mean, as a pandas.Series object.
+        """
         return pd.Series(data=self.mean, index=self.index)
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:

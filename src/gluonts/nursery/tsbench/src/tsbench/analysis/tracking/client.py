@@ -18,8 +18,10 @@ from .experiment import SacredExperiment
 
 
 class SacredMongoClient:
-    """The Sacred Mongo client allows to retrieve results from experiments
-    tracked with Sacred from MongoDB."""
+    """
+    The Sacred Mongo client allows to retrieve results from experiments tracked
+    with Sacred from MongoDB.
+    """
 
     base_query: Dict[str, Any]
 

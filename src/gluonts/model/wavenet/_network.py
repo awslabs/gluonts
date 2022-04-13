@@ -34,7 +34,9 @@ class LookupValues(gluon.HybridBlock):
 
 
 def conv1d(channels, kernel_size, in_channels, use_bias=True, **kwargs):
-    """Conv1D with better default initialization."""
+    """
+    Conv1D with better default initialization.
+    """
     n = in_channels
     kernel_size = (
         kernel_size if isinstance(kernel_size, list) else [kernel_size]
@@ -196,7 +198,9 @@ class WaveNet(nn.HybridBlock):
 
     @staticmethod
     def get_receptive_field(dilation_depth, n_stacks):
-        """Return the length of the receptive field."""
+        """
+        Return the length of the receptive field.
+        """
         dilations = WaveNet._get_dilations(
             dilation_depth=dilation_depth, n_stacks=n_stacks
         )
@@ -527,7 +531,9 @@ class WaveNetSampler(WaveNet):
         """
 
         def blow_up(u):
-            """Expand to (batch_size x num_samples)"""
+            """
+            Expand to (batch_size x num_samples)
+            """
             return F.repeat(u, repeats=self.num_samples, axis=0)
 
         past_target = past_target.astype("int32")

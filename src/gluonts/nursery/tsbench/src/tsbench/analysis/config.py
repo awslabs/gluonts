@@ -19,9 +19,11 @@ from tsbench.evaluations.tracking import ModelTracker
 
 
 class ConfigAnalyzer:
-    """The config analyzer evaluates a single model configuration by obtaining
-    its performance from a tracker across datasets and compiling it into a
-    dataframe."""
+    """
+    The config analyzer evaluates a single model configuration by obtaining its
+    performance from a tracker across datasets and compiling it into a
+    dataframe.
+    """
 
     def __init__(self, tracker: ModelTracker):
         """

@@ -25,8 +25,10 @@ E = TypeVar("E", bound=Type[Surrogate[EnsembleConfig]])
 
 
 def register_surrogate(name: str) -> Callable[[S], S]:
-    """Registers the provided class with the given name in the global surrogate
-    registry."""
+    """
+    Registers the provided class with the given name in the global surrogate
+    registry.
+    """
 
     def register(cls: S) -> S:
         SURROGATE_REGISTRY[name] = cls
@@ -36,8 +38,10 @@ def register_surrogate(name: str) -> Callable[[S], S]:
 
 
 def register_ensemble_surrogate(name: str) -> Callable[[E], E]:
-    """Registers the provided class with the given name in the global ensemble
-    surrogate registry."""
+    """
+    Registers the provided class with the given name in the global ensemble
+    surrogate registry.
+    """
 
     def register(cls: E) -> E:
         ENSEMBLE_SURROGATE_REGISTRY[name] = cls
@@ -53,7 +57,9 @@ def create_surrogate(
     input_flags: Dict[str, bool],
     **kwargs: Any,
 ) -> Surrogate[ModelConfig]:
-    """Creates a surrogate using the specified parameters."""
+    """
+    Creates a surrogate using the specified parameters.
+    """
     assert name in SURROGATE_REGISTRY, f"Unknown surrogate {name}."
 
     # Build the parameters
@@ -73,7 +79,9 @@ def create_ensemble_surrogate(
     input_flags: Dict[str, bool],
     **kwargs: Any,
 ) -> Surrogate[EnsembleConfig]:
-    """Creates an ensemble surrogate using the specified parameters."""
+    """
+    Creates an ensemble surrogate using the specified parameters.
+    """
     assert name in ENSEMBLE_SURROGATE_REGISTRY, f"Unknown surrogate {name}."
 
     # Build the parameters

@@ -218,8 +218,10 @@ class LevelTrendISSM(LevelISSM):
 
 
 class SeasonalityISSM(LevelISSM):
-    """Implements periodic seasonality which is entirely determined by the
-    period `num_seasons`."""
+    """
+    Implements periodic seasonality which is entirely determined by the period
+    `num_seasons`.
+    """
 
     @validated()
     def __init__(self, num_seasons: int, time_feature: TimeFeature) -> None:

@@ -58,15 +58,19 @@ class MissingValueImputation:
 
 
 class LeavesMissingValues(MissingValueImputation):
-    """Just leaves the missing values untouched."""
+    """
+    Just leaves the missing values untouched.
+    """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
         return values
 
 
 class DummyValueImputation(MissingValueImputation):
-    """This class replaces all the missing values with the same dummy value
-    given in advance."""
+    """
+    This class replaces all the missing values with the same dummy value given
+    in advance.
+    """
 
     @validated()
     def __init__(self, dummy_value: float = 0.0) -> None:

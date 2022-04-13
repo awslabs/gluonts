@@ -99,7 +99,9 @@ def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
 
 
 class ForecastGenerator:
-    """Classes used to bring the output of a network into a class."""
+    """
+    Classes used to bring the output of a network into a class.
+    """
 
     def __call__(
         self,

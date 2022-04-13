@@ -26,7 +26,9 @@ from .logging import log_metric
 
 @dataclass
 class FitResult:
-    """A result object obtained when fitting a model."""
+    """
+    A result object obtained when fitting a model.
+    """
 
     config: ModelConfig
     predictors: List[Predictor]

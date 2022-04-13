@@ -75,7 +75,9 @@ class PtArgProj(nn.Module):
 
 
 class Output:
-    """Class to connect a network to some output."""
+    """
+    Class to connect a network to some output.
+    """
 
     in_features: int
     args_dim: Dict[str, int]

@@ -132,7 +132,9 @@ class Settings:
             self._dependency(name, fn)
 
     def _reduce(self):
-        """"""
+        """
+        
+        """
 
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
@@ -182,7 +184,9 @@ class Settings:
         self._dependencies[name] = Dependency(fn, dependencies)
 
     def _get(self, key, default=None):
-        """Like `dict.get`."""
+        """
+        Like `dict.get`.
+        """
         try:
             return self[key]
         except KeyError:
@@ -367,10 +371,14 @@ class _ScopedSettings:
 
 
 def let(settings, **kwargs):
-    """`let(settings, ...)` is the same as `settings._let(...)`."""
+    """
+    `let(settings, ...)` is the same as `settings._let(...)`.
+    """
     return settings._let(**kwargs)
 
 
 def inject(settings, *args, **kwargs):
-    """`inject(settings, ...)` is the same as `settings._inject(...)`."""
+    """
+    `inject(settings, ...)` is the same as `settings._inject(...)`.
+    """
     return settings._inject(*args, **kwargs)

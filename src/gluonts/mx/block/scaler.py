@@ -188,8 +188,10 @@ class MeanScaler(Scaler):
 
 
 class MinMax(Scaler):
-    """The 'MinMax' scales the input data using a min-max approach along the
-    specified axis."""
+    """
+    The 'MinMax' scales the input data using a min-max approach along the
+    specified axis.
+    """
 
     @validated()
     def __init__(self, *args, **kwargs):
@@ -256,8 +258,10 @@ class MinMax(Scaler):
 
 
 class NOPScaler(Scaler):
-    """The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
-    no scaling is applied upon calling the ``NOPScaler``."""
+    """
+    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e., no
+    scaling is applied upon calling the ``NOPScaler``.
+    """
 
     @validated()
     def __init__(self, *args, **kwargs):

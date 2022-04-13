@@ -18,8 +18,10 @@ T = TypeVar("T")
 
 
 class CandidateGenerator(ABC, Generic[T]):
-    """A candidate generator provides candidate model configurations to the
-    recommender."""
+    """
+    A candidate generator provides candidate model configurations to the
+    recommender.
+    """
 
     @abstractmethod
     def fit(self, configs: List[T]) -> None:

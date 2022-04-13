@@ -35,8 +35,10 @@ from gluonts.shell.serve import Settings, make_gunicorn_app
 
 
 class ServerFacade:
-    """A convenience wrapper for sending requests and handling responses to an
-    inference server located at the given address."""
+    """
+    A convenience wrapper for sending requests and handling responses to an
+    inference server located at the given address.
+    """
 
     def __init__(self, base_address: str) -> None:
         self.base_address = base_address
@@ -102,7 +104,9 @@ class ServerFacade:
 
 
 def free_port() -> int:
-    """Returns a random unbound port."""
+    """
+    Returns a random unbound port.
+    """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         sock.bind(("", 0))
         return sock.getsockname()[1]

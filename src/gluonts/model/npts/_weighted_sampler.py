@@ -15,7 +15,9 @@ import numpy as np
 
 
 class WeightedSampler:
-    """Utility class for sampling indices based on unnormalized weights."""
+    """
+    Utility class for sampling indices based on unnormalized weights.
+    """
 
     @staticmethod
     def sample(weights, num_samples):

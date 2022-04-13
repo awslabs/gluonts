@@ -79,7 +79,9 @@ class Binned(torch.nn.Module):
         self.device = None
 
     def to_device(self, device):
-        """Moves members to a specified torch.device."""
+        """
+        Moves members to a specified torch.device.
+        """
         self.device = device
         self.bin_min = self.bin_min.to(device)
         self.bin_max = self.bin_max.to(device)
@@ -88,7 +90,9 @@ class Binned(torch.nn.Module):
         self.bin_centres = self.bin_centres.to(device)
 
     def forward(self, x):
-        """Takes input x as new logits."""
+        """
+        Takes input x as new logits.
+        """
         self.logits = x
         return self.logits
 
@@ -113,7 +117,9 @@ class Binned(torch.nn.Module):
         return torch.cat((zero, incomplete_cdf))
 
     def log_binned_p(self, xx):
-        """Log probability for one datapoint."""
+        """
+        Log probability for one datapoint.
+        """
         assert xx.shape.numel() == 1, "log_binned_p() expects univariate"
 
         # Transform xx in to a one-hot encoded vector to get bin location
@@ -156,12 +162,16 @@ class Binned(torch.nn.Module):
         return logp
 
     def log_p(self, xx):
-        """Log probability for one datapoint `xx`."""
+        """
+        Log probability for one datapoint `xx`.
+        """
         assert xx.shape.numel() == 1, "log_p() expects univariate"
         return self.log_binned_p(xx)
 
     def log_prob(self, x):
-        """Log probability for a tensor of datapoints `x`."""
+        """
+        Log probability for a tensor of datapoints `x`.
+        """
         x = x.view(x.shape.numel())
         self.idx = 0
         if x.shape[0] == 1:
@@ -182,9 +192,11 @@ class Binned(torch.nn.Module):
     def cdf_binned_components(
         self, xx, idx=0, cum_density=torch.tensor([0.0])
     ):
-        """Cumulative density given bins for one datapoint `xx`, where
+        """
+        Cumulative density given bins for one datapoint `xx`, where
         `cum_density` is the cdf up to bin_edges `idx`  which must be lower
-        than `xx`"""
+        than `xx`
+        """
         assert xx.shape.numel() == 1, "cdf_components() expects univariate"
 
         bins_range = self.bin_edges[-1] - self.bin_edges[0]
@@ -206,12 +218,16 @@ class Binned(torch.nn.Module):
         return idx, cum_density, bin_cdf_relative
 
     def cdf_components(self, xx, idx=0, cum_density=torch.tensor([0.0])):
-        """Cumulative density for one datapoint `xx`, where `cum_density` is
-        the cdf up to bin_edges `idx` which must be lower than `xx`"""
+        """
+        Cumulative density for one datapoint `xx`, where `cum_density` is the
+        cdf up to bin_edges `idx` which must be lower than `xx`
+        """
         return self.cdf_binned_components(xx, idx, cum_density)
 
     def cdf(self, x):
-        """Cumulative density tensor for a tensor of datapoints `x`."""
+        """
+        Cumulative density tensor for a tensor of datapoints `x`.
+        """
         x = x.view(x.shape.numel())
         sorted_x = x.sort()
         x, unsorted_index = sorted_x.values, sorted_x.indices
@@ -234,7 +250,9 @@ class Binned(torch.nn.Module):
         return cdf_tensor
 
     def inverse_binned_cdf(self, value):
-        """Inverse binned cdf of a single quantile `value`"""
+        """
+        Inverse binned cdf of a single quantile `value`
+        """
         assert (
             value.shape.numel() == 1
         ), "inverse_binned_cdf() expects univariate"
@@ -264,11 +282,15 @@ class Binned(torch.nn.Module):
         return result
 
     def inverse_cdf(self, value):
-        """Inverse cdf of a single percentile `value`"""
+        """
+        Inverse cdf of a single percentile `value`
+        """
         return self.inverse_binned_cdf(value)
 
     def icdf(self, values):
-        """Inverse cdf of a tensor of quantile `values`"""
+        """
+        Inverse cdf of a tensor of quantile `values`
+        """
         if self.device is not None:
             values = values.to(self.device)
 
@@ -329,7 +351,9 @@ class SplicedBinnedPareto(Binned):
         self.upper_beta_batch = None
 
     def to_device(self, device):
-        """Moves members to a specified torch.device."""
+        """
+        Moves members to a specified torch.device.
+        """
         self.device = device
         self.bin_min = self.bin_min.to(device)
         self.bin_max = self.bin_max.to(device)
@@ -418,8 +442,10 @@ class SplicedBinnedPareto(Binned):
         return logp
 
     def cdf_components(self, xx, idx=0, cum_density=torch.tensor([0.0])):
-        """Cumulative density for one datapoint `xx`, where `cum_density` is
-        the cdf up to bin_edges `idx` which must be lower than `xx`"""
+        """
+        Cumulative density for one datapoint `xx`, where `cum_density` is the
+        cdf up to bin_edges `idx` which must be lower than `xx`
+        """
         bin_cdf_relative = torch.tensor([0.0])
         upper_percentile = self.icdf(1 - self.percentile_gen_pareto)
         lower_percentile = self.icdf(self.percentile_gen_pareto)
@@ -442,7 +468,9 @@ class SplicedBinnedPareto(Binned):
         return idx, cum_density, bin_cdf_relative
 
     def inverse_cdf(self, value):
-        """Inverse cdf of a single percentile `value`"""
+        """
+        Inverse cdf of a single percentile `value`
+        """
         assert (
             value >= 0.0 and value <= 1.0
         ), "percentile value must be between 0 and 1 inclusive"

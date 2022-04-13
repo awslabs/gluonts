@@ -106,7 +106,9 @@ class NumSplitsStrategy(BaseModel):
 
 
 def truncate_features(timeseries: dict, max_len: int) -> dict:
-    """truncate dynamic features to match `max_len` length."""
+    """
+    truncate dynamic features to match `max_len` length.
+    """
     for key in (
         FieldName.FEAT_DYNAMIC_CAT,
         FieldName.FEAT_DYNAMIC_REAL,

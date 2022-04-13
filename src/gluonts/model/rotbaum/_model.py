@@ -26,7 +26,9 @@ from gluonts.core.component import validated
 class QRF:
     @validated()
     def __init__(self, params: Optional[dict] = None):
-        """Implements Quantile Random Forests using skgarden."""
+        """
+        Implements Quantile Random Forests using skgarden.
+        """
         from skgarden import RandomForestQuantileRegressor
 
         self.model = RandomForestQuantileRegressor(**params)
@@ -41,7 +43,9 @@ class QRF:
 class QuantileReg:
     @validated()
     def __init__(self, quantiles: List, params: Optional[dict] = None):
-        """Implements quantile regression using lightgbm."""
+        """
+        Implements quantile regression using lightgbm.
+        """
         from lightgbm import LGBMRegressor
 
         self.quantiles = quantiles
@@ -110,7 +114,9 @@ class QRX:
 
     @staticmethod
     def _create_xgboost_model(model_params: Optional[dict] = None):
-        """Creates an xgboost model using specified or default parameters."""
+        """
+        Creates an xgboost model using specified or default parameters.
+        """
         if model_params is None:
             model_params = {
                 "max_depth": 5,

@@ -25,7 +25,9 @@ class ReplayCandidateGenerator(CandidateGenerator[T]):
     """
 
     def __init__(self) -> None:
-        """Initializes a new replay candidate generator."""
+        """
+        Initializes a new replay candidate generator.
+        """
         self.cache: List[T] = []
 
     def fit(self, configs: List[T]) -> None:

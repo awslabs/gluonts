@@ -27,8 +27,10 @@ from .job import Job, load_jobs_from_analysis, load_jobs_from_directory
 
 
 class ModelTracker(Tracker[ModelConfig]):
-    """The tracker may be used to obtain the performance metrics from a set of
-    evaluations."""
+    """
+    The tracker may be used to obtain the performance metrics from a set of
+    evaluations.
+    """
 
     @classmethod
     def for_experiment(

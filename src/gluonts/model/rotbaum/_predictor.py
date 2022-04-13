@@ -33,10 +33,12 @@ logger = logging.getLogger(__name__)
 
 
 class RotbaumForecast(Forecast):
-    """Implements the quantile function in Forecast for TreePredictor, as well
-    as a new estimate_dists function for estimating a sampling of the
-    conditional distribution of the value of each of the steps in the forecast
-    horizon (independently)."""
+    """
+    Implements the quantile function in Forecast for TreePredictor, as well as
+    a new estimate_dists function for estimating a sampling of the conditional
+    distribution of the value of each of the steps in the forecast horizon
+    (independently).
+    """
 
     @validated()
     def __init__(
@@ -56,9 +58,11 @@ class RotbaumForecast(Forecast):
         self.lead_time = None
 
     def quantile(self, q: float) -> np.ndarray:
-        """Returns np.array, where the i^th entry is the estimate of the q
+        """
+        Returns np.array, where the i^th entry is the estimate of the q
         quantile of the conditional distribution of the value of the i^th step
-        in the forecast horizon."""
+        in the forecast horizon.
+        """
         assert 0 <= q <= 1
         return np.array(
             list(
@@ -70,9 +74,11 @@ class RotbaumForecast(Forecast):
         )
 
     def estimate_dists(self) -> np.ndarray:
-        """Returns np.array, where the i^th entry is an estimated sampling from
+        """
+        Returns np.array, where the i^th entry is an estimated sampling from
         the conditional distribution of the value of the i^th step in the
-        forecast horizon."""
+        forecast horizon.
+        """
         return np.array(
             list(
                 chain.from_iterable(

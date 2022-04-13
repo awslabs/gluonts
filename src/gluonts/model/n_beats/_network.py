@@ -70,7 +70,9 @@ def trend_model(
     prediction_length: int,
     is_forecast: bool,
 ) -> Tensor:
-    """Creates a polynomial basis of degree num_coefficients-1."""
+    """
+    Creates a polynomial basis of degree num_coefficients-1.
+    """
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )

@@ -251,7 +251,9 @@ class EnsembleAnalyzer:
         models: Dict[str, List[ModelConfig]],
         data_path: Path = DEFAULT_DATA_PATH,
     ) -> pd.DataFrame:
-        """TODO."""
+        """
+        TODO.
+        """
         results = []
         for name, dataset in tqdm(DATASET_REGISTRY.items()):
             performance = self.get_ensemble_performance(

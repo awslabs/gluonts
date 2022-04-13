@@ -213,9 +213,11 @@ class NBEATSEnsemblePredictor(Predictor):
             )
 
     def __eq__(self, that):
-        """Unfortunately it cannot be guaranteed that two predictors are not
-        equal if this returns false if for some reason the order of the
-        predictors list has been altered."""
+        """
+        Unfortunately it cannot be guaranteed that two predictors are not equal
+        if this returns false if for some reason the order of the predictors
+        list has been altered.
+        """
         if type(self) != type(that):
             return False
 

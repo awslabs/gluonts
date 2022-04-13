@@ -169,7 +169,9 @@ class Binned(Distribution):
         )
 
     def smooth_ce_loss(self, x):
-        """Cross-entropy loss with a "smooth" label."""
+        """
+        Cross-entropy loss with a "smooth" label.
+        """
         assert self.label_smoothing is not None
         F = self.F
         x = x.expand_dims(axis=-1)

@@ -36,8 +36,10 @@ class ModelConfig:
 
     @classmethod
     def name(cls) -> str:
-        """Returns the canonical name for the model described by the
-        configuration."""
+        """
+        Returns the canonical name for the model described by the
+        configuration.
+        """
         raise NotImplementedError
 
     @classmethod
@@ -83,13 +85,17 @@ class ModelConfig:
 
     @property
     def prediction_samples(self) -> int:
-        """The number of samples which should be produced when sampling during
-        inference."""
+        """
+        The number of samples which should be produced when sampling during
+        inference.
+        """
         return 100
 
     @property
     def prefers_parallel_predictions(self) -> bool:
-        """Returns whether predictions should be generated in parallel."""
+        """
+        Returns whether predictions should be generated in parallel.
+        """
         return False
 
     def max_time_series_length(self, _config: DatasetConfig) -> Optional[int]:
@@ -129,7 +135,9 @@ class ModelConfig:
         raise NotImplementedError
 
     def asdict(self) -> Dict[str, Any]:
-        """Returns a dictionary representation of the model configuration."""
+        """
+        Returns a dictionary representation of the model configuration.
+        """
         return {
             "model": self.name(),
             **{
@@ -150,8 +158,10 @@ C = TypeVar("C", bound="TrainConfig")
 
 @dataclass(frozen=True)
 class TrainConfig:
-    """The training configuration may be derived by any estimator which is
-    trained via the GluonTS `Trainer` class."""
+    """
+    The training configuration may be derived by any estimator which is trained
+    via the GluonTS `Trainer` class.
+    """
 
     @classmethod
     def training_hyperparameters(cls) -> List[str]:
