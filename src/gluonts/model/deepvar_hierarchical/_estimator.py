@@ -130,8 +130,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Flag to indicate whether coherence should be enforced during training.
         Default: True.
     coherent_pred_samples
-        Flag to indicate whether coherence should be enforced during prediction.
-        Default: True.
+        Flag to indicate whether coherence should be enforced during
+        prediction. Default: True.
     warmstart_epoch_frac
         Specifies the epoch (as a fraction of total number of epochs) from when
         to start enforcing coherence during training.

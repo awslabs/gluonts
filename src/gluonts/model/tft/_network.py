@@ -123,14 +123,16 @@ class FeatureProjector(HybridBlock):
         """
 
         if self.__num_features > 1:
-            # we slice the last dimension, giving an array of length self.__num_features with shape (N,T) or (N)
+            # we slice the last dimension, giving an array of length
+            # self.__num_features with shape (N,T) or (N)
             real_feature_slices = F.split_v2(
                 features,
                 tuple(np.cumsum(self.feature_dims)[:-1]),
                 axis=-1,
             )
         else:
-            # F.split will iterate over the second-to-last axis if the last axis is one
+            # F.split will iterate over the second-to-last axis if the last
+            # axis is one
             real_feature_slices = [features]
 
         return [
@@ -325,10 +327,10 @@ class TemporalFusionTransformerNetwork(HybridBlock):
             count + self.normalize_eps,
         )
         scale = F.broadcast_div(
-            F.sum(obs**2, axis=1, keepdims=True),
+            F.sum(obs ** 2, axis=1, keepdims=True),
             count + self.normalize_eps,
         )
-        scale = F.broadcast_sub(scale, offset**2)
+        scale = F.broadcast_sub(scale, offset ** 2)
         scale = F.sqrt(scale)
         past_target = F.broadcast_div(
             F.broadcast_sub(past_target, offset),

@@ -150,8 +150,8 @@ class Trainer:
         assert isinstance(batch_size, int)
 
         # TODO param disable_default_callbacks to get backwards compatibility
-        # deprecation warnings, in the future, the following callbacks should be
-        # controlled by altering callbacks:
+        # deprecation warnings, in the future, the following callbacks should
+        # be controlled by altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
                 'Trainer argument "learning_rate_decay_factor" is deprecated.'
@@ -348,9 +348,10 @@ class Trainer:
                         )
 
                     with mx.autograd.record():
-                        # we set the mode explicitly as by default mxnet assumes
-                        # predict mode and hence dropout layers are not used if
-                        # the mode is not explicitly set to training
+                        # we set the mode explicitly as by default mxnet
+                        # assumes predict mode and hence dropout layers are
+                        # not used if the mode is not explicitly set to
+                        # training
                         mode = (
                             autograd.train_mode
                             if is_training

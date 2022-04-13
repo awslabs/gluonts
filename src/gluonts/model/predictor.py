@@ -102,7 +102,8 @@ class Predictor:
             Path to the serialized files predictor.
         **kwargs
             Optional context/device parameter to be used with the predictor.
-            If nothing is passed will use the GPU if available and CPU otherwise.
+            If nothing is passed will use the GPU if available and CPU
+            otherwise.
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
@@ -131,7 +132,8 @@ class Predictor:
 
     @classmethod
     def from_inputs(cls, train_iter, **params):
-        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_feat_static_cat` and `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
@@ -363,8 +365,9 @@ class ParallelizedPredictor(Predictor):
 
 class Localizer(Predictor):
     """
-    A Predictor that uses an estimator to train a local model per time series and
-    immediatly calls this to predict.
+    A Predictor that uses an estimator to train a local model per time series
+    and immediatly calls this to predict.
+
     Parameters
     ----------
     estimator

@@ -352,9 +352,15 @@ class DeepVARHierarchicalTrainingNetwork(
             self.likelihood_weight + self.CRPS_weight > 0.0
         ), "At least one of CRPS or likelihood weights must be non-zero"
         if self.CRPS_weight == 0.0 and self.coherent_train_samples:
-            assert "No sampling being performed. coherent_train_samples flag is ignored"
+            assert (
+                "No sampling being performed. "
+                "coherent_train_samples flag is ignored"
+            )
         if not self.sample_LH == 0.0 and self.coherent_train_samples:
-            assert "No sampling being performed. coherent_train_samples flag is ignored"
+            assert (
+                "No sampling being performed. "
+                "coherent_train_samples flag is ignored"
+            )
         if self.likelihood_weight == 0.0 and self.sample_LH:
             assert (
                 "likelihood_weight is 0 but sample likelihoods are still "

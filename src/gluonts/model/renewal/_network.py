@@ -154,8 +154,8 @@ class DeepRenewalNetwork(gluon.HybridBlock):
         Returns
         -------
         conditional_means: Tensor
-            tensor of shape (N, T, 2) containing conditional means for intervals
-            and sizes respectively
+            tensor of shape (N, T, 2) containing conditional means for
+            intervals and sizes respectively
         rnn_out_state
             output state of the RNN, returned only if the input `state` is not
             None
@@ -252,23 +252,25 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
         Parameters
         ----------
         past_target
-            (batch_size, history_length, 2) shaped tensor containing the past time series
-            in an interval-size representation.
+            (batch_size, history_length, 2) shaped tensor containing the past
+            time series in an interval-size representation.
         time_remaining
-            (batch_size, 1) shaped tensor containing the number of time steps that were zero
-            before the start of the forecast horizon
+            (batch_size, 1) shaped tensor containing the number of time steps
+            that were zero before the start of the forecast horizon
 
         Returns
         -------
         samples
-            samples of shape (batch_size, num_parallel_samples, 2, sequence_length)
+            samples of shape (batch_size, num_parallel_samples, 2,
+            sequence_length)
         """
         if time_remaining is None:
             time_remaining = F.broadcast_like(
                 F.zeros((1,)), past_target, lhs_axes=(0,), rhs_axes=(0,)
             )
 
-        # if no valid points in the past_target, override time remaining with zero
+        # if no valid points in the past_target, override time remaining with
+        # zero
         batch_sum = F.sum(past_target, axis=1).sum(-1).expand_dims(-1)
         time_remaining = F.where(
             batch_sum > 0, time_remaining, F.zeros_like(time_remaining)

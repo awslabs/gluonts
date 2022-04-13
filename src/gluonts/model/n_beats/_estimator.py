@@ -89,8 +89,8 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
     widths
-        Widths of the fully connected layers with ReLu activation in the blocks.
-        A list of ints of length 1 or 'num_stacks'.
+        Widths of the fully connected layers with ReLu activation in the
+        blocks. A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [512]
         Recommended value for interpretable mode: [256, 2048]
     sharing
@@ -99,20 +99,21 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
-        A list of ints of length 1 or 'num_stacks'.
-        Default value for generic mode: [32]
-        Recommended value for interpretable mode: [3]
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used. A
+        list of ints of length 1 or 'num_stacks'. Default value for generic
+        mode: [32] Recommended value for interpretable mode: [3]
     stack_types
-        One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
+        One of the following values: "G" (generic), "S" (seasonal) or "T"
+        (trend).
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     loss_function
-        The loss funtion (also known as metric) to use for training the network.
-        Unlike other models in GluonTS this network does not use a distribution.
+        The loss funtion (also known as metric) to use for training the
+        network. Unlike other models in GluonTS this network does not use a
+        distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
         The default value is "MAPE".
     train_sampler
@@ -174,7 +175,8 @@ class NBEATSEstimator(GluonEstimator):
             if context_length is not None
             else 2 * prediction_length
         )
-        # num_stacks has to be handled separately because other arguments have to match its length
+        # num_stacks has to be handled separately because other arguments have
+        # to match its length
         self.num_stacks = num_stacks
         self.loss_function = loss_function
 

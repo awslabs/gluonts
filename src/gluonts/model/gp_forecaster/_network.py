@@ -55,15 +55,18 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         cardinality
             Number of time series.
         kernel_output
-            KernelOutput instance to determine which kernel subclass to be instantiated.
+            KernelOutput instance to determine which kernel subclass to be
+            instantiated.
         params_scaling
             Determines whether or not to scale the model parameters.
         float_type
             Determines whether to use single or double precision.
         max_iter_jitter
-            Maximum number of iterations for jitter to iteratively make the matrix positive definite.
+            Maximum number of iterations for jitter to iteratively make the
+            matrix positive definite.
         jitter_method
-            Iteratively jitter method or use eigenvalue decomposition depending on problem size.
+            Iteratively jitter method or use eigenvalue decomposition depending
+            on problem size.
         **kwargs
             Arbitrary keyword arguments.
         """
@@ -109,7 +112,8 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
         past_target
             Training time series values of shape (batch_size, context_length).
         past_time_feat
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
         feat_static_cat
             Time series indices of shape (batch_size, 1).
 
@@ -185,7 +189,8 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
         past_target
             Training time series values of shape (batch_size, context_length).
         past_time_feat
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
         feat_static_cat
             Time series indices of shape (batch_size, 1).
         Returns
@@ -219,7 +224,8 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
         num_parallel_samples
             Number of samples to be drawn.
         sample_noise
-            Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
+            Boolean to determine whether to add :math:`\sigma^2I` to the
+            predictive covariance matrix.
         *args
             Variable length argument list.
         **kwargs
@@ -247,9 +253,11 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
         past_target
             Training time series values of shape (batch_size, context_length).
         past_time_feat
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
         future_time_feat
-            Test features of shape (batch_size, prediction_length, num_features).
+            Test features of shape (batch_size, prediction_length,
+            num_features).
         feat_static_cat
             Time series indices of shape (batch_size, 1).
         Returns

@@ -30,9 +30,11 @@ class Embedding(Representation):
     Parameters
     ----------
     num_bins
-        The number of categories/bins of the data on which this representation is applied.
+        The number of categories/bins of the data on which this representation
+        is applied.
     size
-        The desired embedding size. By default, the following heuristic is used:
+        The desired embedding size. By default, the following heuristic is
+        used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
     """

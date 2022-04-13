@@ -32,7 +32,8 @@ def log_abs_det(A: Tensor) -> Tensor:
     Parameters
     ----------
     A
-        Tensor matrix from which to compute the log absolute value of its determinant
+        Tensor matrix from which to compute the log absolute value of its
+        determinant
 
     Returns
     -------
@@ -152,7 +153,8 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         Parameters
         ----------
         x
-            input of the forward transformation or output of the inverse transform
+            input of the forward transformation or output of the inverse
+            transform
         y
             output of the forward transform or input of the inverse transform
 
@@ -165,8 +167,8 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
             assert x is not None
             ladj = mx.nd.zeros(x.shape[0])
         else:
-            # we take the negative value since we use the forward pass of mlp to
-            # compute the inverse, and we want ladj of forward, which is
+            # we take the negative value since we use the forward pass of mlp
+            # to compute the inverse, and we want ladj of forward, which is
             # opposite of ladj of reverse
             jac_block = self._block.jacobian(y)
             batch_shape, (output_dim, input_dim) = (

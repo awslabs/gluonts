@@ -34,14 +34,15 @@ def get_lags_for_frequency(
     string.
 
     By default all frequencies have the following lags: [1, 2, 3, 4, 5, 6, 7].
-    Remaining lags correspond to the same `season` (+/- `delta`) in previous `k` cycles.
-    Here `delta` and `k` are chosen according to the existing code.
+    Remaining lags correspond to the same `season` (+/- `delta`) in previous
+    `k` cycles. Here `delta` and `k` are chosen according to the existing code.
 
     Parameters
     ----------
 
     freq_str
-        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
+        Frequency string of the form [multiple][granularity] such as "12H",
+        "5min", "1D" etc.
 
     lag_ub
         The maximum value for a lag.
@@ -50,7 +51,8 @@ def get_lags_for_frequency(
         Maximum number of lags; by default all generated lags are returned
     """
 
-    # Lags are target values at the same `season` (+/- delta) but in the previous cycle.
+    # Lags are target values at the same `season` (+/- delta) but in the
+    # previous cycle.
     def _make_lags_for_minute(multiple, num_cycles=3):
         # We use previous ``num_cycles`` hours to generate lags
         return [

@@ -93,9 +93,9 @@ class PoissonOutput(DistributionOutput):
         rate = softplus(F, rate) + 1e-8
         return rate.squeeze(axis=-1)
 
-    # Overwrites the parent class method.
-    # We cannot scale using the affine transformation since Poisson should return integers.
-    # Instead we scale the parameters.
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since Poisson should return integers. Instead we scale
+    # the parameters.
     def distribution(
         self,
         distr_args,

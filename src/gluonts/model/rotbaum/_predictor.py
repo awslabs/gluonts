@@ -148,13 +148,15 @@ class TreePredictor(RepresentablePredictor):
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
+
+        # TODO: Figure out how to include 'auto' with no feat_static_cat in
+        # this check
         assert (
             prediction_length > 0
             or use_feat_dynamic_cat
             or use_feat_dynamic_real
             or use_feat_static_real
-            or cardinality
-            != "ignore"  # TODO: Figure out how to include 'auto' with no feat_static_cat in this check
+            or cardinality != "ignore"
         ), (
             "The value of `prediction_length` should be > 0 or there should be"
             " features for model training and prediction "

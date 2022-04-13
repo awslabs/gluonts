@@ -183,7 +183,8 @@ class ComposedBijection(Bijection):
         Parameters
         ----------
         x
-            input of the forward transformation or output of the inverse transform
+            input of the forward transformation or output of the inverse
+            transform
         y
             output of the forward transform or input of the inverse transform
 

@@ -184,7 +184,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             future_feat_dynamic, F.ones_like(future_feat_dynamic)
         )
 
-        # arguments: encoder_output_static, encoder_output_dynamic, future_features
+        # arguments: encoder_output_static, encoder_output_dynamic,
+        #   future_features
         # dec_input_static shape: (batch_size, channels_seq[-1] + 1)
         # dec_input_dynamic shape:(batch_size, num_forking, channels_seq[-1] +
         # 1 + decoder_length * num_feat_dynamic)

@@ -76,7 +76,8 @@ class TPPTransformedDistribution(TransformedDistribution):
     must be increasing.
     """
 
-    # Necessary for Mypy to understand that base_distribution is TPPDistribution
+    # Necessary for Mypy to understand that base_distribution is
+    # TPPDistribution
     base_distribution: TPPDistribution
 
     def __init__(
@@ -125,7 +126,8 @@ class TPPTransformedDistribution(TransformedDistribution):
 
     def log_survival(self, y: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function :math:`\log S(y) = \log(1 - CDF(y))`.
+        Logarithm of the survival function
+        :math:`\log S(y) = \log(1 - CDF(y))`.
         """
         x = y
         for t in self.transforms[::-1]:

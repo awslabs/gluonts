@@ -73,7 +73,8 @@ class Weibull(TPPDistribution):
 
     def log_survival(self, x: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function :math:`\log S(x) = \log(1 - CDF(x))`.
+        Logarithm of the survival function
+        :math:`\log S(x) = \log(1 - CDF(x))`.
 
         The survival function of the Weibull distribution is
         :math:`S(x) = \exp(-b * x^k)`.
@@ -122,8 +123,8 @@ class Weibull(TPPDistribution):
             sample_shape = self.batch_shape
         u = F.uniform(0, 1, shape=sample_shape)
         # Make sure that the generated samples are larger than condition_above.
-        # This is easy to ensure when using inverse-survival sampling: we simply
-        # multiply `u ~ Uniform(0, 1)` by `S(y)` to ensure that `x > y`.
+        # This is easy to ensure when using inverse-survival sampling: we
+        # simply multiply `u ~ Uniform(0, 1)` by `S(y)` to ensure that `x > y`.
         with autograd.pause():
             if lower_bound is not None:
                 survival = self.log_survival(lower_bound).exp()

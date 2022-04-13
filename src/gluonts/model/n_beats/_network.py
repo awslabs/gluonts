@@ -75,7 +75,7 @@ def trend_model(
     t = linear_space(
         F, context_length, prediction_length, fwd_looking=is_forecast
     )
-    T = F.stack(*[t**i for i in range(num_coefficients)])
+    T = F.stack(*[t ** i for i in range(num_coefficients)])
     return T
 
 
@@ -91,9 +91,9 @@ class NBEATSBlock(mx.gluon.HybridBlock):
     num_block_layers
         Number of fully connected layers with ReLu activation.
     expansion_coefficient_length
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used.
     prediction_length
         Length of the prediction. Also known as 'horizon'.
     context_length
@@ -143,7 +143,8 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     )
                 )
 
-            # Subclasses will have to initialize these attributes appropriately:
+            # Subclasses will have to initialize these attributes
+            # appropriately:
 
             self.theta_backcast = None
             self.theta_forecast = None
@@ -256,9 +257,10 @@ class NBEATSSeasonalBlock(NBEATSBlock):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        # the number of coefficient in the fourier basis per sine and cosine each
-        # determined depending on prediction length, as defined by paper
-        # also: dont use floor because prediction_length=1 should be mapped to 0
+        # the number of coefficient in the fourier basis per sine and cosine
+        # each determined depending on prediction length, as defined by paper
+        # also: dont use floor because prediction_length=1 should be mapped to
+        # 0
         self.num_coefficients = int((self.prediction_length / 2) - 1) + 1
 
         with self.name_scope():
@@ -400,8 +402,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
     widths
-        Widths of the fully connected layers with ReLu activation in the blocks.
-        A list of ints of length 1 or 'num_stacks'.
+        Widths of the fully connected layers with ReLu activation in the
+        blocks. A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [512]
         Recommended value for interpretable mode: [256, 2048]
     sharing
@@ -410,15 +412,15 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
         Default value for generic mode: [32]
         Recommended value for interpretable mode: [3]
     stack_types
-        One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
-        A list of strings of length 1 or 'num_stacks'.
+        One of the following values: "G" (generic), "S" (seasonal) or "T"
+        (trend). A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     scale
@@ -482,7 +484,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSGenericBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,
@@ -494,7 +496,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSSeasonalBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,
@@ -506,7 +508,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSTrendBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,

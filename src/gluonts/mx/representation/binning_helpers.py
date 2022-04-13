@@ -15,8 +15,9 @@ import mxnet as mx
 import numpy as np
 
 
-# Workaround needed due to a known issue with np.quantile(inp, quant) returning unsorted values.
-# We fix this by ensuring that the obtained bin_centers are monotonically increasing.
+# Workaround needed due to a known issue with np.quantile(inp, quant) returning
+# unsorted values. We fix this by ensuring that the obtained bin_centers are
+# monotonically increasing.
 # Tracked in the following issues:
 # - https://github.com/numpy/numpy/issues/14685
 # - https://github.com/numpy/numpy/issues/12282

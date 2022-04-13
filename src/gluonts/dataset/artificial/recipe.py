@@ -453,7 +453,7 @@ for func_name in _NUMPY_FUNC_NAMES:
     lifted_numpy.{func_name} = {normalized_func_name}
     # disable numpy docstring tests
     lifted_numpy.{func_name}.__doc__ = lifted_numpy.{func_name}.__doc__.replace('>>>', '>>')
-    """
+    """  # noqa: E501
     exec(textwrap.dedent(s))
 
 
@@ -488,7 +488,8 @@ def lift(input: Union[int, Callable]):
     You can then use your function as part of a recipe. The function is called
     with all all arguments being already resolved.
 
-    Note that you cannot serialize recipes that use the lift decorated functions.
+    Note that you cannot serialize recipes that use the lift decorated
+    functions.
     """
     if isinstance(input, int):
         num_outs = input
@@ -955,7 +956,8 @@ class RandomChangepoints(Lifted):
         change_idx: np.ndarray = np.sort(
             np.random.randint(low=1, high=length - 1, size=(num_changepoints,))
         )
-        change_ranges: np.ndarray = np.concatenate([change_idx, [length]])  # type: ignore
+        # type: ignore
+        change_ranges: np.ndarray = np.concatenate([change_idx, [length]])
         out = np.zeros(length, dtype=int)
         for i in range(num_changepoints):
             out[change_ranges[i] : change_ranges[i + 1]] = i + 1

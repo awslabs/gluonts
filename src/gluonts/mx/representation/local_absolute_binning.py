@@ -35,8 +35,8 @@ class LocalAbsoluteBinning(Representation):
     Parameters
     ----------
     num_bins
-        The number of discrete bins/buckets that we want values to be mapped to.
-        (default: 1024)
+        The number of discrete bins/buckets that we want values to be mapped
+        to. (default: 1024)
     is_quantile
         Whether the binning is quantile or linear. Quantile binning allocated
         bins based on the cumulative distribution function, while linear

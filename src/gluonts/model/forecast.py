@@ -232,8 +232,8 @@ class Forecast:
                 *args,
                 **kwargs,
             )
-            # Hack to create labels for the error intervals.
-            # Doesn't actually plot anything, because we only pass a single data point
+            # Hack to create labels for the error intervals. Doesn't actually
+            # plot anything, because we only pass a single data point
             pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
                 color=color,
                 alpha=alpha,
@@ -545,7 +545,8 @@ class QuantileForecast(Forecast):
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
         )
-        # The effective range of left, right tails varies over tail approximation class
+        # The effective range of left, right tails varies over tail
+        # approximation class
         (
             left_tail_quantile,
             right_tail_quantile,
@@ -577,9 +578,9 @@ class QuantileForecast(Forecast):
             ):  # 1D target. shape: (num_samples, prediction_length)
                 return 1
             else:
-                return self.forecast_array.shape[
-                    1
-                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+                # 2D target. shape: (num_samples, target_dim,
+                # prediction_length)
+                return self.forecast_array.shape[1]
 
     def __repr__(self):
         return ", ".join(

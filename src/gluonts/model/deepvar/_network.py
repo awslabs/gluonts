@@ -748,8 +748,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         """
         Method to enforce domain-specific constraints on the generated samples.
 
-        For example, see `DeepVARHierarchicalNetwork`, which adjusts the samples so that they satisfy the given
-        aggregation constraints.
+        For example, see `DeepVARHierarchicalNetwork`, which adjusts the
+        samples so that they satisfy the given aggregation constraints.
 
         For `DeepVAR` this is simply the Identity map.
 

@@ -93,7 +93,8 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
 
 class ISSM:
     r"""
-    An abstract class for providing the basic structure of Innovation State Space Model (ISSM).
+    An abstract class for providing the basic structure of Innovation State
+    Space Model (ISSM).
 
     The structure of ISSM is given by
 
@@ -170,7 +171,8 @@ class LevelISSM(ISSM):
             F.eye(self.latent_dim()).expand_dims(axis=0).expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim,
+        # latent_dim)
         zeros = _broadcast_param(
             feature.squeeze(axis=2),
             axes=[2, 3],
@@ -206,7 +208,8 @@ class LevelTrendISSM(LevelISSM):
             .expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim,
+        # latent_dim)
         zeros = _broadcast_param(
             feature.squeeze(axis=2),
             axes=[2, 3],

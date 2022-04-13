@@ -138,7 +138,8 @@ class AveragingStrategy:
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
         raise NotImplementedError()
 
@@ -221,7 +222,8 @@ class SelectNBestSoftmax(AveragingStrategy):
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
 
         metric_path_tuple = [
@@ -258,7 +260,8 @@ class SelectNBestMean(AveragingStrategy):
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
 
         metric_path_tuple = [

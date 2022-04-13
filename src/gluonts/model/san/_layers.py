@@ -134,7 +134,8 @@ class SelfAttention(HybridBlock):
                 or None (disabled),
             by default None
         share_values : bool, optional
-            if True, a value reprensentation is shared by all attention heads, by default False
+            if True, a value reprensentation is shared by all attention heads,
+            by default False
             ref. https://arxiv.org/abs/1912.09363
         dropout : float, optional
             dropout rate, by default 0.0

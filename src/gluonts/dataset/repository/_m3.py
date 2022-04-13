@@ -85,10 +85,11 @@ def generate_m3_dataset(
     m3_xls_path = default_dataset_path / "M3C.xls"
     if not os.path.exists(m3_xls_path):
         raise RuntimeError(
-            "The m3 data is available at"
-            " https://forecasters.org/resources/time-series-data/m3-competition/"
-            " Please download the file and copy the files to this location:"
-            f" {m3_xls_path}"
+            "The m3 data is available at "
+            "https://forecasters.org/resources/"
+            "time-series-data/m3-competition/ "
+            "Please download the file and copy the files to this location: "
+            f"{m3_xls_path}"
         )
 
     subsets = {

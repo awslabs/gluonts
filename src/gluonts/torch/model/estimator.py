@@ -111,7 +111,8 @@ class PyTorchLightningEstimator(Estimator):
         data
             Dataset from which to create the data loader.
         module
-            The `pl.LightningModule` object that will receive the batches from the data loader.
+            The `pl.LightningModule` object that will receive the batches from
+            the data loader.
 
         Returns
         -------
@@ -131,7 +132,8 @@ class PyTorchLightningEstimator(Estimator):
         data
             Dataset from which to create the data loader.
         module
-            The `pl.LightningModule` object that will receive the batches from the data loader.
+            The `pl.LightningModule` object that will receive the batches from
+            the data loader.
 
         Returns
         -------

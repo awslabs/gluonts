@@ -226,7 +226,8 @@ class Callback:
         training_network
             The network that was trained.
         temporary_dir
-            The directory where model parameters are logged throughout training.
+            The directory where model parameters are logged throughout
+            training.
         ctx
             An MXNet context used.
         """

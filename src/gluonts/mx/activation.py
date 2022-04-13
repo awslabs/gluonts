@@ -94,7 +94,8 @@ def deriv_tanh(F, x: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
 
     x
         Input tensor
@@ -114,7 +115,8 @@ def deriv_softrelu(F, x: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
 
@@ -134,7 +136,8 @@ def deriv_elu(F, x: Tensor, alpha: float = 1.0) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     alpha
@@ -156,7 +159,8 @@ def deriv_swish(F, x: Tensor, beta: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     beta
@@ -177,7 +181,8 @@ def deriv_lipswish(F, x: Tensor, beta: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     beta

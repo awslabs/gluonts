@@ -251,7 +251,8 @@ def import_symb_block(
     if not mx.nd.load(param_file):
         param_file = None
 
-    # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
+    # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default
+    # np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
     sb = mx.gluon.SymbolBlock.imports(
         symbol_file=str(model_dir / f"{model_name}-symbol.json"),

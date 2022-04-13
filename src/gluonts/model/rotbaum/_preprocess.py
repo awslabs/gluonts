@@ -283,7 +283,8 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
         cardinality: Cardinality = CardinalityLabel.auto,
-        one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
+        # Should improve accuracy but will slow down model
+        one_hot_encode: bool = True,
         **kwargs
     ):
 

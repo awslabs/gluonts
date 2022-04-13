@@ -184,7 +184,7 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -195,7 +195,8 @@ class SpecialDateFeatureSet:
         Parameters
         ----------
         feature_names
-            list of strings with holiday names for which features should be created.
+            list of strings with holiday names for which features should be
+            created.
         kernel_function
             kernel function to pass the feature value based
             on distance in days. Can be indicator function (default),
