@@ -15,7 +15,7 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Tuple, Optional
 
 import numpy as np
 import pytest
@@ -30,6 +30,7 @@ from torch import optim
 from torch.utils.data import Dataset, DataLoader
 
 from gluonts.torch.modules.distribution_output import (
+    Distribution,
     DistributionOutput,
     StudentT,
     StudentTOutput,
@@ -77,7 +78,7 @@ def compare_logits(
     param_hat = inv_softmax(softmax(logits_hat, axis=-1))
     assert (
         np.abs(param_hat - param_true) < TOL * np.abs(param_true)
-    ).all(), f"{param_name} did not match: {param_name} = {param_true}, {param_name}_hat = {param_hat}"
+    ).all(), f"logits did not match: logits_true = {param_true}, logits_hat = {param_hat}"
 
 
 # Super simple model for Marginal Distribution:
@@ -102,6 +103,7 @@ class DistributionOutputNN(torch.nn.Module):
         number_hidden_layers: int = 10,
         number_hidden_dimensions: int = 30,
         distr_output: DistributionOutput = StudentTOutput(),
+        init_args: Optional[Tuple] = None,
         verbose=False,
     ):
         super(DistributionOutputNN, self).__init__()
@@ -147,8 +149,15 @@ class DistributionOutputNN(torch.nn.Module):
 
         # Reserve for specifying the distribution fit
         self.args_proj = distr_output.get_args_proj(self.output_dimension)
-        self.distr_args = None
-        self.distr = None
+        if init_args is not None:
+            assert (
+                len(init_args) == self.output_dimension
+            ), f"len(init_args) should equal self.output_dimension but {len(init_args)} != {self.output_dimension}"
+            self.distr_args = init_args
+            self.distr = self.distr_output.distribution(init_args)
+        else:
+            self.distr_args = None
+            self.distr = None
 
     def forward(self, x):
         net_out = self.network(x)
@@ -188,7 +197,7 @@ def maximum_likelihood_estimate_nn(
     weight_decay: PositiveFloat = PositiveFloat(1e-3),
     batch_size: int = 100,
     epochs: int = 50,
-):
+) -> Distribution:
     # Get the model parameters:
     model.to(device)
     model = model.double()
@@ -313,16 +322,16 @@ def test_splicedbinnedpareto_likelihood(
     logits = logits.repeat(variate_dim, BATCH_SIZE, 1)
     nbins = logits.shape[-1]
 
-    sbp_distr = SplicedBinnedPareto(
+    distr_true = SplicedBinnedPareto(
         bins_lower_bound=bins_lower_bound,
         bins_upper_bound=bins_upper_bound,
         tail_percentile_gen_pareto=percentile_tail,
         numb_bins=nbins,
         logits=logits,
-        lower_gp_xi=torch.tensor(upper_gp_xi, dtype=torch.float).repeat(
+        lower_gp_xi=torch.tensor(lower_gp_xi, dtype=torch.float).repeat(
             variate_dim, BATCH_SIZE, 1
         ),
-        lower_gp_beta=torch.tensor(upper_gp_beta, dtype=torch.float).repeat(
+        lower_gp_beta=torch.tensor(lower_gp_beta, dtype=torch.float).repeat(
             variate_dim, BATCH_SIZE, 1
         ),
         upper_gp_xi=torch.tensor(upper_gp_xi, dtype=torch.float).repeat(
@@ -333,19 +342,34 @@ def test_splicedbinnedpareto_likelihood(
         ),
     )
 
-    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES // 16)).shape)
+    samples = distr_true.sample(
+        torch.tensor(range(0, NUM_SAMPLES // 16)).shape
+    )
     training_x = samples.numpy().flatten()
+
+    # DistributionOutput
+    distr_output = SplicedBinnedParetoOutput(
+        bins_lower_bound=bins_lower_bound,
+        bins_upper_bound=bins_upper_bound,
+        num_bins=nbins,
+        tail_percentile_gen_pareto=percentile_tail,
+    )
+
+    # Initialize parameter estimates
+    init_args = []
+    for param_name in distr_output.args_dim.keys():
+        init_args.append(
+            distr_true.__getattribute__(param_name).squeeze(dim=0)
+            * (1 - START_TOL_MULTIPLE * TOL)
+        )
+    init_args = tuple(init_args)
 
     # Maximum Likelihood Estimation on the DistributionOutput
     model = DistributionOutputNN(
-        distr_output=SplicedBinnedParetoOutput(
-            bins_lower_bound=bins_lower_bound,
-            bins_upper_bound=bins_upper_bound,
-            num_bins=nbins,
-            tail_percentile_gen_pareto=percentile_tail,
-        )
+        distr_output=distr_output, init_args=init_args
     )
-    fitted_distr = maximum_likelihood_estimate_nn(
+
+    distr_hat = maximum_likelihood_estimate_nn(
         model, training_x, epochs=50, batch_size=BATCH_SIZE
     )
 
@@ -367,7 +391,7 @@ def test_splicedbinnedpareto_likelihood(
     for i in range(len(distr_parameter_names)):
         param_name = distr_parameter_names[i]
         param_hat = (
-            fitted_distr.__getattribute__(distr_parameter_names[i])
+            distr_hat.__getattribute__(distr_parameter_names[i])
             .detach()
             .numpy()
         )
