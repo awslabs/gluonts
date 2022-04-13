@@ -158,5 +158,6 @@ deepar_estimator_spline = DeepAREstimator(
 
 
 deepar_predictor_spline = deepar_estimator_spline.train(
-    dataset.train, cache_data=True,
+    dataset.train,
+    cache_data=True,
 )

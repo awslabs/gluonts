@@ -164,7 +164,7 @@ class DistributionOutputNN(torch.nn.Module):
 
 class PointDataset(Dataset):
     """
-    Creates inputs of value 1 with 
+    Creates inputs of value 1 with
     * the same tensor shape as the output
     * on the same device as the output
     """
@@ -314,7 +314,7 @@ def test_splicedbinnedpareto_likelihood(
         ),
     )
 
-    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES//16)).shape)
+    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES // 16)).shape)
     training_x = samples.numpy().flatten()
 
     # Maximum Likelihood Estimation on the DistributionOutput
