@@ -278,6 +278,7 @@ def test_studentt_likelihood(degree_freedom: PositiveFloat) -> None:
 @pytest.mark.parametrize(
     "upper_gp_xi, upper_gp_beta", [(0.5, PositiveFloat(1.0))]
 )
+@pytest.mark.timeout(300)
 def test_splicedbinnedpareto_likelihood(
     np_logits: np.ndarray,
     lower_gp_xi: float,
@@ -332,9 +333,7 @@ def test_splicedbinnedpareto_likelihood(
         ),
     )
 
-    samples = sbp_distr.sample(
-        torch.tensor(range(0, NUM_SAMPLES // BATCH_SIZE)).shape
-    )
+    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES // 16)).shape)
     training_x = samples.numpy().flatten()
 
     # Maximum Likelihood Estimation on the DistributionOutput
