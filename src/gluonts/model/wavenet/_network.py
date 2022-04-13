@@ -194,7 +194,7 @@ class WaveNet(nn.HybridBlock):
 
     @staticmethod
     def _get_dilations(dilation_depth, n_stacks):
-        return [2 ** i for i in range(dilation_depth)] * n_stacks
+        return [2**i for i in range(dilation_depth)] * n_stacks
 
     @staticmethod
     def get_receptive_field(dilation_depth, n_stacks):
