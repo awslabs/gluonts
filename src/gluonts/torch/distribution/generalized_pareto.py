@@ -160,7 +160,7 @@ class GeneralizedParetoOutput(DistributionOutput):
         cls,
         xi: torch.Tensor,
         beta: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, ]:
+    ) -> Tuple[torch.Tensor, torch.Tensor,]:
 
         xi = torch.abs(xi)
         beta = torch.abs(beta)
