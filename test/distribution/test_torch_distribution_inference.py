@@ -249,35 +249,6 @@ def maximum_likelihood_estimate_nn(
     return distr_hat
 
 
-@pytest.mark.parametrize("degree_freedom", [PositiveFloat(2.0)])
-def test_studentt_likelihood(degree_freedom: PositiveFloat) -> None:
-
-    training_x = stats.t.rvs(degree_freedom, size=NUM_SAMPLES)
-
-    model = DistributionOutputNN(distr_output=StudentTOutput())
-    distr_hat = maximum_likelihood_estimate_nn(
-        model, training_x, epochs=50, batch_size=BATCH_SIZE
-    )
-
-    distr_parameter_names = list(model.distr_output.args_dim.keys())
-    distr_parameter_true = dict(
-        zip(distr_parameter_names, [degree_freedom, 0, 1])
-    )
-
-    for i in range(len(distr_parameter_names)):
-        param_name = distr_parameter_names[i]
-        if param_name not in ["loc", "scale"]:
-            param_hat = (
-                distr_hat.__getattribute__(distr_parameter_names[i])
-                .detach()
-                .numpy()
-            )
-            param_true = distr_parameter_true[distr_parameter_names[i]]
-            assert (
-                np.abs(param_hat - param_true) < TOL * param_true
-            ).all(), f"{param_name} did not match: {param_name} = {param_true}, {param_name}_hat = {param_hat}"
-
-
 @pytest.mark.parametrize(
     "np_logits", [[0.0, 2.0, 2.0, 2.0, 0.0, 0.0, 1.0, 0.0, 1.0, 3.0, 0.0]]
 )
@@ -368,7 +339,6 @@ def test_splicedbinnedpareto_likelihood(
     model = DistributionOutputNN(
         distr_output=distr_output, init_args=init_args
     )
-
     distr_hat = maximum_likelihood_estimate_nn(
         model, training_x, epochs=50, batch_size=BATCH_SIZE
     )
