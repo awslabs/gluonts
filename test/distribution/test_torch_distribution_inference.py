@@ -288,8 +288,26 @@ def test_splicedbinnedpareto_likelihood(
 
     # Specify the distribution with parameter value from which to obtain samples
     variate_dim = 1
-    bins_lower_bound, bins_upper_bound = -25.0, 25.0
     percentile_tail = 0.05
+
+    bins_lower_bound, bins_upper_bound = -3.0, 3.0
+    distr = stats.t(3)
+    xx = np.linspace(bins_lower_bound, bins_upper_bound, 11)
+    pdf = distr.pdf(xx)
+    bin_width = 1 / np.sum(pdf)
+    np_logits = np.log(pdf / bin_width)
+
+    variates = distr.rvs(20_000)
+    percentile_tail = 0.05
+    upper_variates = variates[variates > distr.ppf(1 - percentile_tail)]
+    lower_variates = variates[variates < distr.ppf(percentile_tail)]
+    upper_gp_xi, _, upper_gp_beta = stats.genpareto.fit(
+        upper_variates, loc=distr.ppf(1 - percentile_tail)
+    )
+    lower_gp_xi, _, lower_gp_beta = stats.genpareto.fit(
+        -lower_variates, loc=-distr.ppf(percentile_tail)
+    )
+
     logits = torch.tensor(np_logits).unsqueeze(0)
     logits = logits.repeat(variate_dim, BATCH_SIZE, 1)
     nbins = logits.shape[-1]
@@ -328,7 +346,7 @@ def test_splicedbinnedpareto_likelihood(
             tail_percentile_gen_pareto=percentile_tail,
         )
     )
-    distr_hat = maximum_likelihood_estimate_nn(
+    fitted_distr = maximum_likelihood_estimate_nn(
         model, training_x, epochs=50, batch_size=BATCH_SIZE
     )
 
@@ -350,11 +368,12 @@ def test_splicedbinnedpareto_likelihood(
     for i in range(len(distr_parameter_names)):
         param_name = distr_parameter_names[i]
         param_hat = (
-            distr_hat.__getattribute__(distr_parameter_names[i])
+            fitted_distr.__getattribute__(distr_parameter_names[i])
             .detach()
             .numpy()
         )
         param_true = distr_parameter_true[distr_parameter_names[i]]
+
         if param_name == "logits":
             compare_logits(param_true, param_hat, TOL=TOL)
         else:
