@@ -314,7 +314,7 @@ def test_splicedbinnedpareto_likelihood(
         ),
     )
 
-    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES // 16)).shape)
+    samples = sbp_distr.sample(torch.tensor(range(0, NUM_SAMPLES // BATCH_SIZE)).shape)
     training_x = samples.numpy().flatten()
 
     # Maximum Likelihood Estimation on the DistributionOutput
