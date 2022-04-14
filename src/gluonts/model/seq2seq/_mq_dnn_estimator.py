@@ -240,14 +240,12 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        if self.quantiles:
-            quantile_output = (
-                IncrementalQuantileOutput(self.quantiles)
-                if is_iqf
-                else QuantileOutput(self.quantiles)
-            )
-        else:
+        if not self.quantiles:
             quantile_output = None
+        elif is_iqf:
+            quantile_output = IncrementalQuantileOutput(self.quantiles)
+        else:
+            quantile_output = QuantileOutput(self.quantiles)
 
         super().__init__(
             encoder=encoder,
@@ -401,14 +399,12 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        if self.quantiles:
-            quantile_output = (
-                IncrementalQuantileOutput(self.quantiles)
-                if is_iqf
-                else QuantileOutput(self.quantiles)
-            )
-        else:
+        if not self.quantiles:
             quantile_output = None
+        elif is_iqf:
+            quantile_output = IncrementalQuantileOutput(self.quantiles)
+        else:
+            quantile_output = QuantileOutput(self.quantiles)
 
         super().__init__(
             encoder=encoder,
