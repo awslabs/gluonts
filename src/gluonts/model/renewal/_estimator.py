@@ -57,18 +57,22 @@ from gluonts.transform.feature import CountTrailingZeros
 
 class DeepRenewalProcessEstimator(GluonEstimator):
     """
-    Implements a deep renewal process estimator designed to forecast intermittent time series
-    sampled in discrete time, as described in [TWJ19]_.
+    Implements a deep renewal process estimator designed to forecast
+    intermittent time series sampled in discrete time, as described in.
 
-    In short, instead of viewing sparse time series as a univariate stochastic process, this
-    estimator transforms a sparse time series [0, 0, 0, 3, 0, 0, 7] to an interval-size format,
-    [(4, 3), (3, 7)] where each ordered pair marks the time since the last positive time step
-    (interval) and the value of the positive time step (size). Then, probabilistic prediction
-    is performed on this transformed time series, as is customary in the intermittent demand
-    literature, e.g., Croston's method.
+    [TWJ19]_.
 
-    This construction is a self-modulated marked renewal process in discrete time as one assumes
-    the (conditional) distribution of intervals are identical.
+    In short, instead of viewing sparse time series as a univariate stochastic
+    process, this estimator transforms a sparse time series [0, 0, 0, 3, 0, 0,
+    7] to an interval-size format,[(4, 3), (3, 7)] where each ordered pair
+    marks the time since the last positive time step(interval) and the value
+    of the positive time step (size). Then, probabilistic prediction is
+    performed on this transformed time series, as is customary in the
+    intermittent demand literature, e.g., Croston's method.
+
+    This construction is a self-modulated marked renewal process in discrete
+    time as one assumes the (conditional) distribution of intervals are
+    identical.
 
     Parameters
     ----------
@@ -88,13 +92,13 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     trainer
         Trainer object to be used (default: Trainer())
     interval_distr_output
-        Distribution output object for the intervals. Must be a distribution with
-        support on positive integers, where the first argument corresponds to the
-        (conditional) mean.
+        Distribution output object for the intervals. Must be a distribution
+        with support on positive integers, where the first argument
+        corresponds to the(conditional) mean.
     size_distr_output
-        Distribution output object for the demand sizes. Must be a distribution with
-        support on positive integers, where the first argument corresponds to the
-        (conditional) mean.
+        Distribution output object for the demand sizes. Must be a distribution
+        with support on positive integers, where the first argument
+        corresponds to the(conditional) mean.
     train_sampler
         Controls the sampling of windows during training.
     validation_sampler
@@ -102,8 +106,9 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     batch_size
         The size of the batches to be used training and prediction.
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100)
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100)
     """
 
     @validated()

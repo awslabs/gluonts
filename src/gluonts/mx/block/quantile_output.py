@@ -117,7 +117,7 @@ class QuantileLoss(Loss):
         F, y_true: Tensor, y_pred_p: Tensor, p: float
     ) -> Tensor:
         """
-        Compute the quantile loss of the given quantile
+        Compute the quantile loss of the given quantile.
 
         Parameters
         ----------
@@ -150,12 +150,13 @@ class QuantileLoss(Loss):
 
     def compute_quantile_weights(self) -> List:
         """
-        Compute the exact weights of the approximated integral
+        Compute the exact weights of the approximated integral.
+
         CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i})
         under the assumption of linear interpolation or SQF, where z_i is the
-        ith quantile prediction q_i. The inner terms cancel due to the telescoping sum
-        property and we obtain CRPS = sum_{i=1}^n w_i z_i, with the weights
-        w_i = (q_{i+1}-q_{i-1})/2 for i = 1, ..., n-1,
+        ith quantile prediction q_i. The inner terms cancel due to the
+        telescoping sum property and we obtain CRPS = sum_{i=1}^n w_i z_i, with
+        the weights w_i = (q_{i+1}-q_{i-1})/2 for i = 1, ..., n-1,
         w_0 = (q_1-q_0)/2 and w_n = (w_n - w_{n-1})/2.
 
         Returns

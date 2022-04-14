@@ -26,8 +26,8 @@ from .transformers import ConfigTransformer
 @register_surrogate("autogluon")
 class AutoGluonSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     """
-    The Autogluon surrogate uses autogluon to fit one of many possible models on the performances
-    of the models.
+    The Autogluon surrogate uses autogluon to fit one of many possible models
+    on the performances of the models.
     """
 
     predictors: List[TabularPredictor]

@@ -96,8 +96,8 @@ class DeepAREstimator(GluonEstimator):
         default: 'lstm')
     dropoutcell_type
         Type of dropout cells to use
-        (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell' or 'VariationalZoneoutCell';
-        default: 'ZoneoutCell')
+        (available: 'ZoneoutCell', 'RNNZoneoutCell', 'VariationalDropoutCell'
+        or 'VariationalZoneoutCell'; default: 'ZoneoutCell')
     dropout_rate
         Dropout regularization parameter (default: 0.1)
     use_feat_dynamic_real
@@ -128,8 +128,9 @@ class DeepAREstimator(GluonEstimator):
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100)
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100)
     imputation_method
         One of the methods from ImputationStrategy
     train_sampler

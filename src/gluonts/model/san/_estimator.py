@@ -142,7 +142,8 @@ class SelfAttentionEstimator(GluonEstimator):
                         field=FieldName.FEAT_DYNAMIC_REAL,
                         expected_ndim=2,
                     ),
-                    # SwapAxes(input_fields=[FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
+                    # SwapAxes(input_fields=
+                    # [FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
                 ]
             )
         if self.use_feat_dynamic_cat:
@@ -154,7 +155,8 @@ class SelfAttentionEstimator(GluonEstimator):
             )
         else:
             # Manually set dummy dynamic categorical features and split by time
-            # Unknown issue in dataloader if leave splitting to InstanceSplitter
+            # Unknown issue in dataloader if leave splitting to
+            # InstanceSplitter
             transforms.extend(
                 [
                     SetField(

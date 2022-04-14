@@ -33,15 +33,16 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 class Surrogate(ABC, Generic[T]):
     """
-    This class defines the interface for any surrogate model which attempts to predict performance
-    metrics from model configurations. Subclasses may decide to only predict some performance
-    metrics.
+    This class defines the interface for any surrogate model which attempts to
+    predict performance metrics from model configurations.
+
+    Subclasses may decide to only predict some performance metrics.
     """
 
     def __init__(
         self,
         tracker: Tracker[T],
-        predict: Optional[List[str]] = None,
+        predict: list[str] | None = None,
         output_normalization: OutputNormalization = None,
         impute_simulatable: bool = False,
     ):
@@ -75,10 +76,10 @@ class Surrogate(ABC, Generic[T]):
         """
         return 1
 
-    def fit(self, X: List[Config[T]], y: List[Performance]) -> None:
+    def fit(self, X: list[Config[T]], y: list[Performance]) -> None:
         """
-        Uses the provided data to fit a model which is able to predict the target variables from
-        the input.
+        Uses the provided data to fit a model which is able to predict the
+        target variables from the input.
 
         Args:
             X: The input configurations.
@@ -111,10 +112,10 @@ class Surrogate(ABC, Generic[T]):
 
         self._fit(X, y_numpy)
 
-    def predict(self, X: List[Config[T]]) -> List[Performance]:
+    def predict(self, X: list[Config[T]]) -> list[Performance]:
         """
-        Predicts the target variables for the given inputs. Typically requires `fit` to be called
-        first.
+        Predicts the target variables for the given inputs. Typically requires
+        `fit` to be called first.
 
         Args:
             X: The configurations for which to predict performance metrics.
@@ -139,16 +140,16 @@ class Surrogate(ABC, Generic[T]):
         return performances
 
     @abstractmethod
-    def _fit(self, X: List[Config[T]], y: npt.NDArray[np.float32]) -> None:
+    def _fit(self, X: list[Config[T]], y: npt.NDArray[np.float32]) -> None:
         pass
 
     @abstractmethod
-    def _predict(self, X: List[Config[T]]) -> npt.NDArray[np.float32]:
+    def _predict(self, X: list[Config[T]]) -> npt.NDArray[np.float32]:
         pass
 
 
 class DatasetFeaturesMixin:
     """
-    Simple mixin which can be inherited by surrogates to signal that they (optionally) use dataset
-    features.
+    Simple mixin which can be inherited by surrogates to signal that they
+    (optionally) use dataset features.
     """

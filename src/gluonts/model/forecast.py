@@ -68,8 +68,8 @@ class Quantile(NamedTuple):
 
             if m is None:
                 raise GluonTSUserError(
-                    "Quantile string should be of the form "
-                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                    'Quantile string should be of the form "p10", "p50", ...'
+                    f' or "0.1", "0.5", ... but found {quantile}'
                 )
             else:
                 quantile_float: float = int(m.group(1)) / 100
@@ -77,8 +77,9 @@ class Quantile(NamedTuple):
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
-        """Produces equivalent float and string representation of a given
-        quantile level.
+        """
+        Produces equivalent float and string representation of a given quantile
+        level.
 
         >>> Quantile.parse(0.1)
         Quantile(value=0.1, name='0.1')
@@ -231,8 +232,8 @@ class Forecast:
                 *args,
                 **kwargs,
             )
-            # Hack to create labels for the error intervals.
-            # Doesn't actually plot anything, because we only pass a single data point
+            # Hack to create labels for the error intervals. Doesn't actually
+            # plot anything, because we only pass a single data point
             pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
                 color=color,
                 alpha=alpha,
@@ -333,10 +334,9 @@ class SampleForecast(Forecast):
         assert isinstance(
             samples, np.ndarray
         ), "samples should be a numpy array"
-        assert (
-            len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
-        ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
-            len(np.shape(samples))
+        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = samples
         self._sorted_samples_value = None
@@ -475,7 +475,7 @@ class SampleForecast(Forecast):
 
 class QuantileForecast(Forecast):
     """
-    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean.
 
     Parameters
     ----------
@@ -545,7 +545,8 @@ class QuantileForecast(Forecast):
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
         )
-        # The effective range of left, right tails varies over tail approximation class
+        # The effective range of left, right tails varies over tail
+        # approximation class
         (
             left_tail_quantile,
             right_tail_quantile,
@@ -577,9 +578,9 @@ class QuantileForecast(Forecast):
             ):  # 1D target. shape: (num_samples, prediction_length)
                 return 1
             else:
-                return self.forecast_array.shape[
-                    1
-                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+                # 2D target. shape: (num_samples, target_dim,
+                # prediction_length)
+                return self.forecast_array.shape[1]
 
     def __repr__(self):
         return ", ".join(

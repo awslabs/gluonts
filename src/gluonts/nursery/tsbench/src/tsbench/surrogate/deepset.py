@@ -31,8 +31,10 @@ from .transformers import EnsembleConfigTransformer
 @register_ensemble_surrogate("deepset")
 class DeepSetSurrogate(Surrogate[EnsembleConfig]):
     """
-    The DeepSet surrogate is similar to the MLP surrogate but makes predictions for ensembles
-    rather than single models. Currently, it does not support the use of dataset features.
+    The DeepSet surrogate is similar to the MLP surrogate but makes predictions
+    for ensembles rather than single models.
+
+    Currently, it does not support the use of dataset features.
     """
 
     trainer_: pl.Trainer

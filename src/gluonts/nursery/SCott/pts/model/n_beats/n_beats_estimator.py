@@ -84,14 +84,19 @@ class NBEATSEstimator(PTSEstimator):
             argument_name="expansion_coefficient_lengths",
             default_value=[32],
             validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0",
+            invalidation_message=(
+                "Values of 'expansion_coefficient_lengths' should be > 0"
+            ),
         )
         self.stack_types = self._validate_nbeats_argument(
             argument_value=stack_types,
             argument_name="stack_types",
             default_value=["G"],
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
-            invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
+            invalidation_message=(
+                "Values of 'stack_types' should be one of"
+                f" {VALID_N_BEATS_STACK_TYPES}"
+            ),
         )
 
     def _validate_nbeats_argument(
@@ -109,8 +114,8 @@ class NBEATSEstimator(PTSEstimator):
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
-            f"Invalid lengths of argument {argument_name}: {len(new_value)}. Argument must have "
-            f"length 1 or {self.num_stacks} "
+            f"Invalid lengths of argument {argument_name}: {len(new_value)}."
+            f" Argument must have length 1 or {self.num_stacks} "
         )
 
         # check validity of actual values

@@ -78,7 +78,8 @@ class ProcessTimeSeriesField:
                 value = np.expand_dims(a=value, axis=0)
             elif dim_diff != 0:
                 raise Exception(
-                    f"JSON array has bad shape - expected {self.req_ndim} dimensions got {dim_diff}"
+                    "JSON array has bad shape - expected"
+                    f" {self.req_ndim} dimensions got {dim_diff}"
                 )
 
             data[self.name] = value

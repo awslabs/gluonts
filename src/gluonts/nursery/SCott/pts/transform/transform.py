@@ -77,7 +77,8 @@ class Identity(Transformation):
 
 class MapTransformation(Transformation):
     """
-    Base class for Transformations that returns exactly one result per input in the stream.
+    Base class for Transformations that returns exactly one result per input in
+    the stream.
     """
 
     def __call__(
@@ -96,7 +97,7 @@ class MapTransformation(Transformation):
 
 class SimpleTransformation(MapTransformation):
     """
-    Element wise transformations that are the same in train and test mode
+    Element wise transformations that are the same in train and test mode.
     """
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
@@ -109,8 +110,9 @@ class SimpleTransformation(MapTransformation):
 
 class AdhocTransform(SimpleTransformation):
     """
-    Applies a function as a transformation
-    This is called ad-hoc, because it is not serializable.
+    Applies a function as a transformation This is called ad-hoc, because it is
+    not serializable.
+
     It is OK to use this for experiments and outside of a model pipeline that
     needs to be serialized.
     """
@@ -124,8 +126,8 @@ class AdhocTransform(SimpleTransformation):
 
 class FlatMapTransformation(Transformation):
     """
-    Transformations that yield zero or more results per input, but do not combine
-    elements from the input stream.
+    Transformations that yield zero or more results per input, but do not
+    combine elements from the input stream.
     """
 
     def __call__(
@@ -144,10 +146,10 @@ class FlatMapTransformation(Transformation):
                 raise e
             if num_idle_transforms > MAX_IDLE_TRANSFORMS:
                 raise Exception(
-                    f"Reached maximum number of idle transformation calls.\n"
-                    f"This means the transformation looped over "
+                    "Reached maximum number of idle transformation calls.\n"
+                    "This means the transformation looped over "
                     f"MAX_IDLE_TRANSFORMS={MAX_IDLE_TRANSFORMS} "
-                    f"inputs without returning any output.\n"
+                    "inputs without returning any output.\n"
                     f"This occurred in the following transformation:\n{self}"
                 )
 

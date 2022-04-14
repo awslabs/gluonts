@@ -17,8 +17,10 @@ from ._base import CandidateGenerator, T
 
 class ReplayCandidateGenerator(CandidateGenerator[T]):
     """
-    The replay candidate generator simply returns the model configurations seen during training. If
-    candidates are provided, they are returned as is.
+    The replay candidate generator simply returns the model configurations seen
+    during training.
+
+    If candidates are provided, they are returned as is.
     """
 
     def __init__(self) -> None:

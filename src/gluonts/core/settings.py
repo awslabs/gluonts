@@ -132,8 +132,6 @@ class Settings:
             self._dependency(name, fn)
 
     def _reduce(self):
-        """"""
-
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
 
@@ -175,14 +173,17 @@ class Settings:
     def _dependency(self, name, fn):
         dependencies = list(inspect.signature(fn).parameters)
         for dependency in dependencies:
-            assert self._already_declared(
-                dependency
-            ), f"`{name}` depends on `{dependency}`, which has not been declared yet."
+            assert self._already_declared(dependency), (
+                f"`{name}` depends on `{dependency}`, which has not been"
+                " declared yet."
+            )
 
         self._dependencies[name] = Dependency(fn, dependencies)
 
     def _get(self, key, default=None):
-        """Like `dict.get`."""
+        """
+        Like `dict.get`.
+        """
         try:
             return self[key]
         except KeyError:
@@ -218,7 +219,8 @@ class Settings:
             return self[key]
 
     def _set_(self, dct, key, value):
-        """Helper method to assign item to a given dictionary.
+        """
+        Helper method to assign item to a given dictionary.
 
         Uses `_types` to type-check the value, before assigning.
         """
@@ -255,7 +257,8 @@ class Settings:
             self[key] = value
 
     def _push(self, **kwargs):
-        """Add new entry to our chain-map.
+        """
+        Add new entry to our chain-map.
 
         Values are type-checked.
         """
@@ -275,7 +278,8 @@ class Settings:
         return f"<Settings [{inner}]>"
 
     def _let(self, **kwargs) -> "_ScopedSettings":
-        """Create a new context, where kwargs are added to the chain::
+        """
+        Create a new context, where kwargs are added to the chain::
 
             with settings._let(foo=42):
                 assert settings.foo = 42
@@ -287,7 +291,8 @@ class Settings:
         return _ScopedSettings(self, kwargs)
 
     def _inject(self, *keys, **kwargs):
-        """Dependency injection.
+        """
+        Dependency injection.
 
         This will inject values from settings if avaiable and not passed
         directly::
@@ -359,10 +364,14 @@ class _ScopedSettings:
 
 
 def let(settings, **kwargs):
-    "`let(settings, ...)` is the same as `settings._let(...)`."
+    """
+    `let(settings, ...)` is the same as `settings._let(...)`.
+    """
     return settings._let(**kwargs)
 
 
 def inject(settings, *args, **kwargs):
-    "`inject(settings, ...)` is the same as `settings._inject(...)`."
+    """
+    `inject(settings, ...)` is the same as `settings._inject(...)`.
+    """
     return settings._inject(*args, **kwargs)

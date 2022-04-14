@@ -26,7 +26,8 @@ E = TypeVar("E", bound=Type[Surrogate[EnsembleConfig]])
 
 def register_surrogate(name: str) -> Callable[[S], S]:
     """
-    Registers the provided class with the given name in the global surrogate registry.
+    Registers the provided class with the given name in the global surrogate
+    registry.
     """
 
     def register(cls: S) -> S:
@@ -38,7 +39,8 @@ def register_surrogate(name: str) -> Callable[[S], S]:
 
 def register_ensemble_surrogate(name: str) -> Callable[[E], E]:
     """
-    Registers the provided class with the given name in the global ensemble surrogate registry.
+    Registers the provided class with the given name in the global ensemble
+    surrogate registry.
     """
 
     def register(cls: E) -> E:

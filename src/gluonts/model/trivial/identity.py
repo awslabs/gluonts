@@ -23,8 +23,8 @@ from gluonts.model.predictor import RepresentablePredictor
 
 class IdentityPredictor(RepresentablePredictor):
     """
-    A `Predictor` that uses the last `prediction_length` observations
-    to predict the future.
+    A `Predictor` that uses the last `prediction_length` observations to
+    predict the future.
 
     Parameters
     ----------

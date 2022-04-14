@@ -27,8 +27,10 @@ from ._main import datasets
     "--dataset",
     type=str,
     default=None,
-    help="The dataset to compute basic statistics for. "
-    "If not provided, computes statistics for all datasets.",
+    help=(
+        "The dataset to compute basic statistics for. "
+        "If not provided, computes statistics for all datasets."
+    ),
 )
 @click.option(
     "--data_path",
@@ -43,12 +45,15 @@ from ._main import datasets
     nargs=1,
     default=DEFAULT_DATA_STATS_PATH,
     show_default=True,
-    help="The path where the dataset statistics are written to. "
-    "Statistics are written as `<dataset>.json` files.",
+    help=(
+        "The path where the dataset statistics are written to. "
+        "Statistics are written as `<dataset>.json` files."
+    ),
 )
 def compute_stats(dataset: Optional[str], data_path: str, output_path: str):
     """
-    Computes simple dataset features either for a single dataset or all datasets in the registry.
+    Computes simple dataset features either for a single dataset or all
+    datasets in the registry.
     """
     source = Path(data_path)
     target = Path(output_path)

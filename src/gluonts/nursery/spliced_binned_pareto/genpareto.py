@@ -67,9 +67,7 @@ class GenPareto(Distribution):
             batch_shape = torch.Size()
         else:
             batch_shape = self.xi.size()
-        super(GenPareto, self).__init__(
-            batch_shape, validate_args=validate_args
-        )
+        super().__init__(batch_shape, validate_args=validate_args)
 
         if (
             self._validate_args

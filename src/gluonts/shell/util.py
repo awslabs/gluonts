@@ -28,8 +28,8 @@ Forecaster = Type[Union[Estimator, Predictor]]
 
 def forecaster_type_by_name(name: str) -> Forecaster:
     """
-    Loads a forecaster from the `gluonts_forecasters` entry_points namespace
-    by name.
+    Loads a forecaster from the `gluonts_forecasters` entry_points namespace by
+    name.
 
     If a forecater wasn't register under that name, it tries to locate the
     class.
@@ -62,8 +62,8 @@ def forecaster_type_by_name(name: str) -> Forecaster:
 
 
 def invoke_with(fn, *args, **kwargs):
-    """Call `fn(*args, **kwargs)`, but only use kwargs that `fn` actually
-    uses.
+    """
+    Call `fn(*args, **kwargs)`, but only use kwargs that `fn` actually uses.
     """
 
     # if `fn` has `**kwargs` argument, we can just call it directly

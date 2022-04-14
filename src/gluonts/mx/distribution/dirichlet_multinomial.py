@@ -25,17 +25,19 @@ from .distribution_output import DistributionOutput
 
 class DirichletMultinomial(Distribution):
     r"""
-    Dirichlet-Multinomial distribution, specified by the concentration vector alpha of length dim, and a number of
-    trials n_trials.
+    Dirichlet-Multinomial distribution, specified by the concentration vector
+    alpha of length dim, and a number of trials n_trials.
     https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution
 
-    The Dirichlet-Multinomial distribution is a discrete multivariate probability distribution, a sample
-    (or observation) x = (x_0,..., x_{dim-1}) must satisfy:
+    The Dirichlet-Multinomial distribution is a discrete multivariate
+    probability distribution, a sample (or observation)
+    x = (x_0,..., x_{dim-1}) must satisfy:
 
     sum_k x_k = n_trials and for all k, x_k is a non-negative integer.
 
-    Such a sample can be obtained by first drawing a vector p from a Dirichlet(alpha) distribution, then x is
-    drawn from a Multinomial(p) with n trials
+    Such a sample can be obtained by first drawing a vector p from a
+    Dirichlet(alpha) distribution, then x is drawn from a Multinomial(p) with n
+    trials.
 
     Parameters
     ----------

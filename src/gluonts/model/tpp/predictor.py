@@ -83,7 +83,7 @@ class PointProcessForecastGenerator(ForecastGenerator):
                     valid_length=valid_length[:, i],
                     start_date=batch["forecast_start"][i],
                     freq=freq,
-                    prediction_interval_length=prediction_net.prediction_interval_length,
+                    prediction_interval_length=prediction_net.prediction_interval_length,  # noqa: E501
                     item_id=batch["item_id"][i]
                     if "item_id" in batch
                     else None,
@@ -121,7 +121,7 @@ class PointProcessGluonPredictor(GluonPredictor):
         ctx: mx.Context,
         input_transform: Transformation,
         dtype: Type = np.float32,
-        forecast_generator: ForecastGenerator = PointProcessForecastGenerator(),
+        forecast_generator: ForecastGenerator = PointProcessForecastGenerator(),  # noqa: E501
         **kwargs,
     ) -> None:
         super().__init__(

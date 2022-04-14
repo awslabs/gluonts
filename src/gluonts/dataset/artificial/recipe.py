@@ -57,7 +57,7 @@ def resolve(val_or_callable: ValueOrCallable, context: Env, *args, **kwargs):
         return [resolve(v, context, *args, **kwargs) for v in val_or_callable]
     elif isinstance(val_or_callable, tuple):
         return tuple(
-            [resolve(v, context, *args, **kwargs) for v in val_or_callable]
+            resolve(v, context, *args, **kwargs) for v in val_or_callable
         )
     else:
         return val_or_callable
@@ -453,7 +453,7 @@ for func_name in _NUMPY_FUNC_NAMES:
     lifted_numpy.{func_name} = {normalized_func_name}
     # disable numpy docstring tests
     lifted_numpy.{func_name}.__doc__ = lifted_numpy.{func_name}.__doc__.replace('>>>', '>>')
-    """
+    """  # noqa: E501
     exec(textwrap.dedent(s))
 
 
@@ -465,9 +465,10 @@ class Length(Lifted):
     def __call__(self, x: Env, length: int, *args, **kwargs):
         l = resolve(self.l, x, length, *args, **kwargs)
         if l is None:
-            assert (
-                length is not None
-            ), "Cannot get value for Length() when length is not provided in evaluate"
+            assert length is not None, (
+                "Cannot get value for Length() when length is not provided in"
+                " evaluate"
+            )
             return length
         return len(l)
 
@@ -487,7 +488,8 @@ def lift(input: Union[int, Callable]):
     You can then use your function as part of a recipe. The function is called
     with all all arguments being already resolved.
 
-    Note that you cannot serialize recipes that use the lift decorated functions.
+    Note that you cannot serialize recipes that use the lift decorated
+    functions.
     """
     if isinstance(input, int):
         num_outs = input
@@ -811,9 +813,7 @@ class Add(Lifted):
         self.inputs = inputs
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
-        return sum(
-            [resolve(k, x, length, *args, **kwargs) for k in self.inputs]
-        )
+        return sum(resolve(k, x, length, *args, **kwargs) for k in self.inputs)
 
 
 class Mul(Lifted):
@@ -956,7 +956,8 @@ class RandomChangepoints(Lifted):
         change_idx: np.ndarray = np.sort(
             np.random.randint(low=1, high=length - 1, size=(num_changepoints,))
         )
-        change_ranges: np.ndarray = np.concatenate([change_idx, [length]])  # type: ignore
+        # type: ignore
+        change_ranges: np.ndarray = np.concatenate([change_idx, [length]])
         out = np.zeros(length, dtype=int)
         for i in range(num_changepoints):
             out[change_ranges[i] : change_ranges[i + 1]] = i + 1
@@ -1012,8 +1013,7 @@ class ARp(Lifted):
         noise: ValueOrCallable = None,
     ):
         """
-        Draw samples from an ARp process.
-        Parametrized as in
+        Draw samples from an ARp process. Parametrized as in.
 
         https://en.wikipedia.org/wiki/Autoregressive_model#Graphs_of_AR(p)_processes
         """

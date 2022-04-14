@@ -21,7 +21,8 @@ from .representation import Representation
 
 class DimExpansion(Representation):
     """
-    A class representing a dimension expansion operation along a specified axis.
+    A class representing a dimension expansion operation along a specified
+    axis.
 
     Parameters
     ----------

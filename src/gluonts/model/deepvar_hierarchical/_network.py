@@ -39,7 +39,8 @@ def reconcile_samples(
     seq_axis: Optional[List] = None,
 ) -> Tensor:
     """
-    Computes coherent samples by multiplying unconstrained `samples` with `reconciliation_mat`.
+    Computes coherent samples by multiplying unconstrained `samples` with
+    `reconciliation_mat`.
 
     Parameters
     ----------
@@ -49,7 +50,8 @@ def reconcile_samples(
         Unconstrained samples
         Shape: `(*batch_shape, target_dim)`
         During training: (num_samples, batch_size, seq_len, target_dim)
-        During prediction: (num_parallel_samples x batch_size, seq_len, target_dim)
+        During prediction: (num_parallel_samples x batch_size, seq_len,
+        target_dim)
     seq_axis
         Specifies the list of axes that should be reconciled sequentially.
         By default, all axes are processeed in parallel.
@@ -58,8 +60,6 @@ def reconcile_samples(
     -------
     Tensor, shape same as that of `samples`
         Coherent samples
-
-
     """
     if not seq_axis:
         return mx.nd.dot(samples, reconciliation_mat, transpose_b=True)
@@ -67,12 +67,14 @@ def reconcile_samples(
         num_dims = len(samples.shape)
 
         last_dim_in_seq_axis = num_dims - 1 in seq_axis or -1 in seq_axis
-        assert (
-            not last_dim_in_seq_axis
-        ), f"The last dimension cannot be processed iteratively. Remove axis {num_dims - 1} (or -1) from `seq_axis`."
+        assert not last_dim_in_seq_axis, (
+            "The last dimension cannot be processed iteratively. Remove axis"
+            f" {num_dims - 1} (or -1) from `seq_axis`."
+        )
 
-        # In this case, reconcile samples by going over each index in `seq_axis` iteratively.
-        # Note that `seq_axis` can be more than one dimension.
+        # In this case, reconcile samples by going over each index in
+        # `seq_axis` iteratively. Note that `seq_axis` can be more than one
+        # dimension.
         num_seq_axes = len(seq_axis)
 
         # bring the axes to iterate in the beginning
@@ -93,15 +95,18 @@ def reconcile_samples(
 
 def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     r"""
-    Computes the maximum relative reconciliation error among all the aggregated time series
+    Computes the maximum relative reconciliation error among all the aggregated
+    time series
 
     .. math::
 
                     \max_i \frac{|y_i - s_i|} {|y_i|},
 
-    where :math:`i` refers to the aggregated time series index, :math:`y_i` is the (direct) forecast obtained for
-    the :math:`i^{th}` time series and :math:`s_i` is its aggregated forecast obtained by summing the corresponding
-    bottom-level forecasts. If :math:`y_i` is zero, then the absolute difference, :math:`|s_i|`, is used instead.
+    where :math:`i` refers to the aggregated time series index, :math:`y_i` is
+    the (direct) forecast obtained for the :math:`i^{th}` time series
+    and :math:`s_i` is its aggregated forecast obtained by summing the
+    corresponding bottom-level forecasts. If :math:`y_i` is zero, then the
+    absolute difference, :math:`|s_i|`, is used instead.
 
     This can be comupted as follows given the constraint matrix A:
 
@@ -114,8 +119,8 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     Parameters
     ----------
     A
-        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
-        hierarchy).
+        The constraint matrix A in the equation: Ay = 0 (y being the
+        values/forecasts of all time series in the hierarchy).
     samples
         Samples. Shape: `(*batch_shape, target_dim)`.
 
@@ -187,8 +192,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
         """
-        Get samples to compute the final loss. These are samples directly drawn from the given `distr` if coherence is
-        not enforced yet; otherwise the drawn samples are reconciled.
+        Get samples to compute the final loss. These are samples directly drawn
+        from the given `distr` if coherence is not enforced yet; otherwise the
+        drawn samples are reconciled.
 
         Parameters
         ----------
@@ -199,7 +205,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         -------
         samples
             Tensor with shape (num_samples, batch_size, seq_len, target_dim)
-
         """
         samples = distr.sample_rep(
             num_samples=self.num_samples_for_loss, dtype="float32"
@@ -226,15 +231,18 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
     def loss(self, F, target: Tensor, distr: Distribution) -> Tensor:
         """
-        Computes loss given the output of the network in the form of distribution.
-        The loss is given by:
+        Computes loss given the output of the network in the form of
+        distribution. The loss is given by:
 
-            `self.CRPS_weight` * `loss_CRPS` + `self.likelihood_weight` * `neg_likelihoods`,
+            `self.CRPS_weight` * `loss_CRPS` + `self.likelihood_weight` *
+            `neg_likelihoods`,
 
          where
-          * `loss_CRPS` is computed on the samples drawn from the predicted `distr` (optionally after reconciling them),
-          *  `neg_likelihoods` are either computed directly using the predicted `distr` or from the estimated
-          distribution based on (coherent) samples, depending on the `sample_LH` flag.
+          * `loss_CRPS` is computed on the samples drawn from the predicted
+            `distr` (optionally after reconciling them),
+          * `neg_likelihoods` are either computed directly using the predicted
+            `distr` or from the estimated distribution based on (coherent)
+            samples, depending on the `sample_LH` flag.
 
         Parameters
         ----------
@@ -248,11 +256,10 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         -------
         Loss
             Tensor with shape (batch_size, seq_length, 1)
-
         """
 
-        # Sample from the predicted distribution if we are computing CRPS loss or likelihood using the distribution
-        # based on (coherent) samples.
+        # Sample from the predicted distribution if we are computing CRPS loss
+        # or likelihood using the distribution based on (coherent) samples.
         # Samples shape: (num_samples, batch_size, seq_len, target_dim)
         if self.sample_LH or (self.CRPS_weight > 0.0):
             samples = self.get_samples_for_loss(distr=distr)
@@ -288,7 +295,6 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         Returns
         -------
             Tensor of coherent samples.
-
         """
         if not self.coherent_pred_samples:
             return samples
@@ -336,7 +342,8 @@ class DeepVARHierarchicalTrainingNetwork(
         self.batch_no = 0
         self.sample_LH = sample_LH
 
-        # Assert CRPS_weight, likelihood_weight, and coherent_train_samples have harmonious values
+        # Assert CRPS_weight, likelihood_weight, and coherent_train_samples
+        # have harmonious values
         assert self.CRPS_weight >= 0.0, "CRPS weight must be non-negative"
         assert (
             self.likelihood_weight >= 0.0
@@ -345,13 +352,19 @@ class DeepVARHierarchicalTrainingNetwork(
             self.likelihood_weight + self.CRPS_weight > 0.0
         ), "At least one of CRPS or likelihood weights must be non-zero"
         if self.CRPS_weight == 0.0 and self.coherent_train_samples:
-            assert "No sampling being performed. coherent_train_samples flag is ignored"
+            assert (
+                "No sampling being performed. "
+                "coherent_train_samples flag is ignored"
+            )
         if not self.sample_LH == 0.0 and self.coherent_train_samples:
-            assert "No sampling being performed. coherent_train_samples flag is ignored"
+            assert (
+                "No sampling being performed. "
+                "coherent_train_samples flag is ignored"
+            )
         if self.likelihood_weight == 0.0 and self.sample_LH:
             assert (
-                "likelihood_weight is 0 but sample likelihoods are still being calculated. "
-                "Set sample_LH=0 when likelihood_weight=0"
+                "likelihood_weight is 0 but sample likelihoods are still "
+                "being calculated. Set sample_LH=0 when likelihood_weight=0"
             )
 
 

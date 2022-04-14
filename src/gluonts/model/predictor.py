@@ -94,7 +94,7 @@ class Predictor:
     @classmethod
     def deserialize(cls, path: Path, **kwargs) -> "Predictor":
         """
-        Load a serialized predictor from the given path
+        Load a serialized predictor from the given path.
 
         Parameters
         ----------
@@ -102,7 +102,8 @@ class Predictor:
             Path to the serialized files predictor.
         **kwargs
             Optional context/device parameter to be used with the predictor.
-            If nothing is passed will use the GPU if available and CPU otherwise.
+            If nothing is passed will use the GPU if available and CPU
+            otherwise.
         """
         # deserialize Predictor type
         with (path / "type.txt").open("r") as fp:
@@ -113,7 +114,7 @@ class Predictor:
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
-            raise IOError(
+            raise OSError(
                 f"Class {fqname_for(tpe)} is not "
                 f"a subclass of {fqname_for(Predictor)}"
             )
@@ -131,7 +132,8 @@ class Predictor:
 
     @classmethod
     def from_inputs(cls, train_iter, **params):
-        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_feat_static_cat` and `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
@@ -142,7 +144,8 @@ class RepresentablePredictor(Predictor):
     """
     An abstract predictor that can be subclassed by models that are not based
     on Gluon. Subclasses should have @validated() constructors.
-    (De)serialization and value equality are all implemented on top of the
+    (De)serialization and value equality are all implemented on top of the.
+
     @validated() logic.
     Parameters
     ----------
@@ -169,8 +172,8 @@ class RepresentablePredictor(Predictor):
 
     def __eq__(self, that):
         """
-        Two RepresentablePredictor instances are considered equal if they
-        have the same constructor arguments.
+        Two RepresentablePredictor instances are considered equal if they have
+        the same constructor arguments.
         """
         return equals(self, that)
 
@@ -200,8 +203,9 @@ def _worker_loop(
 ):
     """
     Worker loop for multiprocessing Predictor.
-    Loads the predictor serialized in predictor_path
-    reads inputs from input_queue and writes forecasts to output_queue
+
+    Loads the predictor serialized in predictor_path reads inputs from
+    input_queue and writes forecasts to output_queue
     """
 
     predictor = Predictor.deserialize(predictor_path)
@@ -325,8 +329,7 @@ class ParallelizedPredictor(Predictor):
                 while self._next_idx in self._data_buffer:
                     result_batch = self._data_buffer.pop(self._next_idx)
                     self._next_idx += 1
-                    for result in result_batch:
-                        yield result
+                    yield from result_batch
 
             def send(worker_id, chunk):
                 q = self._input_queues[worker_id]
@@ -341,8 +344,7 @@ class ParallelizedPredictor(Predictor):
 
                 while True:
                     idx, wid, result = receive()
-                    for res in get_next_from_buffer():
-                        yield res
+                    yield from get_next_from_buffer()
                     chunk = next(chunked_data)
                     send(wid, chunk)
             except StopIteration:
@@ -356,16 +358,16 @@ class ParallelizedPredictor(Predictor):
                 if idx is None:
                     self._num_running_workers -= 1
                     continue
-                for res in get_next_from_buffer():
-                    yield res
+                yield from get_next_from_buffer()
             assert len(self._data_buffer) == 0
             assert self._send_idx == self._next_idx
 
 
 class Localizer(Predictor):
     """
-    A Predictor that uses an estimator to train a local model per time series and
-    immediatly calls this to predict.
+    A Predictor that uses an estimator to train a local model per time series
+    and immediatly calls this to predict.
+
     Parameters
     ----------
     estimator

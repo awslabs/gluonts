@@ -41,7 +41,8 @@ class RBFKernel(Kernel):
         amplitude : Tensor
             RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
         length_scale : Tensor
-            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            RBF kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
         F : ModuleType
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
@@ -63,7 +64,8 @@ class RBFKernel(Kernel):
         Returns
         --------------------
         Tensor
-            RBF kernel matrix of shape (batch_size, history_length, history_length).
+            RBF kernel matrix of shape (batch_size, history_length,
+            history_length).
         """
         self._compute_square_dist(self.F, x1, x2)
 
@@ -86,8 +88,9 @@ class RBFKernelOutput(KernelOutputDict):
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP RBF Kernel hyper-parameters by using the standard deviations
-        of the past_target and past_time_features.
+        This function returns the scales for the GP RBF Kernel hyper-parameters
+        by using the standard deviations of the past_target and
+        past_time_features.
 
         Parameters
         ----------
@@ -97,13 +100,15 @@ class RBFKernelOutput(KernelOutputDict):
         past_target
             Training time series values of shape (batch_size, context_length).
         past_time_feat
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
 
         Returns
         -------
         Tuple
-            Two scaled GP hyper-parameters for the RBF Kernel and scaled model noise hyper-parameter.
-            Each is a Tensor of shape (batch_size, 1, 1).
+            Two scaled GP hyper-parameters for the RBF Kernel and scaled model
+            noise hyper-parameter. Each is a Tensor of shape
+            (batch_size, 1, 1).
         """
         axis = 1
         sigma_scaling = (
@@ -129,7 +134,8 @@ class RBFKernelOutput(KernelOutputDict):
         amplitude
             RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
         length_scale
-            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            RBF kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
 
         Returns
         -------

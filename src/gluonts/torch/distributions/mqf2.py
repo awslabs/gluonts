@@ -105,7 +105,7 @@ class MQF2Distribution(Distribution):
 
     def stack_sliding_view(self, z: torch.Tensor) -> torch.Tensor:
         """
-        Auxiliary function for loss computation
+        Auxiliary function for loss computation.
 
         Unfolds the observations by sliding a window of size prediction_length
         over the observations z
@@ -138,8 +138,8 @@ class MQF2Distribution(Distribution):
 
     def log_prob(self, z: torch.Tensor) -> torch.Tensor:
         """
-        Computes the log likelihood  log(g(z)) + logdet(dg(z)/dz),
-        where g is the gradient of the picnn
+        Computes the log likelihood  log(g(z)) + logdet(dg(z)/dz), where g is
+        the gradient of the picnn.
 
         Parameters
         ----------
@@ -164,8 +164,9 @@ class MQF2Distribution(Distribution):
 
     def energy_score(self, z: torch.Tensor) -> torch.Tensor:
         """
-        Computes the (approximated) energy score sum_i ES(g,z_i),
-        where ES(g,z_i) =
+        Computes the (approximated) energy score sum_i ES(g,z_i), where
+        ES(g,z_i) =
+
         -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta
         + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
         w's are samples drawn from the
@@ -202,7 +203,7 @@ class MQF2Distribution(Distribution):
 
     def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:
         """
-        Generates the sample paths
+        Generates the sample paths.
 
         Parameters
         ----------
@@ -240,7 +241,8 @@ class MQF2Distribution(Distribution):
         self, alpha: torch.Tensor, hidden_state: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
-        Generates the predicted paths associated with the quantile levels alpha
+        Generates the predicted paths associated with the quantile levels
+        alpha.
 
         Parameters
         ----------

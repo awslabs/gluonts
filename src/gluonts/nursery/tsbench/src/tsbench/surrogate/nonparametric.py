@@ -27,9 +27,10 @@ from .transformers import ConfigTransformer
 @register_surrogate("nonparametric")
 class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     """
-    The nonparametric surrogate predicts a model's performance on a new dataset as the average
-    performance across all known datasets. Performances are either predicted as ranks or actual
-    values.
+    The nonparametric surrogate predicts a model's performance on a new dataset
+    as the average performance across all known datasets.
+
+    Performances are either predicted as ranks or actual values.
     """
 
     model_performances_: Dict[ModelConfig, npt.NDArray[np.float32]]

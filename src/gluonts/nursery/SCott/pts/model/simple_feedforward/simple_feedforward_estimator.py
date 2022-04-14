@@ -86,7 +86,9 @@ class SimpleFeedForwardEstimator(PTSEstimator):
         num_parallel_samples: int = 100,
     ) -> None:
         """
-        Defines an estimator. All parameters should be serializable.
+        Defines an estimator.
+
+        All parameters should be serializable.
         """
         super().__init__(trainer=trainer)
 

@@ -27,7 +27,10 @@ from ._main import analysis
 @click.option(
     "--experiment",
     required=True,
-    help="The name of the experiment under which the individual training runs are grouped.",
+    help=(
+        "The name of the experiment under which the individual training runs"
+        " are grouped."
+    ),
 )
 @click.option(
     "--config_path",
@@ -52,7 +55,10 @@ from ._main import analysis
     "--nskip",
     default=0,
     show_default=True,
-    help="The number of configurations to skip. Useful if some set of experiments failed.",
+    help=(
+        "The number of configurations to skip. Useful if some set of"
+        " experiments failed."
+    ),
 )
 def ensemble(
     experiment: str,
@@ -62,11 +68,12 @@ def ensemble(
     nskip: int,
 ):
     """
-    Evaluates the performance of an ensemble of best-performing models. This allows also to only
-    consider models of a particular type (thus building hyper-ensembles).
+    Evaluates the performance of an ensemble of best-performing models. This
+    allows also to only consider models of a particular type (thus building
+    hyper-ensembles).
 
-    This call runs the Sacred script for each provided configuration sequentially and returns only
-    once all runs have completed.
+    This call runs the Sacred script for each provided configuration
+    sequentially and returns only once all runs have completed.
     """
     with Path(config_path).open("r", encoding="utf-8") as f:
         content = yaml.safe_load(f)

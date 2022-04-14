@@ -75,7 +75,9 @@ class PtArgProj(nn.Module):
 
 
 class Output:
-    """Class to connect a network to some output."""
+    """
+    Class to connect a network to some output.
+    """
 
     in_features: int
     args_dim: Dict[str, int]
@@ -280,9 +282,9 @@ class NegativeBinomialOutput(DistributionOutput):
         total_count, logits = distr_args
         return self.distr_cls(total_count=total_count, logits=logits)
 
-    # Overwrites the parent class method.
-    # We cannot scale using the affine transformation since negative binomial should return integers.
-    # Instead we scale the parameters.
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since negative binomial should return integers. Instead
+    # we scale the parameters.
     def distribution(
         self,
         distr_args,

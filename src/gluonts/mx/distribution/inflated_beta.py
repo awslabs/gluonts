@@ -27,18 +27,23 @@ from .mixture import MixtureDistribution
 
 class ZeroAndOneInflatedBeta(MixtureDistribution):
     r"""
-    Zero And One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari: Inflated Beta Distributions
+    Zero And One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P.
+    Ferrari: Inflated Beta Distributions
 
     Parameters
     ----------
     alpha
-        Tensor containing the alpha shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the alpha shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the beta shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the beta shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     zero_probability
-        Tensor containing the probability of zeros, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the probability of zeros, of shape
+        `(*batch_shape, *event_shape)`.
     one_probability
-        Tensor containing the probability of ones, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the probability of ones, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
 
@@ -94,16 +99,20 @@ class ZeroAndOneInflatedBeta(MixtureDistribution):
 
 class ZeroInflatedBeta(ZeroAndOneInflatedBeta):
     r"""
-    Zero Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari: Inflated Beta Distributions
+    Zero Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari:
+    Inflated Beta Distributions
 
     Parameters
     ----------
     alpha
-        Tensor containing the alpha shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the alpha shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the beta shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the beta shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     zero_probability
-        Tensor containing the probability of zeros, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the probability of zeros, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
     is_reparameterizable = False
@@ -122,16 +131,20 @@ class ZeroInflatedBeta(ZeroAndOneInflatedBeta):
 
 class OneInflatedBeta(ZeroAndOneInflatedBeta):
     r"""
-    One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari: Inflated Beta Distributions
+    One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari:
+    Inflated Beta Distributions
 
     Parameters
     ----------
     alpha
-        Tensor containing the alpha shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the alpha shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the beta shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the beta shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     one_probability
-        Tensor containing the probability of ones, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the probability of ones, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
     is_reparameterizable = False
@@ -160,8 +173,8 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
     @classmethod
     def domain_map(cls, F, alpha, beta, zero_probability, one_probability):
         r"""
-        Maps raw tensors to valid arguments for constructing a ZeroAndOneInflatedBeta
-        distribution.
+        Maps raw tensors to valid arguments for constructing a
+        ZeroAndOneInflatedBeta distribution.
 
         Parameters
         ----------
@@ -176,8 +189,9 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor, Tensor, Tensor]:
-            Four squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
-            positive orthant, zero_probability is mapped to (0, 1), one_probability is mapped to (0, 1-zero_probability)
+            Four squeezed tensors, of shape `(*batch_shape)`: First two have
+            entries mapped to the positive orthant, zero_probability is mapped
+            to (0, 1), one_probability is mapped to (0, 1-zero_probability)
         """
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 
@@ -224,8 +238,8 @@ class ZeroInflatedBetaOutput(ZeroAndOneInflatedBetaOutput):
         Returns
         -------
         Tuple[Tensor, Tensor, Tensor]:
-            Three squeezed tensors, of shape `(*batch_shape)`: First two have entries mapped to the
-            positive orthant, last is mapped to (0,1)
+            Three squeezed tensors, of shape `(*batch_shape)`: First two have
+            entries mapped to the positive orthant, last is mapped to (0,1)
         """
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 

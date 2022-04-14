@@ -131,7 +131,7 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         # that is: history_length - lag_index - sequence_length >= 0
         # hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag "
+            "lags cannot go further than history length, found lag "
             f"{max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
@@ -156,11 +156,10 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         target_dimension_indicator: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,]:
         """
-        Unrolls the RNN encoder over past and, if present, future data.
-        Returns outputs and state of the encoder, plus the scale of
-        past_target_cdf and a vector of static features that was constructed
-        and fed as input to the encoder. All tensor arguments should have NTC
-        layout.
+        Unrolls the RNN encoder over past and, if present, future data. Returns
+        outputs and state of the encoder, plus the scale of past_target_cdf and
+        a vector of static features that was constructed and fed as input to
+        the encoder. All tensor arguments should have NTC layout.
 
         Parameters
         ----------
@@ -196,7 +195,6 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
 
         past_observed_values = torch.min(
