@@ -39,18 +39,20 @@ from ._network import (
 
 def constraint_mat(S: np.ndarray) -> np.ndarray:
     """
-    Generates the constraint matrix in the equation: Ay = 0 (y being the values/forecasts of all time series in the
-    hierarchy).
+    Generates the constraint matrix in the equation: Ay = 0 (y being the
+    values/forecasts of all time series in the hierarchy).
 
     Parameters
     ----------
     S
-        Summation or aggregation matrix. Shape: (total_num_time_series, num_bottom_time_series)
+        Summation or aggregation matrix. Shape:
+        (total_num_time_series, num_bottom_time_series)
 
     Returns
     -------
     Numpy ND array
-        Coefficient matrix of the linear constraints, shape (num_agg_time_series, num_time_series)
+        Coefficient matrix of the linear constraints, shape
+        (num_agg_time_series, num_time_series)
     """
 
     # Re-arrange S matrix to form A matrix
@@ -60,7 +62,8 @@ def constraint_mat(S: np.ndarray) -> np.ndarray:
     m, m_K = S.shape
     m_agg = m - m_K
 
-    # The top `m_agg` rows of the matrix `S` give the aggregation constraint matrix.
+    # The top `m_agg` rows of the matrix `S` give the aggregation constraint
+    # matrix.
     S_agg = S[:m_agg, :]
     A = np.hstack((np.eye(m_agg), -S_agg))
     return A
@@ -73,14 +76,13 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
     Parameters
     ----------
     A
-        The constraint matrix A in the equation: Ay = 0 (y being the values/forecasts of all time series in the
-        hierarchy).
+        The constraint matrix A in the equation: Ay = 0 (y being the
+        values/forecasts of all time series in the hierarchy).
 
     Returns
     -------
     Numpy ND array
         Projection matrix, shape (total_num_time_series, total_num_time_series)
-
     """
     num_ts = A.shape[1]
     return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
@@ -88,7 +90,8 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
     """
-    Constructs a DeepVARHierarchical estimator, which is a hierachical extension of DeepVAR.
+    Constructs a DeepVARHierarchical estimator, which is a hierachical
+    extension of DeepVAR.
 
     The model has been described in the ICML 2021 paper:
     http://proceedings.mlr.press/v139/rangapuram21a.html
@@ -101,40 +104,48 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     prediction_length
         Length of the prediction horizon
     target_dim
-        Dimensionality of the input dataset (i.e., the total number of time series in the hierarchical dataset).
+        Dimensionality of the input dataset (i.e., the total number of time
+        series in the hierarchical dataset).
     S
         Summation or aggregation matrix.
     num_samples_for_loss
-        Number of samples to draw from the predicted distribution to compute the training loss.
+        Number of samples to draw from the predicted distribution to compute
+        the training loss.
     likelihood_weight
         Weight for the negative log-likelihood loss. Default: 0.0.
-        If not zero, then negative log-likelihood (times `likelihood_weight`) is added to the CRPS loss (times
-        `CRPS_weight`).
+        If not zero, then negative log-likelihood (times `likelihood_weight`)
+        is added to the CRPS loss (times `CRPS_weight`).
     CRPS_weight
         Weight for the CRPS loss component. Default: 1.0.
-        If zero, then loss is only negative log-likelihood (times `likelihood_weight`).
-        If non-zero, then CRPS loss (times 'CRPS_weight') is added to the negative log-likelihood loss (times
-        `likelihood_weight`).
+        If zero, then loss is only negative log-likelihood
+        (times `likelihood_weight`). If non-zero, then CRPS loss
+        (times 'CRPS_weight') is added to the negative log-likelihood loss
+        (times `likelihood_weight`).
     sample_LH
-        Boolean flag to specify if likelihood should be computed using the distribution based on (coherent) samples.
-        Default: False (in this case likelihood is computed using the parametric distribution predicted by the network).
+        Boolean flag to specify if likelihood should be computed using the
+        distribution based on (coherent) samples.
+        Default: False (in this case likelihood is computed using the
+        parametric distribution predicted by the network).
     coherent_train_samples
         Flag to indicate whether coherence should be enforced during training.
         Default: True.
     coherent_pred_samples
-        Flag to indicate whether coherence should be enforced during prediction.
-        Default: True.
+        Flag to indicate whether coherence should be enforced during
+        prediction. Default: True.
     warmstart_epoch_frac
-        Specifies the epoch (as a fraction of total number of epochs) from when to start enforcing coherence during
-        training.
+        Specifies the epoch (as a fraction of total number of epochs) from when
+        to start enforcing coherence during training.
     seq_axis
-        Specifies the list of axes that should be processed sequentially (only during training).
-        The reference axes are: (num_samples_for_loss, batch, seq_length, target_dim).
-        This is useful if batch processing is not possible because of insufficient memory (e.g. if both
-        num_samples_for_loss and target_dim are very large). In such cases, use seq_axis = [1].
-        By default, all axes are processeed in parallel.
+        Specifies the list of axes that should be processed sequentially
+        (only during training). The reference axes are:
+        (num_samples_for_loss, batch, seq_length, target_dim). This is useful
+        if batch processing is not possible because of insufficient memory
+        (e.g. if both num_samples_for_loss and target_dim are very large). In
+        such cases, use seq_axis = [1]. By default, all axes are processeed in
+        parallel.
     assert_reconciliation
-        Flag to indicate whether to assert if the (projected) samples generated during prediction are coherent.
+        Flag to indicate whether to assert if the (projected) samples generated
+        during prediction are coherent.
     reconciliation_tol
         Tolerance for the reconciliation error.
     trainer
@@ -210,8 +221,10 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         **kwargs,
     ) -> None:
 
-        # This implementation only works for multivariate Gaussian with diagonal covariance and no transformation.
-        # Fixing them here upfront. If the method is exteneded, then these can be passed as arguments of the estimator.
+        # This implementation only works for multivariate Gaussian with
+        # diagonal covariance and no transformation. Fixing them here upfront.
+        # If the method is exteneded, then these can be passed as arguments of
+        # the estimator.
         rank = 0
         distr_output = LowrankMultivariateGaussianOutput(
             dim=target_dim, rank=rank

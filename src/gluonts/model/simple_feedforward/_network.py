@@ -94,9 +94,9 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
         self, F, past_target: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        Given past target values, applies the feed-forward network and
-        maps the output to the parameter of probability distribution for
-        future observations.
+        Given past target values, applies the feed-forward network and maps the
+        output to the parameter of probability distribution for future
+        observations.
 
         Parameters
         ----------
@@ -135,8 +135,8 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
         future_observed_values: Tensor,
     ) -> Tensor:
         """
-        Computes a probability distribution for future data given the past,
-        and returns the loss associated with the actual future observations.
+        Computes a probability distribution for future data given the past, and
+        returns the loss associated with the actual future observations.
 
         Parameters
         ----------
@@ -183,8 +183,8 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
         """
-        Computes a probability distribution for future data given the past,
-        and draws samples from it.
+        Computes a probability distribution for future data given the past, and
+        draws samples from it.
 
         Parameters
         ----------

@@ -49,7 +49,9 @@ def fcst_iterator(fcst, start_dates, freq):
 
 def iterator(it):
     """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
+    Convenience function to toggle whether to consume dataset and forecasts as
+    iterators or iterables.
+
     :param it:
     :return: it (as iterator)
     """
@@ -58,7 +60,9 @@ def iterator(it):
 
 def iterable(it):
     """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
+    Convenience function to toggle whether to consume dataset and forecasts as
+    iterators or iterables.
+
     :param it:
     :return: it (as iterable)
     """

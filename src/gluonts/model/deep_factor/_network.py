@@ -46,7 +46,8 @@ class DeepFactorNetworkBase(HybridBlock):
         feat_static_cat: Tensor,  # (batch_size, 1)
         time_feat: Tensor,  # (batch_size, history_length, num_features)
     ) -> Tensor:  # (batch_size, history_length, num_features)
-        # todo: this is shared by more than one places, and should be a general routine
+        # todo: this is shared by more than one places, and should be a general
+        # routine
 
         embedded_cat = self.embedder(
             feat_static_cat

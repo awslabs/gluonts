@@ -33,6 +33,7 @@ def target_transformation_length(
 class MissingValueImputation:
     """
     The parent class for all the missing value imputation classes.
+
     You can just implement your own inheriting this class.
     """
 
@@ -49,7 +50,8 @@ class MissingValueImputation:
 
         Returns
         -------
-        values : the array of values with the nans replaced according to the method used.
+        values : the array of values with the nans replaced according to the
+          method used.
 
         """
         raise NotImplementedError()
@@ -66,7 +68,8 @@ class LeavesMissingValues(MissingValueImputation):
 
 class DummyValueImputation(MissingValueImputation):
     """
-    This class replaces all the missing values with the same dummy value given in advance.
+    This class replaces all the missing values with the same dummy value given
+    in advance.
     """
 
     @validated()
@@ -81,9 +84,12 @@ class DummyValueImputation(MissingValueImputation):
 
 class MeanValueImputation(MissingValueImputation):
     """
-    This class replaces all the missing values with the mean of the non missing values.
-    Careful this is not a 'causal' method in the sense that it leaks information about the furture in the imputation.
-    You may prefer to use CausalMeanValueImputation instead.
+    This class replaces all the missing values with the mean of the non missing
+    values.
+
+    Careful this is not a 'causal' method in the sense that it leaks
+    information about the furture in the imputation. You may prefer to use
+    CausalMeanValueImputation instead.
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -96,8 +102,11 @@ class MeanValueImputation(MissingValueImputation):
 
 class LastValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the last value that was not missing.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the last value that was not
+    missing.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -122,8 +131,11 @@ class LastValueImputation(MissingValueImputation):
 
 class CausalMeanValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the average of all the values up to this point.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the average of all the values
+    up to this point.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
     """
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
@@ -131,8 +143,9 @@ class CausalMeanValueImputation(MissingValueImputation):
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
-        # we cannot compute the mean with this method if there are nans
-        # so we do a temporary fix of the nan just for the mean computation using this:
+        # we cannot compute the mean with this method if there are nans so we
+        # do a temporary fix of the nan just for the mean computation using
+        # this:
         last_value_imputation = LastValueImputation()
         value_no_nans = last_value_imputation(values)
 
@@ -148,7 +161,8 @@ class CausalMeanValueImputation(MissingValueImputation):
         ar_res = cumsum / indices.astype(float)
         values[mask] = ar_res[mask]
 
-        # make sure that we do not leave the potential nan in the first position:
+        # make sure that we do not leave the potential nan in the first
+        # position:
         values[0] = value_no_nans[0]
 
         return values
@@ -156,8 +170,11 @@ class CausalMeanValueImputation(MissingValueImputation):
 
 class RollingMeanValueImputation(MissingValueImputation):
     """
-    This class replaces each missing value with the average of all the last window_size (default=10) values.
-    (If the first values are missing, they are replaced by the closest non missing value.)
+    This class replaces each missing value with the average of all the last
+    window_size (default=10) values.
+
+    (If the first values are missing, they are replaced by the closest non
+    missing value.)
     """
 
     @validated()
@@ -169,8 +186,9 @@ class RollingMeanValueImputation(MissingValueImputation):
             return DummyValueImputation()(values)
         mask = np.isnan(values)
 
-        # we cannot compute the mean with this method if there are nans
-        # so we do a temporary fix of the nan just for the mean computation using this:
+        # we cannot compute the mean with this method if there are nans so we
+        # do a temporary fix of the nan just for the mean computation using
+        # this:
         last_value_imputation = LastValueImputation()
         value_no_nans = last_value_imputation(values)
 
@@ -189,7 +207,8 @@ class RollingMeanValueImputation(MissingValueImputation):
 
         values[mask] = ar_res[mask]
 
-        # make sure that we do not leave the potential nan in the first position:
+        # make sure that we do not leave the potential nan in the first
+        # position:
         values[0] = value_no_nans[0]
 
         return values
@@ -201,7 +220,6 @@ class AddObservedValuesIndicator(SimpleTransformation):
     an "observed"-indicator that is ``1`` when values are observed and ``0``
     when values are missing.
 
-
     Parameters
     ----------
     target_field
@@ -209,8 +227,8 @@ class AddObservedValuesIndicator(SimpleTransformation):
     output_field
         Field name to use for the indicator
     imputation_method
-        One of the methods from ImputationStrategy. If set to None, no imputation is
-        done and only the indicator is included.
+        One of the methods from ImputationStrategy. If set to None, no
+        imputation is done and only the indicator is included.
     """
 
     @validated()
@@ -245,22 +263,24 @@ class AddObservedValuesIndicator(SimpleTransformation):
 
 class AddConstFeature(MapTransformation):
     """
-    Expands a `const` value along the time axis as a dynamic feature, where
-    the T-dimension is defined as the sum of the `pred_length` parameter and
-    the length of a time series specified by the `target_field`.
+    Expands a `const` value along the time axis as a dynamic feature, where the
+    T-dimension is defined as the sum of the `pred_length` parameter and the
+    length of a time series specified by the `target_field`.
 
-    If `is_train=True` the feature matrix has the same length as the `target` field.
-    If `is_train=False` the feature matrix has length len(target) + pred_length
+    If `is_train=True` the feature matrix has the same length as the `target`
+    field. If `is_train=False` the feature matrix has length
+    `len(target) + pred_length`.
 
     Parameters
     ----------
     output_field
         Field name for output.
     target_field
-        Field containing the target array. The length of this array will be used.
+        Field containing the target array. The length of this array will be
+        used.
     pred_length
-        Prediction length (this is necessary since
-        features have to be available in the future)
+        Prediction length (this is necessary since features have to be
+        available in the future)
     const
         Constant value to use.
     dtype
@@ -296,8 +316,9 @@ class AddTimeFeatures(MapTransformation):
     """
     Adds a set of time features.
 
-    If `is_train=True` the feature matrix has the same length as the `target` field.
-    If `is_train=False` the feature matrix has length len(target) + pred_length
+    If `is_train=True` the feature matrix has the same length as the `target`
+    field. If `is_train=False` the feature matrix has length
+    `len(target) + pred_length`
 
     Parameters
     ----------
@@ -336,9 +357,10 @@ class AddTimeFeatures(MapTransformation):
         self.dtype = dtype
 
     def _update_cache(self, start: pd.Timestamp, length: int) -> None:
-        assert (
-            self._freq_base is None or self._freq_base == start.freq.base
-        ), f"data with base frequency other than {self._freq_base} cannot be processed; got {start.freq.base}"
+        assert self._freq_base is None or self._freq_base == start.freq.base, (
+            f"data with base frequency other than {self._freq_base} cannot be"
+            f" processed; got {start.freq.base}"
+        )
         if self._freq_base is None:
             self._freq_base = start.freq.base
         end = shift_timestamp(start, length)
@@ -471,8 +493,8 @@ class AddAggregateLags(MapTransformation):
         Aggregate frequency, i.e., the frequency of the aggregate time series.
     agg_lags
         List of aggregate lags given in the aggregate frequncy. If some of them
-        are invalid (need some of the last `prediction_length` values to be computed)
-        they are ignored.
+        are invalid (need some of the last `prediction_length` values to be
+        computed) they are ignored.
     agg_fun
         Aggregation function. Default is 'mean'.
     """
@@ -499,9 +521,10 @@ class AddAggregateLags(MapTransformation):
         self.dtype = dtype
 
         self.ratio = pd.Timedelta(self.agg_freq) / pd.Timedelta(self.base_freq)
-        assert (
-            self.ratio.is_integer() and self.ratio >= 1
-        ), "The aggregate frequency should be a multiple of the base frequency."
+        assert self.ratio.is_integer() and self.ratio >= 1, (
+            "The aggregate frequency should be a multiple of the base"
+            " frequency."
+        )
         self.ratio = int(self.ratio)
 
         self.half_window = (self.ratio - 1) // 2
@@ -513,8 +536,9 @@ class AddAggregateLags(MapTransformation):
 
         if set(self.agg_lags) - set(self.valid_lags):
             print(
-                f"The aggregate lags {set(self.agg_lags) - set(self.valid_lags)} "
-                f"of frequency {self.agg_freq} are ignored."
+                "The aggregate lags"
+                f" {set(self.agg_lags) - set(self.valid_lags)} of frequency"
+                f" {self.agg_freq} are ignored."
             )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
@@ -570,19 +594,20 @@ class AddAggregateLags(MapTransformation):
 
 class CountTrailingZeros(SimpleTransformation):
     """
-    Add the number of 'trailing' zeros in each univariate time series as a feature, to be
-    used when dealing with sparse (intermittent) time series.
+    Add the number of 'trailing' zeros in each univariate time series as a
+    feature, to be used when dealing with sparse (intermittent) time series.
 
-    For example, for 1-d a time series `[0, 0, 2, 3, 0]`, the number of trailing
-    zeros will be 1. If an n-dimensional array is provided, the first 1-d array along the `axis`
-    dimension will be checked for trailing zeros. For example, if axis is set to 1 for a
-    3-d array A, the transformation will return the number of trailing zeros in `A[0, :, 0]`.
+    For example, for 1-d a time series `[0, 0, 2, 3, 0]`, the number of
+    trailing zeros will be 1. If an n-dimensional array is provided, the first
+    1-d array along the `axis` dimension will be checked for trailing zeros.
+    For example, if axis is set to 1 for a 3-d array A, the transformation
+    will return the number of trailing zeros in `A[0, :, 0]`.
 
     Parameters
     ----------
     new_field
-        Name of the new field to be created, which will contain the number of trailing
-        zeros.
+        Name of the new field to be created, which will contain the number of
+        trailing zeros.
     target_field
         Field with target values (array) of time series
     as_array

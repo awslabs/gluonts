@@ -84,7 +84,8 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or 10 * prediction_length
-        # TODO find way to enforce same defaults to network and estimator somehow
+        # TODO find way to enforce same defaults to network and estimator
+        # somehow
         self.hidden_dimensions = hidden_dimensions or [20, 20]
         self.distr_output = distr_output
         self.loss = loss

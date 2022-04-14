@@ -152,7 +152,8 @@ def TrainDataLoader(
     shuffle_buffer_length: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ):
-    """Construct an iterator of batches for training purposes.
+    """
+    Construct an iterator of batches for training purposes.
 
     This function wraps around ``DataLoader`` to offer training-specific
     behaviour and options, as follows:
@@ -234,7 +235,8 @@ def ValidationDataLoader(
     num_workers: Optional[int] = None,
     decode_fn: Callable = lambda x: x,
 ):
-    """Construct an iterator of batches for validation purposes.
+    """
+    Construct an iterator of batches for validation purposes.
 
     Parameters
     ----------
@@ -285,7 +287,8 @@ def InferenceDataLoader(
     batch_size: int,
     stack_fn: Callable,
 ):
-    """Construct an iterator of batches for inference purposes.
+    """
+    Construct an iterator of batches for inference purposes.
 
     Parameters
     ----------

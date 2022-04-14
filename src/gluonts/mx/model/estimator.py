@@ -70,9 +70,9 @@ class GluonEstimator(Estimator):
 
         if not Model:
             raise AttributeError(
-                f"Cannot find attribute Model attached to the "
+                "Cannot find attribute Model attached to the "
                 f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                f"the class constructor as @validated()."
+                "the class constructor as @validated()."
             )
 
         try:

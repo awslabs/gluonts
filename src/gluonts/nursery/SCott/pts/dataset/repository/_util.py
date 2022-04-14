@@ -30,7 +30,7 @@ def to_dict(
             return "NaN"
         else:
             # return x
-            return float("{0:.6f}".format(float(x)))
+            return float(f"{float(x):.6f}")
 
     res = {
         "start": str(start),
@@ -53,7 +53,7 @@ def save_to_file(path: Path, data: List[Dict]):
     with open(path, "wb") as fp:
         for d in data:
             fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode("utf-8"))
+            fp.write(b"\n")
 
 
 def get_download_path() -> Path:

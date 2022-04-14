@@ -29,9 +29,11 @@ class Beta(Distribution):
     Parameters
     ----------
     alpha
-        Tensor containing the alpha shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the alpha shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the beta shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the beta shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
 
@@ -132,8 +134,8 @@ class BetaOutput(DistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor]:
-            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
-            positive orthant.
+            Two squeezed tensors, of shape `(*batch_shape)`: both have entries
+            mapped to the positive orthant.
         """
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
 

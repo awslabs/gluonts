@@ -54,7 +54,8 @@ def write_csv_row(
         timestamp = pd.Timestamp(data[FieldName.START], freq=freq_week_start)
         item_id = int(data[FieldName.ITEM_ID])
         for j, target in enumerate(data[FieldName.TARGET]):
-            # Using convention that there are no missing values before the start date
+            # Using convention that there are no missing values before the
+            # start date
             if is_missing and j != 0 and j % num_missing == 0:
                 timestamp += 1
                 continue  # Skip every 4th entry
@@ -74,14 +75,16 @@ def write_csv_row(
 def generate_sf2(
     filename: str, time_series: List, is_missing: bool, num_missing: int
 ) -> None:
-    #  This function generates the test and train json files which will be converted to csv format
+    #  This function generates the test and train json files which will be
+    #  converted to csv format
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
     with open(filename, "w") as json_file:
         for ts in time_series:
             if is_missing:
                 target = []  # type: List
-                # For Forecast don't output feat_static_cat and feat_static_real
+                # For Forecast don't output feat_static_cat and
+                # feat_static_real
                 for j, val in enumerate(ts[FieldName.TARGET]):
                     # only add ones that are not missing
                     if j != 0 and j % num_missing == 0:

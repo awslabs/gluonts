@@ -26,10 +26,13 @@ from .generator import CandidateGenerator
 @register_recommender("greedy")
 class GreedyRecommender(Recommender[ModelConfig]):
     """
-    Recommender that selects a set of configurations differently in the one-dimensional and two-
-    dimensional setting. In the one-dimensional setting, it greedily picks the configurations which
-    provide the lowest joint error. In the multi-dimensional setting, it greedily picks the
-    configurations which provide the lowest joint hypervolume error.
+    Recommender that selects a set of configurations differently in the one-
+    dimensional and two- dimensional setting.
+
+    In the one-dimensional setting, it greedily picks the configurations which
+    provide the lowest joint error. In the multi-dimensional setting, it
+    greedily picks the configurations which provide the lowest joint
+    hypervolume error.
     """
 
     metrics: np.ndarray  # shape [num_datasets, num_models, num_objectives]
@@ -110,9 +113,10 @@ class GreedyRecommender(Recommender[ModelConfig]):
         # result of this function in `fit`. However, we don't have access to `max_count` there.
         # First, we get the model configurations and check that they overlap with the ones we know.
         model_configs = self.generator.generate(candidates)
-        assert all(
-            c in self.model_indices for c in model_configs
-        ), "Greedy recommender can only provide recommendations for known configurations."
+        assert all(c in self.model_indices for c in model_configs), (
+            "Greedy recommender can only provide recommendations for known"
+            " configurations."
+        )
 
         # Greedily pick configurations. For the multi-objective case, we need to compute the
         # hypervolume error. Hence, for each dataset, we need to compute the hypervolume of the

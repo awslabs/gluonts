@@ -46,7 +46,7 @@ class PiecewiseLinear(Distribution):
         )
 
         # self.batch_shape = self.gamma.shape
-        super(PiecewiseLinear, self).__init__(
+        super().__init__(
             batch_shape=self.batch_shape, validate_args=validate_args
         )
 

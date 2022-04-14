@@ -21,9 +21,9 @@ from pts.dataset.stat import ScaleHistogram
 
 class InstanceSampler(ABC):
     """
-    An InstanceSampler is called with the time series and the valid
-    index bounds a, b and should return a set of indices a <= i <= b
-    at which training instances will be generated.
+    An InstanceSampler is called with the time series and the valid index
+    bounds a, b and should return a set of indices a <= i <= b at which
+    training instances will be generated.
 
     The object should be called with:
 
@@ -96,8 +96,10 @@ class CustomUniformSampler(InstanceSampler):
 
 class TestSplitSampler(InstanceSampler):
     """
-    Sampler used for prediction. Always selects the last time point for
-    splitting i.e. the forecast point for the time series.
+    Sampler used for prediction.
+
+    Always selects the last time point for splitting i.e. the forecast point
+    for the time series.
     """
 
     def __init__(self) -> None:
@@ -139,8 +141,8 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
-    skewed distributions. For instance, if the dataset contains many time series
-    with small values and few with large values.
+    skewed distributions. For instance, if the dataset contains many time
+    series with small values and few with large values.
 
     The probability of sampling from bucket i is the inverse of its number of elements.
 

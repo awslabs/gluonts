@@ -76,8 +76,8 @@ def buffered_precision_recall(
     buffer_length: int = 5,
 ) -> Tuple[float, float]:
     """
-    Implements a new range-based precision recall metric, that measures how well anomalies
-    (`real_ranges`) are caught with labels (`pred_ranges`).
+    Implements a new range-based precision recall metric, that measures how
+    well anomalies (`real_ranges`) are caught with labels (`pred_ranges`).
 
     We extend anomaly ranges by a number of time steps (`buffer_length`) to accomodate
     those raised with a lag. For example, if an annotator has marked `range(5, 9)`, and the

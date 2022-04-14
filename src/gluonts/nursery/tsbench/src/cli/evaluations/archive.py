@@ -35,8 +35,11 @@ from ._main import evaluations
 )
 def archive(evaluations_path: str, archive_path: str):
     """
-    Archives the metrics of all evaluations found in the provided directory into a single file.
-    This is most probably only necessary for publishing the metrics in an easier format.
+    Archives the metrics of all evaluations found in the provided directory
+    into a single file.
+
+    This is most probably only necessary for publishing the metrics in an
+    easier format.
     """
     source = Path(evaluations_path)
     target = Path(archive_path)

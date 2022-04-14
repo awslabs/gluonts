@@ -58,8 +58,9 @@ class MixtureDistribution(Distribution):
     def __init__(
         self, mixture_probs: Tensor, components: List[Distribution], F=None
     ) -> None:
-        # TODO: handle case with all components of the same type more efficiently when sampling
-        # self.all_same = len(set(c.__class__.__name__ for c in components)) == 1
+        # TODO: handle case with all components of the same type more
+        # efficiently when sampling self.all_same = len(set
+        # (c.__class__.__name__ for c in components)) == 1
         self.mixture_probs = mixture_probs
         self.components = components
         if not isinstance(mixture_probs, mx.sym.Symbol):
@@ -70,17 +71,18 @@ class MixtureDistribution(Distribution):
             ), "All component distributions must have the same batch_shape."
 
             # assert that mixture_probs has the right shape
-            assertion_message = f"""mixture_probs have shape {mixture_probs.shape}, but expected shape: (..., k), 
-                                    where k is len(components)={len(components)}. 
-                                    All axes except the last one should either coincide with the ones from the 
-                                    component distributions, 
-                                    or be 1 (in which case, the mixing coefficient is shared across
-                                    the axis)."""
+            assertion_message = f""" mixture_probs have shape
+            {mixture_probs.shape}, but expected shape: (..., k), where k is
+            len(components)={len(components)}. All axes except the last one
+            should either coincide with the ones from the component
+            distributions, or be 1 (in which case, the mixing coefficient is
+            shared across the axis)."""
 
             expected_shape = self.batch_shape + (len(components),)
             assert len(expected_shape) == len(self.mixture_probs.shape), (
                 assertion_message
-                + " Maybe you need to expand the shape of mixture_probs at the zeroth axis."
+                + " Maybe you need to expand the shape of mixture_probs at the"
+                " zeroth axis."
             )
             for expected_dim, given_dim in zip(
                 expected_shape, self.mixture_probs.shape
@@ -106,8 +108,8 @@ class MixtureDistribution(Distribution):
 
     def __getitem__(self, item):
         mp = _index_tensor(self.mixture_probs, item)
-        # fix edge case: if batch_shape == (1,) the mixture_probs shape is squeezed to (k,)
-        # reshape it to (1, k)
+        # fix edge case: if batch_shape == (1,) the mixture_probs shape is
+        # squeezed to (k,) reshape it to (1, k)
         if len(mp.shape) == 1:
             mp = mp.reshape(1, -1)
         return MixtureDistribution(

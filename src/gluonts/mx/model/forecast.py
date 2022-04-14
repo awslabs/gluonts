@@ -29,10 +29,10 @@ from gluonts.mx.distribution import Distribution
 
 class DistributionForecast(Forecast):
     """
-    A `Forecast` object that uses a GluonTS distribution directly.
-    This can for instance be used to represent marginal probability
-    distributions for each time point -- although joint distributions are
-    also possible, e.g. when using MultiVariateGaussian).
+    A `Forecast` object that uses a GluonTS distribution directly. This can for
+    instance be used to represent marginal probability distributions for each
+    time point -- although joint distributions are also possible, e.g. when
+    using MultiVariateGaussian).
 
     Parameters
     ----------

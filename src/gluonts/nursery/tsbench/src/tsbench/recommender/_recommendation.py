@@ -21,7 +21,8 @@ T = TypeVar("T")
 @dataclass
 class Recommendation(Generic[T]):
     """
-    A recommendation provides a configuration along with its expected performance.
+    A recommendation provides a configuration along with its expected
+    performance.
     """
 
     config: T

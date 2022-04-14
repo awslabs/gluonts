@@ -121,7 +121,7 @@ class FileDataset(Dataset):
                 yield data
 
     def __len__(self):
-        return sum([len(JsonLinesFile(path)) for path in self.files()])
+        return sum(len(JsonLinesFile(path)) for path in self.files())
 
     def files(self) -> List[Path]:
         """

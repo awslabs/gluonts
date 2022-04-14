@@ -77,8 +77,8 @@ class MetaData(BaseModel):
 
 class TrainDatasets(NamedTuple):
     """
-    A dataset containing two subsets, one to be used for training purposes,
-    and the other for testing purposes, as well as metadata.
+    A dataset containing two subsets, one to be used for training purposes, and
+    the other for testing purposes, as well as metadata.
     """
 
     metadata: MetaData

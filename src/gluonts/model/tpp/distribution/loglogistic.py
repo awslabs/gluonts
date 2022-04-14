@@ -30,8 +30,8 @@ class Loglogistic(TPPDistribution):
     A very heavy-tailed distribution over positive real numbers.
     https://en.wikipedia.org/wiki/Log-logistic_distribution
 
-    Drawing :math:`x \sim \operatorname{Loglogistic}(\mu, \sigma)` is equivalent
-    to:
+    Drawing :math:`x \sim \operatorname{Loglogistic}(\mu, \sigma)` is
+    equivalent to:
 
     .. math::
 
@@ -75,9 +75,11 @@ class Loglogistic(TPPDistribution):
         The intensity is defined as :math:`\lambda(x) = p(x) / S(x)`.
 
         We define :math:`z = (\log(x) - \mu) / \sigma` and obtain the intensity
-        as :math:`\lambda(x) = sigmoid(z) / (\sigma * \log(x))`, or equivalently
+        as :math:`\lambda(x) = sigmoid(z) / (\sigma * \log(x))`, or
+        equivalently
         :math:`\log \lambda(x) = z - \log(1 + \exp(z)) - \log(\sigma) - \log(x)`.
-        """
+        """  # noqa: E501
+
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
         F = getF(x)
@@ -85,12 +87,14 @@ class Loglogistic(TPPDistribution):
 
     def log_survival(self, x: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function :math:`\log S(x) = \log(1 - CDF(x))`.
+        Logarithm of the survival function
+        :math:`\log S(x) = \log(1 - CDF(x))`.
 
         We define :math:`z = (\log(x) - \mu) / \sigma` and obtain the survival
         function as :math:`S(x) = sigmoid(-z)`, or equivalently
         :math:`\log S(x) = -\log(1 + \exp(z))`.
         """
+
         log_x = x.clip(1e-20, np.inf).log()
         z = (log_x - self.mu) / self.sigma
         F = getF(x)
@@ -137,8 +141,9 @@ class Loglogistic(TPPDistribution):
             sample_shape = self.batch_shape
         u = F.uniform(0, 1, shape=sample_shape)
         # Make sure that the generated samples are larger than condition_above.
-        # This is easy to ensure when using inverse-survival sampling: we simply
-        # multiply `u ~ Uniform(0, 1)` by `S(y)` to ensure that `x > y`.
+        # This is easy to ensure when using inverse-survival sampling: we
+        # simply multiply `u ~ Uniform(0, 1)` by `S(y)` to ensure that
+        # `x > y`.
         with autograd.pause():
             if lower_bound is not None:
                 survival = self.log_survival(lower_bound).exp()

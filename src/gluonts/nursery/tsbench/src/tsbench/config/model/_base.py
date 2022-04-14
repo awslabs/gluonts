@@ -25,23 +25,30 @@ from tsbench.gluonts.callbacks import Callback
 @dataclass(frozen=True)  # frozen=True is required to make this type hashable
 class ModelConfig:
     """
-    A model configuration describes the configuration of a GluonTS model and allows instantiating
-    an estimator from it. Compared to an estimator, this configuration class can easily be hashed
-    and different objects with the same configuration are considered equal under the `==` operator.
+    A model configuration describes the configuration of a GluonTS model and
+    allows instantiating an estimator from it.
+
+    Compared to an estimator, this configuration class can easily be hashed and
+    different objects with the same configuration are considered equal under
+    the `==` operator.
     """
 
     @classmethod
     def name(cls) -> str:
         """
-        Returns the canonical name for the model described by the configuration.
+        Returns the canonical name for the model described by the
+        configuration.
         """
         raise NotImplementedError
 
     @classmethod
     def hyperparameters(cls) -> Dict[str, bool]:
         """
-        Returns the list of hyperparameters that are expected by this model configuration.
-        For each hyperparameter, it provides a boolean whether there exists a default value.
+        Returns the list of hyperparameters that are expected by this model
+        configuration.
+
+        For each hyperparameter, it provides a boolean whether there exists a
+        default value.
         """
         # pylint: disable=no-member
         return {
@@ -51,8 +58,8 @@ class ModelConfig:
 
     def save_predictor(self, predictor: Predictor, path: Path) -> None:
         """
-        Saves the predictor associated with the model configuration to the specified path. By
-        default, this simply serializes the predictor.
+        Saves the predictor associated with the model configuration to the
+        specified path. By default, this simply serializes the predictor.
 
         Args:
             predictor: The predictor to save.
@@ -75,7 +82,8 @@ class ModelConfig:
     @property
     def prediction_samples(self) -> int:
         """
-        The number of samples which should be produced when sampling during inference.
+        The number of samples which should be produced when sampling during
+        inference.
         """
         return 100
 
@@ -88,8 +96,8 @@ class ModelConfig:
 
     def max_time_series_length(self, _config: DatasetConfig) -> Optional[int]:
         """
-        The maximum length a time series may have to be used for prediction. If an integer N is
-        provided, only the most recent N observations are used.
+        The maximum length a time series may have to be used for prediction. If
+        an integer N is provided, only the most recent N observations are used.
 
         Args:
             config: The dataset for which to determine the maximum time series length.
@@ -145,8 +153,8 @@ C = TypeVar("C", bound="TrainConfig")
 @dataclass(frozen=True)
 class TrainConfig:
     """
-    The training configuration may be derived by any estimator which is trained via the GluonTS
-    `Trainer` class.
+    The training configuration may be derived by any estimator which is trained
+    via the GluonTS `Trainer` class.
     """
 
     @classmethod
@@ -168,8 +176,9 @@ class TrainConfig:
         self, estimator: Estimator, network: nn.HybridBlock
     ) -> Predictor:
         """
-        Creates a predictor from the provided network. This method is required to be implemented by
-        every model configuration which describes a trainable model.
+        Creates a predictor from the provided network. This method is required
+        to be implemented by every model configuration which describes a
+        trainable model.
 
         Args:
             estimator: The estimator for which to obtain the predictor. Must have been obtained

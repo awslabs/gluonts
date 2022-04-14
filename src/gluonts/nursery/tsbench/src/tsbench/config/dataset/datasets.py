@@ -988,7 +988,8 @@ class M1MonthlyDatasetConfig(MonashDatasetConfig):
 @dataclass(frozen=True)
 class RossmannDatasetConfig(KaggleDatasetConfig):
     """
-    The dataset configuration for the "Rossmann Store Sales" Kaggle competition.
+    The dataset configuration for the "Rossmann Store Sales" Kaggle
+    competition.
     """
 
     @classmethod
@@ -1043,7 +1044,8 @@ class RossmannDatasetConfig(KaggleDatasetConfig):
 @dataclass(frozen=True)
 class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
     """
-    The dataset configuration for the "Corporación Favorita" Kaggle competition.
+    The dataset configuration for the "Corporación Favorita" Kaggle
+    competition.
     """
 
     @classmethod

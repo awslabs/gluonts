@@ -59,7 +59,7 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
 
     def _compute_loss(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
-        Function to compute loss
+        Function to compute loss.
 
         Given time series, unroll the RNN over the context window
         and pass the hidden states to the forecaster

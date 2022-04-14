@@ -23,8 +23,8 @@ from .generator import CandidateGenerator
 @register_recommender("optimal")
 class OptimalRecommender(Recommender[ModelConfig]):
     """
-    The optimal recommender makes recommendations by accessing the true performances of the
-    models.
+    The optimal recommender makes recommendations by accessing the true
+    performances of the models.
     """
 
     def __init__(

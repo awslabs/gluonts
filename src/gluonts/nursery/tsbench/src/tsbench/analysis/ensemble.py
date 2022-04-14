@@ -45,9 +45,11 @@ from tsbench.forecasts import (
 
 class EnsembleAnalyzer:
     """
-    The ensemble analyzer allows for evaluating the performance of ensembles across datasets. The
-    analysis is run in parallel and should, thus, not be used in a Jupyter notebook. Instead,
-    consider using the `tsbench` CLI.
+    The ensemble analyzer allows for evaluating the performance of ensembles
+    across datasets.
+
+    The analysis is run in parallel and should, thus, not be used in a Jupyter
+    notebook. Instead, consider using the `tsbench` CLI.
     """
 
     def __init__(
@@ -73,9 +75,10 @@ class EnsembleAnalyzer:
 
     def run(self) -> Tuple[pd.DataFrame, Dict[str, List[ModelConfig]]]:
         """
-        Runs the evaluation on the data provided via the tracker. The data obtained from the
-        tracker is partitioned by the dataset and we run "grouped LOOCV" to compute performance
-        metrics on datasets. Metrics on each dataset are then returned as data frame.
+        Runs the evaluation on the data provided via the tracker. The data
+        obtained from the tracker is partitioned by the dataset and we run
+        "grouped LOOCV" to compute performance metrics on datasets. Metrics on
+        each dataset are then returned as data frame.
 
         Returns:
             The metrics on the individual datasets.
@@ -168,8 +171,8 @@ class EnsembleAnalyzer:
         num_samples: int = 10,
     ) -> Performance:
         """
-        Estimates the performance of a list of models on a particular dataset. For this, actually
-        trained models are sampled for each configuration.
+        Estimates the performance of a list of models on a particular dataset.
+        For this, actually trained models are sampled for each configuration.
 
         Args:
             models: The list of models to evaluate.
@@ -246,7 +249,7 @@ class EnsembleAnalyzer:
         data_path: Path = DEFAULT_DATA_PATH,
     ) -> pd.DataFrame:
         """
-        TODO
+        TODO.
         """
         results = []
         for name, dataset in tqdm(DATASET_REGISTRY.items()):

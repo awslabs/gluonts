@@ -178,9 +178,11 @@ def save_datasets(
             enumerate(data), total=len(data), desc="creating json files"
         ):
             # Convert the data to a GluonTS dataset...
-            # - `default_start_timestamp` is required for some datasets which are not listed here
-            #   since some datasets do not define start timestamps
-            # - `item_id` is added for all datasets ... many datasets provide the "series_name"
+            # - `default_start_timestamp` is required for some datasets which
+            #   are not listed here since some datasets do not define start
+            #   timestamps
+            # - `item_id` is added for all datasets ... many datasets provide
+            #   the "series_name"
             dic = to_dict(
                 target_values=data_entry["target"],
                 start=str(

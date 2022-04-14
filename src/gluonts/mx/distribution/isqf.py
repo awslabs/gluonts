@@ -877,9 +877,9 @@ class ISQFOutput(DistributionOutput):
         tol: float = 1e-4,
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """
-        Domain map function
-        The inputs of this function are specified by self.args_dim
-        knots, heights:
+        Domain map function The inputs of this function are specified by
+        self.args_dim knots, heights:
+
         parameterizing the x-/ y-positions of the spline knots,
         shape = (*batch_shape, (num_qk-1)*num_pieces)
         q:
@@ -947,9 +947,8 @@ class ISQFOutput(DistributionOutput):
 
     def reshape_spline_args(self, distr_args, qk_x):
         """
-        auxiliary function reshaping
-        knots and heights to (*batch_shape, num_qk-1, num_pieces)
-        alpha to (*batch_shape, num_qk)
+        auxiliary function reshaping knots and heights to (*batch_shape,
+        num_qk-1, num_pieces) alpha to (*batch_shape, num_qk)
         """
 
         spline_knots, spline_heights = distr_args[0], distr_args[1]

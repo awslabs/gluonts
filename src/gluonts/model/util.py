@@ -50,10 +50,10 @@ class LinearInterpolation:
 
     def linear_interpolation(self, x: float) -> np.ndarray:
         """
-        If x is out of interpolation range,
-        return smallest or largest value.
-        Otherwise, find two nearest points [x_1, y_1], [x_2, y_2] and
-        return its linear interpolation
+        If x is out of interpolation range, return smallest or largest value.
+        Otherwise, find two nearest points [x_1, y_1], [x_2, y_2] and return
+        its linear interpolation.
+
         y = (x_2 - x)/(x_2 - x_1) * y_1 + (x - x_1)/(x_2 - x_1) * y_2.
 
         Parameters
@@ -65,7 +65,6 @@ class LinearInterpolation:
         -------
         np.ndarray
             Interpolated values same shape as self.y_coord
-
         """
         if self.x_coord[0] >= x:
             return self.y_coord[0]
@@ -117,8 +116,8 @@ class ExponentialTailApproximation:
 
     def init_exponential_tail_weights(self) -> Tuple[float, float]:
         """
-        Initialize the weight of exponentially decaying tail functions
-        based on two extreme points on the left and right, respectively.
+        Initialize the weight of exponentially decaying tail functions based on
+        two extreme points on the left and right, respectively.
 
         Returns
         -------
@@ -144,7 +143,8 @@ class ExponentialTailApproximation:
 
     def left(self, x: float) -> np.ndarray:
         """
-        Return the inference made on exponentially decaying tail functions
+        Return the inference made on exponentially decaying tail functions.
+
         For left tail, x = exp(beta * (q - alpha))
         For right tail, x = 1 - exp(-beta * (q - alpha))
 
@@ -155,7 +155,6 @@ class ExponentialTailApproximation:
         ----------
         x
             x-coordinate to evaluate the right tail.
-
         """
         return (
             self.beta_inv_left
@@ -164,7 +163,8 @@ class ExponentialTailApproximation:
 
     def right(self, x: float) -> np.ndarray:
         """
-        Return the inference made on exponentially decaying tail functions
+        Return the inference made on exponentially decaying tail functions.
+
         For left tail, x = exp(beta * (q - alpha))
         For right tail, x = 1 - exp(-beta * (q - alpha))
 
@@ -186,8 +186,7 @@ class ExponentialTailApproximation:
 
     def tail_range(self, default_left_tail=0.1, default_right_tail=0.9):
         """
-        Return an effective range of left and right tails
-
+        Return an effective range of left and right tails.
         """
         left_tail = max(
             self.x_coord[0],

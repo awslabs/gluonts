@@ -39,10 +39,12 @@ class DeepSetModel(nn.Module):
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
         """
-        Computes the model output by mapping all inputs independently into the latent space and
-        averaging contiguous blocks of latent representations as specified by the lengths. Then
-        passes the averaged latent representations along with the number of members that have been
-        averaged to the decoder.
+        Computes the model output by mapping all inputs independently into the
+        latent space and averaging contiguous blocks of latent representations
+        as specified by the lengths.
+
+        Then passes the averaged latent representations along with the number
+        of members that have been averaged to the decoder.
         """
         # Run encoder
         z = self.encoder(x)

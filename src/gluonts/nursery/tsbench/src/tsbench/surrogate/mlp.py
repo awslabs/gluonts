@@ -30,9 +30,11 @@ from .transformers import ConfigTransformer
 @register_surrogate("mlp")
 class MLPSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     """
-    The MLP surrogate predicts a model's performance on a new dataset using an MLP. The MLP
-    converts inputs into feature vectors of the same size and uses either ranking or regression to
-    predict metrics.
+    The MLP surrogate predicts a model's performance on a new dataset using an
+    MLP.
+
+    The MLP converts inputs into feature vectors of the same size and uses
+    either ranking or regression to predict metrics.
     """
 
     trainer_: pl.Trainer

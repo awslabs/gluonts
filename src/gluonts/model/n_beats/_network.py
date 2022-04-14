@@ -44,7 +44,9 @@ def seasonality_model(
     is_forecast: bool,
 ) -> Tensor:
     """
-    Creates a fourier series basis with num_coefficients coefficients for sine and cosine each.
+    Creates a fourier series basis with num_coefficients coefficients for sine
+    and cosine each.
+
     So the total number of learned coefficients amounts to 2*num_coefficients.
     """
     t = linear_space(
@@ -79,7 +81,8 @@ def trend_model(
 
 class NBEATSBlock(mx.gluon.HybridBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     Parameters
     ----------
@@ -88,9 +91,9 @@ class NBEATSBlock(mx.gluon.HybridBlock):
     num_block_layers
         Number of fully connected layers with ReLu activation.
     expansion_coefficient_length
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used.
     prediction_length
         Length of the prediction. Also known as 'horizon'.
     context_length
@@ -140,7 +143,8 @@ class NBEATSBlock(mx.gluon.HybridBlock):
                     )
                 )
 
-            # Subclasses will have to initialize these attributes appropriately:
+            # Subclasses will have to initialize these attributes
+            # appropriately:
 
             self.theta_backcast = None
             self.theta_forecast = None
@@ -175,8 +179,8 @@ class NBEATSBlock(mx.gluon.HybridBlock):
 
 class NBEATSGenericBlock(NBEATSBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the GenericBlock variant.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the GenericBlock variant.
 
     Parameters
     ----------
@@ -225,8 +229,8 @@ class NBEATSGenericBlock(NBEATSBlock):
 
 class NBEATSSeasonalBlock(NBEATSBlock):
     """
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the Seasonal block variant.
+    The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the Seasonal block variant.
 
     Parameters
     ----------
@@ -253,9 +257,10 @@ class NBEATSSeasonalBlock(NBEATSBlock):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        # the number of coefficient in the fourier basis per sine and cosine each
-        # determined depending on prediction length, as defined by paper
-        # also: dont use floor because prediction_length=1 should be mapped to 0
+        # the number of coefficient in the fourier basis per sine and cosine
+        # each determined depending on prediction length, as defined by paper
+        # also: dont use floor because prediction_length=1 should be mapped to
+        # 0
         self.num_coefficients = int((self.prediction_length / 2) - 1) + 1
 
         with self.name_scope():
@@ -298,9 +303,9 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 
 class NBEATSTrendBlock(NBEATSBlock):
-    """ "
-    The NBEATS Block as described in the paper: https://arxiv.org/abs/1905.10437.
-    This is the Trend block variant.
+    """
+    " The NBEATS Block as described in the paper:
+    https://arxiv.org/abs/1905.10437. This is the Trend block variant.
 
     Parameters
     ----------
@@ -370,9 +375,10 @@ class NBEATSTrendBlock(NBEATSBlock):
 
 class NBEATSNetwork(mx.gluon.HybridBlock):
     """
-    The NBEATS Network as described in the paper: https://arxiv.org/abs/1905.10437.
-    This does not constitute the whole NBEATS model, which is en ensemble model
-    comprised of a multitude of NBEATS Networks.
+    The NBEATS Network as described in the paper:
+    https://arxiv.org/abs/1905.10437. This does not constitute the whole NBEATS
+    model, which is en ensemble model comprised of a multitude of NBEATS
+    Networks.
 
     Parameters
     ----------
@@ -396,8 +402,8 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
     widths
-        Widths of the fully connected layers with ReLu activation in the blocks.
-        A list of ints of length 1 or 'num_stacks'.
+        Widths of the fully connected layers with ReLu activation in the
+        blocks. A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [512]
         Recommended value for interpretable mode: [256, 2048]
     sharing
@@ -406,15 +412,15 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used.
         A list of ints of length 1 or 'num_stacks'.
         Default value for generic mode: [32]
         Recommended value for interpretable mode: [3]
     stack_types
-        One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
-        A list of strings of length 1 or 'num_stacks'.
+        One of the following values: "G" (generic), "S" (seasonal) or "T"
+        (trend). A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     scale
@@ -478,7 +484,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSGenericBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,
@@ -490,7 +496,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSSeasonalBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,
@@ -502,7 +508,7 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block = NBEATSTrendBlock(
                             width=self.widths[stack_id],
                             num_block_layers=self.num_block_layers[stack_id],
-                            expansion_coefficient_length=self.expansion_coefficient_lengths[
+                            expansion_coefficient_length=self.expansion_coefficient_lengths[  # noqa: E501
                                 stack_id
                             ],
                             prediction_length=prediction_length,
@@ -654,8 +660,10 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             assert (
                 self.periodicity < self.context_length + self.prediction_length
             ), (
-                "If the 'periodicity' of your data is less than 'context_length' + 'prediction_length' "
-                "the seasonal_error cannot be calculated and thus 'MASE' cannot be used for optimization."
+                "If the 'periodicity' of your data is less than"
+                " 'context_length' + 'prediction_length' the seasonal_error"
+                " cannot be calculated and thus 'MASE' cannot be used for"
+                " optimization."
             )
 
     # noinspection PyMethodOverriding,PyPep8Naming
@@ -717,7 +725,8 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             )
         else:
             raise ValueError(
-                f"Invalid value {self.loss_function} for argument loss_function."
+                f"Invalid value {self.loss_function} for argument"
+                " loss_function."
             )
 
         return loss

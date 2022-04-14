@@ -28,7 +28,7 @@ class RNNModel(HybridBlock):
         bidirectional=False,
         **kwargs,
     ):
-        super(RNNModel, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.num_output = num_output
 
         with self.name_scope():

@@ -119,8 +119,8 @@ class NPTS:
         item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
-        Given the `targets`, generates `Forecast` containing prediction
-        samples for `predcition_length` time points.
+        Given the `targets`, generates `Forecast` containing prediction samples
+        for `predcition_length` time points.
 
         Predictions are generated via weighted sampling where the weights are
         specified in `sampling_weights_iterator`.

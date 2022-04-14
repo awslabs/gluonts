@@ -158,7 +158,7 @@ def get_temperature_data(
 
 
 def get_amazon_sales():
-    f = open("./dataset/sgc_train.json", "r", encoding="utf-8")
+    f = open("./dataset/sgc_train.json", encoding="utf-8")
     dataset_group = [[] for i in range(8)]
     whole_data = []
     ret = dict()

@@ -23,10 +23,10 @@ from gluonts.model.forecast import Config, Forecast, OutputType
 
 class PointProcessSampleForecast(Forecast):
     """
-    Sample forecast object used for temporal point process inference.
-    Differs from standard forecast objects as it does not implement
-    fixed length samples. Each sample has a variable length, that is
-    kept in a separate :code:`valid_length` attribute.
+    Sample forecast object used for temporal point process inference. Differs
+    from standard forecast objects as it does not implement fixed length
+    samples. Each sample has a variable length, that is kept in a separate
+    :code:`valid_length` attribute.
 
     Importantly, PointProcessSampleForecast does not implement some
     methods (such as :code:`quantile` or :code:`plot`) that are available
@@ -54,6 +54,7 @@ class PointProcessSampleForecast(Forecast):
         Item ID, if available.
     info
         Optional dictionary of additional information.
+
     """
 
     prediction_interval_length: float
@@ -76,9 +77,10 @@ class PointProcessSampleForecast(Forecast):
         assert isinstance(
             samples, (np.ndarray, mx.nd.NDArray)
         ), "samples should be either a numpy or an mxnet array"
-        assert (
-            samples.ndim == 2 or samples.ndim == 3
-        ), f"samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {samples.ndim}"
+        assert samples.ndim == 2 or samples.ndim == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            f" Dimensions found: {samples.ndim}"
+        )
 
         assert isinstance(
             valid_length, (np.ndarray, mx.nd.NDArray)

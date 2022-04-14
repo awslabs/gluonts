@@ -26,8 +26,8 @@ class Bijection:
     """
     A bijective transformation.
 
-    This is defined through the forward transformation (computed by the
-    `f` method) and the inverse transformation (`f_inv`).
+    This is defined through the forward transformation (computed by the `f`
+    method) and the inverse transformation (`f_inv`).
     """
 
     @validated()
@@ -119,7 +119,8 @@ class InverseBijection(Bijection):
 
 class ComposedBijection(Bijection):
     """
-    Encapsulates a series of bijections and implements functions associated to their composition.
+    Encapsulates a series of bijections and implements functions associated to
+    their composition.
     """
 
     @validated()
@@ -149,7 +150,6 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Transformation of x by the forward composition of bijections
-
         """
         y = x
         for t in self._bijections:
@@ -177,12 +177,14 @@ class ComposedBijection(Bijection):
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         """
-        Logarithm of the absolute value of the Jacobian determinant corresponding to the composed bijection
+        Logarithm of the absolute value of the Jacobian determinant
+        corresponding to the composed bijection.
 
         Parameters
         ----------
         x
-            input of the forward transformation or output of the inverse transform
+            input of the forward transformation or output of the inverse
+            transform
         y
             output of the forward transform or input of the inverse transform
 
@@ -190,7 +192,6 @@ class ComposedBijection(Bijection):
         -------
         Tensor
             Jacobian evaluated for x as input or y as output
-
         """
         ladj = 0.0
         for t in reversed(self._bijections):
@@ -231,12 +232,14 @@ class ComposedBijection(Bijection):
 
 
 class BijectionHybridBlock(HybridBlock, Bijection):
-    """Allows a Bijection to have parameters"""
+    """
+    Allows a Bijection to have parameters.
+    """
 
 
 class ComposedBijectionHybridBlock(BijectionHybridBlock, ComposedBijection):
     """
-    Allows a ComposedBijection object to have parameters
+    Allows a ComposedBijection object to have parameters.
     """
 
     @validated()

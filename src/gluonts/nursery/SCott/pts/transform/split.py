@@ -173,13 +173,11 @@ class InstanceSplitter(FlatMapTransformation):
             # mask the loss.
             if self.is_full_batch:
                 sampled_indices = tuple(
-                    [
-                        i
-                        for i in range(
-                            self.past_length,
-                            len_target - self.future_length + 1,
-                        )
-                    ]
+                    i
+                    for i in range(
+                        self.past_length,
+                        len_target - self.future_length + 1,
+                    )
                 )
             else:
                 sampled_indices = (
@@ -236,10 +234,9 @@ class InstanceSplitter(FlatMapTransformation):
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
     """
-    Selects instances, by slicing the target and other time series
-    like arrays at random points in training mode or at the last time point in
-    prediction mode. Assumption is that all time like arrays start at the same
-    time point.
+    Selects instances, by slicing the target and other time series like arrays
+    at random points in training mode or at the last time point in prediction
+    mode. Assumption is that all time like arrays start at the same time point.
 
     In training mode, the returned instances contain past_`target_field`
     as well as past_`time_series_fields`.
@@ -407,10 +404,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     """
     Selects training instances by slicing "intervals" from a continuos-time
-    process instantiation. Concretely, the input data is expected to describe an
-    instantiation from a point (or jump) process, with the "target"
-    identifying inter-arrival times and other features (marks), as described
-    in detail below.
+    process instantiation. Concretely, the input data is expected to describe
+    an instantiation from a point (or jump) process, with the "target"
+    identifying inter-arrival times and other features (marks), as described in
+    detail below.
 
     The splitter will then take random points in continuous time from each
     given observation, and return a (variable-length) array of points in

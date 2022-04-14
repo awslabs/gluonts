@@ -93,8 +93,8 @@ class NBEATSEnsemblePredictor(Predictor):
 
 class NBEATSEnsembleEstimator(Estimator):
     """
-    An ensemble N-BEATS Estimator (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
+    An ensemble N-BEATS Estimator (approximately) as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
     together define the way the sub-models are assembled together.
@@ -198,7 +198,10 @@ class NBEATSEnsembleEstimator(Estimator):
                 loss_function in VALID_LOSS_FUNCTIONS
                 for loss_function in meta_loss_function
             ]
-        ), f"Each loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
+        ), (
+            "Each loss function has to be one of the following:"
+            f" {VALID_LOSS_FUNCTIONS}."
+        )
         assert meta_context_length is None or all(
             [context_length > 0 for context_length in meta_context_length]
         ), "The value of each `context_length` should be > 0"

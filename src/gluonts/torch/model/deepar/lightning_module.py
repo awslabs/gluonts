@@ -78,7 +78,9 @@ class DeepARLightningModule(pl.LightningModule):
         return weighted_average(loss_values, weights=loss_weights)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
-        """Execute training step"""
+        """
+        Execute training step.
+        """
         train_loss = self._compute_loss(batch)
         self.log(
             "train_loss",
@@ -90,7 +92,9 @@ class DeepARLightningModule(pl.LightningModule):
         return train_loss
 
     def validation_step(self, batch, batch_idx: int):  # type: ignore
-        """Execute validation step"""
+        """
+        Execute validation step.
+        """
         val_loss = self._compute_loss(batch)
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
@@ -98,7 +102,9 @@ class DeepARLightningModule(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        """Returns the optimizer to use"""
+        """
+        Returns the optimizer to use.
+        """
         return torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,

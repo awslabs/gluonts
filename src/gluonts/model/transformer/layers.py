@@ -21,7 +21,8 @@ from gluonts.mx import Tensor
 
 def split_heads(F, x: Tensor, dim_per_head: int, heads: int) -> Tensor:
     r"""
-    Returns a tensor with head dimension folded into batch and last dimension divided by the number of heads.
+    Returns a tensor with head dimension folded into batch and last dimension
+    divided by the number of heads.
 
     Parameters
     ----------
@@ -162,7 +163,8 @@ class LayerNormalization(HybridBlock):
 class InputLayer(HybridBlock):
     r"""
     Transforms the input vector to model_size with an one-layer MPL, i.e.,
-    (batch_size, time_length, input_dim) -> (batch_size, time_length, model_size)
+    (batch_size, time_length, input_dim) -> (batch_size, time_length,
+    model_size)
     """
 
     def __init__(self, model_size: int = 64, **kwargs) -> None:
@@ -271,8 +273,8 @@ class MultiHeadAttentionBase(HybridBlock):
 
 class MultiHeadSelfAttention(MultiHeadAttentionBase):
     r"""
-    Multi-head self-attention. Independent linear projections of inputs serve as
-    queries, keys, and values for the attention.
+    Multi-head self-attention. Independent linear projections of inputs serve
+    as queries, keys, and values for the attention.
 
     Parameters
     ----------
@@ -397,9 +399,9 @@ class MultiHeadAttention(MultiHeadAttentionBase):
         self, F, queries: Tensor, memory: Tensor, mask: Optional[Tensor] = None
     ) -> Tensor:
         r"""
-        Computes multi-head attention for queries given a memory tensor.
-        If sequence lengths are provided, they will be used to mask the attention scores.
-        A mask tensor may also be used to mask the attention scores.
+        Computes multi-head attention for queries given a memory tensor. If
+        sequence lengths are provided, they will be used to mask the attention
+        scores. A mask tensor may also be used to mask the attention scores.
         Returns a tensor of shape (batch_size, max_length, att_dim_out).
 
         Parameters
@@ -407,7 +409,8 @@ class MultiHeadAttention(MultiHeadAttentionBase):
         queries
             Queries tensor of shape (batch_size, query_max_length, att_dim_in)
         memory
-            Memory tensor to attend to of shape (batch_size, memory_max_length, att_dim_in)
+            Memory tensor to attend to of shape (batch_size, memory_max_length,
+            att_dim_in)
         mask
             Optional tensor to mask attention scores
 
@@ -495,7 +498,8 @@ class TransformerFeedForward(HybridBlock):
 class TransformerProcessBlock(HybridBlock):
     r"""
     Block to perform pre/post processing on layer inputs.
-    The processing steps are determined by the sequence argument, which can contain one of the three operations:
+    The processing steps are determined by the sequence argument, which can
+    contain one of the three operations:
     n: layer normalization
     r: residual connection
     d: dropout
