@@ -19,8 +19,8 @@ import scipy.stats as st
 
 def compute_ranks(candidates: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Computes the ranks of the provided candidates for each column in the provided dataframe. If
-    candidates show the same values, ranks are tied.
+    Computes the ranks of the provided candidates for each column in the
+    provided dataframe. If candidates show the same values, ranks are tied.
 
     Args:
         candidates: A mapping from candidate names to performances. The indexes of all candidates

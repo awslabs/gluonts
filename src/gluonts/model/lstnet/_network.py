@@ -344,7 +344,8 @@ class LSTNetPredict(LSTNetBase):
         Returns
         -------
         Tensor
-            Predicted samples of shape (batch_size, num_samples, prediction_length, num_series)
+            Predicted samples of shape (batch_size, num_samples,
+            prediction_length, num_series)
         """
 
         ret, scale = super().hybrid_forward(

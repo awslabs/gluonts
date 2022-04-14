@@ -46,7 +46,8 @@ In order to use it you need to install R and run
 
 pip install 'rpy2>=2.9.*,<3.*'
 
-R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+R -e 'install.packages(c("forecast", "nnfor"),\
+repos="https://cloud.r-project.org")'
 """
 
 SAMPLE_FORECAST_METHODS = ["ets", "arima"]
@@ -61,7 +62,8 @@ SUPPORTED_METHODS = (
 
 class RForecastPredictor(RepresentablePredictor):
     """
-    Wrapper for calling the `R forecast package
+    Wrapper for calling the `R forecast package.
+
     <http://pkg.robjhyndman.com/forecast/>`_.
 
     The `RForecastPredictor` is a thin wrapper for calling the R forecast
@@ -89,7 +91,7 @@ class RForecastPredictor(RepresentablePredictor):
     params
         Parameters to be used when calling the forecast method default.
         Note that currently only `output_type = 'samples'` is supported.
-    """
+    """  # noqa: E501
 
     @validated()
     def __init__(
@@ -127,9 +129,10 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        assert (
-            method_name in SUPPORTED_METHODS
-        ), f"method {method_name} is not supported please use one of {SUPPORTED_METHODS}"
+        assert method_name in SUPPORTED_METHODS, (
+            f"method {method_name} is not supported please use one of"
+            f" {SUPPORTED_METHODS}"
+        )
 
         self.method_name = method_name
 
@@ -190,7 +193,8 @@ class RForecastPredictor(RepresentablePredictor):
                     raise ValueError
                 return level / 100
 
-            # Post-processing quantiles on then Python side for the convenience of asserting and debugging.
+            # Post-processing quantiles on then Python side for the convenience
+            # of asserting and debugging.
             upper_quantiles = [
                 str(from_interval_to_level(interval, side="upper"))
                 for interval in params["intervals"]
@@ -201,7 +205,8 @@ class RForecastPredictor(RepresentablePredictor):
                 for interval in params["intervals"]
             ]
 
-            # Median forecasts would be available at two places: Lower 0 and Higher 0 (0-prediction interval)
+            # Median forecasts would be available at two places: Lower 0 and
+            # Higher 0 (0-prediction interval)
             forecast_dict["quantiles"] = dict(
                 zip(
                     lower_quantiles + upper_quantiles[1:],
@@ -210,7 +215,8 @@ class RForecastPredictor(RepresentablePredictor):
                 )
             )
 
-            # `QuantileForecast` allows "mean" as the key; we store them as well since they can differ from median.
+            # `QuantileForecast` allows "mean" as the key; we store them as
+            # well since they can differ from median.
             forecast_dict["quantiles"].update(
                 {"mean": forecast_dict.pop("mean")}
             )
@@ -254,7 +260,8 @@ class RForecastPredictor(RepresentablePredictor):
             elif self.method_name in QUANTILE_FORECAST_METHODS:
                 params["output_types"] = ["quantiles", "mean"]
                 if intervals is None:
-                    # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
+                    # This corresponds to quantiles: 0.05 to 0.95 in steps of
+                    # 0.05.
                     params["intervals"] = list(range(0, 100, 10))
                 else:
                     params["intervals"] = np.sort(intervals).tolist()
@@ -277,8 +284,9 @@ class RForecastPredictor(RepresentablePredictor):
                 )
             else:
                 if self.method_name in POINT_FORECAST_METHODS:
-                    # Handling special cases outside of R is better, since it is more visible and is easier to change.
-                    # Repeat mean forecasts `num_samples` times.
+                    # Handling special cases outside of R is better, since it
+                    # is more visible and is easier to change. Repeat mean
+                    # forecasts `num_samples` times.
                     samples = np.reshape(
                         forecast_dict["mean"] * params["num_samples"],
                         (params["num_samples"], self.prediction_length),

@@ -12,9 +12,10 @@
 # permissions and limitations under the License.
 
 """
-Loads the datasets used in Salinas et al. 2019 (https://tinyurl.com/woyhhqy).
-This wrapper downloads and unpacks them so they don'thave to be attached as
-large files in GluonTS master.
+Loads the datasets used in Salinas et al.
+
+2019 (https://tinyurl.com/woyhhqy). This wrapper downloads and unpacks them so
+they don'thave to be attached as large files in GluonTS master.
 """
 import json
 import os

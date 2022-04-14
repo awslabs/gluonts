@@ -59,7 +59,7 @@ def run_train_and_test(
         env.datasets["train"], **env.hyperparameters
     )
     logger.info(
-        f"The forecaster can be reconstructed with the following expression: "
+        "The forecaster can be reconstructed with the following expression: "
         f"{dump_code(forecaster)}"
     )
 
@@ -127,8 +127,8 @@ def run_test(
 
     if len_original is not None and len_original > len_filtered:
         logger.warning(
-            f"Not all time-series in the test-channel have "
-            f"enough data to be used for evaluation. Proceeding with "
+            "Not all time-series in the test-channel have "
+            "enough data to be used for evaluation. Proceeding with "
             f"{len_filtered}/{len_original} "
             f"(~{int(len_filtered / len_original * 100)}%) items."
         )

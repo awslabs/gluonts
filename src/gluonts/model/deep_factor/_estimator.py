@@ -50,10 +50,11 @@ from .RNNModel import RNNModel
 
 class DeepFactorEstimator(GluonEstimator):
     r"""
-    DeepFactorEstimator is an implementation of the 2019 ICML paper "Deep Factors for Forecasting"
-    https://arxiv.org/abs/1905.12417.  It uses a global RNN model to learn patterns across multiple related time series
-    and an arbitrary local model to model the time series on a per time series basis.  In the current implementation,
-    the local model is a RNN (DF-RNN).
+    DeepFactorEstimator is an implementation of the 2019 ICML paper "Deep
+    Factors for Forecasting" https://arxiv.org/abs/1905.12417.  It uses a
+    global RNN model to learn patterns across multiple related time series and
+    an arbitrary local model to model the time series on a per time series
+    basis.  In the current implementation, the local model is a RNN (DF-RNN).
 
     Parameters
     ----------
@@ -62,7 +63,8 @@ class DeepFactorEstimator(GluonEstimator):
     prediction_length
         Prediction length.
     num_hidden_global
-        Number of units per hidden layer for the global RNN model (default: 50).
+        Number of units per hidden layer for the global RNN model
+        (default: 50).
     num_layers_global
         Number of hidden layers for the global RNN model (default: 1).
     num_factors
@@ -77,10 +79,12 @@ class DeepFactorEstimator(GluonEstimator):
     trainer
         Trainer object to be used (default: Trainer()).
     context_length
-        Training length (default: None, in which case context_length = prediction_length).
+        Training length (default: None, in which case context_length =
+        prediction_length).
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100).
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100).
     cardinality
         List consisting of the number of time series (default: list([1]).
     embedding_dimension
@@ -156,7 +160,8 @@ class DeepFactorEstimator(GluonEstimator):
             num_output=num_factors,
         )
 
-        # TODO: Allow the local model to be defined as an arbitrary local model, e.g. DF-GP and DF-LDS
+        # TODO: Allow the local model to be defined as an arbitrary local
+        # model, e.g. DF-GP and DF-LDS
         self.local_model = RNNModel(
             mode=cell_type,
             num_hidden=num_hidden_local,

@@ -33,8 +33,10 @@ def no_scaling(series: pd.Series):
 
 
 def mean_abs_scaling(series: pd.Series, minimum_scale=1e-6):
-    """Scales a Series by the mean of its absolute value. Returns the scaled Series
-    and the scale itself.
+    """
+    Scales a Series by the mean of its absolute value.
+
+    Returns the scaled Series and the scale itself.
     """
     scale = max(minimum_scale, series.abs().mean())
     return series / scale, scale
@@ -46,7 +48,8 @@ def get_features_dataframe(
     lag_indices: List[int],
     past_data: Optional[pd.Series] = None,
 ) -> pd.DataFrame:
-    """Constructs a DataFrame of features for a given Series.
+    """
+    Constructs a DataFrame of features for a given Series.
 
     Features include some date-time features (like hour-of-day, day-of-week, ...) and
     lagged values from the series itself. Lag indices are specified by `lags`, while

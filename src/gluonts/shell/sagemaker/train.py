@@ -92,7 +92,8 @@ class TrainEnv:
         return None
 
     def _load_channels(self) -> Dict[str, Path]:
-        """Lists the available channels in `/opt/ml/input/data`.
+        """
+        Lists the available channels in `/opt/ml/input/data`.
 
         Return:
         Dict of channel-names mapping to the corresponding path.

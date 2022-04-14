@@ -106,9 +106,10 @@ class TSFReader:
 
             data_tag_found = self._read_header(lines)
             assert data_tag_found, "Missing @data tag."
-            assert (
-                self.meta.columns
-            ), "Missing attribute section. Attribute section must come before data."
+            assert self.meta.columns, (
+                "Missing attribute section. Attribute section must come before"
+                " data."
+            )
 
             assert self.target_name not in self.meta.columns
             self.meta.columns[self.target_name] = None
@@ -159,9 +160,11 @@ class TSFReader:
         s = s.replace("?", '"nan"')
 
         values = json.loads(f"[{s}]")
-        assert (
-            values
-        ), "A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series. Missing values should be indicated with ? symbol"
+        assert values, (
+            "A given series should contains a set of comma separated numeric"
+            " values. At least one numeric value should be there in a series."
+            " Missing values should be indicated with ? symbol"
+        )
 
         return np.array(values, dtype=float)
 

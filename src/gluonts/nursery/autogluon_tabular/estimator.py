@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class TabularEstimator(Estimator):
-    """An estimator that trains an Autogluon Tabular model for time series
+    """
+    An estimator that trains an Autogluon Tabular model for time series
     forecasting.
 
     Additional keyword arguments to the constructor, other than the ones documented
@@ -146,8 +147,8 @@ class TabularEstimator(Estimator):
         if validation_data is not None or self.last_k_for_val is not None:
             kwargs_override["auto_stack"] = False
             logger.warning(
-                "Auto Stacking is turned off "
-                "as validation dataset is provided before input into Tabular Predictor."
+                "Auto Stacking is turned off as validation dataset is provided"
+                " before input into Tabular Predictor."
             )
 
         if validation_data is not None:
@@ -165,7 +166,9 @@ class TabularEstimator(Estimator):
         elif self.last_k_for_val is not None:
             logger.log(
                 20,
-                f"last_k_for_val is provided, choosing last {self.last_k_for_val} of each time series as validation set.",
+                "last_k_for_val is provided, choosing last"
+                f" {self.last_k_for_val} of each time series as validation"
+                " set.",
             )
             train_dfs = [
                 tmp_df.iloc[: -self.last_k_for_val, :] for tmp_df in dfs
@@ -178,8 +181,9 @@ class TabularEstimator(Estimator):
         else:
             logger.log(
                 20,
-                "No validation dataset is provided, will let TabularPredictor do the splitting automatically,"
-                "Note that this might break the time order of time series data.",
+                "No validation dataset is provided, will let TabularPredictor"
+                " do the splitting automatically,Note that this might break"
+                " the time order of time series data.",
             )
             train_df = pd.concat(dfs)
             val_df = None

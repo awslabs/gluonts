@@ -35,7 +35,7 @@ class NBEATSBlock(nn.Module):
         forecast_length=5,
         share_thetas=False,
     ):
-        super(NBEATSBlock, self).__init__()
+        super().__init__()
         self.units = units
         self.thetas_dim = thetas_dim
         self.backcast_length = backcast_length
@@ -75,7 +75,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
         else:
             thetas_dim = forecast_length
 
-        super(NBEATSSeasonalBlock, self).__init__(
+        super().__init__(
             units=units,
             thetas_dim=thetas_dim,
             num_block_layers=num_block_layers,
@@ -127,7 +127,7 @@ class NBEATSTrendBlock(NBEATSBlock):
         forecast_length=5,
         nb_harmonics=None,
     ):
-        super(NBEATSTrendBlock, self).__init__(
+        super().__init__(
             units=units,
             thetas_dim=thetas_dim,
             num_block_layers=num_block_layers,
@@ -169,7 +169,7 @@ class NBEATSGenericBlock(NBEATSBlock):
         backcast_length=10,
         forecast_length=5,
     ):
-        super(NBEATSGenericBlock, self).__init__(
+        super().__init__(
             units=units,
             thetas_dim=thetas_dim,
             num_block_layers=num_block_layers,
@@ -203,7 +203,7 @@ class NBEATSNetwork(nn.Module):
         stack_types: List[str],
         **kwargs,
     ) -> None:
-        super(NBEATSNetwork, self).__init__()
+        super().__init__()
 
         self.num_stacks = num_stacks
         self.widths = widths
@@ -314,7 +314,7 @@ class NBEATSNetwork(nn.Module):
 
 class NBEATSTrainingNetwork(NBEATSNetwork):
     def __init__(self, loss_function: str, freq: str, *args, **kwargs) -> None:
-        super(NBEATSTrainingNetwork, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.loss_function = loss_function
         self.freq = freq
 
@@ -324,8 +324,10 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             assert (
                 self.periodicity < self.context_length + self.prediction_length
             ), (
-                "If the 'periodicity' of your data is less than 'context_length' + 'prediction_length' "
-                "the seasonal_error cannot be calculated and thus 'MASE' cannot be used for optimization."
+                "If the 'periodicity' of your data is less than"
+                " 'context_length' + 'prediction_length' the seasonal_error"
+                " cannot be calculated and thus 'MASE' cannot be used for"
+                " optimization."
             )
 
     def forward(
@@ -343,7 +345,8 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
             )
         else:
             raise ValueError(
-                f"Invalid value {self.loss_function} for argument loss_function."
+                f"Invalid value {self.loss_function} for argument"
+                " loss_function."
             )
         # print(loss)
         # import pdb;pdb.set_trace()
@@ -353,7 +356,7 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
 
 class NBEATSPredictionNetwork(NBEATSNetwork):
     def __init__(self, *args, **kwargs) -> None:
-        super(NBEATSPredictionNetwork, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def forward(
         self, past_target: torch.Tensor, future_target: torch.Tensor = None

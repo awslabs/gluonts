@@ -129,7 +129,7 @@ def test_holidays(holiday):
         distance_function = SPECIAL_DATE_FEATURES[holiday]
         assert (
             distance_function(test_date) == 0
-        ), "The supplied date should be {} but is not!".format(holiday)
+        ), f"The supplied date should be {holiday} but is not!"
 
 
 def test_special_date_feature_set_daily():

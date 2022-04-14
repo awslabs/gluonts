@@ -34,7 +34,8 @@ class NegativeBinomial(Distribution):
     mu
         Tensor containing the means, of shape `(*batch_shape, *event_shape)`.
     alpha
-        Tensor of the shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor of the shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
 
@@ -111,9 +112,9 @@ class NegativeBinomialOutput(DistributionOutput):
         alpha = F.maximum(softplus(F, alpha), epsilon)
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
-    # Overwrites the parent class method.
-    # We cannot scale using the affine transformation since negative binomial should return integers.
-    # Instead we scale the parameters.
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since negative binomial should return integers. Instead
+    # we scale the parameters.
     def distribution(
         self,
         distr_args,

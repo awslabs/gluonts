@@ -83,8 +83,8 @@ class BatchBuffer:
 
 class DataLoader(Iterable[DataEntry]):
     """
-    An abstract Iterable type for iterating and transforming a dataset,
-    in batches of a prescribed size.
+    An abstract Iterable type for iterating and transforming a dataset, in
+    batches of a prescribed size.
 
     Parameters
     ----------
@@ -177,8 +177,7 @@ class TrainDataLoader(DataLoader):
             except StopIteration:
                 raise Exception("empty dataset")
             else:
-                for x in itertools.chain([first], collection):
-                    yield x
+                yield from itertools.chain([first], collection)
 
     def __len__(self) -> int:
         return self.num_batches_per_epoch

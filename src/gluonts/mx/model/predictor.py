@@ -223,8 +223,8 @@ class GluonPredictor(Predictor):
 class SymbolBlockPredictor(GluonPredictor):
     """
     A predictor which serializes the network structure as an MXNet symbolic
-    graph. Should be used for models deployed in production in order to
-    ensure forward-compatibility as GluonTS models evolve.
+    graph. Should be used for models deployed in production in order to ensure
+    forward-compatibility as GluonTS models evolve.
 
     Used by the training shell if training is invoked with a hyperparameter
     `use_symbol_block_predictor = True`.
@@ -274,8 +274,8 @@ class SymbolBlockPredictor(GluonPredictor):
 
 class RepresentableBlockPredictor(GluonPredictor):
     """
-    A predictor which serializes the network structure using the
-    JSON-serialization methods located in `gluonts.core.serde`. Use the following
+    A predictor which serializes the network structure using the JSON-
+    serialization methods located in `gluonts.core.serde`. Use the following
     logic to create a `RepresentableBlockPredictor` from a trained prediction
     network.
 

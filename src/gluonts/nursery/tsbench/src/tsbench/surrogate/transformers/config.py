@@ -39,7 +39,8 @@ from tsbench.evaluations.tracking import ModelTracker
 
 class ConfigTransformer(TransformerMixin):
     """
-    The config transformer transforms a configuration (model + dataset) into a real-valued vector.
+    The config transformer transforms a configuration (model + dataset) into a
+    real-valued vector.
     """
 
     def __init__(
@@ -48,7 +49,7 @@ class ConfigTransformer(TransformerMixin):
         add_dataset_statistics: bool = True,
         add_seasonal_naive_performance: bool = False,
         add_catch22_features: bool = False,
-        tracker: Optional[ModelTracker] = None,
+        tracker: ModelTracker | None = None,
     ):
         """
         Args:
@@ -85,9 +86,10 @@ class ConfigTransformer(TransformerMixin):
         self.pipeline = make_union(*self.encoders)
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         """
-        Returns the feature names for the columns of transformed configurations.
+        Returns the feature names for the columns of transformed
+        configurations.
         """
         return [
             f
@@ -96,7 +98,7 @@ class ConfigTransformer(TransformerMixin):
             if isinstance(e, Encoder)
         ]
 
-    def fit(self, X: List[Config[ModelConfig]]) -> ConfigTransformer:
+    def fit(self, X: list[Config[ModelConfig]]) -> ConfigTransformer:
         """
         Uses the provided configurations to fit the transformer pipeline.
 
@@ -107,10 +109,11 @@ class ConfigTransformer(TransformerMixin):
         return self
 
     def transform(
-        self, X: List[Config[ModelConfig]]
+        self, X: list[Config[ModelConfig]]
     ) -> npt.NDArray[np.float32]:
         """
-        Transforms the given configurations according to the fitted transformer pipeline.
+        Transforms the given configurations according to the fitted transformer
+        pipeline.
 
         Args:
             X: The input configurations.
@@ -124,11 +127,12 @@ class ConfigTransformer(TransformerMixin):
 
 class EnsembleConfigTransformer(TransformerMixin):
     """
-    The config transformer transforms a set of model configs into a set of NumPy arrays.
+    The config transformer transforms a set of model configs into a set of
+    NumPy arrays.
     """
 
-    model_type_map: Dict[str, int]
-    attribute_map: Dict[str, int]
+    model_type_map: dict[str, int]
+    attribute_map: dict[str, int]
 
     def __init__(self):
         self.scaler = StandardScaler()
@@ -136,16 +140,17 @@ class EnsembleConfigTransformer(TransformerMixin):
         self.attribute_map = {}
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         """
-        Returns the feature names for the columns of transformed configurations.
+        Returns the feature names for the columns of transformed
+        configurations.
         """
         return [f"model={m}" for m in self.model_type_map] + list(
             self.attribute_map.keys()
         )
 
     def fit(
-        self, X: List[Config[EnsembleConfig]]
+        self, X: list[Config[EnsembleConfig]]
     ) -> EnsembleConfigTransformer:
         """
         Uses the provided configurations to fit the transformer pipeline.
@@ -178,10 +183,11 @@ class EnsembleConfigTransformer(TransformerMixin):
         return self
 
     def transform(
-        self, X: List[Config[EnsembleConfig]]
-    ) -> List[npt.NDArray[np.float32]]:
+        self, X: list[Config[EnsembleConfig]]
+    ) -> list[npt.NDArray[np.float32]]:
         """
-        Transforms the given configurations according to the fitted transformer pipeline.
+        Transforms the given configurations according to the fitted transformer
+        pipeline.
 
         Args:
             X: The input configurations.
@@ -203,7 +209,7 @@ class EnsembleConfigTransformer(TransformerMixin):
         ]
 
     def _transform(
-        self, configs: List[ModelConfig]
+        self, configs: list[ModelConfig]
     ) -> npt.NDArray[np.float32]:
         result = np.empty((len(configs), len(self.feature_names_)))
         result.fill(np.nan)
@@ -232,24 +238,24 @@ class EnsembleConfigTransformer(TransformerMixin):
 class Encoder(ABC):
     @property
     @abstractmethod
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         pass
 
 
 class NanImputer:
-    def fit(self, _X: List[Dict[str, Any]], _y: Any = None) -> NanImputer:
+    def fit(self, _X: list[dict[str, Any]], _y: Any = None) -> NanImputer:
         return self
 
     def transform(
-        self, X: List[Dict[str, Any]], _y: Any = None
-    ) -> List[Dict[str, Any]]:
+        self, X: list[dict[str, Any]], _y: Any = None
+    ) -> list[dict[str, Any]]:
         df = pd.DataFrame(X)
         return df.to_dict("records")
 
 
 class Selector:
     def __init__(
-        self, use: Optional[Set[str]] = None, ignore: Optional[Set[str]] = None
+        self, use: set[str] | None = None, ignore: set[str] | None = None
     ):
         assert bool(use) != bool(
             ignore
@@ -258,12 +264,12 @@ class Selector:
         self.use = use or set()
         self.ignore = ignore or set()
 
-    def fit(self, _X: List[Dict[str, Any]], _y: Any = None) -> Selector:
+    def fit(self, _X: list[dict[str, Any]], _y: Any = None) -> Selector:
         return self
 
     def transform(
-        self, X: List[Dict[str, Any]], _y: Any = None
-    ) -> List[Dict[str, Any]]:
+        self, X: list[dict[str, Any]], _y: Any = None
+    ) -> list[dict[str, Any]]:
         return [
             {
                 k: v
@@ -304,7 +310,7 @@ class ModelEncoder(Encoder):
         )
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         return (
             self.model_vectorizer.feature_names_
             + self.hp_vectorizer.feature_names_
@@ -312,7 +318,7 @@ class ModelEncoder(Encoder):
 
     def fit(
         self,
-        X: Union[List[Config[ModelConfig]], List[ModelConfig]],
+        X: list[Config[ModelConfig]] | list[ModelConfig],
         _y: Any = None,
     ) -> ModelEncoder:
         if self.transform_full_config:
@@ -325,7 +331,7 @@ class ModelEncoder(Encoder):
 
     def transform(
         self,
-        X: List[Union[List[Config[ModelConfig]], List[ModelConfig]]],
+        X: list[list[Config[ModelConfig]] | list[ModelConfig]],
         _y: Any = None,
     ) -> npt.NDArray[np.float32]:
         if self.transform_full_config:
@@ -368,14 +374,14 @@ class DatasetStatisticsEncoder(Encoder):
         )
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         return (
             self.unscaled_vectorizer.feature_names_
             + self.scaled_vectorizer.feature_names_
         )
 
     def fit(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> DatasetStatisticsEncoder:
         self.pipeline.fit(
             [
@@ -390,7 +396,7 @@ class DatasetStatisticsEncoder(Encoder):
         return self
 
     def transform(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> npt.NDArray[np.float32]:
         return cast(
             npt.NDArray[np.float32],
@@ -404,17 +410,17 @@ class SeasonalNaivePerformanceEncoder(Encoder):
         self.scaler = StandardScaler()
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         return ["seasonal_naive_ncrps"]
 
     def fit(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> SeasonalNaivePerformanceEncoder:
         self.scaler.fit(self._get_performance_array(X))
         return self
 
     def transform(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> npt.NDArray[np.float32]:
         return cast(
             npt.NDArray[np.float32],
@@ -422,7 +428,7 @@ class SeasonalNaivePerformanceEncoder(Encoder):
         )
 
     def _get_performance_array(
-        self, X: List[Config[ModelConfig]]
+        self, X: list[Config[ModelConfig]]
     ) -> npt.NDArray[np.float32]:
         return np.array(
             [
@@ -445,11 +451,11 @@ class DatasetCatch22Encoder(Encoder):
         )
 
     @property
-    def feature_names_(self) -> List[str]:
+    def feature_names_(self) -> list[str]:
         return self.vectorizer.feature_names_
 
     def fit(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> DatasetCatch22Encoder:
         datasets = {x.dataset for x in X}
         features = {d: d.catch22().mean().to_dict() for d in datasets}
@@ -457,7 +463,7 @@ class DatasetCatch22Encoder(Encoder):
         return self
 
     def transform(
-        self, X: List[Config[ModelConfig]], _y: Any = None
+        self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> npt.NDArray[np.float32]:
         datasets = {x.dataset for x in X}
         features = {d: d.catch22().mean().to_dict() for d in datasets}

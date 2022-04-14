@@ -32,7 +32,9 @@ class LSTMEstimator(PTSEstimator):
         hidden_layer_size: int = 100,
     ) -> None:
         """
-        Defines an estimator. All parameters should be serializable.
+        Defines an estimator.
+
+        All parameters should be serializable.
         """
         super().__init__(trainer=trainer)
         self.num_parallel_samples = num_parallel_samples

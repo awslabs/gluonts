@@ -60,9 +60,10 @@ def test_Forecast(name):
     for quantile in QUANTILES:
         test_cases = [quantile, str(quantile), percentile(quantile)]
         for quant_pred in map(forecast.quantile, test_cases):
-            assert np.isclose(
-                quant_pred[0], quantile
-            ), f"Expected {percentile(quantile)} quantile {quantile}. Obtained {quant_pred}."
+            assert np.isclose(quant_pred[0], quantile), (
+                f"Expected {percentile(quantile)} quantile {quantile}."
+                f" Obtained {quant_pred}."
+            )
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
@@ -85,9 +86,10 @@ def test_DistributionForecast():
         test_cases = [quantile, str(quantile), percentile(quantile)]
         for quant_pred in map(forecast.quantile, test_cases):
             expected = quantile * np.array([1.0, 2.0])
-            assert np.allclose(
-                quant_pred, expected
-            ), f"Expected {percentile(quantile)} quantile {quantile}. Obtained {quant_pred}."
+            assert np.allclose(quant_pred, expected), (
+                f"Expected {percentile(quantile)} quantile {quantile}."
+                f" Obtained {quant_pred}."
+            )
 
     pred_length = 2
     assert forecast.prediction_length == pred_length

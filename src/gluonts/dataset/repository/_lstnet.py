@@ -62,7 +62,10 @@ class LstnetDataset(NamedTuple):
     agg_freq: Optional[str] = None
 
 
-root = "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
+root = (
+    "https://raw.githubusercontent.com/laiguokun/"
+    "multivariate-time-series-data/master/"
+)
 
 datasets_info = {
     "exchange_rate": LstnetDataset(
@@ -79,9 +82,10 @@ datasets_info = {
     "electricity": LstnetDataset(
         name="electricity",
         url=root + "electricity/electricity.txt.gz",
-        # original dataset can be found at https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
-        # the aggregated ones that is used from LSTNet filters out from the initial 370 series the one with no data
-        # in 2011
+        # original dataset can be found at
+        # https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
+        # the aggregated ones that is used from LSTNet filters out from the
+        # initial 370 series the one with no data in 2011
         num_series=321,
         num_time_steps=26304,
         prediction_length=24,
@@ -93,8 +97,9 @@ datasets_info = {
     "traffic": LstnetDataset(
         name="traffic",
         url=root + "traffic/traffic.txt.gz",
-        # note there are 963 in the original dataset from https://archive.ics.uci.edu/ml/datasets/PEMS-SF
-        # but only 862 in LSTNet
+        # note there are 963 in the original dataset from
+        # https://archive.ics.uci.edu/ml/datasets/PEMS-SF but only 862 in
+        # LSTNet
         num_series=862,
         num_time_steps=17544,
         prediction_length=24,
@@ -143,10 +148,10 @@ def generate_lstnet_dataset(
 
     df = pd.read_csv(ds_info.url, header=None)
 
-    assert df.shape == (
-        ds_info.num_time_steps,
-        ds_info.num_series,
-    ), f"expected num_time_steps/num_series {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    assert df.shape == (ds_info.num_time_steps, ds_info.num_series,), (
+        "expected num_time_steps/num_series"
+        f" {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    )
 
     timeseries = load_from_pandas(
         df=df, time_index=time_index, agg_freq=ds_info.agg_freq

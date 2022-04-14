@@ -29,7 +29,8 @@ class LogitNormal(Distribution):
     Parameters
     ----------
     mu
-        Tensor containing the location, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the location, of shape
+        `(*batch_shape, *event_shape)`.
     sigma
         Tensor indicating the scale, of shape `(*batch_shape, *event_shape)`.
     F

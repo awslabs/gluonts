@@ -79,26 +79,33 @@ class GaussianProcessEstimator(GluonEstimator):
     trainer
         Trainer instance to be used for model training (default: Trainer()).
     context_length
-        Training length (default: None, in which case context_length = prediction_length).
+        Training length (default: None, in which case context_length =
+        prediction_length).
     kernel_output
         KernelOutput instance to determine which kernel subclass to be
         instantiated (default: RBFKernelOutput()).
     params_scaling
-        Determines whether or not to scale the model parameters (default: True).
+        Determines whether or not to scale the model parameters
+        (default: True).
     float_type
-        Determines whether to use single or double precision (default: np.float64).
+        Determines whether to use single or double precision
+        (default: np.float64).
     max_iter_jitter
-        Maximum number of iterations for jitter to iteratively make the matrix positive definite (default: 10).
+        Maximum number of iterations for jitter to iteratively make the matrix
+        positive definite (default: 10).
     jitter_method
-        Iteratively jitter method or use eigenvalue decomposition depending on problem size (default: "iter").
+        Iteratively jitter method or use eigenvalue decomposition depending on
+        problem size (default: "iter").
     sample_noise
-        Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix (default: True).
+        Boolean to determine whether to add :math:`\sigma^2I` to the predictive
+        covariance matrix (default: True).
     time_features
         Time features to use as inputs of the model (default: None, in which
         case these are automatically determined based on the frequency).
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100).
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100).
     batch_size
         The size of the batches to be used training and prediction.
     """

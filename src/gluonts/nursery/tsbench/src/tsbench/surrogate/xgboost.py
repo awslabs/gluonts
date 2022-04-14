@@ -27,9 +27,10 @@ from .transformers import ConfigTransformer
 @register_surrogate("xgboost")
 class XGBoostSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
     """
-    The XGBoost surrogate predicts a model's performance on a new dataset by using independent
-    XGBoost regressors for each performance metric. For this, models and hyperparameters are
-    converted to feature vectors.
+    The XGBoost surrogate predicts a model's performance on a new dataset by
+    using independent XGBoost regressors for each performance metric.
+
+    For this, models and hyperparameters are converted to feature vectors.
     """
 
     def __init__(

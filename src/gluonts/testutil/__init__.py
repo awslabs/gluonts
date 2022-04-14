@@ -29,7 +29,9 @@ def TemporaryDirectory():
 
 
 def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
+    """
+    Yield successive n-sized chunks from l.
+    """
     for i in range(0, len(l), n):
         yield l[i : i + n]
 
@@ -51,7 +53,8 @@ def empirical_cdf(
         Emprically calculated cdf values. shape (num_bins, batch_shape)
 
     Tensor
-        Bin edges corresponding to the cdf values. shape (num_bins + 1, batch_shape)
+        Bin edges corresponding to the cdf values. shape (num_bins + 1,
+        batch_shape)
     """
 
     # calculate histogram separately for each dimension in the batch size

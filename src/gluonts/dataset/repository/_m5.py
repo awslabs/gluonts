@@ -33,9 +33,11 @@ def generate_m5_dataset(
 
     if not os.path.exists(cal_path) or not os.path.exists(sales_path):
         raise RuntimeError(
-            f"M5 data is available on Kaggle (https://www.kaggle.com/c/m5-forecasting-accuracy/data). "
-            f"You first need to agree to the terms of the competition before being able to download the data. "
-            f"After you have done that, please supply the files at {m5_file_path}."
+            "M5 data is available on Kaggle"
+            " (https://www.kaggle.com/c/m5-forecasting-accuracy/data). You"
+            " first need to agree to the terms of the competition before"
+            " being able to download the data. After you have done that,"
+            f" please supply the files at {m5_file_path}."
         )
 
     # Prepare directory

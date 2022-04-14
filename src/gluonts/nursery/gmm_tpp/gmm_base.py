@@ -95,7 +95,9 @@ class GMMModel(gluon.HybridBlock):
         return Rx_
 
     def hybrid_forward(self, F, x, log_prior_, mu_, kR_):
-        """E-step computes log_marginal and q(z|x)"""
+        """
+        E-step computes log_marginal and q(z|x)
+        """
         dx_ = self._get_dx_(F, x, mu_)
         Rx_ = self._get_Rx_(F, dx_, kR_)
 
@@ -116,7 +118,9 @@ class GMMModel(gluon.HybridBlock):
 
     @staticmethod
     def m_step(x, qz):
-        """M-step computes summary statistics in numpy"""
+        """
+        M-step computes summary statistics in numpy.
+        """
         x = x.astype("float64")
         qz = qz.astype("float64")
 
@@ -129,8 +133,9 @@ class GMMModel(gluon.HybridBlock):
 
 
 class GMMTrainer:
-    """trainer based on M-step summary statistics
-    can add mini-batch statistics for a full-batch update
+    """
+    trainer based on M-step summary statistics can add mini-batch statistics
+    for a full-batch update.
     """
 
     def __init__(self, model, pseudo_count=0.1, jitter=1e-6):
@@ -172,7 +177,9 @@ class GMMTrainer:
 
 
 def infer_lambda(model, *_, xmin, xmax):
-    """infer lambda and intercept based on linear fitting at the base points"""
+    """
+    infer lambda and intercept based on linear fitting at the base points.
+    """
     x = np.linspace(xmin, xmax).reshape((-1, 1))
     y = np.ravel(model(mx.nd.array(x))[0].asnumpy())
     slope, intercept = np.polyfit(np.ravel(x), np.ravel(y), 1)
@@ -180,7 +187,9 @@ def infer_lambda(model, *_, xmin, xmax):
 
 
 def elapsed(collection):
-    """similar to enumerate but prepend elapsed time since loop starts"""
+    """
+    similar to enumerate but prepend elapsed time since loop starts.
+    """
     tic = time.time()
     for x in collection:
         yield time.time() - tic, x

@@ -38,7 +38,10 @@ parser.add_argument(
     type=int,
     default=1,
     metavar="N",
-    help="batch size (default: 1, only for substantiating the theory, one can increase the batch size in practice)",
+    help=(
+        "batch size (default: 1, only for substantiating the theory, one can"
+        " increase the batch size in practice)"
+    ),
 )
 parser.add_argument(
     "--num_batches_per_epoch",
@@ -72,7 +75,10 @@ parser.add_argument(
     "--anchor_freq",
     type=int,
     default=20,
-    help="frequency of updating the anchor gradient for control variate type optimizers (default: 20)",
+    help=(
+        "frequency of updating the anchor gradient for control variate type"
+        " optimizers (default: 20)"
+    ),
 )
 parser.add_argument(
     "--seed", type=int, default=0, metavar="S", help="random seed (default: 0)"

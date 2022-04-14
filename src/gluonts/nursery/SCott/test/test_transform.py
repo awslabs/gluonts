@@ -901,6 +901,6 @@ def assert_padded_array(
     reference_no_padding = np.array(reference_no_padding, dtype=np.float32)
 
     assert (sampled_no_padding == reference_no_padding).all(), (
-        f"Sampled and reference arrays do not match. '"
+        "Sampled and reference arrays do not match. '"
         f"Got {sampled_no_padding} but should be {reference_no_padding}."
     )

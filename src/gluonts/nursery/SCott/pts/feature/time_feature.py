@@ -145,14 +145,14 @@ class FourierDateFeatures(TimeFeature):
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
-    Returns a list of time features that will be appropriate for the given frequency string.
+    Returns a list of time features that will be appropriate for the given
+    frequency string.
 
     Parameters
     ----------
 
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
-
     """
     _, granularity = get_granularity(freq_str)
     if granularity == "M":

@@ -41,8 +41,8 @@ class StudentT(Distribution):
         Tensor containing the standard deviations, of shape
         `(*batch_shape, *event_shape)`.
     nu
-        Nonnegative tensor containing the degrees of freedom of the distribution,
-        of shape `(*batch_shape, *event_shape)`.
+        Nonnegative tensor containing the degrees of freedom of the
+        distribution, of shape `(*batch_shape, *event_shape)`.
     F
     """
 

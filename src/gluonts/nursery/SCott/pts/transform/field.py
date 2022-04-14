@@ -21,7 +21,7 @@ from .transform import SimpleTransformation, MapTransformation
 
 class RenameFields(SimpleTransformation):
     """
-    Rename fields using a mapping
+    Rename fields using a mapping.
 
     Parameters
     ----------
@@ -81,7 +81,8 @@ class SetField(SimpleTransformation):
 
 
 class SetFieldIfNotPresent(SimpleTransformation):
-    """Sets a field in the dictionary with the given value, in case it does not
+    """
+    Sets a field in the dictionary with the given value, in case it does not
     exist already.
 
     Parameters
@@ -105,7 +106,7 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
 class SelectFields(MapTransformation):
     """
-    Only keep the listed fields
+    Only keep the listed fields.
 
     Parameters
     ----------

@@ -48,8 +48,8 @@ class RenameFields(SimpleTransformation):
 
 
 class RemoveFields(SimpleTransformation):
-    """ "
-    Remove field names if present.
+    """
+    " Remove field names if present.
 
     Parameters
     ----------
@@ -90,7 +90,8 @@ class SetField(SimpleTransformation):
 
 
 class SetFieldIfNotPresent(SimpleTransformation):
-    """Sets a field in the dictionary with the given value, in case it does not
+    """
+    Sets a field in the dictionary with the given value, in case it does not
     exist already.
 
     Parameters
@@ -114,7 +115,7 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
 class SelectFields(MapTransformation):
     """
-    Only keep the listed fields
+    Only keep the listed fields.
 
     Parameters
     ----------

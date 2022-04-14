@@ -34,15 +34,20 @@ from ._main import evaluations
     "--experiment",
     type=str,
     default=None,
-    help="The AWS Sagemaker experiment from which to download the evaluations. If not provided, "
-    "downloads the publicly available evaluations (s3://odp-tsbench).",
+    help=(
+        "The AWS Sagemaker experiment from which to download the evaluations."
+        " If not provided, downloads the publicly available evaluations"
+        " (s3://odp-tsbench)."
+    ),
 )
 @click.option(
     "--include_forecasts",
     type=bool,
     default=False,
-    help="Whether to download forecasts (plenty of data) or "
-    "only the training, validation and testing metrics.",
+    help=(
+        "Whether to download forecasts (plenty of data) or "
+        "only the training, validation and testing metrics."
+    ),
 )
 @click.option(
     "--evaluations_path",
@@ -55,8 +60,10 @@ def download(
     experiment: Optional[str], include_forecasts: bool, evaluations_path: str
 ):
     """
-    Downloads either the evaluations of a single AWS Sagemaker experiment or the publicly
-    available evaluations. The evaluations are downloaded to the provided directory.
+    Downloads either the evaluations of a single AWS Sagemaker experiment or
+    the publicly available evaluations.
+
+    The evaluations are downloaded to the provided directory.
     """
     target = Path(evaluations_path)
     target.mkdir(parents=True, exist_ok=True)

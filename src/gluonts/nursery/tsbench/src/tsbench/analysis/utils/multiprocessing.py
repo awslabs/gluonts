@@ -31,8 +31,9 @@ def num_fitting_processes(
     cpus_per_process: float = 2, memory_per_process: float = 16
 ) -> int:
     """
-    Returns the number of processes that can be fitted onto the machine when using a particular
-    number of CPUs and a particular amount of memory for every process.
+    Returns the number of processes that can be fitted onto the machine when
+    using a particular number of CPUs and a particular amount of memory for
+    every process.
 
     Args:
         cpus_per_process: The number of CPUs that every process requires.
@@ -55,7 +56,8 @@ def run_parallel(
     execute: Callable[[T], U], data: List[T], num_processes: int
 ) -> List[U]:
     """
-    Runs a function on multiple processes, parallelizing computations for the provided data.
+    Runs a function on multiple processes, parallelizing computations for the
+    provided data.
 
     Args:
         execute: The function to run in each process.

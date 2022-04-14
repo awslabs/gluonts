@@ -45,14 +45,16 @@ methods:
 
 
 def feat_name(i: int) -> str:
-    """The canonical name of a feature with index `i`."""
+    """
+    The canonical name of a feature with index `i`.
+    """
     return f"feat_dynamic_real_{i:03d}"
 
 
 class ProphetDataEntry(NamedTuple):
     """
-    A named tuple containing relevant base and derived data that is
-    required in order to call Prophet.
+    A named tuple containing relevant base and derived data that is required in
+    order to call Prophet.
     """
 
     train_length: int

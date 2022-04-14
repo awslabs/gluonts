@@ -73,9 +73,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.scaling = scaling
         self.dtype = dtype
 
-        assert len(cardinality) == len(
-            embedding_dimension
-        ), "embedding_dimension should be a list with the same size as cardinality"
+        assert len(cardinality) == len(embedding_dimension), (
+            "embedding_dimension should be a list with the same size as"
+            " cardinality"
+        )
 
         assert len(set(lags_seq)) == len(
             lags_seq
@@ -109,7 +110,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
             for k in range(num_layers):
                 cell = RnnCell(hidden_size=num_cells)
                 cell = mx.gluon.rnn.ResidualCell(cell) if k > 0 else cell
-                # we found that adding dropout to outputs doesn't improve the performance, so we only drop states
+                # we found that adding dropout to outputs doesn't improve the
+                # performance, so we only drop states
                 if "Zoneout" in self.dropoutcell_type:
                     cell = (
                         Dropout(cell, zoneout_states=dropout_rate)
@@ -181,7 +183,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         # we must have: sequence_length - lag_index - subsequences_length >= 0
         # for all lag_index, hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, "
+            "lags cannot go further than history length, "
             f"found lag {max(indices)} while history length is only "
             f"{sequence_length}"
         )
@@ -453,7 +455,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         feat_static_real: Tensor,  # (batch_size, num_features)
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length, *target_shape)
-        past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
+        # (batch_size, history_length, *target_shape)
+        past_observed_values: Tensor,
         past_is_pad: Tensor,  # (batch_size, history_length, *target_shape)
         future_observed_values: Optional[
             Tensor
@@ -633,7 +636,8 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         feat_static_real: Tensor,  # (batch_size, num_features)
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length, *target_shape)
-        past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
+        # (batch_size, history_length, *target_shape)
+        past_observed_values: Tensor,
         past_is_pad: Tensor,
         future_observed_values: Optional[Tensor],
         future_time_feat: Optional[
@@ -645,10 +649,10 @@ class DeepARNetwork(mx.gluon.HybridBlock):
     ) -> Tuple[Tensor, List, Tensor, Tensor, Tensor]:
         """
         Unrolls the LSTM encoder over past and, if present, future data.
+
         Returns outputs and state of the encoder, plus the scale of past_target
         and a vector of static features that was constructed and fed as input
-        to the encoder.
-        All tensor arguments should have NTC layout.
+        to the encoder. All tensor arguments should have NTC layout.
         """
 
         if future_time_feat is None or future_target is None:
@@ -819,7 +823,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
         return_rnn_outputs: bool = False,
     ) -> Union[Distribution, Tuple[Distribution, Tensor]]:
         """
-
         Returns the distribution predicted by the model on the range of
         past_target and future_target.
 
@@ -857,8 +860,9 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         distr_args = self.proj_distr_args(rnn_outputs)
 
-        # return the output of rnn layers if return_rnn_outputs=True, so that it can be used for regularization later
-        # assume no dropout for outputs, so can be directly used for activation regularization
+        # return the output of rnn layers if return_rnn_outputs=True, so that
+        # it can be used for regularization later assume no dropout for
+        # outputs, so can be directly used for activation regularization
         return (
             (
                 self.distr_output.distribution(distr_args, scale=scale),
@@ -893,14 +897,14 @@ class DeepARTrainingNetwork(DeepARNetwork):
         feat_static_real : (batch_size, num_features)
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, *target_shape)
-        past_observed_values : (batch_size, history_length, *target_shape, seq_len)
+        past_observed_values : (batch_size, history_length, *target_shape,
+            seq_len)
         future_time_feat : (batch_size, prediction_length, num_features)
         future_target : (batch_size, prediction_length, *target_shape)
         future_observed_values : (batch_size, prediction_length, *target_shape)
 
         Returns loss with shape (batch_size, context + prediction_length, 1)
         -------
-
         """
 
         outputs = self.distribution(
@@ -945,8 +949,8 @@ class DeepARTrainingNetwork(DeepARNetwork):
             dim=1,
         )
 
-        # mask the loss at one time step iff one or more observations is missing in the target dimensions
-        # (batch_size, seq_len)
+        # mask the loss at one time step iff one or more observations is
+        # missing in the target dimensions (batch_size, seq_len)
         loss_weights = (
             observed_values
             if (len(self.target_shape) == 0)
@@ -966,8 +970,8 @@ class DeepARTrainingNetwork(DeepARNetwork):
 
         # rnn_outputs is already merged into a single tensor
         assert not isinstance(rnn_outputs, list)
-        # it seems that the trainer only uses the first return value for backward
-        # so we only add regularization to weighted_loss
+        # it seems that the trainer only uses the first return value for
+        # backward so we only add regularization to weighted_loss
         if self.alpha:
             ar_loss = self.ar_loss(rnn_outputs)
             weighted_loss = weighted_loss + ar_loss
@@ -1007,12 +1011,14 @@ class DeepARPredictionNetwork(DeepARNetwork):
         past_target : Tensor
             target history. Shape: (batch_size, history_length).
         time_feat : Tensor
-            time features. Shape: (batch_size, prediction_length, num_time_features).
+            time features. Shape: (batch_size, prediction_length,
+            num_time_features).
         scale : Tensor
-            tensor containing the scale of each element in the batch. Shape: (batch_size, 1, 1).
+            tensor containing the scale of each element in the batch.
+            Shape: (batch_size, 1, 1).
         begin_states : List
-            list of initial states for the LSTM layers.
-            the shape of each tensor of the list should be (batch_size, num_cells)
+            list of initial states for the LSTM layers. The shape of each
+            tensor of the list should be (batch_size, num_cells)
         Returns
         --------
         Tensor
@@ -1020,7 +1026,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
             Shape: (batch_size, num_sample_paths, prediction_length).
         """
 
-        # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism
+        # blows-up the dimension of each tensor to batch_size *
+        # self.num_parallel_samples for increasing parallelism
         repeated_past_target = past_target.repeat(
             repeats=self.num_parallel_samples, axis=0
         )
@@ -1040,7 +1047,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
         future_samples = []
 
-        # for each future time-units we draw new samples for this time-unit and update the state
+        # for each future time-units we draw new samples for this time-unit and
+        # update the state
         for k in range(self.prediction_length):
             # (batch_size * num_samples, 1, *target_shape, num_lags)
             lags = self.get_lagged_subsequences(
@@ -1063,7 +1071,8 @@ class DeepARPredictionNetwork(DeepARNetwork):
                 shape=(-1, 1, prod(self.target_shape) * len(self.lags_seq)),
             )
 
-            # (batch_size * num_samples, 1, prod(target_shape) * num_lags + num_time_features + num_static_features)
+            # (batch_size * num_samples, 1, prod(target_shape) * num_lags +
+            # num_time_features + num_static_features)
             decoder_input = F.concat(
                 input_lags,
                 repeated_time_feat.slice_axis(axis=1, begin=k, end=k + 1),
@@ -1119,8 +1128,10 @@ class DeepARPredictionNetwork(DeepARNetwork):
         feat_static_real: Tensor,  # (batch_size, num_features)
         past_time_feat: Tensor,  # (batch_size, history_length, num_features)
         past_target: Tensor,  # (batch_size, history_length, *target_shape)
-        past_observed_values: Tensor,  # (batch_size, history_length, *target_shape)
-        future_time_feat: Tensor,  # (batch_size, prediction_length, num_features)
+        # (batch_size, history_length, *target_shape)
+        past_observed_values: Tensor,
+        # (batch_size, prediction_length, num_features)
+        future_time_feat: Tensor,
         past_is_pad: Tensor,
     ) -> Tensor:
         """

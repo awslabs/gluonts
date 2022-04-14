@@ -122,17 +122,23 @@ class GitRepo:
         return Path(self.sh(["git", "rev-parse", "--show-toplevel"]))
 
     def clean(self) -> bool:
-        """Return if any tracked file has uncommited changes."""
+        """
+        Return if any tracked file has uncommited changes.
+        """
 
         proc = subprocess.run(["git", "diff", "--quiet"], cwd=self.cwd)
         return proc.returncode == 0
 
     def describe(self):
-        """Return triple `<tag>-<commits>-<hash>`."""
+        """
+        Return triple `<tag>-<commits>-<hash>`.
+        """
         return self.sh(GIT_DESCRIBE, stderr=subprocess.PIPE)
 
     def head_commit(self):
-        """Get hash of most recent commit."""
+        """
+        Get hash of most recent commit.
+        """
         return self.sh(["git", "rev-parse", "--short", "HEAD"])
 
 

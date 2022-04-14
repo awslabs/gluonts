@@ -68,10 +68,12 @@ class MultivariateGaussian(Distribution):
         return 1
 
     def log_prob(self, x: Tensor) -> Tensor:
-        # todo add an option to compute loss on diagonal covariance only to save time
+        # todo add an option to compute loss on diagonal covariance only tosave
+        # time
         F = self.F
 
-        # remark we compute d from the tensor but we could ask it to the user alternatively
+        # remark we compute d from the tensor but we could ask it to the user
+        # alternatively
         d = F.ones_like(self.mu).sum(axis=-1).max()
 
         residual = (x - self.mu).expand_dims(axis=-1)
@@ -147,8 +149,9 @@ class MultivariateGaussianOutput(DistributionOutput):
         self.mask = None
 
     def domain_map(self, F, mu_vector, L_vector):
-        # apply softplus to the diagonal of L and mask upper coefficient to make it lower-triangular
-        # diagonal matrix whose elements are diagonal elements of L mapped through a softplus
+        # apply softplus to the diagonal of L and mask upper coefficient to
+        # make it lower-triangular diagonal matrix whose elements are diagonal
+        # elements of L mapped through a softplus
         d = self.dim
 
         # reshape from vector form (..., d * d) to matrix form(..., d, d)
