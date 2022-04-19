@@ -33,9 +33,11 @@ class GeneralizedPareto(Distribution):
     Parameters
     ----------
     xi
-        Tensor containing the xi (heaviness) shape parameters. The tensor is of shape (*batch_shape, 1)
+        Tensor containing the xi (heaviness) shape parameters. The tensor is
+        of shape (*batch_shape, 1)
     beta
-        Tensor containing the beta scale parameters. The tensor is of shape (*batch_shape, 1)
+        Tensor containing the beta scale parameters. The tensor is of
+        shape (*batch_shape, 1)
     """
     arg_constraints = {
         "xi": constraints.positive,

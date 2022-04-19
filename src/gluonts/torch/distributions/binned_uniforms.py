@@ -28,8 +28,10 @@ class BinnedUniforms(Distribution):
     Args:
         bins_lower_bound (float): The lower bound of the bin edges
         bins_upper_bound (float): The upper bound of the bin edges
-        numb_bins (int): The number of equidistance bins to allocate between `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
-        logits (tensor): the logits defining the probability of each bins. These are softmaxed. The tensor is of shape (*batch_shape,)
+        numb_bins (int): The number of equidistance bins to allocate between
+            `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
+        logits (tensor): the logits defining the probability of each bins.
+            These are softmaxed. The tensor is of shape (*batch_shape,)
         validate_args (bool) from the pytorch Distribution class
     """
     arg_constraints = {"logits": constraints.real}
@@ -44,9 +46,10 @@ class BinnedUniforms(Distribution):
         numb_bins: int = 100,
         validate_args: bool = None,
     ):
-        assert (
-            bins_lower_bound < bins_upper_bound
-        ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
+        assert bins_lower_bound < bins_upper_bound, (
+            f"bins_lower_bound {bins_lower_bound} needs to less than "
+            f"bins_upper_bound {bins_upper_bound}"
+        )
         assert (
             logits.shape[-1] == numb_bins
         ), "The distribution requires one logit per bin."
@@ -65,7 +68,8 @@ class BinnedUniforms(Distribution):
         self.numb_bins = numb_bins
 
         # Creation the bin locations
-        # Bins locations are placed uniformly between bins_lower_bound and bins_upper_bound, though more complex methods could be used
+        # Bins locations are placed uniformly between bins_lower_bound and
+        # bins_upper_bound, though more complex methods could be used
         self.bin_min = bins_lower_bound
         self.bin_max = bins_upper_bound
 
@@ -127,7 +131,7 @@ class BinnedUniforms(Distribution):
     @property
     def bins_prob(self):
         """
-        Returns the probability of the observed point to be in each of the bins.
+        Returns the probability of the observed point to be in each of the bins
         bins_prob.shape: (*batch_shape, event_shape).
         event_shape is numb_bins
         """
@@ -172,7 +176,8 @@ class BinnedUniforms(Distribution):
 
     def get_one_hot_bin_indicator(self, x, in_float=False):
         """
-        'x' is to have shape (*batch_shape) which can be for example () or (32, ) or (32, 168, )
+        'x' is to have shape (*batch_shape) which can be for example () or
+        (32, ) or (32, 168, )
         """
         for i in range(0, len(x.shape)):
             assert (
@@ -198,7 +203,7 @@ class BinnedUniforms(Distribution):
         one_hot_bin_indicator = ((lower_edge <= x) * (x < upper_edges)).long()
         # one_hot_bin_indicator.shape: [*batch_shape, numb_bins]
 
-        # This handles cases where x falls outside of [self.bin_min, self.bin_max]
+        # This handles if x falls outside of [self.bin_min, self.bin_max]
         is_higher_than_last_edge = x_copy >= self.bin_edges[..., -1]
         # is_higher_than_last_edge: [*batch_shape, numb_dim]
         is_lower_than_first_edge = x_copy <= self.bin_edges[..., 0]
@@ -222,7 +227,7 @@ class BinnedUniforms(Distribution):
         assert (quantiles >= 0.0).all(), "quantiles must be between (0.0, 1.0)"
         assert (quantiles <= 1.0).all(), "quantiles must be between (0.0, 1.0)"
 
-        # in case we are given a single value as quantile, we put it to batch size
+        # If given a single value as quantile, we put it to batch size
         if (
             len(quantiles.shape) == 0
             or len(quantiles.shape) == 1
@@ -232,9 +237,10 @@ class BinnedUniforms(Distribution):
             quantiles = quantiles.repeat(batch_shape)
 
         for i in range(0, len(quantiles.shape)):
-            assert (
-                quantiles.shape[i] == self.batch_shape[i]
-            ), "We expect the quantile to be either a single float or a tensor of size batch_shape"
+            assert quantiles.shape[i] == self.batch_shape[i], (
+                "We expect the quantile to be either a single float or a "
+                "tensor of size batch_shape"
+            )
 
         return self._inverse_cdf(quantiles)
 
@@ -257,7 +263,8 @@ class BinnedUniforms(Distribution):
 
         bins_prob = self.bins_prob
 
-        # For each bin we get the cdf up to the bin (lower) and the cdf including the bin (upper)
+        # For each bin we get the cdf up to the bin (lower) and the cdf
+        # including the bin (upper)
         incomplete_cdf_upper = bins_prob.cumsum(dim=-1)
         # incomplete_cdf_upper.shape: (*batch_shape, numb_bins)
         incomplete_cdf_lower = bins_prob.cumsum(dim=-1) - bins_prob
@@ -320,7 +327,8 @@ class BinnedUniforms(Distribution):
 
         The cdf is composed of 2 parts:
             the cdf up to the bin
-            the cdf within the bin that the point falls into (modeled with a uniform distribution)
+            the cdf within the bin that the point falls into (modeled with a
+            uniform distribution)
         """
 
         bins_prob = self.bins_prob
@@ -331,7 +339,8 @@ class BinnedUniforms(Distribution):
         one_hot_bin_indicator = self.get_one_hot_bin_indicator(x)
         # one_hot_bin_indicator.shape: (*batch_shape, numb_bins)
 
-        # Get the cdf over the bins i.e. the probability mass up to each bin's upper edge
+        # Get the cdf over the bins i.e. the probability mass up to each
+        # bin's upper edge
         incomplete_cdf = bins_prob.cumsum(dim=-1) - bins_prob
         # incomplete_cdf.shape: (*batch_shape,numb_bins)
 
@@ -351,8 +360,9 @@ class BinnedUniforms(Distribution):
         lower_edges = lower_edges.repeat(batch_shape_extended)
         # lower_edges.shape: (*batch_shape,numb_bins)
 
-        # With the edges and the point value we can get the cdf within the bin given that they are uniform distributions,
-        #  and weight it by the probability of the bin
+        # With the edges and the point value we can get the cdf within the
+        # bin given that they are uniform
+        # distributions, and weight it by the probability of the bin
         bin_width = upper_edges[one_hot_bin_indicator].view(
             batch_shape_extended
         ) - lower_edges[one_hot_bin_indicator].view(batch_shape_extended)
@@ -406,7 +416,7 @@ class BinnedUniforms(Distribution):
 
     def rsample(self, sample_shape=torch.Size()):
         """
-        We do not have an implementation allowing for the reparameterization trick yet.
+        We do not have an implementation for the reparameterization trick yet.
         """
         raise NotImplementedError
 
@@ -438,9 +448,10 @@ class BinnedUniformsOutput(DistributionOutput):
         assert (
             isinstance(num_bins, int) and num_bins > 1
         ), "num_bins should be an integer and greater than 1"
-        assert (
-            bins_lower_bound < bins_upper_bound
-        ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
+        assert bins_lower_bound < bins_upper_bound, (
+            f"bins_lower_bound {bins_lower_bound} needs to less than "
+            f"bins_upper_bound {bins_upper_bound}"
+        )
 
         self.num_bins = num_bins
         self.bins_lower_bound = bins_lower_bound

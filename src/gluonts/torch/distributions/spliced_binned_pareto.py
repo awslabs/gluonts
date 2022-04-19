@@ -31,8 +31,11 @@ class SplicedBinnedPareto(BinnedUniforms):
     ----------
         bins_lower_bound: The lower bound of the bin edges
         bins_upper_bound: The upper bound of the bin edges
-        numb_bins: The number of equidistance bins to allocate between `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
-        tail_percentile_gen_pareto: The percentile of the distribution that is each tail. Default value is 0.05. NB: This symmetric percentile can still represent asymmetric upper and lower tails.
+        numb_bins: The number of equidistance bins to allocate between
+            `bins_lower_bound` and `bins_upper_bound`. Default value is 100.
+        tail_percentile_gen_pareto: The percentile of the distribution that is
+            each tail. Default value is 0.05. NB: This symmetric percentile
+            can still represent asymmetric upper and lower tails.
     """
     arg_constraints = {
         "logits": constraints.real,
@@ -97,10 +100,12 @@ class SplicedBinnedPareto(BinnedUniforms):
         Arguments
         ----------
         x: a tensor of size 'batch_size', 1
-        for_training: boolean to indicate a return of the log-probability, or of the loss (which is an adjusted log-probability)
+        for_training: boolean to indicate a return of the log-probability, or
+            of the loss (which is an adjusted log-probability)
         """
 
-        # Compute upper and lower tail thresholds at current time from their percentiles
+        # Compute upper and lower tail thresholds at current time from
+        # their percentiles
         upper_percentile = self._icdf_binned(
             torch.ones_like(x) * (1 - self.tail_percentile_gen_pareto)
         )
@@ -125,12 +130,15 @@ class SplicedBinnedPareto(BinnedUniforms):
         lower_gen_pareto_log_prob = self.lower_gen_pareto.log_prob(
             torch.abs(lower_percentile - x.squeeze(dim=-1))
         ) + torch.log(self.tail_percentile_gen_pareto)
-        # For the two log prob calls above, we adjust the value so that it corresponds to the value in the tail.
-        # we take the absolute value of what we give to the gen pareto because else the gradients are nan.
-        #  The torch,where select the correct ones and so the values lower than zero are ignored,
-        #  but the backward pass of pytorch has an issue with nans in where even if they are not selected
+        # For the two log prob calls above, we adjust the value so that it
+        # corresponds to the value in the tail. We take the absolute value of
+        # what we give to the gen pareto because else the gradients are nan.
+        # The torch,where select the correct ones and so the values lower than
+        # zero are ignored, but the backward pass of pytorch has an issue with
+        # nans in where even if they are not selected
 
-        # By default during training we want to optimise the log-prob of both the binned and the gen pareto at the tails
+        # By default during training we want to optimise the log-prob of both
+        # the binned and the gen pareto at the tails
         # if not for training, we want to only have the gen pareto at the tails
         if for_training:
             # Log-prob given upper tail distribution
@@ -167,7 +175,8 @@ class SplicedBinnedPareto(BinnedUniforms):
         Probability for a tensor of data points `x`.
         'x' is to have shape (*batch_shape)
         """
-        # By default we put the for training parameter of the pdf on false as one tends to train with the log-prob
+        # By default we put the for training parameter of the pdf on false as
+        # one tends to train with the log-prob
         return torch.exp(self.log_prob(x, for_training=False))
 
     def _inverse_cdf(self, quantiles: torch.tensor):
@@ -276,9 +285,10 @@ class SplicedBinnedParetoOutput(DistributionOutput):
         assert (
             isinstance(num_bins, int) and num_bins > 1
         ), "num_bins should be an integer and greater than 1"
-        assert (
-            bins_lower_bound < bins_upper_bound
-        ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
+        assert bins_lower_bound < bins_upper_bound, (
+            f"bins_lower_bound {bins_lower_bound} needs to less than "
+            f"bins_upper_bound {bins_upper_bound}"
+        )
 
         self.num_bins = num_bins
         self.bins_lower_bound = bins_lower_bound
