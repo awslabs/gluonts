@@ -398,13 +398,15 @@ class BinnedUniforms(Distribution):
             samples of shape (*sample_shape, *batch_shape)
 
         """
-        quantiles = torch.rand(self.batch_shape)
-        samples = self.icdf(quantiles)
-        if len(sample_shape) > 0:
-            for i in range(sample_shape[0] - 1):
+        if len(sample_shape) == 0:
+            quantiles = torch.rand(self.batch_shape)
+            samples = self.icdf(quantiles)
+        else:
+            samples = torch.zeros(list(sample_shape) + list(self.batch_shape))
+            for i in range(sample_shape[0]):
                 quantiles = torch.rand(self.batch_shape)
                 samples_i = self.icdf(quantiles)
-                samples = torch.stack([samples, samples_i], dim=0)
+                samples[i, ...] = samples_i
 
         return samples
 
