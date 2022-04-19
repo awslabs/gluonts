@@ -253,9 +253,9 @@ class BinnedUniforms(Distribution):
         quantiles = quantiles.unsqueeze(dim=-1)
         # quantiles.shape: (*batch_shape, 1)
 
-        bins_prob = self.bins_prob
-
         batch_shape_extended = quantiles.shape
+
+        bins_prob = self.bins_prob
 
         # For each bin we get the cdf up to the bin (lower) and the cdf including the bin (upper)
         incomplete_cdf_upper = bins_prob.cumsum(dim=-1)
@@ -388,14 +388,13 @@ class BinnedUniforms(Distribution):
             samples of shape (*sample_shape, *batch_shape)
 
         """
-        assert len(sample_shape) == 1
-
-        samples = torch.zeros(list(sample_shape) + list(self.batch_shape))
-
-        for i in range(sample_shape[0]):
-            quantiles = torch.rand(self.batch_shape)
-            samples_i = self.icdf(quantiles)
-            samples[i, ...] = samples_i
+        quantiles = torch.rand(self.batch_shape)
+        samples = self.icdf(quantiles)
+        if len(sample_shape) > 0:
+            for i in range(sample_shape[0] - 1):
+                quantiles = torch.rand(self.batch_shape)
+                samples_i = self.icdf(quantiles)
+                samples = torch.stack([samples, samples_i], dim=0)
 
         return samples
 

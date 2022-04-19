@@ -16,8 +16,8 @@ from typing import Optional, cast, Dict, Tuple
 import torch
 from torch.distributions import constraints
 
-from gluonts.torch.distribution.binned_uniforms import BinnedUniforms
-from gluonts.torch.distribution.generalized_pareto import GeneralizedPareto
+from gluonts.torch.distributions.binned_uniforms import BinnedUniforms
+from gluonts.torch.distributions.generalized_pareto import GeneralizedPareto
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.distribution_output import DistributionOutput
@@ -99,7 +99,6 @@ class SplicedBinnedPareto(BinnedUniforms):
         x: a tensor of size 'batch_size', 1
         for_training: boolean to indicate a return of the log-probability, or of the loss (which is an adjusted log-probability)
         """
-        #         print(x.shape)
 
         # Compute upper and lower tail thresholds at current time from their percentiles
         upper_percentile = self._icdf_binned(
@@ -116,7 +115,7 @@ class SplicedBinnedPareto(BinnedUniforms):
 
         # Log-prob given binned distribution
         logp_bins = self.log_binned_p(x)
-        logp = logp_bins
+        logp = logp_bins.double()
         # logp.shape: (*batch_shape)
 
         # We obtain the log probabilities under the tail distributions:

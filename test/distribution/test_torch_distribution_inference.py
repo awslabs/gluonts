@@ -60,7 +60,7 @@ device = torch.device(dev)
 print(device)
 
 
-def inv_softmax(y):
+def inv_softmax(y: NPArrayLike) -> np.ndarray:
     """
     Inverse of the scipy.special.softmax
     """

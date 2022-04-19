@@ -107,7 +107,7 @@ class GeneralizedPareto(Distribution):
 
         x = x.unsqueeze(dim=-1)
 
-        logp = -self.beta.log()
+        logp = -self.beta.log().double()
         logp += torch.where(
             self.xi == torch.zeros_like(self.xi),
             -x / self.beta,
@@ -115,7 +115,9 @@ class GeneralizedPareto(Distribution):
             * torch.log(1 + self.xi * x / self.beta),
         )
         logp = torch.where(
-            x < torch.zeros_like(x), -np.inf * torch.ones_like(x), logp
+            x < torch.zeros_like(x),
+            (-np.inf * torch.ones_like(x)).double(),
+            logp,
         )
         return logp.squeeze(dim=-1)
 

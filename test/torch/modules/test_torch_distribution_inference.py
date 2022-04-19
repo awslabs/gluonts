@@ -15,7 +15,7 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import pytest
@@ -45,7 +45,15 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-NUM_SAMPLES = 3000
+from gluonts.torch.distributions.spliced_binned_pareto import (
+    SplicedBinnedPareto,
+    SplicedBinnedParetoOutput,
+)
+
+from scipy import stats
+from scipy.special import softmax
+
+NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
 TOL = 0.3
 START_TOL_MULTIPLE = 1
@@ -59,7 +67,51 @@ def inv_softplus(y: NPArrayLike) -> np.ndarray:
     return np.log(np.exp(y) - 1)
 
 
+def inv_softmax(y: NPArrayLike) -> np.ndarray:
+    """
+    Inverse of the scipy.special.softmax
+    """
+    return np.log(y)
+
+
 def maximum_likelihood_estimate_sgd(
+    distr_output: DistributionOutput,
+    samples: torch.Tensor,
+    init_biases: List[np.ndarray] = None,
+    num_epochs: PositiveInt = PositiveInt(5),
+    learning_rate: PositiveFloat = PositiveFloat(1e-2),
+):
+    arg_proj = distr_output.get_args_proj(in_features=1)
+    if init_biases is not None:
+        for param, bias in zip(arg_proj.proj, init_biases):
+            nn.init.constant_(param.bias, bias)
+    dummy_data = torch.ones((len(samples), 1))
+    dataset = TensorDataset(dummy_data, samples)
+    train_data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    optimizer = SGD(arg_proj.parameters(), lr=learning_rate)
+    for e in range(num_epochs):
+        cumulative_loss = 0
+        num_batches = 0
+        for i, (data, sample_label) in enumerate(train_data):
+            optimizer.zero_grad()
+            distr_args = arg_proj(data)
+            distr = distr_output.distribution(distr_args)
+            loss = -distr.log_prob(sample_label).mean()
+            loss.backward()
+            clip_grad_norm_(arg_proj.parameters(), 10.0)
+            optimizer.step()
+            num_batches += 1
+            cumulative_loss += loss.item()
+    if len(distr_args[0].shape) == 1:
+        return [
+            param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))
+        ]
+    return [
+        param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
+    ]
+
+
+def maximum_likelihood_estimate_sgd_2(
     distr_output: DistributionOutput,
     samples: torch.Tensor,
     init_biases: List[np.ndarray] = None,
@@ -103,6 +155,20 @@ def maximum_likelihood_estimate_sgd(
     return [
         param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
     ]
+
+
+def compare_logits(
+    logits_true: np.array, logits_hat: np.array, TOL: int = 0.3
+):
+    """
+    Since logits {x_i} and logits {x_i + K} will result in the same probabilities {exp(x_i)/(sum_j exp(x_j))},
+    one needs to apply softmax and inv_softmax before comparing logits within a certain tolerance
+    """
+    param_true = inv_softmax(softmax(logits_true, axis=-1))
+    param_hat = inv_softmax(softmax(logits_hat, axis=-1))
+    assert (
+        np.abs(param_hat - param_true) < TOL * np.abs(param_true)
+    ).all(), f"logits did not match: logits_true = {param_true}, logits_hat = {param_hat}"
 
 
 @pytest.mark.flaky(max_runs=3, min_passes=1)
@@ -296,6 +362,9 @@ def test_neg_binomial(total_count: float, logit: float) -> None:
         inv_softplus(total_count - START_TOL_MULTIPLE * TOL * total_count),
         logit - START_TOL_MULTIPLE * TOL * logit,
     ]
+    print("type(init_biases)", type(init_biases))
+    print("len(init_biases)", len(init_biases))
+    print("type(init_biases[0])", type(init_biases[0]))
 
     total_count_hat, logit_hat = maximum_likelihood_estimate_sgd(
         NegativeBinomialOutput(),
@@ -310,3 +379,105 @@ def test_neg_binomial(total_count: float, logit: float) -> None:
     assert (
         np.abs(logit_hat - logit) < TOL * logit
     ), f"logit did not match: logit = {logit}, logit_hat = {logit_hat}"
+
+
+percentile_tail = 0.05
+
+
+@pytest.mark.parametrize("percentile_tail", [percentile_tail])
+@pytest.mark.parametrize(
+    "np_logits", [[percentile_tail, 1 - 2 * percentile_tail, percentile_tail]]
+)
+@pytest.mark.parametrize(
+    "lower_gp_xi, lower_gp_beta", [(0.4, PositiveFloat(1.5))]
+)
+@pytest.mark.parametrize(
+    "upper_gp_xi, upper_gp_beta", [(0.3, PositiveFloat(1.0))]
+)
+@pytest.mark.timeout(300)
+@pytest.mark.flaky(max_runs=5, min_passes=1)
+def test_splicedbinnedpareto_likelihood(
+    percentile_tail: PositiveFloat,
+    np_logits: np.ndarray,
+    lower_gp_xi: float,
+    lower_gp_beta: PositiveFloat,
+    upper_gp_xi: float,
+    upper_gp_beta: PositiveFloat,
+) -> None:
+    # percentile_tail = 0.05
+    bins_lower_bound, bins_upper_bound = -1.0, 2.0
+    # np_logits = [percentile_tail, 1 - 2 * percentile_tail, percentile_tail]
+    # upper_gp_xi, upper_gp_beta = 0.3, 1
+    # lower_gp_xi, lower_gp_beta = 0.4, 1
+
+    assert percentile_tail < 1, "percentile_tail should be between 0.0 and 1.0"
+
+    # Specify the distribution with parameter value from which to obtain samples
+    NUM_SAMPLES = 10_000
+
+    logits = torch.tensor(np_logits).unsqueeze(0)
+    logits = logits.repeat(NUM_SAMPLES, 1)
+    nbins = logits.shape[-1]
+    distr_true = SplicedBinnedPareto(
+        bins_lower_bound=bins_lower_bound,
+        bins_upper_bound=bins_upper_bound,
+        tail_percentile_gen_pareto=percentile_tail,
+        numb_bins=nbins,
+        logits=logits,
+        lower_gp_xi=torch.tensor(lower_gp_xi, dtype=torch.float).repeat(
+            NUM_SAMPLES, 1
+        ),
+        lower_gp_beta=torch.tensor(lower_gp_beta, dtype=torch.float).repeat(
+            NUM_SAMPLES, 1
+        ),
+        upper_gp_xi=torch.tensor(upper_gp_xi, dtype=torch.float).repeat(
+            NUM_SAMPLES, 1
+        ),
+        upper_gp_beta=torch.tensor(upper_gp_beta, dtype=torch.float).repeat(
+            NUM_SAMPLES, 1
+        ),
+    )
+    samples = distr_true.sample()
+
+    # DistributionOutput
+    distr_output = SplicedBinnedParetoOutput(
+        bins_lower_bound=bins_lower_bound,
+        bins_upper_bound=bins_upper_bound,
+        num_bins=nbins,
+        tail_percentile_gen_pareto=percentile_tail,
+    )
+
+    # Initialize parameter estimates
+    init_args = []
+    for param_name in distr_output.args_dim.keys():
+        init_args.append(
+            distr_true.__getattribute__(param_name).squeeze(dim=0).numpy()
+            * (1 - START_TOL_MULTIPLE * TOL)
+        )
+    init_biases = tuple(init_args)
+
+    params_hat_values = maximum_likelihood_estimate_sgd(
+        distr_output,
+        samples,
+        # init_biases=init_biases,
+        num_epochs=50,
+    )
+
+    params_hat = dict(
+        zip(list(distr_output.args_dim.keys()), params_hat_values)
+    )
+
+    for param_name in params_hat.keys():
+        param_hat = params_hat[param_name]
+        param_true = (
+            torch.unique(distr_true.__getattribute__(param_name), dim=0)
+            .detach()
+            .numpy()
+        )
+
+        if param_name == "logits":
+            compare_logits(param_true, param_hat, TOL=TOL)
+        else:
+            assert (
+                np.abs(param_hat - param_true) < TOL * param_true
+            ).all(), f"{param_name} did not match: {param_name} = {param_true}, {param_name}_hat = {param_hat}"
