@@ -1,1 +1,1 @@
-fbprophet>=0.4.*
+prophet~=1.0
