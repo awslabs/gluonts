@@ -61,13 +61,3 @@ def test_quantile_loss(
         mx.nd.array(actuals), mx.nd.array(predictions)
     ).asnumpy()
     assert np.allclose(expected_loss_values, loss_values)
-
-    # reverse quantile-level-axis and test again
-    levels_rev = levels[::-1]
-    loss_function_rev = QuantileLoss(
-        levels_rev, quantile_weights=weights_fun(levels_rev)
-    )
-    loss_values_rev = loss_function_rev(
-        mx.nd.array(actuals), mx.nd.array([p[::-1] for p in predictions])
-    ).asnumpy()
-    assert np.allclose(expected_loss_values, loss_values_rev)
