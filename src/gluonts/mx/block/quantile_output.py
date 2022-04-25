@@ -41,23 +41,14 @@ def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
     num_quantiles = len(quantile_levels)
     assert num_quantiles > 0
 
-    sorted_indices, sorted_quantiles = zip(
-        *sorted(enumerate(quantile_levels), key=lambda p: p[1])
-    )
-    sorted_weights = (
-        [0.5 * (sorted_quantiles[1] - sorted_quantiles[0])]
+    return (
+        [0.5 * (quantile_levels[1] - quantile_levels[0])]
         + [
-            0.5 * (sorted_quantiles[i + 1] - sorted_quantiles[i - 1])
+            0.5 * (quantile_levels[i + 1] - quantile_levels[i - 1])
             for i in range(1, num_quantiles - 1)
         ]
-        + [0.5 * (sorted_quantiles[-1] - sorted_quantiles[-2])]
+        + [0.5 * (quantile_levels[-1] - quantile_levels[-2])]
     )
-
-    weights = sorted_weights.copy()
-    for sidx, idx in enumerate(sorted_indices):
-        weights[idx] = sorted_weights[sidx]
-
-    return weights
 
 
 class QuantileLoss(Loss):
