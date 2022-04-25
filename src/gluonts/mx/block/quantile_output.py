@@ -94,7 +94,8 @@ class QuantileLoss(Loss):
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
         self.quantile_weights = (
-            quantile_weights if quantile_weights is not None
+            quantile_weights
+            if quantile_weights is not None
             else uniform_weights(quantiles)
         )
 
