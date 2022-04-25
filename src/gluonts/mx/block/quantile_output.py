@@ -39,7 +39,10 @@ def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
     w_0 = (q_1-q_0)/2 and w_n = (w_n - w_{n-1})/2.
     """
     num_quantiles = len(quantile_levels)
-    assert num_quantiles > 0
+    assert num_quantiles >= 0
+
+    if num_quantiles < 2:
+        return [1.0] * num_quantiles
 
     return (
         [0.5 * (quantile_levels[1] - quantile_levels[0])]
