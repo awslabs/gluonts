@@ -13,8 +13,6 @@
 
 from typing import Dict, Tuple
 
-import numpy as np
-
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
