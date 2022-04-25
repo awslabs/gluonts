@@ -77,13 +77,10 @@ class QuantileLoss(Loss):
         ----------
         quantiles
             list of quantiles to compute loss over.
-
         quantile_weights
             weights of the quantiles.
-
         weight
             weighting of the loss.
-
         batch_axis
             indicates axis that represents the batch.
         """
