@@ -41,7 +41,9 @@ def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
     num_quantiles = len(quantile_levels)
     assert num_quantiles > 0
 
-    sorted_indices, sorted_quantiles = zip(*sorted(enumerate(quantile_levels), key=lambda p: p[1]))
+    sorted_indices, sorted_quantiles = zip(
+        *sorted(enumerate(quantile_levels), key=lambda p: p[1])
+    )
     sorted_weights = (
         [0.5 * (sorted_quantiles[1] - sorted_quantiles[0])]
         + [
@@ -125,8 +127,12 @@ class QuantileLoss(Loss):
             y_pred_all = [F.squeeze(y_pred, axis=-1)]
 
         qt_loss = []
-        for level, weight, y_pred_q in zip(self.quantiles, self.quantile_weights, y_pred_all):
-            qt_loss.append(weight * self.compute_quantile_loss(F, y_true, y_pred_q, level))
+        for level, weight, y_pred_q in zip(
+            self.quantiles, self.quantile_weights, y_pred_all
+        ):
+            qt_loss.append(
+                weight * self.compute_quantile_loss(F, y_true, y_pred_q, level)
+            )
         stacked_qt_losses = F.stack(*qt_loss, axis=-1)
         sum_qt_loss = F.mean(
             stacked_qt_losses, axis=-1
@@ -206,9 +212,10 @@ class QuantileOutput:
         return QuantileLoss(
             quantiles=self.quantiles,
             quantile_weights=(
-                self.quantile_weights if self.quantile_weights is not None
+                self.quantile_weights
+                if self.quantile_weights is not None
                 else uniform_weights(self.quantiles)
-            )
+            ),
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
@@ -290,9 +297,10 @@ class IncrementalQuantileOutput(QuantileOutput):
         return QuantileLoss(
             quantiles=self.quantiles,
             quantile_weights=(
-                self.quantile_weights if self.quantile_weights is not None
+                self.quantile_weights
+                if self.quantile_weights is not None
                 else crps_weights_pwl(self.quantiles)
-            )
+            ),
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
