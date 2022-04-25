@@ -152,7 +152,7 @@ class GaussianOutput(DistributionOutput):
             same entries as `mu` and the second has entries mapped to the
             positive orthant.
         """
-        sigma = softplus(F, sigma)
+        sigma = F.maximum(softplus(F, sigma), cls.eps())
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
 
     @property

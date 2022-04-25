@@ -193,10 +193,8 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
             entries mapped to the positive orthant, zero_probability is mapped
             to (0, 1), one_probability is mapped to (0, 1-zero_probability)
         """
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        alpha = softplus(F, alpha) + epsilon
-        beta = softplus(F, beta) + epsilon
+        alpha = F.maximum(softplus(F, alpha), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         zero_probability = F.sigmoid(zero_probability)
         one_probability = (1 - zero_probability) * F.sigmoid(one_probability)
         return (
@@ -241,10 +239,8 @@ class ZeroInflatedBetaOutput(ZeroAndOneInflatedBetaOutput):
             Three squeezed tensors, of shape `(*batch_shape)`: First two have
             entries mapped to the positive orthant, last is mapped to (0,1)
         """
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        alpha = softplus(F, alpha) + epsilon
-        beta = softplus(F, beta) + epsilon
+        alpha = F.maximum(softplus(F, alpha), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         zero_probability = F.sigmoid(zero_probability)
         return (
             alpha.squeeze(axis=-1),

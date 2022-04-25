@@ -84,6 +84,10 @@ class Output:
     def dtype(self):
         return self._dtype
 
+    @classmethod
+    def eps(cls):
+        return np.finfo(cls.dtype).eps
+
     @dtype.setter
     def dtype(self, dtype: Type):
         self._dtype = dtype
