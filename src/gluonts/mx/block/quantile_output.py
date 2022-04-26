@@ -20,28 +20,45 @@ from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 
-def uniform_weights(quantile_levels: List[float]) -> List[float]:
-    return [1.0 / len(quantile_levels)] * len(quantile_levels)
+def uniform_weights(objects: list) -> List[float]:
+    """
+    Return uniform weights for a list of objects.
+
+    >>> uniform_weights(["a", "b", "c", "d"])
+    [0.25, 0.25, 0.25, 0.25]
+
+    Parameters
+    ----------
+    objects
+        Objects that need to be weighted.
+
+    Returns
+    -------
+    List[float]
+        List of weights.
+    """
+    return [1.0 / len(objects)] * len(objects)
 
 
 def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
     """
-    Compute the quantile loss weights corresponding to CRPS under linear
-    interpolation assumption.
+    Compute the quantile loss weights making mean quantile loss equal to CRPS
+    under linear interpolation assumption.
 
     Quantile levels are assumed to be sorted in increasing order.
 
     Under the assumption of linear interpolation
 
-    .. math:: CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i})
+    .. math:: CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1}-q_{i}) * (z_{i+1}+z_{i})
 
     where :math:`z_i` is the i-th quantile prediction :math:`q_i`.
     The inner terms cancel due to the telescoping sum property and we obtain
 
     .. math:: CRPS = sum_{i=1}^n w_i z_i
 
-    with the weights :math:`w_i = (q_{i+1}-q_{i-1})/2` for :math:`i = 1, ..., n-1`,
-    :math:`w_0 = (q_1-q_0)/2` and :math:`w_n = (w_n - w_{n-1})/2`.
+    with the weights :math:`w_i = (q_{i+1}-q_{i-1})/2` for
+    :math:`i = 1, ..., n-1`, :math:`w_0 = (q_1-q_0)/2` and
+    :math:`w_n = (w_n - w_{n-1})/2`.
     """
     num_quantiles = len(quantile_levels)
 
@@ -69,7 +86,7 @@ class QuantileLoss(Loss):
         **kwargs,
     ) -> None:
         """
-        Represents the quantile loss used to fit decoders that learn quantiles.
+        Represent the quantile loss used to fit decoders that learn quantiles.
 
         Parameters
         ----------
