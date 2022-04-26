@@ -112,7 +112,7 @@ class LaplaceOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, b):
-        b = softplus(F, b)
+        b = F.maximum(softplus(F, b), cls.eps())
         return mu.squeeze(axis=-1), b.squeeze(axis=-1)
 
     @property

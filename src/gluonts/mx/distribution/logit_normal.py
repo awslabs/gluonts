@@ -108,7 +108,7 @@ class LogitNormalOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, sigma):
-        sigma = softplus(F, sigma)
+        sigma = F.maximum(softplus(F, sigma), cls.eps())
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
 
     @property
