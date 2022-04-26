@@ -192,9 +192,8 @@ class GenParetoOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries
             mapped to the positive orthant.
         """
-        epsilon = np.finfo(cls._dtype).eps
-        xi = softplus(F, xi) + epsilon
-        beta = softplus(F, beta) + epsilon
+        xi = F.maximum(softplus(F, xi), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         return xi.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property

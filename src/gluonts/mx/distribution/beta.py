@@ -137,10 +137,8 @@ class BetaOutput(DistributionOutput):
             Two squeezed tensors, of shape `(*batch_shape)`: both have entries
             mapped to the positive orthant.
         """
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        alpha = softplus(F, alpha) + epsilon
-        beta = softplus(F, beta) + epsilon
+        alpha = F.maximum(softplus(F, alpha), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         return alpha.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property
