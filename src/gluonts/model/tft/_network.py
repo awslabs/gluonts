@@ -169,14 +169,9 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         self.d_hidden = d_hidden
         self.n_head = n_head
         self.n_output = n_output
-        self.quantiles = sorted(
-            sum(
-                (
-                    [i / 10, 1.0 - i / 10]
-                    for i in range(1, (n_output + 1) // 2)
-                ),
-                [0.5],
-            )
+        self.quantiles = sum(
+            ([i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)),
+            [0.5],
         )
         self.normalize_eps = 1e-5
 
