@@ -107,9 +107,8 @@ class NegativeBinomialOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, alpha):
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-        mu = F.maximum(softplus(F, mu), epsilon)
-        alpha = F.maximum(softplus(F, alpha), epsilon)
+        mu = F.maximum(softplus(F, mu), cls.eps())
+        alpha = F.maximum(softplus(F, alpha), cls.eps())
         return mu.squeeze(axis=-1), alpha.squeeze(axis=-1)
 
     # Overwrites the parent class method. We cannot scale using the affine
