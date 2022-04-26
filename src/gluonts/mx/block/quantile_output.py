@@ -21,7 +21,7 @@ from gluonts.mx import Tensor
 
 
 def uniform_weights(x: list) -> List[float]:
-    return [1.0 / len(x) for _ in x]
+    return [1.0 / len(x)] * len(x)
 
 
 def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
