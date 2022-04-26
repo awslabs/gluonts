@@ -16,7 +16,9 @@ import pytest
 from gluonts.model.forecast import QuantileForecast
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.model.tft import TemporalFusionTransformerEstimator
-from gluonts.model.tft._network import TemporalFusionTransformerPredictionNetwork
+from gluonts.model.tft._network import (
+    TemporalFusionTransformerPredictionNetwork,
+)
 
 
 @pytest.fixture()
@@ -53,14 +55,11 @@ def test_quantile_levels():
     from gluonts.mx.trainer import Trainer
 
     dataset = ListDataset(
-        [{"start": "2020-01-01", "target": [10.0] * 50}],
-        freq = "D"
+        [{"start": "2020-01-01", "target": [10.0] * 50}], freq="D"
     )
 
     estimator = TemporalFusionTransformerEstimator(
-        freq="D",
-        prediction_length=2,
-        trainer=Trainer(epochs=1)
+        freq="D", prediction_length=2, trainer=Trainer(epochs=1)
     )
     predictor = estimator.train(training_data=dataset)
 
@@ -68,5 +67,12 @@ def test_quantile_levels():
 
     assert isinstance(forecast, QuantileForecast)
     assert isinstance(predictor, GluonPredictor)
-    assert isinstance(predictor.prediction_net, TemporalFusionTransformerPredictionNetwork)
-    assert all(float(k) == q for k, q in zip(forecast.forecast_keys, predictor.prediction_net.output.quantiles))
+    assert isinstance(
+        predictor.prediction_net, TemporalFusionTransformerPredictionNetwork
+    )
+    assert all(
+        float(k) == q
+        for k, q in zip(
+            forecast.forecast_keys, predictor.prediction_net.output.quantiles
+        )
+    )
