@@ -128,8 +128,8 @@ class StudentTOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, sigma, nu):
-        sigma = softplus(F, sigma)
-        nu = 2.0 + softplus(F, nu)
+        sigma = F.maximum(softplus(F, sigma), cls.eps())
+        nu = 2.0 + F.maximum(softplus(F, nu), cls.eps())
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1), nu.squeeze(axis=-1)
 
     @property
