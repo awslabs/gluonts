@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import torch
+from torch.distributions import TransformedDistribution
 
 
 class DistributionLoss(torch.nn.Module):
@@ -67,7 +68,11 @@ class NegativeLogLikelihood(DistributionLoss):
     ) -> torch.Tensor:
         nll = -input.log_prob(target)
         if self.beta > 0.0:
-            nll = nll * input.variance.detach() ** self.beta
+            if type(input) == TransformedDistribution:
+                variance = input.base_dist.variance
+            else:
+                variance = input.variance
+            nll = nll * variance.detach() ** self.beta
         return nll
 
 
