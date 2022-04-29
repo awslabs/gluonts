@@ -38,8 +38,8 @@ def make_evaluation_predictions(
     num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
-    Returns predictions for the trailing prediction_length observations of the given
-    time series, using the given predictor.
+    Returns predictions for the trailing prediction_length observations of the
+    given time series, using the given predictor.
 
     The predictor will take as input the given time series without the trailing
     prediction_length observations.
@@ -52,14 +52,14 @@ def make_evaluation_predictions(
     predictor
         Model used to draw predictions.
     num_samples
-        Number of samples to draw on the model when evaluating. Only sampling-based
-        models will use this.
+        Number of samples to draw on the model when evaluating. Only
+        sampling-based models will use this.
 
     Returns
     -------
     Tuple[Iterator[Forecast], Iterator[pd.Series]]
-        A pair of iterators, the first one yielding the forecasts, and the second
-        one yielding the corresponding ground truth series.
+        A pair of iterators, the first one yielding the forecasts, and the
+        second one yielding the corresponding ground truth series.
     """
 
     prediction_length = predictor.prediction_length
@@ -193,7 +193,7 @@ class BacktestInformation(NamedTuple):
 
     @staticmethod
     def make_from_log(log_file):
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             return BacktestInformation.make_from_log_contents(
                 "\n".join(f.readlines())
             )

@@ -203,10 +203,9 @@ class InstanceSplitter(FlatMapTransformation):
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
     """
-    Selects instances, by slicing the target and other time series
-    like arrays at random points in training mode or at the last time point in
-    prediction mode. Assumption is that all time like arrays start at the same
-    time point.
+    Selects instances, by slicing the target and other time series like arrays
+    at random points in training mode or at the last time point in prediction
+    mode. Assumption is that all time like arrays start at the same time point.
 
     In training mode, the returned instances contain past_`target_field`
     as well as past_`time_series_fields`.
@@ -363,10 +362,10 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     """
     Selects training instances by slicing "intervals" from a continous-time
-    process instantiation. Concretely, the input data is expected to describe an
-    instantiation from a point (or jump) process, with the "target"
-    identifying inter-arrival times and other features (marks), as described
-    in detail below.
+    process instantiation. Concretely, the input data is expected to describe
+    an instantiation from a point (or jump) process, with the "target"
+    identifying inter-arrival times and other features (marks), as described in
+    detail below.
 
     The splitter will then take random points in continuous time from each
     given observation, and return a (variable-length) array of points in
@@ -378,17 +377,18 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     - It does not allow "incomplete" records. That is, the past and future
       intervals sampled are always complete
     - Outputs a (T, C) layout.
-    - Does not accept `time_series_fields` (i.e., only accepts target fields) as these
-      would typically not be available in TPP data.
+    - Does not accept `time_series_fields` (i.e., only accepts target fields)
+      as these would typically not be available in TPP data.
 
     The target arrays are expected to have (2, T) layout where the first axis
     corresponds to the (i) interarrival times between consecutive points, in
-    order and (ii) integer identifiers of marks (from {0, 1, ..., :code:`num_marks`}).
-    The returned arrays will have (T, 2) layout.
+    order and (ii) integer identifiers of marks (from
+    {0, 1, ..., :code:`num_marks`}). The returned arrays will have (T, 2)
+    layout.
 
-    For example, the array below corresponds to a target array where points with timestamps
-    0.5, 1.1, and 1.5 were observed belonging to categories (marks) 3, 1 and 0
-    respectively: :code:`[[0.5, 0.6, 0.4], [3, 1, 0]]`.
+    For example, the array below corresponds to a target array where points
+    with timestamps 0.5, 1.1, and 1.5 were observed belonging to categories
+    (marks) 3, 1 and 0 respectively: :code:`[[0.5, 0.6, 0.4], [3, 1, 0]]`.
 
     Parameters
     ----------

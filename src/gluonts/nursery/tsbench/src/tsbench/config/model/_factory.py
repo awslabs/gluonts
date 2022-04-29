@@ -30,9 +30,10 @@ def register_model(cls: M) -> M:
 
 def get_model_config(name: str, **kwargs: Any) -> ModelConfig:
     """
-    This method creates the model configuration of the model with the specified name. The provided
-    keyword arguments must contain ALL arguments required by the model configuration. Superfluous
-    arguments may be provided and are simply ignored.
+    This method creates the model configuration of the model with the specified
+    name. The provided keyword arguments must contain ALL arguments required by
+    the model configuration. Superfluous arguments may be provided and are
+    simply ignored.
 
     In case the name is unknown or parameters for the model config's initializer are missing, an
     assertion error occurs.

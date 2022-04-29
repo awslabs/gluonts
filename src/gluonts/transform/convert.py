@@ -51,7 +51,7 @@ def erf(x: np.ndarray) -> np.ndarray:
     for c in coefficients[::-1]:
         inner = t * (c + inner)
 
-    res = ones - t * np.exp((inner - 1.26551223 - np.square(x)))
+    res = ones - t * np.exp(inner - 1.26551223 - np.square(x))
     return np.where(x >= zeros, res, -1.0 * res)
 
 
@@ -289,7 +289,7 @@ class SwapAxes(SimpleTransformation):
         else:
             raise ValueError(
                 f"Unexpected field type {type(v).__name__}, expected "
-                f"np.ndarray or list[np.ndarray]"
+                "np.ndarray or list[np.ndarray]"
             )
 
 
@@ -398,8 +398,8 @@ class SampleTargetDim(FlatMapTransformation):
 
 class CDFtoGaussianTransform(MapTransformation):
     """
-    Marginal transformation that transforms the target via an empirical CDF
-    to a standard gaussian as described here: https://arxiv.org/abs/1910.03002
+    Marginal transformation that transforms the target via an empirical CDF to
+    a standard gaussian as described here: https://arxiv.org/abs/1910.03002.
 
     To be used in conjunction with a multivariate gaussian to from a copula.
     Note that this transformation is currently intended for multivariate
@@ -464,10 +464,9 @@ class CDFtoGaussianTransform(MapTransformation):
     def _preprocess_data(self, data: DataEntry, is_train: bool):
         """
         Performs several preprocess operations for computing the empirical CDF.
-        1) Reshaping the data.
-        2) Normalizing the target length.
-        3) Adding noise to avoid zero slopes (training only)
-        4) Sorting the target to compute the empirical CDF
+        1) Reshaping the data. 2) Normalizing the target length. 3) Adding
+        noise to avoid zero slopes (training only) 4) Sorting the target to
+        compute the empirical CDF.
 
         Parameters
         ----------
@@ -478,7 +477,6 @@ class CDFtoGaussianTransform(MapTransformation):
             avoid zero slopes in the piece-wise linear function.
         Returns
         -------
-
         """
         # (target_length, target_dim)
         past_target_vec = data[self.past_target_field].copy()
@@ -527,8 +525,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _calc_pw_linear_params(self, data: DataEntry):
         """
-        Calculates the piece-wise linear parameters to interpolate between
-        the observed values in the empirical CDF.
+        Calculates the piece-wise linear parameters to interpolate between the
+        observed values in the empirical CDF.
 
         Once current limitation is that we use a zero slope line as the last
         piece. Thus, we cannot forecast anything higher than the highest
@@ -541,7 +539,6 @@ class CDFtoGaussianTransform(MapTransformation):
 
         Returns
         -------
-
         """
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
@@ -595,7 +592,6 @@ class CDFtoGaussianTransform(MapTransformation):
         -------
         quantiles
             Empirical CDF quantiles in [0, 1] interval with winzorized cutoff.
-
         """
         m = sorted_values.shape[0]
         quantiles = self._forward_transform(
@@ -705,7 +701,7 @@ class CDFtoGaussianTransform(MapTransformation):
     def winsorized_cutoff(m: float) -> float:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
-        described here: https://arxiv.org/abs/0903.0649
+        described here: https://arxiv.org/abs/0903.0649.
 
         Parameters
         ----------
@@ -773,7 +769,6 @@ def cdf_to_gaussian_forward_transform(
     -------
     outputs
         Forward transformed outputs.
-
     """
 
     def _empirical_cdf_inverse_transform(
@@ -800,7 +795,6 @@ def cdf_to_gaussian_forward_transform(
         -------
         outputs
             Forward transformed outputs.
-
         """
 
         num_timesteps = batch_target_sorted.shape[1]
@@ -846,7 +840,8 @@ class ToIntervalSizeFormat(FlatMapTransformation):
 
     As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
     the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
-    shape (2, M) where M denotes the number of non-zero items in the time series.
+    shape (2, M) where M denotes the number of non-zero items in the time
+    series.
 
     Parameters
     ----------
@@ -856,10 +851,10 @@ class ToIntervalSizeFormat(FlatMapTransformation):
     drop_empty
         If True, all-zero time series will be dropped.
     discard_first
-        If True, the first element in the converted dense series will be dropped,
-        replacing the target with a (2, M-1) tet instead. This can be used
-        when the first 'inter-demand' time is not well-defined. e.g., when the true
-        starting index of the time-series is not known.
+        If True, the first element in the converted dense series will be
+        dropped, replacing the target with a (2, M-1) tet instead. This can be
+        used when the first 'inter-demand' time is not well-defined. e.g.,
+        when the true starting index of the time-series is not known.
     """
 
     @validated()

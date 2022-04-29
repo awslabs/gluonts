@@ -28,7 +28,8 @@ from .job import Job, load_jobs_from_analysis, load_jobs_from_directory
 
 class ModelTracker(Tracker[ModelConfig]):
     """
-    The tracker may be used to obtain the performance metrics from a set of evaluations.
+    The tracker may be used to obtain the performance metrics from a set of
+    evaluations.
     """
 
     @classmethod
@@ -36,9 +37,9 @@ class ModelTracker(Tracker[ModelConfig]):
         cls, name: str, force_refresh: bool = False, **kwargs: Any
     ) -> ModelTracker:
         """
-        Loads the data associated with a set of training jobs run on AWS Sagemaker. The tracker is
-        cached such that it does not need to re-download data in case no new evaluations are
-        available.
+        Loads the data associated with a set of training jobs run on AWS
+        Sagemaker. The tracker is cached such that it does not need to re-
+        download data in case no new evaluations are available.
 
         Args:
             name: The name of the experiment.
@@ -127,8 +128,8 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def __init__(
         self,
-        jobs: List[Job],
-        validation_metric: Optional[ValidationMetric] = "val_ncrps",
+        jobs: list[Job],
+        validation_metric: ValidationMetric | None = "val_ncrps",
         group_seeds: bool = True,
         data_path: Path = DEFAULT_DATA_PATH,
     ):
@@ -155,17 +156,17 @@ class ModelTracker(Tracker[ModelConfig]):
             [info.performance for info in self.infos],
         )
 
-    def unique_model_configs(self) -> List[ModelConfig]:
+    def unique_model_configs(self) -> list[ModelConfig]:
         """
-        Returns the unique model configurations that are available in the experiments managed by
-        this tracker.
+        Returns the unique model configurations that are available in the
+        experiments managed by this tracker.
 
         Returns:
             The list of available model configurations.
         """
         return list({c.model for c in self.config_map.keys()})
 
-    def get_training_jobs(self, config: Config[ModelConfig]) -> List[Job]:
+    def get_training_jobs(self, config: Config[ModelConfig]) -> list[Job]:
         """
         Returns all training jobs associated with the provided configuration.
 
@@ -179,10 +180,11 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def get_forecasts(
         self, config: Config[ModelConfig]
-    ) -> List[QuantileForecasts]:
+    ) -> list[QuantileForecasts]:
         """
-        Returns the quantile forecasts of all models associated with the provided configuration,
-        i.e. forecasts for the same model trained on different seeds.
+        Returns the quantile forecasts of all models associated with the
+        provided configuration, i.e. forecasts for the same model trained on
+        different seeds.
 
         Args:
             config: The configuration to obtain forecasts for.
@@ -198,9 +200,10 @@ class ModelTracker(Tracker[ModelConfig]):
 
     def get_validation_scores(
         self, config: Config[ModelConfig]
-    ) -> Optional[ValidationScores]:
+    ) -> ValidationScores | None:
         """
-        Returns the validation scores associated with the provided configuration if available.
+        Returns the validation scores associated with the provided
+        configuration if available.
 
         Args:
             config: The configuration to query the validation scores for.

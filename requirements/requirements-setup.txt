@@ -1,4 +1,4 @@
-black==22.1.0
+black
 mypy==0.910
 setuptools>=40.1.0
 setuptools_scm>=3.3.3

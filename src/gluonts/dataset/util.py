@@ -37,7 +37,9 @@ def forecast_start(entry):
 
 
 class MPWorkerInfo:
-    """Contains the current worker information."""
+    """
+    Contains the current worker information.
+    """
 
     worker_process = False
     num_workers = None
@@ -115,8 +117,8 @@ def find_files(
 
 def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     """
-    Transform a dictionary into a pandas.Series object, using its
-    "start" and "target" fields.
+    Transform a dictionary into a pandas.Series object, using its "start" and
+    "target" fields.
 
     Parameters
     ----------
@@ -139,8 +141,9 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
 
 
 def dct_reduce(reduce_fn, dcts):
-    """Similar to `reduce`, but applies reduce_fn to fields of dicts with the
-    same name.
+    """
+    Similar to `reduce`, but applies reduce_fn to fields of dicts with the same
+    name.
 
     >>> dct_reduce(sum, [{"a": 1}, {"a": 2}])
     {'a': 3}

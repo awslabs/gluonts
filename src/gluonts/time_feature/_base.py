@@ -38,91 +38,117 @@ class TimeFeature:
 
 
 class MinuteOfHour(TimeFeature):
-    """Minute of hour encoded as value between [-0.5, 0.5]"""
+    """
+    Minute of hour encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.minute.values / 59.0 - 0.5
 
 
 class MinuteOfHourIndex(TimeFeature):
-    """Minute of hour encoded as zero-based index, between 0 and 59"""
+    """
+    Minute of hour encoded as zero-based index, between 0 and 59.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.minute.astype(float).values
 
 
 class HourOfDay(TimeFeature):
-    """Hour of day encoded as value between [-0.5, 0.5]"""
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.hour.values / 23.0 - 0.5
 
 
 class HourOfDayIndex(TimeFeature):
-    """Hour of day encoded as zero-based index, between 0 and 23"""
+    """
+    Hour of day encoded as zero-based index, between 0 and 23.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.hour.astype(float).values
 
 
 class DayOfWeek(TimeFeature):
-    """Hour of day encoded as value between [-0.5, 0.5]"""
+    """
+    Hour of day encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofweek.values / 6.0 - 0.5
 
 
 class DayOfWeekIndex(TimeFeature):
-    """Hour of day encoded as zero-based index, between 0 and 6"""
+    """
+    Hour of day encoded as zero-based index, between 0 and 6.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofweek.astype(float).values
 
 
 class DayOfMonth(TimeFeature):
-    """Day of month encoded as value between [-0.5, 0.5]"""
+    """
+    Day of month encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return (index.day.values - 1) / 30.0 - 0.5
 
 
 class DayOfMonthIndex(TimeFeature):
-    """Day of month encoded as zero-based index, between 0 and 11"""
+    """
+    Day of month encoded as zero-based index, between 0 and 11.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.day.astype(float).values - 1
 
 
 class DayOfYear(TimeFeature):
-    """Day of year encoded as value between [-0.5, 0.5]"""
+    """
+    Day of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return (index.dayofyear.values - 1) / 365.0 - 0.5
 
 
 class DayOfYearIndex(TimeFeature):
-    """Day of year encoded as zero-based index, between 0 and 365"""
+    """
+    Day of year encoded as zero-based index, between 0 and 365.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.dayofyear.astype(float).values - 1
 
 
 class MonthOfYear(TimeFeature):
-    """Month of year encoded as value between [-0.5, 0.5]"""
+    """
+    Month of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return (index.month.values - 1) / 11.0 - 0.5
 
 
 class MonthOfYearIndex(TimeFeature):
-    """Month of year encoded as zero-based index, between 0 and 11"""
+    """
+    Month of year encoded as zero-based index, between 0 and 11.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         return index.month.astype(float).values - 1
 
 
 class WeekOfYear(TimeFeature):
-    """Week of year encoded as value between [-0.5, 0.5]"""
+    """
+    Week of year encoded as value between [-0.5, 0.5]
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         # TODO:
@@ -137,7 +163,9 @@ class WeekOfYear(TimeFeature):
 
 
 class WeekOfYearIndex(TimeFeature):
-    """Week of year encoded as zero-based index, between 0 and 52"""
+    """
+    Week of year encoded as zero-based index, between 0 and 52.
+    """
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
         # TODO:
@@ -152,7 +180,9 @@ class WeekOfYearIndex(TimeFeature):
 
 
 class Constant(TimeFeature):
-    """Constant time feature using a predefined value."""
+    """
+    Constant time feature using a predefined value.
+    """
 
     @validated()
     def __init__(self, value: float = 0.0):
@@ -169,14 +199,15 @@ def norm_freq_str(freq_str: str) -> str:
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
-    Returns a list of time features that will be appropriate for the given frequency string.
+    Returns a list of time features that will be appropriate for the given
+    frequency string.
 
     Parameters
     ----------
 
     freq_str
-        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
-
+        Frequency string of the form [multiple][granularity] such as "12H",
+        "5min", "1D" etc.
     """
 
     features_by_offsets = {

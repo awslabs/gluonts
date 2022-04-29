@@ -29,9 +29,11 @@ from .metrics import mrr, ndcg, nrmse, precision_k, smape
 
 class SurrogateAnalyzer:
     """
-    The surrogate analyzer evaluates the performance of a surrogate model with respect to ranking
-    and regression metrics. The analysis is run in parallel and should, thus, not be used in a
-    Jupyter notebook. Instead, consider using the `tsbench` CLI.
+    The surrogate analyzer evaluates the performance of a surrogate model with
+    respect to ranking and regression metrics.
+
+    The analysis is run in parallel and should, thus, not be used in a Jupyter
+    notebook. Instead, consider using the `tsbench` CLI.
     """
 
     def __init__(
@@ -52,8 +54,8 @@ class SurrogateAnalyzer:
 
     def run(self) -> pd.DataFrame:
         """
-        Runs the evaluation on the surrogate by applying LOOCV on the datasets being trained on.
-        Metrics are then provided per test dataset.
+        Runs the evaluation on the surrogate by applying LOOCV on the datasets
+        being trained on. Metrics are then provided per test dataset.
 
         Returns:
             A data frame with the results for each fold, the metrics being the columns. The rows

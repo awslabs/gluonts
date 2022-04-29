@@ -26,9 +26,9 @@ from .list_dataset import ListDataset
 class MultivariateGrouper:
     """
     The MultivariateGrouper takes a univariate dataset and groups it into a
-    single multivariate time series. Therefore, this class allows the user
-    to convert a univariate dataset into a multivariate dataset without making
-    a separate copy of the dataset.
+    single multivariate time series. Therefore, this class allows the user to
+    convert a univariate dataset into a multivariate dataset without making a
+    separate copy of the dataset.
 
     The Multivariate Grouper has two different modes:
 
@@ -64,7 +64,6 @@ class MultivariateGrouper:
     test_fill_rule
         Implements the rule that fills missing data after alignment of the
         time series for the test dataset.
-
     """
 
     def __init__(
@@ -91,9 +90,9 @@ class MultivariateGrouper:
         """
         The preprocess function iterates over the dataset to gather data that
         is necessary for alignment.
-        This includes
-            1) Storing first/last timestamp in the dataset
-            2) Storing the frequency of the dataset
+
+        This includes     1) Storing first/last timestamp in the dataset     2)
+        Storing the frequency of the dataset
         """
         for data in dataset:
             timestamp = data[FieldName.START]
@@ -104,7 +103,7 @@ class MultivariateGrouper:
             )
             self.frequency = timestamp.freq
         logging.info(
-            f"first/last timestamp found: "
+            "first/last timestamp found: "
             f"{self.first_timestamp}/{self.last_timestamp}"
         )
 

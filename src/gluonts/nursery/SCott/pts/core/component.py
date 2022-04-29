@@ -46,8 +46,8 @@ class BaseValidatedInitializerModel(BaseModel):
 
 def validated(base_model=None):
     """
-    Decorates an ``__init__`` method with typed parameters with validation
-    and auto-conversion logic.
+    Decorates an ``__init__`` method with typed parameters with validation and
+    auto-conversion logic.
 
     >>> class ComplexNumber:
     ...     @validated()

@@ -112,8 +112,8 @@ class GluonTsDatasetConfig(DatasetConfig):  # pylint: disable=abstract-method
 @dataclass(frozen=True)
 class MonashDatasetConfig(GluonTsDatasetConfig):
     """
-    A dataset configuration for datasets obtained through forecastingdata.org, the Monash
-    Forecasting Repository.
+    A dataset configuration for datasets obtained through forecastingdata.org,
+    the Monash Forecasting Repository.
     """
 
     @property
@@ -199,7 +199,8 @@ class KaggleDatasetConfig(GluonTsDatasetConfig):
         )
         if not data_root.exists():
             raise ValueError(
-                f"download the dataset from Kaggle ({self._link}) and unzip it into {data_root}"
+                f"download the dataset from Kaggle ({self._link}) and unzip it"
+                f" into {data_root}"
             )
 
         # Extract the data and apply filters. The min length filter uses +3 as otherwise, catch22

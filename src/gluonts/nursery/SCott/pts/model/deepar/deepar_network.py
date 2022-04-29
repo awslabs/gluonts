@@ -109,8 +109,8 @@ class DeepARNetwork(nn.Module):
         """
         # assert max(indices) + subsequences_length <= sequence_length, (
         assert subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            "lags cannot go further than history length, found lag"
+            f" {max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
 
@@ -435,11 +435,9 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
         # (batch_size, num_samples, prediction_length, *target_shape)
         return samples.reshape(
-            (
-                (-1, self.num_parallel_samples)
-                + (self.prediction_length,)
-                + self.target_shape
-            )
+            (-1, self.num_parallel_samples)
+            + (self.prediction_length,)
+            + self.target_shape
         )
 
     # noinspection PyMethodOverriding,PyPep8Naming

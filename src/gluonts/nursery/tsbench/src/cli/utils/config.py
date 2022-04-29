@@ -22,7 +22,8 @@ def iterate_configurations(
     configs: List[Dict[str, Any]], skip: int = 0
 ) -> Iterator[Dict[str, Any]]:
     """
-    Provides an iterator over the configurations, ignoring the first `skip` configurations.
+    Provides an iterator over the configurations, ignoring the first `skip`
+    configurations.
 
     Args:
         configs: The configurations to iterate over.
@@ -41,8 +42,8 @@ def iterate_configurations(
 
 def generate_configurations(path: Path) -> List[Any]:
     """
-    Generates the hyperparameter configuration for the configuration(s) found at the specified
-    path.
+    Generates the hyperparameter configuration for the configuration(s) found
+    at the specified path.
 
     Args:
         path: Either a file or directory from to read the configuration(s). If a directory is
@@ -68,8 +69,8 @@ def explode_key_values(
     process_key: Callable[[str, str], str] = lambda _, s: s,
 ) -> List[Dict[str, Any]]:
     """
-    Explodes a mapping from primary keys to a list of key to value mappings into independent
-    configurations.
+    Explodes a mapping from primary keys to a list of key to value mappings
+    into independent configurations.
     """
     all_combinations = {
         primary: itertools.product(

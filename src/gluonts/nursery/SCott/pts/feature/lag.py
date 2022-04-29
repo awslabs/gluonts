@@ -23,7 +23,7 @@ from .utils import get_granularity
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:
     """
-    Create a set of lags around a middle point including +/- delta
+    Create a set of lags around a middle point including +/- delta.
     """
     return np.arange(middle - delta, middle + delta + 1).tolist()
 
@@ -32,7 +32,8 @@ def get_lags_for_frequency(
     freq_str: str, lag_ub: int = 1200, num_lags: Optional[int] = None
 ) -> List[int]:
     """
-    Generates a list of lags that that are appropriate for the given frequency string.
+    Generates a list of lags that that are appropriate for the given frequency
+    string.
 
     By default all frequencies have the following lags: [1, 2, 3, 4, 5, 6, 7].
     Remaining lags correspond to the same `season` (+/- `delta`) in previous `k` cycles.
@@ -146,6 +147,6 @@ def get_fourier_lags_for_frequency(
         lags = [[1]]
 
     # use less lags
-    output_lags = list([int(lag) for sub_list in lags for lag in sub_list])
+    output_lags = list(int(lag) for sub_list in lags for lag in sub_list)
     output_lags = sorted(list(set(output_lags)))
     return output_lags[:num_lags]

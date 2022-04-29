@@ -156,8 +156,8 @@ class SequentialNet(SequentialFlow):
         self, hidden_state: torch.Tensor, dimension: int
     ) -> torch.Tensor:
         """
-        Auxiliary function for energy score computation
-        Drawing samples conditioned on the hidden state
+        Auxiliary function for energy score computation Drawing samples
+        conditioned on the hidden state.
 
         Parameters
         ----------
@@ -198,8 +198,9 @@ class SequentialNet(SequentialFlow):
         beta: float = 1.0,
     ) -> torch.Tensor:
         """
-        Computes the (approximated) energy score sum_i ES(g,z_i),
-        where ES(g,z_i) =
+        Computes the (approximated) energy score sum_i ES(g,z_i), where
+        ES(g,z_i) =
+
         -1/(2*es_num_samples^2) * sum_{w,w'} ||w-w'||_2^beta
         + 1/es_num_samples * sum_{w''} ||w''-z_i||_2^beta,
         w's are samples drawn from the

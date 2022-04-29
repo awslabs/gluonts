@@ -120,7 +120,7 @@ class MQF2MultiHorizonModel(DeepARModel):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Unrolls the RNN encoder over the context window of the time series
-        Returns the hidden state of the RNN and the scale
+        Returns the hidden state of the RNN and the scale.
 
         Parameters
         ----------
@@ -171,7 +171,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         inference: bool = False,
     ) -> torch.distributions.Distribution:
         """
-        Returns the MQF2Distribution instance
+        Returns the MQF2Distribution instance.
 
         Parameters
         ----------
@@ -209,7 +209,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         num_parallel_samples: Optional[int] = None,
     ) -> torch.Tensor:
         """
-        Generates the predicted sample paths
+        Generates the predicted sample paths.
 
         Parameters
         ----------

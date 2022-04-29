@@ -40,10 +40,9 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
 @lru_cache()
 def get_seasonality(freq: str) -> int:
     """
-    Returns the default seasonality for a given freq str. E.g. for
+    Returns the default seasonality for a given freq str. E.g. for.
 
-      2H -> 12
-
+    2H -> 12
     """
     match = re.match(r"(\d*)(\w+)", freq)
     assert match, "Cannot match freq regex"

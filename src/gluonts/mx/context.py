@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 class MXContext:
     """
-    Defines `custom data type validation
+    Defines `custom data type validation.
+
     <https://pydantic-docs.helpmanual.io/#custom-data-types>`_ for
     the :class:`~mxnet.context.Context` data type.
     """
@@ -40,7 +41,7 @@ class MXContext:
         else:
             raise ValueError(
                 f"bad MXNet context {v}, expected either an "
-                f"mx.context.Context or its string representation"
+                "mx.context.Context or its string representation"
             )
 
     @classmethod
@@ -70,7 +71,7 @@ def num_gpus(refresh=False):
 @functools.lru_cache()
 def get_mxnet_context(gpu_number=0) -> mx.Context:
     """
-    Returns either CPU or GPU context
+    Returns either CPU or GPU context.
     """
     if num_gpus():
         logger.info("Using GPU")
@@ -82,8 +83,8 @@ def get_mxnet_context(gpu_number=0) -> mx.Context:
 
 def check_gpu_support() -> bool:
     """
-    Emits a log line and returns a boolean that indicate whether
-    the currently installed MXNet version has GPU support.
+    Emits a log line and returns a boolean that indicate whether the currently
+    installed MXNet version has GPU support.
     """
     n = num_gpus()
     logger.info(f'MXNet GPU support is {"ON" if n > 0 else "OFF"}')

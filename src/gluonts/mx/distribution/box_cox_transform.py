@@ -31,15 +31,16 @@ class BoxCoxTransform(Bijection):
     .. math::
 
         BoxCox(z; \lambda_1, \lambda_2) = \begin{cases}
-                                              ((z + \lambda_2)^{\lambda_1} - 1) / \lambda_1, \quad & \text{if }
-                                              \lambda_1 \neq 0, \\
-                                              \log (z + \lambda_2), \quad & \text{otherwise.}
-                                          \end{cases}
+              ((z + \lambda_2)^{\lambda_1} - 1) / \lambda_1, \quad & \text{if }
+              \lambda_1 \neq 0, \\
+              \log (z + \lambda_2), \quad & \text{otherwise.}
+          \end{cases}
 
-    Here, :math:`\lambda_1` and :math:`\lambda_2` are learnable parameters. Note that the domain
-    of the transformation is not restricted.
+    Here, :math:`\lambda_1` and :math:`\lambda_2` are learnable parameters.
+    Note that the domain of the transformation is not restricted.
 
-    For numerical stability, instead of checking :math:`\lambda_1` is exactly zero, we use the condition
+    For numerical stability, instead of checking :math:`\lambda_1` is exactly
+    zero, we use the condition
 
     .. math::
 
@@ -52,23 +53,26 @@ class BoxCoxTransform(Bijection):
     .. math::
 
         BoxCox^{-1}(y; \lambda_1, \lambda_2) = \begin{cases}
-                                                (y \lambda_1 + 1)^{(1/\lambda_1)} - \lambda_2, \quad & \text{if }
-                                                \lambda_1 \neq 0, \\
-                                                \exp (y) - \lambda_2, \quad & \text{otherwise.}
-                                               \end{cases}
+            (y \lambda_1 + 1)^{(1/\lambda_1)} - \lambda_2, \quad & \text{if }
+            \lambda_1 \neq 0, \\
+            \exp (y) - \lambda_2, \quad & \text{otherwise.}
+           \end{cases}
 
     **Notes on numerical stability:**
 
-    1.  For the forward transformation, :math:`\lambda_2` must always be chosen such that
+    1.  For the forward transformation, :math:`\lambda_2` must always be chosen
+    such that
 
         .. math::
 
             z + \lambda_2 > 0.
 
-        To achieve this one needs to know a priori the lower bound on the observations.
-        This is set in `BoxCoxTransformOutput`, since :math:`\lambda_2` is learnable.
+        To achieve this one needs to know a priori the lower bound on the
+        observations. This is set in `BoxCoxTransformOutput`,
+        since :math:`\lambda_2` is learnable.
 
-    2.  Similarly for the inverse transformation to work reliably, a sufficient condition is
+    2.  Similarly for the inverse transformation to work reliably, a sufficient
+    condition is
 
         .. math::
 
@@ -76,11 +80,13 @@ class BoxCoxTransform(Bijection):
 
         where :math:`y` is the input to the inverse transformation.
 
-        This cannot always be guaranteed especially when :math:`y` is a sample from a transformed distribution.
-        Hence we always truncate :math:`y \lambda_1 + 1` at zero.
+        This cannot always be guaranteed especially when :math:`y` is a sample
+        from a transformed distribution. Hence we always
+        truncate :math:`y \lambda_1 + 1` at zero.
 
-        An example showing why this could happen in our case:
-        consider transforming observations from the unit interval (0, 1) with parameters
+        An example showing why this could happen in our case: consider
+        transforming observations from the unit interval (0, 1) with
+        parameters
 
         .. math::
 
@@ -89,10 +95,11 @@ class BoxCoxTransform(Bijection):
                 \lambda_2 = &\ 0.
             \end{align}
 
-        Then the range of the transformation is (-0.9090, 0.0).
-        If Gaussian is fit to the transformed observations and a sample is drawn from it,
-        then it is likely that the sample is outside this range, e.g., when the mean is close to -0.9.
-        The subsequent inverse transformation of the sample is not a real number anymore.
+        Then the range of the transformation is (-0.9090, 0.0). If Gaussian is
+        fit to the transformed observations and a sample is drawn from it,
+        then it is likely that the sample is outside this range, e.g., when
+        the mean is close to -0.9. The subsequent inverse transformation of
+        the sample is not a real number anymore.
 
         >>> y = -0.91
         >>> lambda_1 = 1.1
@@ -189,7 +196,8 @@ class BoxCoxTransform(Bijection):
         tol_lambda_1 = self.tol_lambda_1
         _power = self._power
 
-        # For numerical stability we truncate :math:`y * \lambda_1 + 1.0` at zero.
+        # For numerical stability we truncate :math:`y * \lambda_1 + 1.0` at
+        # zero.
         base = F.relu(y * lambda_1 + 1.0)
 
         return F.where(
@@ -200,15 +208,16 @@ class BoxCoxTransform(Bijection):
         )
 
     def log_abs_det_jac(self, z: Tensor, y: Tensor = None) -> Tensor:
+
         r"""
-        Logarithm of the absolute value of the Jacobian determinant corresponding to the Box-Cox Transform
-        is given by
+        Logarithm of the absolute value of the Jacobian determinant
+        corresponding to the Box-Cox Transform is given by
 
         .. math::
             \log \frac{d}{dz} BoxCox(z; \lambda_1, \lambda_2) = \begin{cases}
-                                \log (z + \lambda_2) (\lambda_1 - 1), \quad & \text{if } \lambda_1 \neq 0, \\
-                                -\log (z + \lambda_2), \quad & \text{otherwise.}
-                                \end{cases}
+            \log (z + \lambda_2) (\lambda_1 - 1), \quad & \text{if } \lambda_1 \neq 0, \\
+            -\log (z + \lambda_2), \quad & \text{otherwise.}
+            \end{cases}
 
         Note that the derivative of the transformation is always non-negative.
 
@@ -223,7 +232,7 @@ class BoxCoxTransform(Bijection):
         -------
         Tensor
 
-        """
+        """  # noqa: E501
         F = self.F
         lambda_1 = self.lambda_1
         lambda_2 = self.lambda_2
@@ -252,7 +261,8 @@ class BoxCoxTransformOutput(BijectionOutput):
         if self.fix_lambda_2:
             lambda_2 = -self.lb_obs * F.ones_like(lambda_2)
         else:
-            # This makes sure that :math:`z +  \lambda_2 > 0`, where :math:`z > lb_obs`
+            # This makes sure that :math:`z +  \lambda_2 > 0`, where :math:`z >
+            # lb_obs`
             lambda_2 = softplus(F, lambda_2) - self.lb_obs * F.ones_like(
                 lambda_2
             )

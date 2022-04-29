@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import time
 from contextlib import contextmanager
 from io import StringIO
@@ -9,8 +8,7 @@ import torch
 
 class Timer:
     """
-    Timer for PyTorch code
-    Comes in the form of a contextmanager:
+    Timer for PyTorch code Comes in the form of a contextmanager:
 
     Example:
     >>> timer = Timer()
@@ -29,7 +27,9 @@ class Timer:
         self.reset()
 
     def reset(self):
-        """Reset the timer"""
+        """
+        Reset the timer.
+        """
         self.totals = {}  # Total time per label
         self.first_time = {}  # First occurrence of a label (start time)
         self.last_time = {}  # Last occurence of a label (end time)
@@ -67,7 +67,9 @@ class Timer:
             self.call_counts[label] += 1
 
     def _cuda_sync(self):
-        """Finish all asynchronous GPU computations to get correct timings"""
+        """
+        Finish all asynchronous GPU computations to get correct timings.
+        """
         if self.cuda_available:
             torch.cuda.synchronize()
 

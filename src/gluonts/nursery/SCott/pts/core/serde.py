@@ -362,7 +362,7 @@ def decode(r: Any) -> Any:
         return {k: decode(v) for k, v in r.items()}
     # r = ( y1, ..., yn )
     elif type(r) == tuple:
-        return tuple([decode(y) for y in r])
+        return tuple(decode(y) for y in r)
     # r = [ y1, ..., yn ]
     elif type(r) == list:
         return [decode(y) for y in r]

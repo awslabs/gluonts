@@ -147,7 +147,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         # that is: history_length - lag_index - sequence_length >= 0
         # hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag "
+            "lags cannot go further than history length, found lag "
             f"{max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
@@ -268,11 +268,10 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         target_dimension_indicator: Tensor,
     ) -> Tuple[Tensor, List[Tensor], Tensor, Tensor, Tensor]:
         """
-        Unrolls the RNN encoder over past and, if present, future data.
-        Returns outputs and state of the encoder, plus the scale of
-        past_target_cdf and a vector of static features that was constructed
-        and fed as input to the encoder. All tensor arguments should have NTC
-        layout.
+        Unrolls the RNN encoder over past and, if present, future data. Returns
+        outputs and state of the encoder, plus the scale of past_target_cdf and
+        a vector of static features that was constructed and fed as input to
+        the encoder. All tensor arguments should have NTC layout.
 
         Parameters
         ----------
@@ -309,7 +308,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
 
         past_observed_values = F.broadcast_minimum(
@@ -425,7 +423,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         -------
         Loss
             Tensor with shape (batch_size, seq_length, 1)
-
         """
         # we sum the last axis to have the same shape for all likelihoods
         # (batch_size, subseq_length, 1)
@@ -751,8 +748,8 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         """
         Method to enforce domain-specific constraints on the generated samples.
 
-        For example, see `DeepVARHierarchicalNetwork`, which adjusts the samples so that they satisfy the given
-        aggregation constraints.
+        For example, see `DeepVARHierarchicalNetwork`, which adjusts the
+        samples so that they satisfy the given aggregation constraints.
 
         For `DeepVAR` this is simply the Identity map.
 
@@ -764,7 +761,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
         Returns
         -------
             Tensor of samples with the same shape.
-
         """
         return samples
 

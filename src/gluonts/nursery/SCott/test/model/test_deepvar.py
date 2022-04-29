@@ -48,7 +48,8 @@ estimator = DeepVAREstimator
 
 # @pytest.mark.timeout(10)
 @pytest.mark.parametrize(
-    "distr_output, num_batches_per_epoch, Estimator, use_marginal_transformation",
+    "distr_output, num_batches_per_epoch, Estimator,"
+    " use_marginal_transformation",
     [
         (
             NormalOutput(dim=target_dim),

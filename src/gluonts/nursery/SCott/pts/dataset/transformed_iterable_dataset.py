@@ -29,8 +29,7 @@ class TransformedIterableDataset(torch.utils.data.IterableDataset):
             except StopIteration:
                 raise Exception("empty dataset")
             else:
-                for x in itertools.chain([first], collection):
-                    yield x
+                yield from itertools.chain([first], collection)
 
     def __iter__(self) -> Iterator[Dict[str, np.ndarray]]:
         if self._cur_iter is None:
@@ -78,8 +77,7 @@ class TransformedGroupedIterableDataset(torch.utils.data.IterableDataset):
             except StopIteration:
                 raise Exception("empty dataset")
             else:
-                for x in itertools.chain([first], collection):
-                    yield x
+                yield from itertools.chain([first], collection)
 
     def __iter__(self) -> Iterator[Dict[str, np.ndarray]]:
         for iter_id in range(self.num_groups):

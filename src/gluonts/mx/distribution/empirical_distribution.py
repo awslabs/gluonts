@@ -27,19 +27,23 @@ class EmpiricalDistribution(Distribution):
     r"""
     A class representing empirical distribution.
 
-    The target can be vector/tensor-valued, i.e., `event_shape` can be larger than or equal to 1.
-    However, note that each dimension is assumed to be independent when computing variance and CRPS loss.
+    The target can be vector/tensor-valued, i.e., `event_shape` can be larger
+    than or equal to 1. However, note that each dimension is assumed to be
+    independent when computing variance and CRPS loss.
 
-    Also, for computing CDF and quantiles, it is assumede that samples are distinct along the samples dimension, which
-    should almost always be the case if samples are drawn from continuous distributions.
+    Also, for computing CDF and quantiles, it is assumede that samples are
+    distinct along the samples dimension, which should almost always be the
+    case if samples are drawn from continuous distributions.
 
     Parameters
     ----------
     samples
-        Tensor containing samples, of shape `(num_samples, *batch_shape, *event_shape)`.
+        Tensor containing samples, of shape
+        `(num_samples, *batch_shape, *event_shape)`.
     event_dim
         Number of event dimensions, i.e., length of the `event_shape` tuple.
-        This is `0` for distributions over scalars, `1` over vectors, `2` over matrices, and so on.
+        This is `0` for distributions over scalars, `1` over vectors,
+        `2` over matrices, and so on.
     """
 
     @validated()
@@ -49,9 +53,10 @@ class EmpiricalDistribution(Distribution):
         self.sorted_ix = self.F.argsort(self.samples, axis=0)
 
         self._event_dim = event_dim
-        assert (
-            len(self.samples.shape) >= 1 + event_dim
-        ), "Shape of samples do not match with the value given for `event_dim`!"
+        assert len(self.samples.shape) >= 1 + event_dim, (
+            "Shape of samples do not match with the value given for"
+            " `event_dim`!"
+        )
 
     @property
     def F(self):
@@ -113,8 +118,9 @@ class EmpiricalDistribution(Distribution):
         return self.samples.take(indices=mx.nd.array(sample_idx), axis=0)
 
     def quantile(self, level: Tensor) -> Tensor:
-        # Note: computes quantile on each dimension of the target independently.
-        # `sample_idx` would be same for each element of the batch, time point and dimension.
+        # Note: computes quantile on each dimension of the target
+        # independently. `sample_idx` would be same for each element of the
+        # batch, time point and dimension.
         num_samples = self.sorted_samples.shape[0]
         sample_idx = np.round(num_samples * level) - 1
 
@@ -129,16 +135,19 @@ class EmpiricalDistribution(Distribution):
         Parameters
         ----------
         obs
-            Ground truth observation. Shape: `(batch_size, seq_len, *event_shape)`
+            Ground truth observation. Shape:
+            `(batch_size, seq_len, *event_shape)`
         quantiles
-            Quantile values. Shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
+            Quantile values. Shape:
+            `(batch_size, seq_len, *event_shape, num_quantiles)`
         levels
-            Quantile levels. Shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
+            Quantile levels. Shape:
+            `(batch_size, seq_len, *event_shape, num_quantiles)`
         Returns
         -------
         Tensor
-            Quantile losses of shape: `(batch_size, seq_len, *event_shape, num_quantiles)`
-
+            Quantile losses of shape:
+            `(batch_size, seq_len, *event_shape, num_quantiles)`
         """
         obs = obs.expand_dims(axis=-1)
         assert obs.shape[:-1] == quantiles.shape[:-1]
@@ -152,12 +161,13 @@ class EmpiricalDistribution(Distribution):
         )
 
     def crps_univariate(self, x: Tensor) -> Tensor:
-        r"""
-        Compute the *continuous rank probability score* (CRPS) of `obs` according
-        to the empirical distribution.
+        r"""Compute the *continuous rank probability score* (CRPS) of `obs`
+        according to the empirical distribution.
 
-        The last dimension of `obs` specifies the "event dimension" of the target (= 1 for the univariate case).
-        For multivariate target, CRSP scores are computed for each dimension separately and then their sum is returned.
+        The last dimension of `obs` specifies the "event dimension" of the
+        target (= 1 for the univariate case). For multivariate target, CRSP
+        scores are computed for each dimension separately and then their sum
+        is returned.
 
         Parameters
         ----------
@@ -172,14 +182,15 @@ class EmpiricalDistribution(Distribution):
         F = self.F
         sorted_samples = self.sorted_samples
 
-        # We compute quantile losses for all the possible quantile levels; i.e, `num_quantiles` = `num_samples`.
+        # We compute quantile losses for all the possible quantile levels; i.e,
+        # `num_quantiles` = `num_samples`.
         num_quantiles = sorted_samples.shape[0]
         levels_np = np.arange(
             1 / num_quantiles, 1 + 1 / num_quantiles, 1 / num_quantiles
         )
 
-        # Quantiles are just sorted samples with a different shape (for convenience):
-        # `(*batch_shape, *event_shape, num_quantiles)`
+        # Quantiles are just sorted samples with a different shape
+        # (for convenience): `(*batch_shape, *event_shape, num_quantiles)`
         axes_ordering = list(range(1, self.all_dim + 1))
         axes_ordering.append(0)
         quantiles = sorted_samples.transpose(axes_ordering)
@@ -191,12 +202,13 @@ class EmpiricalDistribution(Distribution):
             levels=F.array(levels_np).broadcast_like(quantiles),
         )
 
-        # CRPS for each target dimension. Shape: `(*batch_shape, *event_shape)`
+        # CRPS for each target dimension. Shape: `
+        # (*batch_shape, *event_shape)`
         crps = F.sum(qlosses, axis=-1)
 
         if self.event_dim > 0:
-            # Total CRPS: sum over all but the axes corresponding to the batch shape.
-            # Shape: `(*batch_shape)`
+            # Total CRPS: sum over all but the axes corresponding to the batch
+            # shape. Shape: `(*batch_shape)`
             crps = F.sum(
                 crps, exclude=True, axis=list(range(0, len(self.batch_shape)))
             )
@@ -209,12 +221,13 @@ class EmpiricalDistribution(Distribution):
 
 class EmpiricalDistributionOutput(DistributionOutput):
     """
-    This allows us to wrap `EmpiricalDistribution` by any parametric distribution and learn the parameters by
-    minimizing CRPS loss on the samples of `EmpiricalDistribution`.
+    This allows us to wrap `EmpiricalDistribution` by any parametric
+    distribution and learn the parameters by minimizing CRPS loss on the
+    samples of `EmpiricalDistribution`.
 
-    See the inference test `test_empirical_distribution` in `test.distribution.test_mx_distribution_inference` which
-    checks if the CRPS loss is correctly implemented.
-
+    See the inference test `test_empirical_distribution` in
+    `test.distribution.test_mx_distribution_inference` which checks if the CRPS
+    loss is correctly implemented.
     """
 
     @validated()

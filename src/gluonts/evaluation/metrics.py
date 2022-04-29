@@ -31,7 +31,8 @@ def calculate_seasonal_error(
 
     where m is the seasonal frequency. See [HA21]_ for more details.
     """
-    # Check if the length of the time series is larger than the seasonal frequency
+    # Check if the length of the time series is larger than the seasonal
+    # frequency
     if not seasonality:
         seasonality = get_seasonality(forecast.freq)
 
@@ -40,7 +41,9 @@ def calculate_seasonal_error(
     else:
         # edge case: the seasonal freq is larger than the length of ts
         # revert to freq=1
-        # logging.info('The seasonal frequency is larger than the length of the time series. Reverting to freq=1.')
+
+        # logging.info('The seasonal frequency is larger than the length of the
+        # time series. Reverting to freq=1.')
         forecast_freq = 1
 
     y_t = past_data[:-forecast_freq]
@@ -139,7 +142,8 @@ def msis(
         msis = mean(U - L + 2/alpha * (L-Y) * I[Y<L] + 2/alpha * (Y-U) * I[Y>U]) / seasonal\_error
 
     See [SSA20]_ for more details.
-    """
+    """  # noqa: E501
+
     numerator = np.mean(
         upper_quantile
         - lower_quantile

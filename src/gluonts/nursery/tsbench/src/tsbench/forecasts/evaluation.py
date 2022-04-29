@@ -34,8 +34,8 @@ def evaluate_forecasts(
     forecasts: QuantileForecasts, data: EvaluationDataset
 ) -> Evaluation:
     """
-    Evaluates the forecasts on the provided dataset and returns the metrics averaged over all time
-    series.
+    Evaluates the forecasts on the provided dataset and returns the metrics
+    averaged over all time series.
 
     Args:
         forecasts: The per time-series forecasts. The forecasts *must* align with the time series
@@ -46,9 +46,10 @@ def evaluate_forecasts(
         The evaluation of the forecasts.
     """
     assert len(forecasts) > 0, "At least one forecast must be given."
-    assert len(forecasts) == len(
-        data.future
-    ), "The number of forecasts does not match the number of time series in the dataset."
+    assert len(forecasts) == len(data.future), (
+        "The number of forecasts does not match the number of time series in"
+        " the dataset."
+    )
 
     # Compute seasonal error for MASE computation
     seasonal_error = naive_error(data.past, forecasts.seasonality)
@@ -73,16 +74,17 @@ def evaluate_forecasts(
 @dataclass
 class Evaluation:
     """
-    An evaluation instance provides per time-series metrics as well as overall metrics.
+    An evaluation instance provides per time-series metrics as well as overall
+    metrics.
     """
 
-    summary: Dict[str, float]
+    summary: dict[str, float]
     """
     The metrics summarizing the overall performance of the model.
     """
 
     @classmethod
-    def performance(cls, evaluations: List[Evaluation]) -> Performance:
+    def performance(cls, evaluations: list[Evaluation]) -> Performance:
         """
         Aggregates the provided evaluations into a single performance object.
 

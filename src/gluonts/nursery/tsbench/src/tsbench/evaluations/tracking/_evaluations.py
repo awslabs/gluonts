@@ -31,8 +31,8 @@ class Evaluations(Generic[T]):
 
     def dataframe(self, std: bool = True) -> pd.DataFrame:
         """
-        Returns a dataframe which contains the performance metrics as columns and the
-        configurations as multi-index.
+        Returns a dataframe which contains the performance metrics as columns
+        and the configurations as multi-index.
 
         Args:
             std: Whether to include the standard deviation of performance metrics in the dataframe.

@@ -43,9 +43,9 @@ class FitResult:
         validation: bool = False,
     ) -> None:
         """
-        Evaluates the given predictors on the specified dataset, logs the resulting metrics and
-        stores the forecasts in the given directory. The forecasts of predictor `i` are stored in
-        the subdirectory `model_<i>`.
+        Evaluates the given predictors on the specified dataset, logs the
+        resulting metrics and stores the forecasts in the given directory. The
+        forecasts of predictor `i` are stored in the subdirectory `model_<i>`.
 
         Args:
             dataset_config: The configuration of the dataset to make predictions for.
@@ -99,8 +99,8 @@ class FitResult:
 
     def serialize_predictors(self, directory: Path) -> None:
         """
-        Serializes all predictos managed by the fit result into the given directory. Predictor `i`
-        is saved to subdirectory `model_<i>`.
+        Serializes all predictos managed by the fit result into the given
+        directory. Predictor `i` is saved to subdirectory `model_<i>`.
 
         Args:
             directory: The directory where the predictors should be serialized to.

@@ -24,7 +24,7 @@ from gluonts.mx import Tensor
 class GatedLinearUnit(HybridBlock):
     @validated()
     def __init__(self, axis: int = -1, nonlinear: bool = True, **kwargs):
-        super(GatedLinearUnit, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.axis = axis
         self.nonlinear = nonlinear
 
@@ -47,7 +47,7 @@ class GatedResidualNetwork(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ):
-        super(GatedResidualNetwork, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.d_hidden = d_hidden
         self.d_input = d_input or d_hidden
         self.d_static = d_static or 0
@@ -135,7 +135,7 @@ class VariableSelectionNetwork(HybridBlock):
         add_static: bool = False,
         **kwargs,
     ) -> None:
-        super(VariableSelectionNetwork, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.d_hidden = d_hidden
         self.n_vars = n_vars
         self.add_static = add_static
@@ -199,7 +199,7 @@ class SelfAttention(HybridBlock):
         temperature: float = 1.0,
         **kwargs,
     ):
-        super(SelfAttention, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         if d_hidden % n_head != 0:
             raise ValueError(
                 f"hidden dim {d_hidden} cannot be split into {n_head} heads."
@@ -329,7 +329,7 @@ class TemporalFusionEncoder(HybridBlock):
         d_hidden: int,
         **kwargs,
     ) -> None:
-        super(TemporalFusionEncoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.context_length = context_length
         self.prediction_length = prediction_length
         with self.name_scope():
@@ -401,7 +401,7 @@ class TemporalFusionDecoder(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ):
-        super(TemporalFusionDecoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.context_length = context_length
         self.prediction_length = prediction_length
 

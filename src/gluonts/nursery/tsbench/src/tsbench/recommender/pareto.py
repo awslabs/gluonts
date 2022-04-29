@@ -23,8 +23,8 @@ from .generator import CandidateGenerator
 @register_recommender("pareto")
 class ParetoRecommender(Recommender[T]):
     """
-    The pareto recommender recommends models by predicting their performance using a surrogate
-    model and computing the Pareto front on the predictions.
+    The pareto recommender recommends models by predicting their performance
+    using a surrogate model and computing the Pareto front on the predictions.
     """
 
     def __init__(

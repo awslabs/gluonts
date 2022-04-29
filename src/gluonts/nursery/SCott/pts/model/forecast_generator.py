@@ -34,8 +34,7 @@ OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 def _extract_instances(x: Any) -> Any:
     """
-    Helper function to extract individual instances from batched
-    mxnet results.
+    Helper function to extract individual instances from batched mxnet results.
 
     For a tensor `a`
       _extract_instances(a) -> [a[0], a[1], ...]
@@ -49,7 +48,7 @@ def _extract_instances(x: Any) -> Any:
             yield x[i]
     elif isinstance(x, tuple):
         for m in zip(*[_extract_instances(y) for y in x]):
-            yield tuple([r for r in m])
+            yield tuple(r for r in m)
     elif isinstance(x, list):
         for m in zip(*[_extract_instances(y) for y in x]):
             yield [r for r in m]

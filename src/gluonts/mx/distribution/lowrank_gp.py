@@ -78,7 +78,8 @@ class GPArgProj(gluon.HybridBlock):
 
         Returns
         -------
-        Returns (mu, D, W) where shapes are (..., dim), (..., dim), (..., dim, rank)
+        Returns (mu, D, W) where shapes are (..., dim), (..., dim),
+        (..., dim, rank)
         """
 
         # TODO 2 concatenate inputs features to x, better names would be great

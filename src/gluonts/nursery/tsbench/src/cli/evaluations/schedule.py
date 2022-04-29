@@ -30,20 +30,28 @@ from ._main import evaluations
 @click.option(
     "--config_path",
     required=True,
-    help="The local path to the configuration file or directory. "
-    "For directories, all YAML files in the directory and its subfolders are considered.",
+    help=(
+        "The local path to the configuration file or directory. For"
+        " directories, all YAML files in the directory and its subfolders are"
+        " considered."
+    ),
 )
 @click.option(
     "--sagemaker_role",
     required=True,
-    help="The IAM role to use for the AWS Sagemaker instance and for downloading data locally. "
-    "This should be the full ARN.",
+    help=(
+        "The IAM role to use for the AWS Sagemaker instance and for"
+        " downloading data locally. This should be the full ARN."
+    ),
 )
 @click.option(
     "--experiment",
     default="tsbench",
     show_default=True,
-    help="The name of the experiment which allows grouping training runs on AWS Sagemaker.",
+    help=(
+        "The name of the experiment which allows grouping training runs on AWS"
+        " Sagemaker."
+    ),
 )
 @click.option(
     "--data_bucket",
@@ -61,7 +69,10 @@ from ._main import evaluations
     "--output_bucket",
     default="tsbench",
     show_default=True,
-    help="The S3 bucket where outputs (model parameters and forecasts) should be written to.",
+    help=(
+        "The S3 bucket where outputs (model parameters and forecasts) should"
+        " be written to."
+    ),
 )
 @click.option(
     "--output_bucket_prefix",
@@ -73,31 +84,45 @@ from ._main import evaluations
     "--instance_type",
     default="ml.c5.2xlarge",
     show_default=True,
-    help="The type of instance to use for running evaluations if not provided explicitly.",
+    help=(
+        "The type of instance to use for running evaluations if not provided"
+        " explicitly."
+    ),
 )
 @click.option(
     "--docker_image",
     default="tsbench:latest",
     show_default=True,
-    help="The Docker image in your ECR registry to use for running the evaluation.",
+    help=(
+        "The Docker image in your ECR registry to use for running the"
+        " evaluation."
+    ),
 )
 @click.option(
     "--max_runtime",
     default=240,
     show_default=True,
-    help="The maximum number of hours for which individual evaluations may run.",
+    help=(
+        "The maximum number of hours for which individual evaluations may run."
+    ),
 )
 @click.option(
     "--nskip",
     default=0,
     show_default=True,
-    help="The number of configurations to skip. Useful if some set of evaluations failed.",
+    help=(
+        "The number of configurations to skip. Useful if some set of"
+        " evaluations failed."
+    ),
 )
 @click.option(
     "--local",
     default=False,
     show_default=True,
-    help="Whether to run evaluations locally via Docker Compose instead of on AWS Sagemaker.",
+    help=(
+        "Whether to run evaluations locally via Docker Compose instead of on"
+        " AWS Sagemaker."
+    ),
 )
 def schedule(
     config_path: str,
@@ -114,9 +139,11 @@ def schedule(
     local: bool,
 ):
     """
-    Schedules evaluations on AWS Sagemaker by running a grid search over the configurations
-    provided in the given file(s). As AWS Sagemaker does not allow queuing jobs, this script is
-    running as long as not all evaluation runs have been scheduled.
+    Schedules evaluations on AWS Sagemaker by running a grid search over the
+    configurations provided in the given file(s).
+
+    As AWS Sagemaker does not allow queuing jobs, this script is running as
+    long as not all evaluation runs have been scheduled.
     """
     assert instance_type[:5] not in (
         "ml.p3",
@@ -164,7 +191,9 @@ def schedule(
             source_dir=str(
                 Path(os.path.realpath(__file__)).parent.parent.parent
             ),
-            output_path=f"s3://{output_bucket}/{output_bucket_prefix}/{experiment}",
+            output_path=(
+                f"s3://{output_bucket}/{output_bucket_prefix}/{experiment}"
+            ),
             entry_point="evaluate.py",
             debugger_hook_config=False,
             metric_definitions=metric_definitions(),

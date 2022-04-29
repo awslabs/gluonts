@@ -151,9 +151,9 @@ def squared_exponential_kernel(alpha=1.0, tol=1e-9):
 class SpecialDateFeatureSet:
     """
     Implements calculation of holiday features. The SpecialDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -186,7 +186,6 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
     """
 
     def __init__(
@@ -235,8 +234,8 @@ class SpecialDateFeatureSet:
 class CustomDateFeatureSet:
     """
     Implements calculation of date features. The CustomDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 1D array of
-    the shape (1, len(date_indices)).
+    applied on a pandas Series with Datetimeindex and returns a 1D array of the
+    shape (1, len(date_indices)).
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -317,9 +316,9 @@ class CustomDateFeatureSet:
 class CustomHolidayFeatureSet:
     """
     Implements calculation of holiday features. The CustomHolidayFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -353,7 +352,6 @@ class CustomHolidayFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
     """
 
     def __init__(

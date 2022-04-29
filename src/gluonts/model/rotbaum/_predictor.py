@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 class RotbaumForecast(Forecast):
     """
-    Implements the quantile function in Forecast for TreePredictor,
-    as well as a new estimate_dists function for estimating a sampling of the
-    conditional distribution of the value of each of the steps in the
-    forecast horizon (independently).
+    Implements the quantile function in Forecast for TreePredictor, as well as
+    a new estimate_dists function for estimating a sampling of the conditional
+    distribution of the value of each of the steps in the forecast horizon
+    (independently).
     """
 
     @validated()
@@ -60,8 +60,8 @@ class RotbaumForecast(Forecast):
     def quantile(self, q: float) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is the estimate of the q
-        quantile of the conditional distribution of the value of the i^th
-        step in the forecast horizon.
+        quantile of the conditional distribution of the value of the i^th step
+        in the forecast horizon.
         """
         assert 0 <= q <= 1
         return np.array(
@@ -92,10 +92,11 @@ class RotbaumForecast(Forecast):
 class TreePredictor(RepresentablePredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
-    horizon. (In other words, there's a total of prediction_length many
-    models being trained. In particular, this predictor does not learn a
-    multivariate distribution.) The list of these models is saved under
-    self.model_list.
+    horizon.
+
+    (In other words, there's a total of prediction_length many models being
+    trained. In particular, this predictor does not learn a multivariate
+    distribution.) The list of these models is saved under self.model_list.
     """
 
     @validated()
@@ -147,16 +148,18 @@ class TreePredictor(RepresentablePredictor):
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
+
+        # TODO: Figure out how to include 'auto' with no feat_static_cat in
+        # this check
         assert (
             prediction_length > 0
             or use_feat_dynamic_cat
             or use_feat_dynamic_real
             or use_feat_static_real
-            or cardinality
-            != "ignore"  # TODO: Figure out how to include 'auto' with no feat_static_cat in this check
+            or cardinality != "ignore"
         ), (
-            "The value of `prediction_length` should be > 0 or there should be features for model training and "
-            "prediction "
+            "The value of `prediction_length` should be > 0 or there should be"
+            " features for model training and prediction "
         )
 
         self.model_params = model_params if model_params else {}
@@ -169,7 +172,8 @@ class TreePredictor(RepresentablePredictor):
         self.model_list = None
 
         logger.info(
-            "If using the Evaluator class with a TreePredictor, set num_workers=0."
+            "If using the Evaluator class with a TreePredictor, set"
+            " num_workers=0."
         )
 
     def train(
@@ -217,9 +221,8 @@ class TreePredictor(RepresentablePredictor):
                 <= self.preprocess_object.forecast_horizon - 1
             )
             logger.info(
-                f"Training model for step no. {train_QRX_only_using_timestep} in the "
-                f"forecast"
-                f" horizon"
+                "Training model for step no."
+                f" {train_QRX_only_using_timestep} in the forecast horizon"
             )
             self.model_list[train_QRX_only_using_timestep].fit(
                 feature_data,
@@ -242,8 +245,8 @@ class TreePredictor(RepresentablePredictor):
                     if n_step != train_QRX_only_using_timestep:
                         logger.info(
                             f"Training model for step no. {n_step + 1} in the "
-                            f"forecast"
-                            f" horizon"
+                            "forecast"
+                            " horizon"
                         )
                         executor.submit(
                             model.fit,
@@ -257,8 +260,8 @@ class TreePredictor(RepresentablePredictor):
             ) as executor:
                 for n_step, model in enumerate(self.model_list):
                     logger.info(
-                        f"Training model for step no. {n_step + 1} in the forecast"
-                        f" horizon"
+                        f"Training model for step no. {n_step + 1} in the"
+                        " forecast horizon"
                     )
                     executor.submit(
                         model.fit,
@@ -271,9 +274,11 @@ class TreePredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         """
-        Returns a dictionary taking each quantile to a list of floats,
-        which are the predictions for that quantile as you run over
-        (time_steps, time_series) lexicographically. So: first it would give
+        Returns a dictionary taking each quantile to a list of floats, which
+        are the predictions for that quantile as you run over (time_steps,
+        time_series) lexicographically.
+
+        So: first it would give
         the quantile prediction for the first time step for all time series,
         then the second time step for all time series ˜˜ , and so forth.
         """
@@ -281,7 +286,8 @@ class TreePredictor(RepresentablePredictor):
 
         if num_samples:
             log_once(
-                "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+                "Forecast is not sample based. Ignoring parameter"
+                " `num_samples` from predict method."
             )
 
         for ts in dataset:

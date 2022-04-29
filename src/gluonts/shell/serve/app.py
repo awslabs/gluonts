@@ -68,7 +68,8 @@ def log_throughput(instances, timings):
             zip(timings, item_lengths), start=1
         ):
             logger.info(
-                f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+                f"\t{idx} took -> {duration:.2f}s"
+                f" (len(target)=={input_length})."
             )
     else:
         logger.info(

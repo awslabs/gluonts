@@ -24,8 +24,10 @@ T = TypeVar("T", ModelConfig, EnsembleConfig)
 
 class Recommender(ABC, Generic[T]):
     """
-    A recommender uses a surrogate to recommend models and their configurations based on desired
-    target metrics. This class implements the general interface.
+    A recommender uses a surrogate to recommend models and their configurations
+    based on desired target metrics.
+
+    This class implements the general interface.
     """
 
     def __init__(
@@ -72,8 +74,8 @@ class Recommender(ABC, Generic[T]):
         self, configs: List[Config[T]], _performances: List[Performance]
     ) -> None:
         """
-        Fits the recommender, including surrogate model and generator, on the provided
-        configurations.
+        Fits the recommender, including surrogate model and generator, on the
+        provided configurations.
 
         Args:
             configs: The configurations to train on (the generator typically extracts the unique
@@ -90,9 +92,9 @@ class Recommender(ABC, Generic[T]):
         max_count: int = 10,
     ) -> List[Recommendation[T]]:
         """
-        This method takes a dataset and a set of constraints and outputs a set of recommendations.
-        The recommendations provide both the configurations of the recommended model as well as the
-        expected performance.
+        This method takes a dataset and a set of constraints and outputs a set
+        of recommendations. The recommendations provide both the configurations
+        of the recommended model as well as the expected performance.
 
         Args:
             dataset: The configuration of the dataset for which to recommend a model.
