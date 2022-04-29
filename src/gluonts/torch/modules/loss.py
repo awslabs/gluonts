@@ -51,17 +51,17 @@ class NegativeLogLikelihood(DistributionLoss):
     def __init__(self, beta: float = 0.0):
         """
         Compute the negative log likelihood loss.
-        
+
         Parameters
         ----------
         beta
-            beta parameter from the paper: "On the Pitfalls of Heteroscedastic 
+            beta parameter from the paper: "On the Pitfalls of Heteroscedastic
             Uncertainty Estimation with Probabilistic Neural Networks" Seitzer et al. 2022
             https://openreview.net/forum?id=aPOpXlnV1T
         """
         super().__init__()
         self.beta = beta
-        
+
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
