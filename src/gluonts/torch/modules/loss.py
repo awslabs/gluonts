@@ -54,7 +54,7 @@ class NegativeLogLikelihood(DistributionLoss):
 
     Parameters
     ----------
-    beta
+    beta: float in range (0, 1)
         beta parameter from the paper: "On the Pitfalls of Heteroscedastic
         Uncertainty Estimation with Probabilistic Neural Networks" by
         Seitzer et al. 2022
@@ -75,7 +75,7 @@ class NegativeLogLikelihood(DistributionLoss):
                 )
             else:
                 variance = input.variance
-            nll = nll * variance.detach() ** self.beta
+            nll = nll * (variance.detach() ** self.beta)
         return nll
 
 
