@@ -69,7 +69,9 @@ class NegativeLogLikelihood(DistributionLoss):
         nll = -input.log_prob(target)
         if self.beta > 0.0:
             if type(input) == TransformedDistribution:
-                variance = input.base_dist.variance
+                variance = (
+                    input.base_dist.variance * input.transforms[0].scale ** 2
+                )
             else:
                 variance = input.variance
             nll = nll * variance.detach() ** self.beta
