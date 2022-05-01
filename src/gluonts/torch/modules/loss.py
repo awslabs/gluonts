@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import torch
-from torch.distributions import TransformedDistribution
 
 
 class DistributionLoss(torch.nn.Module):
