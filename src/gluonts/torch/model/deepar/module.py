@@ -120,20 +120,13 @@ class DeepARModel(nn.Module):
             else context / scale
         )
 
-        unroll_length = (
-            self.context_length
-            if future_target is None
-            else self.context_length + future_target.shape[1] - 1
-        )
-        assert input.shape[1] == unroll_length
-
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
             (embedded_cat, feat_static_real, scale.log()),
             dim=1,
         )
         expanded_static_feat = static_feat.unsqueeze(1).expand(
-            -1, unroll_length, -1
+            -1, input.shape[1], -1
         )
 
         time_feat = (
