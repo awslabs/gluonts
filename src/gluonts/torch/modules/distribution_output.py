@@ -147,7 +147,9 @@ class DistributionOutput(Output):
                 scale=scale,
             )
             transformed_distr = TransformedDistribution(distr, [transform])
-            transformed_distr.variance = distr.variance * (scale**2)
+            TransformedDistribution.variance = property(
+                lambda self: distr.variance * (scale**2)
+            )
             return transformed_distr
 
     @property
