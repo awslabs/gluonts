@@ -88,6 +88,10 @@ class Output:
     def dtype(self, dtype: Type):
         self._dtype = dtype
 
+    @classmethod
+    def eps(cls):
+        return np.finfo(cls._dtype).eps
+
     def get_args_proj(self, prefix: Optional[str] = None) -> gluon.HybridBlock:
         return ArgProj(
             args_dim=self.args_dim,

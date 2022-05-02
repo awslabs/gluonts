@@ -442,6 +442,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(
-                quantiles=[str(q) for q in prediction_network.quantiles],
+                quantiles=[
+                    str(q) for q in prediction_network.output.quantiles
+                ],
             ),
         )
