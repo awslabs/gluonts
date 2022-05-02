@@ -57,7 +57,8 @@ class NegativeLogLikelihood(DistributionLoss):
         beta parameter from the paper: "On the Pitfalls of Heteroscedastic
         Uncertainty Estimation with Probabilistic Neural Networks" by
         Seitzer et al. 2022
-        https://openreview.net/forum?id=aPOpXlnV1T"""
+        https://openreview.net/forum?id=aPOpXlnV1T
+    """
 
     def __init__(self, beta: float = 0.0):
         super().__init__()
