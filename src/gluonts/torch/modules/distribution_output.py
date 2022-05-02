@@ -18,7 +18,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import (
-    AffineTransform,
     Beta,
     Distribution,
     Gamma,
@@ -26,10 +25,10 @@ from torch.distributions import (
     Normal,
     Poisson,
     StudentT,
-    TransformedDistribution,
 )
 
 from gluonts.core.component import validated
+from gluonts.torch.distributions import AffineTransformed
 
 from .lambda_layer import LambdaLayer
 
@@ -141,16 +140,7 @@ class DistributionOutput(Output):
         if loc is None and scale is None:
             return distr
         else:
-            scale = 1.0 if scale is None else scale
-            transform = AffineTransform(
-                loc=0.0 if loc is None else loc,
-                scale=scale,
-            )
-            transformed_distr = TransformedDistribution(distr, [transform])
-            TransformedDistribution.variance = property(
-                lambda self: distr.variance * (scale**2)
-            )
-            return transformed_distr
+            return AffineTransformed(distr, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:
