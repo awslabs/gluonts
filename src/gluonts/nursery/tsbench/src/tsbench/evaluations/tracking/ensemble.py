@@ -23,8 +23,8 @@ from ._evaluations import Evaluations
 
 class EnsembleTracker(Tracker[EnsembleConfig]):
     """
-    Tracker which sources information from .pickle files providing configurations of ensemble
-    members and the ensembles' performances.
+    Tracker which sources information from .pickle files providing
+    configurations of ensemble members and the ensembles' performances.
     """
 
     def __init__(self, directory: Path):
@@ -53,7 +53,8 @@ class EnsembleTracker(Tracker[EnsembleConfig]):
 
     def unique_ensembles(self) -> List[EnsembleConfig]:
         """
-        Returns the unique configurations of ensembles provided by this tracker.
+        Returns the unique configurations of ensembles provided by this
+        tracker.
         """
         return list({c.model for c in self.performance_map})
 

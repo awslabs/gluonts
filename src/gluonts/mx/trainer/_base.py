@@ -150,25 +150,29 @@ class Trainer:
         assert isinstance(batch_size, int)
 
         # TODO param disable_default_callbacks to get backwards compatibility
-        # deprecation warnings, in the future, the following callbacks should be
-        # controlled by altering callbacks:
+        # deprecation warnings, in the future, the following callbacks should
+        # be controlled by altering callbacks:
         if learning_rate_decay_factor is not None:
             warnings.warn(
-                'Trainer argument "learning_rate_decay_factor" is deprecated. Use callbacks instead.',
+                'Trainer argument "learning_rate_decay_factor" is deprecated.'
+                " Use callbacks instead.",
                 DeprecationWarning,
             )
-            assert (
-                0 <= learning_rate_decay_factor < 1
-            ), "The value of `learning_rate_decay_factor` should be in the [0, 1) range"
+            assert 0 <= learning_rate_decay_factor < 1, (
+                "The value of `learning_rate_decay_factor` should be in the"
+                " [0, 1) range"
+            )
         if patience is not None:
             warnings.warn(
-                'Trainer argument "patience" is deprecated. Use callbacks instead.',
+                'Trainer argument "patience" is deprecated. Use callbacks'
+                " instead.",
                 DeprecationWarning,
             )
             assert 0 <= patience, "The value of `patience` should be >= 0"
         if minimum_learning_rate:
             warnings.warn(
-                'Trainer argument "minimum_learning_rate" is deprecated. Use callbacks instead.',
+                'Trainer argument "minimum_learning_rate" is deprecated. Use'
+                " callbacks instead.",
                 DeprecationWarning,
             )
             assert (
@@ -272,11 +276,11 @@ class Trainer:
             def base_path() -> str:
                 return os.path.join(
                     gluonts_temp,
-                    "{}_{}".format(STATE_ARTIFACT_FILE_NAME, uuid.uuid4()),
+                    f"{STATE_ARTIFACT_FILE_NAME}_{uuid.uuid4()}",
                 )
 
             best_epoch_info = {
-                "params_path": "%s-%s.params" % (base_path(), "init"),
+                "params_path": "{}-{}.params".format(base_path(), "init"),
                 "epoch_no": -1,
                 "score": np.Inf,
             }
@@ -344,9 +348,10 @@ class Trainer:
                         )
 
                     with mx.autograd.record():
-                        # we set the mode explicitly as by default mxnet assumes
-                        # predict mode and hence dropout layers are not used if
-                        # the mode is not explicitly set to training
+                        # we set the mode explicitly as by default mxnet
+                        # assumes predict mode and hence dropout layers are
+                        # not used if the mode is not explicitly set to
+                        # training
                         mode = (
                             autograd.train_mode
                             if is_training
@@ -369,7 +374,8 @@ class Trainer:
 
                     if not np.isfinite(ndarray.sum(loss).asscalar()):
                         logger.warning(
-                            "Batch [%d] of Epoch[%d] gave NaN loss and it will be ignored",
+                            "Batch [%d] of Epoch[%d] gave NaN loss and it will"
+                            " be ignored",
                             batch_no,
                             epoch_no,
                         )
@@ -402,7 +408,8 @@ class Trainer:
                         net_name = type(net).__name__
                         num_model_param = self.count_model_params(net)
                         logger.info(
-                            f"Number of parameters in {net_name}: {num_model_param}"
+                            f"Number of parameters in {net_name}:"
+                            f" {num_model_param}"
                         )
                 it.close()
 

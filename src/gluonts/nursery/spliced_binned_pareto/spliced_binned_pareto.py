@@ -51,9 +51,10 @@ class Binned(torch.nn.Module):
         assert (
             bins_upper_bound.shape.numel() == 1
         ), "bins_upper_bound needs to have shape torch.Size([1])"
-        assert (
-            bins_lower_bound < bins_upper_bound
-        ), f"bins_lower_bound {bins_lower_bound} needs to less than bins_upper_bound {bins_upper_bound}"
+        assert bins_lower_bound < bins_upper_bound, (
+            f"bins_lower_bound {bins_lower_bound} needs to less than"
+            f" bins_upper_bound {bins_upper_bound}"
+        )
 
         self.nbins = nbins
         self.epsilon = np.finfo(np.float32).eps
@@ -80,7 +81,7 @@ class Binned(torch.nn.Module):
 
     def to_device(self, device):
         """
-        Moves members to a specified torch.device
+        Moves members to a specified torch.device.
         """
         self.device = device
         self.bin_min = self.bin_min.to(device)
@@ -91,7 +92,7 @@ class Binned(torch.nn.Module):
 
     def forward(self, x):
         """
-        Takes input x as new logits
+        Takes input x as new logits.
         """
         self.logits = x
         return self.logits
@@ -133,7 +134,9 @@ class Binned(torch.nn.Module):
             one_hot_bin_indicator[0] = 1.0
         if not (one_hot_bin_indicator == 1).sum() == 1:
             print(
-                f"Warning in log_p(self, xx): for xx={xx.item()}, one_hot_bin_indicator value_counts are {one_hot_bin_indicator.unique(return_counts=True)}"
+                f"Warning in log_p(self, xx): for xx={xx.item()},"
+                " one_hot_bin_indicator value_counts are"
+                f" {one_hot_bin_indicator.unique(return_counts=True)}"
             )
 
         if self.smooth_indicator == "kernel":
@@ -193,7 +196,9 @@ class Binned(torch.nn.Module):
         self, xx, idx=0, cum_density=torch.tensor([0.0])
     ):
         """
-        Cumulative density given bins for one datapoint `xx`, where `cum_density` is the cdf up to bin_edges `idx`  which must be lower than `xx`
+        Cumulative density given bins for one datapoint `xx`, where
+        `cum_density` is the cdf up to bin_edges `idx`  which must be lower
+        than `xx`
         """
         assert xx.shape.numel() == 1, "cdf_components() expects univariate"
 
@@ -217,7 +222,8 @@ class Binned(torch.nn.Module):
 
     def cdf_components(self, xx, idx=0, cum_density=torch.tensor([0.0])):
         """
-        Cumulative density for one datapoint `xx`, where `cum_density` is the cdf up to bin_edges `idx` which must be lower than `xx`
+        Cumulative density for one datapoint `xx`, where `cum_density` is the
+        cdf up to bin_edges `idx` which must be lower than `xx`
         """
         return self.cdf_binned_components(xx, idx, cum_density)
 
@@ -349,7 +355,7 @@ class SplicedBinnedPareto(Binned):
 
     def to_device(self, device):
         """
-        Moves members to a specified torch.device
+        Moves members to a specified torch.device.
         """
         self.device = device
         self.bin_min = self.bin_min.to(device)
@@ -360,9 +366,9 @@ class SplicedBinnedPareto(Binned):
         self.logits = self.logits.to(device)
 
     def forward(self, x):
-        """
-        Takes input x as the new parameters to specify the bin probabilities: logits for the base distribution, and xi and beta for each tail distribution.
-        """
+        """Takes input x as the new parameters to specify the bin
+        probabilities: logits for the base distribution, and xi and beta for
+        each tail distribution."""
         if len(x.shape) > 1:
             # If mini-batching
             self.logits = x[:, : self.nbins]
@@ -440,7 +446,8 @@ class SplicedBinnedPareto(Binned):
 
     def cdf_components(self, xx, idx=0, cum_density=torch.tensor([0.0])):
         """
-        Cumulative density for one datapoint `xx`, where `cum_density` is the cdf up to bin_edges `idx` which must be lower than `xx`
+        Cumulative density for one datapoint `xx`, where `cum_density` is the
+        cdf up to bin_edges `idx` which must be lower than `xx`
         """
         bin_cdf_relative = torch.tensor([0.0])
         upper_percentile = self.icdf(1 - self.percentile_gen_pareto)

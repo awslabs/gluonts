@@ -74,10 +74,10 @@ class DeepARModel(nn.Module):
         self.lagged_rnn = LaggedLSTM(
             input_size=1,  # TODO fix
             features_size=self._number_of_features,
+            lags_seq=[lag - 1 for lag in self.lags_seq],
             num_layers=num_layers,
             hidden_size=hidden_size,
             dropout_rate=dropout_rate,
-            lags_seq=[lag - 1 for lag in self.lags_seq],
         )
 
     @property
@@ -105,6 +105,8 @@ class DeepARModel(nn.Module):
     ) -> Tuple[
         Tuple[torch.Tensor, ...],
         torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
         Tuple[torch.Tensor, torch.Tensor],
     ]:
         context = past_target[:, -self.context_length :]
@@ -118,20 +120,13 @@ class DeepARModel(nn.Module):
             else context / scale
         )
 
-        unroll_length = (
-            self.context_length
-            if future_target is None
-            else self.context_length + future_target.shape[1] - 1
-        )
-        assert input.shape[1] == unroll_length
-
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
             (embedded_cat, feat_static_real, scale.log()),
             dim=1,
         )
         expanded_static_feat = static_feat.unsqueeze(1).expand(
-            -1, unroll_length, -1
+            -1, input.shape[1], -1
         )
 
         time_feat = (
@@ -151,7 +146,7 @@ class DeepARModel(nn.Module):
         output, new_state = self.lagged_rnn(prior_input, input, features)
 
         params = self.param_proj(output)
-        return params, scale, static_feat, new_state
+        return params, scale, output, static_feat, new_state
 
     @torch.jit.ignore
     def output_distribution(
@@ -175,7 +170,7 @@ class DeepARModel(nn.Module):
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
-        params, scale, static_feat, state = self.unroll_lagged_rnn(
+        params, scale, _, static_feat, state = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
@@ -204,37 +199,40 @@ class DeepARModel(nn.Module):
             for s in state
         ]
 
-        distr = self.output_distribution(params, trailing_n=1)
-
-        next_sample = distr.sample(sample_shape=(self.num_parallel_samples,))
-        next_sample = next_sample.transpose(0, 1).reshape(
-            (next_sample.shape[0] * next_sample.shape[1], -1)
+        repeated_params = [
+            s.repeat_interleave(repeats=self.num_parallel_samples, dim=0)
+            for s in params
+        ]
+        distr = self.output_distribution(
+            repeated_params, trailing_n=1, scale=repeated_scale
         )
+        next_sample = distr.sample()
         future_samples = [next_sample]
 
         for k in range(1, self.prediction_length):
+            scaled_next_sample = next_sample / repeated_scale
             next_features = torch.cat(
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
             output, repeated_state = self.lagged_rnn(
                 repeated_past_target,
-                next_sample,
+                scaled_next_sample,
                 next_features,
                 repeated_state,
             )
-            params = self.param_proj(output)
-            distr = self.output_distribution(params)
             repeated_past_target = torch.cat(
-                (repeated_past_target, next_sample), dim=1
+                (repeated_past_target, scaled_next_sample), dim=1
             )
+
+            params = self.param_proj(output)
+            distr = self.output_distribution(params, scale=repeated_scale)
             next_sample = distr.sample()
             future_samples.append(next_sample)
 
-        unscaled_future_samples = (
-            torch.cat(future_samples, dim=1) * repeated_scale
-        )
-        return unscaled_future_samples.reshape(
+        future_samples_concat = torch.cat(future_samples, dim=1)
+
+        return future_samples_concat.reshape(
             (-1, self.num_parallel_samples, self.prediction_length)
             + self.target_shape,
         )
@@ -245,10 +243,10 @@ class LaggedLSTM(nn.Module):
         self,
         input_size: int,
         features_size: int,
+        lags_seq: List[int],
         num_layers: int = 2,
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
-        lags_seq: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
         self.input_size = input_size
@@ -291,8 +289,8 @@ class LaggedLSTM(nn.Module):
         indices = self.lags_seq
 
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            "lags cannot go further than history length, found lag"
+            f" {max(indices)} while history length is only {sequence_length}"
         )
 
         lagged_values = []
@@ -325,7 +323,7 @@ class LaggedLSTM(nn.Module):
         input: torch.Tensor,
         features: Optional[torch.Tensor] = None,
         state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
-    ):
+    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         self._check_shapes(prior_input, input, features)
 
         sequence = torch.cat((prior_input, input), dim=1)

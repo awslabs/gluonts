@@ -26,8 +26,10 @@ from ._main import datasets
     "--dataset",
     type=str,
     default=None,
-    help="The dataset to compute basic statistics for. "
-    "If not provided, computes statistics for all datasets.",
+    help=(
+        "The dataset to compute basic statistics for. "
+        "If not provided, computes statistics for all datasets."
+    ),
 )
 @click.option(
     "--path",
@@ -38,7 +40,8 @@ from ._main import datasets
 )
 def download(dataset: Optional[str], path: str):
     """
-    Downloads and preprocesses either a single dataset or all datasets in the registry.
+    Downloads and preprocesses either a single dataset or all datasets in the
+    registry.
     """
     base = Path(path)
 

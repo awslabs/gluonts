@@ -220,8 +220,8 @@ class BaseValidatedInitializerModel(BaseModel):
 
 def validated(base_model=None):
     """
-    Decorates an ``__init__`` method with typed parameters with validation
-    and auto-conversion logic.
+    Decorates an ``__init__`` method with typed parameters with validation and
+    auto-conversion logic.
 
     >>> class ComplexNumber:
     ...     @validated()
@@ -242,7 +242,8 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error for ComplexNumberModel
+    pydantic.error_wrappers.ValidationError: 1 validation error for
+    ComplexNumberModel
     y
       none is not an allowed value (type=type_error.none.not_allowed)
 

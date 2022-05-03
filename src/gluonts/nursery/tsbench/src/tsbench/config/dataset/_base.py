@@ -31,7 +31,8 @@ from tsbench.constants import (
 @dataclass(frozen=True)
 class DatasetConfig:
     """
-    A dataset configuration references a dataset containing multiple time series.
+    A dataset configuration references a dataset containing multiple time
+    series.
     """
 
     base_path: Path = field(default=DEFAULT_DATA_PATH, compare=False)
@@ -45,14 +46,17 @@ class DatasetConfig:
 
     def generate(self) -> None:
         """
-        Downloads the dataset into the globally configured data directory and applies necessary
-        preprocessing steps. This function must be called on a machine prior to using the dataset.
+        Downloads the dataset into the globally configured data directory and
+        applies necessary preprocessing steps.
+
+        This function must be called on a machine prior to using the dataset.
         """
         raise NotImplementedError
 
     def prepare(self) -> None:
         """
-        Generates all necessary representations of the dataset after it has been generated.
+        Generates all necessary representations of the dataset after it has
+        been generated.
         """
         self.data.train().prepare()
         self.data.val().prepare()
@@ -82,21 +86,23 @@ class DatasetConfig:
     @property
     def data(self) -> DatasetSplits:
         """
-        Returns the dataset's splits, i.e. training, validation, and test data. This is a noop, the
-        datasets are only loaded at a later point.
+        Returns the dataset's splits, i.e. training, validation, and test data.
+
+        This is a noop, the datasets are only loaded at a later point.
         """
         return DatasetSplits(self.meta, self.root)
 
     @property
     def root(self) -> Path:
         """
-        Returns the directory where all the data pertaining to this dataset is stored.
+        Returns the directory where all the data pertaining to this dataset is
+        stored.
         """
         return self.base_path / self.name()
 
     def stats(
-        self, root: Union[str, Path] = DEFAULT_DATA_STATS_PATH
-    ) -> Dict[str, float]:
+        self, root: str | Path = DEFAULT_DATA_STATS_PATH
+    ) -> dict[str, float]:
         """
         Returns basic statistics of the dataset.
 
@@ -108,7 +114,7 @@ class DatasetConfig:
             return json.load(f)
 
     def catch22(
-        self, root: Union[str, Path] = DEFAULT_DATA_CATCH22_PATH
+        self, root: str | Path = DEFAULT_DATA_CATCH22_PATH
     ) -> pd.DataFrame:
         """
         Returns the catch22 features of all time series in the dataset.
@@ -123,9 +129,11 @@ class DatasetConfig:
 @dataclass
 class DatasetSplits:
     """
-    The dataset splits provide train, validation and test data for a particular dataset. Calling
-    any of the functions here, is a noop. Data is only loaded once a particular representation of
-    the data is accessed.
+    The dataset splits provide train, validation and test data for a particular
+    dataset.
+
+    Calling any of the functions here, is a noop. Data is only loaded once a
+    particular representation of the data is accessed.
     """
 
     _metadata: MetaData
@@ -145,7 +153,9 @@ class DatasetSplits:
 
     def val(self) -> DatasetSplit:
         """
-        Returns the validation data for the dataset. This is the same as :meth:`train(False)`.
+        Returns the validation data for the dataset.
+
+        This is the same as :meth:`train(False)`.
         """
         return DatasetSplit(self._metadata, self._directory, "val")
 
@@ -159,8 +169,8 @@ class DatasetSplits:
 @dataclass
 class DatasetSplit:
     """
-    A dataset split provides all the representations for a particular split (train/val/test) of a
-    dataset.
+    A dataset split provides all the representations for a particular split
+    (train/val/test) of a dataset.
     """
 
     _metadata: MetaData
@@ -169,8 +179,9 @@ class DatasetSplit:
 
     def gluonts(self) -> Dataset:
         """
-        Returns the GluonTS dataset for the dataset split. This loads the associated JSON file and
-        is, thus, potentially slow.
+        Returns the GluonTS dataset for the dataset split.
+
+        This loads the associated JSON file and is, thus, potentially slow.
         """
         return FileDataset(
             self._directory / "gluonts" / self._split, freq=self._metadata.freq
@@ -196,8 +207,8 @@ class DatasetSplit:
 
     def prepare(self) -> None:
         """
-        Prepares all required representations provided that the GluonTS dataset is already
-        generated.
+        Prepares all required representations provided that the GluonTS dataset
+        is already generated.
         """
         target = self._directory / "numpy" / self._split
         if self._split == "train":
@@ -227,9 +238,11 @@ class DatasetSplit:
 @dataclass
 class EvaluationDataset:
     """
-    The evaluation dataset is a simple dataset representation that contains a two-dimensional array
-    of future values as well as a two-dimensional (masked) array of the past values that a model
-    sees during training. This representation is very efficient for evaluation.
+    The evaluation dataset is a simple dataset representation that contains a
+    two-dimensional array of future values as well as a two-dimensional
+    (masked) array of the past values that a model sees during training.
+
+    This representation is very efficient for evaluation.
     """
 
     future: np.ndarray
@@ -241,7 +254,7 @@ class EvaluationDataset:
 
 def _generate_evaluation_dataset(
     dataset: Dataset, prediction_length: int
-) -> Tuple[np.ndarray, ma.MaskedArray]:
+) -> tuple[np.ndarray, ma.MaskedArray]:
     # Extract data from all the values in the dataset
     pasts = []
     past_lengths = []

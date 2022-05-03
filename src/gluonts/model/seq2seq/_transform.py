@@ -24,7 +24,9 @@ from gluonts.transform import FlatMapTransformation, shift_timestamp
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
-    """Forking sequence splitter."""
+    """
+    Forking sequence splitter.
+    """
 
     @validated()
     def __init__(
@@ -111,8 +113,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         else:
             sampling_indices = [len(target)]
 
-        # Loops over all encoder and decoder fields even those that are disabled to
-        # set to dummy zero fields in those cases
+        # Loops over all encoder and decoder fields even those that are
+        # disabled to set to dummy zero fields in those cases
         ts_fields_counter = Counter(
             set(self.encoder_series_fields + self.decoder_series_fields)
         )
@@ -129,7 +131,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             start_idx_enc = max(0, enc_len_diff)
             start_idx_dec = max(0, dec_len_diff)
 
-            # Define pad length indices for shorter time series of variable length being updated in place
+            # Define pad length indices for shorter time series of variable
+            # length being updated in place
             pad_length_enc = max(0, -enc_len_diff)
             pad_length_dec = max(0, -dec_len_diff)
 
@@ -165,14 +168,18 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         dtype=ts.dtype,
                     )
                     if ts_field not in self.decoder_disabled_fields:
-                        # This is where some of the forking magic happens:
-                        # For each of the num_forking time-steps at which the decoder is applied we slice the
-                        # corresponding inputs called decoder_fields to the appropriate dec_len
+                        # This is where some of the forking magic happens: For
+                        # each of the num_forking time-steps at which the
+                        # decoder is applied we slice the corresponding inputs
+                        # called decoder_fields to the appropriate dec_len
                         decoder_fields = ts[
                             start_idx_dec + 1 : sampling_idx + 1, :
                         ]
-                        # For default row-major arrays, strides = (dtype*n_cols, dtype). Since this array is transposed,
-                        # it is stored in column-major (Fortran) ordering with strides = (dtype, dtype*n_rows)
+                        # For default row-major arrays, strides =
+                        # (dtype*n_cols, dtype). Since this array is
+                        # transposed, it is stored in column-major
+                        # (Fortran) ordering with strides =
+                        # (dtype, dtype*n_rows)
                         stride = decoder_fields.strides
                         out[self._future(ts_field)][
                             pad_length_dec:
@@ -183,9 +190,11 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                                 self.dec_len,
                                 ts_len,
                             ),
-                            # strides for 2D array expanded to 3D array of shape (dim1, dim2, dim3) =
-                            # (1, n_rows, n_cols).  For transposed data, strides =
-                            # (dtype, dtype * dim1, dtype*dim1*dim2) = (dtype, dtype, dtype*n_rows).
+                            # strides for 2D array expanded to 3D array of
+                            # shape (dim1, dim2, dim3) =(1, n_rows, n_cols).
+                            # For transposed data, strides = (dtype, dtype *
+                            # dim1, dtype*dim1*dim2) = (dtype, dtype,
+                            # dtype*n_rows).
                             strides=stride[0:1] + stride,
                         )
 
@@ -195,8 +204,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                             out[self._future(ts_field)], axis=-1
                         )
 
-            # So far encoder pad indicator not in use -
-            # Marks that left padding for the encoder will occur on shorter time series
+            # So far encoder pad indicator not in use - Marks that left padding
+            # for the encoder will occur on shorter time series
             pad_indicator = np.zeros(self.enc_len)
             pad_indicator[:pad_length_enc] = True
             out[self._past(self.is_pad_out)] = pad_indicator

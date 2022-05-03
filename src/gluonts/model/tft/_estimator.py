@@ -90,9 +90,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ) -> None:
-        super(TemporalFusionTransformerEstimator, self).__init__(
-            trainer=trainer, batch_size=batch_size
-        )
+        super().__init__(trainer=trainer, batch_size=batch_size)
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
@@ -444,6 +442,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(
-                quantiles=[str(q) for q in prediction_network.quantiles],
+                quantiles=[
+                    str(q) for q in prediction_network.output.quantiles
+                ],
             ),
         )

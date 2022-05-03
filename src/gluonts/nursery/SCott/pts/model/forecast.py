@@ -229,10 +229,9 @@ class SampleForecast(Forecast):
         assert isinstance(
             samples, (np.ndarray, torch.Tensor)
         ), "samples should be either a numpy array or an torch tensor"
-        assert (
-            len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
-        ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
-            len(np.shape(samples))
+        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = (
             samples
@@ -384,7 +383,7 @@ class SampleForecast(Forecast):
 
 class QuantileForecast(Forecast):
     """
-    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean.
 
     Parameters
     ----------
@@ -480,10 +479,10 @@ class QuantileForecast(Forecast):
 
 class DistributionForecast(Forecast):
     """
-    A `Forecast` object that uses a distribution directly.
-    This can for instance be used to represent marginal probability
-    distributions for each time point -- although joint distributions are
-    also possible, e.g. when using MultiVariateGaussian).
+    A `Forecast` object that uses a distribution directly. This can for
+    instance be used to represent marginal probability distributions for each
+    time point -- although joint distributions are also possible, e.g. when
+    using MultiVariateGaussian).
 
     Parameters
     ----------

@@ -25,7 +25,8 @@ from gluonts.time_feature import get_seasonality
 @dataclass
 class QuantileForecasts:
     """
-    A type-safe wrapper for a list of quantile forecasts, stored as NumPy arrays.
+    A type-safe wrapper for a list of quantile forecasts, stored as NumPy
+    arrays.
     """
 
     values: npt.NDArray[
@@ -34,7 +35,7 @@ class QuantileForecasts:
     start_dates: npt.NDArray[np.float32]
     item_ids: npt.NDArray[np.float32]
     freq: pd.DateOffset
-    quantiles: List[str]
+    quantiles: list[str]
 
     @property
     def prediction_length(self) -> int:
@@ -46,8 +47,8 @@ class QuantileForecasts:
     @property
     def seasonality(self) -> int:
         """
-        Returns the seasonality of the forecasts (i.e. how many steps to go back to arrive at the
-        value of the previous period).
+        Returns the seasonality of the forecasts (i.e. how many steps to go
+        back to arrive at the value of the previous period).
         """
         return get_seasonality(self.freq.freqstr)  # type: ignore
 
@@ -56,8 +57,10 @@ class QuantileForecasts:
 
     def get(self, index: int) -> QuantileForecast:
         """
-        Returns the quantile forecast at the specified index. This method should typically only be
-        used for visualizing single forecasts.
+        Returns the quantile forecast at the specified index.
+
+        This method should typically only be used for visualizing single
+        forecasts.
         """
         return QuantileForecast(
             forecast_arrays=self.values[index],
@@ -70,8 +73,10 @@ class QuantileForecasts:
     @property
     def median(self) -> npt.NDArray[np.float32]:
         """
-        Returns the median forecasts for all time series. NumPy array of shape [N, T] (N: number
-        of forecasts, T: forecast horizon).
+        Returns the median forecasts for all time series.
+
+        NumPy array of shape [N, T] (N: number of forecasts, T: forecast
+        horizon).
         """
         i = self.quantiles.index("0.5")
         return self.values[:, i]

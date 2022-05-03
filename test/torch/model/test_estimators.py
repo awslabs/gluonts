@@ -15,24 +15,52 @@ import tempfile
 from itertools import islice
 from pathlib import Path
 
+import pytest
+
 import pytorch_lightning as pl
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
+from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
+from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.torch.model.forecast import DistributionForecast
+from gluonts.torch.modules.loss import NegativeLogLikelihood
 
 
-def test_torch_deepar():
+@pytest.mark.parametrize(
+    "estimator_constructor",
+    [
+        lambda dataset: DeepAREstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+            loss=NegativeLogLikelihood(beta=0.1),
+            scaling=False,
+        ),
+        lambda dataset: MQF2MultiHorizonEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: SimpleFeedForwardEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+    ],
+)
+def test_estimator_constant_dataset(estimator_constructor):
     constant = get_dataset("constant")
 
-    estimator = DeepAREstimator(
-        freq=constant.metadata.freq,
-        prediction_length=constant.metadata.prediction_length,
-        batch_size=4,
-        num_batches_per_epoch=3,
-        trainer_kwargs=dict(max_epochs=2),
-    )
+    estimator = estimator_constructor(constant)
 
     predictor = estimator.train(
         training_data=constant.train,
@@ -47,10 +75,40 @@ def test_torch_deepar():
     forecasts = predictor_copy.predict(constant.test)
 
     for f in islice(forecasts, 5):
+        if isinstance(f, DistributionForecast):
+            f = f.to_sample_forecast()
         f.mean
 
 
-def test_torch_deepar_with_features():
+@pytest.mark.parametrize(
+    "estimator_constructor",
+    [
+        lambda freq, prediction_length: DeepAREstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+            loss=NegativeLogLikelihood(beta=0.1),
+        ),
+        lambda freq, prediction_length: MQF2MultiHorizonEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+    ],
+)
+def test_estimator_with_features(estimator_constructor):
     freq = "1h"
     prediction_length = 12
 
@@ -94,17 +152,7 @@ def test_torch_deepar_with_features():
         freq=freq,
     )
 
-    estimator = DeepAREstimator(
-        freq=freq,
-        prediction_length=prediction_length,
-        batch_size=4,
-        num_batches_per_epoch=3,
-        num_feat_dynamic_real=3,
-        num_feat_static_real=1,
-        num_feat_static_cat=2,
-        cardinality=[2, 2],
-        trainer_kwargs=dict(max_epochs=2),
-    )
+    estimator = estimator_constructor(freq, prediction_length)
 
     predictor = estimator.train(
         training_data=training_dataset,

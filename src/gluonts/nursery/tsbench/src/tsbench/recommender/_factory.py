@@ -26,7 +26,8 @@ E = TypeVar("E", bound=Type[Recommender[EnsembleConfig]])
 
 def register_recommender(name: str) -> Callable[[R], R]:
     """
-    Registers the provided class with the given name in the global recommender registry.
+    Registers the provided class with the given name in the global recommender
+    registry.
     """
 
     def register(cls: R) -> R:
@@ -38,7 +39,8 @@ def register_recommender(name: str) -> Callable[[R], R]:
 
 def register_ensemble_recommender(name: str) -> Callable[[R], R]:
     """
-    Registers the provided class with the given name in the global ensemble recommender registry.
+    Registers the provided class with the given name in the global ensemble
+    recommender registry.
     """
 
     def register(cls: R) -> R:

@@ -53,8 +53,8 @@ def _make_block_diagonal(blocks: List[Tensor]) -> Tensor:
 
 def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
     """
-    Creates a block diagonal matrix of shape (batch_size, m+n, m+n) where m and n are the sizes of
-    the axis 1 of left and right respectively.
+    Creates a block diagonal matrix of shape (batch_size, m+n, m+n) where m and
+    n are the sizes of the axis 1 of left and right respectively.
 
     Parameters
     ----------
@@ -93,7 +93,8 @@ def _make_2_block_diagonal(F, left: Tensor, right: Tensor) -> Tensor:
 
 class ISSM:
     r"""
-    An abstract class for providing the basic structure of Innovation State Space Model (ISSM).
+    An abstract class for providing the basic structure of Innovation State
+    Space Model (ISSM).
 
     The structure of ISSM is given by
 
@@ -170,7 +171,8 @@ class LevelISSM(ISSM):
             F.eye(self.latent_dim()).expand_dims(axis=0).expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim,
+        # latent_dim)
         zeros = _broadcast_param(
             feature.squeeze(axis=2),
             axes=[2, 3],
@@ -206,7 +208,8 @@ class LevelTrendISSM(LevelISSM):
             .expand_dims(axis=0)
         )
 
-        # get the right shape: (batch_size, time_length, latent_dim, latent_dim)
+        # get the right shape: (batch_size, time_length, latent_dim,
+        # latent_dim)
         zeros = _broadcast_param(
             feature.squeeze(axis=2),
             axes=[2, 3],
@@ -218,12 +221,13 @@ class LevelTrendISSM(LevelISSM):
 
 class SeasonalityISSM(LevelISSM):
     """
-    Implements periodic seasonality which is entirely determined by the period `num_seasons`.
+    Implements periodic seasonality which is entirely determined by the period
+    `num_seasons`.
     """
 
     @validated()
     def __init__(self, num_seasons: int, time_feature: TimeFeature) -> None:
-        super(SeasonalityISSM, self).__init__()
+        super().__init__()
         self.num_seasons = num_seasons
         self.time_feature = time_feature
 
@@ -274,7 +278,7 @@ class CompositeISSM(ISSM):
         seasonal_issms: List[SeasonalityISSM],
         add_trend: bool = DEFAULT_ADD_TREND,
     ) -> None:
-        super(CompositeISSM, self).__init__()
+        super().__init__()
         self.seasonal_issms = seasonal_issms
         self.nonseasonal_issm = (
             LevelISSM() if add_trend is False else LevelTrendISSM()
@@ -282,7 +286,7 @@ class CompositeISSM(ISSM):
 
     def latent_dim(self) -> int:
         return (
-            sum([issm.latent_dim() for issm in self.seasonal_issms])
+            sum(issm.latent_dim() for issm in self.seasonal_issms)
             + self.nonseasonal_issm.latent_dim()
         )
 

@@ -18,10 +18,10 @@ from gluonts.core import serde
 from gluonts.dataset.common import ListDataset
 from gluonts.model.prophet import PROPHET_IS_INSTALLED, ProphetPredictor
 
-# conditionally skip these tests if `fbprophet` is not installed
+# conditionally skip these tests if `prophet` is not installed
 # see https://docs.pytest.org/en/latest/skipping.html for details
 if not PROPHET_IS_INSTALLED:
-    skip_message = "Skipping test because `fbprophet` is not installed"
+    skip_message = "Skipping test because `prophet` is not installed"
     pytest.skip(msg=skip_message, allow_module_level=True)
 
 

@@ -126,7 +126,7 @@ def test_deepar_modules(
     future_target = torch.ones(batch_size, prediction_length)
     future_observed_values = torch.ones(batch_size, prediction_length)
 
-    params, scale, _, _ = model.unroll_lagged_rnn(
+    params, scale, _, _, _ = model.unroll_lagged_rnn(
         feat_static_cat,
         feat_static_real,
         past_time_feat,

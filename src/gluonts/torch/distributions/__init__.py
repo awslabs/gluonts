@@ -11,12 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from .affine_transformed import AffineTransformed
 from .isqf import ISQF, ISQFOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
+from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
+from .binned_uniforms import BinnedUniforms, BinnedUniformsOutput
+from .spliced_binned_pareto import (
+    SplicedBinnedPareto,
+    SplicedBinnedParetoOutput,
+)
 
 __all__ = [
+    "AffineTransformed",
     "ISQF",
     "ISQFOutput",
     "PiecewiseLinear",
     "PiecewiseLinearOutput",
+    "GeneralizedPareto",
+    "GeneralizedParetoOutput",
+    "BinnedUniforms",
+    "BinnedUniformsOutput",
+    "SplicedBinnedPareto",
+    "SplicedBinnedParetoOutput",
 ]

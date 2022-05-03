@@ -20,8 +20,8 @@ import scipy.spatial as spt
 
 def hypervolume(points: npt.NDArray[np.float32], box: float = 1) -> float:
     """
-    Computes the hypervolume assuming that all values were previously normalized to lie in the
-    range (0, 1).
+    Computes the hypervolume assuming that all values were previously
+    normalized to lie in the range (0, 1).
 
     Args:
         point: Array of shape [N, D] (N: number of points, D: dimensionality) containing the points
@@ -55,8 +55,8 @@ def maximum_spread(solution: npt.NDArray[np.float32]) -> float:
 
 def pure_diversity(solution: npt.NDArray[np.float32]) -> float:
     """
-    Computes the pure diversity of the solutions as described in "Diversity Assessment in
-    Many-Objective Optimization" (Wang et al., 2017).
+    Computes the pure diversity of the solutions as described in "Diversity
+    Assessment in Many-Objective Optimization" (Wang et al., 2017).
 
     Args:
         solution: Array of shape [N, D] (N: number of points, D: dimensionality) containing the

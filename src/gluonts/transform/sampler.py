@@ -21,8 +21,8 @@ from gluonts.dataset.stat import ScaleHistogram
 
 class InstanceSampler(BaseModel):
     """
-    An InstanceSampler is called with the time series ``ts``, and returns
-    a set of indices at which training instances will be generated.
+    An InstanceSampler is called with the time series ``ts``, and returns a set
+    of indices at which training instances will be generated.
 
     The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
     and ``b = ts.shape[axis] - min_future``.
@@ -70,8 +70,10 @@ class UniformSplitSampler(InstanceSampler):
 
 class PredictionSplitSampler(InstanceSampler):
     """
-    Sampler used for prediction. Always selects the last time point for
-    splitting i.e. the forecast point for the time series.
+    Sampler used for prediction.
+
+    Always selects the last time point for splitting i.e. the forecast point
+    for the time series.
     """
 
     allow_empty_interval: bool = False
@@ -143,10 +145,11 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
-    skewed distributions. For instance, if the dataset contains many time series
-    with small values and few with large values.
+    skewed distributions. For instance, if the dataset contains many time
+    series with small values and few with large values.
 
-    The probability of sampling from bucket i is the inverse of its number of elements.
+    The probability of sampling from bucket i is the inverse of its number of
+    elements.
 
     Parameters
     ----------

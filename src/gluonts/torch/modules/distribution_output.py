@@ -18,7 +18,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import (
-    AffineTransform,
     Beta,
     Distribution,
     Gamma,
@@ -26,10 +25,10 @@ from torch.distributions import (
     Normal,
     Poisson,
     StudentT,
-    TransformedDistribution,
 )
 
 from gluonts.core.component import validated
+from gluonts.torch.distributions import AffineTransformed
 
 from .lambda_layer import LambdaLayer
 
@@ -75,7 +74,9 @@ class PtArgProj(nn.Module):
 
 
 class Output:
-    """Class to connect a network to some output."""
+    """
+    Class to connect a network to some output.
+    """
 
     in_features: int
     args_dim: Dict[str, int]
@@ -139,11 +140,7 @@ class DistributionOutput(Output):
         if loc is None and scale is None:
             return distr
         else:
-            transform = AffineTransform(
-                loc=0.0 if loc is None else loc,
-                scale=1.0 if scale is None else scale,
-            )
-            return TransformedDistribution(distr, [transform])
+            return AffineTransformed(distr, loc=loc, scale=scale)
 
     @property
     def event_shape(self) -> Tuple:
@@ -280,9 +277,9 @@ class NegativeBinomialOutput(DistributionOutput):
         total_count, logits = distr_args
         return self.distr_cls(total_count=total_count, logits=logits)
 
-    # Overwrites the parent class method.
-    # We cannot scale using the affine transformation since negative binomial should return integers.
-    # Instead we scale the parameters.
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since negative binomial should return integers. Instead
+    # we scale the parameters.
     def distribution(
         self,
         distr_args,

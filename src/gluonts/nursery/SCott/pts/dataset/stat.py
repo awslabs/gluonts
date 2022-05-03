@@ -214,7 +214,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
             assert_pts(
                 num_feat_static_cat == len(feat_static_cat),
-                "Not all feat_static_cat vectors have the same length {} != {}.",
+                "Not all feat_static_cat vectors have the same length {}"
+                " != {}.",
                 num_feat_static_cat,
                 len(feat_static_cat),
             )
@@ -240,7 +241,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
             assert_pts(
                 num_feat_static_real == len(feat_static_real),
-                "Not all feat_static_real vectors have the same length {} != {}.",
+                "Not all feat_static_real vectors have the same length {}"
+                " != {}.",
                 num_feat_static_real,
                 len(feat_static_real),
             )
@@ -259,7 +261,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 # that feat_dynamic_cat were seen before
                 assert_pts(
                     num_feat_dynamic_cat is None or num_feat_dynamic_cat == 0,
-                    "feat_dynamic_cat was found for some instances but not others.",
+                    "feat_dynamic_cat was found for some instances but not"
+                    " others.",
                 )
                 num_feat_dynamic_cat = 0
             else:
@@ -269,23 +272,25 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 else:
                     assert_pts(
                         num_feat_dynamic_cat == feat_dynamic_cat.shape[0],
-                        "Found instances with different number of features in "
-                        "feat_dynamic_cat, found one with {} and another with {}.",
+                        "Found instances with different number of features in"
+                        " feat_dynamic_cat, found one with {} and another"
+                        " with {}.",
                         num_feat_dynamic_cat,
                         feat_dynamic_cat.shape[0],
                     )
 
                 assert_pts(
                     np.all(np.isfinite(feat_dynamic_cat)),
-                    "Features values have to be finite and cannot exceed single "
-                    "precision floating point range.",
+                    "Features values have to be finite and cannot exceed"
+                    " single precision floating point range.",
                 )
                 num_feat_dynamic_cat_time_steps = feat_dynamic_cat.shape[1]
                 assert_pts(
                     num_feat_dynamic_cat_time_steps == len(target),
-                    "Each feature in feat_dynamic_cat has to have the same length as "
-                    "the target. Found an instance with feat_dynamic_cat of length {} "
-                    "and a target of length {}.",
+                    "Each feature in feat_dynamic_cat has to have the same"
+                    " length as the target. Found an instance with"
+                    " feat_dynamic_cat of length {} and a target of"
+                    " length {}.",
                     num_feat_dynamic_cat_time_steps,
                     len(target),
                 )
@@ -303,7 +308,8 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 assert_pts(
                     num_feat_dynamic_real is None
                     or num_feat_dynamic_real == 0,
-                    "feat_dynamic_real was found for some instances but not others.",
+                    "feat_dynamic_real was found for some instances but not"
+                    " others.",
                 )
                 num_feat_dynamic_real = 0
             else:
@@ -313,23 +319,25 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 else:
                     assert_pts(
                         num_feat_dynamic_real == feat_dynamic_real.shape[0],
-                        "Found instances with different number of features in "
-                        "feat_dynamic_real, found one with {} and another with {}.",
+                        "Found instances with different number of features in"
+                        " feat_dynamic_real, found one with {} and another"
+                        " with {}.",
                         num_feat_dynamic_real,
                         feat_dynamic_real.shape[0],
                     )
 
                 assert_pts(
                     np.all(np.isfinite(feat_dynamic_real)),
-                    "Features values have to be finite and cannot exceed single "
-                    "precision floating point range.",
+                    "Features values have to be finite and cannot exceed"
+                    " single precision floating point range.",
                 )
                 num_feat_dynamic_real_time_steps = feat_dynamic_real.shape[1]
                 assert_pts(
                     num_feat_dynamic_real_time_steps == len(target),
-                    "Each feature in feat_dynamic_real has to have the same length as "
-                    "the target. Found an instance with feat_dynamic_real of length {} "
-                    "and a target of length {}.",
+                    "Each feature in feat_dynamic_real has to have the same"
+                    " length as the target. Found an instance with"
+                    " feat_dynamic_real of length {} and a target of"
+                    " length {}.",
                     num_feat_dynamic_real_time_steps,
                     len(target),
                 )

@@ -23,8 +23,8 @@ class Estimator:
     """
     An abstract class representing a trainable model.
 
-    The underlying model is trained by calling the `train` method with
-    a training `Dataset`, producing a `Predictor` object.
+    The underlying model is trained by calling the `train` method with a
+    training `Dataset`, producing a `Predictor` object.
     """
 
     __version__: str = gluonts.__version__
@@ -70,7 +70,8 @@ class Estimator:
 
     @classmethod
     def from_inputs(cls, train_iter, **params):
-        # auto_params usually include `use_feat_dynamic_real`, `use_feat_static_cat` and `cardinality`
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_feat_static_cat` and `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
@@ -98,6 +99,6 @@ class DummyEstimator(Estimator):
     def train(
         self,
         training_data: Dataset,
-        validation_dataset: Optional[Dataset] = None,
+        validation_data: Optional[Dataset] = None,
     ) -> Predictor:
         return self.predictor

@@ -34,7 +34,8 @@ from gluonts.mx.trainer import Trainer
 class MQCNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
-    encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN Forecaster, proposed in [WTN+17]_.
+    encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN
+    Forecaster, proposed in [WTN+17]_.
 
     Parameters
     ----------
@@ -43,72 +44,89 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     prediction_length
         Length of the prediction, also known as 'horizon'.
     context_length
-        Number of time units that condition the predictions, also known as 'lookback period'.
-        (default: 4 * prediction_length)
+        Number of time units that condition the predictions, also known as
+        'lookback period'. (default: 4 * prediction_length)
     use_past_feat_dynamic_real
-        Whether to use the ``past_feat_dynamic_real`` field from the data. (default: False)
-        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+        Whether to use the ``past_feat_dynamic_real`` field from the data.
+        (default: False) Automatically inferred when creating the
+        MQCNNEstimator with the `from_inputs` class method.
     use_feat_dynamic_real
-        Whether to use the ``feat_dynamic_real`` field from the data. (default: False)
-        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+        Whether to use the ``feat_dynamic_real`` field from the data.
+        (default: False) Automatically inferred when creating the
+        MQCNNEstimator with the `from_inputs` class method.
     use_feat_static_cat:
-        Whether to use the ``feat_static_cat`` field from the data. (default: False)
-        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+        Whether to use the ``feat_static_cat`` field from the data.
+        (default: False) Automatically inferred when creating the
+        MQCNNEstimator with the `from_inputs` class method.
     cardinality:
         Number of values of each categorical feature.
         This must be set if ``use_feat_static_cat == True`` (default: None)
-        Automatically inferred when creating the MQCNNEstimator with the `from_inputs` class method.
+        Automatically inferred when creating the MQCNNEstimator with the
+        `from_inputs` class method.
     embedding_dimension:
-        Dimension of the embeddings for categorical features. (default: [min(50, (cat+1)//2) for cat in cardinality])
+        Dimension of the embeddings for categorical features.
+        (default: [min(50, (cat+1)//2) for cat in cardinality])
     add_time_feature
         Adds a set of time features. (default: True)
     add_age_feature
         Adds an age feature. (default: False)
-        The age feature starts with a small value at the start of the time series and grows over time.
+        The age feature starts with a small value at the start of the time
+        series and grows over time.
     enable_encoder_dynamic_feature
-        Whether the encoder should also be provided with the dynamic features (``age``, ``time``
-        and ``feat_dynamic_real`` if enabled respectively). (default: True)
+        Whether the encoder should also be provided with the dynamic features
+        (``age``, ``time`` and ``feat_dynamic_real`` if enabled respectively).
+        (default: True)
     enable_decoder_dynamic_feature
-        Whether the decoder should also be provided with the dynamic features (``age``, ``time``
-        and ``feat_dynamic_real`` if enabled respectively). (default: True)
-        It makes sense to disable this, if you don't have ``feat_dynamic_real`` for the prediction range.
+        Whether the decoder should also be provided with the dynamic features
+        (``age``, ``time`` and ``feat_dynamic_real`` if enabled respectively).
+        (default: True)
+        It makes sense to disable this, if you don't have ``feat_dynamic_real``
+        for the prediction range.
     seed
-        Will set the specified int seed for numpy anc MXNet if specified. (default: None)
+        Will set the specified int seed for numpy anc MXNet if specified.
+        (default: None)
     decoder_mlp_dim_seq
-        The dimensionalities of the Multi Layer Perceptron layers of the decoder.
-        (default: [30])
+        The dimensionalities of the Multi Layer Perceptron layers of the
+        decoder. (default: [30])
     channels_seq
-        The number of channels (i.e. filters or convolutions) for each layer of the HierarchicalCausalConv1DEncoder.
-        More channels usually correspond to better performance and larger network size.
-        (default: [30, 30, 30])
+        The number of channels (i.e. filters or convolutions) for each layer of
+        the HierarchicalCausalConv1DEncoder. More channels usually correspond
+        to better performance and larger network size.(default: [30, 30, 30])
     dilation_seq
-        The dilation of the convolutions in each layer of the HierarchicalCausalConv1DEncoder.
-        Greater numbers correspond to a greater receptive field of the network, which is usually
-        better with longer context_length. (Same length as channels_seq) (default: [1, 3, 5])
+        The dilation of the convolutions in each layer of the
+        HierarchicalCausalConv1DEncoder. Greater numbers correspond to a
+        greater receptive field of the network, which is usually better with
+        longer context_length. (Same length as channels_seq)
+        (default: [1, 3, 5])
     kernel_size_seq
-        The kernel sizes (i.e. window size) of the convolutions in each layer of the HierarchicalCausalConv1DEncoder.
+        The kernel sizes (i.e. window size) of the convolutions in each layer
+        of the HierarchicalCausalConv1DEncoder.
         (Same length as channels_seq) (default: [7, 3, 3])
     use_residual
         Whether the hierarchical encoder should additionally pass the unaltered
         past target to the decoder. (default: True)
     quantiles
-        The list of quantiles that will be optimized for, and predicted by, the model.
-        Optimizing for more quantiles than are of direct interest to you can result
-        in improved performance due to a regularizing effect.
+        The list of quantiles that will be optimized for, and predicted by, the
+        model. Optimizing for more quantiles than are of direct interest to you
+        can result in improved performance due to a regularizing effect.
         (default: [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975])
     distr_output
-        DistributionOutput to use. Only one between `quantile` and `distr_output`
-        can be set. (Default: None)
+        DistributionOutput to use. Only one between `quantile` and
+        `distr_output` can be set. (Default: None)
     trainer
         The GluonTS trainer to use for training. (default: Trainer())
     scaling
-        Whether to automatically scale the target values. (default: False if quantile_output is used, True otherwise)
+        Whether to automatically scale the target values. (default: False if
+        quantile_output is used, True otherwise)
     scaling_decoder_dynamic_feature
-        Whether to automatically scale the dynamic features for the decoder. (default: False)
+        Whether to automatically scale the dynamic features for the decoder.
+        (default: False)
     num_forking
-        Decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-CNN.
+        Decides how much forking to do in the decoder. 1 reduces to seq2seq and
+        enc_len reduces to MQ-CNN.
     max_ts_len
-        Returns the length of the longest time series in the dataset to be used in bounding context_length.
+        Returns the length of the longest time series in the dataset to be used
+        in bounding context_length.
     is_iqf
         Determines whether to use IQF or QF. (default: True).
     batch_size
@@ -268,8 +286,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         logger.info(
             f"gluonts[from_inputs]: User supplied params set to {params}"
         )
-        # auto_params usually include `use_feat_dynamic_real`, `use_past_feat_dynamic_real`,
-        # `use_feat_static_cat` and `cardinality`
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_past_feat_dynamic_real`, `use_feat_static_cat` and
+        # `cardinality`
         auto_params = cls.derive_auto_fields(train_iter)
 
         fields = [
@@ -287,7 +306,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
                 )
                 if is_params_field and not auto_params[field]:
                     logger.warning(
-                        f"gluonts[from_inputs]: {field} set to False since it is not present in the data."
+                        f"gluonts[from_inputs]: {field} set to False since it"
+                        " is not present in the data."
                     )
                     params[field] = False
                     if field == "use_feat_static_cat":
@@ -302,10 +322,11 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
         logger.info(
-            f"gluonts[from_inputs]: use_past_feat_dynamic_real set to "
-            f"'{params['use_past_feat_dynamic_real']}', use_feat_dynamic_real set to "
-            f"'{params['use_feat_dynamic_real']}', and use_feat_static_cat set to "
-            f"'{params['use_feat_static_cat']}' with cardinality of '{params['cardinality']}'"
+            "gluonts[from_inputs]: use_past_feat_dynamic_real set to"
+            f" '{params['use_past_feat_dynamic_real']}', use_feat_dynamic_real"
+            f" set to '{params['use_feat_dynamic_real']}', and"
+            f" use_feat_static_cat set to '{params['use_feat_static_cat']}'"
+            f" with cardinality of '{params['cardinality']}'"
         )
         return cls.from_hyperparameters(**params)
 
@@ -313,7 +334,9 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
 class MQRNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Recurrent Neural Network (RNN) as an
-    encoder and a multi-quantile MLP as a decoder. Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
+    encoder and a multi-quantile MLP as a decoder.
+
+    Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
     """
 
     @validated()

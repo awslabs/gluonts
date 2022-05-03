@@ -59,8 +59,9 @@ class JsonLinesFile:
         self._data_cache: list = []
 
     def __iter__(self):
-        # Basic idea is to split the dataset into roughly equally sized segments
-        # with lower and upper bound, where each worker is assigned one segment
+        # Basic idea is to split the dataset into roughly equally sized
+        # segments with lower and upper bound, where each worker is assigned
+        # one segment
         bounds = get_bounds_for_mp_data_loading(len(self))
         if not self.cache or (self.cache and not self._data_cache):
             with self.open(self.path) as jsonl_file:

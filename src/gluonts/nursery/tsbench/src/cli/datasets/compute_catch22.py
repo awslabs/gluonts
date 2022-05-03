@@ -29,8 +29,10 @@ from ._main import datasets
     "--dataset",
     type=str,
     default=None,
-    help="The dataset to compute the catch22 features for. "
-    "If not provided, computes features for all datasets.",
+    help=(
+        "The dataset to compute the catch22 features for. "
+        "If not provided, computes features for all datasets."
+    ),
 )
 @click.option(
     "--data_path",
@@ -44,13 +46,17 @@ from ._main import datasets
     type=click.Path(),
     default=DEFAULT_DATA_CATCH22_PATH,
     show_default=True,
-    help="The path where catch22 features are written to. "
-    "Features are written as `<dataset>.parquet` files.",
+    help=(
+        "The path where catch22 features are written to. "
+        "Features are written as `<dataset>.parquet` files."
+    ),
 )
 def compute_catch22(dataset: Optional[str], data_path: str, output_path: str):
     """
-    Computes the catch22 features for each time series in a dataset. Computations are either run
-    for a single dataset or all datasets in the registry.
+    Computes the catch22 features for each time series in a dataset.
+
+    Computations are either run for a single dataset or all datasets in the
+    registry.
     """
     target = Path(data_path)
     target.mkdir(parents=True, exist_ok=True)

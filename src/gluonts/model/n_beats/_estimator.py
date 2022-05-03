@@ -53,10 +53,10 @@ from ._network import (
 
 class NBEATSEstimator(GluonEstimator):
     """
-    An Estimator based on a single (!) NBEATS Network (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
-    The actual NBEATS model is an ensemble of NBEATS Networks, and is implemented by
-    the "NBEATSEnsembleEstimator".
+    An Estimator based on a single (!) NBEATS Network (approximately) as
+    described in the paper:  https://arxiv.org/abs/1905.10437. The actual
+    NBEATS model is an ensemble of NBEATS Networks, and is implemented by the
+    "NBEATSEnsembleEstimator".
 
     Noteworthy differences in this implementation compared to the paper:
     * The parameter L_H is not implemented; we sample training sequences
@@ -89,8 +89,8 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: [4]
         Recommended value for interpretable mode: [4]
     widths
-        Widths of the fully connected layers with ReLu activation in the blocks.
-        A list of ints of length 1 or 'num_stacks'.
+        Widths of the fully connected layers with ReLu activation in the
+        blocks. A list of ints of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: [512]
         Recommended value for interpretable mode: [256, 2048]
     sharing
@@ -99,20 +99,21 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: [False]
         Recommended value for interpretable mode: [True]
     expansion_coefficient_lengths
-        If the type is "G" (generic), then the length of the expansion coefficient.
-        If type is "T" (trend), then it corresponds to the degree of the polynomial.
-        If the type is "S" (seasonal) then its not used.
-        A list of ints of length 1 or 'num_stacks'.
-        Default value for generic mode: [32]
-        Recommended value for interpretable mode: [3]
+        If the type is "G" (generic), then the length of the expansion
+        coefficient. If type is "T" (trend), then it corresponds to the degree
+        of the polynomial. If the type is "S" (seasonal) then its not used. A
+        list of ints of length 1 or 'num_stacks'. Default value for generic
+        mode: [32] Recommended value for interpretable mode: [3]
     stack_types
-        One of the following values: "G" (generic), "S" (seasonal) or "T" (trend).
+        One of the following values: "G" (generic), "S" (seasonal) or "T"
+        (trend).
         A list of strings of length 1 or 'num_stacks'.
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     loss_function
-        The loss funtion (also known as metric) to use for training the network.
-        Unlike other models in GluonTS this network does not use a distribution.
+        The loss funtion (also known as metric) to use for training the
+        network. Unlike other models in GluonTS this network does not use a
+        distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
         The default value is "MAPE".
     train_sampler
@@ -161,7 +162,10 @@ class NBEATSEstimator(GluonEstimator):
         ), "The value of `num_stacks` should be > 0"
         assert (
             loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
-        ), f"The loss function has to be one of the following: {VALID_LOSS_FUNCTIONS}."
+        ), (
+            "The loss function has to be one of the following:"
+            f" {VALID_LOSS_FUNCTIONS}."
+        )
 
         self.freq = freq
         self.scale = scale
@@ -171,7 +175,8 @@ class NBEATSEstimator(GluonEstimator):
             if context_length is not None
             else 2 * prediction_length
         )
-        # num_stacks has to be handled separately because other arguments have to match its length
+        # num_stacks has to be handled separately because other arguments have
+        # to match its length
         self.num_stacks = num_stacks
         self.loss_function = loss_function
 
@@ -208,14 +213,19 @@ class NBEATSEstimator(GluonEstimator):
             argument_name="expansion_coefficient_lengths",
             default_value=[32],
             validation_condition=lambda val: val > 0,
-            invalidation_message="Values of 'expansion_coefficient_lengths' should be > 0",
+            invalidation_message=(
+                "Values of 'expansion_coefficient_lengths' should be > 0"
+            ),
         )
         self.stack_types = self._validate_nbeats_argument(
             argument_value=stack_types,
             argument_name="stack_types",
             default_value=["G"],
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
-            invalidation_message=f"Values of 'stack_types' should be one of {VALID_N_BEATS_STACK_TYPES}",
+            invalidation_message=(
+                "Values of 'stack_types' should be one of"
+                f" {VALID_N_BEATS_STACK_TYPES}"
+            ),
         )
         self.train_sampler = (
             train_sampler
@@ -245,8 +255,8 @@ class NBEATSEstimator(GluonEstimator):
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
-            f"Invalid lengths of argument {argument_name}: {len(new_value)}. Argument must have "
-            f"length 1 or {self.num_stacks} "
+            f"Invalid lengths of argument {argument_name}: {len(new_value)}."
+            f" Argument must have length 1 or {self.num_stacks} "
         )
 
         # check validity of actual values

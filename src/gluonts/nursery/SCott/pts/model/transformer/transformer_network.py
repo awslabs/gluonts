@@ -123,8 +123,8 @@ class TransformerNetwork(nn.Module):
             lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
         """
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            "lags cannot go further than history length, found lag"
+            f" {max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
 
@@ -151,6 +151,7 @@ class TransformerNetwork(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Creates inputs for the transformer network.
+
         All tensor arguments should have NTC layout.
         """
 
@@ -415,11 +416,9 @@ class TransformerPredictionNetwork(TransformerNetwork):
 
         # (batch_size, num_samples, *target_shape, prediction_length)
         return samples.reshape(
-            (
-                (-1, self.num_parallel_samples)
-                + self.target_shape
-                + (self.prediction_length,)
-            )
+            (-1, self.num_parallel_samples)
+            + self.target_shape
+            + (self.prediction_length,)
         )
 
     def forward(

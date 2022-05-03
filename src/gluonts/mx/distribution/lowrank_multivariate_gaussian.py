@@ -65,7 +65,8 @@ def log_det(F, batch_D: Tensor, batch_capacitance_tril: Tensor) -> Tensor:
     .. math::
         \log|D + W W^T| = \log|C| + \log|D|,
 
-    where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the log determinant.
+    where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to
+    compute the log determinant.
 
     Parameters
     ----------
@@ -91,8 +92,8 @@ def mahalanobis_distance(
     .. math::
         (W W^T + D)^{-1} = D^{-1} - D^{-1} W C^{-1} W^T D^{-1},
 
-    where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to compute the squared
-    Mahalanobis distance :math:`x^T (W W^T + D)^{-1} x`.
+    where :math:`C` is the capacitance matrix :math:`I + W^T D^{-1} W`, to
+    compute the squared Mahalanobis distance :math:`x^T (W W^T + D)^{-1} x`.
 
     Parameters
     ----------
@@ -192,7 +193,7 @@ class LowrankMultivariateGaussian(Distribution):
     W
         Low-rank factor in the covariance matrix, of shape (..., dim, rank)
         Optional; if not provided, the covariance matrix is just diagonal.
-    """
+    """  # noqa: E501
 
     is_reparameterizable = True
 
@@ -315,8 +316,9 @@ class LowrankMultivariateGaussian(Distribution):
     @classmethod
     def fit(cls, F, samples: Tensor, rank: int = 0) -> Distribution:
         """
-        Returns an instance of `LowrankMultivariateGaussian` after fitting parameters to the given data.
-        Only the special case of `rank` = 0 is supported at the moment.
+        Returns an instance of `LowrankMultivariateGaussian` after fitting
+        parameters to the given data. Only the special case of `rank` = 0 is
+        supported at the moment.
 
         Parameters
         ----------
@@ -426,7 +428,8 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
             assert (
                 W_vector is not None
             ), "W_vector cannot be None if rank is not zero!"
-            # reshape from vector form (..., d * rank) to matrix form (..., d, rank)
+            # reshape from vector form (..., d * rank) to matrix form
+            # (..., d, rank)
             W_matrix = W_vector.reshape(
                 (-2, self.dim, self.rank, -4), reverse=1
             )

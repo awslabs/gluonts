@@ -53,11 +53,13 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
     scaling
         Whether to automatically scale the target values. (default: True)
     scaling_decoder_dynamic_feature
-        Whether to automatically scale the dynamic features for the decoder. (default: False)
+        Whether to automatically scale the dynamic features for the decoder.
+        (default: False)
     dtype
         (default: np.float32)
     num_forking: int,
-        decides how much forking to do in the decoder. 1 reduces to seq2seq and enc_len reduces to MQ-C(R)NN.
+        decides how much forking to do in the decoder. 1 reduces to seq2seq and
+        enc_len reduces to MQ-C(R)NN.
     kwargs: dict
         dictionary of Gluon HybridBlock parameters
     """
@@ -145,7 +147,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             shape (batch_size, encoder_length, 1)
         Returns
         -------
-        decoder output tensor of size (batch_size, num_forking, dec_len, decoder_mlp_dim_seq[0])
+        decoder output tensor of size (batch_size, num_forking, dec_len,
+        decoder_mlp_dim_seq[0])
         """
 
         # scale shape: (batch_size, 1, 1)
@@ -156,7 +159,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
         # (batch_size, sum(embedding_dimension) = num_feat_static_cat)
         embedded_cat = self.embedder(feat_static_cat)
 
-        # in addition to embedding features, use the log scale as it can help prediction too
+        # in addition to embedding features, use the log scale as it can help
+        # prediction too
         # (batch_size, num_feat_static = sum(embedding_dimension) + 1)
         feat_static_real = F.concat(embedded_cat, F.log(scale), dim=1)
 
@@ -168,7 +172,8 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # arguments: target, static_features, dynamic_features
         # enc_output_static shape: (batch_size, channels_seq[-1] + 1)
-        # enc_output_dynamic shape: (batch_size, encoder_length, channels_seq[-1] + 1)
+        # enc_output_dynamic shape:
+        # (batch_size, encoder_length, channels_seq[-1] + 1)
         enc_output_static, enc_output_dynamic = self.encoder(
             scaled_past_target, feat_static_real, past_feat_dynamic_extended
         )
@@ -179,9 +184,11 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
             future_feat_dynamic, F.ones_like(future_feat_dynamic)
         )
 
-        # arguments: encoder_output_static, encoder_output_dynamic, future_features
+        # arguments: encoder_output_static, encoder_output_dynamic,
+        #   future_features
         # dec_input_static shape: (batch_size, channels_seq[-1] + 1)
-        # dec_input_dynamic shape:(batch_size, num_forking, channels_seq[-1] + 1 + decoder_length * num_feat_dynamic)
+        # dec_input_dynamic shape:(batch_size, num_forking, channels_seq[-1] +
+        # 1 + decoder_length * num_feat_dynamic)
         dec_input_static, dec_input_dynamic = self.enc2dec(
             enc_output_static,
             # slice axis 1 from encoder_length = context_length to num_forking
@@ -193,10 +200,12 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
         # arguments: dynamic_input, static_input
         # TODO: optimize what we pass to the decoder for the prediction case,
-        #  where we we only need to pass the encoder output for the last time step
+        # where we we only need to pass the encoder output for the last time
+        # step
         dec_output = self.decoder(dec_input_static, dec_input_dynamic)
 
-        # the output shape should be: (batch_size, num_forking, dec_len, decoder_mlp_dim_seq[0])
+        # the output shape should be: (batch_size, num_forking, dec_len,
+        # decoder_mlp_dim_seq[0])
         return dec_output, scale
 
 
@@ -237,7 +246,8 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         -------
         loss with shape (batch_size, prediction_length)
         """
-        # shape: (batch_size, num_forking, decoder_length, decoder_mlp_dim_seq[0])
+        # shape:
+        # (batch_size, num_forking, decoder_length,decoder_mlp_dim_seq[0])
         dec_output, scale = self.get_decoder_network_output(
             F,
             past_target,
@@ -250,7 +260,8 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
         if self.quantile_output is not None:
             # shape: (batch_size, num_forking, decoder_length, len(quantiles))
             dec_dist_output = self.quantile_proj(dec_output)
-            # shape: (batch_size, num_forking, decoder_length = prediction_length)
+            # shape: (batch_size, num_forking, decoder_length =
+            # prediction_length)
             loss = self.loss(future_target, dec_dist_output)
         else:
             assert self.distr_output is not None
@@ -298,10 +309,12 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         Returns
         -------
-        prediction tensor with shape (num_test_ts, num_quantiles, prediction_length)
+        prediction tensor with shape (num_test_ts, num_quantiles,
+        prediction_length)
         """
 
-        # shape: (batch_size, num_forking, decoder_length, decoder_mlp_dim_seq[0])
+        # shape:
+        # (batch_size, num_forking, decoder_length, decoder_mlp_dim_seq[0])
         dec_output, _ = self.get_decoder_network_output(
             F,
             past_target,
@@ -312,7 +325,8 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
 
         # We only care about the output of the decoder for the last time step
-        # shape: (batch_size = num_test_ts, decoder_length = prediction_length, num_quantiles)
+        # shape: (batch_size = num_test_ts, decoder_length = prediction_length,
+        # num_quantiles)
         fcst_output = F.squeeze(
             self.quantile_proj(
                 F.slice_axis(dec_output, axis=1, begin=-1, end=None)
@@ -347,7 +361,8 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
         past_feat_dynamic
             shape (batch_size, encoder_length, num_feature_dynamic)
         future_feat_dynamic
-            shape (batch_size, num_forking, decoder_length, num_feature_dynamic)
+            shape (batch_size, num_forking, decoder_length,
+            num_feature_dynamic)
         past_observed_values: Tensor
             shape (batch_size, encoder_length, 1)
         Returns

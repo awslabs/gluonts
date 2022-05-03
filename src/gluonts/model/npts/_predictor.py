@@ -256,10 +256,10 @@ class NPTSPredictor(RepresentablePredictor):
         if np.all(np.isnan(ts.values[-self.context_length :])):
             raise GluonTSDataError(
                 f"The last {self.context_length} positions of the target time "
-                f"series are all NaN. Please increase the `context_length` "
-                f"parameter of your NPTS model so the last "
+                "series are all NaN. Please increase the `context_length` "
+                "parameter of your NPTS model so the last "
                 f"{self.context_length} positions of each target contain at "
-                f"least one non-NaN value."
+                "least one non-NaN value."
             )
 
         # Get the features for both training and prediction ranges
@@ -295,9 +295,9 @@ class NPTSPredictor(RepresentablePredictor):
         custom_features: np.ndarray = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Internal method for computing default, (optional) seasonal features
-        for the training and prediction ranges given time index for the
-        training range and the prediction length.
+        Internal method for computing default, (optional) seasonal features for
+        the training and prediction ranges given time index for the training
+        range and the prediction length.
 
         Appends `custom_features` if provided.
 
@@ -350,8 +350,8 @@ class NPTSPredictor(RepresentablePredictor):
                 )
 
                 assert custom_features.shape[1] == total_length, (
-                    f"For a seasonal model, feat_dynamic_real must be defined "
-                    f"for both training and prediction ranges. They are only "
+                    "For a seasonal model, feat_dynamic_real must be defined "
+                    "for both training and prediction ranges. They are only "
                     f"provided for {custom_features.shape[1]} time steps "
                     f"instead of {train_length + prediction_length} steps."
                 )
