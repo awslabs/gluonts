@@ -20,7 +20,7 @@ from gluonts.torch.distributions.binned_uniforms import BinnedUniforms
 from gluonts.torch.distributions.generalized_pareto import GeneralizedPareto
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import DistributionOutput
+from gluonts.torch.distributions.distribution_output import DistributionOutput
 
 
 class SplicedBinnedPareto(BinnedUniforms):

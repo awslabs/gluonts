@@ -23,7 +23,7 @@ from torch.distributions import (
 from torch.distributions.normal import Normal
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions.distribution_output import (
     Distribution,
     DistributionOutput,
 )
