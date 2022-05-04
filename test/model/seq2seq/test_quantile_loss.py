@@ -18,7 +18,7 @@ import numpy as np
 from pandas import Timestamp
 
 # First-party imports
-from gluonts.mx.block.quantile_output import QuantileLoss
+from gluonts.mx.block.quantile_output import QuantileLoss, crps_weights_pwl
 from gluonts.model.forecast import QuantileForecast
 
 
@@ -68,16 +68,14 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
         ),
     ],
 )
-def test_compute_quantile_weights(quantiles, true_quantile_weight) -> None:
+def test_crps_pwl_quantile_weights(quantiles, true_quantile_weight) -> None:
     assert len(quantiles) == len(true_quantile_weight), (
         f"length quantiles {quantiles} "
         f"and quantile_weights {true_quantile_weight} "
         f"do not match."
     )
     tol = 1e-5
-    quantile_weights = QuantileLoss(
-        quantiles, is_equal_weights=False
-    ).compute_quantile_weights()
+    quantile_weights = crps_weights_pwl(quantiles)
     assert (
         sum(
             abs(quantile_weights[i] - true_quantile_weight[i])
