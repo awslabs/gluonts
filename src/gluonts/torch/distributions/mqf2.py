@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Tuple, List, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import torch
-
-from torch.distributions import (
-    AffineTransform,
-    TransformedDistribution,
-)
-
+from torch.distributions import AffineTransform, TransformedDistribution
 from torch.distributions.normal import Normal
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions import DistributionOutput
+
+from .distribution_output import DistributionOutput
 
 
 class MQF2Distribution(torch.distributions.Distribution):
