@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from .affine_transformed import AffineTransformed
 from .binned_uniforms import BinnedUniforms, BinnedUniformsOutput
 from .distribution_output import (
     BetaOutput,
@@ -31,6 +32,7 @@ from .spliced_binned_pareto import (
 )
 
 __all__ = [
+    "AffineTransformed",
     "BetaOutput",
     "BinnedUniforms",
     "BinnedUniformsOutput",
