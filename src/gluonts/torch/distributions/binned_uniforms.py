@@ -11,14 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import torch
-from typing import Optional, cast, Dict, Tuple
-import torch.nn.functional as F
+from typing import Dict, Optional, Tuple, cast
 
+import torch
+import torch.nn.functional as F
 from torch.distributions import Distribution, constraints
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import DistributionOutput
+
+from .distribution_output import DistributionOutput
 
 
 class BinnedUniforms(Distribution):
