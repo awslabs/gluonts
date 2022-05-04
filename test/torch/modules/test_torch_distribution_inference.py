@@ -35,7 +35,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
 
 from gluonts.model.common import NPArrayLike
-from gluonts.torch.distributions.distribution_output import (
+from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
     GammaOutput,

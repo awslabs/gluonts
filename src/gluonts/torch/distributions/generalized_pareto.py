@@ -23,7 +23,7 @@ from torch.distributions import Distribution, constraints
 from typing import Optional, cast, Dict, Tuple
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import DistributionOutput
+from gluonts.torch.distributions import DistributionOutput
 
 
 class GeneralizedPareto(Distribution):

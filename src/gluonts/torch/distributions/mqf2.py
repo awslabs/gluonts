@@ -23,13 +23,10 @@ from torch.distributions import (
 from torch.distributions.normal import Normal
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
+from gluonts.torch.distributions import DistributionOutput
 
 
-class MQF2Distribution(Distribution):
+class MQF2Distribution(torch.distributions.Distribution):
     r"""
     Distribution class for the model MQF2 proposed in the paper
     ``Multivariate Quantile Function Forecaster``

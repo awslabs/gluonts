@@ -17,10 +17,7 @@ import torch
 import torch.nn.functional as F
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
+from gluonts.torch.distributions import DistributionOutput
 
 from torch.distributions import (
     AffineTransform,
@@ -28,7 +25,7 @@ from torch.distributions import (
 )
 
 
-class PiecewiseLinear(Distribution):
+class PiecewiseLinear(torch.distributions.Distribution):
     def __init__(
         self,
         gamma: torch.Tensor,

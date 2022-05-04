@@ -18,7 +18,7 @@ import torch.nn.functional as F
 from torch.distributions import Distribution, constraints
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import DistributionOutput
+from gluonts.torch.distributions import DistributionOutput
 
 
 class BinnedUniforms(Distribution):

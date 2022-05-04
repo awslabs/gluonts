@@ -17,10 +17,7 @@ import torch
 import torch.nn.functional as F
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
+from gluonts.torch.distributions import DistributionOutput
 
 from torch.distributions import (
     AffineTransform,
@@ -28,7 +25,7 @@ from torch.distributions import (
 )
 
 
-class ISQF(Distribution):
+class ISQF(torch.distributions.Distribution):
     r"""
     Distribution class for the Incremental (Spline) Quantile Function in the
     paper ``Learning Quantile Functions without Quantile Crossing for

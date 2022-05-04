@@ -16,11 +16,12 @@ from typing import Optional, cast, Dict, Tuple
 import torch
 from torch.distributions import constraints
 
-from gluonts.torch.distributions.binned_uniforms import BinnedUniforms
-from gluonts.torch.distributions.generalized_pareto import GeneralizedPareto
-
 from gluonts.core.component import validated
-from gluonts.torch.distributions.distribution_output import DistributionOutput
+from gluonts.torch.distributions import (
+    BinnedUniforms,
+    GeneralizedPareto
+)
+from gluonts.torch.distributions import DistributionOutput
 
 
 class SplicedBinnedPareto(BinnedUniforms):

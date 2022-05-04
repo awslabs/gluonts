@@ -19,7 +19,7 @@ from gluonts.torch.model.mqf2 import (
     MQF2MultiHorizonModel,
     MQF2MultiHorizonLightningModule,
 )
-from gluonts.torch.distributions.mqf2 import MQF2DistributionOutput
+from gluonts.torch.distributions import MQF2DistributionOutput
 
 
 @pytest.mark.parametrize(
