@@ -17,10 +17,7 @@ import torch
 from torch.distributions import constraints
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions import (
-    BinnedUniforms,
-    GeneralizedPareto
-)
+from gluonts.torch.distributions import BinnedUniforms, GeneralizedPareto
 from gluonts.torch.distributions import DistributionOutput
 
 
