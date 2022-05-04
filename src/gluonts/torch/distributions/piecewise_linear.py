@@ -11,24 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Tuple, List, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import torch
 import torch.nn.functional as F
+from torch.distributions import AffineTransform, TransformedDistribution
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
 
-from torch.distributions import (
-    AffineTransform,
-    TransformedDistribution,
-)
+from .distribution_output import DistributionOutput
 
 
-class PiecewiseLinear(Distribution):
+class PiecewiseLinear(torch.distributions.Distribution):
     def __init__(
         self,
         gamma: torch.Tensor,

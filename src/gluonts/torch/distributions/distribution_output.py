@@ -30,8 +30,7 @@ from torch.distributions import (
 )
 
 from gluonts.core.component import validated
-
-from .lambda_layer import LambdaLayer
+from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
 class PtArgProj(nn.Module):

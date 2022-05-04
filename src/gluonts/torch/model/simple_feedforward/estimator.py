@@ -38,7 +38,7 @@ from gluonts.torch.util import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions import (
     DistributionOutput,
     StudentTOutput,
 )

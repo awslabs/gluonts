@@ -17,7 +17,7 @@ import torch
 
 from gluonts.core.component import validated
 from gluonts.torch.model.deepar.module import DeepARModel
-from gluonts.torch.modules.distribution_output import DistributionOutput
+from gluonts.torch.distributions import DistributionOutput
 
 from cpflows.flows import ActNorm
 from cpflows.icnn import PICNN
