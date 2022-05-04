@@ -26,6 +26,7 @@ from gluonts.torch.model.deepar import DeepAREstimator
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.torch.model.forecast import DistributionForecast
+from gluonts.torch.modules.loss import NegativeLogLikelihood
 
 
 @pytest.mark.parametrize(
@@ -37,6 +38,8 @@ from gluonts.torch.model.forecast import DistributionForecast
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
+            loss=NegativeLogLikelihood(beta=0.1),
+            scaling=False,
         ),
         lambda dataset: MQF2MultiHorizonEstimator(
             freq=dataset.metadata.freq,
@@ -90,6 +93,7 @@ def test_estimator_constant_dataset(estimator_constructor):
             num_feat_static_cat=2,
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
+            loss=NegativeLogLikelihood(beta=0.1),
         ),
         lambda freq, prediction_length: MQF2MultiHorizonEstimator(
             freq=freq,
