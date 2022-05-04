@@ -11,16 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, cast, Dict, Tuple
+from typing import Dict, Optional, Tuple, cast
 
 import torch
 from torch.distributions import constraints
 
-from gluonts.torch.distributions.binned_uniforms import BinnedUniforms
-from gluonts.torch.distributions.generalized_pareto import GeneralizedPareto
-
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import DistributionOutput
+from gluonts.torch.distributions import BinnedUniforms, GeneralizedPareto
+
+from .distribution_output import DistributionOutput
 
 
 class SplicedBinnedPareto(BinnedUniforms):

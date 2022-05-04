@@ -15,7 +15,7 @@ from typing import List, Optional, Dict, Any
 
 from gluonts.torch.model.deepar.estimator import DeepAREstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
-from gluonts.torch.distributions.mqf2 import MQF2DistributionOutput
+from gluonts.torch.distributions import MQF2DistributionOutput
 
 from . import MQF2MultiHorizonLightningModule, MQF2MultiHorizonModel
 

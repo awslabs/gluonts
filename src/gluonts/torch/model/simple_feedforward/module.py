@@ -17,7 +17,7 @@ import torch
 from torch import nn
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import StudentTOutput
+from gluonts.torch.distributions import StudentTOutput
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):

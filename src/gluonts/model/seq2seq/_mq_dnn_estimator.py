@@ -26,7 +26,10 @@ from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
     RNNEncoder,
 )
-from gluonts.mx.block.quantile_output import QuantileOutput
+from gluonts.mx.block.quantile_output import (
+    QuantileOutput,
+    IncrementalQuantileOutput,
+)
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
 
@@ -237,11 +240,12 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = (
-            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
-            if self.quantiles
-            else None
-        )
+        if not self.quantiles:
+            quantile_output = None
+        elif is_iqf:
+            quantile_output = IncrementalQuantileOutput(self.quantiles)
+        else:
+            quantile_output = QuantileOutput(self.quantiles)
 
         super().__init__(
             encoder=encoder,
@@ -395,11 +399,12 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             prefix="decoder_",
         )
 
-        quantile_output = (
-            QuantileOutput(self.quantiles, is_iqf=self.is_iqf)
-            if self.quantiles
-            else None
-        )
+        if not self.quantiles:
+            quantile_output = None
+        elif is_iqf:
+            quantile_output = IncrementalQuantileOutput(self.quantiles)
+        else:
+            quantile_output = QuantileOutput(self.quantiles)
 
         super().__init__(
             encoder=encoder,
