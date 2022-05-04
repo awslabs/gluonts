@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from mxnet.gluon import nn
 from mxnet.gluon.loss import Loss
@@ -20,47 +20,95 @@ from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 
+def uniform_weights(objects: list) -> List[float]:
+    """
+    Return uniform weights for a list of objects.
+
+    >>> uniform_weights(["a", "b", "c", "d"])
+    [0.25, 0.25, 0.25, 0.25]
+
+    Parameters
+    ----------
+    objects
+        Objects that need to be weighted.
+
+    Returns
+    -------
+    List[float]
+        List of weights.
+    """
+    return [1.0 / len(objects)] * len(objects)
+
+
+def crps_weights_pwl(quantile_levels: List[float]) -> List[float]:
+    """
+    Compute the quantile loss weights making mean quantile loss equal to CRPS
+    under linear interpolation assumption.
+
+    Quantile levels are assumed to be sorted in increasing order.
+
+    Under the assumption of linear interpolation
+
+    .. math:: CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1}-q_{i}) * (z_{i+1}+z_{i})
+
+    where :math:`z_i` is the i-th quantile prediction :math:`q_i`.
+    The inner terms cancel due to the telescoping sum property and we obtain
+
+    .. math:: CRPS = sum_{i=1}^n w_i z_i
+
+    with the weights :math:`w_i = (q_{i+1}-q_{i-1})/2` for
+    :math:`i = 1, ..., n-1`, :math:`w_0 = (q_1-q_0)/2` and
+    :math:`w_n = (w_n - w_{n-1})/2`.
+    """
+    num_quantiles = len(quantile_levels)
+
+    if num_quantiles < 2:
+        return [1.0] * num_quantiles
+
+    return (
+        [0.5 * (quantile_levels[1] - quantile_levels[0])]
+        + [
+            0.5 * (quantile_levels[i + 1] - quantile_levels[i - 1])
+            for i in range(1, num_quantiles - 1)
+        ]
+        + [0.5 * (quantile_levels[-1] - quantile_levels[-2])]
+    )
+
+
 class QuantileLoss(Loss):
     @validated()
     def __init__(
         self,
         quantiles: List[float],
         quantile_weights: Optional[List[float]] = None,
-        is_equal_weights: bool = True,
         weight: Optional[float] = None,
         batch_axis: int = 0,
         **kwargs,
     ) -> None:
         """
-        Represents the quantile loss used to fit decoders that learn quantiles.
+        Represent the quantile loss used to fit decoders that learn quantiles.
 
         Parameters
         ----------
         quantiles
             list of quantiles to compute loss over.
-
         quantile_weights
             weights of the quantiles.
-
-        is_equal_weights
-            use equally quantiles weights or not
-
         weight
             weighting of the loss.
-
         batch_axis
             indicates axis that represents the batch.
         """
+        assert len(quantiles) > 0
+
         super().__init__(weight, batch_axis, **kwargs)
 
         self.quantiles = quantiles
         self.num_quantiles = len(quantiles)
-        self.is_equal_weights = is_equal_weights
-
         self.quantile_weights = (
             quantile_weights
-            if quantile_weights
-            else self.compute_quantile_weights()
+            if quantile_weights is not None
+            else uniform_weights(quantiles)
         )
 
     # noinspection PyMethodOverriding
@@ -76,8 +124,7 @@ class QuantileLoss(Loss):
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
         y_true
-            true target, shape (N1 x N2 x ... x Nk x dimension of time series
-            (normally 1))
+            ground truth values, shape (N1 x N2 x ... x Nk)
         y_pred
             predicted target, shape (N1 x N2 x ... x Nk x num_quantiles)
         sample_weight
@@ -96,21 +143,19 @@ class QuantileLoss(Loss):
             y_pred_all = [F.squeeze(y_pred, axis=-1)]
 
         qt_loss = []
-        for i, y_pred_q in enumerate(y_pred_all):
-            q = self.quantiles[i]
-            weighted_qt = (
-                self.compute_quantile_loss(F, y_true, y_pred_q, q)
-                * self.quantile_weights[i]
+        for level, weight, y_pred_q in zip(
+            self.quantiles, self.quantile_weights, y_pred_all
+        ):
+            qt_loss.append(
+                weight * self.compute_quantile_loss(F, y_true, y_pred_q, level)
             )
-            qt_loss.append(weighted_qt)
         stacked_qt_losses = F.stack(*qt_loss, axis=-1)
         sum_qt_loss = F.mean(
             stacked_qt_losses, axis=-1
         )  # avg across quantiles
         if sample_weight is not None:
             return sample_weight * sum_qt_loss
-        else:
-            return sum_qt_loss
+        return sum_qt_loss
 
     @staticmethod
     def compute_quantile_loss(
@@ -124,14 +169,10 @@ class QuantileLoss(Loss):
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
-
         y_true
-            true target, shape (N1 x N2 x ... x Nk x dimension of time series
-            (normally 1)).
-
+            ground truth values to compute the loss against.
         y_pred_p
-            predicted target quantile, shape (N1 x N2 x ... x Nk x 1).
-
+            predicted target quantile, same shape as ``y_true``.
         p
             quantile error to compute the loss.
 
@@ -148,108 +189,6 @@ class QuantileLoss(Loss):
 
         return qt_loss
 
-    def compute_quantile_weights(self) -> List:
-        """
-        Compute the exact weights of the approximated integral.
-
-        CRPS = sum_{i=0}^{n-1} 0.5 * (q_{i+1} - q_{i}) * (z_{i+1} + z_{i})
-        under the assumption of linear interpolation or SQF, where z_i is the
-        ith quantile prediction q_i. The inner terms cancel due to the
-        telescoping sum property and we obtain CRPS = sum_{i=1}^n w_i z_i, with
-        the weights w_i = (q_{i+1}-q_{i-1})/2 for i = 1, ..., n-1,
-        w_0 = (q_1-q_0)/2 and w_n = (w_n - w_{n-1})/2.
-
-        Returns
-        -------
-        List
-            weights of the quantiles.
-        """
-        assert (
-            self.num_quantiles >= 0
-        ), f"invalid num_quantiles: {self.num_quantiles}"
-        if self.num_quantiles == 0:  # edge case
-            quantile_weights = []
-        elif self.is_equal_weights or self.num_quantiles == 1:
-            quantile_weights = [1.0 / self.num_quantiles] * self.num_quantiles
-        else:
-            quantile_weights = (
-                [0.5 * (self.quantiles[1] - self.quantiles[0])]
-                + [
-                    0.5 * (self.quantiles[i + 1] - self.quantiles[i - 1])
-                    for i in range(1, self.num_quantiles - 1)
-                ]
-                + [0.5 * (self.quantiles[-1] - self.quantiles[-2])]
-            )
-        return quantile_weights
-
-
-class ProjectParams(nn.HybridBlock):
-    """
-    Defines a dense layer to compute the projection weights into the quantile
-    space.
-
-    Parameters
-    ----------
-    num_quantiles
-        number of quantiles to compute the projection.
-    is_iqf
-        determines whether to use IQF or QF.
-    """
-
-    @validated()
-    def __init__(self, num_quantiles: int, is_iqf: bool = False, **kwargs):
-        super().__init__(**kwargs)
-
-        self.num_quantiles = num_quantiles
-        self.is_iqf = is_iqf
-        with self.name_scope():
-            if self.is_iqf:
-                self.proj_intrcpt = nn.Dense(1, flatten=False)
-                if self.num_quantiles > 1:
-                    self.proj_incrmnt = nn.Dense(
-                        self.num_quantiles - 1,
-                        flatten=False,
-                        activation="relu",
-                    )  # increments between quantile estimates
-            else:
-                self.projection = nn.Dense(
-                    units=self.num_quantiles, flatten=False
-                )
-
-    # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        """
-
-        Parameters
-        ----------
-        F
-            A module that can either refer to the Symbol API or the NDArray
-            API in MXNet.
-        x
-            input tensor
-
-        Returns
-        -------
-        Tensor
-            output of the projection layer
-        """
-        return (
-            (
-                self.proj_intrcpt(x)
-                if self.num_quantiles == 1
-                else (
-                    F.cumsum(
-                        F.concat(
-                            self.proj_intrcpt(x), self.proj_incrmnt(x), dim=-1
-                        ),
-                        axis=3,
-                    )
-                )
-            )
-            if self.is_iqf
-            else self.projection(x)
-        )
-
 
 class QuantileOutput:
     """
@@ -263,9 +202,6 @@ class QuantileOutput:
 
     quantile_weights
         weights of the quantiles.
-
-    is_iqf
-        determines whether to use IQF or QF.
     """
 
     @validated()
@@ -273,13 +209,14 @@ class QuantileOutput:
         self,
         quantiles: List[float],
         quantile_weights: Optional[List[float]] = None,
-        is_iqf: bool = False,
     ) -> None:
-        self.quantiles = sorted(quantiles)
-        self.num_quantiles = len(self.quantiles)
+        self._quantiles = quantiles
+        self.num_quantiles = len(self._quantiles)
         self.quantile_weights = quantile_weights
-        self.is_iqf = is_iqf
-        self.is_equal_weights = False if self.is_iqf else True
+
+    @property
+    def quantiles(self) -> List[float]:
+        return self._quantiles
 
     def get_loss(self) -> nn.HybridBlock:
         """
@@ -290,8 +227,96 @@ class QuantileOutput:
         """
         return QuantileLoss(
             quantiles=self.quantiles,
-            quantile_weights=self.quantile_weights,
-            is_equal_weights=self.is_equal_weights,
+            quantile_weights=(
+                self.quantile_weights
+                if self.quantile_weights is not None
+                else uniform_weights(self.quantiles)
+            ),
+        )
+
+    def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
+        return nn.Dense(units=self.num_quantiles, flatten=False)
+
+
+class IncrementalDenseLayerProjection(nn.HybridBlock):
+    """
+    A dense layer that outputs non-decreasing values.
+
+    Parameters
+    ----------
+    num_outputs
+        number of outputs of the layer.
+    """
+
+    @validated()
+    def __init__(self, num_outputs: int, **kwargs):
+        super().__init__(**kwargs)
+
+        self.num_outputs = num_outputs
+        with self.name_scope():
+            self.proj_intrcpt = nn.Dense(1, flatten=False)
+            if self.num_outputs > 1:
+                self.proj_incrmnt = nn.Dense(
+                    self.num_outputs - 1,
+                    flatten=False,
+                    activation="relu",
+                )  # increments between quantile estimates
+
+    def hybrid_forward(self, F, x: Tensor) -> Tensor:
+        return (
+            self.proj_intrcpt(x)
+            if self.num_outputs == 1
+            else (
+                F.cumsum(
+                    F.concat(
+                        self.proj_intrcpt(x), self.proj_incrmnt(x), dim=-1
+                    ),
+                    axis=3,
+                )
+            )
+        )
+
+
+class IncrementalQuantileOutput(QuantileOutput):
+    """
+    Output layer using a quantile loss and projection layer to connect the
+    quantile output to the network.
+
+    Differently from ``QuantileOutput``, this class enforces the correct
+    order relation between quantiles: this is done by parametrizing
+    the increments between quantiles instead of the quantiles directly.
+
+    Parameters
+    ----------
+    quantiles
+        list of quantiles to compute loss over.
+
+    quantile_weights
+        weights of the quantiles.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        quantiles: List[float],
+        quantile_weights: Optional[List[float]] = None,
+    ) -> None:
+        super().__init__(sorted(quantiles), quantile_weights)
+
+    def get_loss(self) -> nn.HybridBlock:
+        """
+        Returns
+        -------
+        nn.HybridBlock
+            constructs quantile loss object.
+        """
+        return QuantileLoss(
+            quantiles=self.quantiles,
+            quantile_weights=(
+                self.quantile_weights
+                if self.quantile_weights is not None
+                else crps_weights_pwl(self.quantiles)
+            ),
         )
 
     def get_quantile_proj(self, **kwargs) -> nn.HybridBlock:
@@ -302,4 +327,4 @@ class QuantileOutput:
             constructs projection parameter object.
 
         """
-        return ProjectParams(self.num_quantiles, self.is_iqf, **kwargs)
+        return IncrementalDenseLayerProjection(self.num_quantiles, **kwargs)
