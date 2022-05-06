@@ -180,27 +180,25 @@ class DeepARModel(nn.Module):
         )
 
         repeated_scale = scale.repeat_interleave(
-            repeats=self.num_parallel_samples, dim=0
+            repeats=num_parallel_samples, dim=0
         )
         repeated_static_feat = static_feat.repeat_interleave(
-            repeats=self.num_parallel_samples, dim=0
+            repeats=num_parallel_samples, dim=0
         ).unsqueeze(dim=1)
         repeated_past_target = (
-            past_target.repeat_interleave(
-                repeats=self.num_parallel_samples, dim=0
-            )
+            past_target.repeat_interleave(repeats=num_parallel_samples, dim=0)
             / repeated_scale
         )
         repeated_time_feat = future_time_feat.repeat_interleave(
-            repeats=self.num_parallel_samples, dim=0
+            repeats=num_parallel_samples, dim=0
         )
         repeated_state = [
-            s.repeat_interleave(repeats=self.num_parallel_samples, dim=1)
+            s.repeat_interleave(repeats=num_parallel_samples, dim=1)
             for s in state
         ]
 
         repeated_params = [
-            s.repeat_interleave(repeats=self.num_parallel_samples, dim=0)
+            s.repeat_interleave(repeats=num_parallel_samples, dim=0)
             for s in params
         ]
         distr = self.output_distribution(
@@ -233,7 +231,7 @@ class DeepARModel(nn.Module):
         future_samples_concat = torch.cat(future_samples, dim=1)
 
         return future_samples_concat.reshape(
-            (-1, self.num_parallel_samples, self.prediction_length)
+            (-1, num_parallel_samples, self.prediction_length)
             + self.target_shape,
         )
 
