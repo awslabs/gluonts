@@ -186,9 +186,7 @@ class DeepARModel(nn.Module):
             repeats=num_parallel_samples, dim=0
         ).unsqueeze(dim=1)
         repeated_past_target = (
-            past_target.repeat_interleave(
-                repeats=num_parallel_samples, dim=0
-            )
+            past_target.repeat_interleave(repeats=num_parallel_samples, dim=0)
             / repeated_scale
         )
         repeated_time_feat = future_time_feat.repeat_interleave(
