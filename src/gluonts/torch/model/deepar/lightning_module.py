@@ -73,7 +73,7 @@ class DeepARLightningModule(pl.LightningModule):
         if len(self.model.target_shape) == 0:
             loss_weights = observed_values
         else:
-            loss_weights = observed_values.min(dim=-1, keepdim=False)
+            loss_weights, _ = observed_values.min(dim=-1, keepdim=False)
 
         return weighted_average(loss_values, weights=loss_weights)
 
