@@ -342,6 +342,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
+        index_field: Optional[List[pd.Timestamp]] = None,
         dtype: Type = np.float32,
     ) -> None:
         self.date_features = time_features
@@ -349,6 +350,7 @@ class AddTimeFeatures(MapTransformation):
         self.start_field = start_field
         self.target_field = target_field
         self.output_field = output_field
+        self.index_field = index_field
         self._freq_base: Optional[pd.offsets.DateOffset] = None
         self._min_time_point: Optional[pd.Timestamp] = None
         self._max_time_point: Optional[pd.Timestamp] = None
@@ -392,22 +394,36 @@ class AddTimeFeatures(MapTransformation):
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        start = data[self.start_field]
-        length = target_transformation_length(
-            data[self.target_field], self.pred_length, is_train=is_train
-        )
-        self._update_cache(start, length)
+        if self.datetime_field is not None:
+            dt_index = data[self.index_field]
+            assert len(dt_index) == len(data[self.target_field]) + (
+                0 if is_train else self.pred_length
+            ), "index and target fields must have the same length."
+            features = (
+                np.vstack(
+                    [feat(dt_index) for feat in self.date_features]
+                ).astype(self.dtype)
+                if self.date_features
+                else None
+            )
+        else:
+            start = data[self.start_field]
+            length = target_transformation_length(
+                data[self.target_field], self.pred_length, is_train=is_train
+            )
+            self._update_cache(start, length)
 
-        assert self._date_index is not None
+            assert self._date_index is not None
 
-        i0 = self._date_index[start]
-        features = (
-            self._full_range_date_features[
-                ..., i0 : i0 + length * start.freq.n : start.freq.n
-            ]
-            if self._full_range_date_features is not None
-            else None
-        )
+            i0 = self._date_index[start]
+            features = (
+                self._full_range_date_features[
+                    ..., i0 : i0 + length * start.freq.n : start.freq.n
+                ]
+                if self._full_range_date_features is not None
+                else None
+            )
+
         data[self.output_field] = features
         return data
 
