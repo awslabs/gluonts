@@ -19,15 +19,17 @@ import torch
 
 class DiscreteDistribution(torch.distributions.Distribution):
     """
-    Implements discrete distribution where the underlying random variable takes a value from the finite set `values`
-    with the corresponding probabilities.
+    Implements discrete distribution where the underlying random variable
+    takes a value from the finite set `values` with the corresponding
+    probabilities.
 
-    Note: `values` can have duplicates in which case the probability mass of duplicates is added up.
+    Note: `values` can have duplicates in which case the probability mass
+    of duplicates is added up.
 
-    A natural loss function, especially given that the new observation does not have to be from the finite set `values`,
-    is ranked probability score (RPS). For this reason and to be consitent with terminology of other models,
-    `log_prob` is implemented as the negative RPS.
-
+    A natural loss function, especially given that the new observation does
+    not have to be from the finite set `values`, is ranked probability score
+    (RPS). For this reason and to be consitent with terminology of other
+    models, `log_prob` is implemented as the negative RPS.
     """
 
     def __init__(
@@ -57,7 +59,8 @@ class DiscreteDistribution(torch.distributions.Distribution):
     @staticmethod
     def adjust_probs(values_sorted, probs_sorted):
         """
-        Puts probability mass of all duplicate values into one position (last index of the duplicate).
+        Puts probability mass of all duplicate values into one position (last
+        index of the duplicate).
 
         Assumption: `values_sorted` is sorted!
 
@@ -75,14 +78,17 @@ class DiscreteDistribution(torch.distributions.Distribution):
                     values_sorted, return_counts=True
                 )
 
-                # list is fine here as it operates on the network inputs (values) not parameters
+                # list is fine here as it operates on the network inputs
+                # (values) not parameters
                 unique_splits = torch.split(probs_sorted, list(counts))
                 probs_cumsum_per_split = torch.cat(
                     [torch.cumsum(s, dim=0) for s in unique_splits]
                 )
 
-                # Puts 0 on the positions where the duplicates occur except for the last position of the duplicate.
-                # To have a 1 at the end, we append a value larger than the observed values before calling diff.
+                # Puts 0 on the positions where the duplicates occur except
+                # for the last position of the duplicate.
+                # To have a 1 at the end, we append a value larger than the
+                # observed values before calling diff.
                 mask_unique_prob = (
                     torch.diff(values_sorted, append=values_sorted[-1:] + 1.0)
                     > 0
@@ -91,7 +97,8 @@ class DiscreteDistribution(torch.distributions.Distribution):
 
             return probs_adjusted
 
-        # Some batch elements have duplicate values, so adjust the corresponding probabilities
+        # Some batch elements have duplicate values, so adjust the
+        # corresponding probabilities
         probs_adjusted_it = map(
             _adjust_probs_per_element,
             torch.unbind(values_sorted, dim=0),
@@ -107,9 +114,11 @@ class DiscreteDistribution(torch.distributions.Distribution):
 
     def rps(self, obs: torch.Tensor, check_for_duplicates: bool = True):
         """
-        Implements ranked probability score which is the sum of the qunatile losses for all possible quantiles.
-        Here, the number of quantiles is finite and is equal to the number of unique values in (each batch element of)
-        `obs`.
+        Implements ranked probability score which is the sum of the qunatile
+        losses for all possible quantiles.
+
+        Here, the number of quantiles is finite and is equal to the number of
+        unique values in (each batch element of) `obs`.
 
         Parameters
         ----------
