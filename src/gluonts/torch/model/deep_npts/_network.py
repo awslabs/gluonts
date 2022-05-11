@@ -46,9 +46,7 @@ def init_weights(module: nn.Module, scale: float = 1.0):
 
 
 class FeatureEmbedder(nn.Module):
-    """
-    Creates a feature embedding for the static categorical features.
-    """
+    """Creates a feature embedding for the static categorical features."""
 
     @validated()
     def __init__(
@@ -101,12 +99,13 @@ class FeatureEmbedder(nn.Module):
 
 
 class DeepNPTSNetwork(nn.Module):
-    """
-    Base class implementing a simple feed-forward neural network that takes in static and dynamic features and
-    produces `num_hidden_nodes` independent outptus. These outputs are then used by derived classes to construct
-    the forecast distribution for a single time step.
+    """Base class implementing a simple feed-forward neural network that takes
+    in static and dynamic features and produces `num_hidden_nodes` independent
+    outptus. These outputs are then used by derived classes to construct the
+    forecast distribution for a single time step.
 
-    Note that the dynamic features are just treated as independent features without considering their temporal nature.
+    Note that the dynamic features are just treated as independent features
+    without considering their temporal nature.
     """
 
     @validated()
@@ -139,7 +138,8 @@ class DeepNPTSNetwork(nn.Module):
         )
         total_embedding_dim = sum(embedding_dimension)
 
-        # We have two target related features: past_target and observed value indicator each of length `context_length`.
+        # We have two target related features: past_target and observed value
+        # indicator each of length `context_length`.
         # Also, +1 for the static real feature.
         dimensions = [
             context_length * (num_time_features + 2) + total_embedding_dim + 1
@@ -210,21 +210,17 @@ class DeepNPTSNetwork(nn.Module):
 
 
 class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
-    """
-    Extends `DeepNTPSNetwork` by implementing the output layer which converts the ouptuts from the base network into
-    probabilities of length `context_length`. These probabilities together with the past values in the context window
-    constitute the one-step-ahead forecast distribution. Specifically, the forecast is always one of the values observed
-    in the context window with the corresponding predicted probability.
+    """Extends `DeepNTPSNetwork` by implementing the output layer which
+    converts the ouptuts from the base network into probabilities of length
+    `context_length`. These probabilities together with the past values in the
+    context window constitute the one-step-ahead forecast distribution.
+    Specifically, the forecast is always one of the values observed in the
+    context window with the corresponding predicted probability.
 
-    Parameters
-    ----------
-    *args
-        Arguments to ``DeepNPTSNetwork``.
-    use_softmax
-        Flag indicating whether to use softmax or normalization for converting the outputs of the base network
-        to probabilities.
-    kwargs
-        Keyword arguments to ``DeepNPTSNetwork``.
+    Parameters ---------- *args     Arguments to ``DeepNPTSNetwork``.
+    use_softmax     Flag indicating whether to use softmax or normalization for
+    converting the outputs of the base network     to probabilities. kwargs
+    Keyword arguments to ``DeepNPTSNetwork``.
     """
 
     @validated()
@@ -269,14 +265,15 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 
 
 class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
-    """
-    Extends `DeepNTPSNetwork` by implementing the output layer which converts the ouptuts from the base network into a
-    smoothed mixture distribution. The components of the mixture are Gaussians centered around the observations in the
-    context window. The mixing probabilities as well as the width of the Gaussians are predicted by the network.
+    """Extends `DeepNTPSNetwork` by implementing the output layer which
+    converts the ouptuts from the base network into a smoothed mixture
+    distribution. The components of the mixture are Gaussians centered around
+    the observations in the context window. The mixing probabilities as well as
+    the width of the Gaussians are predicted by the network.
 
-    This mixture distribution represents the one-step-ahead forecast distribution. Note that the forecast can contain
-    values not observed in the context window.
-
+    This mixture distribution represents the one-step-ahead forecast
+    distribution. Note that the forecast can contain values not observed in the
+    context window.
     """
 
     @validated()
@@ -320,10 +317,8 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
 
 
 class DeepNPTSMultiStepPredictor(nn.Module):
-    """
-    Implements multi-step prediction given a trained `DeepNPTSNewtork` model that outputs one-step-ahead forecast
-    distribution.
-    """
+    """Implements multi-step prediction given a trained `DeepNPTSNewtork` model
+    that outputs one-step-ahead forecast distribution."""
 
     @validated()
     def __init__(
@@ -346,29 +341,17 @@ class DeepNPTSMultiStepPredictor(nn.Module):
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
     ):
-        """
-        Generates samples from the forecast distribution.
+        """Generates samples from the forecast distribution.
 
-        Parameters
-        ----------
-        feat_static_cat
-            Shape (-1, num_features).
-        feat_static_real
-            Shape (-1, num_features).
-        past_target
-            Shape (-1, context_length).
-        past_observed_values
-            Shape (-1, context_length).
-        past_time_feat
-            Shape (-1, context_length, self.num_time_features).
-        future_time_feat
-            Shape (-1, prediction_length, self.num_time_features).
-
-        Returns
-        -------
-        torch.Tensor
-            Tensor containing samples from the predicted distribution.
-            Shape is (-1, self.num_parallel_samples, self.prediction_length).
+        Parameters ---------- feat_static_cat     Shape (-1, num_features).
+        feat_static_real     Shape (-1, num_features). past_target     Shape
+        (-1, context_length). past_observed_values     Shape (-1,
+        context_length). past_time_feat     Shape (-1, context_length,
+        self.num_time_features). future_time_feat     Shape (-1,
+        prediction_length, self.num_time_features).  Returns -------
+        torch.Tensor     Tensor containing samples from the predicted
+        distribution.     Shape is (-1, self.num_parallel_samples,
+        self.prediction_length).
         """
         # Blow up the initial `x` by the number of parallel samples required.
         # (batch_size * num_parallel_samples, context_length)

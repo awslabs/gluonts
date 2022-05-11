@@ -60,15 +60,19 @@ LOSS_SCALING_MAP = {
 
 class DeepNPTSEstimator(Estimator):
     """
-    Construct a DeepNPTS estimator. This is a tunable extension of NPTS where the sampling probabilities are learned
-    from the data. This is a global-model unlike NPTS.
+    Construct a DeepNPTS estimator. This is a tunable extension of NPTS
+    where the sampling probabilities are learned from the data. This is a
+    global-model unlike NPTS.
 
     Currently two variants of the model are implemented:
-    (i) `DeepNPTSNetworkDiscrete`: the forecast distribution is a discrete distribution similar to NPTS and
-    the forecasts are sampled from the observations in the context window.
-    (ii) `DeepNPTSNetworkSmooth`: the forecast distribution is a smoothed mixture distribution where the components of
-    the mixture are Gaussians centered around the observations in the context window. The mixing probabilities and
-    the width of the Gaussians are learned. Here the forecast can contain values not observed in the context window.
+    (i) `DeepNPTSNetworkDiscrete`: the forecast distribution is a discrete
+    distribution similar to NPTS and the forecasts are sampled from the
+    observations in the context window.
+    (ii) `DeepNPTSNetworkSmooth`: the forecast distribution is a smoothed
+    mixture distribution where the components of the mixture are Gaussians
+    centered around the observations in the context window. The mixing
+    probabilities and the width of the Gaussians are learned. Here the
+    forecast can contain values not observed in the context window.
 
     Parameters
     ----------
@@ -82,15 +86,17 @@ class DeepNPTSEstimator(Estimator):
     num_hidden_nodes
         A list containing the number of nodes in each hidden layer
     batch_norm
-        Flag to indicate if batch normalization should be applied at every layer
+        Flag to indicate if batch normalization should be applied at every
+        layer
     use_feat_static_cat
         Whether to use the ``feat_static_cat`` field from the data
         (default: False)
     num_feat_static_real
         Number of static real features in the data set
     num_feat_dynamic_real
-        Number of dynamic features in the data set. These features are added to the time series features that are
-        automatically created based on the frequency
+        Number of dynamic features in the data set. These features are added
+        to the time series features that are automatically created based on
+        the frequency
     cardinality
         Number of values of each categorical feature
         This must be set if ``use_feat_static_cat == True`` (default: None)
@@ -99,12 +105,14 @@ class DeepNPTSEstimator(Estimator):
         (default: [min(50, (cat+1)//2) for cat in cardinality])
     input_scaling
         The scaling to be applied to the target values.
-        Available options: "min_max_scaling" and "standard_normal_scaling" (default: no scaling)
+        Available options: "min_max_scaling" and "standard_normal_scaling"
+        (default: no scaling)
     dropout_rate
         Dropout regularization parameter (default: no dropout)
     network_type
-        The network to be used: either the discrete version `DeepNPTSNetworkDiscrete` or
-        the smoothed version `DeepNPTSNetworkSmooth` (default: DeepNPTSNetworkDiscrete)
+        The network to be used: either the discrete version
+        `DeepNPTSNetworkDiscrete` or the smoothed version
+        `DeepNPTSNetworkSmooth` (default: DeepNPTSNetworkDiscrete)
     """
 
     def __init__(
@@ -123,9 +131,10 @@ class DeepNPTSEstimator(Estimator):
         dropout_rate: Optional[float] = None,
         network_type: DeepNPTSNetwork = DeepNPTSNetworkDiscrete,
     ):
-        assert (
-            cardinality is not None
-        ) == use_feat_static_cat, "You should set `cardinality` if and only if `use_feat_static_cat=True`"
+        assert (cardinality is not None) == use_feat_static_cat, (
+            "You should set `cardinality` if and only if"
+            " `use_feat_static_cat=True`"
+        )
         assert cardinality is None or all(
             [c > 0 for c in cardinality]
         ), "Elements of `cardinality` should be > 0"
@@ -169,10 +178,12 @@ class DeepNPTSEstimator(Estimator):
         self.past_target_field = "past_" + FieldName.TARGET
         self.time_features = time_features_from_frequency_str(self.freq)
 
-        # Note that unlike mxnet, which delays the determination of the the number of input nodes until first forward,
-        # pytorch requires the number of input nodes upfront (not only for MLP but also for RNN).
-        # That is why counting the number of time features and passing it to the network.
-        # The count here includes the user-provided dynamic features as well as age feature (that's why +1).
+        # Note that unlike mxnet, which delays the determination of the the
+        # number of input nodes until first forward, pytorch requires the
+        # number of input nodes upfront (not only for MLP but also for RNN).
+        # That is why counting the number of time features and passing it to
+        # the network. The count here includes the user-provided dynamic
+        # features as well as age feature (that's why +1).
         self.num_time_features = (
             len(self.time_features) + num_feat_dynamic_real + 1
         )
@@ -182,8 +193,8 @@ class DeepNPTSEstimator(Estimator):
                 "min_max_scaling",
                 "standard_normal_scaling",
             ], (
-                f'`input_scaling` must be one of "min_max_scaling" and "standard_normal_scaling", '
-                f'but provided "{input_scaling}".'
+                '`input_scaling` must be one of "min_max_scaling" and'
+                f' "standard_normal_scaling", but provided "{input_scaling}".'
             )
         self.input_scaling = input_scaling
 
@@ -192,7 +203,8 @@ class DeepNPTSEstimator(Estimator):
         self.network_type = network_type
 
     def input_transform(self) -> Transformation:
-        # Note: Any change here should be reflected in the `self.num_time_features` field as well.
+        # Note: Any change here should be reflected in the
+        # `self.num_time_features` field as well.
         remove_field_names = []
         if self.num_feat_static_real == 0:
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
