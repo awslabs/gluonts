@@ -189,6 +189,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                     output_field=FieldName.FEAT_TIME,
                     time_features=self.time_features,
                     pred_length=self.prediction_length,
+                    index_field=FieldName.INDEX,
                 ),
                 AddAgeFeature(
                     target_field=FieldName.TARGET,
