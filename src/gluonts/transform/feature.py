@@ -332,6 +332,8 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
+    index_field:
+        Field with the array containing the datetime index for irregular data.
     """
 
     @validated()
@@ -342,7 +344,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
-        index_field: Optional[List[pd.Timestamp]] = None,
+        index_field: Optional[str] = None,
         dtype: Type = np.float32,
     ) -> None:
         self.date_features = time_features
