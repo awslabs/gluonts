@@ -71,7 +71,7 @@ class DistributionForecast(Forecast):
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
         self._mean = None
-        self.index = index
+        self._index = index
 
     @property
     def mean(self) -> np.ndarray:

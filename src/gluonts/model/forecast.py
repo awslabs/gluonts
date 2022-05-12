@@ -124,7 +124,7 @@ class Forecast:
     info: Optional[Dict]
     prediction_length: int
     mean: np.ndarray
-    index = None
+    _index = None
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
@@ -247,11 +247,11 @@ class Forecast:
 
     @property
     def index(self) -> pd.DatetimeIndex:
-        if self.index is None:
-            self.index = pd.date_range(
+        if self._index is None:
+            self._index = pd.date_range(
                 self.start_date, periods=self.prediction_length, freq=self.freq
             )
-        return self.index
+        return self._index
 
     def dim(self) -> int:
         """
@@ -347,7 +347,7 @@ class SampleForecast(Forecast):
         self._dim = None
         self.item_id = item_id
         self.info = info
-        self.index = index
+        self._index = index
 
         assert isinstance(
             start_date, pd.Timestamp
@@ -525,7 +525,7 @@ class QuantileForecast(Forecast):
         self.item_id = item_id
         self.info = info
         self._dim = None
-        self.index = index
+        self._index = index
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
