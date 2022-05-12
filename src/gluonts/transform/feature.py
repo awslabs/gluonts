@@ -18,6 +18,7 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
 
 from ._base import MapTransformation, SimpleTransformation
@@ -344,7 +345,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
-        index_field: Optional[str] = None,
+        index_field: Optional[str] = FieldName.INDEX,
         dtype: Type = np.float32,
     ) -> None:
         self.date_features = time_features
