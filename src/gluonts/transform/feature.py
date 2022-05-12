@@ -394,7 +394,7 @@ class AddTimeFeatures(MapTransformation):
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        if self.start_field in data:
+        if self.index_field in data:
             dt_index = data[self.index_field]
             assert len(dt_index) == len(data[self.target_field]) + (
                 0 if is_train else self.pred_length
