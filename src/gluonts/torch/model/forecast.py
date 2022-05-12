@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 
 import numpy as np
 import pandas as pd
@@ -55,6 +55,7 @@ class DistributionForecast(Forecast):
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
     ) -> None:
         self.distribution = distribution
         self.shape = distribution.batch_shape + distribution.event_shape
@@ -70,6 +71,7 @@ class DistributionForecast(Forecast):
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
         self._mean = None
+        self.index = index
 
     @property
     def mean(self) -> np.ndarray:
@@ -100,4 +102,5 @@ class DistributionForecast(Forecast):
             freq=self.freq,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )

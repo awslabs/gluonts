@@ -124,7 +124,7 @@ class Forecast:
     info: Optional[Dict]
     prediction_length: int
     mean: np.ndarray
-    _index = None
+    index = None
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
@@ -247,11 +247,11 @@ class Forecast:
 
     @property
     def index(self) -> pd.DatetimeIndex:
-        if self._index is None:
-            self._index = pd.date_range(
+        if self.index is None:
+            self.index = pd.date_range(
                 self.start_date, periods=self.prediction_length, freq=self.freq
             )
-        return self._index
+        return self.index
 
     def dim(self) -> int:
         """
@@ -320,6 +320,8 @@ class SampleForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+    index
+        optional datatime index of the forecast for irregular time series.
     """
 
     @validated()
@@ -330,6 +332,7 @@ class SampleForecast(Forecast):
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
     ) -> None:
         assert isinstance(
             samples, np.ndarray
@@ -344,6 +347,7 @@ class SampleForecast(Forecast):
         self._dim = None
         self.item_id = item_id
         self.info = info
+        self.index = index
 
         assert isinstance(
             start_date, pd.Timestamp
@@ -412,6 +416,7 @@ class SampleForecast(Forecast):
             freq=self.freq,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
     def copy_aggregate(self, agg_fun: Callable) -> "SampleForecast":
@@ -426,6 +431,7 @@ class SampleForecast(Forecast):
             freq=self.freq,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
     def dim(self) -> int:
@@ -470,6 +476,7 @@ class SampleForecast(Forecast):
             forecast_keys=quantiles,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
 
@@ -492,6 +499,8 @@ class QuantileForecast(Forecast):
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+    index
+        optional datatime index of the forecast for irregular time series.
     """
 
     def __init__(
@@ -502,6 +511,7 @@ class QuantileForecast(Forecast):
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
         self.start_date = pd.Timestamp(start_date, freq=freq)
@@ -515,6 +525,7 @@ class QuantileForecast(Forecast):
         self.item_id = item_id
         self.info = info
         self._dim = None
+        self.index = index
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (

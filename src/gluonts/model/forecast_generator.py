@@ -148,15 +148,18 @@ class QuantileForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield QuantileForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
+                    start_date=batch[FieldName.FORECAST_START][i],
                     freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class SampleForecastGenerator(ForecastGenerator):
@@ -197,14 +200,17 @@ class SampleForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield SampleForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
+                    start_date=batch[FieldName.FORECAST_START][i],
                     freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class DistributionForecastGenerator(ForecastGenerator):
@@ -240,11 +246,14 @@ class DistributionForecastGenerator(ForecastGenerator):
             for i, distr in enumerate(distributions):
                 yield make_distribution_forecast(
                     distr,
-                    start_date=batch["forecast_start"][i],
+                    start_date=batch[FieldName.FORECAST_START][i],
                     freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
