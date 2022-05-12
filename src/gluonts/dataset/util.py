@@ -14,16 +14,10 @@ import logging
 import multiprocessing
 import os
 from pathlib import Path
-from typing import (
-    Callable,
-    Iterator,
-    List,
-    NamedTuple,
-    Tuple,
-    TypeVar,
-)
+from typing import Callable, Iterator, List, NamedTuple, Tuple, TypeVar
 
 import pandas as pd
+from gluonts.dataset.field_names import FieldName
 
 T = TypeVar("T")
 
@@ -132,11 +126,15 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    target = instance["target"]
-    start = instance["start"]
-    if not freq:
-        freq = start.freqstr
-    index = pd.date_range(start=start, periods=len(target), freq=freq)
+    target = instance[FieldName.TARGET]
+    start = instance[FieldName.START]
+
+    if FieldName.INDEX in instance:
+        index = instance[FieldName.INDEX]
+    else:
+        if not freq:
+            freq = start.freqstr
+        index = pd.date_range(start=start, periods=len(target), freq=freq)
     return pd.Series(target, index=index)
 
 
