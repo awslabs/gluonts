@@ -11,21 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import random
 import tempfile
 from itertools import islice
 from pathlib import Path
 
+import pandas as pd
 import pytest
-
-import pytorch_lightning as pl
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
+from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.modules.loss import NegativeLogLikelihood
 
 
@@ -111,6 +111,12 @@ def test_estimator_constant_dataset(estimator_constructor):
 def test_estimator_with_features(estimator_constructor):
     freq = "1h"
     prediction_length = 12
+    index = sorted(
+        random.sample(
+            list(pd.date_range("2021-01-01 02:12:06", periods=400, freq=freq)),
+            100 + prediction_length,
+        )
+    )
 
     training_dataset = ListDataset(
         [
@@ -128,6 +134,14 @@ def test_estimator_with_features(estimator_constructor):
                 "feat_static_real": [1.0],
                 "feat_dynamic_real": [[1.0] * 100] * 3,
             },
+            {
+                "start": index[0],
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * 100] * 3,
+                "index": index[:100],
+            },
         ],
         freq=freq,
     )
@@ -136,17 +150,25 @@ def test_estimator_with_features(estimator_constructor):
         [
             {
                 "start": "2021-01-01 00:00:00",
-                "target": [1.0] * 200,
+                "target": [1.0] * (200 + prediction_length),
                 "feat_static_cat": [0, 1],
                 "feat_static_real": [42.0],
                 "feat_dynamic_real": [[1.0] * (200 + prediction_length)] * 3,
             },
             {
                 "start": "2021-02-01 00:00:00",
-                "target": [1.0] * 100,
+                "target": [1.0] * (100 + prediction_length),
                 "feat_static_cat": [1, 0],
                 "feat_static_real": [1.0],
                 "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
+            },
+            {
+                "start": index[0],
+                "target": [1.0] * (100 + prediction_length),
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
+                "index": index,
             },
         ],
         freq=freq,
