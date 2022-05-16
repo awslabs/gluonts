@@ -525,7 +525,6 @@ class QuantileForecast(Forecast):
         self.item_id = item_id
         self.info = info
         self._dim = None
-        self._index = index[-self.prediction_length :]
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
@@ -537,6 +536,7 @@ class QuantileForecast(Forecast):
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
         self._nan_out = np.array([np.nan] * self.prediction_length)
+        self._index = index[-self.prediction_length :]
 
     def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
         sorted_forecast_dict = dict(sorted(self._forecast_dict.items()))
