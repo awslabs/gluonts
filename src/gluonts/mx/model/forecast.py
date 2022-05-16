@@ -70,7 +70,8 @@ class DistributionForecast(Forecast):
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info
-        self._index = index[-self.prediction_length :]
+        if index is not None:
+            self._index = index[-self.prediction_length :]
 
         assert isinstance(
             start_date, pd.Timestamp
