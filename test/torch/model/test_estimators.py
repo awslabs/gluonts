@@ -150,21 +150,21 @@ def test_estimator_with_features(estimator_constructor):
         [
             {
                 "start": "2021-01-01 00:00:00",
-                "target": [1.0] * (200 + prediction_length),
+                "target": [1.0] * 200,
                 "feat_static_cat": [0, 1],
                 "feat_static_real": [42.0],
                 "feat_dynamic_real": [[1.0] * (200 + prediction_length)] * 3,
             },
             {
                 "start": "2021-02-01 00:00:00",
-                "target": [1.0] * (100 + prediction_length),
+                "target": [1.0] * 100,
                 "feat_static_cat": [1, 0],
                 "feat_static_real": [1.0],
                 "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
             },
             {
                 "start": index[0],
-                "target": [1.0] * (100 + prediction_length),
+                "target": [1.0] * 100,
                 "feat_static_cat": [1, 0],
                 "feat_static_real": [1.0],
                 "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
