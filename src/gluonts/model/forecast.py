@@ -332,7 +332,7 @@ class SampleForecast(Forecast):
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
+        index: Optional[pd.DatetimeIndex] = None,
     ) -> None:
         assert isinstance(
             samples, np.ndarray
@@ -347,7 +347,7 @@ class SampleForecast(Forecast):
         self._dim = None
         self.item_id = item_id
         self.info = info
-        self._index = index
+        self._index = index[-self.prediction_length :]
 
         assert isinstance(
             start_date, pd.Timestamp
@@ -511,7 +511,7 @@ class QuantileForecast(Forecast):
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
+        index: Optional[pd.DatetimeIndex] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
         self.start_date = pd.Timestamp(start_date, freq=freq)
@@ -525,7 +525,7 @@ class QuantileForecast(Forecast):
         self.item_id = item_id
         self.info = info
         self._dim = None
-        self._index = index
+        self._index = index[-self.prediction_length :]
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (

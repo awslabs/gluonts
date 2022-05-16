@@ -55,7 +55,7 @@ class DistributionForecast(Forecast):
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-        index: Optional[Union[List[pd.Timestamp], pd.DatetimeIndex]] = None,
+        index: Optional[pd.DatetimeIndex] = None,
     ) -> None:
         self.distribution = distribution
         self.shape = distribution.batch_shape + distribution.event_shape
@@ -71,7 +71,7 @@ class DistributionForecast(Forecast):
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
         self._mean = None
-        self._index = index
+        self._index = index[-self.prediction_length :]
 
     @property
     def mean(self) -> np.ndarray:

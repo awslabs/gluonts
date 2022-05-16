@@ -195,9 +195,15 @@ class InstanceSplitter(FlatMapTransformation):
                     ].transpose()
 
             d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = shift_timestamp(
-                d[self.start_field], i + lt
-            )
+
+            if FieldName.INDEX in d:
+                d[self.forecast_start_field] = pd.Timestamp(
+                    d[FieldName.INDEX][i + lt], freq=d[FieldName.START].freq
+                )
+            else:
+                d[self.forecast_start_field] = shift_timestamp(
+                    d[self.start_field], i + lt
+                )
             yield d
 
 
