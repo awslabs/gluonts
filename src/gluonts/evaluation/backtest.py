@@ -20,6 +20,7 @@ import pandas as pd
 import gluonts  # noqa
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
@@ -72,12 +73,12 @@ def make_evaluation_predictions(
         for data_entry in data_iterator:
             data = data_entry.copy()
             index = pd.date_range(
-                start=data["start"],
+                start=data[FieldName.START],
                 freq=freq,
-                periods=data["target"].shape[-1],
+                periods=data[FieldName.TARGET].shape[-1],
             )
             data["ts"] = pd.DataFrame(
-                index=index, data=data["target"].transpose()
+                index=index, data=data[FieldName.TARGET].transpose()
             )
             yield data
 
@@ -87,11 +88,11 @@ def make_evaluation_predictions(
 
     def truncate_target(data):
         data = data.copy()
-        target = data["target"]
+        target = data[FieldName.TARGET]
         assert (
             target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
-        data["target"] = target[..., : -prediction_length - lead_time]
+        data[FieldName.TARGET] = target[..., : -prediction_length - lead_time]
         return data
 
     # TODO filter out time series with target shorter than prediction length

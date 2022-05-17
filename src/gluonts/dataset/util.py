@@ -23,6 +23,7 @@ from typing import (
     TypeVar,
 )
 
+from gluonts.dataset.field_names import FieldName
 import pandas as pd
 
 T = TypeVar("T")
@@ -132,8 +133,8 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    target = instance["target"]
-    start = instance["start"]
+    target = instance[FieldName.TARGET]
+    start = instance[FieldName.START]
     if not freq:
         freq = start.freqstr
     index = pd.date_range(start=start, periods=len(target), freq=freq)

@@ -36,6 +36,7 @@ from typing_extensions import Protocol, runtime_checkable
 
 
 from gluonts import json
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl, util
 from gluonts.exceptions import GluonTSDataError
 
@@ -287,7 +288,7 @@ class ProcessStartField(pydantic.BaseModel):
         arbitrary_types_allowed = True
 
     freq: Union[str, pd.DateOffset]
-    name: str = "start"
+    name: str = FieldName.START
     tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error
 
     def __call__(self, data: DataEntry) -> DataEntry:
@@ -413,43 +414,43 @@ class ProcessDataEntry:
                 ProcessStartField(freq=freq),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
-                    "target",
+                    FieldName.TARGET,
                     is_required=True,
                     is_cat=False,
                     is_static=one_dim_target,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_cat",
+                    FieldName.FEAT_DYNAMIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "dynamic_feat",  # backwards compatible
+                    FieldName.FEAT_DYNAMIC_REAL_LEGACY,  # backwards compatible
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_real",
+                    FieldName.FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "past_feat_dynamic_real",
+                    FieldName.PAST_FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_cat",
+                    FieldName.FEAT_STATIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=True,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_real",
+                    FieldName.FEAT_STATIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=True,
