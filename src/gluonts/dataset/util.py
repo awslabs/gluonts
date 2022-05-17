@@ -16,8 +16,8 @@ import os
 from pathlib import Path
 from typing import Callable, Iterator, List, NamedTuple, Tuple, TypeVar
 
-from gluonts.dataset.field_names import FieldName
 import pandas as pd
+
 from gluonts.dataset.field_names import FieldName
 
 T = TypeVar("T")
@@ -129,7 +129,7 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     """
     target = instance[FieldName.TARGET]
     start = instance[FieldName.START]
-    
+
     if FieldName.INDEX in instance:
         index = instance[FieldName.INDEX]
     else:
