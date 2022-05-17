@@ -637,7 +637,7 @@ class CountTrailingZeros(SimpleTransformation):
     def __init__(
         self,
         new_field: str = "trailing_zeros",
-        target_field: str = "target",
+        target_field: str = FieldName.TARGET,
         axis: int = -1,
         as_array: bool = False,
     ) -> None:
