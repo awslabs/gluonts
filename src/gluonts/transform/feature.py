@@ -18,6 +18,7 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
 
 from ._base import MapTransformation, SimpleTransformation
@@ -618,7 +619,7 @@ class CountTrailingZeros(SimpleTransformation):
     def __init__(
         self,
         new_field: str = "trailing_zeros",
-        target_field: str = "target",
+        target_field: str = FieldName.TARGET,
         axis: int = -1,
         as_array: bool = False,
     ) -> None:
