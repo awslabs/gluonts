@@ -41,6 +41,6 @@ def encode_pd_datetime_index(v: pd.DatetimeIndex) -> Any:
     return {
         "__kind__": Kind.Instance,
         "class": "pandas.DatetimeIndex",
-        "args": encode([str(v)]),
+        "args": [encode([str(indx) for indx in v])],
         "kwargs": {"freq": v.freqstr if v.freq else None},
     }
