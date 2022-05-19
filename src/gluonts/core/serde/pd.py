@@ -30,3 +30,17 @@ def encode_pd_timestamp(v: pd.Timestamp) -> Any:
         "args": encode([str(v)]),
         "kwargs": {"freq": v.freqstr if v.freq else None},
     }
+
+
+@encode.register(pd.Period)
+def encode_pd_period(v: pd.Period) -> Any:
+    """
+    Specializes :func:`encode` for invocations where ``v`` is an instance of
+    the :class:`~pandas.Period` class.
+    """
+    return {
+        "__kind__": Kind.Instance,
+        "class": "pandas.Timestamp",
+        "args": encode([str(v)]),
+        "kwargs": {"freq": v.freqstr},
+    }

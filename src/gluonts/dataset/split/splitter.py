@@ -28,7 +28,7 @@ For all other datasets, the more flexible `DateSplitter` can be used::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Timestamp('2018-01-31', freq='D')
+        split_date=pd.Period('2018-01-31', freq='D')
     )
     train, test = splitter.split(whole_dataset)
 
@@ -36,14 +36,15 @@ The module also supports rolling splits::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Timestamp('2018-01-31', freq='D')
+        split_date=pd.Period('2018-01-31', freq='D')
     )
     train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, cast
 
+import numpy as np
 import pandas as pd
 import pydantic
 
@@ -116,29 +117,31 @@ class TimeSeriesSlice(pydantic.BaseModel):
             ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
         if self.feat_dynamic_cat:
             ret[FieldName.FEAT_DYNAMIC_CAT] = [
-                cat.values.tolist() for cat in self.feat_dynamic_cat
+                cast(np.ndarray, cat.values).tolist()
+                for cat in self.feat_dynamic_cat
             ]
         if self.feat_dynamic_real:
             ret[FieldName.FEAT_DYNAMIC_REAL] = [
-                real.values.tolist() for real in self.feat_dynamic_real
+                cast(np.ndarray, real.values).tolist()
+                for real in self.feat_dynamic_real
             ]
 
         return ret
 
     @property
-    def start(self):
+    def start(self) -> pd.Period:
         return self.target.index[0]
 
     @property
-    def end(self):
+    def end(self) -> pd.Period:
         return self.target.index[-1]
 
     def __len__(self) -> int:
         return len(self.target)
 
     def __getitem__(self, slice_: slice) -> "TimeSeriesSlice":
-        feat_dynamic_real = None
-        feat_dynamic_cat = None
+        feat_dynamic_real = []
+        feat_dynamic_cat = []
 
         if self.feat_dynamic_real is not None:
             feat_dynamic_real = [
@@ -312,7 +315,7 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     """
 
     prediction_length: int
-    split_date: pd.Timestamp
+    split_date: pd.Period
     max_history: Optional[int] = None
 
     def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:

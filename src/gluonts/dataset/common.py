@@ -54,20 +54,6 @@ class Dataset(Protocol):
         raise NotImplementedError
 
 
-class Timestamp(pd.Timestamp):
-    # we need to sublcass, since pydantic otherwise converts the value into
-    # datetime.datetime instead of using pd.Timestamp
-    @classmethod
-    def __get_validators__(cls):
-        def conv(val):
-            if isinstance(val, pd.Timestamp):
-                return val
-            else:
-                return pd.Timestamp(val)
-
-        yield conv
-
-
 class BasicFeatureInfo(pydantic.BaseModel):
     name: str
 
@@ -265,16 +251,10 @@ class ListDataset(Dataset):
         return len(self.list_data)
 
 
-class TimeZoneStrategy(Enum):
-    ignore = "ignore"
-    utc = "utc"
-    error = "error"
-
-
 # TODO: find out whether this is a duplicate
 class ProcessStartField(pydantic.BaseModel):
     """
-    Transform the start field into a Timestamp with the given frequency.
+    Transform the start field into a Period with the given frequency.
 
     Parameters
     ----------
@@ -289,56 +269,16 @@ class ProcessStartField(pydantic.BaseModel):
 
     freq: Union[str, pd.DateOffset]
     name: str = FieldName.START
-    tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            timestamp = ProcessStartField.process(data[self.name], self.freq)
+            data[self.name] = pd.Period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
             ) from e
 
-        if timestamp.tz is not None:
-            if self.tz_strategy == TimeZoneStrategy.error:
-                raise GluonTSDataError(
-                    "Timezone information is not supported, "
-                    f'but provided in the "{self.name}" field.'
-                )
-            if self.tz_strategy == TimeZoneStrategy.utc:
-                # align timestamp to utc timezone
-                timestamp = timestamp.tz_convert("UTC")
-
-            # removes timezone information
-            timestamp = timestamp.tz_localize(None)
-
-        data[self.name] = timestamp
-
         return data
-
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def process(timestamp_input: Any, freq: str) -> pd.Timestamp:
-        """
-        Create timestamp from datetime-like, str, int or float input and align
-        it according to frequency.
-        """
-
-        timestamp = pd.Timestamp(timestamp_input, freq=freq)
-
-        # operate on time information (days, hours, minute, second)
-        if isinstance(timestamp.freq, Tick):
-            return pd.Timestamp(
-                timestamp.floor(timestamp.freq), timestamp.freq
-            )
-
-        # since we are only interested in the data piece, we normalize the
-        # time information
-        timestamp = timestamp.replace(
-            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-        )
-
-        return timestamp.freq.rollforward(timestamp)
 
 
 class ProcessTimeSeriesField:

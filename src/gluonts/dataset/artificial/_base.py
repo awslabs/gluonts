@@ -13,10 +13,22 @@
 
 import math
 import random
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
+from abc import abstractmethod
+from typing import (
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import BaseOffset, Week
 
 from gluonts.dataset.artificial.recipe import (
     BinaryHolidays,
@@ -69,17 +81,20 @@ class ArtificialDataset:
     """
 
     def __init__(self, freq) -> None:
-        self.freq = freq
+        self.freq: BaseOffset = to_offset(freq)
 
     @property
+    @abstractmethod
     def metadata(self) -> MetaData:
         pass
 
     @property
+    @abstractmethod
     def train(self) -> List[DataEntry]:
         pass
 
     @property
+    @abstractmethod
     def test(self) -> List[DataEntry]:
         pass
 
@@ -130,7 +145,6 @@ class ConstantDataset(ArtificialDataset):
         self.num_steps = num_steps
         self.num_training_steps = self.num_steps // 10 * 8
         self.prediction_length = self.num_steps - self.num_training_steps
-        self.start = start
         self.is_nan = is_nan
         self.is_random_constant = is_random_constant
         self.is_different_scales = is_different_scales
@@ -142,6 +156,12 @@ class ConstantDataset(ArtificialDataset):
         self.num_missing_middle = num_missing_middle
         self.is_promotions = is_promotions
         self.holidays = holidays
+
+        if isinstance(self.freq, Week):
+            self.freq = Week(
+                self.freq.n, weekday=pd.Timestamp(start).weekday()
+            )
+        self.start = cast(pd.Period, pd.Period(start, self.freq))
 
     @property
     def metadata(self) -> MetaData:
@@ -211,12 +231,10 @@ class ConstantDataset(ArtificialDataset):
             )
             recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
-            timestamp = self.init_date()
             # Compute dates array
-            dates = []
-            for i in range(num_steps):
-                dates.append(timestamp)
-                timestamp += 1
+            dates = list(
+                pd.period_range(self.start, periods=num_steps, freq=self.freq)
+            )
             recipe.append(
                 ("binary_holidays", BinaryHolidays(dates, self.holidays))
             )
@@ -262,22 +280,6 @@ class ConstantDataset(ArtificialDataset):
         elif self.is_short and index % short_freq == 0:
             num_steps = num_steps_min
         return num_steps
-
-    def init_date(self) -> pd.Timestamp:
-        week_dict = {
-            0: "MON",
-            1: "TUE",
-            2: "WED",
-            3: "THU",
-            4: "FRI",
-            5: "SAT",
-            6: "SUN",
-        }
-        timestamp = pd.Timestamp(self.start)
-        freq_week_start = self.freq
-        if freq_week_start == "W":
-            freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
-        return pd.Timestamp(self.start, freq=freq_week_start)
 
     @staticmethod
     def insert_nans_and_zeros(ts_len: int) -> List:
@@ -691,7 +693,9 @@ class RecipeDataset(ArtificialDataset):
         self.prediction_length = prediction_length
         self.trim_length_fun = trim_length_fun
         self.num_timeseries = num_timeseries
-        self.data_start = pd.Timestamp(data_start, freq=self._metadata.freq)
+        self.data_start = cast(
+            pd.Period, pd.Period(data_start, freq=self._metadata.freq)
+        )
 
     @property
     def metadata(self) -> MetaData:
