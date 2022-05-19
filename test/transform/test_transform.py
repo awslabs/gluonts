@@ -21,7 +21,7 @@ import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import DataEntry, ListDataset, ProcessStartField
+from gluonts.dataset.common import DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 from gluonts.transform import (
@@ -40,8 +40,8 @@ TEST_VALUES = {
     "is_train": [True, False],
     "target": [np.zeros(0), np.random.rand(13), np.random.rand(100)],
     "start": [
-        ProcessStartField.process("2012-01-02", freq="1D"),
-        ProcessStartField.process("1994-02-19 20:01:02", freq="3D"),
+        pd.Period("2012-01-02", freq="1D"),
+        pd.Period("1994-02-19 20:01:02", freq="3D"),
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
@@ -51,7 +51,7 @@ TEST_VALUES = {
 
 def test_align_timestamp():
     def aligned_with(date_str, freq):
-        return str(ProcessStartField.process(date_str, freq=freq))
+        return str(pd.Period(date_str, freq=freq))
 
     for _ in range(2):
         assert (
@@ -560,7 +560,7 @@ def test_ExpectedNumInstanceSampler():
             target_values = target_values[target_values > 0]
             scale_hist.add(target_values)
 
-    expected_values = {i: 2**i * repetition for i in range(1, N)}
+    expected_values = {i: 2 ** i * repetition for i in range(1, N)}
 
     assert expected_values == scale_hist.bin_counts
 
@@ -1023,7 +1023,7 @@ def test_AddObservedIndicator():
 
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
-    n = 2**N - 1
+    n = 2 ** N - 1
     targets = np.ones((n, train_length))
     for i in range(0, n):
         targets[i, :] = targets[i, :] * i

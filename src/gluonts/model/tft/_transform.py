@@ -21,7 +21,6 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
     InstanceSplitter,
     MapTransformation,
-    shift_timestamp,
     target_transformation_length,
 )
 from gluonts.transform.sampler import InstanceSampler
@@ -137,7 +136,6 @@ class TFTInstanceSplitter(InstanceSplitter):
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
             d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = shift_timestamp(
-                d[self.start_field], i + lt
-            )
+            d[self.forecast_start_field] = d[self.start_field] + i + lt
+
             yield d

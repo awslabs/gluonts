@@ -566,7 +566,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             period = self._get_period()
             w = 2 * np.pi / period
             t = np.arange(length)
-            idx = pd.date_range(
+            idx = pd.period_range(
                 start=start, freq=self.freq_str, periods=length
             )
             special_tp_indicator = self._special_time_point_indicator(idx)

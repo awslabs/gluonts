@@ -17,6 +17,16 @@ from typing import Any
 
 import pydantic
 
+from typing import TypeVar, Optional
+
+T = TypeVar("T")
+
+
+def unwrap(x: Optional[T]) -> T:
+    assert x is not None
+
+    return x
+
 
 def get_param_type(param):
     if param.annotation == inspect.Parameter.empty:

@@ -22,7 +22,6 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
 
 from ._base import MapTransformation, SimpleTransformation
-from .split import shift_timestamp
 
 
 def target_transformation_length(
@@ -351,45 +350,41 @@ class AddTimeFeatures(MapTransformation):
         self.target_field = target_field
         self.output_field = output_field
         self._freq_base: Optional[pd.offsets.DateOffset] = None
-        self._min_time_point: Optional[pd.Timestamp] = None
-        self._max_time_point: Optional[pd.Timestamp] = None
+        self._min_time_point: Optional[pd.Period] = None
+        self._max_time_point: Optional[pd.Period] = None
         self._full_range_date_features: Optional[np.ndarray] = None
         self._date_index: Optional[pd.DatetimeIndex] = None
         self.dtype = dtype
 
-    def _update_cache(self, start: pd.Timestamp, length: int) -> None:
+    def _update_cache(self, start: pd.Period, length: int) -> None:
         assert self._freq_base is None or self._freq_base == start.freq.base, (
             f"data with base frequency other than {self._freq_base} cannot be"
             f" processed; got {start.freq.base}"
         )
         if self._freq_base is None:
             self._freq_base = start.freq.base
-        end = shift_timestamp(start, length)
+        end = start + length
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
                 return
         if self._min_time_point is None:
             self._min_time_point = start
             self._max_time_point = end
-        self._min_time_point = min(
-            shift_timestamp(start, -50), self._min_time_point
-        )
-        self._max_time_point = max(
-            shift_timestamp(end, 50), self._max_time_point
-        )
-        self.full_date_range = pd.date_range(
+        self._min_time_point = min(start - 50, self._min_time_point)
+        self._max_time_point = max(end + 50, self._max_time_point)
+        self.full_period_range = pd.period_range(
             self._min_time_point, self._max_time_point, freq=self._freq_base
         )
         self._full_range_date_features = (
             np.vstack(
-                [feat(self.full_date_range) for feat in self.date_features]
+                [feat(self.full_period_range) for feat in self.date_features]
             ).astype(self.dtype)
             if self.date_features
             else None
         )
         self._date_index = pd.Series(
-            index=self.full_date_range,
-            data=np.arange(len(self.full_date_range)),
+            index=self.full_period_range,
+            data=np.arange(len(self.full_period_range)),
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:

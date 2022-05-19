@@ -20,7 +20,7 @@ from numpy.lib.stride_tricks import as_strided
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.transform import FlatMapTransformation, shift_timestamp
+from gluonts.transform import FlatMapTransformation
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
@@ -211,8 +211,6 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             out[self._past(self.is_pad_out)] = pad_indicator
 
             # So far pad forecast_start not in use
-            out[FieldName.FORECAST_START] = shift_timestamp(
-                out[self.start_in], sampling_idx
-            )
+            out[FieldName.FORECAST_START] = out[self.start_in] + sampling_idx
 
             yield out

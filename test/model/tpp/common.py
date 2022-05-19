@@ -26,8 +26,8 @@ def point_process_dataset():
         [
             {
                 "target": np.c_[ia_times, marks].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Period("2011-01-01 00:00:00", freq="H"),
+                "end": pd.Period("2011-01-01 03:00:00", freq="H"),
             }
         ],
         freq="H",
@@ -45,24 +45,24 @@ def point_process_dataset_2():
                     np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
                     np.array([0, 1, 2, 0, 1, 2, 2, 2]),
                 ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Period("2011-01-01 00:00:00", freq="H"),
+                "end": pd.Period("2011-01-01 03:00:00", freq="H"),
             },
             {
                 "target": np.c_[
                     np.array([0.2, 0.1, 0.2, 0.1, 0.3, 0.3, 0.5, 0.4]),
                     np.array([0, 1, 2, 0, 1, 2, 1, 1]),
                 ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Period("2011-01-01 00:00:00", freq="H"),
+                "end": pd.Period("2011-01-01 03:00:00", freq="H"),
             },
             {
                 "target": np.c_[
                     np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.1, 0.2, 0.1]),
                     np.array([0, 1, 2, 0, 1, 0, 1, 2]),
                 ].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Period("2011-01-01 00:00:00", freq="H"),
+                "end": pd.Period("2011-01-01 03:00:00", freq="H"),
             },
         ],
         freq="H",

@@ -72,7 +72,7 @@ def make_evaluation_predictions(
     ) -> Iterator[DataEntry]:
         for data_entry in data_iterator:
             data = data_entry.copy()
-            index = pd.date_range(
+            index = pd.period_range(
                 start=data[FieldName.START],
                 freq=freq,
                 periods=data[FieldName.TARGET].shape[-1],

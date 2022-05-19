@@ -45,7 +45,7 @@ class PointProcessSampleForecast(Forecast):
         that only the first two entries of :code:`samples[0, ...]` are
         valid "points".
     start_date
-        Starting timestamp of the sample
+        Starting period of the sample
     freq
         The time unit of interarrival times
     prediction_interval_length
@@ -68,7 +68,7 @@ class PointProcessSampleForecast(Forecast):
         self,
         samples: Union[mx.nd.NDArray, np.ndarray],
         valid_length: Union[mx.nd.NDArray, np.ndarray],
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
         freq: str,
         prediction_interval_length: float,
         item_id: Optional[str] = None,
@@ -102,8 +102,8 @@ class PointProcessSampleForecast(Forecast):
         self.info = info
 
         assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"

@@ -77,7 +77,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
         if freq is None:
             freq = item["start"].freq
 
-        index = pd.date_range(
+        index = pd.period_range(
             start=item["start"], freq=freq, periods=len(item["target"])
         )
 
@@ -298,7 +298,7 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
 class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     """
     A splitter that slices training and test data based on a
-    ``pandas.Timestamp``.
+    ``pandas.Period``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``split_date``.
@@ -308,11 +308,13 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     prediction_length
         Length of the prediction interval in test data.
     split_date
-        Timestamp determining where the training data ends.
+        Period determining where the training data ends.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
+    class Config:
+        arbitrary_types_allowed = True
 
     prediction_length: int
     split_date: pd.Period

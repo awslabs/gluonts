@@ -125,5 +125,5 @@ def test_tpp_pred_dataset_2_shapes_ok(dataset_tuple, predictor_factory):
             == predictor.prediction_interval_length
         )
 
-        assert forecast.start_date == pd.Timestamp("2011-01-01 03:00:00")
-        assert forecast.end_date == pd.Timestamp("2011-01-01 08:00:00")
+        assert forecast.start_date == pd.Period("2011-01-01 03:00:00")
+        assert forecast.end_date == pd.Period("2011-01-01 08:00:00")
