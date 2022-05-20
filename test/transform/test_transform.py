@@ -560,7 +560,7 @@ def test_ExpectedNumInstanceSampler():
             target_values = target_values[target_values > 0]
             scale_hist.add(target_values)
 
-    expected_values = {i: 2 ** i * repetition for i in range(1, N)}
+    expected_values = {i: 2**i * repetition for i in range(1, N)}
 
     assert expected_values == scale_hist.bin_counts
 
@@ -1023,7 +1023,7 @@ def test_AddObservedIndicator():
 
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
-    n = 2 ** N - 1
+    n = 2**N - 1
     targets = np.ones((n, train_length))
     for i in range(0, n):
         targets[i, :] = targets[i, :] * i
