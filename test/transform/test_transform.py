@@ -51,61 +51,59 @@ TEST_VALUES = {
 
 def test_align_timestamp():
     def aligned_with(date_str, freq):
-        return str(pd.Period(date_str, freq=freq))
+        return pd.Period(date_str, freq=freq).to_timestamp()
 
     for _ in range(2):
-        assert (
-            aligned_with("2012-03-05 09:13:12", "min") == "2012-03-05 09:13:00"
+        assert aligned_with("2012-03-05 09:13:12", "min") == pd.Timestamp(
+            "2012-03-05 09:13:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "2min")
-            == "2012-03-05 09:12:00"
+        assert aligned_with("2012-03-05 09:13:12", "2min") == pd.Timestamp(
+            "2012-03-05 09:13:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "H") == "2012-03-05 09:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "H") == pd.Timestamp(
+            "2012-03-05 09:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "D") == "2012-03-05 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "D") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "4W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "4W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "3M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "3M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "Y") == "2012-12-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "Y") == pd.Timestamp(
+            "2012-01-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "min") == "2012-03-05 09:14:00"
+        assert aligned_with("2012-03-05 09:14:11", "min") == pd.Timestamp(
+            "2012-03-05 09:14:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "2min")
-            == "2012-03-05 09:14:00"
+        assert aligned_with("2012-03-05 09:14:11", "2min") == pd.Timestamp(
+            "2012-03-05 09:14:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "H") == "2012-03-05 09:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "H") == pd.Timestamp(
+            "2012-03-05 09:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "D") == "2012-03-05 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "D") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "4W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "4W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "3M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "3M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
 
 
@@ -151,7 +149,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     mat = res["myout"]
     expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
-    tmp_idx = pd.date_range(
+    tmp_idx = pd.period_range(
         start=start, freq=start.freq, periods=expected_length
     )
     assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))
@@ -560,7 +558,7 @@ def test_ExpectedNumInstanceSampler():
             target_values = target_values[target_values > 0]
             scale_hist.add(target_values)
 
-    expected_values = {i: 2**i * repetition for i in range(1, N)}
+    expected_values = {i: 2 ** i * repetition for i in range(1, N)}
 
     assert expected_values == scale_hist.bin_counts
 
@@ -1023,7 +1021,7 @@ def test_AddObservedIndicator():
 
 def make_dataset(N, train_length):
     # generates 2 ** N - 1 timeseries with constant increasing values
-    n = 2**N - 1
+    n = 2 ** N - 1
     targets = np.ones((n, train_length))
     for i in range(0, n):
         targets[i, :] = targets[i, :] * i

@@ -352,7 +352,7 @@ class AddTimeFeatures(MapTransformation):
         self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        if self.date_features is None:
+        if not self.date_features:
             data[self.output_field] = None
             return data
 
