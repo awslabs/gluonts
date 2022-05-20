@@ -36,14 +36,12 @@ def compute_time_features(
 ):
     assert pred_length >= 0
     index = to_pandas(entry, freq=entry["start"].freq).index
+
     if pred_length > 0:
         index = index.union(
-            pd.date_range(
-                index[-1] + index.freq,
-                index[-1] + pred_length * index.freq,
-                freq=index.freq,
-            )
+            pd.period_range(index[-1] + 1, index[-1] + pred_length)
         )
+
     feature_arrays = [feat(index) for feat in time_features]
     return np.vstack(feature_arrays).astype(dtype)
 
@@ -54,10 +52,10 @@ def compute_time_features(
         (
             ListDataset(
                 data_iter=[
-                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 50},
-                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 50},
-                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 50},
-                    {"start": "2021-05-27 07:10:39", "target": [1.0] * 50},
+                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 10},
+                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 10},
+                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 10},
+                    {"start": "2021-05-27 07:10:39", "target": [1.0] * 10},
                 ],
                 freq=freq_str,
             ),
@@ -95,4 +93,8 @@ def test_AddTimeFeatures_correctness(
         expected_features = compute_time_features(
             entry, time_features, pred_length
         )
+        print(expected_features[0])
+        print(transformed_entry["features"][0])
+        # print(transform._date_index)
+        # print(transform._full_range_date_features)
         assert np.allclose(expected_features, transformed_entry["features"])

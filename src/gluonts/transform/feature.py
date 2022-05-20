@@ -363,28 +363,33 @@ class AddTimeFeatures(MapTransformation):
         )
         if self._freq_base is None:
             self._freq_base = start.freq.base
+
         end = start + length
+
         if self._min_time_point is not None:
             if self._min_time_point <= start and end <= self._max_time_point:
                 return
+
         if self._min_time_point is None:
             self._min_time_point = start
             self._max_time_point = end
+
         self._min_time_point = min(start - 50, self._min_time_point)
         self._max_time_point = max(end + 50, self._max_time_point)
-        self.full_period_range = pd.period_range(
+
+        full_period_range = pd.period_range(
             self._min_time_point, self._max_time_point, freq=self._freq_base
         )
         self._full_range_date_features = (
             np.vstack(
-                [feat(self.full_period_range) for feat in self.date_features]
+                [feat(full_period_range) for feat in self.date_features]
             ).astype(self.dtype)
             if self.date_features
             else None
         )
         self._date_index = pd.Series(
-            index=self.full_period_range,
-            data=np.arange(len(self.full_period_range)),
+            index=full_period_range,
+            data=np.arange(len(full_period_range)),
         )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
@@ -396,7 +401,7 @@ class AddTimeFeatures(MapTransformation):
 
         assert self._date_index is not None
 
-        i0 = self._date_index[start]
+        i0 = self._date_index[start.asfreq(start.freq.base)]
         features = (
             self._full_range_date_features[
                 ..., i0 : i0 + length * start.freq.n : start.freq.n
