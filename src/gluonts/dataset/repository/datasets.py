@@ -32,6 +32,7 @@ from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.dataset.repository._tsf_datasets import (
     generate_forecasting_dataset,
 )
+from gluonts.dataset.repository._uber import generate_uber_dataset
 
 
 def get_download_path() -> Path:
@@ -209,6 +210,16 @@ dataset_recipes = OrderedDict(
             prediction_length=28,
             m5_file_path=get_download_path() / "m5",
         ),
+        "uber_daily": partial(
+            generate_uber_dataset,
+            uber_freq="Daily",
+            prediction_length=7
+        ),
+        "uber_hourly": partial(
+            generate_uber_dataset,
+            uber_freq="Hourly",
+            prediction_length=24
+        )
     }
 )
 
