@@ -21,6 +21,26 @@ from .module import DeepARModel
 
 
 class DeepARLightningModule(pl.LightningModule):
+    """
+    A ``pl.LightningModule`` class that can be used to train a
+    ``DeepARModel`` with PyTorch Lightning.
+
+    This is a thin layer around a (wrapped) ``DeepARModel`` object,
+    that exposes the methods to evaluate training and validation loss.
+
+    Parameters
+    ----------
+    model
+        ``DeepARModel`` to be trained.
+    loss
+        Loss function to be used for training,
+        default: ``NegativeLogLikelihood()``.
+    lr
+        Learning rate, default: ``1e-3``.
+    weight_decay
+        Weight decay regularization parameter, default: ``1e-8``.
+    """
+
     def __init__(
         self,
         model: DeepARModel,
