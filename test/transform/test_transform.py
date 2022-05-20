@@ -753,7 +753,7 @@ def point_process_dataset():
     ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
-    lds = ListDataset(
+    return ListDataset(
         [
             {
                 "target": np.c_[ia_times, marks].T,
@@ -764,8 +764,6 @@ def point_process_dataset():
         freq="H",
         one_dim_target=False,
     )
-
-    return lds
 
 
 class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
