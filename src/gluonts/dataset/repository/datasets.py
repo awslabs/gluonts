@@ -211,15 +211,11 @@ dataset_recipes = OrderedDict(
             m5_file_path=get_download_path() / "m5",
         ),
         "uber_daily": partial(
-            generate_uber_dataset,
-            uber_freq="Daily",
-            prediction_length=7
+            generate_uber_dataset, uber_freq="Daily", prediction_length=7
         ),
         "uber_hourly": partial(
-            generate_uber_dataset,
-            uber_freq="Hourly",
-            prediction_length=24
-        )
+            generate_uber_dataset, uber_freq="Hourly", prediction_length=24
+        ),
     }
 )
 
