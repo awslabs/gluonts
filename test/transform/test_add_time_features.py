@@ -39,7 +39,9 @@ def compute_time_features(
 
     if pred_length > 0:
         index = index.union(
-            pd.period_range(index[-1] + 1, index[-1] + pred_length)
+            pd.period_range(
+                index[-1] + 1, index[-1] + pred_length, freq=index.freq
+            )
         )
 
     feature_arrays = [feat(index) for feat in time_features]
@@ -52,10 +54,10 @@ def compute_time_features(
         (
             ListDataset(
                 data_iter=[
-                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 10},
-                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 10},
-                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 10},
-                    {"start": "2021-05-27 07:10:39", "target": [1.0] * 10},
+                    {"start": "2021-01-01 00:00:06", "target": [1.0] * 50},
+                    {"start": "2021-01-12 00:45:17", "target": [1.0] * 50},
+                    {"start": "2021-02-18 12:00:28", "target": [1.0] * 50},
+                    {"start": "2021-05-27 07:10:39", "target": [1.0] * 50},
                 ],
                 freq=freq_str,
             ),
@@ -63,7 +65,6 @@ def compute_time_features(
         )
         for freq_str in [
             "2M",
-            "2MS",
             "3W",
             "3W-MON",
             "3W-TUE",
@@ -93,8 +94,4 @@ def test_AddTimeFeatures_correctness(
         expected_features = compute_time_features(
             entry, time_features, pred_length
         )
-        print(expected_features[0])
-        print(transformed_entry["features"][0])
-        # print(transform._date_index)
-        # print(transform._full_range_date_features)
         assert np.allclose(expected_features, transformed_entry["features"])
