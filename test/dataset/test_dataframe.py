@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from gluonts.dataset import tabular
+from gluonts.dataset import dataframe
 
 
 @pytest.fixture()
@@ -34,7 +34,7 @@ def long_dataframe():
 
 @pytest.fixture
 def long_dataset(long_dataframe):  # initialized with dict
-    return tabular.LongDataFrameDataset(
+    return dataframe.LongDataFrameDataset(
         dataframe=long_dataframe,
         target="target",
         timestamp="time",
@@ -47,7 +47,7 @@ def long_dataset(long_dataframe):  # initialized with dict
 
 def test_DataFramesDataset_init_with_list(long_dataframe):
     dataframes = list(map(lambda x: x[1], long_dataframe.groupby("item")))
-    dataset = tabular.DataFramesDataset(
+    dataset = dataframe.DataFramesDataset(
         dataframes=dataframes,
         target="target",
         timestamp="time",
@@ -60,9 +60,9 @@ def test_DataFramesDataset_init_with_list(long_dataframe):
 
 
 def test_DataFramesDataset_init_with_single_dataframe(long_dataframe):
-    dataframe = long_dataframe.loc[long_dataframe.loc[:, "item"] == "A", :]
-    dataset = tabular.DataFramesDataset(
-        dataframes=dataframe,
+    df = long_dataframe.loc[long_dataframe.loc[:, "item"] == "A", :]
+    dataset = dataframe.DataFramesDataset(
+        dataframes=df,
         target="target",
         timestamp="time",
         freq="1H",
@@ -88,7 +88,7 @@ def test_LongDataFrameDataset_len(long_dataset):
 
 def test_as_dataentry(long_dataframe):
     df = long_dataframe.groupby("item").get_group("A")
-    dataentry = tabular.as_dataentry(
+    dataentry = dataframe.as_dataentry(
         data=df,
         target="target",
         timestamp="time",
@@ -103,7 +103,7 @@ def test_as_dataentry(long_dataframe):
 
 def test_prepare_prediction_data():
     assert np.all(
-        tabular.prepare_prediction_data(
+        dataframe.prepare_prediction_data(
             {"target": np.arange(20)}, ignore_last_n_targets=5
         )["target"]
         == np.arange(15)
@@ -112,7 +112,7 @@ def test_prepare_prediction_data():
 
 def test_prepare_prediction_data_nested():
     assert np.all(
-        tabular.prepare_prediction_data(
+        dataframe.prepare_prediction_data(
             {"target": np.ones(shape=(3, 20))},
             ignore_last_n_targets=5,
         )["target"]
@@ -121,7 +121,7 @@ def test_prepare_prediction_data_nested():
 
 
 def test_prepare_prediction_data_with_features():
-    res = tabular.prepare_prediction_data(
+    res = dataframe.prepare_prediction_data(
         {
             "start": pd.Timestamp("2021-01-01", freq="1H"),
             "target": np.array([1.0, 2.0, np.nan]),
@@ -142,7 +142,7 @@ def test_prepare_prediction_data_with_features():
 
 def test_check_timestamps():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    assert tabular.check_timestamps(timestamps, freq="2H")
+    assert dataframe.check_timestamps(timestamps, freq="2H")
 
 
 @pytest.mark.parametrize(
@@ -155,4 +155,4 @@ def test_check_timestamps():
 )
 def test_check_timestamps_fail(timestamps):
     with pytest.raises(AssertionError):
-        assert tabular.check_timestamps(timestamps, freq="2H")
+        assert dataframe.check_timestamps(timestamps, freq="2H")
