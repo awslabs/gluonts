@@ -98,6 +98,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during validation.
 
     """
+
     @validated()
     def __init__(
         self,
