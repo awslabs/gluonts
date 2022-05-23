@@ -11,24 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
+from torch.distributions import AffineTransform, TransformedDistribution
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
 
-from torch.distributions import (
-    AffineTransform,
-    TransformedDistribution,
-)
+from .distribution_output import DistributionOutput
 
 
-class ISQF(Distribution):
+class ISQF(torch.distributions.Distribution):
     r"""
     Distribution class for the Incremental (Spline) Quantile Function in the
     paper ``Learning Quantile Functions without Quantile Crossing for

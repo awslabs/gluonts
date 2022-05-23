@@ -11,19 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from torch.distributions.utils import broadcast_all
-
 from numbers import Number
+from typing import Dict, Optional, Tuple, cast
 
 import numpy as np
-
 import torch
 from torch.distributions import Distribution, constraints
-
-from typing import Optional, cast, Dict, Tuple
+from torch.distributions.utils import broadcast_all
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import DistributionOutput
+
+from .distribution_output import DistributionOutput
 
 
 class GeneralizedPareto(Distribution):

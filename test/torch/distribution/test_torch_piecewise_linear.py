@@ -17,7 +17,7 @@ import pytest
 import torch
 import numpy as np
 
-from gluonts.torch.distributions.piecewise_linear import (
+from gluonts.torch.distributions import (
     PiecewiseLinear,
     PiecewiseLinearOutput,
 )

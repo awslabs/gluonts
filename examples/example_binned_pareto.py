@@ -7,7 +7,7 @@ from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 
 from gluonts.torch.model.deepar import DeepAREstimator
-from gluonts.torch.distributions.spliced_binned_pareto import (
+from gluonts.torch.distributions import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
 )

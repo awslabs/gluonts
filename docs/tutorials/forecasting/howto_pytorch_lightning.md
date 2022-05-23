@@ -56,7 +56,7 @@ import torch.nn as nn
 
 ```python
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.modules.distribution_output import StudentTOutput
+from gluonts.torch.distributions import StudentTOutput
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 ```
 

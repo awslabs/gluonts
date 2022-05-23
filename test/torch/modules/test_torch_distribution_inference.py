@@ -39,7 +39,7 @@ from gluonts.torch.modules.loss import (
     DistributionLoss,
     NegativeLogLikelihood,
 )
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
     GammaOutput,
@@ -49,12 +49,11 @@ from gluonts.torch.modules.distribution_output import (
     StudentTOutput,
 )
 
-from gluonts.torch.distributions.spliced_binned_pareto import (
+from gluonts.torch.distributions import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
 )
 
-from scipy import stats
 from scipy.special import softmax
 
 NUM_SAMPLES = 3_000
