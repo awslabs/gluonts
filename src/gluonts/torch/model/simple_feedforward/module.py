@@ -49,6 +49,7 @@ class SimpleFeedForwardModel(nn.Module):
     batch_norm
         Whether to apply batch normalization. Default: ``False``.
     """
+
     @validated()
     def __init__(
         self,
