@@ -120,19 +120,8 @@ class DataFramesDataset(Dataset):
         return len(self._dataframes)
 
 
-def LongDataFrameDataset(
-    dataframe: pd.DataFrame,
-    item_id: str,
-    target: Union[str, List[str]],
-    timestamp: str,
-    freq: str,
-    feat_dynamic_real: List[str] = [],
-    feat_dynamic_cat: List[str] = [],
-    feat_static_real: List[str] = [],
-    feat_static_cat: List[str] = [],
-    past_feat_dynamic_real: List[str] = [],
-    ignore_last_n_targets: int = 0,
-) -> DataFramesDataset:
+@dataclass
+class LongDataFrameDataset(Dataset):
     """
     This dataset uses the long format for each variable. Target time series values,
     for example, are stacked on top of each other rather than side-by-side. The
@@ -166,25 +155,39 @@ def LongDataFrameDataset(
         For target and past dynamic features last ``ignore_last_n_targets`` elements are
         removed when iterating over the data set. This becomes important when the
         predictor is called.
-
-    Returns
-    -------
-    DataFramesDataset
-        A dataset based on a collection of pandas.DataFrame-objects.
     """
-    dataframes = dict(list(dataframe.groupby(item_id)))
-    return DataFramesDataset(
-        dataframes=dataframes,
-        target=target,
-        timestamp=timestamp,
-        freq=freq,
-        feat_dynamic_real=feat_dynamic_real,
-        feat_dynamic_cat=feat_dynamic_cat,
-        feat_static_real=feat_static_real,
-        feat_static_cat=feat_static_cat,
-        past_feat_dynamic_real=past_feat_dynamic_real,
-        ignore_last_n_targets=ignore_last_n_targets,
-    )
+
+    dataframe: pd.DataFrame
+    item_id: str
+    target: Union[str, List[str]]
+    timestamp: str
+    freq: str
+    feat_dynamic_real: List[str] = field(default_factory=list)
+    feat_dynamic_cat: List[str] = field(default_factory=list)
+    feat_static_real: List[str] = field(default_factory=list)
+    feat_static_cat: List[str] = field(default_factory=list)
+    past_feat_dynamic_real: List[str] = field(default_factory=list)
+    ignore_last_n_targets: int = 0
+
+    def __post_init__(self) -> None:
+        self._dataset = DataFramesDataset(
+            dataframes=dict(list(self.dataframe.groupby(self.item_id))),
+            target=self.target,
+            timestamp=self.timestamp,
+            freq=self.freq,
+            feat_dynamic_real=self.feat_dynamic_real,
+            feat_dynamic_cat=self.feat_dynamic_cat,
+            feat_static_real=self.feat_static_real,
+            feat_static_cat=self.feat_static_cat,
+            past_feat_dynamic_real=self.past_feat_dynamic_real,
+            ignore_last_n_targets=self.ignore_last_n_targets,
+        )
+
+    def __iter__(self) -> Iterator[DataEntry]:
+        yield from self._dataset
+
+    def __len__(self) -> int:
+        return len(self._dataset)
 
 
 def as_dataentry(
