@@ -47,11 +47,13 @@ class DeepARModel(nn.Module):
     num_feat_static_real
         Number of static real features that will be provided to ``forward``.
     num_feat_static_cat
-        Number of static categorical features that will be provided to ``forward``.
+        Number of static categorical features that will be provided to
+        ``forward``.
     cardinality
         List of cardinalities, one for each static categorical feature.
     embedding_dimension
-        Dimension of the embedding space, one for each static categorical feature.
+        Dimension of the embedding space, one for each static categorical
+        feature.
     num_layers
         Number of layers in the RNN.
     hidden_size
@@ -61,10 +63,11 @@ class DeepARModel(nn.Module):
     distr_output
         Type of distribution to be output by the model at each time step
     lags_seq
-        Indices of the lagged observations that the RNN takes as input. For example,
-        ``[1]`` indicates that the RNN only takes the observation at time ``t-1``
-        to produce the output for time ``t``; instead, ``[1, 25]`` indicates that
-        the RNN takes observations at times ``t-1`` and ``t-25`` as input.
+        Indices of the lagged observations that the RNN takes as input. For
+        example, ``[1]`` indicates that the RNN only takes the observation at
+        time ``t-1`` to produce the output for time ``t``; instead,
+        ``[1, 25]`` indicates that the RNN takes observations at times ``t-1``
+        and ``t-25`` as input.
     scaling
         Whether to apply mean scaling to the observations (target).
     num_parallel_samples
@@ -183,13 +186,13 @@ class DeepARModel(nn.Module):
 
         Returns
         -------
-        Tuple[ Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor], ]
-            A tuple containing:
-            - The tuple of parameters for the output distribution at all time steps processed
-            - The scaling factor applied to the target
-            - The raw output of the RNN
-            - The static input to the RNN
-            - The output state from the RNN
+        Tuple
+            A tuple containing, in this order:
+            - Parameters of the output distribution
+            - Scaling factor applied to the target
+            - Raw output of the RNN
+            - Static input to the RNN
+            - Output state from the RNN
         """
         context = past_target[:, -self.context_length :]
         observed_context = past_observed_values[:, -self.context_length :]
@@ -370,14 +373,15 @@ class LaggedLSTM(nn.Module):
     Parameters
     ----------
     input_size
-
+        Size of the input sequence (usually 1).
     features_size
-
+        Number of additional features to take as input.
     lags_seq
-        Indices of the lagged observations that the RNN takes as input. For example,
-        ``[1]`` indicates that the RNN only takes the observation at time ``t-1``
-        to produce the output for time ``t``; instead, ``[1, 25]`` indicates that
-        the RNN takes observations at times ``t-1`` and ``t-25`` as input.
+        Indices of the lagged observations that the RNN takes as input. For
+        example, ``[1]`` indicates that the RNN only takes the observation at
+        time ``t-1`` to produce the output for time ``t``; instead,
+        ``[1, 25]`` indicates that the RNN takes observations at times ``t-1``
+        and ``t-25`` as input.
     num_layers
         Number of layers. Default: 2.
     hidden_size
