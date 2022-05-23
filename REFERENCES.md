@@ -2,13 +2,14 @@
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
 # 2022
-* [Robust Probabilistic Time Series Forecasting](https://arxiv.org/abs/2202.11910), *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
-* [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://arxiv.org/abs/2111.06581), *Youngsuk Park, Danielle C. Maddix, Francois-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, AISTATS 2022
-* [Multivariate Quantile Function Forecaster](https://arxiv.org/abs/2202.11316?context=cs), *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022
-* [Deep Generative model with Hierarchical Latent Factors for Timeseries Anomaly Detection](https://openreview.net/pdf?id=FwkZ4m3VjFi), *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, AISTATS 2022
-* Testing Granger Non-Causality in Panels with Cross-Sectional Dependencies, *Lenon Minorics, Caner Turkmen, Patrick Bloebaum, David Kernert, Laurent Callot, Dominik Janzing*, AISTATS 2022
+* [Domain Adaptation for Time Series Forecasting via Attention Sharing](https://arxiv.org/pdf/2102.06828.pdf), *Xiaoyong Jin, Youngsuk Park, Danielle C. Maddix, Hao Wang, Yuyang Wang*, ICML 2022
+* [Robust Probabilistic Time Series Forecasting](https://proceedings.mlr.press/v151/yoon22a/yoon22a.pdf), *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
+* [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://proceedings.mlr.press/v151/park22a/park22a.pdf), *Youngsuk Park, Danielle C. Maddix, Francois-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, AISTATS 2022
+* [Multivariate Quantile Function Forecaster](https://proceedings.mlr.press/v151/kan22a/kan22a.pdf), *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022
+* [Deep Generative model with Hierarchical Latent Factors for Time Series Anomaly Detection](https://proceedings.mlr.press/v151/challu22a/challu22a.pdf), *Cristian Challu, Peihong Jiang, Ying Nian Wu, Laurent Callot*, AISTATS 2022
+* [Testing Granger Non-Causality in Panels with Cross-Sectional Dependencies](https://proceedings.mlr.press/v151/minorics22a/minorics22a.pdf), *Lenon Minorics, Caner Turkmen, Patrick Bloebaum, David Kernert, Laurent Callot, Dominik Janzing*, AISTATS 2022
 * [PSA-GAN: Progressive Self Attention GANs for Synthetic Time Series](https://arxiv.org/abs/2108.00981), *Paul Jeha, Michael Bohlke-Schneider, Pedro Mercado, Shubham Kapoor, Rajbir Singh Nirwan, Valentin Flunkert, Jan Gasthaus, Tim Januschowski*, ICLR 2022
-* Not All Domains Are Created Equal: Graph-Relational Domain Adaptation, *Zihao Xu, Hao He, Guang-He Lee, Yuyang Wang, Hao Wang*, ICLR 2022
+* [Not All Domains Are Created Equal: Graph-Relational Domain Adaptation](https://arxiv.org/abs/2202.03628), *Zihao Xu, Hao He, Guang-He Lee, Yuyang Wang, Hao Wang*, ICLR 2022
 
 # 2021
 
