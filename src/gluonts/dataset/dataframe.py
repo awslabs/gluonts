@@ -27,23 +27,27 @@ class DataFramesDataset(Dataset):
     """
     A pandas.DataFrame-based dataset type.
 
-    This class is constructed with a collection of pandas.DataFrame-objects where each
-    DataFrame is representing one time series. A ``target`` and a ``timestamp`` columns
-    are essential. Furthermore, static/dynamic real/categorical features can be specified.
+    This class is constructed with a collection of pandas.DataFrame-objects
+    where each ``DataFrame`` is representing one time series.
+    A ``target`` and a ``timestamp`` columns are essential. Furthermore,
+    static/dynamic real/categorical features can be specified.
 
     Parameters
     ----------
-    dataframes: Union[List[pandas.DataFrame], Dict[str, pandas.DataFrame], pandas.DataFrame]
-        List or Dict of ``DataFrame``s or a single ``DataFrame`` containing at least
-        ``timestamp`` and ``target`` columns. If a Dict is provided, the key will be the
-        associated ``item_id``.
+    dataframes: Union[
+        List[pandas.DataFrame], Dict[str, pandas.DataFrame], pandas.DataFrame
+    ]
+        List or Dict of ``DataFrame``s or a single ``DataFrame`` containing
+        at least ``timestamp`` and ``target`` columns. If a Dict is provided,
+        the key will be the associated ``item_id``.
     target: str or List[str]
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
     timestamp: str
         Name of the column that contains the timestamp information.
     freq: str
-        Frequency of observations in the time series. Must be a valid pandas frequency.
+        Frequency of observations in the time series. Must be a valid pandas
+        frequency.
     feat_dynamic_real: List[str]
         List of column names that contain dynamic real features.
     feat_dynamic_cat: List[str]
@@ -53,11 +57,12 @@ class DataFramesDataset(Dataset):
     feat_static_cat: List[str]
         List of column names that contain static categorical features.
     past_feat_dynamic_real: List[str]
-        List of column names that contain dynamic real features only for the history.
+        List of column names that contain dynamic real features only for the
+        history.
     ignore_last_n_targets: int
-        For target and past dynamic features last ``ignore_last_n_targets`` elements are
-        removed when iterating over the data set. This becomes important when the
-        predictor is called.
+        For target and past dynamic features last ``ignore_last_n_targets``
+        elements are removed when iterating over the data set. This becomes
+        important when the predictor is called.
     """
 
     dataframes: Union[
@@ -123,24 +128,26 @@ class DataFramesDataset(Dataset):
 @dataclass
 class LongDataFrameDataset(Dataset):
     """
-    This dataset uses the long format for each variable. Target time series values,
-    for example, are stacked on top of each other rather than side-by-side. The
-    same is true for other dynamic or categorical features.
+    This dataset uses the long format for each variable. Target time series
+    values, for example, are stacked on top of each other rather than
+    side-by-side. The same is true for other dynamic or categorical features.
 
     Parameters
     ----------
     dataframe: pandas.DataFrame
-        pandas.DataFrame containing at least ``timestamp``, ``target`` and ``item_id``
-        columns.
+        pandas.DataFrame containing at least ``timestamp``, ``target`` and
+        ``item_id`` columns.
     target: str or List[str]
-        Name of the column that contains the ``target`` time series.
-        For multivariate targets ``target`` is expecting a list of column names.
+        Name of the column that contains the ``target`` time series. For
+        multivariate targets ``target`` is expecting a list of column names.
     timestamp: str
         Name of the column that contains the timestamp information.
     item_id: str
-        Name of the column that, when grouped by, gives the different time series.
+        Name of the column that, when grouped by, gives the different time
+        series.
     freq: str
-        Frequency of observations in the time series. Must be a valid pandas frequency.
+        Frequency of observations in the time series. Must be a valid pandas
+        frequency.
     feat_dynamic_real: List[str]
         List of column names that contain dynamic real features.
     feat_dynamic_cat: List[str]
@@ -150,11 +157,12 @@ class LongDataFrameDataset(Dataset):
     feat_static_cat: List[str]
         List of column names that contain static categorical features.
     past_feat_dynamic_real: List[str]
-        List of column names that contain dynamic real features only for the history.
+        List of column names that contain dynamic real features only for the
+        history.
     ignore_last_n_targets: int
-        For target and past dynamic features last ``ignore_last_n_targets`` elements are
-        removed when iterating over the data set. This becomes important when the
-        predictor is called.
+        For target and past dynamic features last ``ignore_last_n_targets``
+        elements are removed when iterating over the data set. This becomes
+        important when the predictor is called.
     """
 
     dataframe: pd.DataFrame
@@ -207,11 +215,12 @@ def as_dataentry(
     Parameters
     ----------
     data: pandas.DataFrame
-        pandas.DataFrame containing at least ``timestamp``, ``target`` and ``item_id``
-        columns.
+        pandas.DataFrame containing at least ``timestamp``, ``target`` and
+        ``item_id`` columns.
     target: str or List[str]
         Name of the column that contains the ``target`` time series.
-        For multivariate targets ``target`` is expecting a list of column names.
+        For multivariate targets ``target`` is expecting a list of column
+        names.
     timestamp: str
         Name of the column that contains the timestamp information.
     feat_dynamic_real: List[str]
@@ -223,7 +232,8 @@ def as_dataentry(
     feat_static_cat: List[str]
         List of column names that contain static categorical features.
     past_feat_dynamic_real: List[str]
-        List of column names that contain dynamic real features only for the history.
+        List of column names that contain dynamic real features only for
+        the history.
 
     Returns
     -------
@@ -256,10 +266,12 @@ def prepare_prediction_data(
     dataentry: DataEntry, ignore_last_n_targets: int
 ) -> DataEntry:
     """
-    Remove ``ignore_last_n_targets`` values from ``target`` and ``past_feat_dynamic_real``.
-    Works in univariate and multivariate case.
+    Remove ``ignore_last_n_targets`` values from ``target`` and
+    ``past_feat_dynamic_real``.  Works in univariate and multivariate case.
 
-    >>> prepare_prediction_data({"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2)
+    >>> prepare_prediction_data(
+    >>>    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
+    >>> )
     {'target': array([1., 2.])}
     """
     entry = deepcopy(dataentry)
@@ -276,8 +288,8 @@ def check_timestamps(
     Check if ``timestamps`` are monotonically increasing and evenly space with
     frequency ``freq``.
 
-    >>> timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    >>> check_timestamps(timestamps, freq="2H")
+    >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
+    >>> check_timestamps(ts, freq="2H")
     True
     """
     return all(
