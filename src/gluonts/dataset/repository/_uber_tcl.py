@@ -36,16 +36,14 @@ def generate_uber_dataset(
         temp_dir_path = Path(dir_path)
         temp_zip_path = temp_dir_path / "uber-dataset.zip"
         uber_url_path = (
-            "https://raw.githubusercontent.com/fivethirtyeight/"
+            "http://raw.githubusercontent.com/fivethirtyeight/"
             "uber-tlc-foil-response/master/uber-trip-data/"
             "uber-raw-data-janjune-15.csv.zip"
         )
         request.urlretrieve(uber_url_path, temp_zip_path)
         with zipfile.ZipFile(temp_zip_path) as zf:
             zf.extractall(path=temp_dir_path)
-        uber_file_path = (
-            temp_dir_path / "uber-dataset" / "uber-raw-data-janjune-15.csv"
-        )
+        uber_file_path = temp_dir_path / "uber-raw-data-janjune-15.csv"
         uber_df = pd.read_csv(
             uber_file_path,
             header=0,
