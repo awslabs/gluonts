@@ -32,7 +32,7 @@ from gluonts.dataset.repository._m5 import generate_m5_dataset
 from gluonts.dataset.repository._tsf_datasets import (
     generate_forecasting_dataset,
 )
-from gluonts.dataset.repository._uber_tcl import generate_uber_dataset
+from gluonts.dataset.repository._uber_tlc import generate_uber_dataset
 
 
 def get_download_path() -> Path:
