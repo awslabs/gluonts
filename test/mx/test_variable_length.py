@@ -65,6 +65,7 @@ def loader_factory():
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
             instance_sampler=sampler,
+            freq=dataset.freq,
         )
 
         kwargs = dict(
