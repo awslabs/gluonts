@@ -37,7 +37,7 @@ date_formater = mdates.DateFormatter('%Y')
 fig = plt.figure(figsize=(12,8))
 for idx, entry in enumerate(islice(dataset.train, 9)):
     ax = plt.subplot(3, 3, idx+1)
-    t = pd.date_range(start=entry["start"], periods=len(entry["target"]), freq=entry["start"].freq)
+    t = pd.date_range(start=entry["start"].to_timestamp(), periods=len(entry["target"]), freq=dataset.freq)
     plt.plot(t, entry["target"])
     plt.xticks(pd.date_range(start="2011-12-31", periods=3, freq="AS"))
     ax.xaxis.set_major_formatter(date_formater)
