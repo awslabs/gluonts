@@ -282,7 +282,7 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
     ) -> TimeSeriesSlice:
         offset_ = self.split_offset + offset + self.prediction_length
         if self.split_offset < 0 and offset_ >= 0:
-            offset_ = len(item) + offset_
+            offset_ += len(item)
         assert offset_ <= len(item)
         return item[:offset_]
 
