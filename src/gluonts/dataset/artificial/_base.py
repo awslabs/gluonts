@@ -166,7 +166,7 @@ class ConstantDataset(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         metadata = MetaData(
-            freq=self.freq,
+            freq=self.freq.freqstr,
             feat_static_cat=[
                 {
                     "name": "feat_static_cat_000",
@@ -178,7 +178,7 @@ class ConstantDataset(ArtificialDataset):
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
-                freq=self.freq,
+                freq=self.freq.freqstr,
                 feat_static_cat=[
                     {
                         "name": "feat_static_cat_000",
@@ -446,7 +446,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         return MetaData(
-            freq=self.freq, prediction_length=self.prediction_length
+            freq=self.freq.freqstr, prediction_length=self.prediction_length
         )
 
     def _get_period(self) -> int:
