@@ -31,7 +31,7 @@ def load_from_pandas(
     time_index: pd.PeriodIndex,
     agg_freq: Optional[str] = None,
 ) -> List[pd.Series]:
-    df = unwrap(df.set_index(time_index))
+    df: pd.DataFrame = unwrap(df.set_index(time_index))
 
     pivot_df = df.transpose()
     pivot_df.head()

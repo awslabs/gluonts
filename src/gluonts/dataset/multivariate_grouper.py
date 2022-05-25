@@ -103,6 +103,9 @@ class MultivariateGrouper:
             if self.last_timestamp is None:
                 self.last_timestamp = timestamp
 
+            assert self.first_timestamp is not None
+            assert self.last_timestamp is not None
+
             self.first_timestamp = min(self.first_timestamp, timestamp)
             self.last_timestamp = max(
                 self.last_timestamp,

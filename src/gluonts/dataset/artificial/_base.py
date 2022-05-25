@@ -701,6 +701,14 @@ class RecipeDataset(ArtificialDataset):
     def metadata(self) -> MetaData:
         return self._metadata
 
+    @property
+    def train(self):
+        raise NotImplementedError
+
+    @property
+    def test(self):
+        raise NotImplementedError
+
     def dataset_info(self, train_ds: Dataset, test_ds: Dataset) -> DatasetInfo:
         return DatasetInfo(
             name=f"RecipeDataset({repr(self.recipe)})",
