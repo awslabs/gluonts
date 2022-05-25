@@ -97,17 +97,29 @@ def test_split_mult_freq():
 
 
 def test_negative_offset_splitter():
-    dataset = ListDataset([
-        {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 100},
-        {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 50},
-    ], freq="D")
+    dataset = ListDataset(
+        [
+            {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 100},
+            {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 50},
+        ],
+        freq="D",
+    )
 
     split = OffsetSplitter(prediction_length=7, split_offset=-7).split(dataset)
 
     assert [len(t["target"]) for t in split.train] == [93, 43]
     assert [len(t["target"]) for t in split.test] == [100, 50]
 
-    rolling_split = OffsetSplitter(prediction_length=7, split_offset=-21).rolling_split(dataset, windows=3)
+    rolling_split = OffsetSplitter(
+        prediction_length=7, split_offset=-21
+    ).rolling_split(dataset, windows=3)
 
     assert [len(t["target"]) for t in rolling_split.train] == [79, 29]
-    assert [len(t["target"]) for t in rolling_split.test] == [86, 93, 100, 36, 43, 50]
+    assert [len(t["target"]) for t in rolling_split.test] == [
+        86,
+        93,
+        100,
+        36,
+        43,
+        50,
+    ]
