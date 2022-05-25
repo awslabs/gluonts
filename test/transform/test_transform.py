@@ -15,6 +15,8 @@ from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+
 import pytest
 
 import gluonts
@@ -757,12 +759,13 @@ def point_process_dataset():
         [
             {
                 "target": np.c_[ia_times, marks].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Timestamp("2011-01-01 00:00:00"),
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
             }
         ],
         freq="H",
         one_dim_target=False,
+        use_timestamp=True,
     )
 
 
@@ -789,6 +792,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
             min_past=2,
             min_future=1,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     # no boundary conditions
@@ -808,6 +812,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
             allow_empty_interval=False,
             min_past=2,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -832,6 +837,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -871,6 +877,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(shuffle_iterator(), is_train=True)
@@ -890,6 +897,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
             min_past=1.25,
             min_future=1.25,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -913,6 +921,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=point_process_dataset.freq,
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)

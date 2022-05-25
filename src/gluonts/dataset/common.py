@@ -28,6 +28,8 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+
 import pydantic
 from typing_extensions import Protocol, runtime_checkable
 
@@ -148,10 +150,14 @@ class FileDataset(Dataset):
         freq: str,
         one_dim_target: bool = True,
         cache: bool = False,
+        use_timestamp: bool = False,
     ) -> None:
+        self.freq = to_offset(freq)
         self.cache = cache
         self.path = path
-        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
+        self.process = ProcessDataEntry(
+            freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+        )
         self._len_per_file = None
 
         if not self.files():
@@ -225,8 +231,10 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: bool = True,
+        use_timestamp: bool = False,
     ) -> None:
-        self.process = ProcessDataEntry(freq, one_dim_target)
+        self.freq = to_offset(freq)
+        self.process = ProcessDataEntry(freq, one_dim_target, use_timestamp)
         self.list_data = list(data_iter)  # dataset always cached
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -265,11 +273,15 @@ class ProcessStartField(pydantic.BaseModel):
         arbitrary_types_allowed = True
 
     freq: Union[str, pd.DateOffset]
+    use_timestamp: bool = False
     name: str = FieldName.START
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            data[self.name] = pd.Period(data[self.name], self.freq)
+            if self.use_timestamp:
+                data[self.name] = pd.Timestamp(data[self.name])
+            else:
+                data[self.name] = pd.Period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
@@ -340,7 +352,12 @@ class ProcessTimeSeriesField:
 
 
 class ProcessDataEntry:
-    def __init__(self, freq: str, one_dim_target: bool = True) -> None:
+    def __init__(
+        self,
+        freq: str,
+        one_dim_target: bool = True,
+        use_timestamp: bool = False,
+    ) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
         # TODO: In addition to passing freq, the descriptor should be carry
@@ -348,7 +365,7 @@ class ProcessDataEntry:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessStartField(freq=freq),
+                ProcessStartField(freq=freq, use_timestamp=use_timestamp),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
                     FieldName.TARGET,
