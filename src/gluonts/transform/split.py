@@ -19,7 +19,6 @@ from pandas.tseries.offsets import BaseOffset
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.data.util import period_delta
 
 from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
