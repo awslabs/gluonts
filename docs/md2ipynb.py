@@ -11,10 +11,13 @@ def convert(path, timeout=40 * 60):
     with path.open() as in_file:
         notebook = notedown.MarkdownReader().read(in_file)
 
+    print(f"=== {path.name} ", end="")
+    sys.stdout.flush()
+
     start = time.time()
     notedown.run(notebook, timeout)
 
-    print(f"=== {path.name} finished evaluation in {time.time() - start} sec")
+    print(f"finished evaluation in {time.time() - start} sec")
 
     # need to add language info to for syntax highlight
     notebook["metadata"].update(language_info={"name": "python"})

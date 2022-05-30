@@ -313,6 +313,7 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
+
     class Config:
         arbitrary_types_allowed = True
 

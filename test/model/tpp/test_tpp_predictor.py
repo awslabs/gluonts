@@ -16,6 +16,7 @@ from typing import Tuple
 import mxnet as mx
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
 import pytest
 from mxnet import nd
 
@@ -89,6 +90,7 @@ def predictor_factory():
             input_transform=ContinuousTimeInstanceSplitter(
                 1,
                 5,
+                to_offset("H"),
                 ContinuousTimePredictionSampler(
                     allow_empty_interval=False, min_past=1
                 ),
@@ -125,5 +127,5 @@ def test_tpp_pred_dataset_2_shapes_ok(dataset_tuple, predictor_factory):
             == predictor.prediction_interval_length
         )
 
-        assert forecast.start_date == pd.Period("2011-01-01 03:00:00")
-        assert forecast.end_date == pd.Period("2011-01-01 08:00:00")
+        assert forecast.start_date == pd.Timestamp("2011-01-01 03:00:00")
+        assert forecast.end_date == pd.Timestamp("2011-01-01 08:00:00")
