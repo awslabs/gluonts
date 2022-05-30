@@ -107,7 +107,7 @@ from gluonts.mx import Trainer
 from gluonts.evaluation import Evaluator
 ```
 
-An example that tune the DeepAR estimator on elctricity dataset via Optuna. We choose two hyperparameters num_layers and hidden_size to optimize.
+An example that tune the DeepAR estimator on electricity dataset via Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
 
 Define an Objective class used in tuning process of Optuna.
 With `__init__` function, initialize the dataset, prediction_length, freq and metric_type(means what metric to be used to evaluate the DeepAREstimator).
