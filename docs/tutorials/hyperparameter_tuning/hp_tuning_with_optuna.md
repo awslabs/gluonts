@@ -110,12 +110,12 @@ from gluonts.evaluation import Evaluator
 An example that tune the DeepAR estimator on electricity dataset via Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
 
 Define an Objective class used in tuning process of Optuna.
-With `__init__` function, initialize the dataset, prediction_length, freq and metric_type(means what metric to be used to evaluate the DeepAREstimator).
-With `get_params` function, define what hyperparameters to be tuned within given range.
-With `split_entry` function, split each time series of the dataset into two part:
-- entry_past: the training part 
-- entry_future: the label part used in validation
-With `__call__` function, define the way DeepAREstimator is used in training and validation.
+The class can be configured with the dataset, prediction length and data frequency, and the metric to be used for evaluating the model.
+In the `get_params` method, we define what hyperparameters to be tuned within given range.
+In the `split_entry` method, we split each time series of the dataset into two part:
+- `entry_past`: the training part 
+- `entry_future`: the label part used in validation
+In the `__call__` method, we define the way the `DeepAREstimator` is used in training and validation.
 
 
 ```python
