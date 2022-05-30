@@ -122,8 +122,9 @@ class DeepAREstimator(PyTorchLightningEstimator):
         (default: None, in which case these are automatically determined
         based on freq).
     time_features
-        Time features to use as inputs of the RNN (default: None, in which
-        case these are automatically determined based on freq).
+        List of time features, from :py:mod:`gluonts.time_feature`, to use as
+        inputs of the RNN in addition to the provided data (default: None,
+        in which case these are automatically determined based on freq).
     num_parallel_samples
         Number of samples per time series to that the resulting predictor
         should produce (default: 100).
