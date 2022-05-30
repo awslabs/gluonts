@@ -189,16 +189,6 @@ class AbstractBaseSplitter(ABC):
             `max_history`. This can be used to produce smaller file-sizes.
     """
 
-    # @property
-    # @abstractmethod
-    # def prediction_length(self) -> int:
-    #     pass
-
-    # @property
-    # @abstractmethod
-    # def max_history(self) -> Optional[int]:
-    #     pass
-
     @abstractmethod
     def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
         pass
@@ -267,7 +257,23 @@ class AbstractBaseSplitter(ABC):
 
 class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
     """
-    Requires uniform data.
+    A splitter that slices training and test data based on a fixed integer
+    offset.
+
+    A positive offset indicates how many observations since the start of each
+    series should be in the training slice; a negative offset indicates how
+    many observations before the end of each series should be excluded from
+    the training slice.
+
+    Parameters
+    ----------
+    prediction_length
+        Length of the prediction interval in test data.
+    split_offset
+        Offset determining where the training data ends.
+    max_history
+        If given, all entries in the *test*-set have a max-length of
+        `max_history`. This can be used to produce smaller file-sizes.
     """
 
     prediction_length: int
@@ -281,11 +287,30 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
         self, item: TimeSeriesSlice, offset: int = 0
     ) -> TimeSeriesSlice:
         offset_ = self.split_offset + offset + self.prediction_length
-        assert offset_ <= len(item)
+        if self.split_offset < 0 and offset_ >= 0:
+            offset_ += len(item)
         return item[:offset_]
 
 
 class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
+    """
+    A splitter that slices training and test data based on a
+    ``pandas.Timestamp``.
+
+    Training entries obtained from this class will be limited to observations
+    up to (including) the given ``split_date``.
+
+    Parameters
+    ----------
+    prediction_length
+        Length of the prediction interval in test data.
+    split_date
+        Timestamp determining where the training data ends.
+    max_history
+        If given, all entries in the *test*-set have a max-length of
+        `max_history`. This can be used to produce smaller file-sizes.
+    """
+
     prediction_length: int
     split_date: pd.Timestamp
     max_history: Optional[int] = None
