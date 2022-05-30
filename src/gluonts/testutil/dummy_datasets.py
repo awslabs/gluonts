@@ -15,6 +15,7 @@ from random import randint
 from typing import List, Tuple
 
 import numpy as np
+import pandas as pd
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
