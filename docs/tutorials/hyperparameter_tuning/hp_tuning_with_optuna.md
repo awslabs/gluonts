@@ -2,6 +2,8 @@
 
 In this notebook we will see how to tune the hyperparameters of a GlutonTS model using Optuna. For this example, we are going to tune a PyTorch-based DeepAREstimator.
 
+**Note:** to keep the running time of this example short, here we consider a small-scale dataset, and tune only two hyperparameters over a very small number of tuning rounds ("trials"). In real applications, especially for larger datasets, you will probably need to increase the search space and increase the number of trials.
+
 ## Data loading and processing
 
 
@@ -125,6 +127,10 @@ class DeepARTuningObjective:
         self.prediction_length = prediction_length
         self.freq = freq
         self.metric_type = metric_type
+
+        entry_split = [self.split_entry(entry) for entry in self.dataset]
+        self.entry_pasts = [entry[0] for entry in entry_split]
+        self.entry_futures = [entry[1] for entry in entry_split]
     
     def get_params(self, trial) -> dict:
         return {
@@ -159,17 +165,14 @@ class DeepARTuningObjective:
             }
         )
         
-        entry_split = [self.split_entry(entry) for entry in self.dataset]
-        entry_pasts = [entry[0] for entry in entry_split]
-        entry_futures = [entry[1] for entry in entry_split]
         
-        predictor = estimator.train(entry_pasts, cache_data=True)
-        forecast_it = predictor.predict(entry_pasts)
+        predictor = estimator.train(self.entry_pasts, cache_data=True)
+        forecast_it = predictor.predict(self.entry_pasts)
         
         forecasts = list(forecast_it)
         
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-        agg_metrics, item_metrics = evaluator(entry_futures, forecasts, num_series=len(self.dataset))
+        agg_metrics, item_metrics = evaluator(self.entry_futures, forecasts, num_series=len(self.dataset))
         return agg_metrics[self.metric_type]
 ```
 
@@ -180,7 +183,7 @@ Implement the Optuna tuning process.
 import time
 start_time = time.time()
 study = optuna.create_study(direction="minimize")
-study.optimize(Objective(electricity_train_sub, dataset.metadata.prediction_length, dataset.metadata.freq),
+study.optimize(DeepARTuningObjective(electricity_train_sub, dataset.metadata.prediction_length, dataset.metadata.freq),
                n_trials=10)
 
 print("Number of finished trials: {}".format(len(study.trials)))
@@ -202,7 +205,7 @@ After getting the best hyperparameters by optuna,you can set them into the DeepA
 
 ## Training and predict
 
-Now We can begin with GulonTS's pre-built DeepAR estimator after tuning its hyperparameters by optuna. The next process consists of training a model, producing forecasts, and evaluating the results.
+Now we can retrain the model on the training data using the optimal hyperparameters. The next process consists of training the model, producing forecasts, and evaluating the results.
 
 
 ```python
