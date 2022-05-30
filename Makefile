@@ -38,7 +38,7 @@ docs: release
 		IPYNB_BASENAME=`echo $$BASENAME | sed 's/md/ipynb/'` ; \
 		TARGET_HTML="docs/_build/html/$$DIR/$$HTML_BASENAME" ; \
 		echo "processing" $$BASENAME ; \
-		sed -i "s/$$IPYNB_BASENAME/$$BASENAME/g" $$TARGET_HTML; \
+		sed -i "" "s/$$IPYNB_BASENAME/$$BASENAME/g" $$TARGET_HTML; \
 	done;
 	sed -i.bak 's/33\,150\,243/23\,141\,201/g' docs/_build/html/_static/material-design-lite-1.3.0/material.blue-deep_orange.min.css;
 
