@@ -71,6 +71,76 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class DeepAREstimator(PyTorchLightningEstimator):
+    """
+    Estimator class to train a DeepAR model, as described in [SFG17]_.
+
+    This class is uses the model defined in ``DeepARModel``, and wraps it
+    into a ``DeepARLightningModule`` for training purposes: training is
+    performed using PyTorch Lightning's ``pl.Trainer`` class.
+
+    *Note:* the code of this model is unrelated to the implementation behind
+    `SageMaker's DeepAR Forecasting Algorithm
+    <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict.
+    prediction_length
+        Length of the prediction horizon.
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length).
+    num_layers
+        Number of RNN layers (default: 2).
+    hidden_size
+        Number of RNN cells for each layer (default: 40).
+    dropout_rate
+        Dropout regularization parameter (default: 0.1).
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
+    num_feat_static_real
+        Number of static real features in the data (default: 0).
+    num_feat_static_cat
+        Number of static categorical features in the data (default: 0).
+    cardinality
+        Number of values of each categorical feature.
+        This must be set if ``num_feat_static_cat > 0`` (default: None).
+    embedding_dimension
+        Dimension of the embeddings for categorical features
+        (default: ``[min(50, (cat+1)//2) for cat in cardinality]``).
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: StudentTOutput()).
+    loss
+        Loss to be optimized during training
+        (default: ``NegativeLogLikelihood()``).
+    scaling
+        Whether to automatically scale the target values (default: true).
+    lags_seq
+        Indices of the lagged target values to use as inputs of the RNN
+        (default: None, in which case these are automatically determined
+        based on freq).
+    time_features
+        List of time features, from :py:mod:`gluonts.time_feature`, to use as
+        inputs of the RNN in addition to the provided data (default: None,
+        in which case these are automatically determined based on freq).
+    num_parallel_samples
+        Number of samples per time series to that the resulting predictor
+        should produce (default: 100).
+    batch_size
+        The size of the batches to be used for training (default: 32).
+    num_batches_per_epoch
+        Number of batches to be processed in each training epoch
+        (default: 50).
+    trainer_kwargs
+        Additional arguments to provide to ``pl.Trainer`` for construction.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
+    """
+
     @validated()
     def __init__(
         self,

@@ -57,6 +57,48 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
+    """
+    An estimator training a feedforward model for forecasting.
+
+    This class is uses the model defined in ``SimpleFeedForwardModel``,
+    and wraps it into a ``SimpleFeedForwardLightningModule`` for training
+    purposes: training is performed using PyTorch Lightning's ``pl.Trainer``
+    class.
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict.
+    prediction_length
+        Length of the prediction horizon.
+    context_length
+        Number of time steps prior to prediction time that the model
+        takes as inputs (default: ``10 * prediction_length``).
+    hidden_dimensions
+        Size of hidden layers in the feedforward network
+        (default: ``[20, 20]``).
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: StudentTOutput()).
+    loss
+        Loss to be optimized during training
+        (default: ``NegativeLogLikelihood()``).
+    batch_norm
+        Whether to apply batch normalization.
+    batch_size
+        The size of the batches to be used for training (default: 32).
+    num_batches_per_epoch
+        Number of batches to be processed in each training epoch
+            (default: 50).
+    trainer_kwargs
+        Additional arguments to provide to ``pl.Trainer`` for construction.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
+
+    """
+
     @validated()
     def __init__(
         self,
