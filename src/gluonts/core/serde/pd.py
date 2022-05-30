@@ -53,4 +53,5 @@ def encode_pd_baseoffset(v: BaseOffset) -> Any:
         "__kind__": Kind.Instance,
         "class": "pandas.tseries.frequencies.to_offset",
         "args": encode([v.freqstr]),
+        "kwargs": {},
     }
