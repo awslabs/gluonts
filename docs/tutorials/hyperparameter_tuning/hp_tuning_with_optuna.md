@@ -167,7 +167,6 @@ class DeepARTuningObjective:
         forecast_it = predictor.predict(entry_pasts)
         
         forecasts = list(forecast_it)
-        tss = list(entry_futures)
         
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
         agg_metrics, item_metrics = evaluator(entry_futures, forecasts, num_series=len(self.dataset))
