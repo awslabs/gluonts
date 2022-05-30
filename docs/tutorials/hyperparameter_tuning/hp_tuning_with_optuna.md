@@ -96,7 +96,7 @@ plt.show()
 print(f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}")
 ```
 
-## tuning parameters of DeepAR estimator
+## Tuning parameters of DeepAR estimator
 
 
 ```python
