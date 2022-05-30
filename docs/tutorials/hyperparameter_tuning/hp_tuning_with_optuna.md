@@ -170,7 +170,7 @@ class DeepARTuningObjective:
         tss = list(entry_futures)
         
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-        agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(self.dataset))
+        agg_metrics, item_metrics = evaluator(entry_futures, forecasts, num_series=len(self.dataset))
         return agg_metrics[self.metric_type]
 ```
 
