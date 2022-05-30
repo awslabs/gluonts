@@ -159,9 +159,9 @@ class DeepARTuningObjective:
             }
         )
         
-        entry_splited = [self.split_entry(entry) for entry in self.dataset]
-        entry_pasts = [entry[0] for entry in entry_splited]
-        entry_futures = [entry[1] for entry in entry_splited]
+        entry_split = [self.split_entry(entry) for entry in self.dataset]
+        entry_pasts = [entry[0] for entry in entry_split]
+        entry_futures = [entry[1] for entry in entry_split]
         
         predictor = estimator.train(entry_pasts, cache_data=True)
         forecast_it = predictor.predict(entry_pasts)
