@@ -257,7 +257,8 @@ class AbstractBaseSplitter(ABC):
 
 class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
     """
-    A splitter that slices training and test data based on an integer offset.
+    A splitter that slices training and test data based on a fixed integer
+    offset.
 
     A positive offset indicates how many observations since the start of each
     series should be in the training slice; a negative offset indicates how
