@@ -11,7 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import click
+try:
+    import click
+except ImportError:
+    import sys
+
+    print("`gluonts.info` requires `click` to be installed.", file=sys.stderr)
+    sys.exit(1)
 
 import gluonts
 
