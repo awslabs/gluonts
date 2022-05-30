@@ -274,6 +274,7 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
+
     prediction_length: int
     split_offset: int
     max_history: Optional[int] = None
@@ -292,7 +293,8 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
 
 class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     """
-    A splitter that slices training and test data based on a ``pandas.Timestamp``.
+    A splitter that slices training and test data based on a
+    ``pandas.Timestamp``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``split_date``.
