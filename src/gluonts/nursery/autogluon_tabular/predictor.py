@@ -85,8 +85,11 @@ def get_features_dataframe(
     all_data = (
         series
         if past_data is None
-        else past_data.append(series).asfreq(series.index.freq)
+        else past_data.append(series)
+        .resample(series.index.freq)
+        .asfreq(series.index.freq)
     )
+
     lag_columns = {
         f"lag_{idx}": all_data.shift(idx)[series.index].values
         for idx in lag_indices

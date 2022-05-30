@@ -229,7 +229,7 @@ def test_tabular_estimator(
 
     def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
-        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
+        start_timestamp = ts.index[-1] + 1
         assert f1.samples.shape == (1, prediction_length)
         assert f1.start_date == start_timestamp
         assert f2.samples.shape == (1, prediction_length)
