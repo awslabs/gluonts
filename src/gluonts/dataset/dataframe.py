@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -124,78 +125,33 @@ class DataFramesDataset(Dataset):
     def __len__(self) -> int:
         return len(self._dataframes)
 
+    @classmethod
+    def from_long_dataframe(
+        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+    ) -> DataFramesDataset:
+        """
+        This dataset uses the long format for each variable. Target time series
+        values, for example, are stacked on top of each other rather than
+        side-by-side. The same is true for other dynamic or categorical
+        features.
 
-@dataclass
-class LongDataFrameDataset(Dataset):
-    """
-    This dataset uses the long format for each variable. Target time series
-    values, for example, are stacked on top of each other rather than
-    side-by-side. The same is true for other dynamic or categorical features.
+        Parameters
+        ----------
+        dataframe: pandas.DataFrame
+            pandas.DataFrame containing at least ``timestamp``, ``target`` and
+            ``item_id`` columns.
+        item_id: str
+            Name of the column that, when grouped by, gives the different time
+            series.
+        **kwargs:
+            Addiional arguments. Same as of DataFramesDataset main class.
 
-    Parameters
-    ----------
-    dataframe: pandas.DataFrame
-        pandas.DataFrame containing at least ``timestamp``, ``target`` and
-        ``item_id`` columns.
-    target: str or List[str]
-        Name of the column that contains the ``target`` time series. For
-        multivariate targets ``target`` is expecting a list of column names.
-    timestamp: str
-        Name of the column that contains the timestamp information.
-    item_id: str
-        Name of the column that, when grouped by, gives the different time
-        series.
-    freq: str
-        Frequency of observations in the time series. Must be a valid pandas
-        frequency.
-    feat_dynamic_real: List[str]
-        List of column names that contain dynamic real features.
-    feat_dynamic_cat: List[str]
-        List of column names that contain dynamic categorical features.
-    feat_static_real: List[str]
-        List of column names that contain static real features.
-    feat_static_cat: List[str]
-        List of column names that contain static categorical features.
-    past_feat_dynamic_real: List[str]
-        List of column names that contain dynamic real features only for the
-        history.
-    ignore_last_n_targets: int
-        For target and past dynamic features last ``ignore_last_n_targets``
-        elements are removed when iterating over the data set. This becomes
-        important when the predictor is called.
-    """
-
-    dataframe: pd.DataFrame
-    item_id: str
-    target: Union[str, List[str]]
-    timestamp: str
-    freq: str
-    feat_dynamic_real: List[str] = field(default_factory=list)
-    feat_dynamic_cat: List[str] = field(default_factory=list)
-    feat_static_real: List[str] = field(default_factory=list)
-    feat_static_cat: List[str] = field(default_factory=list)
-    past_feat_dynamic_real: List[str] = field(default_factory=list)
-    ignore_last_n_targets: int = 0
-
-    def __post_init__(self) -> None:
-        self._dataset = DataFramesDataset(
-            dataframes=dict(list(self.dataframe.groupby(self.item_id))),
-            target=self.target,
-            timestamp=self.timestamp,
-            freq=self.freq,
-            feat_dynamic_real=self.feat_dynamic_real,
-            feat_dynamic_cat=self.feat_dynamic_cat,
-            feat_static_real=self.feat_static_real,
-            feat_static_cat=self.feat_static_cat,
-            past_feat_dynamic_real=self.past_feat_dynamic_real,
-            ignore_last_n_targets=self.ignore_last_n_targets,
-        )
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        yield from self._dataset
-
-    def __len__(self) -> int:
-        return len(self._dataset)
+        Returns
+        -------
+        DataFramesDataset
+            Gluonts dataset based on ``pandas.DataFrame``s.
+        """
+        return cls(dataframes=dict(list(dataframe.groupby(item_id))), **kwargs)
 
 
 def as_dataentry(

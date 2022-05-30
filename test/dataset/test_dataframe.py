@@ -34,7 +34,7 @@ def long_dataframe():
 
 @pytest.fixture
 def long_dataset(long_dataframe):  # initialized with dict
-    return dataframe.LongDataFrameDataset(
+    return dataframe.DataFramesDataset.from_long_dataframe(
         dataframe=long_dataframe,
         target="target",
         timestamp="time",
@@ -154,5 +154,4 @@ def test_check_timestamps():
     ],
 )
 def test_check_timestamps_fail(timestamps):
-    with pytest.raises(AssertionError):
-        assert dataframe.check_timestamps(timestamps, freq="2H")
+    assert not dataframe.check_timestamps(timestamps, freq="2H")
