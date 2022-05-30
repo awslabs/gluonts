@@ -318,6 +318,7 @@ plt.rcParams.update({'font.size': 15})
 
 for idx, (forecast, ts) in islice(enumerate(zip(forecasts_pytorch, tss_pytorch)), 9):
     ax = plt.subplot(3, 3, idx+1)
+    ts = ts.copy()
     ts.index = ts.index.to_timestamp()
 
     plt.plot(ts[-5 * prediction_length:], label="target")
