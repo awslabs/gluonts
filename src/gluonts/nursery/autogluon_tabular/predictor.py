@@ -140,14 +140,14 @@ class TabularPredictor(Predictor):
     def _to_forecast(
         self,
         ag_output: np.ndarray,
-        start_timestamp: pd.Timestamp,
+        start_timestamp: pd.Period,
         item_id=None,
     ) -> Forecast:
         if self.quantiles_to_predict:
             forecasts = ag_output.transpose()
             return QuantileForecast(
                 freq=self.freq,
-                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                start_date=start_timestamp,
                 item_id=item_id,
                 forecast_arrays=forecasts,
                 forecast_keys=self.forecast_keys,
@@ -156,7 +156,7 @@ class TabularPredictor(Predictor):
             samples = ag_output.reshape((1, self.prediction_length))
             return SampleForecast(
                 freq=self.freq,
-                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                start_date=start_timestamp,
                 item_id=item_id,
                 samples=samples,
             )
