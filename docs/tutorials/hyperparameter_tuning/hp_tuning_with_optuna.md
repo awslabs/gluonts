@@ -119,7 +119,7 @@ With `__call__` function, define the way DeepAREstimator is used in training and
 
 
 ```python
-class Objective:  
+class DeepARTuningObjective:  
     def __init__(self, dataset, prediction_length, freq, metric_type="mean_wQuantileLoss"):
         self.dataset = dataset
         self.prediction_length = prediction_length
