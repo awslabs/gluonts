@@ -32,7 +32,7 @@ def point_process_dataset():
         ],
         freq="H",
         one_dim_target=False,
-        use_timestamp=False,
+        use_timestamp=True,
     )
 
     return lds
@@ -68,7 +68,7 @@ def point_process_dataset_2():
         ],
         freq="H",
         one_dim_target=False,
-        use_timestamp=False,
+        use_timestamp=True,
     )
 
     return lds
