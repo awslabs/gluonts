@@ -171,8 +171,8 @@ class TabularPredictor(Predictor):
         for entry in dataset:
             series, scale = self.scaling(to_pandas(entry))
 
-            forecast_index = pd.date_range(
-                series.index[-1] + series.index.freq,
+            forecast_index = pd.period_range(
+                series.index[-1] + 1,
                 freq=series.index.freq,
                 periods=self.prediction_length,
             )
@@ -227,7 +227,7 @@ class TabularPredictor(Predictor):
             scales.append(scale)
             forecast_start = series.index[-1] + series.index.freq
             forecast_start_timestamps.append(forecast_start)
-            forecast_index = pd.date_range(
+            forecast_index = pd.period_range(
                 forecast_start,
                 freq=series.index.freq,
                 periods=self.prediction_length,
@@ -278,8 +278,8 @@ class TabularPredictor(Predictor):
             batch_series.append(series)
 
         batch_forecast_indices = [
-            pd.date_range(
-                series.index[-1] + series.index.freq,
+            pd.period_range(
+                series.index[-1] + 1,
                 freq=series.index.freq,
                 periods=self.prediction_length,
             )
