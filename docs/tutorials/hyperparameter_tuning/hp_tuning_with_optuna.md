@@ -2,6 +2,8 @@
 
 In this notebook we will see how to tune the hyperparameters of a GlutonTS model using Optuna. For this example, we are going to tune a PyTorch-based DeepAREstimator.
 
+**Note:** to keep the running time of this example short, here we consider a small-scale dataset, and tune only two hyperparameters over a very small number of tuning rounds ("trials"). In real applications, especially for larger datasets, you will probably need to increase the search space and increase the number of trials.
+
 ## Data loading and processing
 
 
