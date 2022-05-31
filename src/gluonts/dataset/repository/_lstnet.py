@@ -22,7 +22,6 @@ from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
-from gluonts.core.ty import unwrap
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
 
@@ -31,7 +30,7 @@ def load_from_pandas(
     time_index: pd.PeriodIndex,
     agg_freq: Optional[str] = None,
 ) -> List[pd.Series]:
-    df: pd.DataFrame = unwrap(df.set_index(time_index))
+    df: pd.DataFrame = df.set_index(time_index)
 
     pivot_df = df.transpose()
     pivot_df.head()
