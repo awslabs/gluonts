@@ -420,12 +420,24 @@ class AddAgeFeature(MapTransformation):
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         if data[FieldName.INDEX] is not None:
             length = len(data[FieldName.INDEX])
-            age = (
-                pd.TimedeltaIndex(
-                    data[FieldName.INDEX] - data[FieldName.INDEX][0]
-                ).values
-                / 1e10
-            ).astype(self.dtype)
+            components = pd.TimedeltaIndex(
+                data[FieldName.INDEX] - data[FieldName.INDEX][0]
+            ).components
+            base_freq = data[FieldName.START].freq
+            if base_freq == "ns":
+                age = components.nanoseconds.values.astype(self.dtype)
+            elif base_freq == "us":
+                age = components.microseconds.values.astype(self.dtype)
+            elif base_freq == "ms":
+                age = components.milliseconds.values.astype(self.dtype)
+            elif base_freq == "S":
+                age = components.seconds.values.astype(self.dtype)
+            elif base_freq == "min" or base_freq == "T":
+                age = components.minutes.values.astype(self.dtype)
+            elif base_freq == "H":
+                age = components.hours.values.astype(self.dtype)
+            else:
+                age = components.days.values.astype(self.dtype)
         else:
             length = target_transformation_length(
                 data[self.target_field], self.pred_length, is_train=is_train
