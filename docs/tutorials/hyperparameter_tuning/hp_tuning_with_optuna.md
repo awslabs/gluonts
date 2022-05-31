@@ -176,7 +176,7 @@ class DeepARTuningObjective:
         return agg_metrics[self.metric_type]
 ```
 
-Implement the Optuna tuning process.
+We can now invoke the Optuna tuning process.
 
 
 ```python
