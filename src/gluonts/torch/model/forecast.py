@@ -55,7 +55,7 @@ class DistributionForecast(Forecast):
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
-        index: Optional[pd.DatetimeIndex] = None,
+        index: Optional[Union[pd.DatetimeIndex, pd.PeriodIndex]] = None,
     ) -> None:
         self.distribution = distribution
         self.shape = distribution.batch_shape + distribution.event_shape
