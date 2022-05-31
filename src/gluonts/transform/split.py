@@ -14,6 +14,7 @@
 from typing import Iterator, List, Optional
 
 import numpy as np
+import pandas as pd
 from pandas.tseries.offsets import BaseOffset
 
 from gluonts.core.component import validated
@@ -161,8 +162,9 @@ class InstanceSplitter(FlatMapTransformation):
 
             d[self._past(self.is_pad_field)] = pad_indicator
             if FieldName.INDEX in d:
-                d[self.forecast_start_field] = pd.Timestamp(
-                    d[FieldName.INDEX][i + lt], freq=d[self.start_field].freq
+                d[self.forecast_start_field] = pd.Period(
+                    d[FieldName.INDEX][i + lt],
+                    freq=d[self.start_field].freq,
                 )
             else:
                 d[self.forecast_start_field] = d[self.start_field] + i + lt
