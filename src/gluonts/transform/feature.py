@@ -418,7 +418,7 @@ class AddAgeFeature(MapTransformation):
         self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        if data[FieldName.INDEX] is not None:
+        if FieldName.INDEX in data:
             length = len(data[FieldName.INDEX])
             components = pd.TimedeltaIndex(
                 data[FieldName.INDEX] - data[FieldName.INDEX][0]
@@ -527,7 +527,7 @@ class AddAggregateLags(MapTransformation):
             )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        assert self.base_freq == data["start"].freq
+        assert self.base_freq == data[FieldName.START].freq
 
         # convert to pandas Series for easier indexing and aggregation
         if is_train:
