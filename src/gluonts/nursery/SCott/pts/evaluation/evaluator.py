@@ -456,7 +456,7 @@ class Evaluator:
         forecast: np.ndarray,
         past_data: np.ndarray,
         seasonal_error: float,
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
     ) -> float:
         r"""
         .. math::

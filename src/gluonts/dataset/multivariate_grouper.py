@@ -21,9 +21,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
-OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
-LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)
-
 
 class MultivariateGrouper:
     """
@@ -81,8 +78,8 @@ class MultivariateGrouper:
         self.train_fill_function = train_fill_rule
         self.test_fill_rule = test_fill_rule
 
-        self.first_timestamp = LATEST_SUPPORTED_TIMESTAMP
-        self.last_timestamp = OLDEST_SUPPORTED_TIMESTAMP
+        self.first_timestamp = None
+        self.last_timestamp = None
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
@@ -99,12 +96,23 @@ class MultivariateGrouper:
         """
         for data in dataset:
             timestamp = data[FieldName.START]
+
+            if self.first_timestamp is None:
+                self.first_timestamp = timestamp
+
+            if self.last_timestamp is None:
+                self.last_timestamp = timestamp
+
+            assert self.first_timestamp is not None
+            assert self.last_timestamp is not None
+
             self.first_timestamp = min(self.first_timestamp, timestamp)
             self.last_timestamp = max(
                 self.last_timestamp,
-                timestamp + (len(data[FieldName.TARGET]) - 1) * timestamp.freq,
+                timestamp + len(data[FieldName.TARGET]) - 1,
             )
             self.frequency = timestamp.freq
+
         logging.info(
             "first/last timestamp found: "
             f"{self.first_timestamp}/{self.last_timestamp}"
@@ -159,7 +167,7 @@ class MultivariateGrouper:
     def _align_data_entry(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=self.last_timestamp,
                 freq=data[FieldName.START].freq,
@@ -170,7 +178,7 @@ class MultivariateGrouper:
     def _left_pad_data(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=ts.index[-1],
                 freq=data[FieldName.START].freq,
@@ -210,7 +218,7 @@ class MultivariateGrouper:
     def to_ts(data: DataEntry) -> pd.Series:
         return pd.Series(
             data[FieldName.TARGET],
-            index=pd.date_range(
+            index=pd.period_range(
                 start=data[FieldName.START],
                 periods=len(data[FieldName.TARGET]),
                 freq=data[FieldName.START].freq,

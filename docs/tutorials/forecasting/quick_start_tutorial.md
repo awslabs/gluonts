@@ -83,7 +83,7 @@ print(f"Frequency of the time series: {dataset.metadata.freq}")
 
 ### Custom datasets
 
-At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Timestamp` (possibly different for each time series):
+At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Period` (possibly different for each time series):
 
 
 ```python
@@ -92,7 +92,7 @@ T = 100  # number of timesteps
 prediction_length = 24
 freq = "1H"
 custom_dataset = np.random.normal(size=(N, T))
-start = pd.Timestamp("01-01-2019", freq=freq)  # can be different for each time series
+start = pd.Period("01-01-2019", freq=freq)  # can be different for each time series
 ```
 
 Now, you can split your dataset and bring it in a GluonTS appropriate format with just two lines of code:

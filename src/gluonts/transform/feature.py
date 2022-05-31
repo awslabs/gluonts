@@ -22,7 +22,6 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
 
 from ._base import MapTransformation, SimpleTransformation
-from .split import shift_timestamp
 
 
 def target_transformation_length(
@@ -350,66 +349,24 @@ class AddTimeFeatures(MapTransformation):
         self.start_field = start_field
         self.target_field = target_field
         self.output_field = output_field
-        self._freq_base: Optional[pd.offsets.DateOffset] = None
-        self._min_time_point: Optional[pd.Timestamp] = None
-        self._max_time_point: Optional[pd.Timestamp] = None
-        self._full_range_date_features: Optional[np.ndarray] = None
-        self._date_index: Optional[pd.DatetimeIndex] = None
         self.dtype = dtype
 
-    def _update_cache(self, start: pd.Timestamp, length: int) -> None:
-        assert self._freq_base is None or self._freq_base == start.freq.base, (
-            f"data with base frequency other than {self._freq_base} cannot be"
-            f" processed; got {start.freq.base}"
-        )
-        if self._freq_base is None:
-            self._freq_base = start.freq.base
-        end = shift_timestamp(start, length)
-        if self._min_time_point is not None:
-            if self._min_time_point <= start and end <= self._max_time_point:
-                return
-        if self._min_time_point is None:
-            self._min_time_point = start
-            self._max_time_point = end
-        self._min_time_point = min(
-            shift_timestamp(start, -50), self._min_time_point
-        )
-        self._max_time_point = max(
-            shift_timestamp(end, 50), self._max_time_point
-        )
-        self.full_date_range = pd.date_range(
-            self._min_time_point, self._max_time_point, freq=self._freq_base
-        )
-        self._full_range_date_features = (
-            np.vstack(
-                [feat(self.full_date_range) for feat in self.date_features]
-            ).astype(self.dtype)
-            if self.date_features
-            else None
-        )
-        self._date_index = pd.Series(
-            index=self.full_date_range,
-            data=np.arange(len(self.full_date_range)),
-        )
-
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        if not self.date_features:
+            data[self.output_field] = None
+            return data
+
         start = data[self.start_field]
         length = target_transformation_length(
             data[self.target_field], self.pred_length, is_train=is_train
         )
-        self._update_cache(start, length)
 
-        assert self._date_index is not None
+        index = pd.period_range(start, periods=length, freq=start.freq)
 
-        i0 = self._date_index[start]
-        features = (
-            self._full_range_date_features[
-                ..., i0 : i0 + length * start.freq.n : start.freq.n
-            ]
-            if self._full_range_date_features is not None
-            else None
-        )
-        data[self.output_field] = features
+        data[self.output_field] = np.vstack(
+            [feat(index) for feat in self.date_features]
+        ).astype(self.dtype)
+
         return data
 
 
