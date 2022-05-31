@@ -201,7 +201,7 @@ print(time.time() - start_time)
 
 # Training deepar estimator
 
-After getting the best hyperparameters by optuna,you can set them into the DeepAR estimator to realize the prediction of electricity dataset.
+After getting the best hyperparameters by optuna, you can set them into the DeepAR estimator to realize the prediction of electricity dataset.
 
 ## Training and predict
 
