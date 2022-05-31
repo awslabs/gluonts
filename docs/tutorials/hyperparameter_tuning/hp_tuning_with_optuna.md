@@ -53,14 +53,6 @@ electricity_test_sub = list(islice(dataset.test, 15))
 
 
 ```python
-for train_series in electricity_train_sub:
-    train_series['target'] = train_series['target'][:2400]
-for test_series in electricity_test_sub:
-    test_series['target'] = test_series['target'][:2424]
-```
-
-
-```python
 print(electricity_train_sub)
 ```
 
