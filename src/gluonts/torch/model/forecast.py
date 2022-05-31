@@ -51,7 +51,7 @@ class DistributionForecast(Forecast):
     def __init__(
         self,
         distribution: Distribution,
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
@@ -63,8 +63,8 @@ class DistributionForecast(Forecast):
         self.info = info
 
         assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"

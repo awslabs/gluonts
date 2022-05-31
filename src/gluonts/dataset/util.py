@@ -21,6 +21,7 @@ from typing import (
     NamedTuple,
     Tuple,
     TypeVar,
+    Optional,
 )
 
 from gluonts.dataset.field_names import FieldName
@@ -29,12 +30,8 @@ import pandas as pd
 T = TypeVar("T")
 
 
-def frequency_add(ts: pd.Timestamp, amount: int) -> pd.Timestamp:
-    return ts + ts.freq * amount
-
-
 def forecast_start(entry):
-    return frequency_add(entry["start"], len(entry["target"]))
+    return entry["start"] + len(entry["target"])
 
 
 class MPWorkerInfo:
@@ -116,7 +113,7 @@ def find_files(
     return sorted(chosen)
 
 
-def to_pandas(instance: dict, freq: str = None) -> pd.Series:
+def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
     """
     Transform a dictionary into a pandas.Series object, using its "start" and
     "target" fields.
@@ -137,8 +134,11 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     start = instance[FieldName.START]
     if not freq:
         freq = start.freqstr
-    index = pd.date_range(start=start, periods=len(target), freq=freq)
-    return pd.Series(target, index=index)
+
+    return pd.Series(
+        target,
+        index=pd.period_range(start=start, periods=len(target), freq=freq),
+    )
 
 
 def dct_reduce(reduce_fn, dcts):

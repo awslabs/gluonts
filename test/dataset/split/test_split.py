@@ -21,7 +21,7 @@ from gluonts.dataset.split.splitter import TimeSeriesSlice
 
 
 def make_series(data, start="2020", freq="D"):
-    index = pd.date_range(start=start, freq=freq, periods=len(data))
+    index = pd.period_range(start=start, freq=freq, periods=len(data))
     return pd.Series(data, index=index)
 
 
@@ -44,7 +44,7 @@ def test_splitter():
     prediction_length = dataset.metadata.prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Timestamp("1750-01-05 04:00:00"),
+        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
     )
     train, validation = splitter.split(dataset.train)
     assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
@@ -69,7 +69,7 @@ def test_splitter():
     max_history = 2 * prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Timestamp("1750-01-05 04:00:00"),
+        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
         max_history=max_history,
     )
     train, validation = splitter.split(dataset.train)
@@ -82,7 +82,7 @@ def test_splitter():
 
 def test_split_mult_freq():
     splitter = DateSplitter(
-        prediction_length=1, split_date=pd.Timestamp("2021-01-01")
+        prediction_length=1, split_date=pd.Period("2021-01-01", "2h")
     )
 
     splitter.split(
@@ -90,7 +90,7 @@ def test_split_mult_freq():
             {
                 "item_id": "1",
                 "target": pd.Series([0, 1, 2]),
-                "start": pd.Timestamp("2021-01-01", freq="2H"),
+                "start": pd.Period("2021-01-01", freq="2H"),
             }
         ]
     )

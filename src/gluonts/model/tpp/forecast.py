@@ -45,7 +45,7 @@ class PointProcessSampleForecast(Forecast):
         that only the first two entries of :code:`samples[0, ...]` are
         valid "points".
     start_date
-        Starting timestamp of the sample
+        Starting Timestamp of the sample
     freq
         The time unit of interarrival times
     prediction_interval_length

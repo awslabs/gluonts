@@ -102,8 +102,8 @@ def test_invalid_rolling_parameters(prediction_length, unique):
     try:
         generate_rolling_dataset(
             dataset=generate_dataset("constant"),
-            start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
-            end_time=pd.Timestamp("2000-01-02-00", freq="1H"),
+            start_time=pd.Period("2000-01-01-20", freq="1H"),
+            end_time=pd.Period("2000-01-02-00", freq="1H"),
             strategy=StepStrategy(
                 step_size=prediction_length if unique else 1,
                 prediction_length=prediction_length,
@@ -243,10 +243,8 @@ def test_step_strategy(
 ):
     rolled_ds = generate_rolling_dataset(
         dataset=generate_dataset(ds_name),
-        start_time=pd.Timestamp("2000-01-01-20", freq="1H"),
-        end_time=None
-        if ignore_end
-        else pd.Timestamp("2000-01-02-00", freq="1H"),
+        start_time=pd.Period("2000-01-01-20", freq="1H"),
+        end_time=None if ignore_end else pd.Period("2000-01-02-00", freq="1H"),
         strategy=StepStrategy(
             step_size=prediction_length if unique else 1,
             prediction_length=prediction_length,
@@ -304,7 +302,7 @@ def test_dynamic_features(
             target_start, test_length, num_dynamic_feat
         ),
         strategy=StepStrategy(prediction_length=prediction_length),
-        start_time=pd.Timestamp(rolling_start),
+        start_time=pd.Period(rolling_start),
     )
 
     for timeseries in rolled_ds:

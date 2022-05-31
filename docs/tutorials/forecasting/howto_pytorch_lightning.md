@@ -37,9 +37,9 @@ date_formater = mdates.DateFormatter('%Y')
 fig = plt.figure(figsize=(12,8))
 for idx, entry in enumerate(islice(dataset.train, 9)):
     ax = plt.subplot(3, 3, idx+1)
-    t = pd.date_range(start=entry["start"], periods=len(entry["target"]), freq=entry["start"].freq)
+    t = pd.date_range(start=entry["start"].to_timestamp(), periods=len(entry["target"]), freq=dataset.train.freq)
     plt.plot(t, entry["target"])
-    plt.xticks(pd.date_range(start=pd.to_datetime("2011-12-31"), periods=3, freq="AS"))
+    plt.xticks(pd.date_range(start="2011-12-31", periods=3, freq="AS"))
     ax.xaxis.set_major_formatter(date_formater)
 ```
 
@@ -318,7 +318,9 @@ plt.rcParams.update({'font.size': 15})
 
 for idx, (forecast, ts) in islice(enumerate(zip(forecasts_pytorch, tss_pytorch)), 9):
     ax = plt.subplot(3, 3, idx+1)
-    
+    ts = ts.copy()
+    ts.index = ts.index.to_timestamp()
+
     plt.plot(ts[-5 * prediction_length:], label="target")
     forecast.plot()
     plt.xticks(rotation=60)

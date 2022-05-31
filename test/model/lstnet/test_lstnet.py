@@ -109,8 +109,8 @@ def test_lstnet(
         )
         assert (
             fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
+            == pd.period_range(
+                start=test_ds["start"],
                 periods=test_ds["target"].shape[1],  # number of test periods
                 freq=freq,
             )[-prediction_length]

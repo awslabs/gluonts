@@ -45,7 +45,7 @@ class RotbaumForecast(Forecast):
         self,
         models: List,
         featurized_data: List,
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
         freq,
         prediction_length: int,
     ):
