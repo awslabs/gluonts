@@ -418,14 +418,22 @@ class AddAgeFeature(MapTransformation):
         self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        length = target_transformation_length(
-            data[self.target_field], self.pred_length, is_train=is_train
-        )
+        if data[FieldName.INDEX] is not None:
+            length = len(data[FieldName.INDEX])
+            age = (
+                pd.TimedeltaIndex(
+                    data[FieldName.INDEX] - data[FieldName.INDEX][0]
+                ).values
+                / 1e10
+            ).astype(self.dtype)
+        else:
+            length = target_transformation_length(
+                data[self.target_field], self.pred_length, is_train=is_train
+            )
+            age = np.arange(length, dtype=self.dtype)
 
         if self.log_scale:
-            age = np.log10(2.0 + np.arange(length, dtype=self.dtype))
-        else:
-            age = np.arange(length, dtype=self.dtype)
+            age = np.log10(2.0 + age)
 
         data[self.feature_name] = age.reshape((1, length))
 
