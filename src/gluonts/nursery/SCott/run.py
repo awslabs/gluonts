@@ -9,15 +9,15 @@ from pts.model.deepar import DeepAREstimator
 from pts.model.lstnet import LSTNetEstimator
 from pts.model.n_beats import NBEATSEstimator
 
-from . model.lstm import LSTMEstimator
-from . model.ar import AREstimator
-from . trainers.SGD import SGD
-from . trainers.SCott import SCott
-from . trainers.Adam import Adam
-from . trainers.Adagrad import Adagrad
-from . trainers.SAdam import SAdam
-from . trainers.SAdagrad import SAdagrad
-from . trainers.SCSG import SCSG
+from .model.lstm import LSTMEstimator
+from .model.ar import AREstimator
+from .trainers.SGD import SGD
+from .trainers.SCott import SCott
+from .trainers.Adam import Adam
+from .trainers.Adagrad import Adagrad
+from .trainers.SAdam import SAdam
+from .trainers.SAdagrad import SAdagrad
+from .trainers.SCSG import SCSG
 
 
 parser = argparse.ArgumentParser(
