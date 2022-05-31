@@ -142,13 +142,20 @@ class DeepARTuningObjective:
         entry_past = {}
         for key, value in entry.items():
             if key == "target":
-                entry_past[key] = value[: len(value) - self.prediction_length]
+                entry_past[key] = value[: -self.prediction_length]
             else:
                 entry_past[key] = value
 
-        df = pd.DataFrame(entry['target'], columns=[entry['item_id']])
-        df = df.set_index(pd.date_range(start=entry['start'], 
-                                        periods=len(entry['target']), freq=self.freq))
+        df = pd.DataFrame(
+            entry['target'],
+            columns=[entry['item_id']],
+            index=pd.period_range(
+                start=entry['start'],
+                periods=len(entry['target']),
+                freq=self.freq
+            )
+        )
+
         return entry_past, df[-self.prediction_length:]
      
     def __call__(self, trial):
