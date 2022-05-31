@@ -40,6 +40,7 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
         role-session-name: docs-push
+        aws-region: us-east-1
 
     - name: Publish docs
       if: ${{ github.event_name == 'push' }}
