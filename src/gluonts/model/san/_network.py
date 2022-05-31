@@ -95,6 +95,7 @@ class SelfAttentionNetwork(HybridBlock):
         n_head: int,
         n_layers: int,
         n_output: int,
+        use_covariates: bool,
         cardinalities: List[int],
         kernel_sizes: Optional[List[int]],
         dist_enc: Optional[str],
@@ -143,13 +144,14 @@ class SelfAttentionNetwork(HybridBlock):
                 weight_initializer=init.Xavier(),
                 prefix="target_proj_",
             )
-            self.covar_proj = nn.Dense(
-                units=self.d_hidden,
-                use_bias=True,
-                flatten=False,
-                weight_initializer=init.Xavier(),
-                prefix="covar_proj_",
-            )
+            if use_covariates:
+                self.covar_proj = nn.Dense(
+                    units=self.d_hidden,
+                    use_bias=True,
+                    flatten=False,
+                    weight_initializer=init.Xavier(),
+                    prefix="covar_proj_",
+                )
             if cardinalities:
                 self.embedder = FeatureEmbedder(
                     cardinalities=cardinalities,
@@ -160,19 +162,73 @@ class SelfAttentionNetwork(HybridBlock):
             self.output_proj = self.output.get_quantile_proj()
             self.loss = self.output.get_loss()
 
+    def _assemble_covariates(
+        self,
+        F,
+        is_past: bool,
+        feat_dynamic_real: Optional[Tensor] = None,
+        feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
+    ) -> Optional[Tensor]:
+        covariates = []
+        if feat_dynamic_real:
+            covariates.append(feat_dynamic_real)
+        if feat_static_real:
+            covariates.append(
+                feat_static_real.expand_dims(axis=1).repeat(
+                    axis=1,
+                    repeats=self.context_length
+                    if is_past
+                    else self.prediction_length,
+                )
+            )
+        if len(covariates) > 0:
+            covariates = F.concat(*covariates, dim=-1)
+            covariates = self.covar_proj(covariates)
+        else:
+            covariates = None
+
+        categories = []
+        if feat_dynamic_cat:
+            categories.append(feat_dynamic_cat)
+        if feat_static_cat:
+            categories.append(
+                feat_static_cat.expand_dims(axis=1).repeat(
+                    axis=1,
+                    repeats=self.context_length
+                    if is_past
+                    else self.prediction_length,
+                )
+            )
+        if len(categories) > 0:
+            categories = F.concat(*categories, dim=-1)
+            embeddings = self.embedder(categories)
+            embeddings = F.reshape(
+                embeddings, shape=(0, 0, -4, self.d_hidden, -1)
+            ).sum(axis=-1)
+            if covariates is not None:
+                covariates = covariates + embeddings
+            else:
+                covariates = embeddings
+        else:
+            pass
+
+        return covariates if covariates else None
+
     def _preprocess(
         self,
         F,
         past_target: Tensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        past_feat_dynamic_real: Tensor,
-        past_feat_dynamic_cat: Tensor,
-        future_target: Tensor,
-        future_feat_dynamic_real: Tensor,
-        future_feat_dynamic_cat: Tensor,
-        feat_static_real: Tensor,
-        feat_static_cat: Tensor,
+        past_feat_dynamic_real: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_target: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
     ) -> Tuple[
         Tensor,
         Optional[Tensor],
@@ -193,77 +249,30 @@ class SelfAttentionNetwork(HybridBlock):
         scale = scale - offset**2
         scale = scale.sqrt()
 
-        past_target = (past_target - offset) / (scale + self.normalizer_eps)
+        past_target = F.broadcast_div(
+            F.broadcast_minus(past_target, offset), scale + self.normalizer_eps
+        )
         if future_target is not None:
-            future_target = (future_target - offset) / (
-                scale + self.normalizer_eps
+            future_target = F.broadcast_div(
+                F.broadcast_minus(future_target, offset),
+                scale + self.normalizer_eps,
             )
 
-        def _assemble_covariates(
-            feat_dynamic_real: Tensor,
-            feat_dynamic_cat: Tensor,
-            feat_static_real: Tensor,
-            feat_static_cat: Tensor,
-            is_past: bool,
-        ) -> Tensor:
-            covariates = []
-            if feat_dynamic_real.shape[-1] > 0:
-                covariates.append(feat_dynamic_real)
-            if feat_static_real.shape[-1] > 0:
-                covariates.append(
-                    feat_static_real.expand_dims(axis=1).repeat(
-                        axis=1,
-                        repeats=self.context_length
-                        if is_past
-                        else self.prediction_length,
-                    )
-                )
-            if len(covariates) > 0:
-                covariates = F.concat(*covariates, dim=-1)
-                covariates = self.covar_proj(covariates)
-            else:
-                covariates = None
-
-            categories = []
-            if feat_dynamic_cat.shape[-1] > 0:
-                categories.append(feat_dynamic_cat)
-            if feat_static_cat.shape[-1] > 0:
-                categories.append(
-                    feat_static_cat.expand_dims(axis=1).repeat(
-                        axis=1,
-                        repeats=self.context_length
-                        if is_past
-                        else self.prediction_length,
-                    )
-                )
-            if len(categories) > 0:
-                categories = F.concat(*categories, dim=-1)
-                embeddings = self.embedder(categories)
-                embeddings = F.reshape(
-                    embeddings, shape=(0, 0, -4, self.d_hidden, -1)
-                ).sum(axis=-1)
-                if covariates is not None:
-                    covariates = covariates + embeddings
-                else:
-                    covariates = embeddings
-            else:
-                pass
-
-            return covariates
-
-        past_covariates = _assemble_covariates(
-            past_feat_dynamic_real,
-            past_feat_dynamic_cat,
-            feat_static_real,
-            feat_static_cat,
+        past_covariates = self._assemble_covariates(
+            F,
             is_past=True,
+            feat_dynamic_real=past_feat_dynamic_real,
+            feat_dynamic_cat=past_feat_dynamic_cat,
+            feat_static_real=feat_static_real,
+            feat_static_cat=feat_static_cat,
         )
-        future_covariates = _assemble_covariates(
-            future_feat_dynamic_real,
-            future_feat_dynamic_cat,
-            feat_static_real,
-            feat_static_cat,
+        future_covariates = self._assemble_covariates(
+            F,
             is_past=False,
+            feat_dynamic_real=future_feat_dynamic_real,
+            feat_dynamic_cat=future_feat_dynamic_cat,
+            feat_static_real=feat_static_real,
+            feat_static_cat=feat_static_cat,
         )
         past_observed_values = F.broadcast_logical_and(
             past_observed_values,
@@ -285,7 +294,9 @@ class SelfAttentionNetwork(HybridBlock):
     ) -> Tensor:
         offset = F.expand_dims(offset, axis=-1)
         scale = F.expand_dims(scale, axis=-1)
-        preds = preds * (scale + self.normalizer_eps) + offset
+        preds = F.broadcast_add(
+            F.broadcast_mul(preds, scale + self.normalizer_eps), offset
+        )
         return preds
 
     def _forward_step(
@@ -317,12 +328,12 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
         past_is_pad: Tensor,
         future_target: Tensor,
         future_observed_values: Tensor,
-        past_feat_dynamic_real: Tensor,
-        past_feat_dynamic_cat: Tensor,
-        future_feat_dynamic_real: Tensor,
-        future_feat_dynamic_cat: Tensor,
-        feat_static_real: Tensor,
-        feat_static_cat: Tensor,
+        past_feat_dynamic_real: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
     ) -> Tensor:
         (
             past_target,
@@ -346,14 +357,18 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
             feat_static_cat,
         )
 
+        covars = None
+
         target = F.concat(past_target, future_target, dim=1)
-        covars = F.concat(past_covariates, future_covariates, dim=1)
+        if past_covariates is not None:
+            covars = F.concat(past_covariates, future_covariates, dim=1)
         observed_values = F.concat(
             past_observed_values, future_observed_values, dim=1
         )
 
         target = F.slice_axis(target, axis=1, begin=0, end=-1)
-        covars = F.slice_axis(covars, axis=1, begin=0, end=-1)
+        if covars is not None:
+            covars = F.slice_axis(covars, axis=1, begin=0, end=-1)
         observed_values = F.slice_axis(
             observed_values, axis=1, begin=0, end=-1
         )
@@ -362,7 +377,9 @@ class SelfAttentionTrainingNetwork(SelfAttentionNetwork):
             F, self.prediction_length, target, covars, observed_values
         )
         preds = self._postprocess(F, preds, offset, scale)
-        future_target = future_target * (scale + self.normalizer_eps) + offset
+        future_target = F.broadcast_add(
+            F.broadcast_mul(future_target, scale + self.normalizer_eps), offset
+        )
         loss = self.loss(future_target, preds)
         loss = weighted_average(F, loss, future_observed_values)
         return loss.mean()
@@ -375,12 +392,12 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
         past_target: Tensor,
         past_observed_values: Tensor,
         past_is_pad: Tensor,
-        past_feat_dynamic_real: Tensor,
-        past_feat_dynamic_cat: Tensor,
-        future_feat_dynamic_real: Tensor,
-        future_feat_dynamic_cat: Tensor,
-        feat_static_real: Tensor,
-        feat_static_cat: Tensor,
+        past_feat_dynamic_real: Optional[Tensor] = None,
+        past_feat_dynamic_cat: Optional[Tensor] = None,
+        future_feat_dynamic_real: Optional[Tensor] = None,
+        future_feat_dynamic_cat: Optional[Tensor] = None,
+        feat_static_real: Optional[Tensor] = None,
+        feat_static_cat: Optional[Tensor] = None,
     ) -> Tensor:
         (
             past_target,
@@ -416,13 +433,13 @@ class SelfAttentionPredictionNetwork(SelfAttentionNetwork):
             preds.append(forecast)
             next_target = F.slice_axis(forecast, axis=-1, begin=0, end=1)
             next_target = F.squeeze(next_target, axis=-1)
-            next_covars = F.slice_axis(
-                future_covariates, axis=1, begin=step, end=step + 1
-            )
-            next_observed_value = F.ones_like(next_target)
-
             target = F.concat(target, next_target, dim=1)
-            covars = F.concat(covars, next_covars, dim=1)
+            if covars:
+                next_covars = F.slice_axis(
+                    future_covariates, axis=1, begin=step, end=step + 1
+                )
+                covars = F.concat(covars, next_covars, dim=1)
+            next_observed_value = F.ones_like(next_target)
             observed_values = F.concat(
                 observed_values, next_observed_value, dim=1
             )

@@ -299,6 +299,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
+        input_names: Optional[List] = None,
         lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
@@ -306,8 +307,10 @@ class RepresentableBlockPredictor(GluonPredictor):
         ] = None,
         dtype: Type = np.float32,
     ) -> None:
+        if input_names is None:
+            input_names = get_hybrid_forward_input_names(type(prediction_net))
         super().__init__(
-            input_names=get_hybrid_forward_input_names(type(prediction_net)),
+            input_names=input_names,
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,
