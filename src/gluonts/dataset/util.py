@@ -14,7 +14,15 @@ import logging
 import multiprocessing
 import os
 from pathlib import Path
-from typing import Callable, Iterator, List, NamedTuple, Tuple, TypeVar
+from typing import (
+    Callable,
+    Iterator,
+    List,
+    NamedTuple,
+    Tuple,
+    TypeVar,
+    Optional,
+)
 
 import pandas as pd
 
@@ -23,12 +31,8 @@ from gluonts.dataset.field_names import FieldName
 T = TypeVar("T")
 
 
-def frequency_add(ts: pd.Timestamp, amount: int) -> pd.Timestamp:
-    return ts + ts.freq * amount
-
-
 def forecast_start(entry):
-    return frequency_add(entry["start"], len(entry["target"]))
+    return entry["start"] + len(entry["target"])
 
 
 class MPWorkerInfo:
@@ -110,7 +114,7 @@ def find_files(
     return sorted(chosen)
 
 
-def to_pandas(instance: dict, freq: str = None) -> pd.Series:
+def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
     """
     Transform a dictionary into a pandas.Series object, using its "start" and
     "target" fields.
@@ -135,7 +139,7 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     else:
         if not freq:
             freq = start.freqstr
-        index = pd.date_range(start=start, periods=len(target), freq=freq)
+        index = pd.period_range(start=start, periods=len(target), freq=freq)
 
     return pd.Series(target, index=index)
 

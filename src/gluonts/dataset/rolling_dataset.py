@@ -121,8 +121,8 @@ def truncate_features(timeseries: dict, max_len: int) -> dict:
 def generate_rolling_dataset(
     dataset: Dataset,
     strategy,
-    start_time: pd.Timestamp,
-    end_time: Optional[pd.Timestamp] = None,
+    start_time: pd.Period,
+    end_time: Optional[pd.Period] = None,
 ) -> Dataset:
     """
     Returns an augmented version of the input dataset where each timeseries has
@@ -140,7 +140,7 @@ def generate_rolling_dataset(
 
     >>> ds = [{
     ...     "target": np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]),
-    ...     "start": pd.Timestamp('2000-1-1-01', freq='1H')
+    ...     "start": pd.Period('2000-1-1-01', freq='1H')
     ... }]
 
     applying generate_rolling_dataset on this dataset like:
@@ -148,8 +148,8 @@ def generate_rolling_dataset(
     >>> rolled = generate_rolling_dataset(
     ...     dataset=ds,
     ...     strategy = StepStrategy(prediction_length=2),
-    ...     start_time = pd.Timestamp('2000-1-1-06', '1H'),
-    ...     end_time = pd.Timestamp('2000-1-1-10', '1H')
+    ...     start_time = pd.Period('2000-1-1-06', '1H'),
+    ...     end_time = pd.Period('2000-1-1-10', '1H')
     ... )
 
     Results in a new dataset as follows (only target values shown for brevity):
@@ -216,7 +216,7 @@ def generate_rolling_dataset(
         The augmented dataset
     """
     assert dataset, "a dataset to perform rolling evaluation on is needed"
-    assert start_time, "a pandas Timestamp object is needed for the start time"
+    assert start_time, "a pandas Period object is needed for the start time"
     assert strategy, """a strategy to use when rolling is needed, for example
         gluonts.dataset.rolling_dataset.StepStrategy"""
     if end_time:

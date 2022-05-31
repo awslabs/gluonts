@@ -11,52 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from functools import lru_cache
 from typing import Iterator, List, Optional
 
 import numpy as np
-import pandas as pd
+from pandas.tseries.offsets import BaseOffset
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.exceptions import GluonTSDateBoundsError
 
 from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
-
-
-def shift_timestamp(ts: pd.Timestamp, offset: int) -> pd.Timestamp:
-    """
-    Computes a shifted timestamp.
-
-    Basic wrapping around pandas ``ts + offset`` with caching and exception
-    handling.
-    """
-    return _shift_timestamp_helper(ts, ts.freq, offset)
-
-
-@lru_cache(maxsize=10000)
-def _shift_timestamp_helper(
-    ts: pd.Timestamp, freq: str, offset: int
-) -> pd.Timestamp:
-    """
-    We are using this helper function which explicitly uses the frequency as a
-    parameter, because the frequency is not included in the hash of a time
-    stamp.
-
-    I.e.
-      pd.Timestamp(x, freq='1D')  and pd.Timestamp(x, freq='1min')
-
-    hash to the same value.
-    """
-    try:
-        # this line looks innocent, but can create a date which is out of
-        # bounds values over year 9999 raise a ValueError
-        # values over 2262-04-11 raise a pandas OutOfBoundsDatetime
-        return ts + offset * freq
-    except (ValueError, pd._libs.OutOfBoundsDatetime) as ex:
-        raise GluonTSDateBoundsError(ex) from ex
 
 
 class InstanceSplitter(FlatMapTransformation):
@@ -195,15 +160,12 @@ class InstanceSplitter(FlatMapTransformation):
                     ].transpose()
 
             d[self._past(self.is_pad_field)] = pad_indicator
-
             if FieldName.INDEX in d:
                 d[self.forecast_start_field] = pd.Timestamp(
-                    d[FieldName.INDEX][i + lt], freq=d[FieldName.START].freq
+                    d[FieldName.INDEX][i + lt], freq=d[self.start_field].freq
                 )
             else:
-                d[self.forecast_start_field] = shift_timestamp(
-                    d[self.start_field], i + lt
-                )
+                d[self.forecast_start_field] = d[self.start_field] + i + lt
             yield d
 
 
@@ -318,8 +280,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             pad_length = max(self.instance_length - i, 0)
 
             # update start field
-            d[self.start_field] = shift_timestamp(
-                data[self.start_field], i - self.instance_length
+            d[self.start_field] = (
+                data[self.start_field] + i - self.instance_length
             )
 
             # set is_pad field
@@ -358,8 +320,8 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
                 del d[ts_field]
 
-            d[self.forecast_start_field] = shift_timestamp(
-                d[self.start_field], self.instance_length
+            d[self.forecast_start_field] = (
+                d[self.start_field] + self.instance_length
             )
 
             yield d
@@ -419,6 +381,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self,
         past_interval_length: float,
         future_interval_length: float,
+        freq: BaseOffset,
         instance_sampler: ContinuousTimePointSampler,
         target_field: str = FieldName.TARGET,
         start_field: str = FieldName.START,
@@ -438,6 +401,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self.start_field = start_field
         self.end_field = end_field
         self.forecast_start_field = forecast_start_field
+        self.freq = freq
 
     # noinspection PyMethodMayBeStatic
     def _mask_sorted(self, a: np.ndarray, lb: float, ub: float):
@@ -449,11 +413,9 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
 
-        assert data[self.start_field].freq == data[self.end_field].freq
-
         total_interval_length = (
             data[self.end_field] - data[self.start_field]
-        ) / data[self.start_field].freq.delta
+        ) / self.freq
 
         sampling_times = self.instance_sampler(total_interval_length)
 
@@ -494,9 +456,12 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
 
             r["past_valid_length"] = np.array([len(past_mask)])
 
+            print(data[self.start_field])
+            print(future_start)
+            print(self.freq)
+
             r[self.forecast_start_field] = (
-                data[self.start_field]
-                + data[self.start_field].freq.delta * future_start
+                data[self.start_field] + self.freq.delta * future_start
             )
 
             if is_train:  # include the future only if is_train
@@ -515,6 +480,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
                 r["future_valid_length"] = np.array([len(future_mask)])
 
             # include other fields
-            r.update(keep_cols.copy())
+            r.update(keep_cols)
 
             yield r

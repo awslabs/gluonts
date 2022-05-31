@@ -75,7 +75,7 @@ def make_evaluation_predictions(
             if FieldName.INDEX in data:
                 index = data[FieldName.INDEX]
             else:
-                index = pd.date_range(
+                index = pd.period_range(
                     start=data[FieldName.START],
                     freq=freq,
                     periods=data[FieldName.TARGET].shape[-1],

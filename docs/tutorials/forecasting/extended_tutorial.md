@@ -304,7 +304,7 @@ custom_ds_metadata = {
     'prediction_length': 24,
     'freq': '1H',
     'start': [
-        pd.Timestamp("01-01-2019", freq='1H') 
+        pd.Period("01-01-2019", freq='1H')
         for _ in range(100)
     ]
 }

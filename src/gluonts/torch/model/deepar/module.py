@@ -27,6 +27,54 @@ from gluonts.torch.modules.feature import FeatureEmbedder
 
 
 class DeepARModel(nn.Module):
+    """
+    Module implementing the DeepAR model, see [SFG17]_.
+
+    *Note:* the code of this model is unrelated to the implementation behind
+    `SageMaker's DeepAR Forecasting Algorithm
+    <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
+
+    Parameters
+    ----------
+    freq
+        String indicating the sampling frequency of the data to be processed.
+    context_length
+        Length of the RNN unrolling prior to the forecast date.
+    prediction_length
+        Number of time points to predict.
+    num_feat_dynamic_real
+        Number of dynamic real features that will be provided to ``forward``.
+    num_feat_static_real
+        Number of static real features that will be provided to ``forward``.
+    num_feat_static_cat
+        Number of static categorical features that will be provided to
+        ``forward``.
+    cardinality
+        List of cardinalities, one for each static categorical feature.
+    embedding_dimension
+        Dimension of the embedding space, one for each static categorical
+        feature.
+    num_layers
+        Number of layers in the RNN.
+    hidden_size
+        Size of the hidden layers in the RNN.
+    dropout_rate
+        Dropout rate to be applied at training time.
+    distr_output
+        Type of distribution to be output by the model at each time step
+    lags_seq
+        Indices of the lagged observations that the RNN takes as input. For
+        example, ``[1]`` indicates that the RNN only takes the observation at
+        time ``t-1`` to produce the output for time ``t``; instead,
+        ``[1, 25]`` indicates that the RNN takes observations at times ``t-1``
+        and ``t-25`` as input.
+    scaling
+        Whether to apply mean scaling to the observations (target).
+    num_parallel_samples
+        Number of samples to produce when unrolling the RNN in the prediction
+        time range.
+    """
+
     @validated()
     def __init__(
         self,
@@ -62,7 +110,7 @@ class DeepARModel(nn.Module):
         )
         self.lags_seq = lags_seq or get_lags_for_frequency(freq_str=freq)
         self.num_parallel_samples = num_parallel_samples
-        self.history_length = self.context_length + max(self.lags_seq)
+        self.past_length = self.context_length + max(self.lags_seq)
         self.embedder = FeatureEmbedder(
             cardinalities=cardinality,
             embedding_dims=self.embedding_dimension,
@@ -109,6 +157,43 @@ class DeepARModel(nn.Module):
         torch.Tensor,
         Tuple[torch.Tensor, torch.Tensor],
     ]:
+        """
+        Applies the underlying RNN to the provided target data and covariates.
+
+        Parameters
+        ----------
+        feat_static_cat
+            Tensor of static categorical features,
+            shape: ``(batch_size, num_feat_static_cat)``.
+        feat_static_real
+            Tensor of static real features,
+            shape: ``(batch_size, num_feat_static_real)``.
+        past_time_feat
+            Tensor of dynamic real features in the past,
+            shape: ``(batch_size, past_length, num_feat_dynamic_real)``.
+        past_target
+            Tensor of past target values,
+            shape: ``(batch_size, past_length, *target_shape)``.
+        past_observed_values
+            Tensor of observed values indicators,
+            shape: ``(batch_size, past_length)``.
+        future_time_feat
+            (Optional) tensor of dynamic real features in the past,
+            shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
+        future_target
+            (Optional) tensor of future target values,
+            shape: ``(batch_size, prediction_length, *target_shape)``.
+
+        Returns
+        -------
+        Tuple
+            A tuple containing, in this order:
+            - Parameters of the output distribution
+            - Scaling factor applied to the target
+            - Raw output of the RNN
+            - Static input to the RNN
+            - Output state from the RNN
+        """
         context = past_target[:, -self.context_length :]
         observed_context = past_observed_values[:, -self.context_length :]
         _, scale = self.scaler(context, observed_context)
@@ -152,6 +237,24 @@ class DeepARModel(nn.Module):
     def output_distribution(
         self, params, scale=None, trailing_n=None
     ) -> torch.distributions.Distribution:
+        """
+        Instantiate the output distribution
+
+        Parameters
+        ----------
+        params
+            Tuple of distribution parameters.
+        scale
+            (Optional) scale tensor.
+        trailing_n
+            If set, the output distribution is created only for the last
+            ``trailing_n`` time points.
+
+        Returns
+        -------
+        torch.distributions.Distribution
+            Output distribution from the model.
+        """
         sliced_params = params
         if trailing_n is not None:
             sliced_params = [p[:, -trailing_n:] for p in params]
@@ -167,6 +270,33 @@ class DeepARModel(nn.Module):
         future_time_feat: torch.Tensor,
         num_parallel_samples: Optional[int] = None,
     ) -> torch.Tensor:
+        """
+        Invokes the model on input data, and produce outputs future samples.
+
+        Parameters
+        ----------
+        feat_static_cat
+            Tensor of static categorical features,
+            shape: ``(batch_size, num_feat_static_cat)``.
+        feat_static_real
+            Tensor of static real features,
+            shape: ``(batch_size, num_feat_static_real)``.
+        past_time_feat
+            Tensor of dynamic real features in the past,
+            shape: ``(batch_size, past_length, num_feat_dynamic_real)``.
+        past_target
+            Tensor of past target values,
+            shape: ``(batch_size, past_length, *target_shape)``.
+        past_observed_values
+            Tensor of observed values indicators,
+            shape: ``(batch_size, past_length)``.
+        future_time_feat
+            (Optional) tensor of dynamic real features in the past,
+            shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
+        num_parallel_samples
+            How many future sampels to produce.
+            By default, self.num_parallel_samples is used.
+        """
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
@@ -237,6 +367,29 @@ class DeepARModel(nn.Module):
 
 
 class LaggedLSTM(nn.Module):
+    """
+    An LSTM that uses multiple lagged inputs at each time step.
+
+    Parameters
+    ----------
+    input_size
+        Size of the input sequence (usually 1).
+    features_size
+        Number of additional features to take as input.
+    lags_seq
+        Indices of the lagged observations that the RNN takes as input. For
+        example, ``[1]`` indicates that the RNN only takes the observation at
+        time ``t-1`` to produce the output for time ``t``; instead,
+        ``[1, 25]`` indicates that the RNN takes observations at times ``t-1``
+        and ``t-25`` as input.
+    num_layers
+        Number of layers. Default: 2.
+    hidden_size
+        Size of the hidden layers. Default: 40.
+    dropout_rate
+        Dropout rate to be used at training time. Default: 0.1.
+    """
+
     def __init__(
         self,
         input_size: int,

@@ -19,8 +19,8 @@ from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
-START_DATE = pd.Timestamp(2017, 1, 1, 12)
 FREQ = "1D"
+START_DATE = pd.Period("2017 01-01 12:00", FREQ)
 
 FORECASTS = {
     "QuantileForecast": QuantileForecast(
@@ -53,7 +53,7 @@ def test_Forecast(name):
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
+    assert forecast.index[0] == pd.Period(START_DATE, forecast.freq)
 
 
 @pytest.mark.parametrize(
@@ -62,12 +62,11 @@ def test_Forecast(name):
         (
             SampleForecast(
                 samples=np.random.normal(size=(100, 7, 3)),
-                start_date=pd.Timestamp("2020-01-01 00:00:00"),
+                start_date=pd.Period("2020-01-01 00:00:00", freq="1D"),
                 freq="1D",
             ),
-            pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"),
-                freq="1D",
+            pd.period_range(
+                start=pd.Period("2020-01-01 00:00:00", freq="1D"),
                 periods=7,
             ),
         ),
