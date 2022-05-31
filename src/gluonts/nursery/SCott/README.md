@@ -26,7 +26,7 @@ The details of the required packages can be found in `requirements.txt`.
 The following example commands offer ways of installing required packages with `conda`. One can use other softwares such as `pip` to do this.
 
 ```
-$ conda install pytorchts
+$ conda install pytorchts==0.2.0
 ```
 
 ## (Preparation Step 2) Preprocessing the dataset
