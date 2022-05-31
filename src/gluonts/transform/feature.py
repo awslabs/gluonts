@@ -359,7 +359,7 @@ class AddTimeFeatures(MapTransformation):
         if not self.date_features:
             data[self.output_field] = None
             return data
-        
+
         if self.index_field in data:
             index = data[self.index_field]
         else:
