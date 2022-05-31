@@ -38,7 +38,8 @@ jobs:
         aws-secret-access-key: ${{ secrets.DOCS_AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Publish docs
-      if: ${{ github.event_name == 'push' }}
-      run: |
-        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
+    # TODO: RE-ENABLE DOC PUBLISHING
+    # - name: Publish docs
+    #   if: ${{ github.event_name == 'push' }}
+    #   run: |
+    #     aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
