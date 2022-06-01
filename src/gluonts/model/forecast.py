@@ -13,6 +13,7 @@
 
 import re
 from enum import Enum
+from tracemalloc import start
 from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
 
 import numpy as np
@@ -119,7 +120,7 @@ class Forecast:
     """
 
     start_date: pd.Period
-    freq: str
+    freq: Optional[str]
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
@@ -316,7 +317,7 @@ class SampleForecast(Forecast):
     start_date
         start of the forecast
     freq
-        forecast frequency
+        optional forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -327,7 +328,7 @@ class SampleForecast(Forecast):
         self,
         samples: np.ndarray,
         start_date: pd.Period,
-        freq: str,
+        freq: Optional[str] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -350,6 +351,8 @@ class SampleForecast(Forecast):
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
+        if freq is None:
+            freq = self.start_date.freqstr
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
 
@@ -484,7 +487,7 @@ class QuantileForecast(Forecast):
     start_date
         start of the forecast
     freq
-        forecast frequency
+        optional forecast frequency
     forecast_keys
         A list of quantiles of the form '0.1', '0.9', etc.,
         and potentially 'mean'. Each entry corresponds to one array in
@@ -498,13 +501,20 @@ class QuantileForecast(Forecast):
         self,
         forecast_arrays: np.ndarray,
         start_date: pd.Period,
-        freq: str,
         forecast_keys: List[str],
+        freq: Optional[str] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
-        self.start_date = pd.Period(start_date, freq=freq)
+        assert isinstance(
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
+        self.start_date = start_date
+
+        if freq is None:
+            freq = start_date.freqstr
+        assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
 
         # normalize keys

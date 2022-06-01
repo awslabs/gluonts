@@ -42,7 +42,7 @@ class DistributionForecast(Forecast):
     start_date
         start of the forecast
     freq
-        forecast frequency
+        optional forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -52,7 +52,7 @@ class DistributionForecast(Forecast):
         self,
         distribution: Distribution,
         start_date: pd.Period,
-        freq: str,
+        freq: Optional[str] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -66,6 +66,9 @@ class DistributionForecast(Forecast):
             start_date, pd.Period
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
+
+        if freq is None:
+            freq = start_date.freqstr
 
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
