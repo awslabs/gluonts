@@ -132,7 +132,7 @@ def test_infer_quantile_forecast(
     output = np.array(output)
     quantile_forecast = QuantileForecast(
         output,
-        start_date=Period(0, freq="h"),
+        start_date=Period("01-01-2019 04:00:00", freq="h"),
         forecast_keys=forecast_keys,
     )
     if len(forecast_keys) == 1:
