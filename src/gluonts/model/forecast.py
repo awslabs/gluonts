@@ -119,7 +119,7 @@ class Forecast:
     """
 
     start_date: pd.Period
-    freq: Optional[str]
+    freq: str
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
