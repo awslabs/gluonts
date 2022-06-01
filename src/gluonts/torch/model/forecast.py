@@ -69,9 +69,9 @@ class DistributionForecast(Forecast):
 
         if freq is None:
             freq = start_date.freqstr
-
         assert isinstance(freq, str), "freq should be a string"
         self.freq = freq
+
         self._mean = None
 
     @property
