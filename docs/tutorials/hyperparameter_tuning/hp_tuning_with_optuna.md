@@ -31,16 +31,24 @@ print(f"Available datasets: {list(dataset_recipes.keys())}")
 
 
 ```python
-dataset = get_dataset("electricity", regenerate=True)
+dataset = get_dataset("electricity")
 ```
+
 
 ### Extract and split training and test data sets
 
-In general, the datasets provided by GluonTS are objects that consists of three main members:
+In general, the datasets provided by GluonTS are objects that consists of three things:
 
 - `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
 - `dataset.metadata` contains metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
+
+We can check details of the `dataset.metadata`.
+
+```python
+print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
+print(f"Frequency of the time series: {dataset.metadata.freq}")
+```
 
 To keep the example small and quick to execute, we are only going to use a subset of the dataset.
 
@@ -51,52 +59,19 @@ electricity_train_sub = list(islice(dataset.train, 10))
 electricity_test_sub = list(islice(dataset.test, 15))
 ```
 
-
-```python
-for train_series in electricity_train_sub:
-    train_series['target'] = train_series['target'][:2400]
-for test_series in electricity_test_sub:
-    test_series['target'] = test_series['target'][:2424]
-```
-
-
 ```python
 print(electricity_train_sub)
 ```
 
-Check out the details of the `dataset.metadata`.
-
-
-```python
-print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
-print(f"Frequency of the time series: {dataset.metadata.freq}")
-```
-
-Check and plot the result of electricity data subset 
-
+This is what the data looks like (first training series, first two weeks of data)
 
 ```python
-train_series = to_pandas(electricity_train_sub[0])
-train_series.plot()
+to_pandas(electricity_train_sub[0])[:14 * 24].plot()
 plt.grid(which="both")
 plt.legend(["train series"], loc="upper left")
 plt.show()
 ```
 
-
-```python
-test_series = to_pandas(electricity_test_sub[0])
-test_series.plot()
-plt.axvline(train_series.index[-1], color='r') # end of train dataset
-plt.grid(which="both")
-plt.legend(["test series", "end of train series"], loc="upper left")
-plt.show()
-```
-
-
-```python
-print(f"Length of forecasting window in test dataset: {len(test_series) - len(train_series)}")
-```
 
 ## Tuning parameters of DeepAR estimator
 
@@ -206,14 +181,9 @@ for key, value in trial.params.items():
 print(time.time() - start_time)
 ```
 
-# Training deepar estimator
+## Re-training the model
 
-After getting the best hyperparameters by optuna, you can set them into the DeepAR estimator to realize the prediction of electricity dataset.
-
-## Training and predict
-
-Now we can retrain the model on the training data using the optimal hyperparameters. The next process consists of training the model, producing forecasts, and evaluating the results.
-
+After getting the best hyperparameters by optuna, you can set them into the DeepAR estimator to re-train the model on the whole training subset we consider here.
 
 
 ```python
@@ -231,7 +201,7 @@ estimator = DeepAREstimator(
 )
 ```
 
-After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `electricity_train` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to construct forecasts.
+After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `electricity_train_sub` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to obtain forecasts.
 
 
 ```python
