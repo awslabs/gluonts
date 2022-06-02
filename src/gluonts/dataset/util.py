@@ -12,11 +12,9 @@
 # permissions and limitations under the License.
 import logging
 import multiprocessing
-import os
 from pathlib import Path
 from typing import (
     Callable,
-    Iterator,
     List,
     NamedTuple,
     Tuple,

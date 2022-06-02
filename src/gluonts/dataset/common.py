@@ -14,7 +14,6 @@
 import functools
 import shutil
 import logging
-from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import (
@@ -28,8 +27,6 @@ from typing import (
     Optional,
     Union,
     cast,
-    Sequence,
-    Tuple,
 )
 
 import numpy as np
@@ -41,7 +38,6 @@ from typing_extensions import Protocol, runtime_checkable
 
 from gluonts.dataset.util import get_bounds_for_mp_data_loading
 from gluonts.gluonts_tqdm import tqdm
-from pandas.tseries.offsets import Tick
 
 from gluonts import json
 from gluonts.dataset.field_names import FieldName
@@ -444,7 +440,7 @@ def load_datasets(
     test: Optional[Path],
     one_dim_target: bool = True,
     cache: bool = False,
-    use_arrow=False
+    use_arrow=False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -487,7 +483,10 @@ def load_datasets(
     elif has_json_files:
         logging.info(f"loading json files from {train}, {test}")
         train_ds = FileDataset(
-            path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
+            path=train,
+            freq=meta.freq,
+            one_dim_target=one_dim_target,
+            cache=cache,
         )
         test_ds = (
             FileDataset(
