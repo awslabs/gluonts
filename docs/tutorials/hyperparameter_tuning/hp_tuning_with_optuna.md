@@ -31,7 +31,7 @@ print(f"Available datasets: {list(dataset_recipes.keys())}")
 
 
 ```python
-dataset = get_dataset("electricity")
+dataset = get_dataset("m4_hourly")
 ```
 
 
@@ -55,18 +55,15 @@ To keep the example small and quick to execute, we are only going to use a subse
 
 ```python
 from itertools import islice
-electricity_train_sub = list(islice(dataset.train, 10))
-electricity_test_sub = list(islice(dataset.test, 15))
+train_subset = list(islice(dataset.train, 10))
+test_subset = list(islice(dataset.test, 15))
 ```
 
-```python
-print(electricity_train_sub)
-```
 
 This is what the data looks like (first training series, first two weeks of data)
 
 ```python
-to_pandas(electricity_train_sub[0])[:14 * 24].plot()
+to_pandas(train_subset[0])[:14 * 24].plot()
 plt.grid(which="both")
 plt.legend(["train series"], loc="upper left")
 plt.show()
@@ -84,9 +81,9 @@ from gluonts.mx import Trainer
 from gluonts.evaluation import Evaluator
 ```
 
-An example that tune the DeepAR estimator on electricity dataset via Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
+We will now tune the DeepAR estimator on our training data using Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
 
-Define an DeepARTuningObjective class used in tuning process of Optuna.
+First, we define an `DeepARTuningObjective` class used in tuning process of Optuna.
 The class can be configured with the dataset, prediction length and data frequency, and the metric to be used for evaluating the model.
 In the `get_params` method, we define what hyperparameters to be tuned within given range.
 In the `split_entry` method, we split each time series of the dataset into two part:
@@ -165,7 +162,7 @@ We can now invoke the Optuna tuning process.
 import time
 start_time = time.time()
 study = optuna.create_study(direction="minimize")
-study.optimize(DeepARTuningObjective(electricity_train_sub, dataset.metadata.prediction_length, dataset.metadata.freq),
+study.optimize(DeepARTuningObjective(train_subset, dataset.metadata.prediction_length, dataset.metadata.freq),
                n_trials=10)
 
 print("Number of finished trials: {}".format(len(study.trials)))
@@ -201,28 +198,28 @@ estimator = DeepAREstimator(
 )
 ```
 
-After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `electricity_train_sub` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to obtain forecasts.
+After specifying our estimator with all the necessary hyperparameters we can train it using our training dataset `train_subset` by invoking the `train` method of the estimator. The training algorithm returns a fitted model (or a `Predictor` in GluonTS parlance) that can be used to obtain forecasts.
 
 
 ```python
-predictor = estimator.train(electricity_train_sub, cache_data=True)
+predictor = estimator.train(train_subset, cache_data=True)
 ```
 
 ## Visualize and evaluate forecasts
 
-With a predictor in hand, we can now predict the last window of the `electricity.test` and evaluate our model's performance.
+With a predictor in hand, we can now predict the last window of the test dataset and evaluate our model's performance.
 
 GluonTS comes with the `make_evaluation_predictions` function that automates the process of prediction and model evaluation. Roughly, this function performs the following steps:
 
-- Removes the final window of length `prediction_length` of the `electricity .test` that we want to predict
+- Removes the final window of length `prediction_length` of the test dataset that we want to predict
 - The estimator uses the remaining data to predict (in the form of sample paths) the "future" window that was just removed
-- The module outputs the forecast sample paths and the `electricity .test` (as python generator objects)
+- The forecasts are returned, together with ground truth values for the same time range (as python generator objects)
 
 
 ```python
 from gluonts.evaluation import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=electricity_test_sub,  # test dataset
+    dataset=test_subset,  # test dataset
     predictor=predictor,  # predictor
     num_samples=100,  # number of sample paths we want for evaluation
 )
@@ -236,7 +233,7 @@ forecasts = list(forecast_it)
 tss = list(ts_it)
 ```
 
-We can examine the first element of these lists (that corresponds to the first time series of the dataset). Let's start with the list containing the time series, i.e., `tss`. We expect the first entry of `tss` to contain the (target of the) first time series of `electricity.test`.
+We can examine the first element of these lists (that corresponds to the first time series of the dataset). Let's start with the list containing the time series, i.e., `tss`. We expect the first entry of `tss` to contain the (target of the) first time series in the test data.
 
 
 ```python
@@ -278,7 +275,7 @@ from gluonts.evaluation import Evaluator
 
 ```python
 evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(electricity_test_sub))
+agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(test_subset))
 ```
 
 Aggregate metrics aggregate both across time-steps and across time series.

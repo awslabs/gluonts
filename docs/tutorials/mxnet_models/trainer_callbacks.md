@@ -7,8 +7,7 @@ You can use predefined GluonTS callbacks like `TrainingHistory`, `ModelAveraging
 ```python
 from gluonts.dataset.repository.datasets import get_dataset
 
-dataset = "m4_hourly"
-dataset = get_dataset(dataset)
+dataset = get_dataset("m4_hourly")
 prediction_length = dataset.metadata.prediction_length
 freq = dataset.metadata.freq
 ```
