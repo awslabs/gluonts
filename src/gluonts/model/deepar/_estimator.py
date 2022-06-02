@@ -11,14 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import field
 from functools import partial
+from itertools import starmap
 from typing import List, Optional, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset
+from gluonts.dataset.common import Dataset, NumpyArrayField, PandasTimestampField
+from gluonts.dataset.common import Schema
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
@@ -489,3 +492,15 @@ class DeepAREstimator(GluonEstimator):
             ctx=self.trainer.ctx,
             dtype=self.dtype,
         )
+
+    def get_schema(self, one_dim_target = True) -> Schema:
+        fields = dict()
+        fields["start"] = PandasTimestampField(freq=self.freq,is_optional=False)
+        fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1 if one_dim_target else 2, is_optional=False)
+        if self.use_feat_dynamic_cat:
+            fields["feat_dynamic_cat"] = NumpyArrayField(dtype=np.int32,ndim=2,is_optional=False)
+        if self.use_feat_dynamic_real:
+            fields["feat_dynamic_real"] = NumpyArrayField(dtype=self.dtype,is_optional=False)
+        if self.use_feat_static_real:
+            fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype,ndim=2,is_optional=False)
+        return Schema(fields)
