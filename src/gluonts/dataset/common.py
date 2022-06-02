@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 import shutil
-from enum import Enum
-from functools import lru_cache
 from pathlib import Path
 from typing import (
     Any,
@@ -30,12 +28,14 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+
 import pydantic
-from pandas.tseries.offsets import Tick
 from typing_extensions import Protocol, runtime_checkable
 
 
 from gluonts import json
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl, util
 from gluonts.exceptions import GluonTSDataError
 
@@ -51,20 +51,6 @@ class Dataset(Protocol):
 
     def __len__(self) -> int:
         raise NotImplementedError
-
-
-class Timestamp(pd.Timestamp):
-    # we need to sublcass, since pydantic otherwise converts the value into
-    # datetime.datetime instead of using pd.Timestamp
-    @classmethod
-    def __get_validators__(cls):
-        def conv(val):
-            if isinstance(val, pd.Timestamp):
-                return val
-            else:
-                return pd.Timestamp(val)
-
-        yield conv
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -164,10 +150,14 @@ class FileDataset(Dataset):
         freq: str,
         one_dim_target: bool = True,
         cache: bool = False,
+        use_timestamp: bool = False,
     ) -> None:
+        self.freq = to_offset(freq)
         self.cache = cache
         self.path = path
-        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
+        self.process = ProcessDataEntry(
+            freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+        )
         self._len_per_file = None
 
         if not self.files():
@@ -241,8 +231,10 @@ class ListDataset(Dataset):
         data_iter: Iterable[DataEntry],
         freq: str,
         one_dim_target: bool = True,
+        use_timestamp: bool = False,
     ) -> None:
-        self.process = ProcessDataEntry(freq, one_dim_target)
+        self.freq = to_offset(freq)
+        self.process = ProcessDataEntry(freq, one_dim_target, use_timestamp)
         self.list_data = list(data_iter)  # dataset always cached
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -264,16 +256,10 @@ class ListDataset(Dataset):
         return len(self.list_data)
 
 
-class TimeZoneStrategy(Enum):
-    ignore = "ignore"
-    utc = "utc"
-    error = "error"
-
-
 # TODO: find out whether this is a duplicate
 class ProcessStartField(pydantic.BaseModel):
     """
-    Transform the start field into a Timestamp with the given frequency.
+    Transform the start field into a Period with the given frequency.
 
     Parameters
     ----------
@@ -287,57 +273,21 @@ class ProcessStartField(pydantic.BaseModel):
         arbitrary_types_allowed = True
 
     freq: Union[str, pd.DateOffset]
-    name: str = "start"
-    tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error
+    use_timestamp: bool = False
+    name: str = FieldName.START
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            timestamp = ProcessStartField.process(data[self.name], self.freq)
+            if self.use_timestamp:
+                data[self.name] = pd.Timestamp(data[self.name])
+            else:
+                data[self.name] = pd.Period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
             ) from e
 
-        if timestamp.tz is not None:
-            if self.tz_strategy == TimeZoneStrategy.error:
-                raise GluonTSDataError(
-                    "Timezone information is not supported, "
-                    f'but provided in the "{self.name}" field.'
-                )
-            if self.tz_strategy == TimeZoneStrategy.utc:
-                # align timestamp to utc timezone
-                timestamp = timestamp.tz_convert("UTC")
-
-            # removes timezone information
-            timestamp = timestamp.tz_localize(None)
-
-        data[self.name] = timestamp
-
         return data
-
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def process(timestamp_input: Any, freq: str) -> pd.Timestamp:
-        """
-        Create timestamp from datetime-like, str, int or float input and align
-        it according to frequency.
-        """
-
-        timestamp = pd.Timestamp(timestamp_input, freq=freq)
-
-        # operate on time information (days, hours, minute, second)
-        if isinstance(timestamp.freq, Tick):
-            return pd.Timestamp(
-                timestamp.floor(timestamp.freq), timestamp.freq
-            )
-
-        # since we are only interested in the data piece, we normalize the
-        # time information
-        timestamp = timestamp.replace(
-            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-        )
-
-        return timestamp.freq.rollforward(timestamp)
 
 
 class ProcessTimeSeriesField:
@@ -402,7 +352,12 @@ class ProcessTimeSeriesField:
 
 
 class ProcessDataEntry:
-    def __init__(self, freq: str, one_dim_target: bool = True) -> None:
+    def __init__(
+        self,
+        freq: str,
+        one_dim_target: bool = True,
+        use_timestamp: bool = False,
+    ) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
         # TODO: In addition to passing freq, the descriptor should be carry
@@ -410,46 +365,46 @@ class ProcessDataEntry:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessStartField(freq=freq),
+                ProcessStartField(freq=freq, use_timestamp=use_timestamp),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
-                    "target",
+                    FieldName.TARGET,
                     is_required=True,
                     is_cat=False,
                     is_static=one_dim_target,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_cat",
+                    FieldName.FEAT_DYNAMIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "dynamic_feat",  # backwards compatible
+                    FieldName.FEAT_DYNAMIC_REAL_LEGACY,  # backwards compatible
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_real",
+                    FieldName.FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "past_feat_dynamic_real",
+                    FieldName.PAST_FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_cat",
+                    FieldName.FEAT_STATIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=True,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_real",
+                    FieldName.FEAT_STATIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=True,

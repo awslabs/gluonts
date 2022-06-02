@@ -144,6 +144,7 @@ class TabularEstimator(Estimator):
             )
             for entry in training_data
         ]
+
         if validation_data is not None or self.last_k_for_val is not None:
             kwargs_override["auto_stack"] = False
             logger.warning(

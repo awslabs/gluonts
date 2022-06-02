@@ -21,6 +21,12 @@ Forecasting
       An extended tutorial, covering all features of GluonTS more extensively, and explaining how to write your own model using MXNet Gluon.
 
    .. card::
+      :title: Hyperparameter tuning with Optuna
+      :link: forecasting/hp_tuning_with_optuna.html
+
+      How to tune the hyperparameters of GluonTS models using Optuna.
+
+   .. card::
       :title: Custom PyTorch forecasting models
       :link: forecasting/howto_pytorch_lightning.html
 

@@ -194,9 +194,9 @@ class NPTSPredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
         for data in dataset:
-            start = pd.Timestamp(data["start"])
+            start = data["start"]
             target = np.asarray(data["target"], np.float32)
-            index = pd.date_range(
+            index = pd.period_range(
                 start=start, freq=self.freq, periods=len(target)
             )
             item_id = data.get("item_id", None)
@@ -317,7 +317,7 @@ class NPTSPredictor(RepresentablePredictor):
         """
 
         train_length = len(train_index)
-        full_time_index = pd.date_range(
+        full_time_index = pd.period_range(
             train_index.min(),
             periods=train_length + prediction_length,
             freq=train_index.freq,

@@ -118,7 +118,7 @@ class Forecast:
     A abstract class representing predictions.
     """
 
-    start_date: pd.Timestamp
+    start_date: pd.Period
     freq: str
     item_id: Optional[str]
     info: Optional[Dict]
@@ -248,7 +248,7 @@ class Forecast:
     @property
     def index(self) -> pd.DatetimeIndex:
         if self._index is None:
-            self._index = pd.date_range(
+            self._index = pd.period_range(
                 self.start_date, periods=self.prediction_length, freq=self.freq
             )
         return self._index
@@ -326,7 +326,7 @@ class SampleForecast(Forecast):
     def __init__(
         self,
         samples: np.ndarray,
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
         freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
@@ -346,8 +346,8 @@ class SampleForecast(Forecast):
         self.info = info
 
         assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"
@@ -497,14 +497,14 @@ class QuantileForecast(Forecast):
     def __init__(
         self,
         forecast_arrays: np.ndarray,
-        start_date: pd.Timestamp,
+        start_date: pd.Period,
         freq: str,
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
-        self.start_date = pd.Timestamp(start_date, freq=freq)
+        self.start_date = pd.Period(start_date, freq=freq)
         self.freq = freq
 
         # normalize keys

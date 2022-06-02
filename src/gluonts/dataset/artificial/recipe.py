@@ -66,7 +66,7 @@ def resolve(val_or_callable: ValueOrCallable, context: Env, *args, **kwargs):
 def generate(
     length: int,
     recipe: Recipe,
-    start: pd.Timestamp,
+    start: pd.Period,
     global_state: Optional[dict] = None,
     seed: int = 0,
     item_id_prefix: str = "",

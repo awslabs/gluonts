@@ -6,6 +6,10 @@ jobs:
   docs-build:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
     - uses: actions/checkout@v1
 
@@ -34,8 +38,8 @@ jobs:
       if: ${{ github.event_name == 'push' }}
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.DOCS_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.DOCS_AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
+        role-session-name: docs-push
         aws-region: us-east-1
 
     - name: Publish docs

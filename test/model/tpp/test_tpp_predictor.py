@@ -16,6 +16,7 @@ from typing import Tuple
 import mxnet as mx
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
 import pytest
 from mxnet import nd
 
@@ -89,6 +90,7 @@ def predictor_factory():
             input_transform=ContinuousTimeInstanceSplitter(
                 1,
                 5,
+                to_offset("H"),
                 ContinuousTimePredictionSampler(
                     allow_empty_interval=False, min_past=1
                 ),

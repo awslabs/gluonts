@@ -59,7 +59,7 @@ class ProphetDataEntry(NamedTuple):
 
     train_length: int
     prediction_length: int
-    start: pd.Timestamp
+    start: pd.Period
     target: np.ndarray
     feat_dynamic_real: List[np.ndarray]
 
@@ -68,7 +68,7 @@ class ProphetDataEntry(NamedTuple):
         return pd.DataFrame(
             data={
                 **{
-                    "ds": pd.date_range(
+                    "ds": pd.period_range(
                         start=self.start,
                         periods=self.train_length,
                         freq=self.start.freq,
@@ -83,7 +83,7 @@ class ProphetDataEntry(NamedTuple):
         )
 
     @property
-    def forecast_start(self) -> pd.Timestamp:
+    def forecast_start(self) -> pd.Period:
         return self.start + self.train_length * self.start.freq
 
 

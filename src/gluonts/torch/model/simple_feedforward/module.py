@@ -32,6 +32,24 @@ def make_linear_layer(dim_in, dim_out):
 
 
 class SimpleFeedForwardModel(nn.Module):
+    """
+    Module implementing a feed-forward model for forecasting.
+
+    Parameters
+    ----------
+    prediction_length
+        Number of time points to predict.
+    context_length
+        Number of time steps prior to prediction time that the model.
+    hidden_dimensions
+        Size of hidden layers in the feedforward network.
+    distr_output
+        Distribution to use to evaluate observations and sample predictions.
+        Default: ``StudentTOutput()``.
+    batch_norm
+        Whether to apply batch normalization. Default: ``False``.
+    """
+
     @validated()
     def __init__(
         self,

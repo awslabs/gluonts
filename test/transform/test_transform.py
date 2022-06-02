@@ -15,13 +15,15 @@ from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+
 import pytest
 
 import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.dataset.common import DataEntry, ListDataset, ProcessStartField
+from gluonts.dataset.common import DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
 from gluonts.transform import (
@@ -40,8 +42,8 @@ TEST_VALUES = {
     "is_train": [True, False],
     "target": [np.zeros(0), np.random.rand(13), np.random.rand(100)],
     "start": [
-        ProcessStartField.process("2012-01-02", freq="1D"),
-        ProcessStartField.process("1994-02-19 20:01:02", freq="3D"),
+        pd.Period("2012-01-02", freq="1D"),
+        pd.Period("1994-02-19 20:01:02", freq="3D"),
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
@@ -51,61 +53,59 @@ TEST_VALUES = {
 
 def test_align_timestamp():
     def aligned_with(date_str, freq):
-        return str(ProcessStartField.process(date_str, freq=freq))
+        return pd.Period(date_str, freq=freq).to_timestamp()
 
     for _ in range(2):
-        assert (
-            aligned_with("2012-03-05 09:13:12", "min") == "2012-03-05 09:13:00"
+        assert aligned_with("2012-03-05 09:13:12", "min") == pd.Timestamp(
+            "2012-03-05 09:13:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "2min")
-            == "2012-03-05 09:12:00"
+        assert aligned_with("2012-03-05 09:13:12", "2min") == pd.Timestamp(
+            "2012-03-05 09:13:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "H") == "2012-03-05 09:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "H") == pd.Timestamp(
+            "2012-03-05 09:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "D") == "2012-03-05 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "D") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "4W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "4W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "3M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "3M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:13:12", "Y") == "2012-12-31 00:00:00"
+        assert aligned_with("2012-03-05 09:13:12", "Y") == pd.Timestamp(
+            "2012-01-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "min") == "2012-03-05 09:14:00"
+        assert aligned_with("2012-03-05 09:14:11", "min") == pd.Timestamp(
+            "2012-03-05 09:14:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "2min")
-            == "2012-03-05 09:14:00"
+        assert aligned_with("2012-03-05 09:14:11", "2min") == pd.Timestamp(
+            "2012-03-05 09:14:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "H") == "2012-03-05 09:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "H") == pd.Timestamp(
+            "2012-03-05 09:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "D") == "2012-03-05 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "D") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "4W") == "2012-03-11 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "4W") == pd.Timestamp(
+            "2012-03-05 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
-        assert (
-            aligned_with("2012-03-05 09:14:11", "3M") == "2012-03-31 00:00:00"
+        assert aligned_with("2012-03-05 09:14:11", "3M") == pd.Timestamp(
+            "2012-03-01 00:00:00"
         )
 
 
@@ -151,7 +151,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     mat = res["myout"]
     expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
-    tmp_idx = pd.date_range(
+    tmp_idx = pd.period_range(
         start=start, freq=start.freq, periods=expected_length
     )
     assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))
@@ -755,19 +755,18 @@ def point_process_dataset():
     ia_times = np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1])
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
-    lds = ListDataset(
+    return ListDataset(
         [
             {
                 "target": np.c_[ia_times, marks].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-                "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
+                "start": pd.Timestamp("2011-01-01 00:00:00"),
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
             }
         ],
         freq="H",
         one_dim_target=False,
+        use_timestamp=True,
     )
-
-    return lds
 
 
 class MockContinuousTimeSampler(transform.ContinuousTimePointSampler):
@@ -793,6 +792,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
             min_past=2,
             min_future=1,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     # no boundary conditions
@@ -812,6 +812,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
             allow_empty_interval=False,
             min_past=2,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -836,6 +837,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -875,6 +877,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(shuffle_iterator(), is_train=True)
@@ -894,6 +897,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
             min_past=1.25,
             min_future=1.25,
         ),
+        freq=to_offset(point_process_dataset.freq),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -917,6 +921,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
+        freq=point_process_dataset.freq,
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
