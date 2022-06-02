@@ -302,6 +302,8 @@ class SelfAttentionEstimator(GluonEstimator):
             n_head=self.num_heads,
             n_layers=self.num_layers,
             n_output=self.num_outputs,
+            use_covariates=self.use_feat_dynamic_real
+            or self.use_feat_dynamic_cat,
             cardinalities=self.cardinalities,
             kernel_sizes=self.kernel_sizes,
             dist_enc=self.distance_encoding,
@@ -312,6 +314,7 @@ class SelfAttentionEstimator(GluonEstimator):
         copy_parameters(trained_network, prediction_network)
         return RepresentableBlockPredictor(
             input_transform=transformation + prediction_splitter,
+            input_names=self._network_input_names(),
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,
