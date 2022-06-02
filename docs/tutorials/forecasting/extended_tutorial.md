@@ -46,11 +46,11 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
+To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again the next time around.
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=True)
+dataset = get_dataset("m4_hourly")
 ```
 
 ### What is in a dataset?
