@@ -20,8 +20,7 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.dataset.common import Dataset, NumpyArrayField, PandasTimestampField
-from gluonts.dataset.common import Schema
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
@@ -66,6 +65,7 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
+from ._schema import Schema, PandasTimestampField, NumpyArrayField
 
 
 class DeepAREstimator(GluonEstimator):
@@ -493,14 +493,14 @@ class DeepAREstimator(GluonEstimator):
             dtype=self.dtype,
         )
 
-    def get_schema(self, one_dim_target = True) -> Schema:
+    def get_schema(self) -> Schema:
         fields = dict()
-        fields["start"] = PandasTimestampField(freq=self.freq,is_optional=False)
-        fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1 if one_dim_target else 2, is_optional=False)
-        if self.use_feat_dynamic_cat:
-            fields["feat_dynamic_cat"] = NumpyArrayField(dtype=np.int32,ndim=2,is_optional=False)
+        fields["start"] = PandasTimestampField(freq=self.freq)
+        fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1)
         if self.use_feat_dynamic_real:
-            fields["feat_dynamic_real"] = NumpyArrayField(dtype=self.dtype,is_optional=False)
+            fields["feat_dynamic_real"] = NumpyArrayField(dtype=self.dtype)
+        if self.use_feat_static_cat:
+            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32,ndim=2)
         if self.use_feat_static_real:
-            fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype,ndim=2,is_optional=False)
+            fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype,ndim=2)
         return Schema(fields)
