@@ -166,7 +166,7 @@ class FileDataset(Dataset):
         self._len_per_file = None
 
         if not self.files():
-            raise OSError(f"no valid file found in {self.paths}")
+            raise OSError(f"no valid file found in {self.path}")
 
         # necessary, in order to preserve the cached datasets, in case caching
         # was enabled
