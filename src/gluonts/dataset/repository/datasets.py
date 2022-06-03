@@ -33,7 +33,6 @@ from gluonts.dataset.repository._tsf_datasets import (
     generate_forecasting_dataset,
 )
 from gluonts.dataset.repository._uber_tlc import generate_uber_dataset
-from gluonts.dataset.util import find_files
 
 
 def get_download_path() -> Path:

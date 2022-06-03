@@ -46,15 +46,16 @@ class ArrowWriter:
         float_dtype=np.float32,
     ):
         """
-        Write records to an arrow table. The first record is used to infer the schema.
-        Lists are converted to numpy int or float arrays if possible.
-        Strings of the form 'yyyy-mm-dd ...' are converted to timestamps if possible.
+        Write records to an arrow table. The first record is used to infer the
+        schema. Lists are converted to numpy int or float arrays if possible.
+        Strings of the form 'yyyy-mm-dd ...' are converted to timestamps if
+        possible.
 
         Note:
-        Numpy arrays with dimension > 1 are stored in two columns one with a 1d flat data
-        an additional column called "<array_name>._np_shape" that stores the array shape.
-        One could also do this via pyarrow/pandas extension types, but it seemed overly
-        complicated for this use case.
+        Numpy arrays with dimension > 1 are stored in two columns one with a
+        1d flat data an additional column called "<array_name>._np_shape" that
+        stores the array shape. One could also do this via pyarrow/pandas 
+        extension types, but it seemed overly complicated for this use case.
         """
         self.path: Path = Path(path)
         if not self.path.suffix == ".arrow":
@@ -84,7 +85,7 @@ class ArrowWriter:
                 try:
                     tmp = np.asarray(v)
                     dtype_kind = tmp.dtype.kind
-                except:
+                except Exception:
                     dtype_kind = None
                 if dtype_kind == "f":
                     self._cols_to_numpy_dtype[k] = self.float_dtype
@@ -98,7 +99,7 @@ class ArrowWriter:
                 try:
                     v = pd.Timestamp(v)
                     self._timestamp_cols.append(k)
-                except:
+                except Exception:
                     pass
         self._first_record = False
 
@@ -194,12 +195,12 @@ class ArrowDataset(Dataset):
         chunk_size: int = 100,
     ):
         """
-
-        An on disk Dataset based on pyarrow tables that is faster than json for large datasets or
-        datasets with long time series.
+        An on disk Dataset based on pyarrow tables that is faster than json
+        for large datasets or datasets with long time series.
 
         Use `ArrowDataset.load_files` to load the dataset from disk and
-        `ArrowDataset.write_table_from_records` to save recors in arrow format.
+        `ArrowDataset.write_table_from_records` to save recors in arrow
+        format.
         """
         self.table = table
         self.chunk_size = chunk_size
@@ -257,7 +258,7 @@ class ArrowDataset(Dataset):
         length: Optional[int] = None
         try:
             length = len(it)  # type: ignore
-        except:
+        except Exception:
             length = None
         with ArrowWriter(file_path, chunk_size=chunk_size) as writer:
             for rec in tqdm(it, total=length, desc=msg):
@@ -283,7 +284,8 @@ class ArrowDataset(Dataset):
 
 class MemmapArrowDataset(ArrowDataset):
     """
-    Arrow dataset using memory mapped files that closes the files when the object is deleted.
+    Arrow dataset using memory mapped files that closes the files when the
+    object is deleted.
     """
 
     def __init__(self, files: List[Path], freq: str, chunk_size: int):
