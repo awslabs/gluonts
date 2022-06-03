@@ -8,3 +8,4 @@ recommonmark
 sphinx~=4.0
 mxtheme==0.3.15
 docutils<=0.16
+optuna~=2.10
