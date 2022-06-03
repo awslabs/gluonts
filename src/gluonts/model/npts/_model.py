@@ -172,7 +172,6 @@ class NPTS:
         return SampleForecast(
             samples=samples_pred_range,
             start_date=forecast_start,
-            freq=freq,
             item_id=item_id,
         )
 

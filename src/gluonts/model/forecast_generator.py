@@ -149,7 +149,6 @@ class QuantileForecastGenerator(ForecastGenerator):
                 yield QuantileForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
@@ -198,7 +197,6 @@ class SampleForecastGenerator(ForecastGenerator):
                 yield SampleForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
@@ -241,7 +239,6 @@ class DistributionForecastGenerator(ForecastGenerator):
                 yield make_distribution_forecast(
                     distr,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,

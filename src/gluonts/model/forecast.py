@@ -119,7 +119,6 @@ class Forecast:
     """
 
     start_date: pd.Period
-    freq: str
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
@@ -249,7 +248,8 @@ class Forecast:
     def index(self) -> pd.DatetimeIndex:
         if self._index is None:
             self._index = pd.period_range(
-                self.start_date, periods=self.prediction_length, freq=self.freq
+                self.start_date,
+                periods=self.prediction_length,
             )
         return self._index
 
@@ -315,8 +315,6 @@ class SampleForecast(Forecast):
         (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
         start of the forecast
-    freq
-        optional forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -327,7 +325,6 @@ class SampleForecast(Forecast):
         self,
         samples: np.ndarray,
         start_date: pd.Period,
-        freq: Optional[str] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -349,11 +346,6 @@ class SampleForecast(Forecast):
             start_date, pd.Period
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
-
-        if freq is None:
-            freq = self.start_date.freqstr
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
 
     @property
     def _sorted_samples(self):
@@ -411,7 +403,6 @@ class SampleForecast(Forecast):
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
@@ -425,7 +416,6 @@ class SampleForecast(Forecast):
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
@@ -456,7 +446,6 @@ class SampleForecast(Forecast):
             [
                 f"SampleForecast({self.samples!r})",
                 f"{self.start_date!r}",
-                f"{self.freq!r}",
                 f"item_id={self.item_id!r}",
                 f"info={self.info!r})",
             ]
@@ -468,7 +457,6 @@ class SampleForecast(Forecast):
         return QuantileForecast(
             forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
             start_date=self.start_date,
-            freq=self.freq,
             forecast_keys=quantiles,
             item_id=self.item_id,
             info=self.info,
@@ -485,8 +473,6 @@ class QuantileForecast(Forecast):
         An array of forecasts
     start_date
         start of the forecast
-    freq
-        optional forecast frequency
     forecast_keys
         A list of quantiles of the form '0.1', '0.9', etc.,
         and potentially 'mean'. Each entry corresponds to one array in
@@ -501,7 +487,6 @@ class QuantileForecast(Forecast):
         forecast_arrays: np.ndarray,
         start_date: pd.Period,
         forecast_keys: List[str],
-        freq: Optional[str] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -510,11 +495,6 @@ class QuantileForecast(Forecast):
             start_date, pd.Period
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
-
-        if freq is None:
-            freq = start_date.freqstr
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
 
         # normalize keys
         self.forecast_keys = [
@@ -596,7 +576,6 @@ class QuantileForecast(Forecast):
             [
                 f"QuantileForecast({self.forecast_array!r})",
                 f"start_date={self.start_date!r}",
-                f"freq={self.freq!r}",
                 f"forecast_keys={self.forecast_keys!r}",
                 f"item_id={self.item_id!r}",
                 f"info={self.info!r})",

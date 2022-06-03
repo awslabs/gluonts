@@ -100,7 +100,6 @@ class DistributionForecast(Forecast):
         return SampleForecast(
             samples=self.distribution.sample((num_samples,)).cpu().numpy(),
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
