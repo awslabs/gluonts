@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import field
 from functools import partial
-from itertools import starmap
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Dict, Any
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -65,7 +63,7 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
-from ._schema import Schema, PandasTimestampField, NumpyArrayField
+from ._schema import Schema, FieldType, PandasPeriodField, NumpyArrayField
 
 
 class DeepAREstimator(GluonEstimator):
@@ -494,13 +492,15 @@ class DeepAREstimator(GluonEstimator):
         )
 
     def get_schema(self) -> Schema:
-        fields = dict()
-        fields["start"] = PandasTimestampField(freq=self.freq)
+        fields: Dict[str, Any] = dict()
+        fields["start"] = PandasPeriodField(freq=self.freq)
         fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1)
         if self.use_feat_dynamic_real:
             fields["feat_dynamic_real"] = NumpyArrayField(dtype=self.dtype)
         if self.use_feat_static_cat:
-            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32,ndim=2)
+            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32, ndim=2)
         if self.use_feat_static_real:
-            fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype,ndim=2)
+            fields["feat_static_real"] = NumpyArrayField(
+                dtype=self.dtype, ndim=2
+            )
         return Schema(fields)

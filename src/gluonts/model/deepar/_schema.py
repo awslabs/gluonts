@@ -1,17 +1,21 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
 
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Union,
-    Generic,
-    TypeVar,
-    Type
-)
+from dataclasses import Field
+from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
-from enum import Enum
 from functools import lru_cache
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
@@ -44,10 +48,7 @@ class NumpyArrayField(FieldType[np.ndarray]):
     def __eq__(self, other):
         if not isinstance(other, NumpyArrayField):
             return False
-        return (
-            self.dtype == other.dtype
-            and self.ndim == other.ndim
-        )
+        return self.dtype == other.dtype and self.ndim == other.ndim
 
     def __repr__(self):
         return f"NumpyArrayField(dtype={self.dtype!r}, ndim={self.ndim!r}"
@@ -84,69 +85,35 @@ class NumpyArrayField(FieldType[np.ndarray]):
         return self.ndim is None or x.ndim == self.ndim
 
 
-class TimeZoneStrategy(Enum):
-    ignore = "ignore"
-    utc = "utc"
-    error = "error"
-
-
 Freq = Union[str, pd.DateOffset]
 
 
-class PandasTimestampField(FieldType[pd.Timestamp]):
+class PandasPeriodField(FieldType[pd.Period]):
     def __init__(
         self,
         freq: Freq,
-        tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error,
     ) -> None:
         self.freq = to_offset(freq) if isinstance(freq, str) else freq
-        self.tz_strategy = tz_strategy
 
     def __eq__(self, other):
-        if not isinstance(other, PandasTimestampField):
+        if not isinstance(other, PandasPeriodField):
             return False
-        return (
-            self.freq == other.freq
-            and self.tz_strategy == other.tz_strategy
-        )
+        return self.freq == other.freq
 
     def __repr__(self):
-        return f"PandasTimestampField(freq={self.freq!r}, tz_strategy={self.tz_strategy!r})"
+        return f"PandasPeriodField(freq={self.freq!r})"
 
-    def __call__(self, value: Any) -> pd.Timestamp:
-        timestamp = PandasTimestampField._process(value, self.freq)
-
-        if timestamp.tz is not None:
-            if self.tz_strategy == TimeZoneStrategy.error:
-                raise GluonTSDataError("Timezone information is not supported")
-            elif self.tz_strategy == TimeZoneStrategy.utc:
-                # align timestamp to utc timezone
-                timestamp = timestamp.tz_convert("UTC")
-
-            # removes timezone information
-            timestamp = timestamp.tz_localize(None)
-        return timestamp
+    def __call__(self, value: Any) -> pd.Period:
+        period = PandasPeriodField._process(value, self.freq)
+        return period
 
     @staticmethod
     @lru_cache(maxsize=10000)
     def _process(string: str, freq: pd.DateOffset) -> pd.Timestamp:
-        timestamp = pd.Timestamp(string, freq=freq)
-
-        # operate on time information (days, hours, minute, second)
-        if isinstance(timestamp.freq, Tick):
-            return pd.Timestamp(
-                timestamp.floor(timestamp.freq), timestamp.freq
-            )
-
-        # since we are only interested in the data piece, we normalize the
-        # time information
-        timestamp = timestamp.replace(
-            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-        )
-        return timestamp.freq.rollforward(timestamp)
+        return pd.Period(string, freq=freq)
 
     def is_compatible(self, v: Any) -> bool:
-        if not isinstance(v, (str, pd.Timestamp)):
+        if not isinstance(v, (str, pd.Period)):
             return False
         try:
             self(v)
@@ -154,16 +121,14 @@ class PandasTimestampField(FieldType[pd.Timestamp]):
             return False
         return True
 
+
 class Schema:
     def __init__(self, fields: Dict[str, FieldType]) -> None:
         self.fields = fields
         # select fields that should be handled in the loop, because
         # - they are non optional
         # - or they are not AnyFields
-        self._fields_for_processing = {
-            k: f
-            for k, f in self.fields.items()
-        }
+        self._fields_for_processing = {k: f for k, f in self.fields.items()}
 
     def __eq__(self, other):
         if self.fields.keys() != other.fields.keys():
@@ -186,7 +151,7 @@ class Schema:
                 value = d[field_name]
             except KeyError:
                 raise GluonTSDataError(
-                        f"field {field_name} is not optional but key does not occur in the data"
+                    f"field {field_name} is not optional but key does not occur in the data"
                 )
             try:
                 d[field_name] = field_type(value)
