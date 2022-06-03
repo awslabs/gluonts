@@ -205,7 +205,7 @@ class FileDataset(Dataset):
         List[Path]
             List of the paths of all files composing the dataset.
         """
-        return util.find_files(self.paths, self.is_valid)
+        return util.find_files(self.path, self.is_valid)
 
     @classmethod
     def is_valid(cls, path: Path) -> bool:
