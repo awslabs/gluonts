@@ -60,6 +60,8 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         Prediction horizon.
     freq
         Frequency of the predicted data.
+    lead_time
+        Number of steps to predict ahead.
     """
 
     @validated()
@@ -71,8 +73,11 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         # since we are emitting a constant values, we just predict a single
         # line on default
         num_samples: int = 1,
+        lead_time: int = 0,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(
+            freq=freq, prediction_length=prediction_length, lead_time=lead_time
+        )
         self.value = value
         self.num_samples = num_samples
 
