@@ -53,7 +53,7 @@ def test_Forecast(name):
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Period(START_DATE, START_DATE.freq)
+    assert forecast.index[0] == START_DATE
 
 
 @pytest.mark.parametrize(
