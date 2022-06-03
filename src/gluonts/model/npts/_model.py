@@ -166,7 +166,6 @@ class NPTS:
         # of the prediction range, and the frequency of the time series.
         samples_pred_range = samples[:, train_length:]  # prediction range only
 
-        freq = targets.index.freq.freqstr
         forecast_start = targets.index[-1] + 1 * targets.index.freq
 
         return SampleForecast(
