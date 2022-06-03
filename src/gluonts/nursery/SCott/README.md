@@ -21,30 +21,12 @@ Our implementation is based on the open source framework: [PytorchTS](https://gi
 
 ## (Preparation Step 1) Installation of required packages
 
-The details of the required packages can be found in `setup.py`. The required packages and their versions are:
-
-```
-python_requires=">=3.6",
-install_requires = [
-        'torch>=1.5.0',
-        'holidays',
-        'numpy',
-        'pandas>=1.0,<1.1',
-        'scipy',
-        'tqdm',
-        'pydantic',
-        'matplotlib',
-        'python-rapidjson',
-        'tensorboard',
-]
-```
+The details of the required packages can be found in `requirements.txt`.
 
 The following example commands offer ways of installing required packages with `conda`. One can use other softwares such as `pip` to do this.
 
 ```
-$ conda install -c conda-forge tensorboard
-$ conda install -c anaconda python-rapidjson
-$ conda install -c conda-forge pydantic
+$ conda install pytorchts==0.2.0
 ```
 
 ## (Preparation Step 2) Preprocessing the dataset
