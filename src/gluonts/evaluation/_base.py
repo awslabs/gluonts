@@ -348,8 +348,7 @@ class Evaluator:
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
         }
-
-        metrics["ND"] = metrics["abs_error"] / metrics["abs_target_sum"]
+        metrics.update({"ND": metrics["abs_error"] / metrics["abs_target_sum"]})
 
         if self.custom_eval_fn is not None:
             for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
