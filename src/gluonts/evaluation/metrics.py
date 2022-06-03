@@ -15,7 +15,6 @@ from typing import Optional
 
 import numpy as np
 
-from gluonts.model.forecast import Forecast
 from gluonts.time_feature import get_seasonality
 
 
