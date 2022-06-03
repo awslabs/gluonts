@@ -349,6 +349,8 @@ class Evaluator:
             "sMAPE": smape(pred_target, median_fcst),
         }
 
+        metrics["ND"] = metrics["abs_error"] / metrics["abs_target_sum"]
+
         if self.custom_eval_fn is not None:
             for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
                 if fcst_type == "mean":
