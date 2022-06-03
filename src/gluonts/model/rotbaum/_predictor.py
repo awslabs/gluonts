@@ -46,13 +46,11 @@ class RotbaumForecast(Forecast):
         models: List,
         featurized_data: List,
         start_date: pd.Period,
-        freq,
         prediction_length: int,
     ):
         self.models = models
         self.featurized_data = featurized_data
         self.start_date = start_date
-        self.freq = freq
         self.prediction_length = prediction_length
         self.item_id = None
         self.lead_time = None
@@ -299,5 +297,4 @@ class TreePredictor(RepresentablePredictor):
                 [featurized_data],
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
-                freq=self.freq,
             )
