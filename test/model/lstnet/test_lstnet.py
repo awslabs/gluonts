@@ -101,7 +101,7 @@ def test_lstnet(
     assert len(forecasts) == len(tss) == len(dataset.test)
     test_ds = dataset.test.list_data[0]
     for fct in forecasts:
-        assert fct.start_date.freqstr == freq
+        assert fct.start_date.freq == freq
         assert fct.samples.shape == (
             NUM_SAMPLES,
             prediction_length,
