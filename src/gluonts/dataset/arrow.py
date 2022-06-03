@@ -11,302 +11,253 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import re
+
+"""
+Arrow Dataset
+~~~~~~~~~~~~~
+
+This module provides a fast and efficient dataset using `pyarrow`.
+
+Arrow allows us to use zero-copy.
+
+There are two properties of Arrow, which introduce some friction:
+
+1) Arrow is a columnar format, meaning that instead of writing out row after
+row(like in a spreadsheet) it writes out column after column -- basically
+flipping the table. There are some benefits in using a columnar format, since
+values of the same type are stored together which benefits analytical queries.
+However, in GluonTS a columnar format doesn't make much sense, since we are
+always only interested in handling rows.
+
+2) Interop between NumPy and Arrow is not seemless when using multi-dimensional
+arrays. Whilst 1D-arrays can be converted using zero-copy, it doesn't work for
+higher dimensional data. Thus, we always store arrays as one-dimensional and
+store the shape for higher dimensions to invoke `.reshape(...)` later on to
+maintain zero-copy.
+"""
+
+from dataclasses import dataclass, field
+from functools import singledispatch
+from itertools import chain
 from pathlib import Path
 from typing import (
-    Union,
+    Callable,
     Dict,
     List,
-    Any,
-    cast,
     Optional,
-    Tuple,
-    Iterator,
-    Iterable,
+    Set,
+    TypeVar,
 )
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from gluonts.dataset import util
-from gluonts.dataset.util import get_bounds_for_mp_data_loading
-from gluonts.gluonts_tqdm import tqdm
 
-from .common import Dataset, DataEntry, ProcessDataEntry, SourceContext
+from gluonts.itertools import batcher
 
-_ARROW_NUMPY_SHAPE_SUFFIX = "._np_shape"
+# from .common import Dataset, DataEntry
 
 
-class ArrowWriter:
-    """
-    Write records to an arrow table. The first record is used to infer the
-    schema. Lists are converted to numpy int or float arrays if possible.
-    Strings of the form 'yyyy-mm-dd ...' are converted to timestamps if
-    possible.
-
-    Note:
-    Numpy arrays with dimension > 1 are stored in two columns one with a
-    1d flat data an additional column called "<array_name>._np_shape" that
-    stores the array shape. One could also do this via pyarrow/pandas
-    extension types, but it seemed overly complicated for this use case.
-    """
-
-    def __init__(
-        self,
-        path: Union[str, Path],
-        chunk_size: int = 100,
-        int_dtype=np.int32,
-        float_dtype=np.float32,
-    ):
-        self.path: Path = Path(path)
-        self.chunk_size = chunk_size
-        self.int_dtype = int_dtype
-        self.float_dtype = float_dtype
-        self._cur_cols: Dict[str, List] = {}
-        self._cur_n = 0
-        self._numpy_shape_cols: Dict[str, List] = {}
-        self._cols_to_numpy_dtype: Dict[str, Any] = {}
-        self._timestamp_cols: List[str] = []
-        self._writer = None
-        self._schema = None
-        self._first_record = True
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
-    def _infer_types(self, record):
-        for k, v in record.items():
-            self._cur_cols[k] = []
-            if isinstance(v, list):
-                try:
-                    tmp = np.asarray(v)
-                    dtype_kind = tmp.dtype.kind
-                except Exception:
-                    dtype_kind = None
-                if dtype_kind == "f":
-                    self._cols_to_numpy_dtype[k] = self.float_dtype
-                    v = tmp
-                if dtype_kind == "i":
-                    self._cols_to_numpy_dtype[k] = self.int_dtype
-                    v = tmp
-            if isinstance(v, np.ndarray) and v.ndim > 1:
-                self._numpy_shape_cols[k] = []
-            if isinstance(v, str) and re.match(r"^\s*\d{4}-\d{2}-\d{2}", v):
-                try:
-                    v = pd.Timestamp(v)
-                    self._timestamp_cols.append(k)
-                except Exception:
-                    pass
-        self._first_record = False
-
-    def write_record(self, d: Dict[str, Any]):
-        if self._first_record:
-            self._infer_types(d)
-
-        for k, v in d.items():
-            conv_dtype = self._cols_to_numpy_dtype.get(k)
-            if conv_dtype:
-                v = np.asarray(v).astype(conv_dtype)
-            if k in self._timestamp_cols:
-                v = pd.Timestamp(v)
-            if k in self._numpy_shape_cols:
-                self._numpy_shape_cols[k].append(list(v.shape))
-                self._cur_cols[k].append(v.flatten())
-            else:
-                self._cur_cols[k].append(v)
-        self._cur_n += 1
-        if self._cur_n >= self.chunk_size:
-            self._write_chunk()
-
-    def _write_chunk(self):
-        assert self._cur_n > 0
-        recs = {}
-        for k, col in self._cur_cols.items():
-            recs[k] = col
-            self._cur_cols[k] = []
-        for k, col in self._numpy_shape_cols.items():
-            recs[f"{k}{_ARROW_NUMPY_SHAPE_SUFFIX}"] = col
-            self._numpy_shape_cols[k] = []
-        self._cur_n = 0
-        df = pd.DataFrame(recs)
-        table = pa.Table.from_pandas(df)
-        if self._writer is None:
-            self._schema = table.schema
-            self._writer = pa.RecordBatchStreamWriter(
-                pa.OSFile(str(self.path), "wb"), self._schema
-            )
-        chunks = table.to_batches(max_chunksize=self.chunk_size)
-        for chunk in chunks:
-            self._writer.write_batch(chunk)
-
-    def close(self):
-        if self._cur_n:
-            self._write_chunk()
-        if self._writer:
-            self._writer.close()
+def shape_column_of(column):
+    return f"{column}._np_shape"
 
 
-class ArrowReader:
-    def __init__(self, table: pa.Table, chunk_size: int = 100):
-        self.table = table
-        self.chunk_size = chunk_size
-        self._np_shape_cols: Optional[List[Tuple[str, str]]] = None
-
-    def iter_slice(self, start: int = 0, length: Optional[int] = None):
-        length = length if length is not None else len(self.table) - start
-        if start > 0 or length < len(self.table):
-            table = self.table.slice(start, length)
-        else:
-            table = self.table
-
-        for chunk in table.to_batches(self.chunk_size):
-            chunk = cast(pa.RecordBatch, chunk)
-            df: pd.DataFrame = chunk.to_pandas()
-            records = df.to_dict(orient="records")
-            if self._np_shape_cols is None:
-                rec0 = records[0]
-                self._np_shape_cols = [
-                    (k[: -len(_ARROW_NUMPY_SHAPE_SUFFIX)], k)
-                    for k in rec0.keys()
-                    if k.endswith(_ARROW_NUMPY_SHAPE_SUFFIX)
-                ]
-            for rec in records:
-                for k, k_shape in self._np_shape_cols:
-                    rec[k] = rec[k].reshape(*rec[k_shape])
-                    del rec[k_shape]
-                yield rec
-
-    def __iter__(self):
-        yield from self.iter_slice()
+T = TypeVar("T")
 
 
-class ArrowDataset(Dataset):
-    _SOURCE_COL_NAME = "_GLUONTS_SOURCE"
-    _ROW_COL_NAME = "_GLUONTS_ROW"
+def transpose(data: List[Dict[str, T]]) -> Dict[str, List[T]]:
+    if not data:
+        return {}
 
-    def __init__(
-        self,
-        table: pa.Table,
-        freq: str,
-        chunk_size: int = 100,
-    ):
-        """
-        An on disk Dataset based on pyarrow tables that is faster than json
-        for large datasets or datasets with long time series.
+    column_names = list(data[0])
 
-        Use `ArrowDataset.load_files` to load the dataset from disk and
-        `ArrowDataset.write_table_from_records` to save recors in arrow
-        format.
-        """
-        self.table = table
-        self.chunk_size = chunk_size
-        self.freq = freq
-        self._process = ProcessDataEntry(self.freq, one_dim_target=True)
-        self.reader = ArrowReader(self.table, chunk_size=self.chunk_size)
+    return {
+        column: [entry[column] for entry in data] for column in column_names
+    }
+
+
+@dataclass
+class ArrowEncoder:
+    columns: List[str]
+    convert: Dict[str, Callable] = field(default_factory=set)
+    ndarray_columns: Set[str] = field(default_factory=set)
 
     @classmethod
-    def load_files(
-        cls,
-        paths: Union[str, Path, List[str], List[Path]],
-        freq: str,
-        chunk_size: int = 100,
-    ):
-        paths = util.resolve_paths(paths)
-        files = util.find_files(paths, lambda p: p.suffix == ".arrow")
-        assert files, f"Could not find any arrow files in paths: {paths}"
-        return MemmapArrowDataset(files, freq, chunk_size)
+    def infer(cls, sample: dict):
+        columns = []
+        ndarray_columns = set()
+        convert = {}
 
-    def __iter__(self) -> Iterator[DataEntry]:
-        bounds = get_bounds_for_mp_data_loading(len(self))
-        for row_number, rec in enumerate(
-            self.reader.iter_slice(bounds.lower, bounds.upper),
-            start=bounds.lower,
-        ):
-            if self._SOURCE_COL_NAME in rec:
-                rec["source"] = SourceContext(
-                    source=rec[self._SOURCE_COL_NAME],
-                    row=rec[self._ROW_COL_NAME],
-                )
-                del rec[self._SOURCE_COL_NAME]
-                del rec[self._ROW_COL_NAME]
+        for name, value in sample.items():
+            if name == "source":
+                continue
+
+            if isinstance(value, np.ndarray):
+                if value.ndim > 1:
+                    ndarray_columns.add(name)
+
+            if isinstance(value, pd.Period):
+                convert[name] = pd.Period.to_timestamp
+
+            columns.append(name)
+
+        return cls(
+            columns=columns,
+            ndarray_columns=ndarray_columns,
+            convert=convert,
+        )
+
+    def column_names(self):
+        return self.columns + list(map(shape_column_of, self.ndarray_columns))
+
+    def encode(self, entry: dict):
+        result = {}
+
+        for column in self.columns:
+            value = entry[column]
+
+            fn = self.convert.get(column)
+            if fn is not None:
+                value = fn(value)
+
+            if column in self.ndarray_columns:
+                result[shape_column_of(column)] = list(value.shape)
+                value = value.flatten()
+
+            result[column] = value
+
+        return result
+
+
+@singledispatch
+def scalar_to_py(scalar):
+    raise NotImplementedError(scalar, scalar.__class__)
+    # return scalar.as_py()
+
+
+@scalar_to_py.register
+def _(scalar: pa.Scalar):
+    return scalar.as_py()
+
+
+@scalar_to_py.register
+def _(scalar: pa.ListScalar):
+    return scalar.values.to_numpy()
+
+
+@dataclass
+class ArrowDecoder:
+    columns: Dict[str, int]
+    ndarray_columns: Dict[str, int]
+
+    @classmethod
+    def from_schema(cls, schema):
+        columns = {}
+        ndarray_columns = {}
+
+        for idx, field in enumerate(schema):
+            if field.name.endswith("._np_shape"):
+                ndarray_columns[(field.name.rsplit(".", 1)[0])] = idx
             else:
-                rec["source"] = SourceContext(
-                    source="arrow.Table", row=row_number
-                )
-            rec = self._process(rec)
-            yield rec
+                columns[field.name] = idx
+
+        return cls(columns, ndarray_columns)
+
+    def decode_batch(self, batch):
+        for row_number in range(batch.num_rows):
+            yield self.decode(batch, row_number)
+
+    def decode(self, batch, row_number):
+        row = {}
+        columns = batch.slice(row_number, row_number + 1)
+
+        # if isinstance(columns, pa.Table):
+        columns = [chunk[0] for chunk in columns]
+
+        for column_name, column_idx in self.columns.items():
+            value = scalar_to_py(columns[column_idx])
+
+            shape_idx = self.ndarray_columns.get(column_name)
+            if shape_idx is not None:
+                shape = scalar_to_py(batch[shape_idx])
+                value.reshape(shape)
+
+            row[column_name] = value
+
+        return row
+
+
+@dataclass
+class ArrowTable:
+    table: pa.Table
+    decoder: ArrowEncoder
+
+    @classmethod
+    def from_file(cls, path):
+        with open(path, "rb") as infile:
+            table = pa.RecordBatchFileReader(infile).read_all()
+
+        return cls.new(table)
+
+    @classmethod
+    def new(cls, table: pa.Table):
+        return cls(table, ArrowDecoder.from_schema(table.schema))
 
     def __len__(self):
-        return len(self.table)
+        return self.table.num_rows
 
-    @classmethod
-    def write_table_from_records(
-        cls,
-        it: Iterable[DataEntry],
-        file_path: Union[str, Path],
-        chunk_size=100,
-    ) -> None:
-        """
-        Write time series records as an arrow dataset to the file_path.
-        """
-        file_path = Path(file_path)
-        msg = f"Converting to arrow dataset: {file_path}"
-        length: Optional[int] = None
-        try:
-            length = len(it)  # type: ignore
-        except Exception:
-            length = None
-        with ArrowWriter(file_path, chunk_size=chunk_size) as writer:
-            for rec in tqdm(it, total=length, desc=msg):
-                rec = rec.copy()
-                float_np_fields = [
-                    "target",
-                    "feat_static_real",
-                    "feat_dynamic_real",
-                ]
-                for field in float_np_fields:
-                    if field in rec:
-                        rec[field] = np.asarray(rec[field], dtype=np.float32)
-                int_np_fields = ["feat_static_cat", "feat_dynamic_cat"]
-                for field in int_np_fields:
-                    if field in rec:
-                        rec[field] = np.asarray(rec[field], dtype=np.int32)
-                if "start" in rec:
-                    rec["start"] = pd.Timestamp(rec["start"])
-                if "source" in rec:
-                    del rec["source"]
-                writer.write_record(rec)
+    def __getitem__(self, idx):
+        return self.decoder.decode(self.table, idx)
 
 
-class MemmapArrowDataset(ArrowDataset):
-    """
-    Arrow dataset using memory mapped files that closes the files when the
-    object is deleted.
-    """
+@dataclass
+class StreamDataset:
+    path: Path
 
-    def __init__(self, files: List[Path], freq: str, chunk_size: int):
-        self.files = files
-        self.mmaps = [pa.memory_map(str(p)) for p in files]
-        tables = []
-        for file_path, mm in zip(files, self.mmaps):
-            t = pa.ipc.open_stream(mm).read_all()
-            source_col = pa.repeat(str(file_path), len(t)).dictionary_encode()
-            t = t.append_column(self._SOURCE_COL_NAME, source_col)
-            row_col = pa.array(np.arange(len(t)))
-            t = t.append_column(self._ROW_COL_NAME, row_col)
-            tables.append(t)
-        if len(tables) > 1:
-            table = pa.concat_tables(tables)
-        else:
-            table = tables[0]
-        super().__init__(table, freq=freq, chunk_size=chunk_size)
+    def __iter__(self):
+        with open(self.path, "rb") as infile:
+            reader = pa.RecordBatchFileReader(infile)
 
-    def __del__(self):
-        self.close()
+            for batch_number in range(reader.num_record_batches):
+                batch = reader.get_batch(batch_number)
+                table = ArrowTable.new(batch)
 
-    def close(self):
-        for mm in self.mmaps:
-            mm.close()
+                yield from table
+
+
+@dataclass
+class ArrowBatcher:
+    encoder: ArrowEncoder
+    chunk_size: Optional[int] = 1024
+
+    def batchify(self, stream):
+        stream = map(self.encoder.encode, stream)
+        batches = batcher(stream, self.chunk_size)
+
+        for batch in map(transpose, batches):
+            names = list(batch.keys())
+            values = list(batch.values())
+            yield pa.record_batch(values, names=names)
+
+
+def convert(dataset, chunk_size=1024):
+    dataset = iter(dataset)
+    first = next(dataset)
+
+    batcher = ArrowBatcher(
+        encoder=ArrowEncoder.infer(first), chunk_size=chunk_size
+    )
+
+    yield from batcher.batchify(chain([first], dataset))
+
+
+def write(dataset, path, chunk_size=1024):
+    batches = convert(dataset)
+    first = next(batches)
+
+    with open(path, "wb") as fobj:
+        writer = pa.RecordBatchFileWriter(fobj, schema=first.schema)
+        for batch in chain([first], batches):
+            writer.write_batch(batch)
+
+        writer.close()

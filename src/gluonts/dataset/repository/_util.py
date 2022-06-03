@@ -18,7 +18,8 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.dataset.arrow import ArrowDataset
+
+# from gluonts.dataset.arrow import ArrowDataset
 
 
 def to_dict(

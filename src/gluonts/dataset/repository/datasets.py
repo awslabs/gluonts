@@ -229,7 +229,7 @@ def materialize_dataset(
     path: Path = default_dataset_path,
     regenerate: bool = False,
     prediction_length: Optional[int] = None,
-    use_arrow: bool = True,
+    # use_arrow: bool = True,
 ) -> Path:
     """
     Ensures that the dataset is materialized under the `path / dataset_name`
@@ -290,7 +290,7 @@ def get_dataset(
     path: Path = default_dataset_path,
     regenerate: bool = False,
     prediction_length: Optional[int] = None,
-    use_arrow: bool = False,
+    # use_arrow: bool = False,
 ) -> TrainDatasets:
     """
     Get a repository dataset.
@@ -337,7 +337,7 @@ def get_dataset(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
-        use_arrow=use_arrow,
+        # use_arrow=use_arrow,
     )
 
 
