@@ -332,7 +332,7 @@ class Evaluator:
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
-            past_data, forecast, self.seasonality
+            past_data, forecast.start_date.freqstr, self.seasonality
         )
 
         metrics: Dict[str, Union[float, str, None]] = {
