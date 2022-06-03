@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import Field
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
-from functools import lru_cache
+from dataclasses import dataclass
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick
 from gluonts.exceptions import GluonTSDataError
 
 
@@ -36,22 +34,16 @@ class FieldType(Generic[T]):
         raise NotImplementedError()
 
 
+@dataclass
 class NumpyArrayField(FieldType[np.ndarray]):
-    def __init__(
-        self,
-        dtype: Type = np.float32,
-        ndim: Optional[int] = None,
-    ) -> None:
-        self.dtype = dtype
-        self.ndim = ndim
+    dtype: Type = np.float32
+    ndim: Optional[int] = None
 
     def __eq__(self, other):
         if not isinstance(other, NumpyArrayField):
             return False
-        return self.dtype == other.dtype and self.ndim == other.ndim
 
-    def __repr__(self):
-        return f"NumpyArrayField(dtype={self.dtype!r}, ndim={self.ndim!r}"
+        return self.dtype == other.dtype and self.ndim == other.ndim
 
     def __call__(self, value: Any) -> np.ndarray:
         value = np.asarray(value, dtype=object)
@@ -68,7 +60,7 @@ class NumpyArrayField(FieldType[np.ndarray]):
 
         try:
             x = np.asarray(value)
-        except:
+        except Exception:
             return False
 
         # int types
@@ -80,7 +72,7 @@ class NumpyArrayField(FieldType[np.ndarray]):
         # float types
         try:
             x = np.asarray(value, dtype=self.dtype)
-        except:
+        except Exception:
             return False
         return self.ndim is None or x.ndim == self.ndim
 
@@ -104,20 +96,14 @@ class PandasPeriodField(FieldType[pd.Period]):
         return f"PandasPeriodField(freq={self.freq!r})"
 
     def __call__(self, value: Any) -> pd.Period:
-        period = PandasPeriodField._process(value, self.freq)
-        return period
-
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def _process(string: str, freq: pd.DateOffset) -> pd.Timestamp:
-        return pd.Period(string, freq=freq)
+        return pd.Period(value, freq=self.freq)
 
     def is_compatible(self, v: Any) -> bool:
         if not isinstance(v, (str, pd.Period)):
             return False
         try:
             self(v)
-        except:
+        except Exception:
             return False
         return True
 
@@ -125,15 +111,9 @@ class PandasPeriodField(FieldType[pd.Period]):
 class Schema:
     def __init__(self, fields: Dict[str, FieldType]) -> None:
         self.fields = fields
-        # select fields that should be handled in the loop, because
-        # - they are non optional
-        # - or they are not AnyFields
-        self._fields_for_processing = {k: f for k, f in self.fields.items()}
 
     def __eq__(self, other):
-        if self.fields.keys() != other.fields.keys():
-            return False
-        return all(self.fields[k] == other.fields[k] for k in self.fields)
+        return self.fields == other.fields
 
     def __repr__(self):
         return (
@@ -142,20 +122,28 @@ class Schema:
             + "})"
         )
 
-    def __call__(self, d: Dict[str, Any]) -> None:
+    def __call__(self, d: Dict[str, Any], inplace: bool):
         """
-        Applies the schema to a data dict. The dictionary is updated in place.
+        inplace
+            applies the schema to a data dict if True. The dictionary is updated in place.
+            return a new data dictionary if False.
         """
-        for field_name, field_type in self._fields_for_processing.items():
+        copied_data: Dict[str, Any] = dict()
+        for field_name, field_type in self.fields.items():
             try:
                 value = d[field_name]
             except KeyError:
                 raise GluonTSDataError(
-                    f"field {field_name} is not optional but key does not occur in the data"
+                    f"field {field_name} does not occur in the data"
                 )
             try:
-                d[field_name] = field_type(value)
+                if inplace:
+                    d[field_name] = field_type(value)
+                else:
+                    copied_data[field_name] = field_type(value)
             except Exception as e:
                 raise GluonTSDataError(
                     f"Error when processing field {field_name} using {field_type}"
                 ) from e
+        if not inplace:
+            return copied_data

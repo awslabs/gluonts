@@ -63,7 +63,7 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
-from ._schema import Schema, FieldType, PandasPeriodField, NumpyArrayField
+from ._schema import Schema, PandasPeriodField, NumpyArrayField
 
 
 class DeepAREstimator(GluonEstimator):
