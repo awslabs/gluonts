@@ -148,6 +148,10 @@ class Forecast:
     def median(self) -> np.ndarray:
         return self.quantile(0.5)
 
+    @property
+    def freq(self):
+        return self.start_date.freq
+
     def plot(
         self,
         prediction_intervals=(50.0, 90.0),

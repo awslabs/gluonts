@@ -310,7 +310,7 @@ class Evaluator:
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = forecast.index[0] - forecast.start_date.freq
+        date_before_forecast = forecast.index[0] - forecast.freq
         return np.atleast_1d(
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
