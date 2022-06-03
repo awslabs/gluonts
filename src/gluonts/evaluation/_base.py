@@ -27,6 +27,7 @@ from typing import (
     Tuple,
     Union,
     Mapping,
+    cast,
 )
 
 import numpy as np
@@ -348,8 +349,8 @@ class Evaluator:
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
         }
-        metrics.update(
-            {"ND": metrics["abs_error"] / metrics["abs_target_sum"]}
+        metrics["ND"] = cast(float, metrics["abs_error"]) / cast(
+            float, metrics["abs_target_sum"]
         )
 
         if self.custom_eval_fn is not None:
