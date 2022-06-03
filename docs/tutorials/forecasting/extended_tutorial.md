@@ -696,7 +696,7 @@ forecast_entry = forecasts[0]
 print(f"Number of sample paths: {forecast_entry.num_samples}")
 print(f"Dimension of samples: {forecast_entry.samples.shape}")
 print(f"Start date of the forecast window: {forecast_entry.start_date}")
-print(f"Frequency of the time series: {forecast_entry.freq}")
+print(f"Frequency of the time series: {forecast_entry.start_date.freq}")
 ```
 
 We can also do calculations to summarize the sample paths, such as computing the mean or a quantile for each of the 24 time steps in the forecast window.
