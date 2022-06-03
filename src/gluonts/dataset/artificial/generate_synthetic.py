@@ -87,7 +87,8 @@ def generate_sf2(
                 del ts["source"]
                 if is_missing:
                     target = []  # type: List
-                    # For Forecast don't output feat_static_cat and feat_static_real
+                    # For Forecast don't output feat_static_cat and
+                    # feat_static_real
                     for j, val in enumerate(ts[FieldName.TARGET]):
                         # only add ones that are not missing
                         if j != 0 and j % num_missing == 0:

@@ -38,6 +38,18 @@ _ARROW_NUMPY_SHAPE_SUFFIX = "._np_shape"
 
 
 class ArrowWriter:
+    """
+    Write records to an arrow table. The first record is used to infer the
+    schema. Lists are converted to numpy int or float arrays if possible.
+    Strings of the form 'yyyy-mm-dd ...' are converted to timestamps if
+    possible.
+
+    Note:
+    Numpy arrays with dimension > 1 are stored in two columns one with a
+    1d flat data an additional column called "<array_name>._np_shape" that
+    stores the array shape. One could also do this via pyarrow/pandas
+    extension types, but it seemed overly complicated for this use case.
+    """
     def __init__(
         self,
         path: Union[str, Path],
@@ -45,21 +57,7 @@ class ArrowWriter:
         int_dtype=np.int32,
         float_dtype=np.float32,
     ):
-        """
-        Write records to an arrow table. The first record is used to infer the
-        schema. Lists are converted to numpy int or float arrays if possible.
-        Strings of the form 'yyyy-mm-dd ...' are converted to timestamps if
-        possible.
-
-        Note:
-        Numpy arrays with dimension > 1 are stored in two columns one with a
-        1d flat data an additional column called "<array_name>._np_shape" that
-        stores the array shape. One could also do this via pyarrow/pandas 
-        extension types, but it seemed overly complicated for this use case.
-        """
         self.path: Path = Path(path)
-        if not self.path.suffix == ".arrow":
-            raise RuntimeError("file should end with '.arrow'")
         self.chunk_size = chunk_size
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
