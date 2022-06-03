@@ -50,6 +50,7 @@ class ArrowWriter:
     stores the array shape. One could also do this via pyarrow/pandas
     extension types, but it seemed overly complicated for this use case.
     """
+
     def __init__(
         self,
         path: Union[str, Path],
