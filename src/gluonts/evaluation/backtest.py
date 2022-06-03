@@ -73,7 +73,6 @@ def make_evaluation_predictions(
             data = data_entry.copy()
             index = pd.period_range(
                 start=data[FieldName.START],
-                freq=data[FieldName.START].freq,
                 periods=data[FieldName.TARGET].shape[-1],
             )
             data["ts"] = pd.DataFrame(
