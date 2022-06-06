@@ -11,12 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
 from pandas.tseries.frequencies import to_offset
+
 from gluonts.exceptions import GluonTSDataError
 
 
@@ -108,27 +109,22 @@ class PandasPeriodField(FieldType[pd.Period]):
         return True
 
 
+@dataclass
 class Schema:
-    def __init__(self, fields: Dict[str, FieldType]) -> None:
-        self.fields = fields
+    fields: Dict[str, FieldType]
 
-    def __eq__(self, other):
-        return self.fields == other.fields
-
-    def __repr__(self):
-        return (
-            "Schema(fields={"
-            + ", ".join(f"'{k}':{v}" for k, v in self.fields.items())
-            + "})"
-        )
-
-    def __call__(self, d: Dict[str, Any], inplace: bool):
+    def __call__(
+        self, d: Dict[str, Any], inplace: bool
+    ) -> Dict[str, FieldType]:
         """
         inplace
             applies the schema to a data dict if True. The dictionary is updated in place.
             return a new data dictionary if False.
         """
-        copied_data: Dict[str, Any] = dict()
+        if inplace:
+            out = d
+        else:
+            out: Dict[str, Any] = {}
         for field_name, field_type in self.fields.items():
             try:
                 value = d[field_name]
@@ -137,13 +133,9 @@ class Schema:
                     f"field {field_name} does not occur in the data"
                 )
             try:
-                if inplace:
-                    d[field_name] = field_type(value)
-                else:
-                    copied_data[field_name] = field_type(value)
+                out[field_name] = field_type(value)
             except Exception as e:
                 raise GluonTSDataError(
                     f"Error when processing field {field_name} using {field_type}"
                 ) from e
-        if not inplace:
-            return copied_data
+        return out

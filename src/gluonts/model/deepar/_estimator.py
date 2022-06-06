@@ -496,11 +496,13 @@ class DeepAREstimator(GluonEstimator):
         fields["start"] = PandasPeriodField(freq=self.freq)
         fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1)
         if self.use_feat_dynamic_real:
-            fields["feat_dynamic_real"] = NumpyArrayField(dtype=self.dtype)
+            fields["feat_dynamic_real"] = NumpyArrayField(
+                dtype=self.dtype, ndim=1
+            )
         if self.use_feat_static_cat:
-            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32, ndim=2)
+            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32, ndim=1)
         if self.use_feat_static_real:
             fields["feat_static_real"] = NumpyArrayField(
-                dtype=self.dtype, ndim=2
+                dtype=self.dtype, ndim=1
             )
         return Schema(fields)
