@@ -51,7 +51,8 @@ class NumpyArrayField(FieldType[np.ndarray]):
         value = value.astype(self.dtype)
         if self.ndim is not None and self.ndim != value.ndim:
             raise GluonTSDataError(
-                f"expected array with dimension {self.ndim}, but got {value.ndim}."
+                f"expected array with dimension {self.ndim}, "
+                "but got {value.ndim}."
             )
         return value
 
@@ -118,13 +119,14 @@ class Schema:
     ) -> Dict[str, FieldType]:
         """
         inplace
-            applies the schema to a data dict if True. The dictionary is updated in place.
-            return a new data dictionary if False.
+            True: applies the schema to the input dictionary.
+                  The dictionary is updated in place.
+            False: return a new data dictionary if False.
         """
         if inplace:
-            out = d
+            out: Dict[str, Any] = d
         else:
-            out: Dict[str, Any] = {}
+            out = {}
         for field_name, field_type in self.fields.items():
             try:
                 value = d[field_name]
@@ -136,6 +138,7 @@ class Schema:
                 out[field_name] = field_type(value)
             except Exception as e:
                 raise GluonTSDataError(
-                    f"Error when processing field {field_name} using {field_type}"
+                    f"Error when processing field {field_name} using "
+                    "{field_type}"
                 ) from e
         return out

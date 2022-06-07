@@ -301,45 +301,9 @@ class DeepAREstimator(GluonEstimator):
         }
 
     def create_transformation(self) -> Transformation:
-        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
-        if not self.use_feat_static_real:
-            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
-        if not self.use_feat_dynamic_real:
-            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
-            + (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
-            )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
-            )
-            + [
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.TARGET,
-                    # in the following line, we add 1 for the time dimension
-                    expected_ndim=1 + len(self.distr_output.event_shape),
-                    dtype=self.dtype,
-                ),
+            [
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -370,6 +334,20 @@ class DeepAREstimator(GluonEstimator):
                     ),
                 ),
             ]
+            + (
+                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
+                if not self.use_feat_static_cat
+                else []
+            )
+            + (
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
+                if not self.use_feat_static_real
+                else []
+            )
         )
 
     def _create_instance_splitter(self, mode: str):
@@ -494,7 +472,10 @@ class DeepAREstimator(GluonEstimator):
     def get_schema(self) -> Schema:
         fields: Dict[str, Any] = dict()
         fields["start"] = PandasPeriodField(freq=self.freq)
-        fields["target"] = NumpyArrayField(dtype=self.dtype, ndim=1)
+        # in the following line, we add 1 for the time dimension
+        fields["target"] = NumpyArrayField(
+            dtype=self.dtype, ndim=1 + len(self.distr_output.event_shape)
+        )
         if self.use_feat_dynamic_real:
             fields["feat_dynamic_real"] = NumpyArrayField(
                 dtype=self.dtype, ndim=1
