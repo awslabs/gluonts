@@ -144,3 +144,37 @@ class IterableSlice(Iterable):
 
     def __len__(self) -> int:
         return len(self.iterable)
+
+
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def tld(dicts: List[Dict[K, V]]) -> Dict[K, List[V]]:
+    """Transpose list-of-dicts to dict-of-lists.
+
+    >>> tld([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
+    {'a': [1, 3], 'b': [2, 4]}
+    """
+
+    if not dicts:
+        return {}
+
+    column_names = dicts[0].keys()
+
+    return {key: [dct[key] for dct in dicts] for key in column_names}
+
+
+def tdl(dct: Dict[K, List[V]]) -> List[Dict[K, V]]:
+    """Transpose dict-of-lists to list-of-dicts.
+
+    >>> tdl({'a': [1, 3], 'b': [2, 4]})
+    [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
+    """
+
+    if not dct:
+        return []
+
+    keys = dct.keys()
+
+    return [dict(zip(keys, values)) for values in zip(*dct.values())]
