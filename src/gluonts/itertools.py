@@ -155,6 +155,9 @@ def tld(dicts: List[Dict[K, V]]) -> Dict[K, List[V]]:
 
     >>> tld([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
     {'a': [1, 3], 'b': [2, 4]}
+
+    This can also be understood as stacking the values of each dict onto each
+    other. Also, this converts a row-oriented format into a columnar one.
     """
 
     if not dicts:
