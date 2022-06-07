@@ -272,8 +272,8 @@ class SelfAttentionEstimator(GluonEstimator):
             n_head=self.num_heads,
             n_layers=self.num_layers,
             n_output=self.num_outputs,
-            use_covariates=self.use_feat_dynamic_real
-            or self.use_feat_dynamic_cat,
+            use_real_feat=self.use_feat_dynamic_real
+            or self.use_feat_static_real,
             cardinalities=self.cardinalities,
             kernel_sizes=self.kernel_sizes,
             dist_enc=self.distance_encoding,
@@ -295,8 +295,8 @@ class SelfAttentionEstimator(GluonEstimator):
             n_head=self.num_heads,
             n_layers=self.num_layers,
             n_output=self.num_outputs,
-            use_covariates=self.use_feat_dynamic_real
-            or self.use_feat_dynamic_cat,
+            use_real_feat=self.use_feat_dynamic_real
+            or self.use_feat_static_real,
             cardinalities=self.cardinalities,
             kernel_sizes=self.kernel_sizes,
             dist_enc=self.distance_encoding,

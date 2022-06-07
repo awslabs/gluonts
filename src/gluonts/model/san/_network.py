@@ -95,7 +95,7 @@ class SelfAttentionNetwork(HybridBlock):
         n_head: int,
         n_layers: int,
         n_output: int,
-        use_covariates: bool,
+        use_real_feat: bool,
         cardinalities: List[int],
         kernel_sizes: Optional[List[int]],
         dist_enc: Optional[str],
@@ -144,7 +144,7 @@ class SelfAttentionNetwork(HybridBlock):
                 weight_initializer=init.Xavier(),
                 prefix="target_proj_",
             )
-            if use_covariates:
+            if use_real_feat:
                 self.covar_proj = nn.Dense(
                     units=self.d_hidden,
                     use_bias=True,
