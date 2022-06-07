@@ -128,24 +128,18 @@ class SelfAttentionEstimator(GluonEstimator):
                 field=FieldName.FEAT_DYNAMIC_REAL,
                 expected_ndim=2,
             )
-        else:
-            transforms += SetField(FieldName.FEAT_DYNAMIC_REAL, None)
 
         if self.use_feat_dynamic_cat:
             transforms += AsNumpyArray(
                 field=FieldName.FEAT_DYNAMIC_CAT,
                 expected_ndim=2,
             )
-        else:
-            transforms += SetField(FieldName.FEAT_DYNAMIC_CAT, None)
 
         if self.use_feat_static_real:
             transforms += AsNumpyArray(
                 field=FieldName.FEAT_STATIC_REAL,
                 expected_ndim=1,
             )
-        else:
-            transforms += SetField(FieldName.FEAT_STATIC_REAL, None)
 
         if self.use_feat_static_cat:
             transforms += AsNumpyArray(

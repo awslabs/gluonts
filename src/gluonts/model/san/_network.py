@@ -260,19 +260,19 @@ class SelfAttentionNetwork(HybridBlock):
 
         past_covariates = self._assemble_covariates(
             F,
-            is_past=True,
             feat_dynamic_real=past_feat_dynamic_real,
             feat_dynamic_cat=past_feat_dynamic_cat,
             feat_static_real=feat_static_real,
             feat_static_cat=feat_static_cat,
+            is_past=True,
         )
         future_covariates = self._assemble_covariates(
             F,
-            is_past=False,
             feat_dynamic_real=future_feat_dynamic_real,
             feat_dynamic_cat=future_feat_dynamic_cat,
             feat_static_real=feat_static_real,
             feat_static_cat=feat_static_cat,
+            is_past=False,
         )
         past_observed_values = F.broadcast_logical_and(
             past_observed_values,
