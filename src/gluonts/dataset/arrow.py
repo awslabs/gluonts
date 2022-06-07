@@ -52,6 +52,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 
 from gluonts.itertools import batcher
 
@@ -81,9 +82,10 @@ class ArrowEncoder:
     columns: List[str]
     convert: Dict[str, Callable] = field(default_factory=set)
     ndarray_columns: Set[str] = field(default_factory=set)
+    flatten_arrays: bool = True
 
     @classmethod
-    def infer(cls, sample: dict):
+    def infer(cls, sample: dict, flatten_arrays=True):
         columns = []
         ndarray_columns = set()
         convert = {}
@@ -105,6 +107,7 @@ class ArrowEncoder:
             columns=columns,
             ndarray_columns=ndarray_columns,
             convert=convert,
+            flatten_arrays=flatten_arrays,
         )
 
     def column_names(self):
@@ -121,8 +124,11 @@ class ArrowEncoder:
                 value = fn(value)
 
             if column in self.ndarray_columns:
-                result[shape_column_of(column)] = list(value.shape)
-                value = value.flatten()
+                if self.flatten_arrays:
+                    result[shape_column_of(column)] = list(value.shape)
+                    value = value.flatten()
+                else:
+                    value = list(value)
 
             result[column] = value
 
@@ -142,7 +148,12 @@ def _(scalar: pa.Scalar):
 
 @scalar_to_py.register
 def _(scalar: pa.ListScalar):
-    return scalar.values.to_numpy()
+    arr = scalar.values.to_numpy(zero_copy_only=False)
+
+    if arr.dtype == object:
+        arr = np.array(list(arr))
+
+    return arr
 
 
 @dataclass
@@ -171,7 +182,6 @@ class ArrowDecoder:
         row = {}
         columns = batch.slice(row_number, row_number + 1)
 
-        # if isinstance(columns, pa.Table):
         columns = [chunk[0] for chunk in columns]
 
         for column_name, column_idx in self.columns.items():
@@ -179,7 +189,7 @@ class ArrowDecoder:
 
             shape_idx = self.ndarray_columns.get(column_name)
             if shape_idx is not None:
-                shape = scalar_to_py(batch[shape_idx])
+                shape = scalar_to_py(columns[shape_idx])
                 value.reshape(shape)
 
             row[column_name] = value
@@ -188,41 +198,85 @@ class ArrowDecoder:
 
 
 @dataclass
-class ArrowTable:
-    table: pa.Table
-    decoder: ArrowEncoder
+class ArrowRandomAccessDataset:
+    path: Path
+    reader: pa.RecordBatchFileReader = field(init=False)
+    decoder: ArrowDecoder = field(init=False)
+    _batch_offsets: np.array = None
 
-    @classmethod
-    def from_file(cls, path):
-        with open(path, "rb") as infile:
-            table = pa.RecordBatchFileReader(infile).read_all()
+    @property
+    def batch_offsets(self):
+        if self._batch_offsets is None:
+            self._batch_offsets = np.cumsum(
+                list(map(len, self.iter_batches()))
+            )
 
-        return cls.new(table)
+        return self._batch_offsets
 
-    @classmethod
-    def new(cls, table: pa.Table):
-        return cls(table, ArrowDecoder.from_schema(table.schema))
+    def __post_init__(self):
+        self.reader = pa.RecordBatchFileReader(self.path)
+        self.decoder = ArrowDecoder.from_schema(self.schema)
+
+    def location_for(self, idx):
+        batch_no = np.searchsorted(self.batch_offsets, idx)
+        if batch_no == 0:
+            batch_idx = idx
+        else:
+            batch_idx = idx - self.batch_offsets[batch_no - 1]
+        return batch_no, batch_idx
+
+    @property
+    def schema(self):
+        return self.reader.schema
+
+    def iter_batches(self):
+        for batch_no in range(self.reader.num_record_batches):
+            yield self.reader.get_batch(batch_no)
 
     def __len__(self):
-        return self.table.num_rows
+        return sum(self.batch_offsets)
+
+    def __iter__(self):
+        for batch in self.iter_batches():
+            yield from self.decoder.decode_batch(batch)
 
     def __getitem__(self, idx):
-        return self.decoder.decode(self.table, idx)
+        batch_no, batch_idx = self.location_for(idx)
+        return self.decoder.decode(self.reader.get_batch(batch_no), idx)
 
 
 @dataclass
-class StreamDataset:
+class ArrowStreamDataset:
     path: Path
+    decoder: Optional[ArrowDecoder] = None
 
     def __iter__(self):
         with open(self.path, "rb") as infile:
-            reader = pa.RecordBatchFileReader(infile)
+            reader = pa.RecordBatchStreamReader(infile)
+            if self.decoder is None:
+                self.decoder = ArrowDecoder.from_schema(reader.schema)
 
-            for batch_number in range(reader.num_record_batches):
-                batch = reader.get_batch(batch_number)
-                table = ArrowTable.new(batch)
+            while True:
+                try:
+                    batch = reader.read_next_batch()
+                    yield from self.decoder.decode_batch(batch)
+                except StopIteration:
+                    return
 
-                yield from table
+    def __len__(self):
+        return sum(1 for _ in self)
+
+
+@dataclass
+class ParquetDataset:
+    path: Path
+
+    def __iter__(self):
+        pf = pq.ParquetFile(self.path)
+        decoder = ArrowDecoder.from_schema(pf.schema)
+
+        for batch in pf.iter_batches():
+            yield from decoder.decode_batch(batch)
 
 
 @dataclass
@@ -240,19 +294,23 @@ class ArrowBatcher:
             yield pa.record_batch(values, names=names)
 
 
-def convert(dataset, chunk_size=1024):
+def convert(dataset, chunk_size=1024, flatten_arrays=True):
     dataset = iter(dataset)
     first = next(dataset)
 
     batcher = ArrowBatcher(
-        encoder=ArrowEncoder.infer(first), chunk_size=chunk_size
+        encoder=ArrowEncoder.infer(
+            first,
+            flatten_arrays=flatten_arrays,
+        ),
+        chunk_size=chunk_size,
     )
 
     yield from batcher.batchify(chain([first], dataset))
 
 
-def write(dataset, path, chunk_size=1024):
-    batches = convert(dataset)
+def write(dataset, path, chunk_size=1024, flatten_arrays=True):
+    batches = convert(dataset, chunk_size, flatten_arrays=flatten_arrays)
     first = next(batches)
 
     with open(path, "wb") as fobj:
@@ -261,3 +319,30 @@ def write(dataset, path, chunk_size=1024):
             writer.write_batch(batch)
 
         writer.close()
+
+
+def write_streaming(dataset, path, chunk_size=1024, flatten_arrays=True):
+    batches = convert(dataset, chunk_size, flatten_arrays=flatten_arrays)
+    first = next(batches)
+
+    with open(path, "wb") as fobj:
+        writer = pa.RecordBatchStreamWriter(fobj, schema=first.schema)
+        for batch in chain([first], batches):
+            writer.write_batch(batch)
+
+        writer.close()
+
+
+# def write_parquet(dataset, path):
+
+
+# def write_parquet(dataset, path, chunk_size=1024):
+#     batches = convert(dataset, chunk_size)
+#     first = next(batches)
+
+#     with open(path, "wb") as fobj:
+#         writer = pa.RecordBatchStreamWriter(fobj, schema=first.schema)
+#         for batch in chain([first], batches):
+#             writer.write_batch(batch)
+
+#         writer.close()
