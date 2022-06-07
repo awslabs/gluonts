@@ -13,7 +13,7 @@
 
 import itertools
 import random
-from typing import Iterable, Iterator, List, Optional, TypeVar
+from typing import Dict, Iterable, Iterator, List, Optional, TypeVar
 
 T = TypeVar("T")
 
