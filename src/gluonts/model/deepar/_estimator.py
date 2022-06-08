@@ -44,12 +44,11 @@ from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
-    AsNumpyArray,
+    ApplySchema,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
-    RemoveFields,
     SelectFields,
     SetField,
     TestSplitSampler,
@@ -303,7 +302,22 @@ class DeepAREstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
 
         return Chain(
-            [
+            (
+                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
+                if not self.use_feat_static_cat
+                else []
+            )
+            + (
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
+                if not self.use_feat_static_real
+                else []
+            )
+            + [
+                ApplySchema(self.get_schema()),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -334,20 +348,6 @@ class DeepAREstimator(GluonEstimator):
                     ),
                 ),
             ]
-            + (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
-            )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
-            )
         )
 
     def _create_instance_splitter(self, mode: str):
@@ -480,10 +480,6 @@ class DeepAREstimator(GluonEstimator):
             fields["feat_dynamic_real"] = NumpyArrayField(
                 dtype=self.dtype, ndim=1
             )
-        if self.use_feat_static_cat:
-            fields["feat_static_cat"] = NumpyArrayField(dtype=np.int32, ndim=1)
-        if self.use_feat_static_real:
-            fields["feat_static_real"] = NumpyArrayField(
-                dtype=self.dtype, ndim=1
-            )
+        fields["feat_static_cat"] = NumpyArrayField(dtype=self.dtype, ndim=1)
+        fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype, ndim=1)
         return Schema(fields)

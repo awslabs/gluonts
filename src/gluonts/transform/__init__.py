@@ -19,6 +19,7 @@ __all__ = [
     "AddObservedValuesIndicator",
     "AddTimeFeatures",
     "AdhocTransform",
+    "ApplySchema"
     "AsNumpyArray",
     "BucketInstanceSampler",
     "CanonicalInstanceSplitter",
@@ -76,6 +77,7 @@ from ._base import (
     TransformedDataset,
 )
 from .convert import (
+    ApplySchema,
     AsNumpyArray,
     CDFtoGaussianTransform,
     ConcatFeatures,
