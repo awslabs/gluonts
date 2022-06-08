@@ -67,7 +67,7 @@ def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
     # peak 1
     first = next(stream)
     # re-assemble
-    stream = chain([first], dataset)
+    stream = chain([first], stream)
 
     encoder = ArrowEncoder.infer(first, flatten_arrays=flatten_arrays)
     encoded = map(encoder.encode, stream)
@@ -110,9 +110,10 @@ class ArrowDecoder:
                 value = _arrow_to_py(raw_row[column_idx])
 
                 shape_idx = self.ndarray_columns.get(column_name)
+
                 if shape_idx is not None:
                     shape = _arrow_to_py(raw_row[shape_idx])
-                    value.reshape(shape)
+                    value = value.reshape(shape)
 
                 row[column_name] = value
 

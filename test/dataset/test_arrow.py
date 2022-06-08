@@ -13,13 +13,16 @@
 
 import tempfile
 from pathlib import Path
-import platform
 
 import numpy as np
+from numpy.testing import assert_equal
 import pytest
 
-from gluonts.dataset.common import ListDataset
-from gluonts.dataset.arrow import ArrowDataset, ArrowWriter
+from gluonts.dataset.arrow import (
+    ArrowDataset,
+    ArrowStreamDataset,
+    infer_arrow_dataset,
+)
 
 
 def rand_start():
@@ -47,58 +50,22 @@ def make_data(n: int):
     return data
 
 
-@pytest.mark.skipif(
-    platform.system() == "Windows",
-    reason="Skip tests on windows, since removing dirs with memory mapped files fails.",
-)
-def test_arrow():
-    n = 30
-    data = make_data(n)
+@pytest.mark.parametrize("Dataset", [ArrowDataset, ArrowStreamDataset])
+@pytest.mark.parametrize("flatten_arrays", [True, False])
+def test_arrow(Dataset, flatten_arrays):
+    data = make_data(5)
 
     with tempfile.TemporaryDirectory() as path:
         data_arrow_file = Path(path, "data.arrow")
-        data_convert_arrow_file = Path(path, "data_convert.arrow")
-        with ArrowWriter(data_arrow_file) as aw:
-            for d in data:
-                aw.write_record(d)
-        with ArrowWriter(data_convert_arrow_file) as aw:
-            for d in data:
-                r = {
-                    "start": d["start"],
-                    "target": d["target"].astype(float).tolist(),
-                    "feat_dynamic_real": d["feat_dynamic_real"]
-                    .astype(float)
-                    .tolist(),
-                    "feat_static_cat": d["feat_static_cat"]
-                    .astype(int)
-                    .tolist(),
-                }
-                aw.write_record(r)
 
-        freq = "1min"
-        list_ds = ListDataset(data, freq=freq)
-        data_list = [d for d in list_ds]
-        data_arrow = [
-            d for d in ArrowDataset.load_files(data_arrow_file, freq=freq)
-        ]
-        data_convert_arrow = [
-            d
-            for d in ArrowDataset.load_files(
-                data_convert_arrow_file, freq=freq
-            )
-        ]
+        # create file on disk
+        Dataset.create(data, data_arrow_file, flatten_arrays=flatten_arrays)
 
-        assert n == len(data_arrow)
-        assert n == len(data_convert_arrow)
-        for i in range(len(data_list)):
-            d = data_list[i]
-            d1 = data_arrow[i]
-            d2 = data_convert_arrow[i]
-            assert d["start"] == d1["start"]
-            assert d["start"] == d2["start"]
-            assert np.all(d["target"] == d1["target"])
-            assert np.all(d["target"] == d2["target"])
-            assert np.all(d["feat_dynamic_real"] == d1["feat_dynamic_real"])
-            assert np.all(d["feat_dynamic_real"] == d2["feat_dynamic_real"])
-            assert np.all(d["feat_static_cat"] == d1["feat_static_cat"])
-            assert np.all(d["feat_static_cat"] == d2["feat_static_cat"])
+        dataset = infer_arrow_dataset(data_arrow_file)
+
+        assert len(data) == len(dataset)
+
+        # print(dataset[0]["feat_dynamic_real"])
+
+        for orig, arrow_value in zip(data, dataset):
+            assert_equal(orig, arrow_value)
