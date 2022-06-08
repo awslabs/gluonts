@@ -149,7 +149,7 @@ class PseudoShuffled:
         return len(self.iterable)
 
 
-@dataclass
+# can't make this a dataclass because of pytorch-lightning assumptions
 class IterableSlice:
     """
     An iterable version of `itertools.islice`, i.e. one that can be iterated
@@ -166,11 +166,9 @@ class IterableSlice:
     This needs to be a class to support re-entry iteration.
     """
 
-    iterable: Iterable
-    length: int
-    current: list = field(default_factory=list)
-
-    def __post_init__(self):
+    def __init__(self, iterable, length):
+        self.iterable = iterable
+        self.length = length
         self.next()
 
     def next(self):
@@ -183,9 +181,6 @@ class IterableSlice:
     def __len__(self) -> int:
         return len(self.current)
 
-
-# need to put it here to not interfer with `dataclass`
-Sequence.register(IterableSlice)
 
 K = TypeVar("K")
 V = TypeVar("V")
