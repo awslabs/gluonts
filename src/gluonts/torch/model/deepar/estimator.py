@@ -324,12 +324,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
 
         return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
+            DataLoader(
+                IterableDataset(training_instances),
+                batch_size=self.batch_size,
+                **kwargs,
             ),
             self.num_batches_per_epoch,
         )
