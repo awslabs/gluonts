@@ -119,7 +119,7 @@ class Cached:
 @dataclass
 class PseudoShuffled:
     """
-    Yields items from a given iterable in a pseudo-shuffled order.
+    Yield items from a given iterable in a pseudo-shuffled order.
     """
 
     iterable: Collection
@@ -144,7 +144,17 @@ class PseudoShuffled:
 class IterableSlice:
     """
     An iterable version of `itertools.islice`, i.e. one that can be iterated
-    over multiple times.
+    over multiple times:
+
+        >>> isl = IterableSlice([1, 2, 3, 4, 5], 3)
+        >>> list(isl)
+        [1, 2, 3]
+        >>> list(isl)
+        [4, 5]
+        >>> list(isl)
+        []
+
+    This needs to be a class to support re-entry iteration.
     """
 
     iterable: Collection
