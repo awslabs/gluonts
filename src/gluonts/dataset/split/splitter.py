@@ -261,9 +261,9 @@ class AbstractBaseSplitter(ABC):
         train_end: pd.Period, test_end: pd.Period, prediction_length: int
     ) -> None:
         msg = (
-            "Number of left over values is too small to create the test"
-            + " window. Either the timeseries is too short or"
-            + " ``split_offset`` or ``split_date`` is not set properly."
+            "Not enough observations after the split point to construct"
+            + " the test instance; consider using longer time series,"
+            + " or splitting at an earlier point."
         )
         assert train_end + train_end.freq * prediction_length <= test_end, msg
 
