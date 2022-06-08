@@ -47,8 +47,8 @@ def prod(xs):
     return p
 
 
-@dataclass  # type: ignore[misc]
-class Cyclic(Collection):
+@dataclass
+class Cyclic:
     """
     Like `itertools.cycle`, but does not store the data.
     """
@@ -87,8 +87,8 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     return iter(get_batch, [])
 
 
-@dataclass  # type: ignore[misc]
-class Cached(Collection):
+@dataclass
+class Cached:
     """
     An iterable wrapper, which caches values in a list the first time it is
     iterated.
@@ -116,8 +116,8 @@ class Cached(Collection):
         return len(self.iterable)
 
 
-@dataclass  # type: ignore[misc]
-class PseudoShuffled(Collection):
+@dataclass
+class PseudoShuffled:
     """
     Yields items from a given iterable in a pseudo-shuffled order.
     """
@@ -140,8 +140,8 @@ class PseudoShuffled(Collection):
         return len(self.iterable)
 
 
-@dataclass  # type: ignore[misc]
-class IterableSlice(Collection):
+@dataclass
+class IterableSlice:
     """
     An iterable version of `itertools.islice`, i.e. one that can be iterated
     over multiple times.
