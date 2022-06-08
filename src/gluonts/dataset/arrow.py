@@ -30,10 +30,9 @@ from dataclasses import dataclass, field
 from functools import singledispatch
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
-import pandas as pd
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -74,7 +73,7 @@ def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
     encoded = map(encoder.encode, stream)
 
     row_batches = batcher(encoded, batch_size)
-    column_batches = map(rows_to_columns)
+    column_batches = map(rows_to_columns, row_batches)
 
     for batch in column_batches:
         yield pa.record_batch(list(batch.values()), names=list(batch.keys()))
