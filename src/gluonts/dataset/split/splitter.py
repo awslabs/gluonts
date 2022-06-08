@@ -220,8 +220,7 @@ class AbstractBaseSplitter(ABC):
 
             prediction_length = getattr(self, "prediction_length")
 
-            assert train.end + train.end.freq * prediction_length <= test.end
-
+            _check_split_length(train.end, test.end, prediction_length)
             split._add_test_slice(test)
 
         return split
@@ -250,12 +249,21 @@ class AbstractBaseSplitter(ABC):
                 )
                 prediction_length = getattr(self, "prediction_length")
 
-                assert (
-                    train.end + train.end.freq * prediction_length <= test.end
-                )
+                _check_split_length(train.end, test.end, prediction_length)
                 split._add_test_slice(test)
 
         return split
+
+
+def _check_split_length(
+    train_end: pd.Period, test_end: pd.Period, prediction_length: int
+) -> None:
+    msg = (
+        "Not enough observations after the split point to construct"
+        " the test instance; consider using longer time series,"
+        " or splitting at an earlier point."
+    )
+    assert train_end + prediction_length <= test_end, msg
 
 
 class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
@@ -263,17 +271,19 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
     A splitter that slices training and test data based on a fixed integer
     offset.
 
-    A positive offset indicates how many observations since the start of each
-    series should be in the training slice; a negative offset indicates how
-    many observations before the end of each series should be excluded from
-    the training slice.
-
     Parameters
     ----------
     prediction_length
         Length of the prediction interval in test data.
     split_offset
         Offset determining where the training data ends.
+        A positive offset indicates how many observations since the start of
+        each series should be in the training slice; a negative offset
+        indicates how many observations before the end of each series should
+        be excluded from the training slice. Please make sure that the number
+        of excluded values is enough for the test case, i.e., at least
+        ``prediction_length`` (for ``rolling_split`` multiple of
+        ``prediction_length``) values are left off.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
@@ -308,7 +318,9 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     prediction_length
         Length of the prediction interval in test data.
     split_date
-        Period determining where the training data ends.
+        Period determining where the training data ends. Please make sure
+        at least ``prediction_length`` (for ``rolling_split`` multiple of
+        ``prediction_length``) values are left over after the ``split_date``.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
