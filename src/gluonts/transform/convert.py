@@ -18,7 +18,6 @@ import numpy as np
 from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.exceptions import assert_data_error
-from gluonts.model.deepar._schema import Schema
 
 from ._base import (
     FlatMapTransformation,
@@ -101,14 +100,6 @@ def erfinv(x: np.ndarray) -> np.ndarray:
         p = c + p * w
 
     return p * x
-
-
-class ApplySchema(SimpleTransformation):
-    def __init__(self, model_schema: Schema) -> None:
-        self.model_schema = model_schema
-    
-    def transform(self, data: DataEntry) -> DataEntry:
-        return self.model_schema(data, inplace=True)
 
 
 class AsNumpyArray(SimpleTransformation):

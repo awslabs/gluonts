@@ -44,7 +44,6 @@ from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
-    ApplySchema,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
@@ -302,22 +301,7 @@ class DeepAREstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
 
         return Chain(
-            (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
-            )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
-            )
-            + [
-                ApplySchema(self.get_schema()),
+            [
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,

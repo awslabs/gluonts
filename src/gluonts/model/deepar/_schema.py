@@ -13,6 +13,8 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
+from xml.dom.pulldom import default_bufsize
+from attr import field
 
 import numpy as np
 import pandas as pd
@@ -123,6 +125,7 @@ class Schema:
                   The dictionary is updated in place.
             False: return a new data dictionary if False.
         """
+        default_fields = ["feat_static_cat", "feat_static_real"]
         if inplace:
             out: Dict[str, Any] = d
         else:
@@ -131,9 +134,12 @@ class Schema:
             try:
                 value = d[field_name]
             except KeyError:
-                raise GluonTSDataError(
-                    f"field {field_name} does not occur in the data"
-                )
+                if field_name in default_fields:
+                    value = [0.0]
+                else:
+                    raise GluonTSDataError(
+                        f"field {field_name} does not occur in the data"
+                    )
             try:
                 out[field_name] = field_type(value)
             except Exception as e:
