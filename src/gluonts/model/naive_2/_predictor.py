@@ -170,6 +170,5 @@ class Naive2Predictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item_id,
         )

@@ -70,7 +70,6 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=std * normal + mean,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -130,7 +129,6 @@ class MovingAveragePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 

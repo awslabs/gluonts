@@ -30,14 +30,15 @@ def data_iterator(ts):
         yield ts[i]
 
 
-def fcst_iterator(fcst, start_dates, freq):
+def fcst_iterator(fcst, start_dates):
     """
     :param fcst: list of numpy arrays with the sample paths
     :return:
     """
     for i in range(len(fcst)):
         yield SampleForecast(
-            samples=fcst[i], start_date=start_dates[i], freq=freq
+            samples=fcst[i],
+            start_date=start_dates[i],
         )
 
 
@@ -128,7 +129,7 @@ def calculate_metrics(
 
     # data iterator
     data_iter = input_type(data_iterator(pd_timeseries))
-    fcst_iter = input_type(fcst_iterator(samples, start_dates, freq))
+    fcst_iter = input_type(fcst_iterator(samples, start_dates))
 
     # evaluate
     agg_df, item_df = evaluator(data_iter, fcst_iter)
@@ -661,7 +662,6 @@ def test_evaluation_with_QuantileForecast():
     fcst = [
         QuantileForecast(
             start_date=pd.Period("2012-01-11", freq="D"),
-            freq="D",
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
         )

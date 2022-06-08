@@ -207,7 +207,6 @@ class NBEATSEnsemblePredictor(Predictor):
             yield SampleForecast(
                 output,
                 start_date=start_date,
-                freq=start_date.freqstr,
                 item_id=item[FieldName.ITEM_ID]
                 if FieldName.ITEM_ID in item
                 else None,

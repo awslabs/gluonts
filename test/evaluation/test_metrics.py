@@ -198,7 +198,7 @@ def test_msis(
 def test_seasonal_error(past_data, seasonality, expected):
     np.testing.assert_almost_equal(
         calculate_seasonal_error(
-            past_data=past_data, forecast=None, seasonality=seasonality
+            past_data=past_data, freq=None, seasonality=seasonality
         ),
         expected,
     )

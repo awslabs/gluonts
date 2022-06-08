@@ -279,7 +279,6 @@ class RForecastPredictor(RepresentablePredictor):
                     ),
                     forecast_keys=list(quantile_forecasts_dict.keys()),
                     start_date=forecast_start(data),
-                    freq=self.freq,
                     item_id=data.get("item_id", None),
                 )
             else:
@@ -309,7 +308,6 @@ class RForecastPredictor(RepresentablePredictor):
                 yield SampleForecast(
                     samples,
                     forecast_start(data),
-                    self.freq,
                     info=info,
                     item_id=data.get("item_id", None),
                 )

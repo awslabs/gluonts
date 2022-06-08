@@ -27,10 +27,10 @@ FORECASTS = {
         forecast_arrays=QUANTILES.reshape(-1, 1),
         start_date=START_DATE,
         forecast_keys=np.array(QUANTILES, str),
-        freq=FREQ,
     ),
     "SampleForecast": SampleForecast(
-        samples=SAMPLES, start_date=START_DATE, freq=FREQ
+        samples=SAMPLES,
+        start_date=START_DATE,
     ),
 }
 
@@ -53,7 +53,7 @@ def test_Forecast(name):
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Period(START_DATE, forecast.freq)
+    assert forecast.index[0] == START_DATE
 
 
 @pytest.mark.parametrize(
@@ -63,7 +63,6 @@ def test_Forecast(name):
             SampleForecast(
                 samples=np.random.normal(size=(100, 7, 3)),
                 start_date=pd.Period("2020-01-01 00:00:00", freq="1D"),
-                freq="1D",
             ),
             pd.period_range(
                 start=pd.Period("2020-01-01 00:00:00", freq="1D"),

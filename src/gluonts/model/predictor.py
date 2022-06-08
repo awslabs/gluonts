@@ -366,7 +366,7 @@ class ParallelizedPredictor(Predictor):
 class Localizer(Predictor):
     """
     A Predictor that uses an estimator to train a local model per time series
-    and immediatly calls this to predict.
+    and immediately calls this to predict.
 
     Parameters
     ----------
