@@ -280,7 +280,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
-        use_hist_feat_dynamic_real=False,
+        use_past_feat_dynamic_real=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
         cardinality: Cardinality = CardinalityLabel.auto,
@@ -309,7 +309,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         self.use_feat_static_real = use_feat_static_real
         self.cardinality = cardinality
-        self.use_hist_feat_dynamic_real = use_hist_feat_dynamic_real
+        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.one_hot_encode = one_hot_encode
@@ -408,19 +408,19 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         else:
             feat_static_cat = []
 
-        hist_feat_dynamic_real = (
+        past_feat_dynamic_real = (
             list(
                 chain(
                     *[
                         list(ent[0]) + list(ent[1].values())
                         for ent in [
                             self._pre_transform(ts[starting_index:end_index])
-                            for ts in time_series["hist_feat_dynamic_real"]
+                            for ts in time_series["past_feat_dynamic_real"]
                         ]
                     ]
                 )
             )
-            if self.use_hist_feat_dynamic_real
+            if self.use_past_feat_dynamic_real
             else []
         )
         feat_dynamic_real = (
@@ -465,7 +465,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
 
         feat_dynamics = (
-            hist_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
+            past_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
         )
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
