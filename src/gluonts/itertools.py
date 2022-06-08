@@ -155,7 +155,7 @@ class IterableSlice:
     An iterable version of `itertools.islice`, i.e. one that can be iterated
     over multiple times:
 
-        >>> isl = IterableSlice([1, 2, 3, 4, 5], 3)
+        >>> isl = IterableSlice(iter([1, 2, 3, 4, 5]), 3)
         >>> list(isl)
         [1, 2, 3]
         >>> list(isl)
@@ -169,17 +169,9 @@ class IterableSlice:
     def __init__(self, iterable, length):
         self.iterable = iterable
         self.length = length
-        self.next()
-
-    def next(self):
-        self.current = list(itertools.islice(self.iterable, self.length))
 
     def __iter__(self):
-        yield from self.current
-        self.next()
-
-    def __len__(self) -> int:
-        return len(self.current)
+        yield from itertools.islice(self.iterable, self.length)
 
 
 K = TypeVar("K")
@@ -214,7 +206,7 @@ def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
     """Transpose column-orientation to row-orientation.
 
     >>> columns_to_rows({'a': [1, 3], 'b': [2, 4]})
-    [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
+    [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
     """
 
     if not columns:
