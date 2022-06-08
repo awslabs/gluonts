@@ -51,12 +51,10 @@ import pyarrow.parquet as pq
 from gluonts.itertools import batcher, rows_to_columns
 
 
-def shape_column_of(column):
-    return f"{column}._np_shape"
-
-
 @singledispatch
 def _arrow_to_py(scalar):
+    """Convert arrow scalar value to python value."""
+
     raise NotImplementedError(scalar, scalar.__class__)
 
 
@@ -75,6 +73,23 @@ def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
     return arr
 
 
+def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
+    stream = iter(dataset)
+    # peak 1
+    first = next(stream)
+    # re-assemble
+    stream = chain([first], dataset)
+
+    encoder = ArrowEncoder.infer(first, flatten_arrays=flatten_arrays)
+    encoded = map(encoder.encode, stream)
+
+    row_batches = batcher(encoded, batch_size)
+    column_batches = map(rows_to_columns)
+
+    for batch in column_batches:
+        yield pa.record_batch(list(batch.values()), names=list(batch.keys()))
+
+
 @dataclass
 class ArrowDecoder:
     columns: Dict[str, int]
@@ -85,11 +100,11 @@ class ArrowDecoder:
         columns = {}
         ndarray_columns = {}
 
-        for idx, field in enumerate(schema):
-            if field.name.endswith("._np_shape"):
-                ndarray_columns[(field.name.rsplit(".", 1)[0])] = idx
+        for idx, column in enumerate(schema):
+            if column.name.endswith("._np_shape"):
+                ndarray_columns[(column.name.rsplit(".", 1)[0])] = idx
             else:
-                columns[field.name] = idx
+                columns[column.name] = idx
 
         return cls(columns, ndarray_columns)
 
@@ -124,7 +139,9 @@ class ArrowDataset:
 
     @staticmethod
     def create(dataset, path, chunk_size=1024, flatten_arrays=True):
-        batches = convert(dataset, chunk_size, flatten_arrays=flatten_arrays)
+        batches = into_arrow_batches(
+            dataset, chunk_size, flatten_arrays=flatten_arrays
+        )
         first = next(batches)
 
         with open(path, "wb") as fobj:
@@ -181,8 +198,10 @@ class ArrowStreamDataset:
     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
 
     @staticmethod
-    def write_streaming(dataset, path, chunk_size=1024, flatten_arrays=True):
-        batches = convert(dataset, chunk_size, flatten_arrays=flatten_arrays)
+    def create(dataset, path, chunk_size=1024, flatten_arrays=True):
+        batches = into_arrow_batches(
+            dataset, chunk_size, flatten_arrays=flatten_arrays
+        )
         first = next(batches)
 
         with open(path, "wb") as fobj:
@@ -259,7 +278,6 @@ class ParquetDataset:
 @dataclass
 class ArrowEncoder:
     columns: List[str]
-    convert: Dict[str, Callable] = field(default_factory=dict)
     ndarray_columns: Set[str] = field(default_factory=set)
     flatten_arrays: bool = True
 
@@ -270,15 +288,9 @@ class ArrowEncoder:
         convert = {}
 
         for name, value in sample.items():
-            if name == "source":
-                continue
-
             if isinstance(value, np.ndarray):
                 if value.ndim > 1:
                     ndarray_columns.add(name)
-
-            if isinstance(value, pd.Period):
-                convert[name] = pd.Period.to_timestamp
 
             columns.append(name)
 
@@ -289,22 +301,19 @@ class ArrowEncoder:
             flatten_arrays=flatten_arrays,
         )
 
-    def column_names(self):
-        return self.columns + list(map(shape_column_of, self.ndarray_columns))
-
     def encode(self, entry: dict):
         result = {}
 
         for column in self.columns:
             value = entry[column]
 
-            fn = self.convert.get(column)
-            if fn is not None:
-                value = fn(value)
-
+            # We need to handle arrays with more than 1 dimension specially.
+            # If we don't, pyarrow complains. As an optimisation, we flatten
+            # the array to 1d and store its shape to gain zero-copy reads
+            # during decoding.
             if column in self.ndarray_columns:
                 if self.flatten_arrays:
-                    result[shape_column_of(column)] = list(value.shape)
+                    result[f"{column}._np_shape"] = list(value.shape)
                     value = value.flatten()
                 else:
                     value = list(value)
@@ -314,31 +323,17 @@ class ArrowEncoder:
         return result
 
 
-@dataclass
-class ArrowBatcher:
-    encoder: ArrowEncoder
-    chunk_size: Optional[int] = 1024
+def infer_arrow_dataset(path: Path) -> Union[ArrowDataset, ArrowStreamDataset]:
+    """Return either `ArrowDataset` or `ArrowStreamDataset` by inspecting
+    provided path.
 
-    def batchify(self, stream):
-        stream = map(self.encoder.encode, stream)
-        batches = batcher(stream, self.chunk_size)
+    Arrow's `random-access` format starts with `ARROW1`, so we peak the
+    provided file for it.
+    """
+    with open(path, "rb") as in_file:
+        peak = in_file.read(6)
 
-        for batch in map(rows_to_columns, batches):
-            names = list(batch.keys())
-            values = list(batch.values())
-            yield pa.record_batch(values, names=names)
-
-
-def convert(dataset, chunk_size=1024, flatten_arrays=True):
-    dataset = iter(dataset)
-    first = next(dataset)
-
-    batcher = ArrowBatcher(
-        encoder=ArrowEncoder.infer(
-            first,
-            flatten_arrays=flatten_arrays,
-        ),
-        chunk_size=chunk_size,
-    )
-
-    yield from batcher.batchify(chain([first], dataset))
+    if peak == b"ARROW1":
+        return ArrowDataset(path)
+    else:
+        return ArrowStreamDataset(path)
