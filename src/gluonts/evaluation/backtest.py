@@ -64,7 +64,6 @@ def make_evaluation_predictions(
     """
 
     prediction_length = predictor.prediction_length
-    freq = predictor.freq
     lead_time = predictor.lead_time
 
     def add_ts_dataframe(
@@ -74,7 +73,6 @@ def make_evaluation_predictions(
             data = data_entry.copy()
             index = pd.period_range(
                 start=data[FieldName.START],
-                freq=freq,
                 periods=data[FieldName.TARGET].shape[-1],
             )
             data["ts"] = pd.DataFrame(

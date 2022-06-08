@@ -43,7 +43,6 @@ class ConstantPredictor(RepresentablePredictor):
         return SampleForecast(
             samples=self.samples,
             start_date=item["start"],
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -82,6 +81,5 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get("id"),
         )

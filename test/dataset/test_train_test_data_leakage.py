@@ -13,6 +13,7 @@
 
 import pytest
 from gluonts.dataset.repository.datasets import dataset_names, get_dataset
+from gluonts.dataset.util import forecast_start
 
 
 def check_train_test_split(dataset):
@@ -23,15 +24,11 @@ def check_train_test_split(dataset):
         assert (
             entry["item_id"] not in train_end
         ), f"item {entry['item_id']} is duplicate"
-        train_end[entry["item_id"]] = (
-            entry["start"] + len(entry["target"]) * entry["start"].freq
-        )
+        train_end[entry["item_id"]] = forecast_start(entry)
 
     test_end = {}
     for entry in dataset.test:
-        test_end[entry["item_id"]] = (
-            entry["start"] + len(entry["target"]) * entry["start"].freq
-        )
+        test_end[entry["item_id"]] = forecast_start(entry)
 
     for k in test_end:
         if k not in train_end:

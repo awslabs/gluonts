@@ -57,6 +57,5 @@ class IdentityPredictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
