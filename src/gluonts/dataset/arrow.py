@@ -16,31 +16,21 @@
 Arrow Dataset
 ~~~~~~~~~~~~~
 
-This module provides a fast and efficient dataset using `pyarrow`.
+Fast and efficient datasets using `pyarrow`.
 
-Arrow allows us to use zero-copy.
+This module provides three datasets:
 
-There are two properties of Arrow, which introduce some friction:
+    * ``ArrowDataset`` (arrow random-access binary format)
+    * ``ArrowStreamDataset`` (arrow streaming binary format)
+    * ``ParquetDataset``
 
-1) Arrow is a columnar format, meaning that instead of writing out row after
-row(like in a spreadsheet) it writes out column after column -- basically
-flipping the table. There are some benefits in using a columnar format, since
-values of the same type are stored together which benefits analytical queries.
-However, in GluonTS a columnar format doesn't make much sense, since we are
-always only interested in handling rows.
-
-2) Interop between NumPy and Arrow is not seemless when using multi-dimensional
-arrays. Whilst 1D-arrays can be converted using zero-copy, it doesn't work for
-higher dimensional data. Thus, we always store arrays as one-dimensional and
-store the shape for higher dimensions to invoke `.reshape(...)` later on to
-maintain zero-copy.
 """
 
 from dataclasses import dataclass, field
 from functools import singledispatch
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -285,7 +275,6 @@ class ArrowEncoder:
     def infer(cls, sample: dict, flatten_arrays=True):
         columns = []
         ndarray_columns = set()
-        convert = {}
 
         for name, value in sample.items():
             if isinstance(value, np.ndarray):
@@ -297,7 +286,6 @@ class ArrowEncoder:
         return cls(
             columns=columns,
             ndarray_columns=ndarray_columns,
-            convert=convert,
             flatten_arrays=flatten_arrays,
         )
 

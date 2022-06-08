@@ -13,7 +13,6 @@
 
 import functools
 import shutil
-import logging
 from pathlib import Path
 from typing import (
     Any,
@@ -34,6 +33,7 @@ from pandas.tseries.frequencies import to_offset
 
 import pydantic
 from typing_extensions import Protocol, runtime_checkable
+
 
 from gluonts import json
 from gluonts.dataset.field_names import FieldName
@@ -147,7 +147,7 @@ class FileDataset(Dataset):
 
     def __init__(
         self,
-        path: Union[str, Path, List[Path], List[str]],
+        path: Path,
         freq: str,
         one_dim_target: bool = True,
         cache: bool = False,
@@ -162,7 +162,7 @@ class FileDataset(Dataset):
         self._len_per_file = None
 
         if not self.files():
-            raise OSError(f"no valid file found in {self.path}")
+            raise OSError(f"no valid file found in {path}")
 
         # necessary, in order to preserve the cached datasets, in case caching
         # was enabled
@@ -205,15 +205,9 @@ class FileDataset(Dataset):
 
     @classmethod
     def is_valid(cls, path: Path) -> bool:
-        valid_endings = [
-            ".json",
-            ".jsonl",
-            ".json.gz",
-            ".jsonl.gz",
-        ]
-        if not any(path.name.endswith(ending) for ending in valid_endings):
-            return False
-        return not path.name.startswith(".")
+        # TODO: given that we only support json, should we also filter json
+        # TODO: in the extension?
+        return not (path.name.startswith(".") or path.name == "_SUCCESS")
 
 
 class ListDataset(Dataset):
@@ -436,7 +430,6 @@ def load_datasets(
     test: Optional[Path],
     one_dim_target: bool = True,
     cache: bool = False,
-    use_arrow=False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -460,42 +453,20 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    files = util._list_files(util.resolve_paths(train))
-    has_arrow_files = any(str(fname).endswith(".arrow") for fname in files)
-    has_json_files = any(FileDataset.is_valid(file) for file in files)
-
-    if use_arrow and has_arrow_files:
-        from .arrow import ArrowDataset
-
-        logging.info(f"loading arrow files from {train}, {test}")
-        train_ds = ArrowDataset.load_files(
-            paths=train, freq=meta.freq, chunk_size=200
-        )
-        test_ds = (
-            ArrowDataset.load_files(paths=test, freq=meta.freq, chunk_size=200)
-            if test
-            else None
-        )
-    elif has_json_files:
-        logging.info(f"loading json files from {train}, {test}")
-        train_ds = FileDataset(
-            path=train,
+    train_ds = FileDataset(
+        path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
+    )
+    test_ds = (
+        FileDataset(
+            path=test,
             freq=meta.freq,
             one_dim_target=one_dim_target,
             cache=cache,
         )
-        test_ds = (
-            FileDataset(
-                path=test,
-                freq=meta.freq,
-                one_dim_target=one_dim_target,
-                cache=cache,
-            )
-            if test
-            else None
-        )
-    else:
-        raise FileNotFoundError(f"No json or arrow files found in {train}")
+        if test
+        else None
+    )
+
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
 
 
