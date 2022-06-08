@@ -158,14 +158,25 @@ class IterableSlice:
     """
 
     iterable: Collection
-    length: Optional[int]
+    length: int
+    current: list = field(default_factory=list)
+
+    def __post_init__(self):
+        self.next()
+
+    def next(self):
+        self.current = list(itertools.islice(self.iterable, self.length))
 
     def __iter__(self):
-        return itertools.islice(self.iterable, self.length)
+        yield from self.current
+        self.next()
 
     def __len__(self) -> int:
-        return len(self.iterable)
+        return len(self.current)
 
+
+# need to put it here to not interfer with `dataclass`
+Sequence.register(IterableSlice)
 
 K = TypeVar("K")
 V = TypeVar("V")
