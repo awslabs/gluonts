@@ -15,7 +15,6 @@ import itertools
 import random
 from typing import (
     Callable,
-    Collection,
     Dict,
     Iterable,
     Iterator,
@@ -25,6 +24,16 @@ from typing import (
     Sequence,
 )
 from dataclasses import dataclass, field
+
+from typing_extensions import Protocol
+
+
+class SizedIterable(Protocol):
+    def __len__(self):
+        ...
+
+    def __iter__(self):
+        ...
 
 
 T = TypeVar("T")
@@ -53,7 +62,7 @@ class Cyclic:
     Like `itertools.cycle`, but does not store the data.
     """
 
-    iterable: Collection
+    iterable: SizedIterable
 
     def __iter__(self):
         at_least_one = False
@@ -101,7 +110,7 @@ class Cached:
     elements when iterated multiple times.
     """
 
-    iterable: Collection
+    iterable: SizedIterable
     cache: list = field(default_factory=list, init=False)
 
     def __iter__(self):
@@ -122,7 +131,7 @@ class PseudoShuffled:
     Yield items from a given iterable in a pseudo-shuffled order.
     """
 
-    iterable: Collection
+    iterable: SizedIterable
     shuffle_buffer_length: int
 
     def __iter__(self):
@@ -157,7 +166,7 @@ class IterableSlice:
     This needs to be a class to support re-entry iteration.
     """
 
-    iterable: Collection
+    iterable: Iterable
     length: int
     current: list = field(default_factory=list)
 
