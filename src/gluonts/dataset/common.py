@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import functools
 import shutil
 from pathlib import Path
 from typing import (
@@ -256,6 +257,11 @@ class ListDataset(Dataset):
         return len(self.list_data)
 
 
+@functools.lru_cache(10_000)
+def _as_period(val, freq):
+    return pd.Period(val, freq)
+
+
 # TODO: find out whether this is a duplicate
 class ProcessStartField(pydantic.BaseModel):
     """
@@ -281,7 +287,7 @@ class ProcessStartField(pydantic.BaseModel):
             if self.use_timestamp:
                 data[self.name] = pd.Timestamp(data[self.name])
             else:
-                data[self.name] = pd.Period(data[self.name], self.freq)
+                data[self.name] = _as_period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
