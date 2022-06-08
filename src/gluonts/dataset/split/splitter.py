@@ -220,7 +220,7 @@ class AbstractBaseSplitter(ABC):
 
             prediction_length = getattr(self, "prediction_length")
 
-            self._check_split_length(train.end, test.end, prediction_length)
+            _check_split_length(train.end, test.end, prediction_length)
             split._add_test_slice(test)
 
         return split
@@ -249,23 +249,21 @@ class AbstractBaseSplitter(ABC):
                 )
                 prediction_length = getattr(self, "prediction_length")
 
-                self._check_split_length(
-                    train.end, test.end, prediction_length
-                )
+                _check_split_length(train.end, test.end, prediction_length)
                 split._add_test_slice(test)
 
         return split
 
-    @staticmethod
-    def _check_split_length(
-        train_end: pd.Period, test_end: pd.Period, prediction_length: int
-    ) -> None:
-        msg = (
-            "Not enough observations after the split point to construct"
-            " the test instance; consider using longer time series,"
-            " or splitting at an earlier point."
-        )
-        assert train_end + prediction_length <= test_end, msg
+
+def _check_split_length(
+    train_end: pd.Period, test_end: pd.Period, prediction_length: int
+) -> None:
+    msg = (
+        "Not enough observations after the split point to construct"
+        " the test instance; consider using longer time series,"
+        " or splitting at an earlier point."
+    )
+    assert train_end + prediction_length <= test_end, msg
 
 
 class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
