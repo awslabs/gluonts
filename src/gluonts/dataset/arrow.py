@@ -130,18 +130,35 @@ class ArrowDataset:
     )
 
     @staticmethod
-    def create(dataset, path, chunk_size=1024, flatten_arrays=True):
+    def create(
+        dataset, path, metadata=None, chunk_size=1024, flatten_arrays=True
+    ):
         batches = into_arrow_batches(
             dataset, chunk_size, flatten_arrays=flatten_arrays
         )
         first = next(batches)
 
+        schema = first.schema
+
+        if metadata is not None:
+            schema = schema.with_metadata(metadata)
+
         with open(path, "wb") as fobj:
-            writer = pa.RecordBatchFileWriter(fobj, schema=first.schema)
+            writer = pa.RecordBatchFileWriter(fobj, schema=schema)
             for batch in chain([first], batches):
                 writer.write_batch(batch)
 
             writer.close()
+
+    @property
+    def metadata(self) -> Dict[str, str]:
+        metadata = self.reader.schema.metadata
+        if metadata is None:
+            return {}
+
+        return {
+            key.decode(): value.decode() for key, value in metadata.items()
+        }
 
     @property
     def batch_offsets(self):
@@ -190,18 +207,37 @@ class ArrowStreamDataset:
     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
 
     @staticmethod
-    def create(dataset, path, chunk_size=1024, flatten_arrays=True):
+    def create(
+        dataset, path, metadata=None, chunk_size=1024, flatten_arrays=True
+    ):
         batches = into_arrow_batches(
             dataset, chunk_size, flatten_arrays=flatten_arrays
         )
         first = next(batches)
 
+        schema = first.schema
+
+        if metadata is not None:
+            schema = schema.with_metadata(metadata)
+
         with open(path, "wb") as fobj:
-            writer = pa.RecordBatchStreamWriter(fobj, schema=first.schema)
+            writer = pa.RecordBatchStreamWriter(fobj, schema=schema)
             for batch in chain([first], batches):
                 writer.write_batch(batch)
 
             writer.close()
+
+    @property
+    def metadata(self) -> Dict[str, str]:
+        with open(self.path, "rb") as infile:
+            metadata = pa.RecordBatchStreamReader(infile).schema.metadata
+
+        if metadata is None:
+            return {}
+
+        return {
+            key.decode(): value.decode() for key, value in metadata.items()
+        }
 
     def __iter__(self):
         with open(self.path, "rb") as infile:
@@ -230,6 +266,16 @@ class ParquetDataset:
     def __post_init__(self):
         self.reader = pq.ParquetFile(self.path)
         self.decoder = ArrowDecoder.from_schema(self.reader.schema)
+
+    @property
+    def metadata(self) -> Dict[str, str]:
+        metadata = self.reader.schema.metadata
+        if metadata is None:
+            return {}
+
+        return {
+            key.decode(): value.decode() for key, value in metadata.items()
+        }
 
     def __iter__(self):
         for batch in self.reader.iter_batches():

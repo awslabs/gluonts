@@ -59,11 +59,17 @@ def test_arrow(Dataset, flatten_arrays):
         data_arrow_file = Path(path, "data.arrow")
 
         # create file on disk
-        Dataset.create(data, data_arrow_file, flatten_arrays=flatten_arrays)
+        Dataset.create(
+            data,
+            data_arrow_file,
+            metadata={"freq": "H"},
+            flatten_arrays=flatten_arrays,
+        )
 
         dataset = infer_arrow_dataset(data_arrow_file)
 
         assert len(data) == len(dataset)
+        assert dataset.metadata["freq"] == "H"
 
         # print(dataset[0]["feat_dynamic_real"])
 
