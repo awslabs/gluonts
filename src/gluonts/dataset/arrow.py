@@ -125,7 +125,7 @@ class ArrowDataset:
     path: Path
     reader: pa.RecordBatchFileReader = field(init=False)
     decoder: ArrowDecoder = field(init=False)
-    _batch_offsets: Optional[np.array] = field(
+    _batch_offsets: Optional[np.ndarray] = field(
         default=None, init=False, repr=False
     )
 
