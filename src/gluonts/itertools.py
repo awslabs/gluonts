@@ -24,7 +24,6 @@ from typing import (
     TypeVar,
     Sequence,
 )
-from numbers import Real
 from dataclasses import dataclass, field
 
 
