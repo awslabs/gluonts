@@ -14,12 +14,14 @@
 import logging
 
 import pandas as pd
+
 from gluonts.time_feature import norm_freq_str
 
 logger = logging.getLogger(__name__)
 
 
 DEFAULT_SEASONALITIES = {
+    "S": 86400,
     "T": 1440,
     "H": 24,
     "D": 1,
