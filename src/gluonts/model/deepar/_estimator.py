@@ -453,21 +453,25 @@ class DeepAREstimator(GluonEstimator):
         )
 
     def get_schema(self) -> Schema:
-        fields: Dict[str, Any] = dict()
-        default_values: Dict[str, Any] = dict()
+        fields: Dict[str, Any] = {}
+        default_values: Dict[str, Any] = {}
+
         fields["start"] = PandasPeriodField(freq=self.freq)
         # in the following line, we add 1 for the time dimension
         fields["target"] = NumpyArrayField(
             dtype=self.dtype, ndim=1 + len(self.distr_output.event_shape)
         )
+
+        # DeepAR model always need "feat_static_cat" and "feat_static_real" as
+        # input for model forward.
+        fields["feat_static_cat"] = NumpyArrayField(dtype=self.dtype, ndim=1)
+        default_values["feat_static_cat"] = [0.0]
+
+        fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype, ndim=1)
+        default_values["feat_static_real"] = [0.0]
+
         if self.use_feat_dynamic_real:
             fields["feat_dynamic_real"] = NumpyArrayField(
                 dtype=self.dtype, ndim=1
             )
-        fields["feat_static_cat"] = NumpyArrayField(dtype=self.dtype, ndim=1)
-        fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype, ndim=1)
-        if not self.use_feat_static_cat:
-            default_values["feat_static_cat"] = [0.0]
-        if not self.use_feat_static_real:
-            default_values["feat_static_real"] = [0.0]
         return Schema(fields, default_values)

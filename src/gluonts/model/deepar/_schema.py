@@ -47,8 +47,7 @@ class NumpyArrayField(FieldType[np.ndarray]):
         return self.dtype == other.dtype and self.ndim == other.ndim
 
     def __call__(self, value: Any) -> np.ndarray:
-        value = np.asarray(value, dtype=object)
-        value = value.astype(self.dtype)
+        value = np.asarray(value, dtype=self.dtype)
         if self.ndim is not None and self.ndim != value.ndim:
             raise GluonTSDataError(
                 f"expected array with dimension {self.ndim}, "
@@ -128,6 +127,7 @@ class Schema:
             out: Dict[str, Any] = d
         else:
             out = {}
+
         for field_name, field_type in self.fields.items():
             try:
                 value = d[field_name]
@@ -138,6 +138,7 @@ class Schema:
                     raise GluonTSDataError(
                         f"field {field_name} does not occur in the data"
                     )
+
             try:
                 out[field_name] = field_type(value)
             except Exception as e:
@@ -145,11 +146,41 @@ class Schema:
                     f"Error when processing field {field_name} using "
                     "{field_type}"
                 ) from e
-        if inplace:
-            remove_field_names = []
-            for field_name in out.keys():
-                if field_name not in self.fields.keys():
-                    remove_field_names.append(field_name)
-            for field in remove_field_names:
-                out.pop(field, None)
         return out
+
+    @staticmethod
+    def infer(entry: Dict[str, Any]) -> "Schema":
+        """
+        Infers the schema from the passed data entry
+        """
+        if not "start" in entry:
+            raise GluonTSDataError(
+                "start not provided and could not be found in data entry"
+            )
+
+        if "freq" in entry:
+            found_freq = to_offset(entry["freq"])
+        else:
+            # infer freq from start time
+            if isinstance(entry["start"], (pd.Period, pd.Timestamp)):
+                found_freq = entry["start"].freq
+            else:
+                raise GluonTSDataError(
+                    "freq not provided and could not be inferred from start"
+                )
+
+        candidate_types = [
+            PandasPeriodField(freq=found_freq),
+            NumpyArrayField(dtype=np.int32),
+            NumpyArrayField(dtype=np.float32),
+        ]
+
+        fields = {}
+
+        for field_name in entry:
+            value = entry[field_name]
+            inferred_fields = [
+                ct for ct in candidate_types if ct.is_compatible(value)
+            ]
+            fields[field_name] = inferred_fields[0]
+        return Schema(fields, {})
