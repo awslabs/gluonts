@@ -146,7 +146,6 @@ class TabularPredictor(Predictor):
         if self.quantiles_to_predict:
             forecasts = ag_output.transpose()
             return QuantileForecast(
-                freq=self.freq,
                 start_date=start_timestamp,
                 item_id=item_id,
                 forecast_arrays=forecasts,
@@ -155,7 +154,6 @@ class TabularPredictor(Predictor):
         else:
             samples = ag_output.reshape((1, self.prediction_length))
             return SampleForecast(
-                freq=self.freq,
                 start_date=start_timestamp,
                 item_id=item_id,
                 samples=samples,
@@ -173,7 +171,6 @@ class TabularPredictor(Predictor):
 
             forecast_index = pd.period_range(
                 series.index[-1] + 1,
-                freq=series.index.freq,
                 periods=self.prediction_length,
             )
 
@@ -229,7 +226,6 @@ class TabularPredictor(Predictor):
             forecast_start_timestamps.append(forecast_start)
             forecast_index = pd.period_range(
                 forecast_start,
-                freq=series.index.freq,
                 periods=self.prediction_length,
             )
             forecast_series = pd.Series(
@@ -280,7 +276,6 @@ class TabularPredictor(Predictor):
         batch_forecast_indices = [
             pd.period_range(
                 series.index[-1] + 1,
-                freq=series.index.freq,
                 periods=self.prediction_length,
             )
             for series in batch_series

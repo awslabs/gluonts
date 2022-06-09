@@ -90,6 +90,5 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item.get("item_id", None),
         )

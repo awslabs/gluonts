@@ -107,7 +107,7 @@ class PointProcessSampleForecast(Forecast):
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
+        self.interarrival_freq = freq
 
         assert (
             prediction_interval_length > 0
@@ -115,12 +115,15 @@ class PointProcessSampleForecast(Forecast):
         self.prediction_interval_length = prediction_interval_length
 
         self.end_date = (
-            start_date
-            + to_timedelta(1, self.freq) * prediction_interval_length
+            start_date + to_timedelta(1, freq) * prediction_interval_length
         )
 
     def dim(self) -> int:
         return self._dim
+
+    @property
+    def freq(self):
+        return self.interarrival_freq
 
     @property
     def index(self) -> pd.DatetimeIndex:

@@ -158,7 +158,6 @@ class ProphetPredictor(RepresentablePredictor):
             yield SampleForecast(
                 samples=forecast_samples,
                 start_date=data.forecast_start,
-                freq=self.freq,
             )
 
     def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.ndarray:

@@ -31,7 +31,7 @@ T = TypeVar("T")
 
 
 def forecast_start(entry):
-    return entry["start"] + len(entry["target"])
+    return entry[FieldName.START] + len(entry[FieldName.TARGET])
 
 
 class MPWorkerInfo:

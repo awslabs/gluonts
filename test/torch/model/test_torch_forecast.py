@@ -31,7 +31,6 @@ FORECASTS = {
     "DistributionForecast": DistributionForecast(
         distribution=Uniform(low=torch.zeros(1), high=torch.ones(1)),
         start_date=START_DATE,
-        freq=FREQ,
     ),
 }
 
@@ -63,7 +62,6 @@ def test_DistributionForecast():
             low=torch.tensor([0.0, 0.0]), high=torch.tensor([1.0, 2.0])
         ),
         start_date=START_DATE,
-        freq=FREQ,
     )
 
     def percentile(value):
@@ -93,7 +91,6 @@ def test_DistributionForecast():
                     high=torch.ones(size=(5, 2)),
                 ),
                 start_date=pd.Period("2020-01-01 00:00:00", "W"),
-                freq="W",
             ),
             pd.period_range(
                 start="2020-01-01 00:00:00",
