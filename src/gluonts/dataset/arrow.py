@@ -183,7 +183,7 @@ class File:
 
         if peek == b"ARROW1":
             return ArrowFile(path)
-        elif peek.startswith(r"PAR1"):
+        elif peek.startswith(b"PAR1"):
             return ParquetFile(path)
         else:
             return ArrowStreamFile(path)
