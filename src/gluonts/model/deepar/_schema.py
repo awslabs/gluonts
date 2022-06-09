@@ -12,9 +12,8 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
+from os import remove
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
-from xml.dom.pulldom import default_bufsize
-from attr import field
 
 import numpy as np
 import pandas as pd
@@ -115,6 +114,7 @@ class PandasPeriodField(FieldType[pd.Period]):
 @dataclass
 class Schema:
     fields: Dict[str, FieldType]
+    default_values: Dict[str, Any]
 
     def __call__(
         self, d: Dict[str, Any], inplace: bool
@@ -125,7 +125,6 @@ class Schema:
                   The dictionary is updated in place.
             False: return a new data dictionary if False.
         """
-        default_fields = ["feat_static_cat", "feat_static_real"]
         if inplace:
             out: Dict[str, Any] = d
         else:
@@ -134,8 +133,8 @@ class Schema:
             try:
                 value = d[field_name]
             except KeyError:
-                if field_name in default_fields:
-                    value = [0.0]
+                if field_name in self.default_values.keys():
+                    value = self.default_values[field_name]
                 else:
                     raise GluonTSDataError(
                         f"field {field_name} does not occur in the data"
@@ -147,4 +146,11 @@ class Schema:
                     f"Error when processing field {field_name} using "
                     "{field_type}"
                 ) from e
+        if inplace:
+            remove_field_names = []
+            for field_name in out.keys():
+                if field_name not in self.fields.keys():
+                    remove_field_names.append(field_name)
+            for field in remove_field_names:
+                out.pop(field, None)
         return out

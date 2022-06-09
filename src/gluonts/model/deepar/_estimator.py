@@ -49,7 +49,6 @@ from gluonts.transform import (
     InstanceSampler,
     InstanceSplitter,
     SelectFields,
-    SetField,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -455,6 +454,7 @@ class DeepAREstimator(GluonEstimator):
 
     def get_schema(self) -> Schema:
         fields: Dict[str, Any] = dict()
+        default_values: Dict[str, Any] = dict()
         fields["start"] = PandasPeriodField(freq=self.freq)
         # in the following line, we add 1 for the time dimension
         fields["target"] = NumpyArrayField(
@@ -466,4 +466,8 @@ class DeepAREstimator(GluonEstimator):
             )
         fields["feat_static_cat"] = NumpyArrayField(dtype=self.dtype, ndim=1)
         fields["feat_static_real"] = NumpyArrayField(dtype=self.dtype, ndim=1)
-        return Schema(fields)
+        if not self.use_feat_static_cat:
+            default_values["feat_static_cat"] = [0.0]
+        if not self.use_feat_static_real:
+            default_values["feat_static_real"] = [0.0]
+        return Schema(fields, default_values)
