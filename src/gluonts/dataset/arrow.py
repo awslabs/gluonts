@@ -198,7 +198,7 @@ class ArrowDataset:
 
     def __getitem__(self, idx):
         batch_no, batch_idx = self.location_for(idx)
-        return self.decoder.decode(self.reader.get_batch(batch_no), idx)
+        return self.decoder.decode(self.reader.get_batch(batch_no), batch_idx)
 
 
 @dataclass
@@ -286,31 +286,6 @@ class ParquetDataset:
             self._length = self.reader.scan_contents()
 
         return self._length
-
-
-# TODO: We could use pyarrow to load json-lines datasets. However, it appears
-# slower than our custom implementation and this doesn't support streaming.
-# So maybe it's better to just remove this.
-# @dataclass
-# class JsonDataset:
-#     path: Path
-#     table: pa.Table = field(init=False)
-#     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
-
-#     def __post_init__(self):
-#         self.table = pyarrow.json.read_json(
-#             self.path, pyarrow.json.ReadOptions(block_size=1024**3)
-#         )
-#         self._decoder = ArrowDecoder.from_schema(self.table.schema)
-
-#     def __iter__(self):
-#         yield from self._decoder.decode_batch(self.table)
-
-#     def __getitem__(self, idx):
-#         return self._decoder.decode(self.table, idx)
-
-#     def __len__(self):
-#         return self.table.num_rows
 
 
 @dataclass
