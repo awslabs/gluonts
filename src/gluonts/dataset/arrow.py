@@ -18,14 +18,15 @@ Arrow Dataset
 
 Fast and efficient datasets using `pyarrow`.
 
-This module provides three datasets:
+This module provides three file-types:
 
-    * ``ArrowDataset`` (arrow random-access binary format)
-    * ``ArrowStreamDataset`` (arrow streaming binary format)
-    * ``ParquetDataset``
+    * ``ArrowFile`` (arrow random-access binary format)
+    * ``ArrowStreamFile`` (arrow streaming binary format)
+    * ``ParquetFile``
 
 """
 
+import abc
 from dataclasses import dataclass, field
 from functools import singledispatch
 from itertools import chain
@@ -64,7 +65,7 @@ def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
 
 def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
     stream = iter(dataset)
-    # peak 1
+    # peek 1
     first = next(stream)
     # re-assemble
     stream = chain([first], stream)
@@ -77,6 +78,52 @@ def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
 
     for batch in column_batches:
         yield pa.record_batch(list(batch.values()), names=list(batch.keys()))
+
+
+@dataclass
+class ArrowEncoder:
+    columns: List[str]
+    ndarray_columns: Set[str] = field(default_factory=set)
+    flatten_arrays: bool = True
+
+    @classmethod
+    def infer(cls, sample: dict, flatten_arrays=True):
+        columns = []
+        ndarray_columns = set()
+
+        for name, value in sample.items():
+            if isinstance(value, np.ndarray):
+                if value.ndim > 1:
+                    ndarray_columns.add(name)
+
+            columns.append(name)
+
+        return cls(
+            columns=columns,
+            ndarray_columns=ndarray_columns,
+            flatten_arrays=flatten_arrays,
+        )
+
+    def encode(self, entry: dict):
+        result = {}
+
+        for column in self.columns:
+            value = entry[column]
+
+            # We need to handle arrays with more than 1 dimension specially.
+            # If we don't, pyarrow complains. As an optimisation, we flatten
+            # the array to 1d and store its shape to gain zero-copy reads
+            # during decoding.
+            if column in self.ndarray_columns:
+                if self.flatten_arrays:
+                    result[f"{column}._np_shape"] = list(value.shape)
+                    value = value.flatten()
+                else:
+                    value = list(value)
+
+            result[column] = value
+
+        return result
 
 
 @dataclass
@@ -120,21 +167,38 @@ class ArrowDecoder:
             yield row
 
 
-@dataclass
-class ArrowDataset:
-    path: Path
-    reader: pa.RecordBatchFileReader = field(init=False)
-    decoder: ArrowDecoder = field(init=False)
-    _batch_offsets: Optional[np.ndarray] = field(
-        default=None, init=False, repr=False
-    )
-
+class File:
     @staticmethod
-    def create(
-        dataset, path, metadata=None, chunk_size=1024, flatten_arrays=True
+    def infer(
+        path: Path,
+    ) -> Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]:
+        """Return either `ArrowFile` or `ArrowStreamFile` by inspecting
+        provided path.
+
+        Arrow's `random-access` format starts with `ARROW1`, so we peek the
+        provided file for it.
+        """
+        with open(path, "rb") as in_file:
+            peek = in_file.read(6)
+
+        if peek == b"ARROW1":
+            return ArrowFile(path)
+        elif peek.startswith(r"PAR1"):
+            return ParquetFile(path)
+        else:
+            return ArrowStreamFile(path)
+
+    @classmethod
+    @abc.abstractmethod
+    def writer(cls):
+        ...
+
+    @classmethod
+    def write_dataset(
+        cls, dataset, path, metadata=None, batch_size=1024, flatten_arrays=True
     ):
         batches = into_arrow_batches(
-            dataset, chunk_size, flatten_arrays=flatten_arrays
+            dataset, batch_size, flatten_arrays=flatten_arrays
         )
         first = next(batches)
 
@@ -150,7 +214,32 @@ class ArrowDataset:
 
             writer.close()
 
-    @property
+    @abc.abstractmethod
+    def metadata(self) -> Dict[str, str]:
+        ...
+
+    @abc.abstractmethod
+    def __iter__(self):
+        ...
+
+    @abc.abstractmethod
+    def __len__(self):
+        ...
+
+
+@dataclass
+class ArrowFile(File):
+    path: Path
+    reader: pa.RecordBatchFileReader = field(init=False)
+    decoder: ArrowDecoder = field(init=False)
+    _batch_offsets: Optional[np.ndarray] = field(
+        default=None, init=False, repr=False
+    )
+
+    @classmethod
+    def writer(cls):
+        return pa.RecordBatchFileWriter
+
     def metadata(self) -> Dict[str, str]:
         metadata = self.reader.schema.metadata
         if metadata is None:
@@ -202,32 +291,14 @@ class ArrowDataset:
 
 
 @dataclass
-class ArrowStreamDataset:
+class ArrowStreamFile(File):
     path: Path
     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
 
-    @staticmethod
-    def create(
-        dataset, path, metadata=None, chunk_size=1024, flatten_arrays=True
-    ):
-        batches = into_arrow_batches(
-            dataset, chunk_size, flatten_arrays=flatten_arrays
-        )
-        first = next(batches)
+    @classmethod
+    def writer(cls):
+        return pa.RecordBatchStreamWriter
 
-        schema = first.schema
-
-        if metadata is not None:
-            schema = schema.with_metadata(metadata)
-
-        with open(path, "wb") as fobj:
-            writer = pa.RecordBatchStreamWriter(fobj, schema=schema)
-            for batch in chain([first], batches):
-                writer.write_batch(batch)
-
-            writer.close()
-
-    @property
     def metadata(self) -> Dict[str, str]:
         with open(self.path, "rb") as infile:
             metadata = pa.RecordBatchStreamReader(infile).schema.metadata
@@ -258,7 +329,7 @@ class ArrowStreamDataset:
 
 
 @dataclass
-class ParquetDataset:
+class ParquetFile(File):
     path: Path
     reader: pa.RecordBatchFileReader = field(init=False)
     _length: Optional[int] = field(default=None, init=False)
@@ -267,7 +338,10 @@ class ParquetDataset:
         self.reader = pq.ParquetFile(self.path)
         self.decoder = ArrowDecoder.from_schema(self.reader.schema)
 
-    @property
+    @classmethod
+    def writer(cls):
+        return pq.ParquetWriter
+
     def metadata(self) -> Dict[str, str]:
         metadata = self.reader.schema.metadata
         if metadata is None:
@@ -286,65 +360,3 @@ class ParquetDataset:
             self._length = self.reader.scan_contents()
 
         return self._length
-
-
-@dataclass
-class ArrowEncoder:
-    columns: List[str]
-    ndarray_columns: Set[str] = field(default_factory=set)
-    flatten_arrays: bool = True
-
-    @classmethod
-    def infer(cls, sample: dict, flatten_arrays=True):
-        columns = []
-        ndarray_columns = set()
-
-        for name, value in sample.items():
-            if isinstance(value, np.ndarray):
-                if value.ndim > 1:
-                    ndarray_columns.add(name)
-
-            columns.append(name)
-
-        return cls(
-            columns=columns,
-            ndarray_columns=ndarray_columns,
-            flatten_arrays=flatten_arrays,
-        )
-
-    def encode(self, entry: dict):
-        result = {}
-
-        for column in self.columns:
-            value = entry[column]
-
-            # We need to handle arrays with more than 1 dimension specially.
-            # If we don't, pyarrow complains. As an optimisation, we flatten
-            # the array to 1d and store its shape to gain zero-copy reads
-            # during decoding.
-            if column in self.ndarray_columns:
-                if self.flatten_arrays:
-                    result[f"{column}._np_shape"] = list(value.shape)
-                    value = value.flatten()
-                else:
-                    value = list(value)
-
-            result[column] = value
-
-        return result
-
-
-def infer_arrow_dataset(path: Path) -> Union[ArrowDataset, ArrowStreamDataset]:
-    """Return either `ArrowDataset` or `ArrowStreamDataset` by inspecting
-    provided path.
-
-    Arrow's `random-access` format starts with `ARROW1`, so we peak the
-    provided file for it.
-    """
-    with open(path, "rb") as in_file:
-        peak = in_file.read(6)
-
-    if peak == b"ARROW1":
-        return ArrowDataset(path)
-    else:
-        return ArrowStreamDataset(path)

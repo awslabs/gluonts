@@ -18,11 +18,7 @@ import numpy as np
 from numpy.testing import assert_equal
 import pytest
 
-from gluonts.dataset.arrow import (
-    ArrowDataset,
-    ArrowStreamDataset,
-    infer_arrow_dataset,
-)
+from gluonts.dataset.arrow import ArrowFile, ArrowStreamFile, ParquetFile
 
 
 def rand_start():
@@ -50,26 +46,26 @@ def make_data(n: int):
     return data
 
 
-@pytest.mark.parametrize("Dataset", [ArrowDataset, ArrowStreamDataset])
+@pytest.mark.parametrize("File", [ArrowFile, ArrowStreamFile, ParquetFile])
 @pytest.mark.parametrize("flatten_arrays", [True, False])
-def test_arrow(Dataset, flatten_arrays):
+def test_arrow(File, flatten_arrays):
     data = make_data(5)
 
     with tempfile.TemporaryDirectory() as path:
-        data_arrow_file = Path(path, "data.arrow")
+        path = Path(path, "data.arrow")
 
         # create file on disk
-        Dataset.create(
+        File.write_dataset(
             data,
-            data_arrow_file,
+            path,
             metadata={"freq": "H"},
             flatten_arrays=flatten_arrays,
         )
 
-        dataset = infer_arrow_dataset(data_arrow_file)
+        dataset = File.infer(path)
 
         assert len(data) == len(dataset)
-        assert dataset.metadata["freq"] == "H"
+        assert dataset.metadata()["freq"] == "H"
 
         # print(dataset[0]["feat_dynamic_real"])
 
