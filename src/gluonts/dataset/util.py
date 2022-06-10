@@ -139,16 +139,3 @@ def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
         target,
         index=pd.period_range(start=start, periods=len(target), freq=freq),
     )
-
-
-def dct_reduce(reduce_fn, dcts):
-    """
-    Similar to `reduce`, but applies reduce_fn to fields of dicts with the same
-    name.
-
-    >>> dct_reduce(sum, [{"a": 1}, {"a": 2}])
-    {'a': 3}
-    """
-    keys = dcts[0].keys()
-
-    return {key: reduce_fn([item[key] for item in dcts]) for key in keys}
