@@ -10,3 +10,54 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
+from pathlib import Path
+
+import click
+
+from gluonts.dataset.common import FileDataset
+
+from . import ArrowFile, ArrowStreamFile, ParquetFile, write_dataset
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.argument("dataset", type=click.Path(exists=True))
+@click.argument("out", type=click.Path())
+@click.option("--freq", required=True)
+@click.option("--type", "type_", type=click.Choice(["arrow", "parquet"]))
+@click.option("--stream", default=False)
+def write(dataset, out, freq, type_, stream):
+    out = Path(out)
+
+    if type_ is None:
+        if out.suffix == ".arrow":
+            type_ = "arrow"
+        elif out.suffix == ".parquet":
+            type_ = "parquet"
+        else:
+            raise click.UsageError(f"Unsupported suffix {out.suffix}.")
+
+    if type_ == "arrow":
+        if stream:
+            File = ArrowStreamFile
+        else:
+            File = ArrowFile
+    else:
+        File = ParquetFile
+
+    write_dataset(
+        File,
+        FileDataset(dataset, freq),
+        out,
+        metadata={"freq": freq},
+        flatten_arrays=True,
+    )
+
+
+if __name__ == "__main__":
+    cli()

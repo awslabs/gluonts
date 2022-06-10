@@ -12,12 +12,15 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
+from functools import singledispatch
 from itertools import chain
 from typing import List, Set
 
 from gluonts.itertools import batcher, rows_to_columns
+from toolz.curried import keyfilter, valmap
 
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 
 
@@ -84,9 +87,22 @@ def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
         yield pa.record_batch(list(batch.values()), names=list(batch.keys()))
 
 
+@singledispatch
+def _encode_py_to_arrow(val):
+    return val
+
+
+@_encode_py_to_arrow.register
+def _encode_py_pd_preiod(val: pd.Period):
+    return val.to_timestamp()
+
+
 def write_dataset(
     cls, dataset, path, metadata=None, batch_size=1024, flatten_arrays=True
 ):
+    dataset = map(keyfilter(lambda key: key != "source"), dataset)
+    dataset = map(valmap(_encode_py_to_arrow), dataset)
+
     batches = into_arrow_batches(
         dataset, batch_size, flatten_arrays=flatten_arrays
     )
