@@ -115,7 +115,7 @@ We can easily create a complex artificial time series dataset using the `Complex
 
 
 ```python
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+from gluonts.lab.datasets.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.common import ListDataset
 ```
 

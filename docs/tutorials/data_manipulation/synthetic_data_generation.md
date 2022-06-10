@@ -12,7 +12,7 @@ from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 
 
 ```python
-from gluonts.dataset.artificial import recipe as rcp
+from gluonts.lab.datasets.artificial import recipe as rcp
 from gluonts.core.serde import dump_code, load_code
 ```
 
