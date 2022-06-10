@@ -229,6 +229,7 @@ setup_kwargs: dict = dict(
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
+        "arrow": find_requirements("requirements-arrow.txt"),
         "dev": dev_require,
         "docs": docs_require,
         "R": find_requirements("requirements-extras-r.txt"),
