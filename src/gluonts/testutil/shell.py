@@ -26,7 +26,7 @@ from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
 from gluonts.dataset.common import DataEntry, serialize_data_entry
-from gluonts.dataset.repository.datasets import materialize_dataset
+from gluonts.lab.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.sagemaker import ServePaths, TrainPaths

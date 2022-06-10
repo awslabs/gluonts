@@ -21,7 +21,7 @@ import pandas as pd
 import pytest
 
 
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+from gluonts.lab.datasets.artificial import ComplexSeasonalTimeSeries
 
 from gluonts import json
 from gluonts.dataset.common import (

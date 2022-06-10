@@ -20,7 +20,7 @@ import pytest
 from flaky import flaky
 from pydantic import PositiveInt
 
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics

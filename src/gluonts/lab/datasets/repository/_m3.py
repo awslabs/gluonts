@@ -80,7 +80,7 @@ class M3Setting(NamedTuple):
 def generate_m3_dataset(
     dataset_path: Path, m3_freq: str, prediction_length: Optional[int] = None
 ):
-    from gluonts.dataset.repository.datasets import default_dataset_path
+    from gluonts.lab.datasets.repository.datasets import default_dataset_path
 
     m3_xls_path = default_dataset_path / "M3C.xls"
     if not os.path.exists(m3_xls_path):

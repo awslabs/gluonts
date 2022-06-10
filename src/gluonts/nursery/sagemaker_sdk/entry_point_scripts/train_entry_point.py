@@ -20,7 +20,7 @@ from pathlib import Path
 
 from gluonts.core import serde
 from gluonts.dataset import common
-from gluonts.dataset.repository import datasets
+from gluonts.lab.datasets import get_dataset
 from gluonts.evaluation import Evaluator, backtest
 
 logging.basicConfig(
@@ -48,7 +48,7 @@ def train(arguments):
     logger.info("Downloading dataset.")
     if arguments.s3_dataset is None:
         # load built in dataset
-        dataset = datasets.get_dataset(arguments.dataset)
+        dataset = get_dataset(arguments.dataset)
     else:
         # load custom dataset
         s3_dataset_dir = Path(arguments.s3_dataset)

@@ -20,13 +20,13 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Tuple
 from zipfile import ZipFile
 from gluonts.dataset.common import MetaData
-from gluonts.dataset.repository._tsf_datasets import Dataset as MonashDataset
-from gluonts.dataset.repository._tsf_datasets import (
+from gluonts.lab.datasets import materialize_dataset
+from gluonts.labs.dataset.repository._tsf_datasets import (
+    Dataset as MonashDataset,
     save_datasets,
     save_metadata,
 )
-from gluonts.dataset.repository._tsf_reader import TSFReader
-from gluonts.dataset.repository.datasets import materialize_dataset
+from gluonts.lab.datasets.repository._tsf_reader import TSFReader
 from tsbench.config.dataset.preprocessing.filters import (
     AbsoluteValueFilter,
     ConstantTargetFilter,

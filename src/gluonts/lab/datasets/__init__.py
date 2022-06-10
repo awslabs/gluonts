@@ -11,6 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["get_dataset", "dataset_recipes"]
+__all__ = ["get_dataset", "dataset_recipes", "materialize_dataset"]
 
-from .repository import get_dataset, dataset_recipes
+from .repository import get_dataset, dataset_recipes, materialize_dataset

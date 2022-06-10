@@ -24,7 +24,7 @@ import numpy as np
 import pytest
 
 from gluonts.core.component import equals
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.dataset.common import DataEntry, DataBatch, FileDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (

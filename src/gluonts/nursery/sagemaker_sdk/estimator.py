@@ -28,7 +28,7 @@ from sagemaker.s3 import parse_s3_url
 from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 
 from gluonts.core import serde
-from gluonts.dataset.repository import datasets
+from gluonts.lab.datasets import dataset_recipes
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 
@@ -480,9 +480,9 @@ class GluonTSFramework(Framework):
         if dataset.startswith("s3://"):
             inputs["s3_dataset"] = s3_json_input(dataset)
         else:
-            assert dataset in datasets.dataset_recipes, (
+            assert dataset in dataset_recipes, (
                 f"{dataset} is not present, please choose one from "
-                f"{list(datasets.dataset_recipes)}."
+                f"{list(dataset_recipes)}."
             )
 
         return inputs
@@ -529,7 +529,7 @@ class GluonTSFramework(Framework):
         dataset:
             An s3 path-stype URL to a dataset in GluonTs format, or the name of
             a provided dataset (see
-            gluonts.dataset.repository.datasets.dataset_recipes.keys()).
+            gluonts.lab.datasets.dataset_recipes.keys()).
             Required dataset structure::
 
                 dataset
