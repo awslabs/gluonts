@@ -21,7 +21,7 @@ import numpy as np
 from numpy.testing import assert_equal
 import pytest
 
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
     Cached,
