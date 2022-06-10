@@ -210,9 +210,9 @@ class AffineTransformedDistribution(TransformedDistribution):
     @property
     def mean(self) -> Tensor:
         return (
-            self.base_distribution.mean
+            self.base_distribution.mean * self.scale
             if self.loc is None
-            else self.base_distribution.mean + self.loc
+            else self.base_distribution.mean * self.scale + self.loc
         )
 
     @property
