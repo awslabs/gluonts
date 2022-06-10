@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from gluonts.core import serde
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.nursery.sagemaker_sdk.defaults import NUM_SAMPLES, QUANTILES
 from gluonts.nursery.sagemaker_sdk.entry_point_scripts.train_entry_point import (

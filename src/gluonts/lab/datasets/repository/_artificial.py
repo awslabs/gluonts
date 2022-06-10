@@ -15,9 +15,10 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from gluonts.dataset.artificial import ArtificialDataset
-from gluonts.dataset.artificial.generate_synthetic import generate_sf2
 from gluonts.dataset.common import serialize_data_entry
+
+from ..artificial import ArtificialDataset
+from ..artificial.generate_synthetic import generate_sf2
 
 
 def generate_artificial_dataset(

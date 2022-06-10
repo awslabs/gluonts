@@ -14,7 +14,7 @@ from pprint import pprint
 
 import pandas as pd
 
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.evaluation import make_evaluation_predictions, Evaluator

@@ -15,7 +15,7 @@ import pandas as pd
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 from gluonts.dataset.split import DateSplitter, OffsetSplitter
 from gluonts.dataset.split.splitter import TimeSeriesSlice
 

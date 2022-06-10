@@ -19,20 +19,17 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from gluonts.dataset.artificial import ConstantDataset
 from gluonts.dataset.common import TrainDatasets, load_datasets
-from gluonts.dataset.repository._artificial import generate_artificial_dataset
-from gluonts.dataset.repository._gp_copula_2019 import (
-    generate_gp_copula_dataset,
-)
-from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
-from gluonts.dataset.repository._m3 import generate_m3_dataset
-from gluonts.dataset.repository._m4 import generate_m4_dataset
-from gluonts.dataset.repository._m5 import generate_m5_dataset
-from gluonts.dataset.repository._tsf_datasets import (
-    generate_forecasting_dataset,
-)
-from gluonts.dataset.repository._uber_tlc import generate_uber_dataset
+from ..artificial import ConstantDataset
+
+from ._artificial import generate_artificial_dataset
+from ._gp_copula_2019 import generate_gp_copula_dataset
+from ._lstnet import generate_lstnet_dataset
+from ._m3 import generate_m3_dataset
+from ._m4 import generate_m4_dataset
+from ._m5 import generate_m5_dataset
+from ._tsf_datasets import generate_forecasting_dataset
+from ._uber_tlc import generate_uber_dataset
 
 
 def get_download_path() -> Path:
@@ -219,7 +216,6 @@ dataset_recipes = OrderedDict(
     }
 )
 
-dataset_names = list(dataset_recipes.keys())
 
 default_dataset_path = get_download_path() / "datasets"
 
@@ -339,7 +335,7 @@ def get_dataset(
 
 
 if __name__ == "__main__":
-    for dataset in dataset_names:
+    for dataset in dataset_recipes:
         print(f"generate {dataset}")
         ds = get_dataset(dataset, regenerate=True)
         print(ds.metadata)

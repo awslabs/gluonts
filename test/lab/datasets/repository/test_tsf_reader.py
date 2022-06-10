@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.dataset.repository._tsf_reader import frequency_converter
+from gluonts.lab.datasets.repository._tsf_reader import frequency_converter
 
 
 @pytest.mark.parametrize(

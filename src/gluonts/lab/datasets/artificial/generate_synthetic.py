@@ -19,7 +19,7 @@ from typing import List, TextIO
 import holidays
 import pandas as pd
 
-from gluonts.dataset.artificial._base import (
+from ._base import (
     ArtificialDataset,
     ComplexSeasonalTimeSeries,
     ConstantDataset,

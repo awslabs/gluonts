@@ -22,7 +22,7 @@ from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from ._util import metadata, save_to_file, to_dict
 
 
 def load_from_pandas(

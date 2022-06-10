@@ -37,7 +37,7 @@ GluonTS comes with a number of available datasets.
 
 
 ```python
-from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
+from gluonts.lab.datasets import get_dataset, dataset_recipes
 from gluonts.dataset.util import to_pandas
 ```
 

@@ -21,8 +21,8 @@ from typing import NamedTuple, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 from gluonts.gluonts_tqdm import tqdm
+from ._util import metadata, save_to_file, to_dict
 
 
 def check_dataset(dataset_path: Path, length: int, sheet_name):

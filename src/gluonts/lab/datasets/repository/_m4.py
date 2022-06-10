@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from ._util import metadata, save_to_file, to_dict
 
 
 def generate_m4_dataset(

@@ -30,7 +30,7 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import BaseOffset, Week
 
-from gluonts.dataset.artificial.recipe import (
+from .recipe import (
     BinaryHolidays,
     BinaryMarkovChain,
     Constant,
