@@ -12,159 +12,17 @@
 # permissions and limitations under the License.
 
 
-"""
-Arrow Dataset
-~~~~~~~~~~~~~
-
-Fast and efficient datasets using `pyarrow`.
-
-This module provides three file-types:
-
-    * ``ArrowFile`` (arrow random-access binary format)
-    * ``ArrowStreamFile`` (arrow streaming binary format)
-    * ``ParquetFile``
-
-"""
-
 import abc
 from dataclasses import dataclass, field
-from functools import singledispatch
-from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from gluonts.itertools import batcher, rows_to_columns
-
-
-@singledispatch
-def _arrow_to_py(scalar):
-    """Convert arrow scalar value to python value."""
-
-    raise NotImplementedError(scalar, scalar.__class__)
-
-
-@_arrow_to_py.register
-def _arrow_to_py_scalar(scalar: pa.Scalar):
-    return scalar.as_py()
-
-
-@_arrow_to_py.register
-def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
-    arr = scalar.values.to_numpy(zero_copy_only=False)
-
-    if arr.dtype == object:
-        arr = np.array(list(arr))
-
-    return arr
-
-
-def into_arrow_batches(dataset, batch_size=1024, flatten_arrays=True):
-    stream = iter(dataset)
-    # peek 1
-    first = next(stream)
-    # re-assemble
-    stream = chain([first], stream)
-
-    encoder = ArrowEncoder.infer(first, flatten_arrays=flatten_arrays)
-    encoded = map(encoder.encode, stream)
-
-    row_batches = batcher(encoded, batch_size)
-    column_batches = map(rows_to_columns, row_batches)
-
-    for batch in column_batches:
-        yield pa.record_batch(list(batch.values()), names=list(batch.keys()))
-
-
-@dataclass
-class ArrowEncoder:
-    columns: List[str]
-    ndarray_columns: Set[str] = field(default_factory=set)
-    flatten_arrays: bool = True
-
-    @classmethod
-    def infer(cls, sample: dict, flatten_arrays=True):
-        columns = []
-        ndarray_columns = set()
-
-        for name, value in sample.items():
-            if isinstance(value, np.ndarray):
-                if value.ndim > 1:
-                    ndarray_columns.add(name)
-
-            columns.append(name)
-
-        return cls(
-            columns=columns,
-            ndarray_columns=ndarray_columns,
-            flatten_arrays=flatten_arrays,
-        )
-
-    def encode(self, entry: dict):
-        result = {}
-
-        for column in self.columns:
-            value = entry[column]
-
-            # We need to handle arrays with more than 1 dimension specially.
-            # If we don't, pyarrow complains. As an optimisation, we flatten
-            # the array to 1d and store its shape to gain zero-copy reads
-            # during decoding.
-            if column in self.ndarray_columns:
-                if self.flatten_arrays:
-                    result[f"{column}._np_shape"] = list(value.shape)
-                    value = value.flatten()
-                else:
-                    value = list(value)
-
-            result[column] = value
-
-        return result
-
-
-@dataclass
-class ArrowDecoder:
-    columns: Dict[str, int]
-    ndarray_columns: Dict[str, int]
-
-    @classmethod
-    def from_schema(cls, schema):
-        columns = {}
-        ndarray_columns = {}
-
-        for idx, column in enumerate(schema):
-            if column.name.endswith("._np_shape"):
-                ndarray_columns[(column.name.rsplit(".", 1)[0])] = idx
-            else:
-                columns[column.name] = idx
-
-        return cls(columns, ndarray_columns)
-
-    def decode(self, batch, row_number):
-        for row in self.decode_batch(batch.slice(row_number, row_number + 1)):
-            return row
-
-    def decode_batch(self, batch):
-        rows = zip(*batch)
-
-        for raw_row in rows:
-            row = {}
-            for column_name, column_idx in self.columns.items():
-                value = _arrow_to_py(raw_row[column_idx])
-
-                shape_idx = self.ndarray_columns.get(column_name)
-
-                if shape_idx is not None:
-                    shape = _arrow_to_py(raw_row[shape_idx])
-                    value = value.reshape(shape)
-
-                row[column_name] = value
-
-            yield row
+from .dec import ArrowDecoder
 
 
 class File:
@@ -192,27 +50,6 @@ class File:
     @abc.abstractmethod
     def writer(cls):
         ...
-
-    @classmethod
-    def write_dataset(
-        cls, dataset, path, metadata=None, batch_size=1024, flatten_arrays=True
-    ):
-        batches = into_arrow_batches(
-            dataset, batch_size, flatten_arrays=flatten_arrays
-        )
-        first = next(batches)
-
-        schema = first.schema
-
-        if metadata is not None:
-            schema = schema.with_metadata(metadata)
-
-        with open(path, "wb") as fobj:
-            writer = pa.RecordBatchFileWriter(fobj, schema=schema)
-            for batch in chain([first], batches):
-                writer.write_batch(batch)
-
-            writer.close()
 
     @abc.abstractmethod
     def metadata(self) -> Dict[str, str]:
@@ -331,19 +168,19 @@ class ArrowStreamFile(File):
 @dataclass
 class ParquetFile(File):
     path: Path
-    reader: pa.RecordBatchFileReader = field(init=False)
+    reader: pq.ParquetFile = field(init=False)
     _length: Optional[int] = field(default=None, init=False)
 
     def __post_init__(self):
         self.reader = pq.ParquetFile(self.path)
-        self.decoder = ArrowDecoder.from_schema(self.reader.schema)
+        self.decoder = ArrowDecoder.from_schema(self.reader.schema_arrow)
 
     @classmethod
     def writer(cls):
         return pq.ParquetWriter
 
     def metadata(self) -> Dict[str, str]:
-        metadata = self.reader.schema.metadata
+        metadata = self.reader.schema_arrow.metadata
         if metadata is None:
             return {}
 
