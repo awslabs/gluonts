@@ -21,7 +21,6 @@ from gluonts.model.deepstate.issm import (
     LevelTrendISSM,
     SeasonalityISSM,
     ZeroFeature,
-    _make_block_diagonal,
 )
 from gluonts.time_feature import DayOfWeekIndex, MonthOfYearIndex
 
