@@ -12,14 +12,14 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
-import pytest
 
-from gluonts.torch.model.mqf2 import (
-    MQF2MultiHorizonModel,
-    MQF2MultiHorizonLightningModule,
-)
+import pytest
+import torch
 from gluonts.torch.distributions import MQF2DistributionOutput
+from gluonts.torch.model.mqf2 import (
+    MQF2MultiHorizonLightningModule,
+    MQF2MultiHorizonModel,
+)
 
 
 @pytest.mark.parametrize(
