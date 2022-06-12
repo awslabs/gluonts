@@ -36,6 +36,7 @@ class PointProcessForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
         input_names: List[str],
+        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs,
@@ -81,6 +82,7 @@ class PointProcessForecastGenerator(ForecastGenerator):
                     outputs[:, i],
                     valid_length=valid_length[:, i],
                     start_date=batch["forecast_start"][i],
+                    freq=freq,
                     prediction_interval_length=prediction_net.prediction_interval_length,  # noqa: E501
                     item_id=batch["item_id"][i]
                     if "item_id" in batch
@@ -115,6 +117,7 @@ class PointProcessGluonPredictor(GluonPredictor):
         prediction_net: mx.gluon.Block,
         batch_size: int,
         prediction_interval_length: float,
+        freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
         dtype: Type = np.float32,
@@ -141,6 +144,7 @@ class PointProcessGluonPredictor(GluonPredictor):
 
         self.forecast_generator = forecast_generator
         self.prediction_interval_length = prediction_interval_length
+        self.freq = freq
 
     def hybridize(self, batch: DataBatch) -> None:
         raise NotImplementedError(
@@ -176,6 +180,7 @@ class PointProcessGluonPredictor(GluonPredictor):
             inference_data_loader=inference_data_loader,
             prediction_net=self.prediction_net,
             input_names=self.input_names,
+            freq=self.freq,
             output_transform=self.output_transform,
             num_samples=num_samples,
         )
