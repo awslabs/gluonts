@@ -57,7 +57,7 @@ from gluonts.time_feature import (
     ],
 )
 def test_feature_normalized_bounds(
-    feature: TimeFeature, index: pd.DatetimeIndex
+    feature: TimeFeature, index: pd.PeriodIndex
 ):
     values = feature(index)
     assert isinstance(values, np.ndarray)

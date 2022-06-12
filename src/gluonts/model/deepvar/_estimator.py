@@ -84,7 +84,7 @@ class FourierDateFeatures(TimeFeature):
         assert freq in freqs
         self.freq = freq
 
-    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
         values = getattr(index, self.freq)
         num_values = max(values) + 1
         steps = [x * 2.0 * np.pi / num_values for x in values]
