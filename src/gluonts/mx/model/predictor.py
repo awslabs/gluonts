@@ -19,7 +19,6 @@ from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
-
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader

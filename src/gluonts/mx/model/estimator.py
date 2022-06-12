@@ -14,14 +14,11 @@
 from typing import NamedTuple, Optional, Type
 
 import numpy as np
-from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
-
 from gluonts.core import fqname_for
 from gluonts.core.component import (
+    GluonTSHyperparametersError,
     from_hyperparameters,
     validated,
-    GluonTSHyperparametersError,
 )
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
@@ -30,6 +27,8 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 from gluonts.transform import Transformation
+from mxnet.gluon import HybridBlock
+from pydantic import ValidationError
 
 
 class TrainOutput(NamedTuple):
