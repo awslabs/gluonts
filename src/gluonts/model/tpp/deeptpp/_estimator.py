@@ -92,6 +92,9 @@ class DeepTPPEstimator(GluonEstimator):
     num_training_instances
         The number of training instances to be sampled from each entry in the
         data set provided during training.
+    freq
+        Similar to the :code:`freq` of discrete-time models, specifies the time
+        unit by which inter-arrival times are given.
     batch_size
         The size of the batches to be used training and prediction.
     """
@@ -108,6 +111,7 @@ class DeepTPPEstimator(GluonEstimator):
         num_hidden_dimensions: int = 10,
         num_parallel_samples: int = 100,
         num_training_instances: int = 100,
+        freq: str = "H",
         batch_size: int = 32,
     ) -> None:
         assert (
@@ -145,6 +149,7 @@ class DeepTPPEstimator(GluonEstimator):
         self.embedding_dim = embedding_dim
         self.num_parallel_samples = num_parallel_samples
         self.num_training_instances = num_training_instances
+        self.freq = freq
 
     def create_transformation(self) -> Transformation:
         return Chain([])  # identity transformation
@@ -251,6 +256,7 @@ class DeepTPPEstimator(GluonEstimator):
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             prediction_interval_length=self.prediction_interval_length,
+            freq=self.freq,
             ctx=self.trainer.ctx,
             input_transform=transformation + prediction_splitter,
         )
