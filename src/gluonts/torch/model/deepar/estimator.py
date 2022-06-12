@@ -144,7 +144,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         num_layers: int = 2,
@@ -158,6 +157,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
@@ -387,7 +387,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
             input_names=PREDICTION_INPUT_NAMES,
             prediction_net=module.model,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             device=torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu"

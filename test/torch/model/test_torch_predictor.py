@@ -67,7 +67,6 @@ def test_pytorch_predictor_serde():
 
     predictor = PyTorchPredictor(
         prediction_length=prediction_length,
-        freq="1H",
         input_names=["past_target"],
         prediction_net=pred_net,
         batch_size=16,

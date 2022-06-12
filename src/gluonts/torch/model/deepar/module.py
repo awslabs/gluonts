@@ -78,7 +78,6 @@ class DeepARModel(nn.Module):
     @validated()
     def __init__(
         self,
-        freq: str,
         context_length: int,
         prediction_length: int,
         num_feat_dynamic_real: int,
@@ -90,6 +89,7 @@ class DeepARModel(nn.Module):
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
         distr_output: DistributionOutput = StudentTOutput(),
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
         num_parallel_samples: int = 100,
