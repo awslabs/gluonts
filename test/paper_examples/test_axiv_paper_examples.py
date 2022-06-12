@@ -13,8 +13,8 @@
 
 import pytest
 
-from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.lab.datasets.artificial import constant_dataset
 
 
 def test_listing_1():
@@ -26,7 +26,7 @@ def test_listing_1():
     """
     pytest.importorskip("mxnet")
 
-    from gluonts.dataset.repository.datasets import get_dataset
+    from gluonts.lab.datasets import get_dataset
     from gluonts.evaluation import backtest_metrics, Evaluator
     from gluonts.model.deepar import DeepAREstimator
     from gluonts.mx.trainer import Trainer

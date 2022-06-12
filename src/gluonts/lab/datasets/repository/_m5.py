@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import metadata, save_to_file
+from ._util import metadata, save_to_file
 
 
 def generate_m5_dataset(

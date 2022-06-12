@@ -37,7 +37,7 @@ GluonTS comes with a number of available datasets.
 
 
 ```python
-from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
+from gluonts.lab.datasets import get_dataset, dataset_recipes
 from gluonts.dataset.util import to_pandas
 ```
 
@@ -115,7 +115,7 @@ We can easily create a complex artificial time series dataset using the `Complex
 
 
 ```python
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+from gluonts.lab.datasets.artificial import ComplexSeasonalTimeSeries
 from gluonts.dataset.common import ListDataset
 ```
 

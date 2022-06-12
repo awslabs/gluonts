@@ -16,7 +16,7 @@ from contextlib import suppress as do_not_raise
 import numpy as np
 import pytest
 
-from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
+from gluonts.lab.datasets.artificial import ComplexSeasonalTimeSeries
 
 _eps = 1e-6
 

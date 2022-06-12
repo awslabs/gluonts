@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 
 # first party imports
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.rolling_dataset import (

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository import _util
+from gluonts.lab.datasets.repository import _util
 
 
 def test_metadata_1():

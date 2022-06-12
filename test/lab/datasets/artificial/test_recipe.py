@@ -15,12 +15,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import gluonts.dataset.artificial.recipe as rcp
-
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, load_code
-from gluonts.dataset.artificial import RecipeDataset
-from gluonts.dataset.artificial.recipe import (
+from gluonts.dataset.common import (
+    BasicFeatureInfo,
+    CategoricalFeatureInfo,
+    MetaData,
+)
+
+import gluonts.lab.datasets.artificial.recipe as rcp
+from gluonts.lab.datasets.artificial import RecipeDataset
+from gluonts.lab.datasets.artificial.recipe import (
     Add,
     BinaryMarkovChain,
     Constant,
@@ -43,14 +48,10 @@ from gluonts.dataset.artificial.recipe import (
     Stack,
     evaluate,
     generate,
+    lifted_numpy as lnp,
+    take_as_list,
 )
-from gluonts.dataset.artificial.recipe import lifted_numpy as lnp
-from gluonts.dataset.artificial.recipe import take_as_list
-from gluonts.dataset.common import (
-    BasicFeatureInfo,
-    CategoricalFeatureInfo,
-    MetaData,
-)
+
 
 BASE_RECIPE = [("foo", ConstantVec(1.0)), ("cat", RandomCat([10]))]
 

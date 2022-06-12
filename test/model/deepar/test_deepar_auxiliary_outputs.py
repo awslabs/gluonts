@@ -16,7 +16,7 @@ from itertools import islice
 
 import mxnet as mx
 
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.batchify import batchify

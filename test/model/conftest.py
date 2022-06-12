@@ -42,7 +42,10 @@ def pytest_runtest_setup(item):
 @pytest.fixture(scope="session", params=["synthetic", "constant"])
 def dsinfo(request):
     from gluonts import time_feature
-    from gluonts.dataset.artificial import constant_dataset, default_synthetic
+    from gluonts.lab.datasets.artificial import (
+        constant_dataset,
+        default_synthetic,
+    )
 
     if request.param == "constant":
         ds_info, train_ds, test_ds = constant_dataset()

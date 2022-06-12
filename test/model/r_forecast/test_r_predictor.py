@@ -14,7 +14,7 @@
 import pytest
 
 from gluonts.core import serde
-from gluonts.dataset.repository import datasets
+from gluonts.lab.datasets import get_dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
@@ -49,7 +49,7 @@ def test_forecasts(method_name):
             "the `neuralnet` package is not yet updated with a known bug fix in ` bips-hb/neuralnet`"
         )
 
-    dataset = datasets.get_dataset("constant")
+    dataset = get_dataset("constant")
 
     (train_dataset, test_dataset, metadata) = (
         dataset.train,

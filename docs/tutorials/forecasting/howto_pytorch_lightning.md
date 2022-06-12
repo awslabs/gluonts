@@ -20,7 +20,7 @@ For this example we will use the "electricity" dataset, which can be loaded as f
 
 
 ```python
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 ```
 
 

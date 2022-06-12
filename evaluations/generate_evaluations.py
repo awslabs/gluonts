@@ -21,12 +21,10 @@ import os
 from pathlib import Path
 from typing import Dict
 
-from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 from gluonts.evaluation import backtest_metrics
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 
 metrics_persisted = ["mean_wQuantileLoss", "ND", "RMSE"]
-datasets = dataset_names
 
 Estimators = [
     SeasonalNaivePredictor,
@@ -64,8 +62,9 @@ def persist_evaluation(
 
 
 if __name__ == "__main__":
+    from gluonts.lab.datasets import get_dataset, dataset_recipes
 
-    for dataset_name in datasets:
+    for dataset_name in dataset_recipes:
         for Estimator in Estimators:
             dataset = get_dataset(
                 dataset_name=dataset_name,

@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
-from gluonts.dataset.repository.datasets import dataset_names, get_dataset
+from gluonts.lab.datasets import dataset_recipes, get_dataset
 from gluonts.dataset.util import forecast_start
 
 
@@ -41,7 +41,7 @@ def check_train_test_split(dataset):
 
 @pytest.mark.skip
 @pytest.mark.timeout(300)
-@pytest.mark.parametrize("name", dataset_names)
+@pytest.mark.parametrize("name", list(dataset_recipes))
 def test_data_leakage(name):
     try:
         dataset = get_dataset(name)

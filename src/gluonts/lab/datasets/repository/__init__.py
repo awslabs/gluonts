@@ -10,3 +10,17 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+
+__all__ = [
+    "get_dataset",
+    "dataset_recipes",
+    "get_download_path",
+    "materialize_dataset",
+]
+
+from .datasets import (
+    get_dataset,
+    dataset_recipes,
+    get_download_path,
+    materialize_dataset,
+)

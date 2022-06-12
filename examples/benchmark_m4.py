@@ -19,7 +19,7 @@ from functools import partial
 
 import pandas as pd
 
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 from gluonts.mx.distribution.piecewise_linear import PiecewiseLinearOutput
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.model.deepar import DeepAREstimator

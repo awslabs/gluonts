@@ -16,7 +16,7 @@ import mxnet as mx
 import pytest
 from flaky import flaky
 
-from gluonts.dataset.artificial import constant_dataset
+from gluonts.lab.datasets.artificial import constant_dataset
 from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.evaluation import backtest_metrics, MultivariateEvaluator

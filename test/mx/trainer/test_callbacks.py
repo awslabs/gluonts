@@ -26,7 +26,7 @@ from gluonts.mx.trainer.model_iteration_averaging import (
     NTA,
     ModelIterationAveraging,
 )
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.lab.datasets import get_dataset
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 
 

@@ -19,7 +19,7 @@ from urllib import request
 
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata
+from ._util import metadata
 
 
 def generate_uber_dataset(
