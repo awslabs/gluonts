@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from lib2to3.pgen2.token import OP
 from typing import Optional
 
 import numpy as np
