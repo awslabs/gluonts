@@ -58,6 +58,9 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         assert (
             season_length is None or season_length > 0
         ), "The value of `season_length` should be > 0"
+        assert (
+            freq is not None or season_length is not None
+        ), "Either `freq` or `season_length` should be set"
 
         self.prediction_length = prediction_length
         self.season_length = (

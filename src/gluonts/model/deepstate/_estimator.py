@@ -221,8 +221,16 @@ class DeepStateEstimator(GluonEstimator):
             "All parameter bounds should be finite, and lower bounds should be"
             " positive"
         )
+        assert (
+            freq is not None or past_length is not None
+        ), "Either `freq` or `past_length` should be set"
+        assert (
+            freq is not None or issm is not None
+        ), "Either `freq` or `issm` should be set"
+        assert (
+            freq is not None or time_features is not None
+        ), "Either `freq` or `time_features` should be set"
 
-        self.freq = freq
         self.past_length = (
             past_length
             if past_length is not None
@@ -256,7 +264,7 @@ class DeepStateEstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.noise_std_bounds = noise_std_bounds

@@ -98,6 +98,9 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
+        assert (
+            freq is not None or time_features is not None
+        ), "Either `freq` or `time_features` should be set"
 
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length

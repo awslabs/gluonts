@@ -223,8 +223,13 @@ class DeepAREstimator(GluonEstimator):
         ), "The value of `num_parallel_samples` should be > 0"
         assert alpha >= 0, "The value of `alpha` should be >= 0"
         assert beta >= 0, "The value of `beta` should be >= 0"
+        assert (
+            freq is not None or lags_seq is not None
+        ), "Either `freq` or `lags_seq` should be set"
+        assert (
+            freq is not None or time_features is not None
+        ), "Either `freq` or `time_features` should be set"
 
-        self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
@@ -256,7 +261,7 @@ class DeepAREstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
