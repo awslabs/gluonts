@@ -1101,7 +1101,6 @@ class MyProbEstimator(GluonEstimator):
         self,
         prediction_length: int,
         context_length: int,
-        freq: str,
         distr_output: DistributionOutput,
         num_cells: int,
         num_sample_paths: int = 100,
