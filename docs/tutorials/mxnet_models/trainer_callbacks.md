@@ -26,7 +26,7 @@ from gluonts.mx.trainer.callback import TrainingHistory
 history = TrainingHistory()
 
 trainer = Trainer(epochs=3, callbacks=[history])
-estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length trainer=trainer)
+estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
 ```
