@@ -101,7 +101,6 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         num_layers: int = 2,
@@ -113,6 +112,7 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
         scaling: bool = True,
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
