@@ -302,7 +302,7 @@ class RepresentableBlockPredictor(GluonPredictor):
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,
-s            ctx=ctx,
+            ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
             forecast_generator=forecast_generator,
