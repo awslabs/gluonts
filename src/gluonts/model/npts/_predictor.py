@@ -291,7 +291,7 @@ class NPTSPredictor(RepresentablePredictor):
 
     def _get_features(
         self,
-        train_index: pd.DatetimeIndex,
+        train_index: pd.PeriodIndex,
         prediction_length: int,
         custom_features: np.ndarray = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -305,7 +305,7 @@ class NPTSPredictor(RepresentablePredictor):
         Parameters
         ----------
         train_index
-            Pandas DatetimeIndex
+            Pandas PeriodIndex
         prediction_length
             prediction length
         custom_features
