@@ -70,7 +70,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
@@ -80,6 +79,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         num_outputs: int = 3,
         num_instance_per_series: int = 100,
         dropout_rate: float = 0.1,
+        freq: Optional[str] = None,
         time_features: List[TimeFeature] = [],
         static_cardinalities: Dict[str, int] = {},
         dynamic_cardinalities: Dict[str, int] = {},
@@ -99,7 +99,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
         self.dropout_rate = dropout_rate
@@ -110,7 +109,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         self.num_instance_per_series = num_instance_per_series
 
         if not time_features:
-            self.time_features = time_features_from_frequency_str(self.freq)
+            self.time_features = time_features_from_frequency_str(freq)
             if not self.time_features:
                 # If time features are empty (as for yearly data), we add a
                 # constant feature of 0
@@ -438,7 +437,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(

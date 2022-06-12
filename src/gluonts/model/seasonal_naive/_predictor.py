@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from lib2to3.pgen2.token import OP
 from typing import Optional
 
 import numpy as np
@@ -49,17 +50,16 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
+        freq: Optional[str] = None,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0
         ), "The value of `season_length` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.season_length = (
             season_length

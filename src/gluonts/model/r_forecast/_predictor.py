@@ -103,7 +103,7 @@ class RForecastPredictor(RepresentablePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         if not R_IS_INSTALLED:
             raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)

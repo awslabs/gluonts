@@ -161,7 +161,6 @@ class DeepAREstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
@@ -177,6 +176,7 @@ class DeepAREstimator(GluonEstimator):
         embedding_dimension: Optional[List[int]] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         scaling: bool = True,
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
@@ -484,7 +484,6 @@ class DeepAREstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             dtype=self.dtype,

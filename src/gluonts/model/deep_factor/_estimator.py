@@ -261,7 +261,6 @@ class DeepFactorEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_net,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

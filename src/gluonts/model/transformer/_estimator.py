@@ -137,7 +137,6 @@ class TransformerEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
@@ -152,6 +151,7 @@ class TransformerEstimator(GluonEstimator):
         act_type: str = "softrelu",
         num_heads: int = 8,
         scaling: bool = True,
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = False,
@@ -183,7 +183,6 @@ class TransformerEstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -203,7 +202,7 @@ class TransformerEstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
         self.history_length = self.context_length + max(self.lags_seq)
         self.scaling = scaling
@@ -386,7 +385,6 @@ class TransformerEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

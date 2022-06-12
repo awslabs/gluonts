@@ -127,7 +127,7 @@ class ProphetPredictor(RepresentablePredictor):
         prophet_params: Optional[Dict] = None,
         init_model: Callable = toolz.identity,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)
@@ -142,6 +142,7 @@ class ProphetPredictor(RepresentablePredictor):
 
         self.prophet_params = prophet_params
         self.init_model = init_model
+        self.freq = freq
 
     def predict(
         self, dataset: Dataset, num_samples: int = 100, **kwargs

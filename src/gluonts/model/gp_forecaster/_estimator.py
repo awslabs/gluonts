@@ -113,7 +113,6 @@ class GaussianProcessEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         cardinality: int,
         trainer: Trainer = Trainer(),
@@ -124,6 +123,7 @@ class GaussianProcessEstimator(GluonEstimator):
         max_iter_jitter: int = 10,
         jitter_method: str = "iter",
         sample_noise: bool = True,
+        freq: Optional[str] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
         batch_size: int = 32,
@@ -268,7 +268,6 @@ class GaussianProcessEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             dtype=self.float_type,

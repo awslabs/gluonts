@@ -217,7 +217,6 @@ class DeepVAREstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         target_dim: int,
         trainer: Trainer = Trainer(),
@@ -233,6 +232,7 @@ class DeepVAREstimator(GluonEstimator):
         rank: Optional[int] = 5,
         scaling: bool = True,
         pick_incomplete: bool = False,
+        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         conditioning_length: int = 200,
@@ -483,7 +483,6 @@ class DeepVAREstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             output_transform=self.output_transform,

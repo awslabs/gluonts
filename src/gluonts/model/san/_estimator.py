@@ -61,7 +61,6 @@ class SelfAttentionEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         cardinalities: List[int] = [],
         context_length: Optional[int] = None,
@@ -76,6 +75,7 @@ class SelfAttentionEstimator(GluonEstimator):
         pre_layer_norm: bool = False,
         dropout: float = 0.1,
         temperature: float = 1.0,
+        freq: Optional[str] = None,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = True,
         use_feat_dynamic_cat: bool = False,
@@ -86,7 +86,6 @@ class SelfAttentionEstimator(GluonEstimator):
         batch_size: int = 32,
     ):
         super().__init__(trainer=trainer, batch_size=batch_size)
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length
         self.model_dim = model_dim
@@ -102,7 +101,7 @@ class SelfAttentionEstimator(GluonEstimator):
         self.temperature = temperature
 
         self.time_features = time_features or time_features_from_frequency_str(
-            self.freq
+            freq
         )
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.use_feat_dynamic_real = use_feat_dynamic_real
@@ -342,7 +341,6 @@ class SelfAttentionEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(
