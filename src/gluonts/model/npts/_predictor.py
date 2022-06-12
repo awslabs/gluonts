@@ -174,6 +174,7 @@ class NPTSPredictor(RepresentablePredictor):
         self.use_seasonal_model = use_seasonal_model
         self.use_default_time_features = use_default_time_features
         self.feature_scale = feature_scale
+        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
