@@ -21,7 +21,10 @@ from gluonts.core.component import equals
 from gluonts.core.serde import dump_code, load_code
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.stat import ScaleHistogram  # noqa
-from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.dataset.stat import (
+    DatasetStatistics,
+    calculate_dataset_statistics,
+)
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.evaluation.backtest import BacktestInformation
 from gluonts.model.trivial.mean import MeanEstimator
