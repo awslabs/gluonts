@@ -583,7 +583,6 @@ estimator = SimpleFeedForwardEstimator(
     num_hidden_dimensions=[10],
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
-    freq=custom_ds_metadata['freq'],
     trainer=Trainer(
         ctx="cpu", 
         epochs=5, 

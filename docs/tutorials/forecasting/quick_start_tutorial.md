@@ -140,7 +140,6 @@ estimator = SimpleFeedForwardEstimator(
     num_hidden_dimensions=[10],
     prediction_length=dataset.metadata.prediction_length,
     context_length=100,
-    freq=dataset.metadata.freq,
     trainer=Trainer(
         ctx="cpu", 
         epochs=5, 
