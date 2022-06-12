@@ -46,7 +46,6 @@ from gluonts.torch.modules.loss import NegativeLogLikelihood
             trainer_kwargs=dict(max_epochs=2),
         ),
         lambda dataset: SimpleFeedForwardEstimator(
-            freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
             num_batches_per_epoch=3,
