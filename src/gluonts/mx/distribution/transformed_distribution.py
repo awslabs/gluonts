@@ -204,33 +204,21 @@ class AffineTransformedDistribution(TransformedDistribution):
     ) -> None:
         super().__init__(base_distribution, [AffineTransformation(loc, scale)])
 
-        self.loc = loc
-        self.scale = scale
+        self.loc = loc if loc is not None else 0
+        self.scale = scale if scale is not None else 1
 
     @property
     def mean(self) -> Tensor:
-        return (
-            self.base_distribution.mean
-            if self.loc is None
-            else self.base_distribution.mean + self.loc
-        )
+        return self.base_distribution.mean * self.scale + self.loc
 
     @property
     def stddev(self) -> Tensor:
-        return (
-            self.base_distribution.stddev
-            if self.scale is None
-            else self.base_distribution.stddev * self.scale
-        )
+        return self.base_distribution.stddev * self.scale
 
     @property
     def variance(self) -> Tensor:
         # TODO: cover the multivariate case here too
-        return (
-            self.base_distribution.variance
-            if self.scale is None
-            else self.base_distribution.variance * self.scale**2
-        )
+        return self.base_distribution.variance * self.scale**2
 
     # TODO: crps
 
