@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.exceptions import GluonTSDataError
@@ -34,33 +35,60 @@ class FieldType(Generic[T]):
     def is_compatible(self, v: Any) -> bool:
         raise NotImplementedError()
 
+# convert functions
+def ct_to_tc(xs):
+    return xs.transpose()
+
+def tc_to_ct(xs):
+    return xs.transpose()
+
+def t_to_tc(xs):
+    return xs.reshape((-1, 1))
+
+def t_to_ct(xs):
+    return xs.reshape((1, -1))
+
+conv_map = {
+    ('TC', 'CT'): tc_to_ct,
+    ('CT', 'TC'): tc_to_ct,
+    ('T', 'CT'): t_to_ct,
+    ('T', 'TC'): t_to_tc,
+}
 
 @dataclass
 class NumpyArrayField(FieldType[np.ndarray]):
     dtype: Type = np.float32
     ndim: Optional[int] = None
-
-    def __eq__(self, other):
-        if not isinstance(other, NumpyArrayField):
-            return False
-
-        return self.dtype == other.dtype and self.ndim == other.ndim
+    src_layout: Optional[str] = 'T'
+    target_layout: Optional[str] = 'T'
 
     def __call__(self, value: Any) -> np.ndarray:
-        value = np.asarray(value, dtype=self.dtype)
+        if isinstance(value, pa.Array):
+            value = value.to_numpy()
+        else:
+            value = np.asarray(value, dtype=self.dtype)
         if self.ndim is not None and self.ndim != value.ndim:
             raise GluonTSDataError(
                 f"expected array with dimension {self.ndim}, "
                 "but got {value.ndim}."
             )
+
+        # layout tranformation
+        if self.src_layout != self.target_layout:
+            conv_func = conv_map[self.src_layout, self.target_layout]
+            value = conv_func(value)
+        
         return value
 
     def is_compatible(self, value: Any) -> bool:
-        if not isinstance(value, (list, tuple, np.ndarray)):
+        if not isinstance(value, (list, tuple, np.ndarray, pa.Array)):
             return False
 
         try:
-            x = np.asarray(value)
+            if isinstance(value, pa.Array):
+                x = value.to_numpy()
+            else:
+                x = np.asarray(value)
         except Exception:
             return False
 
