@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from asyncore import file_dispatcher
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
@@ -35,32 +36,38 @@ class FieldType(Generic[T]):
     def is_compatible(self, v: Any) -> bool:
         raise NotImplementedError()
 
+
 # convert functions
 def ct_to_tc(xs):
     return xs.transpose()
 
+
 def tc_to_ct(xs):
     return xs.transpose()
+
 
 def t_to_tc(xs):
     return xs.reshape((-1, 1))
 
+
 def t_to_ct(xs):
     return xs.reshape((1, -1))
 
+
 conv_map = {
-    ('TC', 'CT'): tc_to_ct,
-    ('CT', 'TC'): tc_to_ct,
-    ('T', 'CT'): t_to_ct,
-    ('T', 'TC'): t_to_tc,
+    ("TC", "CT"): tc_to_ct,
+    ("CT", "TC"): tc_to_ct,
+    ("T", "CT"): t_to_ct,
+    ("T", "TC"): t_to_tc,
 }
+
 
 @dataclass
 class NumpyArrayField(FieldType[np.ndarray]):
     dtype: Type = np.float32
     ndim: Optional[int] = None
-    src_layout: Optional[str] = 'T'
-    target_layout: Optional[str] = 'T'
+    src_layout: Optional[str] = "T"
+    target_layout: Optional[str] = "T"
 
     def __call__(self, value: Any) -> np.ndarray:
         if isinstance(value, pa.Array):
@@ -75,9 +82,9 @@ class NumpyArrayField(FieldType[np.ndarray]):
 
         # layout tranformation
         if self.src_layout != self.target_layout:
-            conv_func = conv_map[self.src_layout, self.target_layout]
+            conv_func = conv_map[(self.src_layout, self.target_layout)]
             value = conv_func(value)
-        
+
         return value
 
     def is_compatible(self, value: Any) -> bool:
@@ -143,13 +150,19 @@ class Schema:
     default_values: Dict[str, Any]
 
     def __call__(
-        self, d: Dict[str, Any], inplace: bool
+        self,
+        d: Dict[str, Any],
+        inplace: bool,
+        src_layout: Dict[str, str],
+        name_mapping: Dict[str, str],
     ) -> Dict[str, FieldType]:
         """
         inplace
             True: applies the schema to the input dictionary.
                   The dictionary is updated in place.
             False: return a new data dictionary if False.
+
+        name_mapping: mapping from target name to src name
         """
         if inplace:
             out: Dict[str, Any] = d
@@ -158,7 +171,15 @@ class Schema:
 
         for field_name, field_type in self.fields.items():
             try:
-                value = d[field_name]
+                src_fields = name_mapping[field_name]
+                if isinstance(src_fields, list):
+                    value = []
+                    for field in src_fields:
+                        value.append(d[field])
+                    self.fields[field_name].src_layout = "CT"
+                else:
+                    value = d[src_fields]
+                    self.fields[field_name].src_layout = src_layout[src_fields]
             except KeyError:
                 if field_name in self.default_values.keys():
                     value = self.default_values[field_name]
