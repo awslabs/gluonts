@@ -78,8 +78,8 @@ AMZN ticker symbol.
 
 ```python
 import pandas as pd
-url = "https://raw.githubusercontent.com/numenta/NAB/dev/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0, index_col=0)
+url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
+df = pd.read_csv(url, header=0)
 ```
 
 The first 100 data points look like follows:
@@ -102,10 +102,13 @@ first datapoint, and the `"target"` field containing time series data.
 For training, we will use data up to midnight on April 5th, 2015.
 
 ```python
-from gluonts.dataset.common import ListDataset
-training_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-05 00:00:00"]}],
-    freq = "5min"
+from gluonts.dataset.dataframes import DataFramesDataset
+
+training_data = DataFramesDataset(
+    [df[:"2015-04-05 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 ```
 
@@ -133,9 +136,11 @@ We're now ready to make predictions: we will forecast the hour following
 the midnight on April 15th, 2015.
 
 ```python
-test_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-15 00:00:00"]}],
-    freq = "5min"
+training_data = DataFramesDataset(
+    [df[:"2015-04-15 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 
 from gluonts.dataset.util import to_pandas
