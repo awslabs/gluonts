@@ -17,28 +17,11 @@ from typing import Callable, Iterator, List, Tuple, TypeVar, Optional
 
 import pandas as pd
 
-from gluonts.itertools import partition
 from .field_names import FieldName
 
 
 def forecast_start(entry):
     return entry[FieldName.START] + len(entry[FieldName.TARGET])
-
-
-def true_predicate(*args) -> bool:
-    return True
-
-
-def find_files(
-    data_dir: Path, predicate: Callable[[Path], bool] = true_predicate
-) -> List[Path]:
-    all_files = filter(Path.is_file, data_dir.glob("**/*"))
-    chosen, ignored = partition(all_files, predicate)
-
-    for ign in ignored:
-        logging.info(f"Ignoring input file `{ign.name}`.")
-
-    return sorted(chosen)
 
 
 def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:

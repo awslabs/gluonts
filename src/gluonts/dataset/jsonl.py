@@ -42,6 +42,13 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
+    SUFFIXES = {
+        ".json",
+        ".json.gz",
+        ".jsonl",
+        ".jsonl.gz",
+    }
+
     path: Path
 
     def open(self):

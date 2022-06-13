@@ -170,23 +170,43 @@ class FileDataset(Dataset):
         Indicates whether the dataset should be cached or not.
     """
 
-    # def __new__(
-    #     cls,
-    #     path: Path,
-    #     freq: str,
-    #     one_dim_target: bool = True,
-    #     cache: bool = False,
-    #     use_timestamp: bool = False,
-    # ) -> Dataset:
-    #     path = Path(path)
+    def __new__(
+        cls,
+        path: Path,
+        freq: str,
+        one_dim_target: bool = True,
+        cache: bool = False,
+        use_timestamp: bool = False,
+    ) -> Dataset:
+        path = Path(path)
 
-    #     if not path.exists():
-    #         raise FileNotFoundError(path)
+        if not path.exists():
+            raise FileNotFoundError(path)
 
-    #     if path.is_dir():
-    #         pass
+        if path.is_file():
+            return object.__new__(cls)
 
-    #     assert path.is_file()
+        assert path.is_dir()
+
+        jsonl_files = [
+            subpath
+            for subpath in filter(Path.is_file, path.glob("**/*"))
+            if "".join(subpath.suffixes) in jsonl.JsonLinesFile.SUFFIXES
+        ]
+
+        datasets = [
+            object.__new__(FileDataset) for _ in range(len(jsonl_files))
+        ]
+
+        for dataset, jsonl_file in zip(datasets, jsonl_files):
+            dataset.__init__(
+                jsonl_file,
+                freq=freq,
+                one_dim_target=one_dim_target,
+                use_timestamp=use_timestamp,
+            )
+
+        return DatasetCollection(datasets)
 
     def __init__(
         self,
@@ -197,55 +217,18 @@ class FileDataset(Dataset):
         use_timestamp: bool = False,
     ) -> None:
         self.freq = to_offset(freq)
-        self.cache = cache
-        self.path = Path(path)
+        self.path = path
         self.process = ProcessDataEntry(
             freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
         )
-        self._len_per_file = None
 
-        if not self.files():
-            raise OSError(f"no valid file found in {path}")
-
-        # necessary, in order to preserve the cached datasets, in case caching
-        # was enabled
-        self._json_line_files = [
-            jsonl.JsonLinesFile(path=path) for path in self.files()
-        ]
+        self._file = jsonl.JsonLinesFile(path=path)
 
     def __iter__(self) -> Iterator[DataEntry]:
-        for json_line_file in self._json_line_files:
-            for line in json_line_file:
-                yield self.process(line)
-
-    # Returns array of the sizes for each subdataset per file
-    def len_per_file(self):
-        if self._len_per_file is None:
-            len_per_file = [
-                len(json_line_file) for json_line_file in self._json_line_files
-            ]
-            self._len_per_file = len_per_file
-        return self._len_per_file
+        yield from map(self.process, self._file)
 
     def __len__(self):
-        return sum(self.len_per_file())
-
-    def files(self) -> List[Path]:
-        """
-        List the files that compose the dataset.
-
-        Returns
-        -------
-        List[Path]
-            List of the paths of all files composing the dataset.
-        """
-        return util.find_files(self.path, self.is_valid)
-
-    @classmethod
-    def is_valid(cls, path: Path) -> bool:
-        # TODO: given that we only support json, should we also filter json
-        # TODO: in the extension?
-        return not (path.name.startswith(".") or path.name == "_SUCCESS")
+        return len(self._file)
 
 
 class ListDataset(Dataset):
