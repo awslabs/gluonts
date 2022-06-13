@@ -13,6 +13,7 @@
 
 import functools
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
@@ -34,8 +35,8 @@ from pandas.tseries.frequencies import to_offset
 import pydantic
 from typing_extensions import Protocol, runtime_checkable
 
-
 from gluonts import json
+from gluonts.itertools import roundrobin
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl, util
 from gluonts.exceptions import GluonTSDataError
@@ -52,6 +53,30 @@ class Dataset(Protocol):
 
     def __len__(self) -> int:
         raise NotImplementedError
+
+
+@dataclass
+class DatasetCollection(Dataset):
+    """Flattened access to a colleciton of datasets."""
+
+    datasets: List[Dataset]
+    interleave: bool = False
+
+    def iter_sequential(self):
+        for dataset in self.datasets:
+            yield from dataset
+
+    def iter_interleaved(self):
+        yield from roundrobin(*self.datasets)
+
+    def __iter__(self):
+        if self.interleave:
+            yield from self.iter_interleaved()
+        else:
+            yield from self.iter_sequential()
+
+    def __len__(self):
+        return sum(map(len, self.datasets))
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -144,6 +169,24 @@ class FileDataset(Dataset):
     cache
         Indicates whether the dataset should be cached or not.
     """
+
+    def __new__(
+        cls,
+        path: Path,
+        freq: str,
+        one_dim_target: bool = True,
+        cache: bool = False,
+        use_timestamp: bool = False,
+    ) -> Dataset:
+        path = Path(path)
+
+        if not path.exists():
+            raise FileNotFoundError(path)
+
+        if path.is_dir():
+            pass
+
+        assert path.is_file()
 
     def __init__(
         self,
