@@ -346,14 +346,14 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             count_nans)
         """
         mean_value = np.nanmean(time_series_window)
-        featurized_data = (
+        featurized_data = [
             time_series_window,
             {
                 "mean": mean_value,
                 "std": np.nanstd(time_series_window),
                 "n_lag_features": len(time_series_window),
             },
-        )
+        ]
         if subtract_mean:
             featurized_data[0] = featurized_data[0] - mean_value
         if count_nans:
