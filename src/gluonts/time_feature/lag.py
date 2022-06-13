@@ -27,9 +27,7 @@ def _make_lags(middle: int, delta: int) -> np.ndarray:
 
 
 def get_lags_for_frequency(
-    freq_str: str,
-    lag_ub: int = 1200,
-    num_lags: Optional[int] = None,
+    freq_str: str, lag_ub: int = 1200, num_lags: Optional[int] = None
 ) -> List[int]:
     """
     Generates a list of lags that that are appropriate for the given frequency

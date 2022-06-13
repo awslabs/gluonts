@@ -197,9 +197,7 @@ def norm_freq_str(freq_str: str) -> str:
     return freq_str.split("-")[0]
 
 
-def time_features_from_frequency_str(
-    freq_str: str,
-) -> List[TimeFeature]:
+def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given
     frequency string.

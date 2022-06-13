@@ -91,9 +91,7 @@ class FourierDateFeatures(TimeFeature):
         return np.vstack([np.cos(steps), np.sin(steps)])
 
 
-def time_features_from_frequency_str(
-    freq_str: str,
-) -> List[TimeFeature]:
+def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     features = {
         "M": ["weekofyear"],
         "W": ["daysinmonth", "weekofyear"],
