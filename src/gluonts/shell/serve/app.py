@@ -226,7 +226,6 @@ def batch_inference_invocations(
                     settings.gluonts_batch_fallback_predictor
                 )
                 fallback_predictor = FallbackPredictor(
-                    freq=predictor.freq,
                     prediction_length=predictor.prediction_length,
                 )
 
