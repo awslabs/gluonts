@@ -1,4 +1,4 @@
-# Tuning GluonTS models with Optuna
+# Tuning models with Optuna
 
 In this notebook we will see how to tune the hyperparameters of a GlutonTS model using Optuna. For this example, we are going to tune a PyTorch-based DeepAREstimator.
 
