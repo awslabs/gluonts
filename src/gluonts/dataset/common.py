@@ -170,23 +170,23 @@ class FileDataset(Dataset):
         Indicates whether the dataset should be cached or not.
     """
 
-    def __new__(
-        cls,
-        path: Path,
-        freq: str,
-        one_dim_target: bool = True,
-        cache: bool = False,
-        use_timestamp: bool = False,
-    ) -> Dataset:
-        path = Path(path)
+    # def __new__(
+    #     cls,
+    #     path: Path,
+    #     freq: str,
+    #     one_dim_target: bool = True,
+    #     cache: bool = False,
+    #     use_timestamp: bool = False,
+    # ) -> Dataset:
+    #     path = Path(path)
 
-        if not path.exists():
-            raise FileNotFoundError(path)
+    #     if not path.exists():
+    #         raise FileNotFoundError(path)
 
-        if path.is_dir():
-            pass
+    #     if path.is_dir():
+    #         pass
 
-        assert path.is_file()
+    #     assert path.is_file()
 
     def __init__(
         self,
@@ -198,7 +198,7 @@ class FileDataset(Dataset):
     ) -> None:
         self.freq = to_offset(freq)
         self.cache = cache
-        self.path = path
+        self.path = Path(path)
         self.process = ProcessDataEntry(
             freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
         )
@@ -210,18 +210,13 @@ class FileDataset(Dataset):
         # necessary, in order to preserve the cached datasets, in case caching
         # was enabled
         self._json_line_files = [
-            jsonl.JsonLinesFile(path=path, cache=cache)
-            for path in self.files()
+            jsonl.JsonLinesFile(path=path) for path in self.files()
         ]
 
     def __iter__(self) -> Iterator[DataEntry]:
         for json_line_file in self._json_line_files:
             for line in json_line_file:
-                data = self.process(line.content)
-                data["source"] = SourceContext(
-                    source=line.span.path, row=line.span.line
-                )
-                yield data
+                yield self.process(line)
 
     # Returns array of the sizes for each subdataset per file
     def len_per_file(self):

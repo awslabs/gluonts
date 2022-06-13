@@ -13,6 +13,7 @@
 
 import functools
 import gzip
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
@@ -29,16 +30,7 @@ def dump(objects, file_obj):
         json.dump(object_, file_obj, nl=True)
 
 
-class Span(NamedTuple):
-    path: Path
-    line: int
-
-
-class Line(NamedTuple):
-    content: object
-    span: Span
-
-
+@dataclass
 class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
@@ -50,41 +42,31 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path: Path, cache: bool = False) -> None:
-        self.path = path
-        self.open = gzip.open if path.suffix == ".gz" else open
-        self.cache = cache
-        self._len = None
-        self._data_cache: list = []
+    path: Path
+
+    def open(self):
+        if self.path.suffix == ".gz":
+            return gzip.open(self.path)
+
+        return open(self.path, "rb")
 
     def __iter__(self):
-        if not self.cache or (self.cache and not self._data_cache):
-            with self.open(self.path) as jsonl_file:
-                for line_number, raw in enumerate(jsonl_file):
-
-                    span = Span(path=self.path, line=line_number)
-                    try:
-                        parsed_line = Line(json.loads(raw), span=span)
-                        if self.cache:
-                            self._data_cache.append(parsed_line)
-                        yield parsed_line
-
-                    except ValueError:
-                        raise GluonTSDataError(
-                            f"Could not read json line {line_number}, {raw}"
-                        )
-        else:
-            yield from self._data_cache
+        with self.open() as jsonl_file:
+            for line_number, line in enumerate(jsonl_file):
+                try:
+                    yield json.loads(line)
+                except ValueError:
+                    raise GluonTSDataError(
+                        f"Could not read json line {line_number}, {raw}"
+                    )
 
     def __len__(self):
-        if self._len is None:
-            # 1MB
-            BUF_SIZE = 1024**2
+        # 1MB
+        BUF_SIZE = 1024**2
 
-            with self.open(self.path, "rb") as file_obj:
-                read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-                file_len = sum(
-                    chunk.count(b"\n") for chunk in iter(read_chunk, b"")
-                )
-                self._len = file_len
-        return self._len
+        with self.open() as file_obj:
+            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
+            file_len = sum(
+                chunk.count(b"\n") for chunk in iter(read_chunk, b"")
+            )
+            return file_len

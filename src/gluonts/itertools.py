@@ -22,6 +22,7 @@ from typing import (
     Optional,
     TypeVar,
     Sequence,
+    Tuple,
 )
 from dataclasses import dataclass, field
 
