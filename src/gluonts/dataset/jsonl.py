@@ -15,7 +15,6 @@ import functools
 import gzip
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
@@ -64,7 +63,7 @@ class JsonLinesFile:
                     yield json.loads(line)
                 except ValueError:
                     raise GluonTSDataError(
-                        f"Could not read json line {line_number}, {raw}"
+                        f"Could not read json line {line_number}, {line}"
                     )
 
     def __len__(self):

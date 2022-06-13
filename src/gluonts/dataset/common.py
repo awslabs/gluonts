@@ -38,7 +38,7 @@ from typing_extensions import Protocol, runtime_checkable
 from gluonts import json
 from gluonts.itertools import roundrobin
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset import jsonl, util
+from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
 
 # Dictionary used for data flowing through the transformations.
@@ -170,7 +170,7 @@ class FileDataset(Dataset):
         Indicates whether the dataset should be cached or not.
     """
 
-    def __new__(
+    def __new__(  # type: ignore
         cls,
         path: Path,
         freq: str,
@@ -194,12 +194,12 @@ class FileDataset(Dataset):
             if "".join(subpath.suffixes) in jsonl.JsonLinesFile.SUFFIXES
         ]
 
-        datasets = [
+        datasets: List[Dataset] = [
             object.__new__(FileDataset) for _ in range(len(jsonl_files))
         ]
 
         for dataset, jsonl_file in zip(datasets, jsonl_files):
-            dataset.__init__(
+            dataset.__init__(  # type: ignore
                 jsonl_file,
                 freq=freq,
                 one_dim_target=one_dim_target,
