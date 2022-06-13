@@ -111,7 +111,7 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     loss_function
-        The loss funtion (also known as metric) to use for training the
+        The loss function (also known as metric) to use for training the
         network. Unlike other models in GluonTS this network does not use a
         distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".

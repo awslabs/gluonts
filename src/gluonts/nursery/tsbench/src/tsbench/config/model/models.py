@@ -439,9 +439,7 @@ class ProphetModelConfig(ModelConfig):
         file = path / "metadata.pickle"
         with file.open("r") as f:
             meta = json.load(f)
-        return ProphetPredictor(
-            freq=meta["freq"], prediction_length=meta["prediction_length"]
-        )
+        return ProphetPredictor(prediction_length=meta["prediction_length"])
 
     def create_estimator(
         self,

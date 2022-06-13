@@ -86,6 +86,10 @@ class ProphetDataEntry(NamedTuple):
     def forecast_start(self) -> pd.Period:
         return self.start + self.train_length * self.start.freq
 
+    @property
+    def freq(self):
+        return self.start.freq
+
 
 class ProphetPredictor(RepresentablePredictor):
     """
@@ -122,7 +126,6 @@ class ProphetPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         prophet_params: Optional[Dict] = None,
         init_model: Callable = toolz.identity,
@@ -142,7 +145,6 @@ class ProphetPredictor(RepresentablePredictor):
 
         self.prophet_params = prophet_params
         self.init_model = init_model
-        self.freq = freq
 
     def predict(
         self, dataset: Dataset, num_samples: int = 100, **kwargs
@@ -177,7 +179,7 @@ class ProphetPredictor(RepresentablePredictor):
 
         future_df = prophet.make_future_dataframe(
             periods=self.prediction_length,
-            freq=self.freq,
+            freq=data.freq,
             include_history=False,
         )
 

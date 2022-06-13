@@ -259,7 +259,7 @@ class NBEATSEnsembleEstimator(Estimator):
     prediction_length
         Length of the prediction. Also known as 'horizon'.
     meta_context_length
-        The different 'context_length' (aslso known as 'lookback period')
+        The different 'context_length' (also known as 'lookback period')
         to use for training the models.
         The 'context_length' is the number of time units that condition the
         predictions. Default and recommended value:
