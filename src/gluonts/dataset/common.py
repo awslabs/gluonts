@@ -189,6 +189,8 @@ def FileDataset(
     use_timestamp: bool = False,
     loader_class=None,
     ignore=False,
+    pattern="*",
+    levels=1,
 ) -> Dataset:
     path = Path(path)
 
@@ -196,7 +198,7 @@ def FileDataset(
         raise FileNotFoundError(path)
 
     if path.is_dir():
-        subpaths = _glob(path, "*")
+        subpaths = _glob(path, pattern, levels)
 
         datasets = [
             FileDataset(
