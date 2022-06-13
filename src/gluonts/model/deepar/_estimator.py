@@ -461,23 +461,23 @@ class DeepAREstimator(GluonEstimator):
         fields["target"] = NumpyArrayField(
             dtype=self.dtype,
             ndim=1 + len(self.distr_output.event_shape),
-            target_layout='T'
+            target_layout="T",
         )
 
         # DeepAR model always need "feat_static_cat" and "feat_static_real" as
         # input for model forward.
         fields["feat_static_cat"] = NumpyArrayField(
-            dtype=self.dtype, ndim=1, target_layout='C'
+            dtype=self.dtype, ndim=1, target_layout="C"
         )
         default_values["feat_static_cat"] = [0.0]
 
         fields["feat_static_real"] = NumpyArrayField(
-            dtype=self.dtype, ndim=1, target_layout='C'
+            dtype=self.dtype, ndim=1, target_layout="C"
         )
         default_values["feat_static_real"] = [0.0]
 
         if self.use_feat_dynamic_real:
             fields["feat_dynamic_real"] = NumpyArrayField(
-                dtype=self.dtype, ndim=1, target_layout='CT'
+                dtype=self.dtype, ndim=1, target_layout="CT"
             )
         return Schema(fields, default_values)

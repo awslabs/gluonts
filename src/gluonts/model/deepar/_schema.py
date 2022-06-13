@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from asyncore import file_dispatcher
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
@@ -21,6 +20,15 @@ import pyarrow as pa
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.exceptions import GluonTSDataError
+
+
+@dataclass
+class PyArray:
+    array_shape: tuple
+    dtype: Type
+
+    def __str__(self):
+        return "array(shape=%s), dtype=%s" % (self.array_shape, self.dtype)
 
 
 T = TypeVar("T")
@@ -202,6 +210,24 @@ class Schema:
         """
         Infers the schema from the passed data entry
         """
+        # get raw data type
+        raw_type_mapping: Dict[str, Any] = {}
+        for field in entry:
+            if not isinstance(entry[field], list):
+                raw_type_mapping[field] = type(entry[field])
+            else:
+                first_dim = len(entry[field])
+                second_dim = len(entry[field][0])
+                if second_dim > 0:
+                    array_shape = (first_dim, second_dim)
+                    dtype = type(entry[field][0][0])
+                else:
+                    array_shape = (first_dim,)
+                    dtype = type(entry[field][0])
+                raw_type_mapping[field] = PyArray(array_shape, dtype)
+
+        # TODO: map raw type to candidate types
+
         if not "start" in entry:
             raise GluonTSDataError(
                 "start not provided and could not be found in data entry"
