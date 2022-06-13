@@ -256,7 +256,12 @@ def _FileDataset(
     return dataset
 
 
-class ListDataset(Dataset):
+def ListDataset(
+    data_iter: Iterable[DataEntry],
+    freq: str,
+    one_dim_target: bool = True,
+    use_timestamp: bool = False,
+) -> Dataset:
     """
     Dataset backed directly by a list of dictionaries.
 
@@ -272,29 +277,10 @@ class ListDataset(Dataset):
     one_dim_target
         Whether to accept only univariate target time series.
     """
-
-    def __init__(
-        self,
-        data_iter: Iterable[DataEntry],
-        freq: str,
-        one_dim_target: bool = True,
-        use_timestamp: bool = False,
-    ) -> None:
-        self.freq = to_offset(freq)
-        self.process = ProcessDataEntry(freq, one_dim_target, use_timestamp)
-        self.list_data = list(data_iter)  # dataset always cached
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        source_name = "list_data"
-        for row_number, data in enumerate(self.list_data):
-
-            data = data.copy()
-            data = self.process(data)
-            data["source"] = SourceContext(source=source_name, row=row_number)
-            yield data
-
-    def __len__(self):
-        return len(self.list_data)
+    return Map(
+        ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
+        list(data_iter),
+    )
 
 
 @functools.lru_cache(10_000)
