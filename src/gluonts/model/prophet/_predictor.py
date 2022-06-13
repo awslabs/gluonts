@@ -106,8 +106,6 @@ class ProphetPredictor(RepresentablePredictor):
 
     Parameters
     ----------
-    freq
-        Time frequency of the data, e.g. '1H'
     prediction_length
         Number of time points to predict
     prophet_params
