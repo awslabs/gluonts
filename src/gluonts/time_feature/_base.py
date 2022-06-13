@@ -233,10 +233,9 @@ def time_features_from_frequency_str(
     }
 
     if freq_str is None:
-        feature_classes = features_by_offsets[offsets.Minute]
-        return [cls() for cls in feature_classes]
-
-    offset = to_offset(freq_str)
+        offset = offsets.Minute
+    else:
+        offset = to_offset(freq_str)
 
     for offset_type, feature_classes in features_by_offsets.items():
         if isinstance(offset, offset_type):

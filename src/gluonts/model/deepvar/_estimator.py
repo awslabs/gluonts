@@ -105,11 +105,11 @@ def time_features_from_frequency_str(
     }
 
     if freq_str is None:
-        return [FourierDateFeatures(freq=freq) for freq in features["T"]]
-
-    offset = to_offset(freq_str)
-    granularity = norm_freq_str(offset.name)
-    assert granularity in features, f"freq {granularity} not supported"
+        granularity = "T"
+    else:
+        offset = to_offset(freq_str)
+        granularity = norm_freq_str(offset.name)
+        assert granularity in features, f"freq {granularity} not supported"
 
     feature_classes: List[TimeFeature] = [
         FourierDateFeatures(freq=freq) for freq in features[granularity]
