@@ -34,7 +34,6 @@ print(f"Available datasets: {list(dataset_recipes.keys())}")
 dataset = get_dataset("m4_hourly")
 ```
 
-
 ### Extract and split training and test data sets
 
 In general, the datasets provided by GluonTS are objects that consists of three things:
@@ -45,30 +44,21 @@ In general, the datasets provided by GluonTS are objects that consists of three 
 
 We can check details of the `dataset.metadata`.
 
+
 ```python
 print(f"Recommended prediction horizon: {dataset.metadata.prediction_length}")
 print(f"Frequency of the time series: {dataset.metadata.freq}")
 ```
 
-To keep the example small and quick to execute, we are only going to use a subset of the dataset.
-
-
-```python
-from itertools import islice
-train_subset = list(islice(dataset.train, 10))
-test_subset = list(islice(dataset.test, 15))
-```
-
-
 This is what the data looks like (first training series, first two weeks of data)
 
+
 ```python
-to_pandas(train_subset[0])[:14 * 24].plot()
+to_pandas(next(iter(dataset.train)))[:14 * 24].plot()
 plt.grid(which="both")
 plt.legend(["train series"], loc="upper left")
 plt.show()
 ```
-
 
 ## Tuning parameters of DeepAR estimator
 
@@ -138,9 +128,9 @@ class DeepARTuningObjective:
             prediction_length=self.prediction_length, 
             freq=self.freq,
             trainer_kwargs={
-                "progress_bar_refresh_rate": 0, 
-                "weights_summary": None, 
-                "max_epochs": 5, 
+                "enable_progress_bar": False,
+                "enable_model_summary": False,
+                "max_epochs": 10,
             }
         )
         
@@ -162,8 +152,10 @@ We can now invoke the Optuna tuning process.
 import time
 start_time = time.time()
 study = optuna.create_study(direction="minimize")
-study.optimize(DeepARTuningObjective(train_subset, dataset.metadata.prediction_length, dataset.metadata.freq),
-               n_trials=10)
+study.optimize(
+    DeepARTuningObjective(dataset.train, dataset.metadata.prediction_length, dataset.metadata.freq),
+    n_trials=5
+)
 
 print("Number of finished trials: {}".format(len(study.trials)))
 
@@ -191,9 +183,9 @@ estimator = DeepAREstimator(
     context_length=100,
     freq=dataset.metadata.freq,
     trainer_kwargs={
-        "progress_bar_refresh_rate": 0, 
-        "weights_summary": None, 
-        "max_epochs": 5,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "max_epochs": 10,
     }
 )
 ```
@@ -202,7 +194,7 @@ After specifying our estimator with all the necessary hyperparameters we can tra
 
 
 ```python
-predictor = estimator.train(train_subset, cache_data=True)
+predictor = estimator.train(dataset.train, cache_data=True)
 ```
 
 ## Visualize and evaluate forecasts
@@ -219,9 +211,8 @@ GluonTS comes with the `make_evaluation_predictions` function that automates the
 ```python
 from gluonts.evaluation import make_evaluation_predictions
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=test_subset,  # test dataset
-    predictor=predictor,  # predictor
-    num_samples=100,  # number of sample paths we want for evaluation
+    dataset=dataset.test,
+    predictor=predictor,
 )
 ```
 
@@ -231,16 +222,6 @@ First, we can convert these generators to lists to ease the subsequent computati
 ```python
 forecasts = list(forecast_it)
 tss = list(ts_it)
-```
-
-We can examine the first element of these lists (that corresponds to the first time series of the dataset). Let's start with the list containing the time series, i.e., `tss`. We expect the first entry of `tss` to contain the (target of the) first time series in the test data.
-
-
-```python
-# first entry of the time series list
-ts_entry = tss[0]
-# first entry of the forecast list
-forecast_entry = forecasts[0]
 ```
 
 `Forecast` objects have a `plot` method that can summarize the forecast paths as the mean, prediction intervals, etc. The prediction intervals are shaded in different colors as a "fan chart".
@@ -262,7 +243,7 @@ def plot_prob_forecasts(ts_entry, forecast_entry):
 
 
 ```python
-plot_prob_forecasts(ts_entry, forecast_entry)
+plot_prob_forecasts(tss[0], forecasts[0])
 ```
 
 We can also evaluate the quality of our forecasts numerically. In GluonTS, the `Evaluator` class can compute aggregate performance metrics, as well as metrics per time series (which can be useful for analyzing performance across heterogeneous time series).
@@ -275,7 +256,7 @@ from gluonts.evaluation import Evaluator
 
 ```python
 evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(test_subset))
+agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(dataset.test))
 ```
 
 Aggregate metrics aggregate both across time-steps and across time series.
@@ -294,7 +275,7 @@ item_metrics.head()
 
 
 ```python
-item_metrics.plot(x='MSIS', y='MASE', kind='scatter')
+item_metrics.plot(x='sMAPE', y='MASE', kind='scatter')
 plt.grid(which="both")
 plt.show()
 ```
