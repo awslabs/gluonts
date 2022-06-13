@@ -1,4 +1,4 @@
-# Writing forecasting models in GluonTS with PyTorch
+# Custom models with PyTorch
 
 This notebook illustrates how one can implement a time series model in GluonTS using PyTorch, train it with PyTorch Lightning, and use it together with the rest of the GluonTS ecosystem for data loading, feature processing, and model evaluation.
 

@@ -1,15 +1,15 @@
 Contribute
 ==========
 
-GluonTS community welcomes contributions from anyone! Latest documentation can be found `here <https://ts.gluon.ai/master/index.html>`__.
+GluonTS community welcomes contributions from anyone! Latest documentation can be found `here <https://ts.gluon.ai/dev/index.html>`__.
 
-There are lots of opportunities for you to become our `contributors <https://github.com/awslabs/gluon-ts/blob/master/contributor.rst>`__:
+There are lots of opportunities for you to become our `contributors <https://github.com/awslabs/gluon-ts/blob/dev/contributor.rst>`__:
 
 - Ask or answer questions on `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
 - Propose ideas, or review proposed design ideas on `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
-- Improve the `documentation <https://ts.gluon.ai/master/index.html>`__.
+- Improve the `documentation <https://ts.gluon.ai/dev/index.html>`__.
 - Contribute bug reports `GitHub issues <https://github.com/awslabs/gluon-ts/issues>`__.
-- Write new `tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/tutorials>`__.
+- Write new `tutorials <https://github.com/awslabs/gluon-ts/tree/dev/docs/tutorials>`__.
 - Most importantly, if you have an idea of how to contribute, then do it!
 
 For a list of open starter tasks, check `good first issues <https://github.com/awslabs/gluon-ts/labels/good%20first%20issue>`__.
@@ -24,7 +24,7 @@ For a list of open starter tasks, check `good first issues <https://github.com/a
 
    -  `How to submit pull request <#how-to-submit-pull-request>`__
    -  `How to resolve conflict with
-      master <#how-to-resolve-conflict-with-master>`__
+      dev <#how-to-resolve-conflict-with-dev>`__
    -  `How to combine multiple commits into
       one <#how-to-combine-multiple-commits-into-one>`__
    -  `What is the consequence of force
@@ -37,8 +37,8 @@ Make changes
 Our package uses continuous integration and code coverage tools for verifying pull requests. Before
 submitting, contributor should perform the following checks:
 
-- `Lint (code style) check <https://github.com/awslabs/gluon-ts/blob/master/ci/jenkins/build_steps.groovy>`__.
-- `Py3 <https://github.com/awslabs/gluon-ts/blob/master/ci/jenkins/Jenkinsfile_py3_cpu_unittest>`__ tests.
+- `Lint (code style) check <https://github.com/awslabs/gluon-ts/blob/dev/ci/jenkins/build_steps.groovy>`__.
+- `Py3 <https://github.com/awslabs/gluon-ts/blob/dev/ci/jenkins/Jenkinsfile_py3_cpu_unittest>`__ tests.
 
 
 Contribute tutorials
@@ -49,7 +49,7 @@ are interested in time series and want to get better familiarized on different p
 people to easily understand the content, the code needs to be clean and readable, accompanied by
 explanation with good writing.
 
-See `existing tutorials <https://github.com/awslabs/gluon-ts/tree/master/docs/tutorials>`__.
+See `existing tutorials <https://github.com/awslabs/gluon-ts/tree/dev/docs/tutorials>`__.
 
 To make the review process easy, we adopt `notedown <https://github.com/aaren/notedown>`_ as the
 tutorial format. Notedown notebooks are regular markdown files with code blocks that can be
@@ -91,13 +91,13 @@ How to submit pull request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  Before submit, please rebase your code on the most recent version of
-   master, you can do it by
+   dev, you can do it by
 
 .. code:: bash
 
     git remote add upstream https://github.com/awslabs/gluon-ts
     git fetch upstream
-    git rebase upstream/master
+    git rebase upstream/dev
 
 -  If you have multiple small commits, it might be good to merge them
    together(use git rebase then squash) into more meaningful groups.
@@ -106,17 +106,17 @@ How to submit pull request
    -  Fix the problems reported by automatic checks
    -  If you are contributing a new module or new function, add a test.
 
-How to resolve conflict with master
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to resolve conflict with dev
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--  First rebase to most recent master
+-  First rebase to most recent dev
 
 .. code:: bash
 
     # The first two steps can be skipped after you do it once.
     git remote add upstream https://github.com/awslabs/gluon-ts
     git fetch upstream
-    git rebase upstream/master
+    git rebase upstream/dev
 
 -  The git may show some conflicts it cannot merge, say
    ``conflicted.py``.
@@ -146,7 +146,7 @@ How to combine multiple commits into one
 Sometimes we want to combine multiple commits, especially when later
 commits are only fixes to previous ones, to create a PR with set of
 meaningful commits. You can do it by following steps. - Before doing so,
-configure the default editor of git if you haven’t done so before.
+configure the default editor of git if you haven't done so before.
 
 .. code:: bash
 
@@ -168,17 +168,17 @@ configure the default editor of git if you haven’t done so before.
 
     git push --force
 
-Reset to the most recent master
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reset to the most recent dev
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can always use git reset to reset your version to the most recent
-master. Note that all your ***local changes will get lost***. So only do
+dev. Note that all your ***local changes will get lost***. So only do
 it when you do not have local changes or when your pull request just get
 merged.
 
 .. code:: bash
 
-    git reset --hard [hash tag of master]
+    git reset --hard [hash tag of dev]
     git push --force
 
 What is the consequence of force push
