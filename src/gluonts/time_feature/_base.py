@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -197,7 +197,9 @@ def norm_freq_str(freq_str: str) -> str:
     return freq_str.split("-")[0]
 
 
-def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
+def time_features_from_frequency_str(
+    freq_str: Optional[str] = None,
+) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given
     frequency string.
@@ -229,6 +231,10 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
             DayOfYear,
         ],
     }
+
+    if freq_str is None:
+        feature_classes = features_by_offsets[offsets.Minute]
+        return [cls() for cls in feature_classes]
 
     offset = to_offset(freq_str)
 

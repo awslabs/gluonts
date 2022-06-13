@@ -114,8 +114,11 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
 
 def get_lags_for_frequency(
-    freq_str: str, num_lags: Optional[int] = None
+    freq_str: Optional[str] = None, num_lags: Optional[int] = None
 ) -> List[int]:
+    if freq_str is None:
+        return [[1]]
+
     offset = to_offset(freq_str)
 
     if offset.name == "M":

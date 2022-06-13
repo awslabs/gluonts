@@ -27,7 +27,9 @@ def _make_lags(middle: int, delta: int) -> np.ndarray:
 
 
 def get_lags_for_frequency(
-    freq_str: str, lag_ub: int = 1200, num_lags: Optional[int] = None
+    freq_str: Optional[str] = None,
+    lag_ub: int = 1200,
+    num_lags: Optional[int] = None,
 ) -> List[int]:
     """
     Generates a list of lags that that are appropriate for the given frequency
@@ -50,6 +52,10 @@ def get_lags_for_frequency(
     num_lags
         Maximum number of lags; by default all generated lags are returned
     """
+
+    lags_1_to_7 = [1, 2, 3, 4, 5, 6, 7]
+    if freq_str is None:
+        return lags_1_to_7[:num_lags]
 
     # Lags are target values at the same `season` (+/- delta) but in the
     # previous cycle.
@@ -129,6 +135,6 @@ def get_lags_for_frequency(
     lags = [
         int(lag) for sub_list in lags for lag in sub_list if 7 < lag <= lag_ub
     ]
-    lags = [1, 2, 3, 4, 5, 6, 7] + sorted(list(set(lags)))
+    lags = lags_1_to_7 + sorted(list(set(lags)))
 
     return lags[:num_lags]
