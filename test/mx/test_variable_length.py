@@ -17,6 +17,7 @@ from typing import Any, Dict, Iterable
 
 import mxnet as mx
 import numpy as np
+from pandas.tseries.frequencies import to_offset
 import pytest
 
 from gluonts.dataset.common import Dataset, ListDataset
@@ -65,7 +66,7 @@ def loader_factory():
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
             instance_sampler=sampler,
-            freq="H",
+            freq=to_offset("H"),
         )
 
         kwargs = dict(
