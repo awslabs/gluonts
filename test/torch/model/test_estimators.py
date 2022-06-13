@@ -16,6 +16,7 @@ from itertools import islice
 from pathlib import Path
 
 import pytest
+
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor

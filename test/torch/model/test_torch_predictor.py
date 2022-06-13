@@ -14,9 +14,9 @@
 import tempfile
 from pathlib import Path
 
-
 import torch
 import torch.nn as nn
+
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.predictor import Predictor

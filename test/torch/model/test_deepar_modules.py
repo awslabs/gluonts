@@ -15,6 +15,7 @@ from typing import List, Optional
 
 import pytest
 import torch
+
 from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
 from gluonts.torch.model.deepar.module import LaggedLSTM
 
