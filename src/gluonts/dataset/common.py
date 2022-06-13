@@ -150,7 +150,43 @@ class TrainDatasets(NamedTuple):
                     json.bdump(serialize_data_entry(entry), f, nl=True)
 
 
-class FileDataset(Dataset):
+def FileDataset(
+    path: Path,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+) -> Dataset:
+    path = Path(path)
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    if path.is_file():
+        return _FileDataset(path, freq, one_dim_target, cache, use_timestamp)
+
+    assert path.is_dir()
+
+    jsonl_paths = (
+        subpath
+        for subpath in filter(Path.is_file, path.glob("**/*"))
+        if "".join(subpath.suffixes) in jsonl.JsonLinesFile.SUFFIXES
+    )
+
+    return DatasetCollection(
+        [
+            _FileDataset(
+                jsonl_path,
+                freq=freq,
+                one_dim_target=one_dim_target,
+                use_timestamp=use_timestamp,
+            )
+            for jsonl_path in jsonl_paths
+        ]
+    )
+
+
+class _FileDataset(Dataset):
     """
     Dataset that loads JSON Lines files contained in a path.
 
@@ -169,44 +205,6 @@ class FileDataset(Dataset):
     cache
         Indicates whether the dataset should be cached or not.
     """
-
-    def __new__(  # type: ignore
-        cls,
-        path: Path,
-        freq: str,
-        one_dim_target: bool = True,
-        cache: bool = False,
-        use_timestamp: bool = False,
-    ) -> Dataset:
-        path = Path(path)
-
-        if not path.exists():
-            raise FileNotFoundError(path)
-
-        if path.is_file():
-            return object.__new__(cls)
-
-        assert path.is_dir()
-
-        jsonl_files = [
-            subpath
-            for subpath in filter(Path.is_file, path.glob("**/*"))
-            if "".join(subpath.suffixes) in jsonl.JsonLinesFile.SUFFIXES
-        ]
-
-        datasets: List[Dataset] = [
-            object.__new__(FileDataset) for _ in range(len(jsonl_files))
-        ]
-
-        for dataset, jsonl_file in zip(datasets, jsonl_files):
-            dataset.__init__(  # type: ignore
-                jsonl_file,
-                freq=freq,
-                one_dim_target=one_dim_target,
-                use_timestamp=use_timestamp,
-            )
-
-        return DatasetCollection(datasets)
 
     def __init__(
         self,
