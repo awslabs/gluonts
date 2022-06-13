@@ -39,12 +39,12 @@ See :doc:`community/devsetup` for setup instructions in case you want to develop
    :maxdepth: 1
    :hidden:
 
-   tutorials/quick_start_tutorial
-   tutorials/extended_tutorial
-   tutorials/trainer_callbacks
-   tutorials/hp_tuning_with_optuna
-   tutorials/howto_pytorch_lightning
-   tutorials/synthetic_data_generation
+   tutorials/forecasting/quick_start_tutorial
+   tutorials/forecasting/extended_tutorial
+   tutorials/data_manipulation/synthetic_data_generation
+   tutorials/advanced_topics/trainer_callbacks
+   tutorials/advanced_topics/hp_tuning_with_optuna
+   tutorials/advanced_topics/howto_pytorch_lightning
 
 .. toctree::
    :name: API docs
