@@ -1,4 +1,4 @@
-# Synthetic Data Generation Tutorial
+# Synthetic data generation
 
 
 ```python
