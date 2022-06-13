@@ -29,7 +29,7 @@ from gluonts.dataset.loader import (
 from gluonts.env import env
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor

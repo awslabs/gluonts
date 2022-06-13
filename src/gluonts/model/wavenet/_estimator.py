@@ -34,7 +34,7 @@ from gluonts.model.wavenet._network import (
     WaveNetSampler,
     WaveNetTraining,
 )
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer

@@ -191,8 +191,6 @@ class GluonEstimator(Estimator):
                 transformed_validation_data
                 if not cache_data
                 else Cached(transformed_validation_data),
-                num_workers=num_workers,
-                num_prefetch=num_prefetch,
             )
 
         training_network = self.create_training_network()
@@ -216,8 +214,6 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         **kwargs,
@@ -225,8 +221,6 @@ class GluonEstimator(Estimator):
         return self.train_model(
             training_data=training_data,
             validation_data=validation_data,
-            num_workers=num_workers,
-            num_prefetch=num_prefetch,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
         ).predictor

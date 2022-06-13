@@ -27,7 +27,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.kernels import KernelOutput, RBFKernelOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor

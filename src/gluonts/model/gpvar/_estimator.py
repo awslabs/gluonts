@@ -30,7 +30,7 @@ from gluonts.model.deepvar._estimator import (
     time_features_from_frequency_str,
 )
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.mx.model.estimator import GluonEstimator
