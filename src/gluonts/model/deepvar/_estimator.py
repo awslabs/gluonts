@@ -119,13 +119,9 @@ def time_features_from_frequency_str(
 
 def get_lags_for_frequency(
     freq_str: Optional[str] = None, num_lags: Optional[int] = None
-) -> List[List[int]]:
+) -> List[int]:
     if freq_str is None:
-        return [
-            [
-                1,
-            ]
-        ]
+        return [[1]]
 
     offset = to_offset(freq_str)
 
@@ -140,11 +136,7 @@ def get_lags_for_frequency(
     elif offset.name in ("min", "T"):
         lags = [[1, 4, 12, 24, 48]]
     else:
-        lags = [
-            [
-                1,
-            ]
-        ]
+        lags = [[1]]
 
     # use less lags
     output_lags = list(int(lag) for sub_list in lags for lag in sub_list)
