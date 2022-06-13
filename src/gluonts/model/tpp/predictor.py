@@ -31,7 +31,7 @@ from .forecast import PointProcessSampleForecast
 
 
 class PointProcessForecastGenerator(ForecastGenerator):
-    def __call__(
+    def __call__(  # type: ignore
         self,
         inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
@@ -40,7 +40,7 @@ class PointProcessForecastGenerator(ForecastGenerator):
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs,
-    ) -> Iterator[Forecast]:  # type: ignore
+    ) -> Iterator[Forecast]:
 
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
