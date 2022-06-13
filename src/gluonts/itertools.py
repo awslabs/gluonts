@@ -175,6 +175,21 @@ class IterableSlice:
         yield from itertools.islice(self.iterable, self.length)
 
 
+class Map:
+    def __init__(self, fn, iterable: SizedIterable):
+        self.fn = fn
+        self.iterable = iterable
+
+    def __iter__(self):
+        return map(self.fn, self.iterable)
+
+    def __len__(self):
+        return len(self.iterable)
+
+    def __repr__(self):
+        return f"Map(data={self.iterable!r})"
+
+
 K = TypeVar("K")
 V = TypeVar("V")
 

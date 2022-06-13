@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import functools
+import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,10 +37,16 @@ import pydantic
 from typing_extensions import Protocol, runtime_checkable
 
 from gluonts import json
-from gluonts.itertools import roundrobin
+from gluonts.itertools import roundrobin, Cached, Map
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
+
+
+try:
+    from . import arrow
+except ImportError:
+    arrow = None
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
@@ -150,83 +157,98 @@ class TrainDatasets(NamedTuple):
                     json.bdump(serialize_data_entry(entry), f, nl=True)
 
 
+def infer_file_type(path):
+    suffix = "".join(path.suffixes)
+
+    if suffix in jsonl.JsonLinesFile.SUFFIXES:
+        return jsonl.JsonLinesFile(path)
+
+    if arrow is not None and suffix in arrow.File.SUFFIXES:
+        return arrow.File.infer(path)
+
+    return None
+
+
+def _glob(path: Path, pattern="*", levels=1):
+    if levels is not None:
+        levels -= 1
+
+    for subpath in path.glob(pattern):
+        if subpath.is_dir():
+            if levels != 0:
+                yield from _glob(subpath, pattern, levels)
+        else:
+            yield subpath
+
+
 def FileDataset(
     path: Path,
     freq: str,
     one_dim_target: bool = True,
     cache: bool = False,
     use_timestamp: bool = False,
+    loader_class=None,
+    ignore=False,
 ) -> Dataset:
     path = Path(path)
 
     if not path.exists():
         raise FileNotFoundError(path)
 
-    if path.is_file():
-        return _FileDataset(path, freq, one_dim_target, cache, use_timestamp)
+    if path.is_dir():
+        subpaths = _glob(path, "*")
 
-    assert path.is_dir()
-
-    jsonl_paths = (
-        subpath
-        for subpath in filter(Path.is_file, path.glob("**/*"))
-        if "".join(subpath.suffixes) in jsonl.JsonLinesFile.SUFFIXES
-    )
-
-    return DatasetCollection(
-        [
-            _FileDataset(
-                jsonl_path,
-                freq=freq,
-                one_dim_target=one_dim_target,
-                use_timestamp=use_timestamp,
+        datasets = [
+            FileDataset(
+                subpath,
+                freq,
+                one_dim_target,
+                cache,
+                use_timestamp,
+                loader_class=loader_class,
+                ignore=True,
             )
-            for jsonl_path in jsonl_paths
+            for subpath in subpaths
         ]
-    )
 
-
-class _FileDataset(Dataset):
-    """
-    Dataset that loads JSON Lines files contained in a path.
-
-    Parameters
-    ----------
-    path
-        Path containing the dataset files. Each file is considered
-        and should be valid to the exception of files starting with '.'
-        or ending with '_SUCCESS'. A valid line in a file can be for
-        instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
-    freq
-        Frequency of the observation in the time series.
-        Must be a valid Pandas frequency.
-    one_dim_target
-        Whether to accept only univariate target time series.
-    cache
-        Indicates whether the dataset should be cached or not.
-    """
-
-    def __init__(
-        self,
-        path: Path,
-        freq: str,
-        one_dim_target: bool = True,
-        cache: bool = False,
-        use_timestamp: bool = False,
-    ) -> None:
-        self.freq = to_offset(freq)
-        self.path = path
-        self.process = ProcessDataEntry(
-            freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+        return DatasetCollection(
+            [dataset for dataset in datasets if dataset is not None]
         )
 
-        self._file = jsonl.JsonLinesFile(path=path)
+    assert path.is_file
 
-    def __iter__(self) -> Iterator[DataEntry]:
-        yield from map(self.process, self._file)
+    if loader_class is None:
+        loader = infer_file_type(path)
+        if loader is None:
+            message = f"Cannot infer loader for {path}."
+            if ignore:
+                logging.warning(message)
+                return None
 
-    def __len__(self):
-        return len(self._file)
+            raise ValueError(message)
+    else:
+        loader = loader_class(path)
+
+    return _FileDataset(loader, freq, one_dim_target, cache, use_timestamp)
+
+
+def _FileDataset(
+    loader,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+) -> Dataset:
+    process = ProcessDataEntry(
+        freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+    )
+
+    dataset = Map(process, loader)
+
+    if cache:
+        dataset = Cached(dataset)
+
+    return dataset
 
 
 class ListDataset(Dataset):
