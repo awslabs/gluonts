@@ -79,9 +79,7 @@ FREQ_LONGEST_PERIOD_DICT = {
 }
 
 
-def longest_period_from_frequency_str(freq_str: Optional[str] = None) -> int:
-    if freq_str is None:
-        freq_str = "T"
+def longest_period_from_frequency_str(freq_str: str) -> int:
     offset = to_offset(freq_str)
     return FREQ_LONGEST_PERIOD_DICT[norm_freq_str(offset.name)] // offset.n
 

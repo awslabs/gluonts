@@ -198,7 +198,7 @@ def norm_freq_str(freq_str: str) -> str:
 
 
 def time_features_from_frequency_str(
-    freq_str: Optional[str] = None,
+    freq_str: str,
 ) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given
@@ -232,10 +232,7 @@ def time_features_from_frequency_str(
         ],
     }
 
-    if freq_str is None:
-        offset = offsets.Minute
-    else:
-        offset = to_offset(freq_str)
+    offset = to_offset(freq_str)
 
     for offset_type, feature_classes in features_by_offsets.items():
         if isinstance(offset, offset_type):

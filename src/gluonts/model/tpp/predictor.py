@@ -31,7 +31,7 @@ from .forecast import PointProcessSampleForecast
 
 
 class PointProcessForecastGenerator(ForecastGenerator):
-    def __call__(  # type: ignore
+    def __call__(
         self,
         inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,

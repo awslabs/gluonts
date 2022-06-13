@@ -92,7 +92,7 @@ class FourierDateFeatures(TimeFeature):
 
 
 def time_features_from_frequency_str(
-    freq_str: Optional[str] = None,
+    freq_str: str,
 ) -> List[TimeFeature]:
     features = {
         "M": ["weekofyear"],
@@ -104,12 +104,9 @@ def time_features_from_frequency_str(
         "T": ["minute", "hour", "dayofweek"],
     }
 
-    if freq_str is None:
-        granularity = "T"
-    else:
-        offset = to_offset(freq_str)
-        granularity = norm_freq_str(offset.name)
-        assert granularity in features, f"freq {granularity} not supported"
+    offset = to_offset(freq_str)
+    granularity = norm_freq_str(offset.name)
+    assert granularity in features, f"freq {granularity} not supported"
 
     feature_classes: List[TimeFeature] = [
         FourierDateFeatures(freq=freq) for freq in features[granularity]
@@ -118,11 +115,8 @@ def time_features_from_frequency_str(
 
 
 def get_lags_for_frequency(
-    freq_str: Optional[str] = None, num_lags: Optional[int] = None
+    freq_str: str, num_lags: Optional[int] = None
 ) -> List[int]:
-    if freq_str is None:
-        return [[1]]
-
     offset = to_offset(freq_str)
 
     if offset.name == "M":
