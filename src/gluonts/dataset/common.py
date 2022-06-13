@@ -16,6 +16,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from types import ModuleType
 from typing import (
     Any,
     Callable,
@@ -42,6 +43,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
 
+
+arrow: Optional[ModuleType]
 
 try:
     from . import arrow
@@ -225,7 +228,7 @@ def FileDataset(
             message = f"Cannot infer loader for {path}."
             if ignore:
                 logging.warning(message)
-                return None
+                return None  # type: ignore
 
             raise ValueError(message)
     else:
@@ -245,7 +248,7 @@ def _FileDataset(
         freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
     )
 
-    dataset = Map(process, loader)
+    dataset: Dataset = Map(process, loader)
 
     if cache:
         dataset = Cached(dataset)
