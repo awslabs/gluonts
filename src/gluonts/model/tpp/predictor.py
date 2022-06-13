@@ -40,7 +40,7 @@ class PointProcessForecastGenerator(ForecastGenerator):
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs,
-    ) -> Iterator[Forecast]:
+    ) -> Iterator[Forecast]:  # type: ignore
 
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]

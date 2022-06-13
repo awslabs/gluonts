@@ -91,7 +91,12 @@ class FourierDateFeatures(TimeFeature):
         return np.vstack([np.cos(steps), np.sin(steps)])
 
 
-def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
+def time_features_from_frequency_str(
+    freq_str: Optional[str] = None,
+) -> List[TimeFeature]:
+    if freq_str is None:
+        return [FourierDateFeatures(freq=freq) for freq in features["T"]]
+
     offset = to_offset(freq_str)
     granularity = norm_freq_str(offset.name)
 
@@ -115,9 +120,13 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
 def get_lags_for_frequency(
     freq_str: Optional[str] = None, num_lags: Optional[int] = None
-) -> List[int]:
+) -> List[List[int]]:
     if freq_str is None:
-        return [[1]]
+        return [
+            [
+                1,
+            ]
+        ]
 
     offset = to_offset(freq_str)
 
@@ -132,7 +141,11 @@ def get_lags_for_frequency(
     elif offset.name in ("min", "T"):
         lags = [[1, 4, 12, 24, 48]]
     else:
-        lags = [[1]]
+        lags = [
+            [
+                1,
+            ]
+        ]
 
     # use less lags
     output_lags = list(int(lag) for sub_list in lags for lag in sub_list)
