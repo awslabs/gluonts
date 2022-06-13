@@ -230,7 +230,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
         )
 
     def create_validation_data_loader(
