@@ -13,7 +13,6 @@
 
 import json
 import logging
-import multiprocessing
 from typing import Any, Optional, Type, Union
 
 import gluonts
@@ -30,7 +29,6 @@ from gluonts.transform import FilterTransformation
 from .env import TrainEnv
 from .util import invoke_with
 
-multiprocessing.set_start_method("spawn", force=True)
 logger = logging.getLogger(__name__)
 
 
