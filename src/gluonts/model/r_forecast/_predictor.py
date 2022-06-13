@@ -96,14 +96,18 @@ class RForecastPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         method_name: str = "ets",
-        period: int = None,
+        freq: Optional[str] = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
+
+        assert (
+            freq is not None or period is not None
+        ), "Either `freq` or `period` should be set"
 
         if not R_IS_INSTALLED:
             raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)
@@ -140,7 +144,6 @@ class RForecastPredictor(RepresentablePredictor):
         self._r_method = robjects.r[method_name]
 
         self.prediction_length = prediction_length
-        self.freq = freq
         self.period = period if period is not None else get_seasonality(freq)
         self.trunc_length = trunc_length
 
