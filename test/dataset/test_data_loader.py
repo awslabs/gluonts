@@ -111,11 +111,7 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
         else [default_list_dataset]
     ),
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_training_data_loader(dataset_context, num_workers):
+def test_training_data_loader(dataset_context):
     with dataset_context() as dataset:
         dataset_length = len(dataset)
 
@@ -126,7 +122,6 @@ def test_training_data_loader(dataset_context, num_workers):
             transform=default_transformation(),
             batch_size=batch_size,
             stack_fn=batchify,
-            num_workers=num_workers,
         )
 
         num_epochs = 20
@@ -151,9 +146,8 @@ def test_training_data_loader(dataset_context, num_workers):
 
         counter = count_item_ids(batches)
 
-        if num_workers is None or num_workers == 1:
-            for entry in dataset:
-                assert counter[entry[FieldName.ITEM_ID]] >= 1
+        for entry in dataset:
+            assert counter[entry[FieldName.ITEM_ID]] >= 1
 
 
 @pytest.mark.parametrize(
@@ -163,18 +157,13 @@ def test_training_data_loader(dataset_context, num_workers):
         default_file_dataset,
     ],
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_validation_data_loader(dataset_context, num_workers):
+def test_validation_data_loader(dataset_context):
     with dataset_context() as dataset:
         dl = ValidationDataLoader(
             dataset=dataset,
             transform=default_transformation(),
             batch_size=4,
             stack_fn=batchify,
-            num_workers=num_workers,
         )
 
         for _ in range(3):

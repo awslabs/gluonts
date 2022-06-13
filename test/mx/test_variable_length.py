@@ -78,9 +78,7 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return itertools.islice(
-                TrainDataLoader(num_workers=None, **kwargs), NUM_BATCHES
-            )
+            return itertools.islice(TrainDataLoader(**kwargs), NUM_BATCHES)
         else:
             return InferenceDataLoader(**kwargs)
 
