@@ -1,3 +1,4 @@
+import argparse
 import sys
 import time
 from itertools import chain
@@ -5,9 +6,10 @@ from pathlib import Path
 
 import nbformat
 import notedown
+from nbclient import NotebookClient
 
 
-def convert(path, timeout=40 * 60):
+def convert(path, kernel_name=None, timeout=40 * 60):
     with path.open() as in_file:
         notebook = notedown.MarkdownReader().read(in_file)
 
@@ -15,7 +17,14 @@ def convert(path, timeout=40 * 60):
     sys.stdout.flush()
 
     start = time.time()
-    notedown.run(notebook, timeout)
+
+    client = NotebookClient(
+        notebook,
+        timeout=600,
+        kernel_name=kernel_name,
+        resources={'metadata': {'path': '.'}}
+    )
+    client.execute()
 
     print(f"finished evaluation in {time.time() - start} sec")
 
@@ -27,11 +36,18 @@ def convert(path, timeout=40 * 60):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) >= 2, "usage: input.md"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-k', '--kernel', dest='kernel_name', default=None, help='name of ipython kernel to use'
+    )
+    parser.add_argument(
+        'files', type=str, nargs='+', help='path to files to convert'
+    )
+
+    args = parser.parse_args()
 
     here = Path(".")
-
-    files = list(chain.from_iterable(map(here.glob, sys.argv[1:])))
+    files = list(chain.from_iterable(map(here.glob, args.files)))
 
     for file in files:
-        convert(file)
+        convert(file, kernel_name=args.kernel_name)
