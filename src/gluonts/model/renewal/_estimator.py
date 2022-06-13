@@ -32,7 +32,7 @@ from gluonts.model.renewal._network import (
 )
 from gluonts.model.renewal._predictor import DeepRenewalProcessPredictor
 from gluonts.model.renewal._transform import AddAxisLength
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
@@ -226,7 +226,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
         )
 
     def create_validation_data_loader(

@@ -845,7 +845,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx import (
-    as_in_context, 
     batchify,
     copy_parameters, 
     get_hybrid_forward_input_names,
@@ -902,7 +901,6 @@ class MyEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
     
@@ -1136,7 +1134,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1408,7 +1405,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1785,7 +1781,6 @@ class MyProbRNNEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

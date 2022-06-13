@@ -30,7 +30,7 @@ from gluonts.model.deepvar._estimator import (
     time_features_from_frequency_str,
 )
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -355,7 +355,6 @@ class GPVAREstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

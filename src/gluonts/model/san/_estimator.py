@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -282,7 +282,6 @@ class SelfAttentionEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
