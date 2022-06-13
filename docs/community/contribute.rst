@@ -146,7 +146,7 @@ How to combine multiple commits into one
 Sometimes we want to combine multiple commits, especially when later
 commits are only fixes to previous ones, to create a PR with set of
 meaningful commits. You can do it by following steps. - Before doing so,
-configure the default editor of git if you haven’t done so before.
+configure the default editor of git if you haven't done so before.
 
 .. code:: bash
 
