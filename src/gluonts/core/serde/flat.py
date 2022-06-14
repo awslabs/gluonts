@@ -30,7 +30,6 @@ for nested objects::
         'inner.()': '__main__.Inner',
         'inner.val': 42},
     }
-
 """
 
 from collections import defaultdict
@@ -43,7 +42,9 @@ from ._base import encode as base_encode, Kind, decode as base_decode
 
 
 def join(a, b, sep="."):
-    """Joins `a` and `b` using `sep`."""
+    """
+    Joins `a` and `b` using `sep`.
+    """
     if not a:
         return b
 
@@ -69,7 +70,7 @@ def _encode(data: Any, path: str, result: dict):
             for name, value in data["kwargs"].items():
                 _encode(value, join(path, name), result)
 
-        elif kind == Kind:
+        elif kind == Kind.Type:
             result[join(path, "#")] = data["class"]
 
         else:
@@ -158,7 +159,8 @@ def decode(data: dict) -> Any:
 
 
 def encode(obj) -> dict:
-    """Encode a given object into a flat-dictionary.
+    """
+    Encode a given object into a flat-dictionary.
 
     It uses the default-encoding, to then flatten the output.
     """
@@ -170,7 +172,8 @@ def encode(obj) -> dict:
 
 
 def clone(data, kwargs=None):
-    """Create a copy of a given value, by calling `encode` and `decode` on it.
+    """
+    Create a copy of a given value, by calling `encode` and `decode` on it.
 
     If `kwargs` is provided, it's possible to overwrite nested values.
     """

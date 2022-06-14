@@ -18,20 +18,19 @@ are available on GitHub.
 import json
 import os
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
-from gluonts.support.pandas import frequency_add
 
 
 def load_from_pandas(
     df: pd.DataFrame,
-    time_index: pd.DatetimeIndex,
+    time_index: pd.PeriodIndex,
     agg_freq: Optional[str] = None,
 ) -> List[pd.Series]:
-    df = df.set_index(time_index)
+    df: pd.DataFrame = df.set_index(time_index)
 
     pivot_df = df.transpose()
     pivot_df.head()
@@ -62,7 +61,10 @@ class LstnetDataset(NamedTuple):
     agg_freq: Optional[str] = None
 
 
-root = "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
+root = (
+    "https://raw.githubusercontent.com/laiguokun/"
+    "multivariate-time-series-data/master/"
+)
 
 datasets_info = {
     "exchange_rate": LstnetDataset(
@@ -79,9 +81,10 @@ datasets_info = {
     "electricity": LstnetDataset(
         name="electricity",
         url=root + "electricity/electricity.txt.gz",
-        # original dataset can be found at https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
-        # the aggregated ones that is used from LSTNet filters out from the initial 370 series the one with no data
-        # in 2011
+        # original dataset can be found at
+        # https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
+        # the aggregated ones that is used from LSTNet filters out from the
+        # initial 370 series the one with no data in 2011
         num_series=321,
         num_time_steps=26304,
         prediction_length=24,
@@ -93,8 +96,9 @@ datasets_info = {
     "traffic": LstnetDataset(
         name="traffic",
         url=root + "traffic/traffic.txt.gz",
-        # note there are 963 in the original dataset from https://archive.ics.uci.edu/ml/datasets/PEMS-SF
-        # but only 862 in LSTNet
+        # note there are 963 in the original dataset from
+        # https://archive.ics.uci.edu/ml/datasets/PEMS-SF but only 862 in
+        # LSTNet
         num_series=862,
         num_time_steps=17544,
         prediction_length=24,
@@ -135,25 +139,28 @@ def generate_lstnet_dataset(
     with open(dataset_path / "metadata.json", "w") as f:
         json.dump(ds_metadata, f)
 
-    time_index = pd.date_range(
+    time_index = pd.period_range(
         start=ds_info.start_date,
         freq=ds_info.freq,
         periods=ds_info.num_time_steps,
     )
 
-    df = pd.read_csv(ds_info.url, header=None)
+    df = cast(
+        pd.DataFrame,
+        pd.read_csv(ds_info.url, header=None),  # type: ignore
+    )
 
-    assert df.shape == (
-        ds_info.num_time_steps,
-        ds_info.num_series,
-    ), f"expected num_time_steps/num_series {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    assert df.shape == (ds_info.num_time_steps, ds_info.num_series,), (
+        "expected num_time_steps/num_series"
+        f" {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    )
 
     timeseries = load_from_pandas(
         df=df, time_index=time_index, agg_freq=ds_info.agg_freq
     )
 
     # the last date seen during training
-    ts_index = timeseries[0].index
+    ts_index = cast(pd.PeriodIndex, timeseries[0].index)
     training_end = ts_index[int(len(ts_index) * (8 / 10))]
 
     train_ts = []
@@ -175,7 +182,7 @@ def generate_lstnet_dataset(
 
     # time of the first prediction
     prediction_dates = [
-        frequency_add(training_end, i * ds_info.prediction_length)
+        training_end + i * ds_info.prediction_length
         for i in range(ds_info.rolling_evaluations)
     ]
 
@@ -183,8 +190,8 @@ def generate_lstnet_dataset(
     for prediction_start_date in prediction_dates:
         for cat, ts in enumerate(timeseries):
             # print(prediction_start_date)
-            prediction_end_date = frequency_add(
-                prediction_start_date, ds_info.prediction_length
+            prediction_end_date = (
+                prediction_start_date + ds_info.prediction_length
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(

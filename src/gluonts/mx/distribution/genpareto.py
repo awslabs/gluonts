@@ -35,9 +35,11 @@ class GenPareto(Distribution):
     Parameters
     ----------
     xi
-        Tensor containing the xi shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the xi shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the beta scale parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the beta scale parameters, of shape
+        `(*batch_shape, *event_shape)`.
     """
 
     is_reparameterizable = False
@@ -81,17 +83,19 @@ class GenPareto(Distribution):
                 beta
             )
 
-        """
-        The genpareto_log_prob(x) above returns NaNs for x<0. Wherever there are NaN in either of the F.where() conditional
-        vectors, then F.where() returns NaN at that entry as well, due to its indicator function multiplication: 
-        1*f(x) + np.nan*0 = nan, since np.nan*0 return nan. 
-        Therefore replacing genpareto_log_prob(x) with genpareto_log_prob(abs(x) mitigates nan returns in cases of x<0 without 
-        altering the value in cases of x>=0. 
-        This is a known issue in pytorch as well https://github.com/pytorch/pytorch/issues/12986.
-        """
+        # The genpareto_log_prob(x) above returns NaNs for x<0. Wherever there
+        # are NaN in either of the F.where() conditional vectors, then F.where
+        # () returns NaN at that entry as well, due to its indicator function
+        # multiplication: 1*f(x) + np.nan*0 = nan, since np.nan*0 return nan.
+
+        # Therefore replacing genpareto_log_prob(x) with genpareto_log_prob(abs
+        # (x) mitigates nan returns in cases of x<0 without altering the value
+        # in cases of x>=0. This is a known issue in pytorch as well
+        # https://github.com/pytorch/pytorch/issues/12986.
+
         return F.where(
             x < 0,
-            -(10.0 ** 15) * F.ones_like(x),
+            -(10.0**15) * F.ones_like(x),
             genpareto_log_prob(F.abs(x), xi, beta),
         )
 
@@ -128,7 +132,7 @@ class GenPareto(Distribution):
         return F.where(
             xi < 1 / 2,
             F.broadcast_div(
-                beta ** 2, F.broadcast_mul((1 - xi) ** 2, (1 - 2 * xi))
+                beta**2, F.broadcast_mul((1 - xi) ** 2, (1 - 2 * xi))
             ),
             np.nan * F.ones_like(xi),
         )
@@ -171,8 +175,8 @@ class GenParetoOutput(DistributionOutput):
     @classmethod
     def domain_map(cls, F, xi, beta):
         r"""
-        Maps raw tensors to valid arguments for constructing a Generalized Pareto
-        distribution.
+        Maps raw tensors to valid arguments for constructing a Generalized
+        Pareto distribution.
 
         Parameters
         ----------
@@ -185,12 +189,11 @@ class GenParetoOutput(DistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor]:
-            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
-            positive orthant.
+            Two squeezed tensors, of shape `(*batch_shape)`: both have entries
+            mapped to the positive orthant.
         """
-        epsilon = np.finfo(cls._dtype).eps
-        xi = softplus(F, xi) + epsilon
-        beta = softplus(F, beta) + epsilon
+        xi = F.maximum(softplus(F, xi), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         return xi.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property

@@ -1,33 +1,53 @@
+import argparse
 import sys
 import time
-import notedown
+from itertools import chain
+from pathlib import Path
+
 import nbformat
+import notedown
+from nbclient import NotebookClient
 
-assert len(sys.argv) == 2, "usage: input.md"
 
-# timeout for each notebook, in sec
-timeout = 40 * 60
+def convert(path, kernel_name=None, timeout=40 * 60):
+    with path.open() as in_file:
+        notebook = notedown.MarkdownReader().read(in_file)
 
-# the files will be ignored for execution
-ignore_execution = []
+    print(f"=== {path.name} ", end="")
+    sys.stdout.flush()
 
-input_fn = sys.argv[1]
-output_fn = ".".join(input_fn.split(".")[:-1] + ["ipynb"])
+    start = time.time()
 
-reader = notedown.MarkdownReader()
+    client = NotebookClient(
+        notebook,
+        timeout=600,
+        kernel_name=kernel_name,
+        resources={'metadata': {'path': '.'}}
+    )
+    client.execute()
 
-# read
-with open(input_fn, "r") as f:
-    notebook = reader.read(f)
+    print(f"finished evaluation in {time.time() - start} sec")
 
-if not any([i in input_fn for i in ignore_execution]):
-    tic = time.time()
-    notedown.run(notebook, timeout)
-    print("=== Finished evaluation in %f sec" % (time.time() - tic))
+    # need to add language info to for syntax highlight
+    notebook["metadata"].update(language_info={"name": "python"})
 
-# write
-# need to add language info to for syntax highlight
-notebook["metadata"].update({"language_info": {"name": "python"}})
+    with path.with_suffix(".ipynb").open("w") as out_file:
+        out_file.write(nbformat.writes(notebook))
 
-with open(output_fn, "w") as f:
-    f.write(nbformat.writes(notebook))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-k', '--kernel', dest='kernel_name', default=None, help='name of ipython kernel to use'
+    )
+    parser.add_argument(
+        'files', type=str, nargs='+', help='path to files to convert'
+    )
+
+    args = parser.parse_args()
+
+    here = Path(".")
+    files = list(chain.from_iterable(map(here.glob, args.files)))
+
+    for file in files:
+        convert(file, kernel_name=args.kernel_name)

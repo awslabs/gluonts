@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import List, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock, nn
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
@@ -32,9 +32,7 @@ from ._layers import (
 
 class FeatureEmbedder(BaseFeatureEmbedder):
     def hybrid_forward(self, F, features: Tensor) -> List[Tensor]:
-        concat_features = super(FeatureEmbedder, self).hybrid_forward(
-            F, features
-        )
+        concat_features = super().hybrid_forward(F, features)
         if self.__num_features > 1:
             features = F.split(
                 concat_features, num_outputs=self.__num_features, axis=-1
@@ -65,7 +63,7 @@ class FeatureProjector(HybridBlock):
         self,
         feature_dims: List[int],
         embedding_dims: List[int],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -125,14 +123,16 @@ class FeatureProjector(HybridBlock):
         """
 
         if self.__num_features > 1:
-            # we slice the last dimension, giving an array of length self.__num_features with shape (N,T) or (N)
+            # we slice the last dimension, giving an array of length
+            # self.__num_features with shape (N,T) or (N)
             real_feature_slices = F.split_v2(
                 features,
                 tuple(np.cumsum(self.feature_dims)[:-1]),
                 axis=-1,
             )
         else:
-            # F.split will iterate over the second-to-last axis if the last axis is one
+            # F.split will iterate over the second-to-last axis if the last
+            # axis is one
             real_feature_slices = [features]
 
         return [
@@ -162,7 +162,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ):
-        super(TemporalFusionTransformerNetwork, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.d_var = d_var
@@ -170,7 +170,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         self.n_head = n_head
         self.n_output = n_output
         self.quantiles = sum(
-            [[i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)],
+            ([i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)),
             [0.5],
         )
         self.normalize_eps = 1e-5
@@ -327,10 +327,10 @@ class TemporalFusionTransformerNetwork(HybridBlock):
             count + self.normalize_eps,
         )
         scale = F.broadcast_div(
-            F.sum(obs ** 2, axis=1, keepdims=True),
+            F.sum(obs**2, axis=1, keepdims=True),
             count + self.normalize_eps,
         )
-        scale = F.broadcast_sub(scale, offset ** 2)
+        scale = F.broadcast_sub(scale, offset**2)
         scale = F.sqrt(scale)
         past_target = F.broadcast_div(
             F.broadcast_sub(past_target, offset),

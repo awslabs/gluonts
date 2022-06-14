@@ -85,8 +85,11 @@ def generate_m3_dataset(
     m3_xls_path = default_dataset_path / "M3C.xls"
     if not os.path.exists(m3_xls_path):
         raise RuntimeError(
-            f"The m3 data is available at https://forecasters.org/resources/time-series-data/m3-competition/ "
-            f"Please download the file and copy the files to this location: {m3_xls_path}"
+            "The m3 data is available at "
+            "https://forecasters.org/resources/"
+            "time-series-data/m3-competition/ "
+            "Please download the file and copy the files to this location: "
+            f"{m3_xls_path}"
         )
 
     subsets = {
@@ -101,8 +104,9 @@ def generate_m3_dataset(
 
     if m3_freq.lower() == "other":
         warnings.warn(
-            "Be aware: The M3-other dataset does not have a known frequency. Since gluonts needs a known frequency, "
-            "we will generate the dataset with an artificial `quarterly` frequency."
+            "Be aware: The M3-other dataset does not have a known frequency."
+            " Since gluonts needs a known frequency, we will generate the"
+            " dataset with an artificial `quarterly` frequency."
         )
 
     subset = subsets[m3_freq.lower()]
@@ -156,8 +160,8 @@ def generate_m3_dataset(
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 
-        s = pd.Timestamp(time_stamp, freq=subset.freq)
-        s = s.freq.rollforward(s)
+        s = pd.Period(time_stamp, freq=subset.freq)
+
         start = str(s).split(" ")[0]
         cat = [i, cat_map[category]]
 

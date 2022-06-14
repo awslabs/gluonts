@@ -34,12 +34,12 @@ from gluonts.model.wavenet._network import (
     WaveNetSampler,
     WaveNetTraining,
 )
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import (
     get_seasonality,
     time_features_from_frequency_str,
@@ -69,8 +69,9 @@ class QuantizeScaled(SimpleTransformation):
     Requires
       past_target and future_target fields.
 
-    The mean absolute value of the past_target is used to rescale past_target and future_target.
-    Then the bin_edges are used to quantize the rescaled target.
+    The mean absolute value of the past_target is used to rescale past_target
+    and future_target. Then the bin_edges are used to quantize the rescaled
+    target.
 
     The calculated scale is included as a new field "scale"
     """
@@ -128,20 +129,23 @@ class WaveNetEstimator(GluonEstimator):
     n_skip
         Number of skip channels in wavenet architecture (default: 32)
     dilation_depth
-        Number of dilation layers in wavenet architecture.
-        If set to None (default), dialation_depth is set such that the receptive length is at least
-        as long as typical seasonality for the frequency and at least 2 * prediction_length.
+        Number of dilation layers in wavenet architecture. If set to None
+        (default), dialation_depth is set such that the receptive length is at
+        least as long as typical seasonality for the frequency and at least
+        2 * prediction_length.
     n_stacks
         Number of dilation stacks in wavenet architecture (default: 1)
     temperature
-        Temparature used for sampling from softmax distribution.
-        For temperature = 1.0 (default) sampling is according to estimated probability.
+        Temparature used for sampling from softmax distribution. For
+        temperature = 1.0 (default) sampling is according to estimated
+        probability.
     act_type
         Activation type used after before output layer (default: "elu").
         Can be any of 'elu', 'relu', 'sigmoid', 'tanh', 'softrelu', 'softsign'.
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 200)
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 200)
     train_sampler
         Controls the sampling of windows during training.
     validation_sampler
@@ -337,7 +341,6 @@ class WaveNetEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

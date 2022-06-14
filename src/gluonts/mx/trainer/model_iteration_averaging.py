@@ -208,9 +208,9 @@ class NTA(IterationAveragingStrategy):
         # Historical validation metrics.
         self.val_logs = []
 
-        # The epoch where we fallback to alpha suffix. This solves the edge case
-        # where the averaging is never triggered and without the fallback the
-        # model of the last epoch would be returned.
+        # The epoch where we fallback to alpha suffix. This solves the edge
+        # case where the averaging is never triggered and without the fallback
+        # the model of the last epoch would be returned.
         self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(

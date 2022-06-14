@@ -31,8 +31,9 @@ Cardinality = Union[List[int], CardinalityLabel]
 
 class PreprocessGeneric:
     """
-    Class for the purpose of preprocessing time series. The method
-    make_features needs to be custom-made by inherited classes.
+    Class for the purpose of preprocessing time series.
+
+    The method make_features needs to be custom-made by inherited classes.
     """
 
     @validated()
@@ -200,7 +201,7 @@ class PreprocessGeneric:
     ) -> Tuple:
         """
         Applies self.preprocess_from_single_ts for each time series in ts_list,
-        and collates the results into self.feature_data and self.target_data
+        and collates the results into self.feature_data and self.target_data.
 
         Parameters
         ----------
@@ -244,20 +245,18 @@ class PreprocessGeneric:
 
     def get_num_samples(self, ts_list) -> int:
         """
-        Outputs a reasonable choice for number of windows to sample from
-        each time series at training time.
+        Outputs a reasonable choice for number of windows to sample from each
+        time series at training time.
         """
         n_time_series = sum(
-            [
-                len(time_series["target"])
-                - self.context_window_size
-                - self.forecast_horizon
-                >= 0
-                for time_series in ts_list
-            ]
+            len(time_series["target"])
+            - self.context_window_size
+            - self.forecast_horizon
+            >= 0
+            for time_series in ts_list
         )
         max_size_ts = max(
-            [len(time_series["target"]) for time_series in ts_list]
+            len(time_series["target"]) for time_series in ts_list
         )
         n_windows_per_time_series = self.max_n_datapts // n_time_series
         if n_time_series * 1000 < n_windows_per_time_series:
@@ -281,10 +280,12 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
+        use_past_feat_dynamic_real=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
         cardinality: Cardinality = CardinalityLabel.auto,
-        one_hot_encode: bool = True,  # Should improve accuracy but will slow down model
+        # Should improve accuracy but will slow down model
+        one_hot_encode: bool = True,
         **kwargs
     ):
 
@@ -292,7 +293,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)
                 and all(c > 0 for c in cardinality)
-            ), "You should set `one_hot_encode=True` if and only if cardinality is a valid list or not ignored: {}"
+            ), (
+                "You should set `one_hot_encode=True` if and only if"
+                " cardinality is a valid list or not ignored: {}"
+            )
 
         super().__init__(
             context_window_size=context_window_size,
@@ -305,6 +309,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         self.use_feat_static_real = use_feat_static_real
         self.cardinality = cardinality
+        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.one_hot_encode = one_hot_encode
@@ -312,10 +317,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
     @classmethod
     def _pre_transform(cls, time_series_window) -> Tuple:
         """
-        Makes features given time series window. Returns list of features,
-        one for every step of the lag (equaling mean-adjusted lag features);
-        and a dictionary of statistics features (one for mean and one for
-        standard deviation).
+        Makes features given time series window. Returns list of features, one
+        for every step of the lag (equaling mean-adjusted lag features); and a
+        dictionary of statistics features (one for mean and one for standard
+        deviation).
 
         Parameters
         ----------
@@ -403,13 +408,47 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         else:
             feat_static_cat = []
 
+        past_feat_dynamic_real = (
+            list(
+                chain(
+                    *[
+                        list(ent[0]) + list(ent[1].values())
+                        for ent in [
+                            self._pre_transform(ts[starting_index:end_index])
+                            for ts in time_series["past_feat_dynamic_real"]
+                        ]
+                    ]
+                )
+            )
+            if self.use_past_feat_dynamic_real
+            else []
+        )
         feat_dynamic_real = (
-            [elem for ent in time_series["feat_dynamic_real"] for elem in ent]
+            list(
+                chain(
+                    *[
+                        list(ent[0]) + list(ent[1].values())
+                        for ent in [
+                            self._pre_transform(
+                                ts[
+                                    starting_index : end_index
+                                    + self.forecast_horizon
+                                ]
+                            )
+                            for ts in time_series["feat_dynamic_real"]
+                        ]
+                    ]
+                )
+            )
             if self.use_feat_dynamic_real
             else []
         )
         feat_dynamic_cat = (
-            [elem for ent in time_series["feat_dynamic_cat"] for elem in ent]
+            [
+                elem
+                for ent in time_series["feat_dynamic_cat"]
+                for elem in ent[starting_index:end_index]
+            ]
             if self.use_feat_dynamic_cat
             else []
         )
@@ -425,7 +464,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
         )
 
-        feat_dynamics = feat_dynamic_real + feat_dynamic_cat
+        feat_dynamics = (
+            past_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
+        )
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
         return (

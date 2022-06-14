@@ -46,11 +46,11 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
+To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again the next time around.
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=True)
+dataset = get_dataset("m4_hourly")
 ```
 
 ### What is in a dataset?
@@ -304,7 +304,7 @@ custom_ds_metadata = {
     'prediction_length': 24,
     'freq': '1H',
     'start': [
-        pd.Timestamp("01-01-2019", freq='1H') 
+        pd.Period("01-01-2019", freq='1H')
         for _ in range(100)
     ]
 }
@@ -846,7 +846,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx import (
-    as_in_context, 
     batchify,
     copy_parameters, 
     get_hybrid_forward_input_names,
@@ -905,7 +904,6 @@ class MyEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
     
@@ -1143,7 +1141,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1419,7 +1416,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1800,7 +1796,6 @@ class MyProbRNNEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

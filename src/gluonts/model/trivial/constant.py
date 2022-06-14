@@ -16,9 +16,9 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
-from gluonts.support.pandas import forecast_start
 
 
 class ConstantPredictor(RepresentablePredictor):
@@ -43,7 +43,6 @@ class ConstantPredictor(RepresentablePredictor):
         return SampleForecast(
             samples=self.samples,
             start_date=item["start"],
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -82,6 +81,5 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get("id"),
         )

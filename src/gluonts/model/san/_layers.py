@@ -24,7 +24,7 @@ from gluonts.mx import Tensor
 
 def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):
     """
-    Pytorch-style gather_nd
+    Pytorch-style gather_nd.
     """
     ndim = 4
     if axis < 0:
@@ -48,7 +48,7 @@ def _torch_gather(F, data: Tensor, idx: Tensor, axis: int):
 class SinusoidalPositionalEmbedding(HybridBlock):
     @validated()
     def __init__(self, d_embed: int, **kwargs):
-        super(SinusoidalPositionalEmbedding, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         if d_embed % 2 != 0:
             raise ValueError(
                 "sinusoidal embedding must have an even dimension"
@@ -72,7 +72,7 @@ class CausalConv1D(HybridBlock):
         activation: str = "tanh",
         **kwargs,
     ):
-        super(CausalConv1D, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.kernel_size = kernel_size
         self.channels = channels
         with self.name_scope():
@@ -113,7 +113,7 @@ class SelfAttention(HybridBlock):
         **kwargs,
     ):
         """
-        Self-attention module with q,k,v from the same input
+        Self-attention module with q,k,v from the same input.
 
         Parameters
         ----------
@@ -134,14 +134,15 @@ class SelfAttention(HybridBlock):
                 or None (disabled),
             by default None
         share_values : bool, optional
-            if True, a value reprensentation is shared by all attention heads, by default False
+            if True, a value reprensentation is shared by all attention heads,
+            by default False
             ref. https://arxiv.org/abs/1912.09363
         dropout : float, optional
             dropout rate, by default 0.0
         temperature : float, optional
             softmax temperature, by default 1.0
         """
-        super(SelfAttention, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         n_groups = len(kernel_sizes)
         assert (
             d_hidden % n_head == 0
@@ -218,7 +219,7 @@ class SelfAttention(HybridBlock):
 
     def _split_head(self, F, x: Tensor) -> Tensor:
         """
-        Split hidden state into multi-heads
+        Split hidden state into multi-heads.
 
         Args
         ----------
@@ -234,7 +235,7 @@ class SelfAttention(HybridBlock):
 
     def _merge_head(self, F, x: Tensor) -> Tensor:
         """
-        Merge multi-heads into one hidden state
+        Merge multi-heads into one hidden state.
 
         Args
         ----------
@@ -395,7 +396,7 @@ class PosFFN(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ):
-        super(PosFFN, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.pre_ln = pre_ln
         with self.name_scope():
             self.linear1 = nn.Dense(

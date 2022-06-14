@@ -15,15 +15,17 @@ import torch
 
 
 class DistributionLoss(torch.nn.Module):
-    """A ``torch.nn.Module`` extensions that computes loss values by comparing a ``Distribution``
-    (prediction) to a ``Tensor`` (ground-truth).
+    """
+    A ``torch.nn.Module`` extensions that computes loss values by comparing a
+    ``Distribution`` (prediction) to a ``Tensor`` (ground-truth).
     """
 
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute the loss of predicting ``target`` with the ``input`` distribution.
+        Compute the loss of predicting ``target`` with the ``input``
+        distribution.
 
         Parameters
         ----------
@@ -46,10 +48,30 @@ class DistributionLoss(torch.nn.Module):
 
 
 class NegativeLogLikelihood(DistributionLoss):
+    """
+    Compute the negative log likelihood loss.
+
+    Parameters
+    ----------
+    beta: float in range (0, 1)
+        beta parameter from the paper: "On the Pitfalls of Heteroscedastic
+        Uncertainty Estimation with Probabilistic Neural Networks" by
+        Seitzer et al. 2022
+        https://openreview.net/forum?id=aPOpXlnV1T
+    """
+
+    def __init__(self, beta: float = 0.0):
+        super().__init__()
+        self.beta = beta
+
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
-        return -input.log_prob(target)
+        nll = -input.log_prob(target)
+        if self.beta > 0.0:
+            variance = input.variance
+            nll = nll * (variance.detach() ** self.beta)
+        return nll
 
 
 class CRPS(DistributionLoss):
@@ -57,3 +79,8 @@ class CRPS(DistributionLoss):
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         return input.crps(target)
+
+
+class EnergyScore(DistributionLoss):
+    def forward(self, input, target: torch.Tensor) -> torch.Tensor:
+        return input.energy_score(target)

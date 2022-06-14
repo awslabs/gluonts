@@ -11,35 +11,35 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from collections import defaultdict
-from functools import partial
-from itertools import islice
-from typing import Dict, Any, List
-from tempfile import TemporaryDirectory
-from pathlib import Path
-from contextlib import AbstractContextManager
+import json
 import sys
-import time
+from collections import Counter
+from contextlib import contextmanager
+from itertools import islice
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Dict, Any, List
 
-from mxnet.context import current_context
 import numpy as np
 import pytest
 
+from gluonts.core.component import equals
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import DataEntry, DataBatch, FileDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
+    Batch,
     TrainDataLoader,
     ValidationDataLoader,
     InferenceDataLoader,
 )
-from gluonts.mx.batchify import batchify, as_in_context
 from gluonts.transform import (
     InstanceSampler,
     InstanceSplitter,
     MapTransformation,
-    SimpleTransformation,
 )
+
+from gluonts.testutil.batchify import batchify
 
 
 class WriteIsTrain(MapTransformation):
@@ -56,27 +56,29 @@ class ExactlyOneSampler(InstanceSampler):
         return np.array([a])
 
 
-class DefaultListDataset(AbstractContextManager):
-    def __enter__(self):
-        return constant_dataset()[1]
-
-    def __exit__(self, *exec_details):
-        pass
+@contextmanager
+def default_list_dataset():
+    yield constant_dataset()[1]
 
 
-class DefaultFileDataset(AbstractContextManager):
-    def __enter__(self):
-        self.tempdir = TemporaryDirectory()
-        self.tempdir_path = self.tempdir.__enter__()
-        file_path = Path(self.tempdir_path) / "file.json"
-        with open(file_path, "w") as fp:
+@contextmanager
+def default_file_dataset():
+    with TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+
+        with open(temp_dir / "file.json", "w") as fp:
             for item_id in range(10):
-                line = f'"item_id": {item_id}, "start": "2021-01-01 00:00:00", "target": [1.0, 2.0, 3.0, 4.0, 5.0]'
-                fp.write("{" + line + "}\n")
-        return FileDataset(self.tempdir_path, "H")
+                json.dump(
+                    {
+                        "item_id": item_id,
+                        "start": "2021-01-01 00:00:00",
+                        "target": [1.0, 2.0, 3.0, 4.0, 5.0],
+                    },
+                    fp,
+                )
+                fp.write("\n")
 
-    def __exit__(self, *args, **kwargs):
-        self.tempdir.__exit__(*args, **kwargs)
+        yield FileDataset(temp_dir, "H")
 
 
 def default_transformation():
@@ -93,31 +95,25 @@ def default_transformation():
 
 
 def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
-    counter: Dict[Any, int] = defaultdict(lambda: 0)
-    for batch in batches:
-        for item_id in batch[FieldName.ITEM_ID]:
-            counter[item_id] += 1
-    return counter
+    return Counter(
+        item_id for batch in batches for item_id in batch[FieldName.ITEM_ID]
+    )
 
 
 @pytest.mark.parametrize(
     "dataset_context",
     (
         [
-            DefaultListDataset(),
-            DefaultFileDataset(),
+            default_list_dataset,
+            default_file_dataset,
         ]
         if not sys.platform.startswith("win")
-        else [DefaultListDataset()]
+        else [default_list_dataset]
     ),
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_training_data_loader(dataset_context, num_workers):
-    with dataset_context as dataset:
-        dataset_length = len(list(dataset))
+def test_training_data_loader(dataset_context):
+    with dataset_context() as dataset:
+        dataset_length = len(dataset)
 
         batch_size = 4
 
@@ -125,9 +121,7 @@ def test_training_data_loader(dataset_context, num_workers):
             dataset=dataset,
             transform=default_transformation(),
             batch_size=batch_size,
-            stack_fn=partial(batchify, ctx=current_context()),
-            decode_fn=partial(as_in_context, ctx=current_context()),
-            num_workers=num_workers,
+            stack_fn=batchify,
         )
 
         num_epochs = 20
@@ -147,75 +141,70 @@ def test_training_data_loader(dataset_context, num_workers):
 
         for epoch in range(num_epochs):
             for batch in islice(dl, epoch_length):
-                assert all(x is True for x in batch["is_train"])
+                assert all(batch["is_train"])
                 batches.append(batch)
 
         counter = count_item_ids(batches)
 
-        if num_workers is None or num_workers == 1:
-            for entry in dataset:
-                assert counter[entry[FieldName.ITEM_ID]] >= 1
+        for entry in dataset:
+            assert counter[entry[FieldName.ITEM_ID]] >= 1
 
 
 @pytest.mark.parametrize(
     "dataset_context",
     [
-        DefaultListDataset(),
-        DefaultFileDataset(),
+        default_list_dataset,
+        default_file_dataset,
     ],
 )
 def test_validation_data_loader(dataset_context):
-    with dataset_context as dataset:
-        dataset_length = len(list(dataset))
-        counter = defaultdict(lambda: 0)
-
+    with dataset_context() as dataset:
         dl = ValidationDataLoader(
             dataset=dataset,
             transform=default_transformation(),
             batch_size=4,
-            stack_fn=partial(batchify, ctx=current_context()),
+            stack_fn=batchify,
         )
 
-        batches = list(dl)
+        for _ in range(3):
+            batches = list(dl)
 
-        for batch in batches:
-            assert all(x is True for x in batch["is_train"])
+            for batch in batches:
+                assert all(batch["is_train"])
 
-        counter = count_item_ids(batches)
+            counter = count_item_ids(batches)
 
-        for entry in dataset:
-            assert counter[entry[FieldName.ITEM_ID]] == 1
-
-        batches_again = list(dl)
-
-        assert (b1 == b2 for b1, b2 in zip(batches, batches_again))
+            for entry in dataset:
+                assert counter[entry[FieldName.ITEM_ID]] == 1
 
 
 @pytest.mark.parametrize(
     "dataset_context",
     [
-        DefaultListDataset(),
-        DefaultFileDataset(),
+        default_list_dataset,
+        default_file_dataset,
     ],
 )
 def test_inference_data_loader(dataset_context):
-    with dataset_context as dataset:
-        dataset_length = len(list(dataset))
-        counter = defaultdict(lambda: 0)
-
+    with dataset_context() as dataset:
         dl = InferenceDataLoader(
             dataset=dataset,
             transform=default_transformation(),
             batch_size=4,
-            stack_fn=partial(batchify, ctx=current_context()),
+            stack_fn=batchify,
         )
 
         batches = list(dl)
 
         for batch in batches:
-            assert all(x is False for x in batch["is_train"])
+            assert not any(batch["is_train"])
 
         counter = count_item_ids(batches)
 
         for entry in dataset:
             assert counter[entry[FieldName.ITEM_ID]] == 1
+
+
+def test_equals_batch():
+    assert equals(Batch(batch_size=10), Batch(batch_size=10))
+    assert not equals(Batch(batch_size=10), Batch(batch_size=100))

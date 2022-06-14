@@ -17,9 +17,9 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.support.pandas import forecast_start
 from gluonts.time_feature import get_seasonality
 
 
@@ -90,6 +90,5 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item.get("item_id", None),
         )

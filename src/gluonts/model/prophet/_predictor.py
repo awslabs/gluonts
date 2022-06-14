@@ -23,21 +23,21 @@ from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
 try:
-    from fbprophet import Prophet
+    from prophet import Prophet
 except ImportError:
     Prophet = None
 
 PROPHET_IS_INSTALLED = Prophet is not None
 
 USAGE_MESSAGE = """
-Cannot import `fbprophet`.
+Cannot import `prophet`.
 
-The `ProphetPredictor` is a thin wrapper for calling the `fbprophet` package.
+The `ProphetPredictor` is a thin wrapper for calling the `prophet` package.
 In order to use it you need to install it using one of the following two
 methods:
 
-    # 1) install fbprophet directly
-    pip install fbprophet
+    # 1) install prophet directly
+    pip install prophet
 
     # 2) install gluonts with the Prophet extras
     pip install gluonts[Prophet]
@@ -45,19 +45,21 @@ methods:
 
 
 def feat_name(i: int) -> str:
-    """The canonical name of a feature with index `i`."""
+    """
+    The canonical name of a feature with index `i`.
+    """
     return f"feat_dynamic_real_{i:03d}"
 
 
 class ProphetDataEntry(NamedTuple):
     """
-    A named tuple containing relevant base and derived data that is
-    required in order to call Prophet.
+    A named tuple containing relevant base and derived data that is required in
+    order to call Prophet.
     """
 
     train_length: int
     prediction_length: int
-    start: pd.Timestamp
+    start: pd.Period
     target: np.ndarray
     feat_dynamic_real: List[np.ndarray]
 
@@ -66,7 +68,7 @@ class ProphetDataEntry(NamedTuple):
         return pd.DataFrame(
             data={
                 **{
-                    "ds": pd.date_range(
+                    "ds": pd.period_range(
                         start=self.start,
                         periods=self.train_length,
                         freq=self.start.freq,
@@ -81,7 +83,7 @@ class ProphetDataEntry(NamedTuple):
         )
 
     @property
-    def forecast_start(self) -> pd.Timestamp:
+    def forecast_start(self) -> pd.Period:
         return self.start + self.train_length * self.start.freq
 
 
@@ -89,11 +91,11 @@ class ProphetPredictor(RepresentablePredictor):
     """
     Wrapper around `Prophet <https://github.com/facebook/prophet>`_.
 
-    The `ProphetPredictor` is a thin wrapper for calling the `fbprophet`
+    The `ProphetPredictor` is a thin wrapper for calling the `prophet`
     package. In order to use it you need to install the package::
 
         # you can either install Prophet directly
-        pip install fbprophet
+        pip install prophet
 
         # or install gluonts with the Prophet extras
         pip install gluonts[Prophet]
@@ -156,10 +158,9 @@ class ProphetPredictor(RepresentablePredictor):
             yield SampleForecast(
                 samples=forecast_samples,
                 start_date=data.forecast_start,
-                freq=self.freq,
             )
 
-    def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.array:
+    def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.ndarray:
         """
         Construct and run a :class:`Prophet` model on the given
         :class:`ProphetDataEntry` and return the resulting array of samples.

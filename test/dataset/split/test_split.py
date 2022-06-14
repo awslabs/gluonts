@@ -13,6 +13,7 @@
 
 import pandas as pd
 
+from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import DateSplitter, OffsetSplitter
@@ -20,7 +21,7 @@ from gluonts.dataset.split.splitter import TimeSeriesSlice
 
 
 def make_series(data, start="2020", freq="D"):
-    index = pd.date_range(start=start, freq=freq, periods=len(data))
+    index = pd.period_range(start=start, freq=freq, periods=len(data))
     return pd.Series(data, index=index)
 
 
@@ -39,12 +40,11 @@ def test_ts_slice_to_item():
 
 
 def test_splitter():
-
     dataset = get_dataset("m4_hourly")
     prediction_length = dataset.metadata.prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Timestamp("1750-01-05 04:00:00", freq="h"),
+        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
     )
     train, validation = splitter.split(dataset.train)
     assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
@@ -69,7 +69,7 @@ def test_splitter():
     max_history = 2 * prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Timestamp("1750-01-05 04:00:00", freq="h"),
+        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
         max_history=max_history,
     )
     train, validation = splitter.split(dataset.train)
@@ -78,3 +78,48 @@ def test_splitter():
     train, validation = splitter.rolling_split(dataset.train, windows=3)
     for i in range(3):
         assert len(validation[1][i][FieldName.TARGET]) == max_history
+
+
+def test_split_mult_freq():
+    splitter = DateSplitter(
+        prediction_length=1, split_date=pd.Period("2021-01-01", "2h")
+    )
+
+    splitter.split(
+        [
+            {
+                "item_id": "1",
+                "target": pd.Series([0, 1, 2]),
+                "start": pd.Period("2021-01-01", freq="2H"),
+            }
+        ]
+    )
+
+
+def test_negative_offset_splitter():
+    dataset = ListDataset(
+        [
+            {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 100},
+            {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 50},
+        ],
+        freq="D",
+    )
+
+    split = OffsetSplitter(prediction_length=7, split_offset=-7).split(dataset)
+
+    assert [len(t["target"]) for t in split.train] == [93, 43]
+    assert [len(t["target"]) for t in split.test] == [100, 50]
+
+    rolling_split = OffsetSplitter(
+        prediction_length=7, split_offset=-21
+    ).rolling_split(dataset, windows=3)
+
+    assert [len(t["target"]) for t in rolling_split.train] == [79, 29]
+    assert [len(t["target"]) for t in rolling_split.test] == [
+        86,
+        93,
+        100,
+        36,
+        43,
+        50,
+    ]

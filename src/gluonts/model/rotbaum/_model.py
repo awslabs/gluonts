@@ -49,13 +49,12 @@ class QuantileReg:
         from lightgbm import LGBMRegressor
 
         self.quantiles = quantiles
-        self.models = dict(
-            (
-                quantile,
-                LGBMRegressor(objective="quantile", alpha=quantile, **params),
+        self.models = {
+            quantile: LGBMRegressor(
+                objective="quantile", alpha=quantile, **params
             )
             for quantile in quantiles
-        )
+        }
 
     def fit(self, x_train, y_train):
         for model in self.models.values():
@@ -143,11 +142,13 @@ class QRX:
         **kwargs
     ):
         """
-        Fits self.model and partitions R^n into cells. More accurately,
-        it creates two dictionaries: self.preds_to_ids whose keys are the
-        predictions of the training dataset and whose values are the ids of
-        their associated bins, and self.ids_to_bins whose keys are the ids
-        of the bins and whose values are associated lists of true values.
+        Fits self.model and partitions R^n into cells.
+
+        More accurately, it creates two dictionaries: self.preds_to_ids whose
+        keys are the predictions of the training dataset and whose values are
+        the ids of their associated bins, and self.ids_to_bins whose keys are
+        the ids of the bins and whose values are associated lists of true
+        values.
         """
         self.x_train_is_dataframe = x_train_is_dataframe
         self.quantile_dicts = defaultdict(dict)
@@ -204,21 +205,22 @@ class QRX:
         df = pd.DataFrame({"preds": self.sorted_train_preds})
         df["bin_ids"] = df["preds"].apply(lambda x: self.preds_to_id[x])
         bin_ids = df["bin_ids"].drop_duplicates().values
-        final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
-        if len(self.id_to_bins[final_id]) < self.min_bin_size:
-            self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
+        if len(bin_ids) > 1:
+            final_id, penultimate_id = bin_ids[-1], bin_ids[-2]
+            if len(self.id_to_bins[final_id]) < self.min_bin_size:
+                self.id_to_bins[final_id] += self.id_to_bins[penultimate_id]
 
     @staticmethod
     def clump(
         dic: Dict, min_num: int, sorted_keys: Optional[List] = None
     ) -> Dict:
         """
-        Returns a new dictionary whose keys are the same as dic's keys.
-        Runs over dic's keys, from smallest to largest, and every time that
-        the sum of the lengths of the values goes over min_num, it makes the
-        new dictionary's values for the associated keys reference a single
-        list object whose elements are the with-multiplicity union of the
-        lists that appear as values in dic.
+        Returns a new dictionary whose keys are the same as dic's keys. Runs
+        over dic's keys, from smallest to largest, and every time that the sum
+        of the lengths of the values goes over min_num, it makes the new
+        dictionary's values for the associated keys reference a single list
+        object whose elements are the with-multiplicity union of the lists that
+        appear as values in dic.
 
         Note that in the dictionary that is being output by this function,
         while the keys are the same number of keys as in dic, the number of
@@ -260,7 +262,7 @@ class QRX:
             new_dic[key] = iter_list  # Note that iter_list may change in the
             # future, and this will change the value of new_dic[key]. This
             # is intentional.
-            if iter_length > min_num:
+            if iter_length >= min_num:
                 iter_length = 0
                 iter_list = []  # This line, of course, doesn't change any
                 # value of new_dic, as it makes iter_list reference a new
@@ -296,6 +298,7 @@ class QRX:
     def get_closest_pt(cls, sorted_list: List, num: int) -> int:
         """
         Given a sorted list of floats, returns the number closest to num.
+
         Implements a binary search.
         """
         assert sorted_list
@@ -318,7 +321,8 @@ class QRX:
         self, feature_vector_in_train: List, quantile: float
     ):
         """
-        Updates self.quantile_dicts[quantile][feature_vector_in_train] to be the quantile of the associated true value bin.
+        Updates self.quantile_dicts[quantile][feature_vector_in_train] to be
+        the quantile of the associated true value bin.
 
         Parameters
         ----------
@@ -384,7 +388,7 @@ class QRX:
 
     def estimate_dist(self, x_test: List[List[float]]) -> List:
         """
-        Get estimate of sampling of Y|X=x for each x in x_test
+        Get estimate of sampling of Y|X=x for each x in x_test.
 
         Parameters
         ----------

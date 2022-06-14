@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import MultivariateGaussian
 from gluonts.mx.distribution.distribution import getF
@@ -37,7 +36,7 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        float_type: DType = np.float64,
+        float_type: Type = np.float64,
         jitter_method: str = "iter",
         max_iter_jitter: int = 10,
         neg_tol: float = -1e-8,
@@ -63,18 +62,22 @@ class GaussianProcess:
         float_type
             Determines whether to use single or double precision.
         jitter_method
-            Iteratively jitter method or use eigenvalue decomposition depending on problem size.
+            Iteratively jitter method or use eigenvalue decomposition depending
+            on problem size.
         max_iter_jitter
-            Maximum number of iterations for jitter to iteratively make the matrix positive definite.
+            Maximum number of iterations for jitter to iteratively make the
+            matrix positive definite.
         neg_tol
-            Parameter in the jitter methods to eliminate eliminate matrices with diagonal elements smaller than this
-            when checking if a matrix is positive definite.
+            Parameter in the jitter methods to eliminate eliminate matrices
+            with diagonal elements smaller than this when checking if a matrix
+            is positive definite.
         diag_weight
             Multiple of mean of diagonal entries to initialize the jitter.
         increase_jitter
             Each iteration multiply by jitter by this amount
         sample_noise
-            Boolean to determine whether to add :math:`\sigma^2I` to the predictive covariance matrix.
+            Boolean to determine whether to add :math:`\sigma^2I` to the
+            predictive covariance matrix.
         F
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
@@ -115,24 +118,27 @@ class GaussianProcess:
         Parameters
         --------------------
         kernel_matrix
-            Kernel matrix of shape (batch_size, num_data_points, num_data_points).
+            Kernel matrix of shape (batch_size, num_data_points,
+            num_data_points).
         num_data_points
             Number of rows in the kernel_matrix.
         noise
-            Boolean to determine whether to add :math:`\sigma^2I` to the kernel matrix.
-            This is used in the predictive step if you would like to sample the predictive
-            covariance matrix without noise.  It is set to True in every other case.
+            Boolean to determine whether to add :math:`\sigma^2I` to the kernel
+            matrix. This is used in the predictive step if you would like to
+            sample the predictive covariance matrix without noise.  It is set
+            to True in every other case.
         Returns
         --------------------
         Tensor
-            Cholesky factor :math:`L` of the kernel matrix with added noise :math:`LL^T = K + \sigma^2 I`
-            of shape (batch_size, num_data_points, num_data_points).
+            Cholesky factor :math:`L` of the kernel matrix with added noise
+            :math:`LL^T = K + \sigma^2 I` of shape
+            (batch_size, num_data_points, num_data_points).
         """
         if noise:  # Add sigma
             kernel_matrix = self.F.broadcast_plus(
                 kernel_matrix,
                 self.F.broadcast_mul(
-                    self.sigma ** 2,
+                    self.sigma**2,
                     self.F.eye(num_data_points, dtype=self.float_type),
                 ),
             )
@@ -201,7 +207,7 @@ class GaussianProcess:
         --------------------
         Tensor
             The negative log marginal likelihood of shape (batch_size,)
-        """
+        """  # noqa: E501
         assert (
             self.context_length is not None
         ), "The value of `context_length` must be set."
@@ -218,15 +224,18 @@ class GaussianProcess:
         Parameters
         ----------
         covariance
-            The covariance matrix of the GP of shape (batch_size, prediction_length, prediction_length).
+            The covariance matrix of the GP of shape
+            (batch_size, prediction_length, prediction_length).
         mean
             The mean vector of the GP of shape (batch_size, prediction_length).
         Returns
         -------
         Tensor
-            Samples from a Gaussian Process of shape (batch_size, prediction_length, num_samples), where :math:`L`
-            is the matrix square root, Cholesky Factor of the covariance matrix with the added noise tolerance on the
-            diagonal, :math:`Lz`, where :math:`z \sim N(0,I)` and assumes the mean is zero.
+            Samples from a Gaussian Process of shape
+            (batch_size, prediction_length, num_samples), where :math:`L` is
+            the matrix square root, Cholesky Factor of the covariance matrix
+            with the added noise tolerance on the diagonal, :math:`Lz`,
+            where :math:`z \sim N(0,I)` and assumes the mean is zero.
         """
         assert (
             self.num_samples is not None
@@ -252,20 +261,25 @@ class GaussianProcess:
         Parameters
         ----------
         x_train
-            Training set of features of shape (batch_size, context_length, num_features).
+            Training set of features of shape
+            (batch_size, context_length, num_features).
         y_train
             Training labels of shape (batch_size, context_length).
         x_test
-            Test set of features of shape (batch_size, prediction_length, num_features).
+            Test set of features of shape
+            (batch_size, prediction_length, num_features).
         Returns
         -------
         Tuple
             Tensor
-                Predictive GP samples of shape (batch_size, prediction_length, num_samples).
+                Predictive GP samples of shape
+                (batch_size, prediction_length, num_samples).
             Tensor
-                Predictive mean of the GP of shape (batch_size, prediction_length).
+                Predictive mean of the GP of shape
+                (batch_size, prediction_length).
             Tensor
-                Predictive standard deviation of the GP of shape (batch_size, prediction_length).
+                Predictive standard deviation of the GP of shape
+                (batch_size, prediction_length).
         """
         assert (
             self.context_length is not None
@@ -301,10 +315,11 @@ class GaussianProcess:
             self.prediction_length,
             self.float_type,
         )
-        # If self.sample_noise = True, predictive covariance has sigma^2 on the diagonal
+        # If self.sample_noise = True, predictive covariance has sigma^2 on the
+        # diagonal
         if self.sample_noise:
             predictive_std = self.F.broadcast_add(
-                predictive_std, self.sigma ** 2
+                predictive_std, self.sigma**2
             )
         predictive_std = self.F.sqrt(predictive_std).squeeze(axis=-1)
         # Compute sample from GP predictive distribution
@@ -326,24 +341,28 @@ class GaussianProcess:
         axis: Optional[List] = None,
     ) -> None:
         """
-        This method plots the sampled GP distribution at the test points in solid colors, as well as the predictive
-        mean as the dashed red line.  Plus and minus 2 predictive standard deviations are shown in the grey region.
-        The training points are shown as the blue dots.
+        This method plots the sampled GP distribution at the test points in
+        solid colors, as well as the predictive mean as the dashed red line.
+        Plus and minus 2 predictive standard deviations are shown in the grey
+        region. The training points are shown as the blue dots.
 
         Parameters
         ----------
         ts_idx
             Time series index to plot
         x_train
-            Training set of features of shape (batch_size, context_length, num_features).
+            Training set of features of shape
+            (batch_size, context_length, num_features).
         y_train
             Training labels of shape (batch_size, context_length).
         x_test
-            Test set of features of shape (batch_size, prediction_length, num_features).
+            Test set of features of shape
+            (batch_size, prediction_length, num_features).
         mean
              Mean of the GP of shape (batch_size, prediction_length).
         std
-            Standard deviation of the GP of shape (batch_size, prediction_length, 1).
+            Standard deviation of the GP of shape
+            (batch_size, prediction_length, 1).
         samples
             GP samples of shape (batch_size, prediction_length, num_samples).
         axis

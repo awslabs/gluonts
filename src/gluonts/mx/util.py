@@ -76,7 +76,6 @@ def assert_shape(x: Tensor, expected_shape: Tuple[int, ...]):
         Expected shape
     Returns
     -------
-
     """
     if isinstance(x, mx.nd.NDArray):
         for i, j in zip(x.shape, expected_shape):
@@ -127,11 +126,11 @@ def get_hybrid_forward_input_names(
     params = inspect.signature(hybrid_block_type.hybrid_forward).parameters
     param_names = [k for k, v in params.items() if not str(v).startswith("*")]
     assert param_names[0] == "self", (
-        f"Expected first argument of hybrid_forward to be `self`, "
+        "Expected first argument of hybrid_forward to be `self`, "
         f"but found `{param_names[0]}`"
     )
     assert param_names[1] == "F", (
-        f"Expected second argument of hybrid_forward to be `F`, "
+        "Expected second argument of hybrid_forward to be `F`, "
         f"but found `{param_names[1]}`"
     )
     return param_names[2:]  # skip: self, F
@@ -252,7 +251,8 @@ def import_symb_block(
     if not mx.nd.load(param_file):
         param_file = None
 
-    # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default np.float32
+    # FIXME: mx.gluon.SymbolBlock cannot infer float_type and uses default
+    # np.float32
     # FIXME: https://github.com/apache/incubator-mxnet/issues/11849
     sb = mx.gluon.SymbolBlock.imports(
         symbol_file=str(model_dir / f"{model_name}-symbol.json"),
@@ -409,7 +409,9 @@ def weighted_average(
     include_zeros_in_denominator=False,
 ) -> Tensor:
     """
-    Computes the weighted average of a given tensor across a given axis, masking values associated with weight zero,
+    Computes the weighted average of a given tensor across a given axis,
+    masking values associated with weight zero,
+
     meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters
@@ -447,7 +449,7 @@ def weighted_average(
 
 def make_nd_diag(F, x: Tensor, d: int) -> Tensor:
     """
-    Make a diagonal tensor, given the diagonal
+    Make a diagonal tensor, given the diagonal.
 
     Parameters
     ----------

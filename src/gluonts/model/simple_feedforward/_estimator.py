@@ -26,13 +26,13 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.forecast_generator import DistributionForecastGenerator
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     ExpectedNumInstanceSampler,
@@ -104,8 +104,9 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         Scale the network input by the data mean and the network output by
         its inverse (default: True)
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100)
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100)
     train_sampler
         Controls the sampling of windows during training.
     validation_sampler
@@ -137,7 +138,9 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         batch_size: int = 32,
     ) -> None:
         """
-        Defines an estimator. All parameters should be serializable.
+        Defines an estimator.
+
+        All parameters should be serializable.
         """
         super().__init__(trainer=trainer, batch_size=batch_size)
 
@@ -236,7 +239,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -257,9 +259,10 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
         )
 
-    # defines the network, we get to see one batch to initialize it.
-    # the network should return at least one tensor that is used as a loss to minimize in the training loop.
-    # several tensors can be returned for instance for analysis, see DeepARTrainingNetwork for an example.
+    # defines the network, we get to see one batch to initialize it. the
+    # network should return at least one tensor that is used as a loss to
+    # minimize in the training loop. several tensors can be returned for
+    # instance for analysis, see DeepARTrainingNetwork for an example.
     def create_training_network(self) -> HybridBlock:
         return SimpleFeedForwardTrainingNetwork(
             num_hidden_dimensions=self.num_hidden_dimensions,

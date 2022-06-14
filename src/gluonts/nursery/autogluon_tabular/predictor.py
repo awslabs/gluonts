@@ -33,8 +33,10 @@ def no_scaling(series: pd.Series):
 
 
 def mean_abs_scaling(series: pd.Series, minimum_scale=1e-6):
-    """Scales a Series by the mean of its absolute value. Returns the scaled Series
-    and the scale itself.
+    """
+    Scales a Series by the mean of its absolute value.
+
+    Returns the scaled Series and the scale itself.
     """
     scale = max(minimum_scale, series.abs().mean())
     return series / scale, scale
@@ -46,7 +48,8 @@ def get_features_dataframe(
     lag_indices: List[int],
     past_data: Optional[pd.Series] = None,
 ) -> pd.DataFrame:
-    """Constructs a DataFrame of features for a given Series.
+    """
+    Constructs a DataFrame of features for a given Series.
 
     Features include some date-time features (like hour-of-day, day-of-week, ...) and
     lagged values from the series itself. Lag indices are specified by `lags`, while
@@ -82,8 +85,11 @@ def get_features_dataframe(
     all_data = (
         series
         if past_data is None
-        else past_data.append(series).asfreq(series.index.freq)
+        else past_data.append(series)
+        .resample(series.index.freq)
+        .asfreq(series.index.freq)
     )
+
     lag_columns = {
         f"lag_{idx}": all_data.shift(idx)[series.index].values
         for idx in lag_indices
@@ -134,14 +140,13 @@ class TabularPredictor(Predictor):
     def _to_forecast(
         self,
         ag_output: np.ndarray,
-        start_timestamp: pd.Timestamp,
+        start_timestamp: pd.Period,
         item_id=None,
     ) -> Forecast:
         if self.quantiles_to_predict:
             forecasts = ag_output.transpose()
             return QuantileForecast(
-                freq=self.freq,
-                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                start_date=start_timestamp,
                 item_id=item_id,
                 forecast_arrays=forecasts,
                 forecast_keys=self.forecast_keys,
@@ -149,8 +154,7 @@ class TabularPredictor(Predictor):
         else:
             samples = ag_output.reshape((1, self.prediction_length))
             return SampleForecast(
-                freq=self.freq,
-                start_date=pd.Timestamp(start_timestamp, freq=self.freq),
+                start_date=start_timestamp,
                 item_id=item_id,
                 samples=samples,
             )
@@ -165,9 +169,8 @@ class TabularPredictor(Predictor):
         for entry in dataset:
             series, scale = self.scaling(to_pandas(entry))
 
-            forecast_index = pd.date_range(
-                series.index[-1] + series.index.freq,
-                freq=series.index.freq,
+            forecast_index = pd.period_range(
+                series.index[-1] + 1,
                 periods=self.prediction_length,
             )
 
@@ -221,9 +224,8 @@ class TabularPredictor(Predictor):
             scales.append(scale)
             forecast_start = series.index[-1] + series.index.freq
             forecast_start_timestamps.append(forecast_start)
-            forecast_index = pd.date_range(
+            forecast_index = pd.period_range(
                 forecast_start,
-                freq=series.index.freq,
                 periods=self.prediction_length,
             )
             forecast_series = pd.Series(
@@ -272,9 +274,8 @@ class TabularPredictor(Predictor):
             batch_series.append(series)
 
         batch_forecast_indices = [
-            pd.date_range(
-                series.index[-1] + series.index.freq,
-                freq=series.index.freq,
+            pd.period_range(
+                series.index[-1] + 1,
                 periods=self.prediction_length,
             )
             for series in batch_series

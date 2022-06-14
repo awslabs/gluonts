@@ -21,16 +21,13 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
-OLDEST_SUPPORTED_TIMESTAMP = pd.Timestamp(1800, 1, 1, 12)
-LATEST_SUPPORTED_TIMESTAMP = pd.Timestamp(2200, 1, 1, 12)
-
 
 class MultivariateGrouper:
     """
     The MultivariateGrouper takes a univariate dataset and groups it into a
-    single multivariate time series. Therefore, this class allows the user
-    to convert a univariate dataset into a multivariate dataset without making
-    a separate copy of the dataset.
+    single multivariate time series. Therefore, this class allows the user to
+    convert a univariate dataset into a multivariate dataset without making a
+    separate copy of the dataset.
 
     The Multivariate Grouper has two different modes:
 
@@ -66,7 +63,6 @@ class MultivariateGrouper:
     test_fill_rule
         Implements the rule that fills missing data after alignment of the
         time series for the test dataset.
-
     """
 
     @validated()
@@ -82,8 +78,8 @@ class MultivariateGrouper:
         self.train_fill_function = train_fill_rule
         self.test_fill_rule = test_fill_rule
 
-        self.first_timestamp = LATEST_SUPPORTED_TIMESTAMP
-        self.last_timestamp = OLDEST_SUPPORTED_TIMESTAMP
+        self.first_timestamp = None
+        self.last_timestamp = None
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
@@ -94,20 +90,31 @@ class MultivariateGrouper:
         """
         The preprocess function iterates over the dataset to gather data that
         is necessary for alignment.
-        This includes
-            1) Storing first/last timestamp in the dataset
-            2) Storing the frequency of the dataset
+
+        This includes     1) Storing first/last timestamp in the dataset     2)
+        Storing the frequency of the dataset
         """
         for data in dataset:
             timestamp = data[FieldName.START]
+
+            if self.first_timestamp is None:
+                self.first_timestamp = timestamp
+
+            if self.last_timestamp is None:
+                self.last_timestamp = timestamp
+
+            assert self.first_timestamp is not None
+            assert self.last_timestamp is not None
+
             self.first_timestamp = min(self.first_timestamp, timestamp)
             self.last_timestamp = max(
                 self.last_timestamp,
-                timestamp + (len(data[FieldName.TARGET]) - 1) * timestamp.freq,
+                timestamp + len(data[FieldName.TARGET]) - 1,
             )
             self.frequency = timestamp.freq
+
         logging.info(
-            f"first/last timestamp found: "
+            "first/last timestamp found: "
             f"{self.first_timestamp}/{self.last_timestamp}"
         )
 
@@ -131,6 +138,8 @@ class MultivariateGrouper:
         )
 
     def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
+        assert self.num_test_dates is not None
+
         logging.info("group test time-series to datasets")
 
         grouped_data = self._transform_target(self._left_pad_data, dataset)
@@ -155,10 +164,10 @@ class MultivariateGrouper:
             all_entries, freq=self.frequency, one_dim_target=False
         )
 
-    def _align_data_entry(self, data: DataEntry) -> np.array:
+    def _align_data_entry(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=self.last_timestamp,
                 freq=data[FieldName.START].freq,
@@ -166,10 +175,10 @@ class MultivariateGrouper:
             fill_value=self.train_fill_function(ts),
         ).values
 
-    def _left_pad_data(self, data: DataEntry) -> np.array:
+    def _left_pad_data(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=ts.index[-1],
                 freq=data[FieldName.START].freq,
@@ -209,7 +218,7 @@ class MultivariateGrouper:
     def to_ts(data: DataEntry) -> pd.Series:
         return pd.Series(
             data[FieldName.TARGET],
-            index=pd.date_range(
+            index=pd.period_range(
                 start=data[FieldName.START],
                 periods=len(data[FieldName.TARGET]),
                 freq=data[FieldName.START].freq,

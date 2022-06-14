@@ -41,9 +41,10 @@ class MeanScaler(nn.Module):
         self, dim: int, keepdim: bool = False, minimum_scale: float = 1e-10
     ):
         super().__init__()
-        assert (
-            dim > 0
-        ), "Cannot compute scale along dim = 0 (batch dimension), please provide dim > 0"
+        assert dim > 0, (
+            "Cannot compute scale along dim = 0 (batch dimension), please"
+            " provide dim > 0"
+        )
         self.dim = dim
         self.keepdim = keepdim
         self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
@@ -110,6 +111,7 @@ class NOPScaler(nn.Module):
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
-            dim=self.dim
-        )  # TODO this is a waste
-        return data, scale if self.keepdim else scale.squeeze(dim=self.dim)
+            dim=self.dim,
+            keepdim=self.keepdim,
+        )
+        return data, scale

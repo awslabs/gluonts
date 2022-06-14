@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# type: ignore
+
 import json
 import multiprocessing
 import socket
@@ -34,8 +36,8 @@ from gluonts.shell.serve import Settings, make_gunicorn_app
 
 class ServerFacade:
     """
-    A convenience wrapper for sending requests and handling responses to
-    an inference server located at the given address.
+    A convenience wrapper for sending requests and handling responses to an
+    inference server located at the given address.
     """
 
     def __init__(self, base_address: str) -> None:
@@ -102,13 +104,15 @@ class ServerFacade:
 
 
 def free_port() -> int:
-    """Returns a random unbound port."""
+    """
+    Returns a random unbound port.
+    """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         sock.bind(("", 0))
         return sock.getsockname()[1]
 
 
-@contextmanager  # type: ignore
+@contextmanager
 def temporary_server(
     env: ServeEnv,
     forecaster_type: Optional[Type[Predictor]],
@@ -166,9 +170,10 @@ def temporary_server(
     process.join()
 
 
-@contextmanager  # type: ignore
+@contextmanager
 def temporary_train_env(
-    hyperparameters: Dict[str, Any], dataset_name: str
+    hyperparameters: Dict[str, Any],
+    dataset_name: str,
 ) -> ContextManager[TrainEnv]:
     """
     A context manager that instantiates a training environment from a given
@@ -214,12 +219,11 @@ def temporary_train_env(
         yield TrainEnv(path=paths.base)
 
 
-@contextmanager  # type: ignore
+@contextmanager
 def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     """
     A context manager that instantiates a serve environment for a given
-    `Predictor` in a temporary directory and removes the directory on
-    exit.
+    `Predictor` in a temporary directory and removes the directory on exit.
 
     Parameters
     ----------

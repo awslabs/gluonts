@@ -149,9 +149,9 @@ def squared_exponential_kernel(alpha=1.0, tol=1e-9):
 class SpecialDateFeatureSet:
     """
     Implements calculation of holiday features. The SpecialDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -166,7 +166,7 @@ class SpecialDateFeatureSet:
         ... )
         >>> import pandas as pd
         >>> sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY])
-        >>> date_indices = pd.date_range(
+        >>> date_indices = pd.period_range(
         ...     start="2016-12-24",
         ...     end="2016-12-31",
         ...     freq='D'
@@ -184,8 +184,7 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -196,7 +195,8 @@ class SpecialDateFeatureSet:
         Parameters
         ----------
         feature_names
-            list of strings with holiday names for which features should be created.
+            list of strings with holiday names for which features should be
+            created.
         kernel_function
             kernel function to pass the feature value based
             on distance in days. Can be indicator function (default),

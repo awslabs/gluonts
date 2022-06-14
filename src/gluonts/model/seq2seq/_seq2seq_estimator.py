@@ -29,7 +29,7 @@ from gluonts.env import env
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.block.decoder import OneShotDecoder
 from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
 from gluonts.mx.block.encoder import (
@@ -45,7 +45,7 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.transform import (
     ExpectedNumInstanceSampler,
@@ -60,8 +60,7 @@ from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
 
 class Seq2SeqEstimator(GluonEstimator):
     """
-    Quantile-Regression Sequence-to-Sequence Estimator
-
+    Quantile-Regression Sequence-to-Sequence Estimator.
     """
 
     @validated()
@@ -184,7 +183,6 @@ class Seq2SeqEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -277,7 +275,7 @@ class MLP2QRForecaster(Seq2SeqEstimator):
         num_parallel_samples: int = 100,
     ) -> None:
         encoder = MLPEncoder(layer_sizes=encoder_mlp_layer)
-        super(MLP2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,
@@ -321,7 +319,7 @@ class RNN2QRForecaster(Seq2SeqEstimator):
             use_static_feat=True,
             use_dynamic_feat=True,
         )
-        super(RNN2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,
@@ -362,7 +360,7 @@ class CNN2QRForecaster(Seq2SeqEstimator):
             use_static_feat=True,
         )
 
-        super(CNN2QRForecaster, self).__init__(
+        super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             encoder=encoder,

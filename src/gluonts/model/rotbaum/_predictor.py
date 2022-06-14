@@ -21,10 +21,10 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.support.pandas import forecast_start
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 class RotbaumForecast(Forecast):
     """
-    Implements the quantile function in Forecast for TreePredictor,
-    as well as a new estimate_dists function for estimating a sampling of the
-    conditional distribution of the value of each of the steps in the
-    forecast horizon (independently).
+    Implements the quantile function in Forecast for TreePredictor, as well as
+    a new estimate_dists function for estimating a sampling of the conditional
+    distribution of the value of each of the steps in the forecast horizon
+    (independently).
     """
 
     @validated()
@@ -45,23 +45,21 @@ class RotbaumForecast(Forecast):
         self,
         models: List,
         featurized_data: List,
-        start_date: pd.Timestamp,
-        freq,
+        start_date: pd.Period,
         prediction_length: int,
     ):
         self.models = models
         self.featurized_data = featurized_data
         self.start_date = start_date
-        self.freq = freq
         self.prediction_length = prediction_length
         self.item_id = None
         self.lead_time = None
 
-    def quantile(self, q: float) -> np.array:
+    def quantile(self, q: float) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is the estimate of the q
-        quantile of the conditional distribution of the value of the i^th
-        step in the forecast horizon.
+        quantile of the conditional distribution of the value of the i^th step
+        in the forecast horizon.
         """
         assert 0 <= q <= 1
         return np.array(
@@ -73,7 +71,7 @@ class RotbaumForecast(Forecast):
             )
         )
 
-    def estimate_dists(self) -> np.array:
+    def estimate_dists(self) -> np.ndarray:
         """
         Returns np.array, where the i^th entry is an estimated sampling from
         the conditional distribution of the value of the i^th step in the
@@ -92,10 +90,11 @@ class RotbaumForecast(Forecast):
 class TreePredictor(RepresentablePredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
-    horizon. (In other words, there's a total of prediction_length many
-    models being trained. In particular, this predictor does not learn a
-    multivariate distribution.) The list of these models is saved under
-    self.model_list.
+    horizon.
+
+    (In other words, there's a total of prediction_length many models being
+    trained. In particular, this predictor does not learn a multivariate
+    distribution.) The list of these models is saved under self.model_list.
     """
 
     @validated()
@@ -109,6 +108,7 @@ class TreePredictor(RepresentablePredictor):
         min_bin_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
+        use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
         cardinality: Cardinality = "auto",
@@ -137,6 +137,7 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
             use_feat_static_real=use_feat_static_real,
+            use_past_feat_dynamic_real=use_past_feat_dynamic_real,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             cardinality=cardinality,
@@ -147,16 +148,19 @@ class TreePredictor(RepresentablePredictor):
         assert (
             context_length is None or context_length > 0
         ), "The value of `context_length` should be > 0"
+
+        # TODO: Figure out how to include 'auto' with no feat_static_cat in
+        # this check
         assert (
             prediction_length > 0
             or use_feat_dynamic_cat
+            or use_past_feat_dynamic_real
             or use_feat_dynamic_real
             or use_feat_static_real
-            or cardinality
-            != "ignore"  # TODO: Figure out how to include 'auto' with no feat_static_cat in this check
+            or cardinality != "ignore"
         ), (
-            "The value of `prediction_length` should be > 0 or there should be features for model training and "
-            "prediction "
+            "The value of `prediction_length` should be > 0 or there should be"
+            " features for model training and prediction "
         )
 
         self.model_params = model_params if model_params else {}
@@ -169,7 +173,8 @@ class TreePredictor(RepresentablePredictor):
         self.model_list = None
 
         logger.info(
-            "If using the Evaluator class with a TreePredictor, set num_workers=0."
+            "If using the Evaluator class with a TreePredictor, set"
+            " num_workers=0."
         )
 
     def train(
@@ -217,9 +222,8 @@ class TreePredictor(RepresentablePredictor):
                 <= self.preprocess_object.forecast_horizon - 1
             )
             logger.info(
-                f"Training model for step no. {train_QRX_only_using_timestep} in the "
-                f"forecast"
-                f" horizon"
+                "Training model for step no."
+                f" {train_QRX_only_using_timestep} in the forecast horizon"
             )
             self.model_list[train_QRX_only_using_timestep].fit(
                 feature_data,
@@ -242,8 +246,8 @@ class TreePredictor(RepresentablePredictor):
                     if n_step != train_QRX_only_using_timestep:
                         logger.info(
                             f"Training model for step no. {n_step + 1} in the "
-                            f"forecast"
-                            f" horizon"
+                            "forecast"
+                            " horizon"
                         )
                         executor.submit(
                             model.fit,
@@ -257,8 +261,8 @@ class TreePredictor(RepresentablePredictor):
             ) as executor:
                 for n_step, model in enumerate(self.model_list):
                     logger.info(
-                        f"Training model for step no. {n_step + 1} in the forecast"
-                        f" horizon"
+                        f"Training model for step no. {n_step + 1} in the"
+                        " forecast horizon"
                     )
                     executor.submit(
                         model.fit,
@@ -271,9 +275,11 @@ class TreePredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         """
-        Returns a dictionary taking each quantile to a list of floats,
-        which are the predictions for that quantile as you run over
-        (time_steps, time_series) lexicographically. So: first it would give
+        Returns a dictionary taking each quantile to a list of floats, which
+        are the predictions for that quantile as you run over (time_steps,
+        time_series) lexicographically.
+
+        So: first it would give
         the quantile prediction for the first time step for all time series,
         then the second time step for all time series ˜˜ , and so forth.
         """
@@ -281,7 +287,8 @@ class TreePredictor(RepresentablePredictor):
 
         if num_samples:
             log_once(
-                "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+                "Forecast is not sample based. Ignoring parameter"
+                " `num_samples` from predict method."
             )
 
         for ts in dataset:
@@ -293,5 +300,4 @@ class TreePredictor(RepresentablePredictor):
                 [featurized_data],
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
-                freq=self.freq,
             )

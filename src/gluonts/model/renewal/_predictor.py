@@ -14,12 +14,11 @@
 import itertools
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Callable, Iterator
+from typing import List, Optional, Callable, Iterator, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.core.serde import load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -35,13 +34,13 @@ from gluonts.transform import Transformation
 
 class DeepRenewalProcessSampleOutputTransform:
     """
-    Convert a deep renewal process sample that is composed of dense interval-size
-    samples to a sparse forecast.
+    Convert a deep renewal process sample that is composed of dense interval-
+    size samples to a sparse forecast.
 
-    In practice, this often only means taking the first few time steps of each sample
-    trajectory and converting them to the sparse (intermittent) representation.
-    Converts a (N, S, 2, T) array corresponding to the interval-size format to
-    a (N, S, T) array.
+    In practice, this often only means taking the first few time steps of each
+    sample trajectory and converting them to the sparse (intermittent)
+    representation. Converts a (N, S, 2, T) array corresponding to the
+    interval-size format to a (N, S, T) array.
     """
 
     def __call__(self, entry: DataEntry, output: np.ndarray) -> np.ndarray:
@@ -78,7 +77,7 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = DeepRenewalProcessSampleOutputTransform(),
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             prediction_net=prediction_net,

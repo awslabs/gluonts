@@ -31,11 +31,11 @@ DEFAULT_SEASONALITIES = {
 
 
 def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
-    """Return the seasonality of a given frequency:
+    """
+    Return the seasonality of a given frequency:
 
     >>> get_seasonality("2H")
     12
-
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 

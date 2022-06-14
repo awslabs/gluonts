@@ -14,6 +14,7 @@
 import abc
 from typing import Callable, Iterable, Iterator, List
 
+from gluonts.core.component import equals
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.env import env
@@ -71,10 +72,8 @@ class Chain(Transformation):
 class TransformedDataset(Dataset):
     """
     A dataset that corresponds to applying a list of transformations to each
-    element in the base_dataset.
-    This only supports SimpleTransformations, which do the same thing at
-    prediction and training time.
-
+    element in the base_dataset. This only supports SimpleTransformations,
+    which do the same thing at prediction and training time.
 
     Parameters
     ----------
@@ -96,7 +95,8 @@ class TransformedDataset(Dataset):
 
     def __len__(self):
         # NOTE this is unsafe when transformations are run with is_train = True
-        # since some transformations may not be deterministic (instance splitter)
+        # since some transformations may not be deterministic
+        # (instance splitter)
         return sum(1 for _ in self)
 
     def __iter__(self) -> Iterator[DataEntry]:
@@ -114,7 +114,8 @@ class Identity(Transformation):
 
 class MapTransformation(Transformation):
     """
-    Base class for Transformations that returns exactly one result per input in the stream.
+    Base class for Transformations that returns exactly one result per input in
+    the stream.
     """
 
     def __call__(
@@ -133,7 +134,7 @@ class MapTransformation(Transformation):
 
 class SimpleTransformation(MapTransformation):
     """
-    Element wise transformations that are the same in train and test mode
+    Element wise transformations that are the same in train and test mode.
     """
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
@@ -146,8 +147,9 @@ class SimpleTransformation(MapTransformation):
 
 class AdhocTransform(SimpleTransformation):
     """
-    Applies a function as a transformation
-    This is called ad-hoc, because it is not serializable.
+    Applies a function as a transformation This is called ad-hoc, because it is
+    not serializable.
+
     It is OK to use this for experiments and outside of a model pipeline that
     needs to be serialized.
     """
@@ -180,11 +182,11 @@ class FlatMapTransformation(Transformation):
                 yield result
             if num_idle_transforms > self.max_idle_transforms:
                 raise Exception(
-                    f"Reached maximum number of idle transformation calls.\n"
-                    f"This means the transformation looped over "
-                    f"{self.max_idle_transforms} inputs without returning any "
-                    f"output.\nThis occurred in the following transformation:\n"
-                    f"{self}"
+                    "Reached maximum number of idle transformation"
+                    " calls.\nThis means the transformation looped over"
+                    f" {self.max_idle_transforms} inputs without returning any"
+                    " output.\nThis occurred in the following"
+                    f" transformation:\n{self}"
                 )
 
     @abc.abstractmethod
@@ -204,3 +206,16 @@ class FilterTransformation(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         if self.condition(data):
             yield data
+
+
+# The __init__ in FilterTransformation is not validated but the __init__ in the
+# parent class (FlatMapTransformation) is. So now the code
+# (equals_default_impl) validate the arguments in FilterTransformation, which
+# is an empty dict for all the FilterTransformation. We can not make __init__
+# FilterTransformation as validated as we may use lambda function as the
+# argument
+@equals.register(FilterTransformation)
+def equals_filter_transformation(
+    this: FilterTransformation, that: FilterTransformation
+):
+    return this.condition.__code__.co_code == that.condition.__code__.co_code

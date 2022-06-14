@@ -21,6 +21,26 @@ from .module import DeepARModel
 
 
 class DeepARLightningModule(pl.LightningModule):
+    """
+    A ``pl.LightningModule`` class that can be used to train a
+    ``DeepARModel`` with PyTorch Lightning.
+
+    This is a thin layer around a (wrapped) ``DeepARModel`` object,
+    that exposes the methods to evaluate training and validation loss.
+
+    Parameters
+    ----------
+    model
+        ``DeepARModel`` to be trained.
+    loss
+        Loss function to be used for training,
+        default: ``NegativeLogLikelihood()``.
+    lr
+        Learning rate, default: ``1e-3``.
+    weight_decay
+        Weight decay regularization parameter, default: ``1e-8``.
+    """
+
     def __init__(
         self,
         model: DeepARModel,
@@ -45,7 +65,7 @@ class DeepARLightningModule(pl.LightningModule):
         past_observed_values = batch["past_observed_values"]
         future_observed_values = batch["future_observed_values"]
 
-        params, scale, _, _ = self.model.unroll_lagged_rnn(
+        params, scale, _, _, _ = self.model.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
@@ -73,12 +93,14 @@ class DeepARLightningModule(pl.LightningModule):
         if len(self.model.target_shape) == 0:
             loss_weights = observed_values
         else:
-            loss_weights = observed_values.min(dim=-1, keepdim=False)
+            loss_weights, _ = observed_values.min(dim=-1, keepdim=False)
 
         return weighted_average(loss_values, weights=loss_weights)
 
-    def training_step(self, batch, batch_idx: int):
-        """Execute training step"""
+    def training_step(self, batch, batch_idx: int):  # type: ignore
+        """
+        Execute training step.
+        """
         train_loss = self._compute_loss(batch)
         self.log(
             "train_loss",
@@ -89,8 +111,10 @@ class DeepARLightningModule(pl.LightningModule):
         )
         return train_loss
 
-    def validation_step(self, batch, batch_idx: int):
-        """Execute validation step"""
+    def validation_step(self, batch, batch_idx: int):  # type: ignore
+        """
+        Execute validation step.
+        """
         val_loss = self._compute_loss(batch)
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
@@ -98,7 +122,9 @@ class DeepARLightningModule(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        """Returns the optimizer to use"""
+        """
+        Returns the optimizer to use.
+        """
         return torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,

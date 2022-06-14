@@ -122,17 +122,23 @@ class GitRepo:
         return Path(self.sh(["git", "rev-parse", "--show-toplevel"]))
 
     def clean(self) -> bool:
-        """Return if any tracked file has uncommited changes."""
+        """
+        Return if any tracked file has uncommited changes.
+        """
 
         proc = subprocess.run(["git", "diff", "--quiet"], cwd=self.cwd)
         return proc.returncode == 0
 
     def describe(self):
-        """Return triple `<tag>-<commits>-<hash>`."""
+        """
+        Return triple `<tag>-<commits>-<hash>`.
+        """
         return self.sh(GIT_DESCRIBE, stderr=subprocess.PIPE)
 
     def head_commit(self):
-        """Get hash of most recent commit."""
+        """
+        Get hash of most recent commit.
+        """
         return self.sh(["git", "rev-parse", "--short", "HEAD"])
 
 
@@ -163,7 +169,7 @@ def get_git_archive_version(fallback):
 
 def get_git_version(fallback):
     def format_version(release, is_dev, labels):
-        dev = ".dev" if is_dev else ""
+        dev = ".dev0" if is_dev else ""
         labels = "+" + ".".join(labels) if labels else ""
         return "".join([release, dev, labels])
 
@@ -174,7 +180,7 @@ def get_git_version(fallback):
         # TODO: Do we really need this check?
         if repo.root() != dist_root_:
             return None
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         # can fail if git is not installed, or command fails
         return None
 

@@ -19,11 +19,11 @@ from pydantic import PositiveInt
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.util import forecast_start
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
-from gluonts.support.pandas import forecast_start
 
 
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
@@ -70,24 +70,24 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=std * normal + mean,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
 
 class MovingAveragePredictor(RepresentablePredictor):
     """
-    A :class:`Predictor` that predicts the moving average based on the
-    last `context_length` elements of the input target.
+    A :class:`Predictor` that predicts the moving average based on the last
+    `context_length` elements of the input target.
 
     If `prediction_length` = 1, the output is the moving average
     based on the last `context_length` elements of the input target.
 
     If `prediction_length` > 1, the output is the moving average based on the
-    last `context_length` elements of the input target, where
-    previously calculated moving averages are appended at the end of the input target.
+    last `context_length` elements of the input target, where previously
+    calculated moving averages are appended at the end of the inputtarget.
     Hence, for `prediction_length` larger than `context_length`, there will be
-    cases where the moving average is calculated on top of previous moving averages.
+    cases where the moving average is calculated on top of previous moving
+    averages.
 
     Parameters
     ----------
@@ -129,16 +129,15 @@ class MovingAveragePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
 
 class MeanEstimator(Estimator):
     """
-    An `Estimator` that computes the mean targets in the training data,
-    in the trailing `prediction_length` observations, and produces
-    a `ConstantPredictor` that always predicts such mean value.
+    An `Estimator` that computes the mean targets in the training data, in the
+    trailing `prediction_length` observations, and produces a
+    `ConstantPredictor` that always predicts such mean value.
 
     Parameters
     ----------

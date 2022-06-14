@@ -29,7 +29,8 @@ class LogitNormal(Distribution):
     Parameters
     ----------
     mu
-        Tensor containing the location, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the location, of shape
+        `(*batch_shape, *event_shape)`.
     sigma
         Tensor indicating the scale, of shape `(*batch_shape, *event_shape)`.
     F
@@ -68,7 +69,7 @@ class LogitNormal(Distribution):
             + F.log(1 - x)
             + (
                 (F.log(x) - F.log(1 - x) - self.mu) ** 2
-                / (2 * (self.sigma ** 2))
+                / (2 * (self.sigma**2))
             )
         )
         return log_prob
@@ -107,7 +108,7 @@ class LogitNormalOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, sigma):
-        sigma = softplus(F, sigma)
+        sigma = F.maximum(softplus(F, sigma), cls.eps())
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
 
     @property

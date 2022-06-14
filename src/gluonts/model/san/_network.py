@@ -114,7 +114,7 @@ class SelfAttentionNetwork(HybridBlock):
         self.d_hidden = d_hidden
         assert (n_output % 2 == 1) and (n_output <= 9)
         self.quantiles = sum(
-            [[i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)],
+            ([i / 10, 1.0 - i / 10] for i in range(1, (n_output + 1) // 2)),
             [0.5],
         )
         self.normalizer_eps = normalizer_eps
@@ -187,10 +187,10 @@ class SelfAttentionNetwork(HybridBlock):
         offset = F.sum(obs, axis=1, keepdims=True) / (
             count + self.normalizer_eps
         )
-        scale = F.sum(obs ** 2, axis=1, keepdims=True) / (
+        scale = F.sum(obs**2, axis=1, keepdims=True) / (
             count + self.normalizer_eps
         )
-        scale = scale - offset ** 2
+        scale = scale - offset**2
         scale = scale.sqrt()
 
         past_target = (past_target - offset) / (scale + self.normalizer_eps)

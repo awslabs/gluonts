@@ -70,8 +70,8 @@ class TransformerEncoder(HybridBlock):
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
 
         """
-        A transformer encoder block consists of a self-attention and a feed-forward layer with pre/post process blocks
-        in between.
+        A transformer encoder block consists of a self-attention and a feed-
+        forward layer with pre/post process blocks in between.
         """
 
         # input layer

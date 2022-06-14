@@ -32,13 +32,13 @@ from gluonts.model.transformer._network import (
 )
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,
@@ -95,20 +95,20 @@ class TransformerEstimator(GluonEstimator):
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput())
     model_dim
-        Dimension of the transformer network, i.e., embedding dimension of the input
-        (default: 32)
+        Dimension of the transformer network, i.e., embedding dimension of the
+        input (default: 32)
     inner_ff_dim_scale
         Dimension scale of the inner hidden layer of the transformer's
         feedforward network (default: 4)
     pre_seq
-        Sequence that defined operations of the processing block before the main transformer
-        network. Available operations: 'd' for dropout, 'r' for residual connections
-        and 'n' for normalization (default: 'dn')
+        Sequence that defined operations of the processing block before the
+        main transformer network. Available operations: 'd' for dropout, 'r'
+        for residual connections and 'n' for normalization (default: 'dn')
     post_seq
-        seq
-        Sequence that defined operations of the processing block in and after the main
-        transformer network. Available operations: 'd' for dropout, 'r' for residual connections
-        and 'n' for normalization (default: 'drn').
+        Sequence that defined operations of the processing block in and after
+        the main transformer network. Available operations: 'd' for
+        dropout, 'r' for residual connections and 'n' for normalization
+        (default: 'drn').
     act_type
         Activation type of the transformer network (default: 'softrelu')
     num_heads
@@ -123,8 +123,9 @@ class TransformerEstimator(GluonEstimator):
         Time features to use as inputs of the RNN (default: None, in which
         case these are automatically determined based on freq)
     num_parallel_samples
-        Number of evaluation samples per time series to increase parallelism during inference.
-        This is a model optimization that does not affect the accuracy (default: 100)
+        Number of evaluation samples per time series to increase parallelism
+        during inference. This is a model optimization that does not affect the
+        accuracy (default: 100)
     train_sampler
         Controls the sampling of windows during training.
     validation_sampler
@@ -325,7 +326,6 @@ class TransformerEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -357,7 +357,7 @@ class TransformerEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
+            scaling=self.scaling,
         )
 
     def create_predictor(
@@ -375,7 +375,7 @@ class TransformerEstimator(GluonEstimator):
             cardinality=self.cardinality,
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
-            scaling=True,
+            scaling=self.scaling,
             num_parallel_samples=self.num_parallel_samples,
         )
 

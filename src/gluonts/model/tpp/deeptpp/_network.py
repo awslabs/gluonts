@@ -40,8 +40,8 @@ class DeepTPPNetworkBase(mx.gluon.HybridBlock):
         of GluonTS, the network is trained to predict an interval, in
         continuous time.
     time_distr_output
-        Output distribution for the inter-arrival times. Available distributions
-        can be found in gluonts.model.tpp.distribution.
+        Output distribution for the inter-arrival times. Available
+        distributions can be found in gluonts.model.tpp.distribution.
     embedding_dim
         Dimension of vector embeddings of marks (used only as input).
     num_hidden_dimensions
@@ -58,7 +58,7 @@ class DeepTPPNetworkBase(mx.gluon.HybridBlock):
         self,
         num_marks: int,
         interval_length: float,
-        time_distr_output: TPPDistributionOutput = distribution.WeibullOutput(),
+        time_distr_output: TPPDistributionOutput = distribution.WeibullOutput(),  # noqa: E501
         embedding_dim: int = 5,
         num_hidden_dimensions: int = 10,
         output_scale: Optional[Tensor] = None,
@@ -233,9 +233,9 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         past_valid_length: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         """
-        Draw forward samples from the model. At each step, we sample an
-        inter-event time and feed it into the RNN to obtain the parameters for
-        the next distribution over the inter-event time.
+        Draw forward samples from the model. At each step, we sample an inter-
+        event time and feed it into the RNN to obtain the parameters for the
+        next distribution over the inter-event time.
 
         Parameters
         ----------

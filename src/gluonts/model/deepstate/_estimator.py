@@ -29,13 +29,13 @@ from gluonts.dataset.loader import (
 from gluonts.env import env
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     norm_freq_str,
@@ -63,11 +63,12 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 
 
 # A dictionary mapping granularity to the period length of the longest season
-# one can expect given the granularity of the time series.
-# This is similar to the frequency value in the R forecast package:
+# one can expect given the granularity of the time series. This is similar to
+# the frequency value in the R forecast package:
 # https://stats.stackexchange.com/questions/120806/frequency-value-for-seconds-minutes-intervals-data-in-r
 # This is useful for setting default values for past/context length for models
-# that do not do data augmentation and uses a single training example per time series in the dataset.
+# that do not do data augmentation and uses a single training example per time
+# series in the dataset.
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
     "W": 52,  # yearly seasonality
@@ -205,8 +206,9 @@ class DeepStateEstimator(GluonEstimator):
         ), "The value of `num_parallel_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
         assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
-            f"Cardinality of at least one static categorical feature must be larger than 1 "
-            f"if `use_feat_static_cat=True`. But cardinality provided is: {cardinality}"
+            "Cardinality of at least one static categorical feature must be"
+            " larger than 1 if `use_feat_static_cat=True`. But cardinality"
+            f" provided is: {cardinality}"
         )
         assert embedding_dimension is None or all(
             e > 0 for e in embedding_dimension
@@ -215,7 +217,10 @@ class DeepStateEstimator(GluonEstimator):
         assert all(
             np.isfinite(p.lower) and np.isfinite(p.upper) and p.lower > 0
             for p in [noise_std_bounds, prior_cov_bounds, innovation_bounds]
-        ), "All parameter bounds should be finite, and lower bounds should be positive"
+        ), (
+            "All parameter bounds should be finite, and lower bounds should be"
+            " positive"
+        )
 
         self.freq = freq
         self.past_length = (
@@ -348,7 +353,6 @@ class DeepStateEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

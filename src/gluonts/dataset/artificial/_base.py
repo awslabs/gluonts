@@ -13,10 +13,22 @@
 
 import math
 import random
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
+from abc import abstractmethod
+from typing import (
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import BaseOffset, Week
 
 from gluonts.dataset.artificial.recipe import (
     BinaryHolidays,
@@ -49,9 +61,11 @@ from gluonts.dataset.stat import (
 
 class DatasetInfo(NamedTuple):
     """
-    Information stored on a dataset. When downloading from the repository, the
-    dataset repository checks that the obtained version matches the one
-    declared in dataset_info/dataset_name.json.
+    Information stored on a dataset.
+
+    When downloading from the repository, the dataset repository checks that
+    the obtained version matches the one declared in
+    dataset_info/dataset_name.json.
     """
 
     name: str
@@ -67,17 +81,20 @@ class ArtificialDataset:
     """
 
     def __init__(self, freq) -> None:
-        self.freq = freq
+        self.freq: BaseOffset = to_offset(freq)
 
     @property
+    @abstractmethod
     def metadata(self) -> MetaData:
         pass
 
     @property
+    @abstractmethod
     def train(self) -> List[DataEntry]:
         pass
 
     @property
+    @abstractmethod
     def test(self) -> List[DataEntry]:
         pass
 
@@ -97,29 +114,37 @@ class ConstantDataset(ArtificialDataset):
         num_steps: int = 30,
         freq: str = "1H",
         start: str = "2000-01-01 00:00:00",
-        is_nan: bool = False,  # Generates constant dataset of 0s with explicit NaN missing values
-        is_random_constant: bool = False,  # Inserts random constant value for each time series
-        is_different_scales: bool = False,  # Generates constants on various scales
-        is_piecewise: bool = False,  # Determines whether the time series in the test
+        # Generates constant dataset of 0s with explicit NaN missing values
+        is_nan: bool = False,
+        # Inserts random constant value for each time series
+        is_random_constant: bool = False,
+        # Generates constants on various scales
+        is_different_scales: bool = False,
+        # Determines whether the time series in the test
         # and train set should have different constant values
-        is_noise: bool = False,  # Determines whether to add Gaussian noise to the constant dataset
-        is_long: bool = False,  # Determines whether some time series will have very long lengths
-        is_short: bool = False,  # Determines whether some time series will have very short lengths
-        is_trend: bool = False,  # Determines whether to add linear trends
-        num_missing_middle: int = 0,  # Number of missing values in the middle of the time series
-        is_promotions: bool = False,  # Determines whether to add promotions to the target time series
+        is_piecewise: bool = False,
+        # Determines whether to add Gaussian noise to the constant dataset
+        is_noise: bool = False,
+        # Determines whether some time series will have very long lengths
+        is_long: bool = False,
+        # Determines whether some time series will have very short lengths
+        is_short: bool = False,
+        # Determines whether to add linear trends
+        is_trend: bool = False,
+        # Number of missing values in the middle of the time series
+        num_missing_middle: int = 0,
+        # Determines whether to add promotions to the target time series
         # and to store in metadata
-        holidays: Optional[
-            List[pd.Timestamp]
-        ] = None,  # Determines whether to add holidays to the target time series
+        is_promotions: bool = False,
+        # Determines whether to add holidays to the target time series
         # and to store in metadata
+        holidays: Optional[List[pd.Timestamp]] = None,
     ) -> None:
-        super(ConstantDataset, self).__init__(freq)
+        super().__init__(freq)
         self.num_timeseries = num_timeseries
         self.num_steps = num_steps
         self.num_training_steps = self.num_steps // 10 * 8
         self.prediction_length = self.num_steps - self.num_training_steps
-        self.start = start
         self.is_nan = is_nan
         self.is_random_constant = is_random_constant
         self.is_different_scales = is_different_scales
@@ -132,10 +157,16 @@ class ConstantDataset(ArtificialDataset):
         self.is_promotions = is_promotions
         self.holidays = holidays
 
+        if isinstance(self.freq, Week):
+            self.freq = Week(
+                self.freq.n, weekday=pd.Timestamp(start).weekday()
+            )
+        self.start = cast(pd.Period, pd.Period(start, self.freq))
+
     @property
     def metadata(self) -> MetaData:
         metadata = MetaData(
-            freq=self.freq,
+            freq=self.freq.freqstr,
             feat_static_cat=[
                 {
                     "name": "feat_static_cat_000",
@@ -147,7 +178,7 @@ class ConstantDataset(ArtificialDataset):
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
-                freq=self.freq,
+                freq=self.freq.freqstr,
                 feat_static_cat=[
                     {
                         "name": "feat_static_cat_000",
@@ -200,12 +231,10 @@ class ConstantDataset(ArtificialDataset):
             )
             recipe_type += scale_features * Lag("binary_causal", lag=0)
         if self.holidays:
-            timestamp = self.init_date()
             # Compute dates array
-            dates = []
-            for i in range(num_steps):
-                dates.append(timestamp)
-                timestamp += 1
+            dates = list(
+                pd.period_range(self.start, periods=num_steps, freq=self.freq)
+            )
             recipe.append(
                 ("binary_holidays", BinaryHolidays(dates, self.holidays))
             )
@@ -220,7 +249,9 @@ class ConstantDataset(ArtificialDataset):
             metadata=self.metadata,
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
-            num_timeseries=1,  # Add 1 time series at a time in the loop for different constant valus per time series
+            # Add 1 time series at a time in the loop for different constant
+            # valus per time series
+            num_timeseries=1,
         )
         generated = data.generate()
         return generated
@@ -250,27 +281,12 @@ class ConstantDataset(ArtificialDataset):
             num_steps = num_steps_min
         return num_steps
 
-    def init_date(self) -> pd.Timestamp:
-        week_dict = {
-            0: "MON",
-            1: "TUE",
-            2: "WED",
-            3: "THU",
-            4: "FRI",
-            5: "SAT",
-            6: "SUN",
-        }
-        timestamp = pd.Timestamp(self.start)
-        freq_week_start = self.freq
-        if freq_week_start == "W":
-            freq_week_start = f"W-{week_dict[timestamp.weekday()]}"
-        return pd.Timestamp(self.start, freq=freq_week_start)
-
     @staticmethod
     def insert_nans_and_zeros(ts_len: int) -> List:
         target = []
         for j in range(ts_len):
-            # Place NaNs at even indices. Use convention no NaNs before start date.
+            # Place NaNs at even indices. Use convention no NaNs before start
+            # date.
             if j != 0 and j % 2 == 0:
                 target.append(np.nan)
             # Place zeros at odd indices
@@ -280,21 +296,23 @@ class ConstantDataset(ArtificialDataset):
 
     def insert_missing_vals_middle(
         self, ts_len: int, constant: Optional[float]
-    ) -> List:
-        target = []
+    ) -> List[Optional[float]]:
+        target: List[Optional[float]] = []
         lower_bound = (self.num_training_steps - self.num_missing_middle) // 2
         upper_bound = (self.num_training_steps + self.num_missing_middle) // 2
         num_missing_endpts = math.floor(0.1 * self.num_missing_middle)
         for j in range(ts_len):
             if (
-                (0 < j < lower_bound and j % (2 * num_missing_endpts) == 0)
-                or (lower_bound <= j < upper_bound)
-                or (j >= upper_bound and j % (2 * num_missing_endpts) == 0)
+                0 < j < lower_bound
+                and j % (2 * num_missing_endpts) == 0
+                or lower_bound <= j < upper_bound
+                or j >= upper_bound
+                and j % (2 * num_missing_endpts) == 0
             ):
-                val = np.nan
+                target.append(float("nan"))
             else:
-                val = constant
-            target.append(val)
+                target.append(constant)
+
         return target
 
     def generate_ts(
@@ -363,7 +381,6 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     Generate sinus time series that ramp up and reach a certain amplitude, and
     level and have additional spikes on each sunday.
 
-
     TODO: This could be converted to a RecipeDataset to avoid code duplication.
     """
 
@@ -399,13 +416,17 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
         :param proportion_missing_values:
         :param is_noise: whether to add noise
         :param is_scale: whether to add scale
-        :param percentage_unique_timestamps: percentage of random start dates bounded between 0 and 1
-        :param is_out_of_bounds_date: determines whether to use very old start dates and start dates far in the future
-        :param seasonality: Seasonality of the generated data. If not given uses default seasonality for frequency
-        :param clip_values: if True the values will be clipped to [min_val, max_val], otherwise linearly scales them
+        :param percentage_unique_timestamps: percentage of random start dates
+            bounded between 0 and 1
+        :param is_out_of_bounds_date: determines whether to use very old start
+            dates and start dates far in the future
+        :param seasonality: Seasonality of the generated data. If not given
+            uses default seasonality for frequency
+        :param clip_values: if True the values will be clipped to
+            [min_val, max_val], otherwise linearly scales them
         """
         assert length_low > prediction_length
-        super(ComplexSeasonalTimeSeries, self).__init__(freq_str)
+        super().__init__(freq_str)
         self.num_series = num_series
         self.prediction_length = prediction_length
         self.length_low = length_low
@@ -425,7 +446,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
     @property
     def metadata(self) -> MetaData:
         return MetaData(
-            freq=self.freq, prediction_length=self.prediction_length
+            freq=self.freq.freqstr, prediction_length=self.prediction_length
         )
 
     def _get_period(self) -> int:
@@ -463,7 +484,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 3,
             )  # Pandas doesn't allot before 1650
             start_h, start_min = 18, 36
-        # assume that only 100 * percentage_unique_timestamps of timestamps are unique
+        # assume that only 100 * percentage_unique_timestamps of timestamps are
+        # unique
         elif my_random.random() < self.percentage_unique_timestamps:
             start_y = my_random.randint(2000, 2018)
             start_m = my_random.randint(1, 12)
@@ -525,8 +547,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
 
     def make_timeseries(self, seed: int = 1) -> List[DataEntry]:
         res = []
-        # Fix seed so that the training set is the same
-        # as the test set from 0:self.prediction_length for the two independent calls
+        # Fix seed so that the training set is the same as the test set from
+        # 0:self.prediction_length for the two independent calls
 
         def sigmoid(x: np.ndarray) -> np.ndarray:
             return 1.0 / (1.0 + np.exp(-x))
@@ -544,7 +566,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             period = self._get_period()
             w = 2 * np.pi / period
             t = np.arange(length)
-            idx = pd.date_range(
+            idx = pd.period_range(
                 start=start, freq=self.freq_str, periods=length
             )
             special_tp_indicator = self._special_time_point_indicator(idx)
@@ -563,12 +585,13 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             if self.clip_values:
                 np.clip(v, a_min=self.min_val, a_max=self.max_val, out=v)
             else:
-                """
-                Rather than mapping [v_min, v_max] to [self.min_val, self.max_val] which would lead to
-                all the time series having the same min and max, we want to keep the same interval length
-                (v_max - v_min). We thus shift the interval [v_min, v_max] in [self.min_val, self.max_val]
-                and clip it if needed.
-                """
+                # Rather than mapping [v_min, v_max] to
+                # [self.min_val, self.max_val] which would lead to all the
+                # time series having the same min and max, we want to keep the
+                # same interval length.
+                # (v_max - v_min). We thus shift the interval [v_min, v_max] in
+                # [self.min_val, self.max_val] and clip it if needed.
+
                 v_min, v_max = v.min(), v.max()
                 p_min, p_max = (
                     max(self.min_val, v_min),
@@ -608,7 +631,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                 )  # Add one in case this gets zero
                 missing_idx = idx[:num_missing_values]
                 for j in missing_idx:
-                    # Using convention that there are no missing values before the start date.
+                    # Using convention that there are no missing values before
+                    # the start date.
                     if j != 0:
                         v[j] = None if state.rand() < 0.5 else "NaN"
             res.append(
@@ -622,7 +646,8 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
 
 
 class RecipeDataset(ArtificialDataset):
-    """Synthetic data set generated by providing a recipe.
+    """
+    Synthetic data set generated by providing a recipe.
 
     A recipe is either a (non-deterministic) function
 
@@ -668,11 +693,21 @@ class RecipeDataset(ArtificialDataset):
         self.prediction_length = prediction_length
         self.trim_length_fun = trim_length_fun
         self.num_timeseries = num_timeseries
-        self.data_start = pd.Timestamp(data_start, freq=self._metadata.freq)
+        self.data_start = cast(
+            pd.Period, pd.Period(data_start, freq=self._metadata.freq)
+        )
 
     @property
     def metadata(self) -> MetaData:
         return self._metadata
+
+    @property
+    def train(self):
+        raise NotImplementedError
+
+    @property
+    def test(self):
+        raise NotImplementedError
 
     def dataset_info(self, train_ds: Dataset, test_ds: Dataset) -> DatasetInfo:
         return DatasetInfo(
@@ -685,9 +720,10 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_end(x: DataEntry, length: int) -> DataEntry:
-        """Trim a DataEntry into a training range, by removing
-        the last prediction_length time points from the target and dynamic
-        features."""
+        """
+        Trim a DataEntry into a training range, by removing the last
+        prediction_length time points from the target and dynamic features.
+        """
         y = dict(
             item_id=x[FieldName.ITEM_ID],
             start=x[FieldName.START],
@@ -706,9 +742,10 @@ class RecipeDataset(ArtificialDataset):
 
     @staticmethod
     def trim_ts_item_front(x: DataEntry, length: int) -> DataEntry:
-        """Trim a DataEntry into a training range, by removing
-        the first offset_front time points from the target and dynamic
-        features."""
+        """
+        Trim a DataEntry into a training range, by removing the first
+        offset_front time points from the target and dynamic features.
+        """
         assert length <= len(x[FieldName.TARGET])
 
         y = dict(

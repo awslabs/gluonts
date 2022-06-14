@@ -12,13 +12,14 @@
 # permissions and limitations under the License.
 
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
 import pytest
-from pandas import Timestamp
+
 
 from gluonts.dataset.artificial import ComplexSeasonalTimeSeries
 
@@ -32,7 +33,19 @@ from gluonts.dataset.common import (
 )
 from gluonts.dataset.jsonl import JsonLinesFile
 from gluonts.dataset.util import find_files
-from gluonts.support.util import Timer
+
+
+class Timer:
+    """Context manager for measuring the time of enclosed code fragments."""
+
+    def __enter__(self):
+        self.start = time.perf_counter()
+        self.interval = None
+        return self
+
+    def __exit__(self, *args):
+        self.end = time.perf_counter()
+        self.interval = self.end - self.start
 
 
 def baseline(path: Path, freq: str) -> Iterator[Any]:
@@ -62,7 +75,7 @@ def load_file_dataset_cached(path: Path, freq: str) -> Iterator[Any]:
 
 def load_file_dataset_numpy(path: Path, freq: str) -> Iterator[Any]:
     for item in FileDataset(path, freq):
-        item["start"] = pd.Timestamp(item["start"])
+        item["start"] = pd.Period(item["start"])
         item["target"] = np.array(item["target"])
         yield item
 
@@ -76,7 +89,7 @@ def load_list_dataset(path: Path, freq: str) -> Iterator[Any]:
     return iter(ListDataset(lines, freq))
 
 
-# @pytest.mark.skip()
+@pytest.mark.xfail()
 def test_io_speed() -> None:
     exp_size = 250
     act_size = 0
@@ -141,21 +154,19 @@ def test_io_speed() -> None:
 
 
 def test_loader_multivariate() -> None:
-    with tempfile.TemporaryDirectory() as tmp_folder:
-        tmp_path = Path(tmp_folder)
+    ds = list(
+        ListDataset(
+            [
+                {"start": "2014-09-07", "target": [[1, 2, 3]]},
+                {"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]},
+            ],
+            freq="1D",
+            one_dim_target=False,
+        )
+    )
 
-        lines = [
-            """{"start": "2014-09-07", "target": [[1, 2, 3]]}
-                {"start": "2014-09-07", "target": [[-1, -2, 3], [2, 4, 81]]}
-            """,
-        ]
-        with open(tmp_path / "dataset.json", "w") as f:
-            f.write("\n".join(lines))
+    assert (ds[0]["target"] == [[1, 2, 3]]).all()
+    assert ds[0]["start"] == pd.Period("2014-09-07", freq="D")
 
-        ds = list(FileDataset(tmp_path, freq="1D", one_dim_target=False))
-
-        assert (ds[0]["target"] == [[1, 2, 3]]).all()
-        assert ds[0]["start"] == Timestamp("2014-09-07", freq="D")
-
-        assert (ds[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
-        assert ds[1]["start"] == Timestamp("2014-09-07", freq="D")
+    assert (ds[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
+    assert ds[1]["start"] == pd.Period("2014-09-07", freq="D")

@@ -27,12 +27,12 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import (
     Constant,
     TimeFeature,
@@ -90,9 +90,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         validation_sampler: Optional[InstanceSampler] = None,
         batch_size: int = 32,
     ) -> None:
-        super(TemporalFusionTransformerEstimator, self).__init__(
-            trainer=trainer, batch_size=batch_size
-        )
+        super().__init__(trainer=trainer, batch_size=batch_size)
         assert (
             prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
@@ -349,7 +347,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -444,6 +441,8 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(
-                quantiles=[str(q) for q in prediction_network.quantiles],
+                quantiles=[
+                    str(q) for q in prediction_network.output.quantiles
+                ],
             ),
         )

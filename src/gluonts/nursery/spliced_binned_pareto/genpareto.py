@@ -52,7 +52,7 @@ class GenPareto(Distribution):
         xi, beta = self.xi, self.beta
         return torch.where(
             xi < 1 / 2.0,
-            torch.div(beta ** 2, torch.mul((1 - xi) ** 2, (1 - 2 * xi))),
+            torch.div(beta**2, torch.mul((1 - xi) ** 2, (1 - 2 * xi))),
             np.nan * torch.ones_like(xi),
         )
 
@@ -67,9 +67,7 @@ class GenPareto(Distribution):
             batch_shape = torch.Size()
         else:
             batch_shape = self.xi.size()
-        super(GenPareto, self).__init__(
-            batch_shape, validate_args=validate_args
-        )
+        super().__init__(batch_shape, validate_args=validate_args)
 
         if (
             self._validate_args

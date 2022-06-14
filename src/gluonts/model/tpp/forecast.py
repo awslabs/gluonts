@@ -23,10 +23,10 @@ from gluonts.model.forecast import Config, Forecast, OutputType
 
 class PointProcessSampleForecast(Forecast):
     """
-    Sample forecast object used for temporal point process inference.
-    Differs from standard forecast objects as it does not implement
-    fixed length samples. Each sample has a variable length, that is
-    kept in a separate :code:`valid_length` attribute.
+    Sample forecast object used for temporal point process inference. Differs
+    from standard forecast objects as it does not implement fixed length
+    samples. Each sample has a variable length, that is kept in a separate
+    :code:`valid_length` attribute.
 
     Importantly, PointProcessSampleForecast does not implement some
     methods (such as :code:`quantile` or :code:`plot`) that are available
@@ -45,7 +45,7 @@ class PointProcessSampleForecast(Forecast):
         that only the first two entries of :code:`samples[0, ...]` are
         valid "points".
     start_date
-        Starting timestamp of the sample
+        Starting Timestamp of the sample
     freq
         The time unit of interarrival times
     prediction_interval_length
@@ -54,13 +54,14 @@ class PointProcessSampleForecast(Forecast):
         Item ID, if available.
     info
         Optional dictionary of additional information.
+
     """
 
     prediction_interval_length: float
 
-    # not used
+    # TODO: not used
     prediction_length = cast(int, None)
-    mean = None
+    mean = cast(np.ndarray, None)
     _index = None
 
     def __init__(
@@ -76,9 +77,10 @@ class PointProcessSampleForecast(Forecast):
         assert isinstance(
             samples, (np.ndarray, mx.nd.NDArray)
         ), "samples should be either a numpy or an mxnet array"
-        assert (
-            samples.ndim == 2 or samples.ndim == 3
-        ), f"samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {samples.ndim}"
+        assert samples.ndim == 2 or samples.ndim == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            f" Dimensions found: {samples.ndim}"
+        )
 
         assert isinstance(
             valid_length, (np.ndarray, mx.nd.NDArray)
@@ -105,7 +107,7 @@ class PointProcessSampleForecast(Forecast):
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
+        self.interarrival_freq = freq
 
         assert (
             prediction_interval_length > 0
@@ -113,12 +115,15 @@ class PointProcessSampleForecast(Forecast):
         self.prediction_interval_length = prediction_interval_length
 
         self.end_date = (
-            start_date
-            + to_timedelta(1, self.freq) * prediction_interval_length
+            start_date + to_timedelta(1, freq) * prediction_interval_length
         )
 
     def dim(self) -> int:
         return self._dim
+
+    @property
+    def freq(self):
+        return self.interarrival_freq
 
     @property
     def index(self) -> pd.DatetimeIndex:

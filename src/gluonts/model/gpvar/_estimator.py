@@ -30,14 +30,14 @@ from gluonts.model.deepvar._estimator import (
     time_features_from_frequency_str,
 )
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.time_feature import TimeFeature
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -319,8 +319,12 @@ class GPVAREstimator(GluonEstimator):
                 if self.use_marginal_transformation
                 else RenameFields(
                     {
-                        f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
-                        f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
+                        f"past_{FieldName.TARGET}": (
+                            f"past_{FieldName.TARGET}_cdf"
+                        ),
+                        f"future_{FieldName.TARGET}": (
+                            f"future_{FieldName.TARGET}_cdf"
+                        ),
                     }
                 )
             )
@@ -346,7 +350,6 @@ class GPVAREstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

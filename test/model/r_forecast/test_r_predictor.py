@@ -15,6 +15,7 @@ import pytest
 
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
+from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
@@ -24,7 +25,6 @@ from gluonts.model.r_forecast import (
     SUPPORTED_METHODS,
     QUANTILE_FORECAST_METHODS,
 )
-from gluonts.support.pandas import forecast_start
 
 
 # conditionally skip these tests if `R` and `rpy2` are not installed

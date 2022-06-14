@@ -32,10 +32,11 @@ logger = logging.getLogger(__name__)
 class Callback:
     """
     Abstract Callback base class.
-    Callbacks control the training of the GluonTS trainer.
-    To write a custom Callback, you can subclass Callback and overwrite one or
-    more of the hook methods. Hook methods with boolean return value stop the
-    training if False is returned.
+
+    Callbacks control the training of the GluonTS trainer. To write a custom
+    Callback, you can subclass Callback and overwrite one or more of the hook
+    methods. Hook methods with boolean return value stop the training if False
+    is returned.
     """
 
     def on_train_start(self, max_epochs: int) -> None:
@@ -240,7 +241,8 @@ class Callback:
         training_network
             The network that was trained.
         temporary_dir
-            The directory where model parameters are logged throughout training.
+            The directory where model parameters are logged throughout
+            training.
         ctx
             An MXNet context used.
         """
@@ -248,9 +250,9 @@ class Callback:
 
 class CallbackList(Callback):
     """
-    Used to chain a list of callbacks to one Callback.
-    Boolean hook methods are logically joined with AND, meaning that if at
-    least one callback method returns False, the training is stopped.
+    Used to chain a list of callbacks to one Callback. Boolean hook methods are
+    logically joined with AND, meaning that if at least one callback method
+    returns False, the training is stopped.
 
     Attributes
     ----------
@@ -338,7 +340,8 @@ class TerminateOnNaN(Callback):
     ) -> bool:
         if math.isnan(epoch_loss):
             logging.warning(
-                f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
+                "TerminateOnNaN Callback initiated stop of training at epoch"
+                f" {epoch_no}."
             )
             return False
         return True

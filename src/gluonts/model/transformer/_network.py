@@ -90,7 +90,8 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         Parameters
         ----------
         sequence : Tensor
-            the sequence from which lagged subsequences should be extracted. Shape: (N, T, C).
+            the sequence from which lagged subsequences should be extracted.
+            Shape: (N, T, C).
         sequence_length : int
             length of sequence in the T (time) dimension (axis = 1).
         indices : List[int]
@@ -101,14 +102,15 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         Returns
         --------
         lagged : Tensor
-            a tensor of shape (N, S, C, I), where S = subsequences_length and I = len(indices), containing lagged
-            subsequences. Specifically, lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
+            a tensor of shape (N, S, C, I), where S = subsequences_length and
+            I = len(indices), containing lagged subsequences. Specifically,
+            lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
         """
         # we must have: sequence_length - lag_index - subsequences_length >= 0
         # for all lag_index, hence the following assert
         assert max(indices) + subsequences_length <= sequence_length, (
-            f"lags cannot go further than history length, found lag {max(indices)} "
-            f"while history length is only {sequence_length}"
+            "lags cannot go further than history length, found lag"
+            f" {max(indices)} while history length is only {sequence_length}"
         )
         assert all(lag_index >= 0 for lag_index in indices)
 
@@ -138,6 +140,7 @@ class TransformerNetwork(mx.gluon.HybridBlock):
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Creates inputs for the transformer network.
+
         All tensor arguments should have NTC layout.
         """
 
@@ -185,8 +188,8 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         )
         embedded_cat = self.embedder(feat_static_cat)
 
-        # in addition to embedding features, use the log scale as it can help prediction too
-        # (batch_size, num_features + prod(target_shape))
+        # in addition to embedding features, use the log scale as it can help
+        # prediction too(batch_size, num_features + prod(target_shape))
         static_feat = F.concat(
             embedded_cat,
             F.log(scale)
@@ -239,7 +242,8 @@ class TransformerTrainingNetwork(TransformerNetwork):
         future_target: Tensor,
     ) -> Tensor:
         """
-        Computes the loss for training Transformer, all inputs tensors representing time series have NTC layout.
+        Computes the loss for training Transformer, all inputs tensors
+        representing time series have NTC layout.
 
         Parameters
         ----------
@@ -247,7 +251,8 @@ class TransformerTrainingNetwork(TransformerNetwork):
         feat_static_cat : (batch_size, num_features)
         past_time_feat : (batch_size, history_length, num_features)
         past_target : (batch_size, history_length, *target_shape)
-        past_observed_values : (batch_size, history_length, *target_shape, seq_len)
+        past_observed_values : (batch_size, history_length, *target_shape,
+            seq_len)
         future_time_feat : (batch_size, prediction_length, num_features)
         future_target : (batch_size, prediction_length, *target_shape)
 
@@ -298,8 +303,8 @@ class TransformerPredictionNetwork(TransformerNetwork):
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
 
-        # for decoding the lags are shifted by one,
-        # at the first time-step of the decoder a lag of one corresponds to the last target value
+        # for decoding the lags are shifted by one, at the first time-step of
+        # the decoder a lag of one corresponds to the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
 
     def sampling_decoder(
@@ -312,7 +317,8 @@ class TransformerPredictionNetwork(TransformerNetwork):
         enc_out: Tensor,
     ) -> Tensor:
         """
-        Computes sample paths by unrolling the LSTM starting with a initial input and state.
+        Computes sample paths by unrolling the LSTM starting with a initial
+        input and state.
 
         Parameters
         ----------
@@ -321,19 +327,23 @@ class TransformerPredictionNetwork(TransformerNetwork):
         past_target : Tensor
             target history. Shape: (batch_size, history_length, 1).
         time_feat : Tensor
-            time features. Shape: (batch_size, prediction_length, num_time_features).
+            time features. Shape:
+            (batch_size, prediction_length, num_time_features).
         scale : Tensor
-            tensor containing the scale of each element in the batch. Shape: (batch_size, ).
+            tensor containing the scale of each element in the batch.
+            Shape: (batch_size, ).
         enc_out: Tensor
             output of the encoder. Shape: (batch_size, num_cells)
 
         Returns
         --------
         sample_paths : Tensor
-            a tensor containing sampled paths. Shape: (batch_size, num_sample_paths, prediction_length).
+            a tensor containing sampled paths.
+            Shape: (batch_size, num_sample_paths, prediction_length).
         """
 
-        # blows-up the dimension of each tensor to batch_size * self.num_parallel_samples for increasing parallelism
+        # blows-up the dimension of each tensor to batch_size *
+        # self.num_parallel_samples for increasing parallelism
         repeated_past_target = past_target.repeat(
             repeats=self.num_parallel_samples, axis=0
         )
@@ -352,7 +362,8 @@ class TransformerPredictionNetwork(TransformerNetwork):
 
         future_samples = []
 
-        # for each future time-units we draw new samples for this time-unit and update the state
+        # for each future time-units we draw new samples for this time-unit and
+        # update the state
         for k in range(self.prediction_length):
             lags = self.get_lagged_subsequences(
                 F=F,
@@ -374,7 +385,8 @@ class TransformerPredictionNetwork(TransformerNetwork):
                 shape=(-1, 1, prod(self.target_shape) * len(self.lags_seq)),
             )
 
-            # (batch_size * num_samples, 1, prod(target_shape) * num_lags + num_time_features + num_static_features)
+            # (batch_size * num_samples, 1, prod(target_shape) * num_lags +
+            # num_time_features + num_static_features)
             dec_input = F.concat(
                 input_lags,
                 repeated_time_feat.slice_axis(axis=1, begin=k, end=k + 1),
@@ -439,7 +451,6 @@ class TransformerPredictionNetwork(TransformerNetwork):
 
         Returns predicted samples
         -------
-
         """
 
         # create the inputs for the encoder

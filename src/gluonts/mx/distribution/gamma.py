@@ -30,9 +30,11 @@ class Gamma(Distribution):
     Parameters
     ----------
     alpha
-        Tensor containing the shape parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the shape parameters, of shape
+        `(*batch_shape, *event_shape)`.
     beta
-        Tensor containing the rate parameters, of shape `(*batch_shape, *event_shape)`.
+        Tensor containing the rate parameters, of shape
+        `(*batch_shape, *event_shape)`.
     F
     """
 
@@ -71,21 +73,23 @@ class Gamma(Distribution):
                 - beta * x
             )
 
-        """
-        The gamma_log_prob(x) above returns NaNs for x<=0. Wherever there are NaN in either of the F.where() conditional
-        vectors, then F.where() returns NaN at that entry as well, due to its indicator function multiplication: 
-        1*f(x) + np.nan*0 = nan, since np.nan*0 return nan. 
-        Therefore replacing gamma_log_prob(x) with gamma_log_prob(abs(x) mitigates nan returns in cases of x<=0 without 
-        altering the value in cases of x>0. 
-        This is a known issue in pytorch as well https://github.com/pytorch/pytorch/issues/12986.
-        """
+        # The gamma_log_prob(x) above returns NaNs for x<=0. Wherever there are
+        # NaN in either of the F.where() conditional vectors, then F.where
+        # () returns NaN at that entry as well, due to its indicator function
+        # multiplication: 1*f(x) + np.nan*0 = nan, since np.nan*0 return
+        # nan.
+        # Therefore replacing gamma_log_prob(x) with gamma_log_prob(abs
+        # (x) mitigates nan returns in cases of x<=0 without altering the
+        # value in cases of x>0. This is a known issue in pytorch as well
+        # https://github.com/pytorch/pytorch/issues/12986.
+
         # mask zeros to prevent NaN gradients for x==0
         x_masked = F.where(x == 0, x.ones_like() * 0.5, x)
 
         return F.where(
             x > 0,
             gamma_log_prob(F.abs(x_masked), alpha, beta),
-            -(10.0 ** 15) * F.ones_like(x),
+            -(10.0**15) * F.ones_like(x),
         )
 
     @property
@@ -136,13 +140,11 @@ class GammaOutput(DistributionOutput):
         Returns
         -------
         Tuple[Tensor, Tensor]
-            Two squeezed tensors, of shape `(*batch_shape)`: both have entries mapped to the
-            positive orthant.
+            Two squeezed tensors, of shape `(*batch_shape)`: both have entries
+            mapped to the positive orthant.
         """
-        epsilon = np.finfo(cls._dtype).eps  # machine epsilon
-
-        alpha = softplus(F, alpha) + epsilon
-        beta = softplus(F, beta) + epsilon
+        alpha = F.maximum(softplus(F, alpha), cls.eps())
+        beta = F.maximum(softplus(F, beta), cls.eps())
         return alpha.squeeze(axis=-1), beta.squeeze(axis=-1)
 
     @property

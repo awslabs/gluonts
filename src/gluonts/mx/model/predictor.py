@@ -15,12 +15,11 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -90,7 +89,7 @@ class GluonPredictor(Predictor):
         lead_time: int = 0,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             freq=freq,
@@ -181,10 +180,8 @@ class GluonPredictor(Predictor):
             return False
         if not equals(self.lead_time, that.lead_time):
             return False
-
-        # TODO: also consider equality of the pipelines
-        # if not equals(self.input_transform, that.input_transform):
-        #    return False
+        if not equals(self.input_transform, that.input_transform):
+            return False
 
         return equals(
             self.prediction_net.collect_params(),
@@ -226,8 +223,8 @@ class GluonPredictor(Predictor):
 class SymbolBlockPredictor(GluonPredictor):
     """
     A predictor which serializes the network structure as an MXNet symbolic
-    graph. Should be used for models deployed in production in order to
-    ensure forward-compatibility as GluonTS models evolve.
+    graph. Should be used for models deployed in production in order to ensure
+    forward-compatibility as GluonTS models evolve.
 
     Used by the training shell if training is invoked with a hyperparameter
     `use_symbol_block_predictor = True`.
@@ -277,8 +274,8 @@ class SymbolBlockPredictor(GluonPredictor):
 
 class RepresentableBlockPredictor(GluonPredictor):
     """
-    A predictor which serializes the network structure using the
-    JSON-serialization methods located in `gluonts.core.serde`. Use the following
+    A predictor which serializes the network structure using the JSON-
+    serialization methods located in `gluonts.core.serde`. Use the following
     logic to create a `RepresentableBlockPredictor` from a trained prediction
     network.
 
@@ -307,7 +304,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(type(prediction_net)),

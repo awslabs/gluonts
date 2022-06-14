@@ -30,7 +30,7 @@ def to_dict(
             return "NaN"
         else:
             # return x
-            return float("{0:.6f}".format(float(x)))
+            return float(f"{float(x):.6f}")
 
     res = {
         "start": str(start),
@@ -53,17 +53,21 @@ def save_to_file(path: Path, data: List[Dict]):
     with open(path, "wb") as fp:
         for d in data:
             fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode("utf-8"))
+            fp.write(b"\n")
 
 
 def metadata(
     cardinality: Union[int, List[int]], freq: str, prediction_length: int
 ):
+    if not isinstance(cardinality, list):
+        cardinality = [cardinality]
+
     return {
         "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
-            {"name": "feat_static_cat", "cardinality": str(cardinality)}
+            {"name": f"feat_static_cat_{i}", "cardinality": str(card)}
+            for i, card in enumerate(cardinality)
         ],
     }
 

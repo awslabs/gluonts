@@ -25,11 +25,11 @@ from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.model.tpp import PointProcessGluonPredictor
 from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import (
     Chain,
     ContinuousTimeInstanceSplitter,
@@ -76,14 +76,15 @@ class DeepTPPEstimator(GluonEstimator):
         The number of marks (distinct processes), i.e., the cardinality of the
         mark set.
     time_distr_output
-        TPPDistributionOutput for the distribution over the inter-arrival times.
-        See :code:`gluonts.model.tpp.distribution` for possible choices.
+        TPPDistributionOutput for the distribution over the inter-arrival
+        times. See :code:`gluonts.model.tpp.distribution` for possible choices.
     embedding_dim
-        The dimension of vector embeddings for marks (used as input to the GRU).
+        The dimension of vector embeddings for marks (used as input to the
+        GRU).
     trainer
-        :code:`gluonts.mx.trainer.Trainer` object which will be used to train the
-        estimator. Note that :code:`Trainer(hybridize=False)` must be set as
-        :code:`DeepTPPEstimator` currently does not support hybridization.
+        :code:`gluonts.mx.trainer.Trainer` object which will be used to train
+        the estimator. Note that :code:`Trainer(hybridize=False)` must be set
+        as :code:`DeepTPPEstimator` currently does not support hybridization.
     num_hidden_dimensions
         Number of hidden units in the GRU network.
     num_parallel_samples
@@ -204,7 +205,6 @@ class DeepTPPEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

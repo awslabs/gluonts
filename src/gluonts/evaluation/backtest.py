@@ -20,6 +20,7 @@ import pandas as pd
 import gluonts  # noqa
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
@@ -28,7 +29,7 @@ from gluonts.evaluation import Evaluator
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
-from gluonts.support.util import maybe_len
+from gluonts.itertools import maybe_len
 from gluonts.transform import AdhocTransform
 
 
@@ -38,8 +39,8 @@ def make_evaluation_predictions(
     num_samples: int = 100,
 ) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
     """
-    Returns predictions for the trailing prediction_length observations of the given
-    time series, using the given predictor.
+    Returns predictions for the trailing prediction_length observations of the
+    given time series, using the given predictor.
 
     The predictor will take as input the given time series without the trailing
     prediction_length observations.
@@ -52,18 +53,17 @@ def make_evaluation_predictions(
     predictor
         Model used to draw predictions.
     num_samples
-        Number of samples to draw on the model when evaluating. Only sampling-based
-        models will use this.
+        Number of samples to draw on the model when evaluating. Only
+        sampling-based models will use this.
 
     Returns
     -------
     Tuple[Iterator[Forecast], Iterator[pd.Series]]
-        A pair of iterators, the first one yielding the forecasts, and the second
-        one yielding the corresponding ground truth series.
+        A pair of iterators, the first one yielding the forecasts, and the
+        second one yielding the corresponding ground truth series.
     """
 
     prediction_length = predictor.prediction_length
-    freq = predictor.freq
     lead_time = predictor.lead_time
 
     def add_ts_dataframe(
@@ -71,13 +71,12 @@ def make_evaluation_predictions(
     ) -> Iterator[DataEntry]:
         for data_entry in data_iterator:
             data = data_entry.copy()
-            index = pd.date_range(
-                start=data["start"],
-                freq=freq,
-                periods=data["target"].shape[-1],
+            index = pd.period_range(
+                start=data[FieldName.START],
+                periods=data[FieldName.TARGET].shape[-1],
             )
             data["ts"] = pd.DataFrame(
-                index=index, data=data["target"].transpose()
+                index=index, data=data[FieldName.TARGET].transpose()
             )
             yield data
 
@@ -87,11 +86,11 @@ def make_evaluation_predictions(
 
     def truncate_target(data):
         data = data.copy()
-        target = data["target"]
+        target = data[FieldName.TARGET]
         assert (
             target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
-        data["target"] = target[..., : -prediction_length - lead_time]
+        data[FieldName.TARGET] = target[..., : -prediction_length - lead_time]
         return data
 
     # TODO filter out time series with target shorter than prediction length
@@ -193,7 +192,7 @@ class BacktestInformation(NamedTuple):
 
     @staticmethod
     def make_from_log(log_file):
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             return BacktestInformation.make_from_log_contents(
                 "\n".join(f.readlines())
             )
