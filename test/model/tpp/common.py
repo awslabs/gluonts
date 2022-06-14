@@ -13,7 +13,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from gluonts.dataset.common import ListDataset
 

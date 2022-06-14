@@ -99,7 +99,7 @@ def handle_predictions(predictor, instances, configuration):
     # create the forecasts
     forecasts = ThrougputIter(
         predictor.predict(
-            ListDataset(instances, predictor.freq),
+            ListDataset(instances, configuration.freq),
             num_samples=configuration.num_samples,
         )
     )
@@ -208,7 +208,7 @@ def batch_inference_invocations(
         else:
             instances = []
 
-        dataset = ListDataset(instances, predictor.freq)
+        dataset = ListDataset(instances, configuration.freq)
 
         start_time = time.time()
 
@@ -226,7 +226,6 @@ def batch_inference_invocations(
                     settings.gluonts_batch_fallback_predictor
                 )
                 fallback_predictor = FallbackPredictor(
-                    freq=predictor.freq,
                     prediction_length=predictor.prediction_length,
                 )
 

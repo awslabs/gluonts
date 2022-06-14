@@ -112,7 +112,6 @@ class ForecastGenerator:
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -130,7 +129,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -168,7 +166,6 @@ class SampleForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -215,7 +212,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs

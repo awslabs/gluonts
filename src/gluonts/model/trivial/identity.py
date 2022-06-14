@@ -30,18 +30,14 @@ class IdentityPredictor(RepresentablePredictor):
     ----------
     prediction_length
         Prediction horizon.
-    freq
-        Frequency of the predicted data.
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
     """
 
     @validated()
-    def __init__(
-        self, prediction_length: int, freq: str, num_samples: int
-    ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+    def __init__(self, prediction_length: int, num_samples: int) -> None:
+        super().__init__(prediction_length=prediction_length)
 
         assert num_samples > 0, "The value of `num_samples` should be > 0"
 

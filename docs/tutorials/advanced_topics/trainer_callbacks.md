@@ -26,7 +26,7 @@ from gluonts.mx.trainer.callback import TrainingHistory
 history = TrainingHistory()
 
 trainer = Trainer(epochs=3, callbacks=[history])
-estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq, trainer=trainer)
+estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
 ```
@@ -49,7 +49,7 @@ warm_start = WarmStart(predictor=predictor)
 
 trainer=Trainer(epochs=3, callbacks=[history, warm_start])
 
-estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq, trainer=trainer)
+estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, trainer=trainer)
 
 predictor = estimator.train(dataset.train, num_workers=None)
 ```
@@ -222,7 +222,7 @@ Note that we're running an extremely short number of epochs, simply to keep the 
 feel free to increase the number of epochs to properly test the effectiveness of the callback.
 
 ```python
-estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length, freq=freq)
+estimator = SimpleFeedForwardEstimator(prediction_length=prediction_length)
 training_network = estimator.create_training_network()
 transformation = estimator.create_transformation()
 
