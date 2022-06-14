@@ -44,11 +44,13 @@ def test_splitter():
     prediction_length = dataset.metadata.prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
+        split_date=pd.Timestamp("1750-01-05 04:00:00"),
     )
     train, validation = splitter.split(dataset.train)
-    assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
-        validation[1][0][FieldName.TARGET]
+    train = iter(train)
+    validation = iter(validation)
+    assert len(next(train)[FieldName.TARGET]) == len(
+        next(validation)[0][FieldName.TARGET]
     )
 
     max_history = 2 * prediction_length
@@ -58,31 +60,55 @@ def test_splitter():
         max_history=max_history,
     )
     train, validation = splitter.split(dataset.train)
-    assert len(validation[1][0][FieldName.TARGET]) == max_history
-    assert len(train[1][0][FieldName.TARGET]) == 4 * prediction_length
+    train = iter(train)
+    validation = iter(validation)
+    a = next(validation)
+    assert len(a[0][FieldName.TARGET]) + len(a[1]) == max_history
+    assert len(next(train)[FieldName.TARGET]) == 4 * prediction_length
 
-    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    splitter = OffsetSplitter(
+        prediction_length=prediction_length,
+        split_offset=4 * prediction_length,
+        max_history=max_history,
+        windows=3,
+    )
+    train, validation = splitter.split(dataset.train)
+    train = iter(train)
+    validation = iter(validation)
+    a = next(validation)
     for i in range(3):
-        assert len(validation[1][i][FieldName.TARGET]) == max_history
-        assert len(train[1][i][FieldName.TARGET]) == 4 * prediction_length
+        assert len(a[0][FieldName.TARGET]) + len(a[1]) == max_history
+        assert len(next(train)[FieldName.TARGET]) == 4 * prediction_length
 
     max_history = 2 * prediction_length
     splitter = DateSplitter(
         prediction_length=prediction_length,
-        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
+        split_date=pd.Timestamp("1750-01-05 04:00:00"),
         max_history=max_history,
     )
     train, validation = splitter.split(dataset.train)
-    assert len(validation[1][0][FieldName.TARGET]) == max_history
+    train = iter(train)
+    validation = iter(validation)
+    a = next(validation)
+    assert len(a[0][FieldName.TARGET]) + len(a[1]) == max_history
 
-    train, validation = splitter.rolling_split(dataset.train, windows=3)
+    splitter = DateSplitter(
+        prediction_length=prediction_length,
+        split_date=pd.Timestamp("1750-01-05 04:00:00"),
+        max_history=max_history,
+        windows=3,
+    )
+    train, validation = splitter.split(dataset.train)
+    train = iter(train)
+    validation = iter(validation)
+    a = next(validation)
     for i in range(3):
-        assert len(validation[1][i][FieldName.TARGET]) == max_history
+        assert len(a[0][FieldName.TARGET]) + len(a[1]) == max_history
 
 
 def test_split_mult_freq():
     splitter = DateSplitter(
-        prediction_length=1, split_date=pd.Period("2021-01-01", "2h")
+        prediction_length=1, split_date=pd.Timestamp("2021-01-01")
     )
 
     splitter.split(
@@ -90,7 +116,7 @@ def test_split_mult_freq():
             {
                 "item_id": "1",
                 "target": pd.Series([0, 1, 2]),
-                "start": pd.Period("2021-01-01", freq="2H"),
+                "start": pd.Timestamp("2021-01-01", freq="2H"),
             }
         ]
     )
@@ -107,15 +133,15 @@ def test_negative_offset_splitter():
 
     split = OffsetSplitter(prediction_length=7, split_offset=-7).split(dataset)
 
-    assert [len(t["target"]) for t in split.train] == [93, 43]
-    assert [len(t["target"]) for t in split.test] == [100, 50]
+    assert [len(t["target"]) for t in split[0]] == [93, 43]
+    assert [len(t["target"]) + len(s) for t, s in split[1]] == [100, 50]
 
     rolling_split = OffsetSplitter(
-        prediction_length=7, split_offset=-21
-    ).rolling_split(dataset, windows=3)
+        prediction_length=7, split_offset=-21, windows=3
+    ).split(dataset)
 
-    assert [len(t["target"]) for t in rolling_split.train] == [79, 29]
-    assert [len(t["target"]) for t in rolling_split.test] == [
+    assert [len(t["target"]) for t in rolling_split[0]] == [79, 29]
+    assert [len(t["target"]) + len(s) for t, s in rolling_split[1]] == [
         86,
         93,
         100,

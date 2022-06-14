@@ -28,7 +28,7 @@ For all other datasets, the more flexible `DateSplitter` can be used::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Period('2018-01-31', freq='D')
+        split_date=pd.Timestamp('2018-01-31', freq='D')
     )
     train, test = splitter.split(whole_dataset)
 
@@ -36,15 +36,15 @@ The module also supports rolling splits::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Period('2018-01-31', freq='D')
+        split_date=pd.Timestamp('2018-01-31', freq='D')
     )
     train, test = splitter.rolling_split(whole_dataset, windows=7)
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, cast
+from typing import Iterable, List, Optional, Tuple
+from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 import pydantic
 
@@ -62,7 +62,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
         arbitrary_types_allowed = True
 
     target: pd.Series
-    item: str
+    item_id: Optional[str] = None
 
     feat_static_cat: List[int] = []
     feat_static_real: List[float] = []
@@ -77,8 +77,8 @@ class TimeSeriesSlice(pydantic.BaseModel):
         if freq is None:
             freq = item["start"].freq
 
-        index = pd.period_range(
-            start=item["start"], freq=freq, periods=len(item["target"])
+        index = pd.date_range(
+            start=item["start"].to_timestamp(), freq=freq, periods=len(item["target"])
         )
 
         feat_dynamic_cat = [
@@ -95,9 +95,11 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
         feat_static_real = list(item.get("feat_static_real", []))
 
+        item_id = item.get(FieldName.ITEM_ID, None)
+
         return TimeSeriesSlice(
             target=pd.Series(item["target"], index=index),
-            item=item[FieldName.ITEM_ID],
+            item_id=item_id,
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
             feat_dynamic_cat=feat_dynamic_cat,
@@ -107,7 +109,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
     def to_data_entry(self) -> DataEntry:
         ret = {
             FieldName.START: self.start,
-            FieldName.ITEM_ID: self.item,
+            FieldName.ITEM_ID: self.item_id,
             FieldName.TARGET: self.target.values,
         }
 
@@ -117,31 +119,29 @@ class TimeSeriesSlice(pydantic.BaseModel):
             ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
         if self.feat_dynamic_cat:
             ret[FieldName.FEAT_DYNAMIC_CAT] = [
-                cast(np.ndarray, cat.values).tolist()
-                for cat in self.feat_dynamic_cat
+                cat.values.tolist() for cat in self.feat_dynamic_cat
             ]
         if self.feat_dynamic_real:
             ret[FieldName.FEAT_DYNAMIC_REAL] = [
-                cast(np.ndarray, real.values).tolist()
-                for real in self.feat_dynamic_real
+                real.values.tolist() for real in self.feat_dynamic_real
             ]
 
         return ret
 
     @property
-    def start(self) -> pd.Period:
+    def start(self):
         return self.target.index[0]
 
     @property
-    def end(self) -> pd.Period:
+    def end(self):
         return self.target.index[-1]
 
     def __len__(self) -> int:
         return len(self.target)
 
     def __getitem__(self, slice_: slice) -> "TimeSeriesSlice":
-        feat_dynamic_real = []
-        feat_dynamic_cat = []
+        feat_dynamic_real = None
+        feat_dynamic_cat = None
 
         if self.feat_dynamic_real is not None:
             feat_dynamic_real = [
@@ -158,7 +158,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
 
         return TimeSeriesSlice(
             target=target,
-            item=self.item,
+            item_id=self.item_id,
             feat_dynamic_cat=feat_dynamic_cat,
             feat_dynamic_real=feat_dynamic_real,
             feat_static_cat=self.feat_static_cat,
@@ -166,19 +166,7 @@ class TimeSeriesSlice(pydantic.BaseModel):
         )
 
 
-class TrainTestSplit(pydantic.BaseModel):
-    train: List[DataEntry] = []
-    test: List[DataEntry] = []
-
-    def _add_train_slice(self, train_slice: TimeSeriesSlice) -> None:
-        # is there any data left for training?
-        if train_slice:
-            self.train.append(train_slice.to_data_entry())
-
-    def _add_test_slice(self, test_slice: TimeSeriesSlice) -> None:
-        self.test.append(test_slice.to_data_entry())
-
-
+@dataclass
 class AbstractBaseSplitter(ABC):
     """
     Base class for all other splitter.
@@ -199,77 +187,115 @@ class AbstractBaseSplitter(ABC):
     @abstractmethod
     def _test_slice(
         self, item: TimeSeriesSlice, offset: int = 0
-    ) -> TimeSeriesSlice:
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         pass
 
-    def _trim_history(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
+    def _trim_history(
+        self, 
+        item: Tuple[TimeSeriesSlice, TimeSeriesSlice]
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         if getattr(self, "max_history") is not None:
-            return item[-getattr(self, "max_history") :]
+            return (item[0][-getattr(self, "max_history") + 
+                    len(item[1]) :], item[1])
         else:
             return item
 
-    def split(self, items: List[DataEntry]) -> TrainTestSplit:
-        split = TrainTestSplit()
-
-        for item in map(TimeSeriesSlice.from_data_entry, items):
-
-            train = self._train_slice(item)
-            test = self._trim_history(self._test_slice(item))
-
-            split._add_train_slice(train)
-
-            prediction_length = getattr(self, "prediction_length")
-
-            _check_split_length(train.end, test.end, prediction_length)
-            split._add_test_slice(test)
-
-        return split
-
-    def rolling_split(
+    def split(
         self,
         items: List[DataEntry],
-        windows: int,
-        distance: Optional[int] = None,
-    ) -> TrainTestSplit:
+    ):
+        test_data = TestDataset(
+            dataset=items, splitter=self
+        )
+        train_data = TrainingDataset(dataset=items, splitter=self)
+
+        return train_data, test_data 
+    
+    def _generate_train_slices(
+        self, 
+        items: List[DataEntry]
+    ):
+        for item in map(TimeSeriesSlice.from_data_entry, items):
+            train = self._train_slice(item)
+
+            yield train.to_data_entry()
+
+    def _generate_test_slices(
+        self, 
+        items: List[DataEntry],
+        windows: Optional[int],
+        distance: Optional[int]
+    ):
         # distance defaults to prediction_length
         if distance is None:
             distance = getattr(self, "prediction_length")
         assert distance is not None
 
-        split = TrainTestSplit()
-
         for item in map(TimeSeriesSlice.from_data_entry, items):
             train = self._train_slice(item)
-            split._add_train_slice(train)
 
+            prediction_length = getattr(self, "prediction_length")
             for window in range(windows):
                 offset = window * distance
                 test = self._trim_history(
                     self._test_slice(item, offset=offset)
                 )
-                prediction_length = getattr(self, "prediction_length")
 
-                _check_split_length(train.end, test.end, prediction_length)
-                split._add_test_slice(test)
+                assert (
+                    train.end + train.end.freq * prediction_length <= test[1].end
+                )
 
-        return split
+                input = test[0].to_data_entry()
 
+                label = test[1].to_data_entry()
+                df_label = pd.DataFrame(label['target'], columns=[label['item_id']])
+                df_label = df_label.set_index(pd.date_range(start=label['start'], 
+                                            periods=len(label['target']), 
+                                            freq=train.end.freq))
 
-def _check_split_length(
-    train_end: pd.Period, test_end: pd.Period, prediction_length: int
-) -> None:
-    msg = (
-        "Not enough observations after the split point to construct"
-        " the test instance; consider using longer time series,"
-        " or splitting at an earlier point."
-    )
-    assert train_end + prediction_length <= test_end, msg
+                yield input, df_label
 
 
-class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
+@dataclass
+class TestDataset(Iterable[DataEntry]):
+    dataset: Iterable[DataEntry]
+    splitter: AbstractBaseSplitter
+
+    def __iter__(self):
+        return self.splitter._generate_test_slices(
+            self.dataset, self.splitter.windows, self.splitter.distance
+        )
+    
+    @property
+    def inputs(self):
+        for pairs in self:
+            yield pairs[0]
+    
+    @property
+    def labels(self):
+        for pairs in self:
+            yield pairs[1]
+
+
+@dataclass
+class TrainingDataset(Iterable[DataEntry]):
+    dataset: Iterable[DataEntry]
+    splitter: AbstractBaseSplitter
+
+    def __iter__(self):
+        return self.splitter._generate_train_slices(self.dataset)
+
+
+@dataclass
+class OffsetSplitter(AbstractBaseSplitter):
     """
     A splitter that slices training and test data based on a fixed integer
     offset.
+
+    A positive offset indicates how many observations since the start of each
+    series should be in the training slice; a negative offset indicates how
+    many observations before the end of each series should be excluded from
+    the training slice.
 
     Parameters
     ----------
@@ -277,20 +303,15 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
         Length of the prediction interval in test data.
     split_offset
         Offset determining where the training data ends.
-        A positive offset indicates how many observations since the start of
-        each series should be in the training slice; a negative offset
-        indicates how many observations before the end of each series should
-        be excluded from the training slice. Please make sure that the number
-        of excluded values is enough for the test case, i.e., at least
-        ``prediction_length`` (for ``rolling_split`` multiple of
-        ``prediction_length``) values are left off.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
 
-    prediction_length: int
     split_offset: int
+    prediction_length: int
+    windows: Optional[int] = 1
+    distance: Optional[int] = None
     max_history: Optional[int] = None
 
     def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
@@ -298,17 +319,19 @@ class OffsetSplitter(pydantic.BaseModel, AbstractBaseSplitter):
 
     def _test_slice(
         self, item: TimeSeriesSlice, offset: int = 0
-    ) -> TimeSeriesSlice:
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         offset_ = self.split_offset + offset + self.prediction_length
         if self.split_offset < 0 and offset_ >= 0:
             offset_ += len(item)
-        return item[:offset_]
+        return (item[: self.split_offset], 
+                item[self.split_offset : offset_])
 
 
-class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
+@dataclass
+class DateSplitter(AbstractBaseSplitter):
     """
     A splitter that slices training and test data based on a
-    ``pandas.Period``.
+    ``pandas.Timestamp``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``split_date``.
@@ -318,19 +341,16 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
     prediction_length
         Length of the prediction interval in test data.
     split_date
-        Period determining where the training data ends. Please make sure
-        at least ``prediction_length`` (for ``rolling_split`` multiple of
-        ``prediction_length``) values are left over after the ``split_date``.
+        Timestamp determining where the training data ends.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
 
-    class Config:
-        arbitrary_types_allowed = True
-
+    split_date: pd.Timestamp
     prediction_length: int
-    split_date: pd.Period
+    windows: Optional[int] = 1
+    distance: Optional[int] = None
     max_history: Optional[int] = None
 
     def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
@@ -339,8 +359,9 @@ class DateSplitter(AbstractBaseSplitter, pydantic.BaseModel):
 
     def _test_slice(
         self, item: TimeSeriesSlice, offset: int = 0
-    ) -> TimeSeriesSlice:
-        return item[
-            : self.split_date
-            + (self.prediction_length + offset) * item.start.freq
-        ]
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+        return (
+            item[: self.split_date], 
+            item[self.split_date + item.start.freq : self.split_date 
+            + (self.prediction_length + offset) * item.start.freq]
+        )
