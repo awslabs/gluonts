@@ -136,8 +136,8 @@ class Naive2Predictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
+        freq: Optional[str] = None,
         season_length: Optional[int] = None,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
