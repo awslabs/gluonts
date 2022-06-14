@@ -145,8 +145,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         such cases, use seq_axis = [1]. By default, all axes are processeed in
         parallel.
     log_coherency_error
-        Flag to indicate whether to compute and show the cohererncy error on the samples generated
-        during prediction.
+        Flag to indicate whether to compute and show the cohererncy error
+        on the samples generated during prediction.
     trainer
         Trainer object to be used (default: Trainer())
     context_length
@@ -234,7 +234,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         if trainer.hybridize:
             logger = logging.getLogger("gluonts").getChild("model")
             logger.info(
-                f"Resetting `hybridize` flag of trainer to False, since {__name__} does not work in symbolic mode."
+                f"Resetting `hybridize` flag of trainer to False, "
+                f"since {__name__} does not work in symbolic mode."
             )
             trainer.hybridize = False
 
@@ -265,8 +266,9 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         assert target_dim == S.shape[0], (
             "The number of rows of `S` matrix must be equal to `target_dim`. "
-            f"Either `S` matrix is incorrectly constructed or a wrong value is passed for `target_dim`: "
-            f"shape of `S`: {S.shape} and `target_dim`: {target_dim}."
+            f"Either `S` matrix is incorrectly constructed or a wrong value "
+            f"is passed for `target_dim`: shape of `S`: {S.shape} and "
+            f"`target_dim`: {target_dim}."
         )
 
         # Assert that projection is *not* being done only during training

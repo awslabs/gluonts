@@ -311,7 +311,8 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         if self.log_coherency_error:
             coh_error = coherency_error(self.A, samples=samples_to_return)
             self.logger.info(
-                f"Coherency error of the predicted samples for time step {self.forecast_time_step}: {coh_error}"
+                "Coherency error of the predicted samples for time step"
+                f" {self.forecast_time_step}: {coh_error}"
             )
             self.forecast_time_step += 1
 
