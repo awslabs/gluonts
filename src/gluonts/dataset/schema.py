@@ -24,7 +24,7 @@ from gluonts.exceptions import GluonTSDataError
 
 @dataclass
 class PyArray:
-    array_shape: tuple
+    array_shape: list
     dtype: Type
 
     def __str__(self):
@@ -45,37 +45,10 @@ class FieldType(Generic[T]):
         raise NotImplementedError()
 
 
-# convert functions
-def ct_to_tc(xs):
-    return xs.transpose()
-
-
-def tc_to_ct(xs):
-    return xs.transpose()
-
-
-def t_to_tc(xs):
-    return xs.reshape((-1, 1))
-
-
-def t_to_ct(xs):
-    return xs.reshape((1, -1))
-
-
-conv_map = {
-    ("TC", "CT"): tc_to_ct,
-    ("CT", "TC"): tc_to_ct,
-    ("T", "CT"): t_to_ct,
-    ("T", "TC"): t_to_tc,
-}
-
-
 @dataclass
 class NumpyArrayField(FieldType[np.ndarray]):
     dtype: Type = np.float32
     ndim: Optional[int] = None
-    src_layout: Optional[str] = "T"
-    target_layout: Optional[str] = "T"
 
     def __call__(self, value: Any) -> np.ndarray:
         if isinstance(value, pa.Array):
@@ -87,11 +60,6 @@ class NumpyArrayField(FieldType[np.ndarray]):
                 f"expected array with dimension {self.ndim}, "
                 "but got {value.ndim}."
             )
-
-        # layout tranformation
-        if self.src_layout != self.target_layout:
-            conv_func = conv_map[(self.src_layout, self.target_layout)]
-            value = conv_func(value)
 
         return value
 
@@ -156,6 +124,20 @@ class PandasPeriodField(FieldType[pd.Period]):
 class Schema:
     fields: Dict[str, FieldType]
     default_values: Dict[str, Any]
+    targert_layout: Dict[str, str] = {}
+
+    # convert functions
+    def ct_to_tc(xs):
+        return xs.transpose()
+
+    def tc_to_ct(xs):
+        return xs.transpose()
+
+    def t_to_tc(xs):
+        return xs.reshape((-1, 1))
+
+    def t_to_ct(xs):
+        return xs.reshape((1, -1))
 
     def __call__(
         self,
@@ -177,17 +159,17 @@ class Schema:
         else:
             out = {}
 
+        # map for layout conversion
+        conv_map = {
+            ("TC", "CT"): Schema.tc_to_ct,
+            ("CT", "TC"): Schema.tc_to_ct,
+            ("T", "CT"): Schema.t_to_ct,
+            ("T", "TC"): Schema.t_to_tc,
+        }
+
         for field_name, field_type in self.fields.items():
             try:
                 src_fields = name_mapping[field_name]
-                if isinstance(src_fields, list):
-                    value = []
-                    for field in src_fields:
-                        value.append(d[field])
-                    self.fields[field_name].src_layout = "CT"
-                else:
-                    value = d[src_fields]
-                    self.fields[field_name].src_layout = src_layout[src_fields]
             except KeyError:
                 if field_name in self.default_values.keys():
                     value = self.default_values[field_name]
@@ -196,8 +178,30 @@ class Schema:
                         f"field {field_name} does not occur in the data"
                     )
 
+            # multi-src-field for target field
+            if isinstance(src_fields, list):
+                value = []
+                for field in src_fields:
+                    value.append(d[field])
+                src_layout[field_name] = "CT"
+            else:
+                value = d[src_fields]
+                src_layout[field_name] = src_layout.pop(src_fields)
+
             try:
-                out[field_name] = field_type(value)
+                # type conversion
+                value = field_type(value)
+
+                # layout conversion
+                # TODO: check what field should have layout conversion
+                layout_s = src_layout[field_name]
+                layout_t = self.targert_layout[field_name]
+                if layout_s != layout_t:
+                    conv_func = conv_map[(layout_s, layout_t)]
+                    value = conv_func(value)
+
+                out[field_name] = value
+
             except Exception as e:
                 raise GluonTSDataError(
                     f"Error when processing field {field_name} using "
@@ -219,10 +223,10 @@ class Schema:
                 first_dim = len(entry[field])
                 second_dim = len(entry[field][0])
                 if second_dim > 0:
-                    array_shape = (first_dim, second_dim)
+                    array_shape = [first_dim, second_dim]
                     dtype = type(entry[field][0][0])
                 else:
-                    array_shape = (first_dim,)
+                    array_shape = [first_dim]
                     dtype = type(entry[field][0])
                 raw_type_mapping[field] = PyArray(array_shape, dtype)
 
