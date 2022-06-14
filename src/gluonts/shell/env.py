@@ -37,11 +37,10 @@ class TrainEnv(sagemaker.TrainEnv):
             ).freq
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
-        list_dataset = partial(ListDataset, freq=self.hyperparameters["freq"])
 
         datasets = valmap(file_dataset, self.channels)
         if self._listify_dataset():
-            datasets = valmap(list_dataset, datasets)
+            datasets = valmap(list, datasets)
 
         return datasets
 
