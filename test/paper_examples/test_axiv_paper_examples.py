@@ -173,7 +173,7 @@ def test_appendix_c():
     predictor = estimator.train(train_ds)
 
     evaluator = Evaluator(quantiles=(0.1, 0.5, 0.9))
-    _, _ = backtest_metrics(
+    backtest_metrics(
         test_dataset=test_ds,
         predictor=predictor,
         evaluator=evaluator,
