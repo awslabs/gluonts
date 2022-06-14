@@ -637,7 +637,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                         v[j] = None if state.rand() < 0.5 else "NaN"
             res.append(
                 dict(
-                    start=pd.Timestamp(start, freq=self.freq_str),
+                    start=pd.Period(start, freq=self.freq_str),
                     target=np.array(v),
                     item_id=i,
                 )

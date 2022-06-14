@@ -95,6 +95,7 @@ class DeepARModel(nn.Module):
         num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
+
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output

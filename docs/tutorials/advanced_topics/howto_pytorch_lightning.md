@@ -71,7 +71,6 @@ def mean_abs_scaling(context, min_scale=1e-5):
 class FeedForwardNetwork(nn.Module):
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: int,
         hidden_dimensions: List[int],
@@ -85,7 +84,6 @@ class FeedForwardNetwork(nn.Module):
         assert context_length > 0
         assert len(hidden_dimensions) > 0
         
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.hidden_dimensions = hidden_dimensions
@@ -123,7 +121,6 @@ class FeedForwardNetwork(nn.Module):
     def get_predictor(self, input_transform, batch_size=32, device=None):
         return PyTorchPredictor(
             prediction_length=self.prediction_length,
-            freq=self.freq, 
             input_names=["past_target"],
             prediction_net=self,
             batch_size=batch_size,
@@ -168,7 +165,6 @@ We can now instantiate the training network, and explore its set of parameters.
 
 
 ```python
-freq = "1H"
 context_length = 2 * 7 * 24
 prediction_length = dataset.metadata.prediction_length
 hidden_dimensions = [96, 48]
@@ -177,7 +173,6 @@ hidden_dimensions = [96, 48]
 
 ```python
 net = LightningFeedForwardNetwork(
-    freq=freq,
     prediction_length=prediction_length,
     context_length=context_length,
     hidden_dimensions=hidden_dimensions,

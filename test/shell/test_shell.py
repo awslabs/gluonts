@@ -145,6 +145,7 @@ def test_server_shell(
         "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
+        **train_env.hyperparameters,
     }
 
     for entry in train_env.datasets["train"]:
