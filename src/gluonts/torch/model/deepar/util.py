@@ -18,8 +18,8 @@ import torch
 
 def lagged_sequence_values(
     indices: List[int],
-    prior_input: torch.Tensor,
-    input: torch.Tensor,
+    prior_sequence: torch.Tensor,
+    sequence: torch.Tensor,
     features: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
     """
@@ -33,10 +33,12 @@ def lagged_sequence_values(
         time ``t`` to produce the output for time ``t``; instead, ``[0, 24]``
         indicates that the RNN takes observations at times ``t`` and ``t-24``
         as input.
-    prior_input
-        Tensor containing prior input sequence.
-    input
-        Tensor containing input sequence for which we want lagged observations.
+    prior_sequence
+        Tensor containing the input sequence prior to the time range for
+        which the output is required (shape: ``(N, H, C)``).
+    sequence
+        Tensor containing the input sequence in the time range where the
+        output is required (shape: ``(N, T, C)``).
     features
         Tensor of additional features.
 
@@ -44,24 +46,24 @@ def lagged_sequence_values(
     -------
     Tensor
         A tensor of shape ``(N, T, L)``: if ``I = len(indices)``,
-        ``input.shape = (N, T, C)``, and ``features.shape = (N, T, F)``,
+        ``sequence.shape = (N, T, C)``, and ``features.shape = (N, T, F)``,
         then ``L = C * I + F``.
     """
-    sequence = torch.cat((prior_input, input), dim=1)
-    sequence_length = sequence.shape[1]
+    full_sequence = torch.cat((prior_sequence, sequence), dim=1)
+    full_sequence_length = full_sequence.shape[1]
 
-    output_sequence_length = input.shape[1]
+    output_sequence_length = sequence.shape[1]
 
-    assert max(indices) + output_sequence_length <= sequence_length, (
+    assert max(indices) + output_sequence_length <= full_sequence_length, (
         "lags cannot go further than history length, found lag"
-        f" {max(indices)} while history length is only {sequence_length}"
+        f" {max(indices)} while history length is only {full_sequence_length}"
     )
 
     output_values = []
     for lag_index in indices:
         begin_index = -lag_index - output_sequence_length
         end_index = -lag_index if lag_index > 0 else None
-        output_values.append(sequence[:, begin_index:end_index, ...])
+        output_values.append(full_sequence[:, begin_index:end_index, ...])
 
     output_sequence = torch.stack(output_values, dim=-1)
 
