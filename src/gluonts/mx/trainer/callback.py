@@ -21,6 +21,7 @@ import time
 import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import gluon
+from pydantic import BaseModel, PrivateAttr
 
 # First-party imports
 from gluonts.core.component import validated
@@ -377,8 +378,7 @@ class _Timer:
         return self.remaining() > 0
 
 
-@dataclass
-class TrainingTimeLimit(Callback):
+class TrainingTimeLimit(BaseModel, Callback):
     """Limit time spent for training.
 
     This is useful when ensuring that training for a given model doesn't
@@ -390,9 +390,10 @@ class TrainingTimeLimit(Callback):
 
     time_limit: float
     stop_within_epoch: bool = False
-    _timer: _Timer = field(init=False, repr=False)
+    _timer: _Timer = PrivateAttr()
 
-    def __post_init__(self):
+    def __init__(self, **data):
+        super().__init__(**data)
         self._timer = _Timer(self.time_limit)
 
     def on_train_start(self, max_epochs: int) -> None:
