@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List, Union, Dict, Any
+from dataclasses import dataclass, field
+from typing import List, Union, Dict, Any, Optional
 import logging
 import math
 import time
@@ -358,110 +358,51 @@ class WarmStart(Callback):
         copy_parameters(self.predictor.prediction_net, training_network)
 
 
-class TrainingTimeLimit(Callback):
-    def __init__(
-        self,
-        time_limit: int,
-        track_validation_duration: bool = True,
-        stop_during_epoch: bool = False,
-    ) -> None:
-        """
-        Used when you want to set a time limit to the training process.
-        Once passed into model.train(), the training process will end roughly after 'time_limit' seconds.
+@dataclass
+class _Timer:
+    duration: float
+    _start: Optional[float] = field(init=False, default=None)
 
-        Attributes
-        ----------
-        time_limit: int
-            time in seconds, after which training ends
-        track_validation_duration: bool, default = True
-            whether we are recording the time used for validation.
-        stop_during_epoch: bool, default = False
-            whether we want to stop in the middle of an epoch when time is used up.
-        """
-        self.time_limit = time_limit
-        self.track_validation_duration = track_validation_duration
-        self.stop_during_epoch = stop_during_epoch
-        self.time_spent = 0.0
-        self.checkpoint = -1.0
-        self.report_exceed_timelimit = True
+    def start(self):
+        assert self._start is None
+
+        self._start = time.time()
+
+    def remaining(self) -> float:
+        assert self._start is not None
+
+        return max(self._start - time.time(), 0.0)
+
+    def is_running(self) -> bool:
+        return self.remaining() > 0
+
+
+@dataclass
+class TrainingTimeLimit(Callback):
+    """Limit time spent for training.
+
+    This is useful when ensuring that training for a given model doesn't
+    exceed a budget, for example when doing AutoML.
+
+    If `stop_within_epoch` is set to true, training can be stopped after
+    each batch, otherwise it stops after the end of the epoch.
+    """
+
+    time_limit: float
+    stop_within_epoch: bool = False
+    _timer: _Timer = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self._timer = _Timer(self.time_limit)
 
     def on_train_start(self, max_epochs: int) -> None:
-        self.checkpoint = time.time()
-
-    def check_time_limit(self):
-        if self.time_spent > self.time_limit:
-            if self.report_exceed_timelimit:
-                logger.warning(
-                    "Time limit exceeded during training, stopping training."
-                )
-                self.report_exceed_timelimit = False
-            return False
-        return True
-
-    def record_time_spent(self):
-        tmp_time_spent = time.time() - self.checkpoint
-        self.time_spent += tmp_time_spent
+        self._timer.start()
 
     def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
-        print(
-            "on_train_batch_end", self.time_spent
-        )  # for debugging purpose, will be deleted before merging
-        self.record_time_spent()
-
-        self.checkpoint = time.time()
-
-        if self.stop_during_epoch:
-            return self.check_time_limit()
-        return True
-
-    def on_train_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-    ) -> bool:
-        print(
-            "on_train_epoch_end", self.time_spent
-        )  # for debugging purpose, will be deleted before merging
-        self.record_time_spent()
-
-        self.checkpoint = time.time()
-
-        return self.check_time_limit()
-
-    def on_validation_batch_end(
-        self, training_network: nn.HybridBlock
-    ) -> bool:
-        print(
-            "on_validation_batch_end", self.time_spent
-        )  # for debugging purpose, will be deleted before merging
-        if self.track_validation_duration:
-            self.record_time_spent()
-
-        self.checkpoint = time.time()
-
-        if self.stop_during_epoch:
-            return self.check_time_limit()
+        if self.stop_within_epoch:
+            return self._timer.is_running()
 
         return True
-
-    def on_validation_epoch_end(
-        self,
-        epoch_no: int,
-        epoch_loss: float,
-        training_network: nn.HybridBlock,
-        trainer: gluon.Trainer,
-    ) -> bool:
-        print(
-            "on_validation_epoch_end", self.time_spent
-        )  # for debugging purpose, will be deleted before merging
-        if self.track_validation_duration:
-            self.record_time_spent()
-
-        self.checkpoint = time.time()
-
-        return self.check_time_limit()
 
     def on_epoch_end(
         self,
@@ -472,8 +413,4 @@ class TrainingTimeLimit(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        self.record_time_spent()
-
-        self.checkpoint = time.time()
-
-        return self.check_time_limit()
+        return self._timer.is_running()
