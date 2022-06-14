@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -128,7 +127,7 @@ class DataFramesDataset(Dataset):
     @classmethod
     def from_long_dataframe(
         cls, dataframe: pd.DataFrame, item_id: str, **kwargs
-    ) -> DataFramesDataset:
+    ) -> "DataFramesDataset":
         """
         Construct ``DataFramesDataset`` out of a long dataframe.
         A long dataframe uses the long format for each variable. Target time
