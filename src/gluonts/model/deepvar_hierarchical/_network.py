@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import logging
 from typing import List, Optional
 from itertools import product
 
@@ -93,9 +94,9 @@ def reconcile_samples(
         return out
 
 
-def reconciliation_error(A: Tensor, samples: Tensor) -> float:
+def coherency_error(A: Tensor, samples: Tensor) -> float:
     r"""
-    Computes the maximum relative reconciliation error among all the aggregated
+    Computes the maximum relative coherency error among all the aggregated
     time series
 
     .. math::
@@ -127,7 +128,7 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     Returns
     -------
     Float
-        Reconciliation error
+        Coherency error
 
 
     """
@@ -306,12 +307,13 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             )
             assert_shape(coherent_samples, samples.shape)
 
-            # assert that A*X_proj ~ 0
-            if self.assert_reconciliation:
-                assert (
-                    reconciliation_error(self.A, samples=coherent_samples)
-                    < self.reconciliation_tol
+            # Show coherency error: A*X_proj
+            if self.log_coherency_error:
+                coh_error = coherency_error(self.A, samples=coherent_samples)
+                self.logger.info(
+                    f"Coherency error of the predicted samples for time step {self.forecast_time_step}: {coh_error}"
                 )
+                self.forecast_time_step += 1
 
             return coherent_samples
 
@@ -375,12 +377,13 @@ class DeepVARHierarchicalPredictionNetwork(
     def __init__(
         self,
         num_parallel_samples: int,
-        assert_reconciliation: bool,
+        log_coherency_error: bool,
         coherent_pred_samples: bool,
-        reconciliation_tol: float,
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
         self.coherent_pred_samples = coherent_pred_samples
-        self.assert_reconciliation = assert_reconciliation
-        self.reconciliation_tol = reconciliation_tol
+        self.log_coherency_error = log_coherency_error
+        if log_coherency_error:
+            self.logger = logging.getLogger("gluonts").getChild("model")
+            self.forecast_time_step = 1
