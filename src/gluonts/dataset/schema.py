@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 from pandas.tseries.frequencies import to_offset
+from torch import layout
 
 from gluonts.exceptions import GluonTSDataError
 
@@ -124,7 +125,7 @@ class PandasPeriodField(FieldType[pd.Period]):
 class Schema:
     fields: Dict[str, FieldType]
     default_values: Dict[str, Any]
-    targert_layout: Dict[str, str] = {}
+    targert_layout: Dict[str, str] = field(default_factory=dict)
 
     # convert functions
     def ct_to_tc(xs):
@@ -170,35 +171,37 @@ class Schema:
         for field_name, field_type in self.fields.items():
             try:
                 src_fields = name_mapping[field_name]
+                # multi-src-field for target field
+                if isinstance(src_fields, list):
+                    value = []
+                    for field in src_fields:
+                        value.append(d[field])
+                    src_layout[field_name] = "CT"
+                else:
+                    value = d[src_fields]
+                    if src_fields in src_layout:
+                        src_layout[field_name] = src_layout.pop(src_fields)
             except KeyError:
                 if field_name in self.default_values.keys():
                     value = self.default_values[field_name]
+                    src_layout[field_name] = "C"
                 else:
                     raise GluonTSDataError(
                         f"field {field_name} does not occur in the data"
                     )
-
-            # multi-src-field for target field
-            if isinstance(src_fields, list):
-                value = []
-                for field in src_fields:
-                    value.append(d[field])
-                src_layout[field_name] = "CT"
-            else:
-                value = d[src_fields]
-                src_layout[field_name] = src_layout.pop(src_fields)
 
             try:
                 # type conversion
                 value = field_type(value)
 
                 # layout conversion
-                # TODO: check what field should have layout conversion
-                layout_s = src_layout[field_name]
-                layout_t = self.targert_layout[field_name]
-                if layout_s != layout_t:
-                    conv_func = conv_map[(layout_s, layout_t)]
-                    value = conv_func(value)
+                if field_name in self.targert_layout:
+                    layout_s = src_layout[field_name]
+                    layout_t = self.targert_layout[field_name]
+                    # TODO: check if "C" needs to convert
+                    if layout_s != layout_t:
+                        conv_func = conv_map[(layout_s, layout_t)]
+                        value = conv_func(value)
 
                 out[field_name] = value
 
@@ -231,8 +234,7 @@ class Schema:
                 raw_type_mapping[field] = PyArray(array_shape, dtype)
 
         # TODO: map raw type to candidate types
-
-        if not "start" in entry:
+        if "start" not in entry:
             raise GluonTSDataError(
                 "start not provided and could not be found in data entry"
             )
