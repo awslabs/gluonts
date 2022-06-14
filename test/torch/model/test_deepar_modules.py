@@ -17,62 +17,44 @@ import pytest
 import torch
 
 from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
-from gluonts.torch.model.deepar.module import LaggedLSTM
+from gluonts.torch.model.deepar.util import lagged_sequence_values
 
 
 @pytest.mark.parametrize(
-    "model, prior_input, input, features, more_input, more_features",
+    "lag_seq, prior_input, input, features, expected_shape",
     [
         (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
+            [0, 1, 5, 10, 20],
             torch.ones((4, 100)),
             torch.ones((4, 8)),
             torch.ones((4, 8, 3)),
-            torch.ones((4, 5)),
-            torch.ones((4, 5, 3)),
+            (4, 8, 8),
         ),
         (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
+            [0, 1, 5, 10, 20],
             torch.ones((4, 100, 1)),
             torch.ones((4, 8, 1)),
             torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 1)),
-            torch.ones((4, 5, 3)),
+            (4, 8, 8),
         ),
         (
-            LaggedLSTM(
-                input_size=2, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
+            [0, 1, 5, 10, 20],
             torch.ones((4, 100, 2)),
             torch.ones((4, 8, 2)),
             torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 2)),
-            torch.ones((4, 5, 3)),
+            (4, 8, 13),
         ),
     ],
 )
-def test_lagged_lstm(
-    model: LaggedLSTM,
+def test_prepare_lagged_inputs(
+    lag_seq: List[int],
     prior_input: torch.Tensor,
     input: torch.Tensor,
     features: torch.Tensor,
-    more_input: torch.Tensor,
-    more_features: torch.Tensor,
+    expected_shape,
 ):
-    torch.jit.script(model)
-    output, state = model(prior_input, input, features=features)
-    assert output.shape[:2] == input.shape[:2]
-    more_output, state = model(
-        torch.cat((prior_input, input), dim=1),
-        more_input,
-        features=more_features,
-        state=state,
-    )
-    assert more_output.shape[:2] == more_input.shape[:2]
+    model_input = lagged_sequence_values(lag_seq, prior_input, input, features)
+    assert model_input.shape == expected_shape
 
 
 @pytest.mark.parametrize(
