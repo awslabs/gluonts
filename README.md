@@ -21,12 +21,41 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 
 ## Installation
 
-GluonTS requires Python 3.7, and the easiest way to install it is via `pip`:
+GluonTS requires Python 3.6, and the easiest way to install it is via `pip`:
 
 ```bash
-pip install --upgrade gluonts mxnet~=1.8   # to be able to use MXNet-based models
-pip install --upgrade gluonts torch~=1.10  # to be able to use PyTorch-based models
+# minimal installation
+pip install gluonts
 ```
+
+However, this installs a minimal version of Python, with virtually no support for any models. To enable these, install the corresponding extra requirement.
+
+### Extra Dependencies
+
+GluonTS supports a range of additional dependencies via extras.
+
+**Models:**
+
+* `mxnet` - MXNet-based models
+* `torch` - PyTorch-based models
+* `R` - R-based models
+* `Prophet` - Prophet-based models
+
+**Datasets:**
+
+* `arrow` - Arrow and Parquet dataset support
+* `pro` - bundles `arrow` plus `orjson` for faster datasets
+
+**Misc:**
+
+* `shell` for integration with SageMaker
+
+A typical installation setup can look like this:
+
+```bash
+pip install 'gluonts[pro, torch]'
+````
+
 
 ## Documentation
 
@@ -78,8 +107,8 @@ AMZN ticker symbol.
 
 ```python
 import pandas as pd
-url = "https://raw.githubusercontent.com/numenta/NAB/dev/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0, index_col=0)
+url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
+df = pd.read_csv(url, header=0)
 ```
 
 The first 100 data points look like follows:
@@ -102,10 +131,13 @@ first datapoint, and the `"target"` field containing time series data.
 For training, we will use data up to midnight on April 5th, 2015.
 
 ```python
-from gluonts.dataset.common import ListDataset
-training_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-05 00:00:00"]}],
-    freq = "5min"
+from gluonts.dataset.dataframes import DataFramesDataset
+
+training_data = DataFramesDataset(
+    [df[:"2015-04-05 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 ```
 
@@ -133,9 +165,11 @@ We're now ready to make predictions: we will forecast the hour following
 the midnight on April 15th, 2015.
 
 ```python
-test_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-15 00:00:00"]}],
-    freq = "5min"
+training_data = DataFramesDataset(
+    [df[:"2015-04-15 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 
 from gluonts.dataset.util import to_pandas
