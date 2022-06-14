@@ -298,24 +298,24 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             Tensor of coherent samples.
         """
         if not self.coherent_pred_samples:
-            return samples
+            samples_to_return = samples
         else:
-            coherent_samples = reconcile_samples(
+            samples_to_return = reconcile_samples(
                 reconciliation_mat=self.M,
                 samples=samples,
                 seq_axis=self.seq_axis,
             )
-            assert_shape(coherent_samples, samples.shape)
+            assert_shape(samples_to_return, samples.shape)
 
-            # Show coherency error: A*X_proj
-            if self.log_coherency_error:
-                coh_error = coherency_error(self.A, samples=coherent_samples)
-                self.logger.info(
-                    f"Coherency error of the predicted samples for time step {self.forecast_time_step}: {coh_error}"
-                )
-                self.forecast_time_step += 1
+        # Show coherency error: A*X_proj
+        if self.log_coherency_error:
+            coh_error = coherency_error(self.A, samples=samples_to_return)
+            self.logger.info(
+                f"Coherency error of the predicted samples for time step {self.forecast_time_step}: {coh_error}"
+            )
+            self.forecast_time_step += 1
 
-            return coherent_samples
+        return samples_to_return
 
 
 class DeepVARHierarchicalTrainingNetwork(
