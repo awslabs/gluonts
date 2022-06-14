@@ -11,15 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from functools import partial
 from itertools import islice
 
-import mxnet as mx
-
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names

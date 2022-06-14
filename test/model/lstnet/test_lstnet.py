@@ -76,7 +76,6 @@ def test_lstnet(
         channels=6,
         kernel_size=2,
         context_length=4,
-        freq=freq,
         lead_time=lead_time,
         prediction_length=prediction_length,
         trainer=Trainer(

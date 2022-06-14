@@ -33,6 +33,7 @@ from torch.distributions import (
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
+from scipy.special import softmax
 
 from gluonts.model.common import NPArrayLike
 from gluonts.torch.distributions import (
@@ -44,13 +45,11 @@ from gluonts.torch.distributions import (
     PoissonOutput,
     StudentTOutput,
 )
-
 from gluonts.torch.distributions import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
 )
 
-from scipy.special import softmax
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32

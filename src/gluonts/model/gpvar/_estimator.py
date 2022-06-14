@@ -189,7 +189,6 @@ class GPVAREstimator(GluonEstimator):
             self.distr_output = distr_output
         else:
             self.distr_output = LowrankGPOutput(rank=rank)
-        self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
@@ -215,7 +214,7 @@ class GPVAREstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
@@ -411,7 +410,6 @@ class GPVAREstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             output_transform=self.output_transform,

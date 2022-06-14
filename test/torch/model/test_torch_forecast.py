@@ -19,13 +19,14 @@ import torch
 from torch.distributions import Uniform
 
 # First-party imports
-from gluonts.model.forecast import SampleForecast
 from gluonts.torch.model.forecast import DistributionForecast
+
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
-START_DATE = pd.Period(pd.Timestamp(2017, 1, 1, 12), "1D")
 FREQ = "1D"
+START_DATE = pd.Period(pd.Timestamp(2017, 1, 1, 12), FREQ)
+
 
 FORECASTS = {
     "DistributionForecast": DistributionForecast(

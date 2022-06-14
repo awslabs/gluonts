@@ -128,7 +128,7 @@ print_dicts(
 )
 ```
 
-Note that you may create and use intermediate random varibles such as `stddev2` in the above example without including them in the output.
+Note that you may create and use intermediate random variables such as `stddev2` in the above example without including them in the output.
 
 
 ```python
