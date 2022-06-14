@@ -143,9 +143,6 @@ class GaussianProcessEstimator(GluonEstimator):
         assert (
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
-        assert (
-            freq is not None or time_features is not None
-        ), "Either `freq` or `time_features` should be set"
 
         self.prediction_length = prediction_length
         self.context_length = (

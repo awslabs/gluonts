@@ -86,9 +86,6 @@ class SelfAttentionEstimator(GluonEstimator):
         batch_size: int = 32,
     ):
         super().__init__(trainer=trainer, batch_size=batch_size)
-        assert (
-            freq is not None or time_features is not None
-        ), "Either `freq` or `time_features` should be set"
 
         self.prediction_length = prediction_length
         self.context_length = context_length or prediction_length

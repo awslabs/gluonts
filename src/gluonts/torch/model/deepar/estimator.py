@@ -175,10 +175,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
             default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
 
-        assert (
-            freq is not None or time_features is not None
-        ), "Either `freq` or `time_features` should be set"
-
         self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length

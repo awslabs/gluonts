@@ -261,12 +261,6 @@ class DeepVAREstimator(GluonEstimator):
         assert (
             embedding_dimension > 0
         ), "The value of `embedding_dimension` should be > 0"
-        assert (
-            freq is not None or lags_seq is not None
-        ), "Either `freq` or `lags_seq` should be set"
-        assert (
-            freq is not None or time_features is not None
-        ), "Either `freq` or `time_features` should be set"
 
         self.context_length = (
             context_length if context_length is not None else prediction_length

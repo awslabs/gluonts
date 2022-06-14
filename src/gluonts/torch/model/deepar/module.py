@@ -96,10 +96,6 @@ class DeepARModel(nn.Module):
     ) -> None:
         super().__init__()
 
-        assert (
-            freq is not None or lags_seq is not None
-        ), "Either `freq` or `lags_seq` should be set"
-
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output

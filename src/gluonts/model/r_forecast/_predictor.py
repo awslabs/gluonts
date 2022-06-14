@@ -105,10 +105,6 @@ class RForecastPredictor(RepresentablePredictor):
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
-        assert (
-            freq is not None or period is not None
-        ), "Either `freq` or `period` should be set"
-
         if not R_IS_INSTALLED:
             raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)
 

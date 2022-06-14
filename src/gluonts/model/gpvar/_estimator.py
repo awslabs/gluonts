@@ -184,12 +184,6 @@ class GPVAREstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_eval_samples` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (
-            freq is not None or lags_seq is not None
-        ), "Either `freq` or `lags_seq` should be set"
-        assert (
-            freq is not None or time_features is not None
-        ), "Either `freq` or `time_features` should be set"
 
         if distr_output is not None:
             self.distr_output = distr_output
