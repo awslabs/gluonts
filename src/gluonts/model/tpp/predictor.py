@@ -31,14 +31,13 @@ from .forecast import PointProcessSampleForecast
 
 
 class PointProcessForecastGenerator(ForecastGenerator):
-    def __call__(
+    def __call__(  # type: ignore
         self,
         inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        *,
         freq: str,
         **kwargs,
     ) -> Iterator[Forecast]:
