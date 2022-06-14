@@ -18,7 +18,7 @@ from typing import Dict
 
 from toolz import valmap
 
-from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
+from gluonts.dataset.common import Dataset, FileDataset, MetaData
 from gluonts.model import forecast
 
 from . import sagemaker
