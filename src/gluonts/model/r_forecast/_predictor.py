@@ -96,9 +96,9 @@ class RForecastPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         method_name: str = "ets",
-        freq: Optional[str] = None,
         period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,

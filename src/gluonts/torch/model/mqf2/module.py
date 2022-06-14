@@ -28,6 +28,7 @@ class MQF2MultiHorizonModel(DeepARModel):
     @validated()
     def __init__(
         self,
+        freq: str,
         context_length: int,
         prediction_length: int,
         num_feat_dynamic_real: int,
@@ -39,7 +40,6 @@ class MQF2MultiHorizonModel(DeepARModel):
         num_layers: int = 2,
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
-        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
         num_parallel_samples: int = 100,

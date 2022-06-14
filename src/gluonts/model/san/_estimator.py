@@ -61,6 +61,7 @@ class SelfAttentionEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         cardinalities: List[int] = [],
         context_length: Optional[int] = None,
@@ -75,7 +76,6 @@ class SelfAttentionEstimator(GluonEstimator):
         pre_layer_norm: bool = False,
         dropout: float = 0.1,
         temperature: float = 1.0,
-        freq: Optional[str] = None,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = True,
         use_feat_dynamic_cat: bool = False,

@@ -166,6 +166,7 @@ class DeepStateEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         cardinality: List[int],
         add_trend: bool = False,
@@ -184,7 +185,6 @@ class DeepStateEstimator(GluonEstimator):
         embedding_dimension: Optional[List[int]] = None,
         issm: Optional[ISSM] = None,
         scaling: bool = True,
-        freq: Optional[str] = None,
         time_features: Optional[List[TimeFeature]] = None,
         noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
         prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),

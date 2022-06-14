@@ -137,6 +137,7 @@ class TransformerEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
@@ -151,7 +152,6 @@ class TransformerEstimator(GluonEstimator):
         act_type: str = "softrelu",
         num_heads: int = 8,
         scaling: bool = True,
-        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         use_feat_dynamic_real: bool = False,

@@ -70,6 +70,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         trainer: Trainer = Trainer(),
@@ -79,7 +80,6 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         num_outputs: int = 3,
         num_instance_per_series: int = 100,
         dropout_rate: float = 0.1,
-        freq: Optional[str] = None,
         time_features: List[TimeFeature] = [],
         static_cardinalities: Dict[str, int] = {},
         dynamic_cardinalities: Dict[str, int] = {},

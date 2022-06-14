@@ -145,6 +145,7 @@ class GPVAREstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         target_dim: int,
         trainer: Trainer = Trainer(),
@@ -160,7 +161,6 @@ class GPVAREstimator(GluonEstimator):
         rank: Optional[int] = 2,
         scaling: bool = True,
         pick_incomplete: bool = False,
-        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         shuffle_target_dim: bool = True,
         time_features: Optional[List[TimeFeature]] = None,

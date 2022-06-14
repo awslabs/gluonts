@@ -190,6 +190,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
         target_dim: int,
         S: np.ndarray,
@@ -213,7 +214,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         embedding_dimension: int = 5,
         scaling: bool = True,
         pick_incomplete: bool = False,
-        freq: Optional[str] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         batch_size: int = 32,

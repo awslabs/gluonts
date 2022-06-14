@@ -75,8 +75,8 @@ class TabularEstimator(Estimator):
     @validated()
     def __init__(
         self,
+        freq: str,
         prediction_length: int,
-        freq: Optional[str] = None,
         lag_indices: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         scaling: Callable[
