@@ -56,9 +56,9 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
 
 
 def naive_2(
-    freq: str,
     past_ts_data: np.ndarray,
     prediction_length: int,
+    freq: Optional[str] = None,
     season_length: Optional[int] = None,
 ) -> np.ndarray:
     """
