@@ -26,12 +26,12 @@ def _arrow_to_py(scalar):
     raise NotImplementedError(scalar, scalar.__class__)
 
 
-@_arrow_to_py.register
+@_arrow_to_py.register(pa.Scalar)
 def _arrow_to_py_scalar(scalar: pa.Scalar):
     return scalar.as_py()
 
 
-@_arrow_to_py.register
+@_arrow_to_py.register(pa.ListScalar)
 def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
     arr = scalar.values.to_numpy(zero_copy_only=False)
 
