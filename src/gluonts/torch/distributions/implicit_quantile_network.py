@@ -18,7 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions import (
     Distribution,
     DistributionOutput,
 )
