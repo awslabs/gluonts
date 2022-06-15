@@ -26,6 +26,8 @@ from .dec import ArrowDecoder
 
 
 class File:
+    SUFFIXES = {".parquet", ".arrow"}
+
     @staticmethod
     def infer(
         path: Path,
