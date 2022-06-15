@@ -16,12 +16,10 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributions import Distribution
 
 from gluonts.core.component import validated
-from gluonts.torch.distributions import (
-    Distribution,
-    DistributionOutput,
-)
+from gluonts.torch.distributions import DistributionOutput
 from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
