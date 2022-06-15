@@ -24,11 +24,11 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
-# minimal installation
-pip install gluonts
+pip install gluonts[mxnet, pro]  # support for mxnet models, faster datasets
+pip install gluonts[torch, pro]  # support for torch models, faster datasets
 ```
 
-However, this installs a minimal version of GluonTS, with virtually no support for any models. To enable these, install the corresponding extra requirement.
+You can enable or disable optional dependencies as you prefer, depending on what GluonTS features you are interested in enabling:
 
 **Models:**
 
@@ -45,12 +45,6 @@ However, this installs a minimal version of GluonTS, with virtually no support f
 **Misc:**
 
 * `shell` for integration with SageMaker
-
-A typical installation setup can look like this:
-
-```bash
-pip install 'gluonts[pro, torch]'
-````
 
 
 ## Documentation
