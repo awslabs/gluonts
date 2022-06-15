@@ -30,11 +30,10 @@ class Estimator:
     __version__: str = gluonts.__version__
 
     prediction_length: int
-    freq: str
     lead_time: int
 
     def __init__(self, lead_time: int = 0, **kwargs) -> None:
-        # TODO validation of prediction_length and freq could also
+        # TODO validation of prediction_length could also
         # TODO be bubbled-up here from subclasses classes
         assert lead_time >= 0, "The value of `lead_time` should be >= 0"
 

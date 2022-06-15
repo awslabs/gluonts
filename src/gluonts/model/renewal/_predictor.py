@@ -68,7 +68,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         prediction_net: BlockType,
         batch_size: int,
         prediction_length: int,
-        freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
         input_names: Optional[List[str]] = None,
@@ -83,7 +82,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,
-            freq=freq,
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
@@ -118,7 +116,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
                 input_names=self.input_names,
-                freq=self.freq,
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
