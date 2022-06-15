@@ -14,5 +14,25 @@
 # !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
 
 from pkgutil import extend_path
+from .common import ListDataset
+from .field_names import FieldName
+from .repository.datasets import get_dataset, dataset_recipes, load_datasets
+from .loader import TrainDataLoader
+from .rolling_dataset import StepStrategy, generate_rolling_dataset
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
+__all__ = [
+    "ListDataset",
+    "FieldName",
+    "get_dataset",
+    "load_datasets",
+    "dataset_recipes",
+    "TrainDataLoader",
+    "StepStrategy",
+    "generate_rolling_dataset",
+]
+
+# fix Sphinx issues, see https://bit.ly/2K2eptM
+for item in __all__:
+    if hasattr(item, "__module__"):
+        setattr(item, "__module__", __name__)
