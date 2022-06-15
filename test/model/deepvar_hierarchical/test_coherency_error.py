@@ -17,7 +17,7 @@ import pytest
 
 from gluonts.model.deepvar_hierarchical import (
     constraint_mat,
-    reconciliation_error,
+    coherency_error,
 )
 
 TOL = 1e-4
@@ -53,7 +53,7 @@ A = constraint_mat(S)
         np.random.standard_normal(size=num_bottom_ts),
     ],
 )
-def test_reconciliation_error(bottom_ts):
+def test_coherency_error(bottom_ts):
     all_ts = S @ bottom_ts
 
-    assert reconciliation_error(mx.nd.array(A), mx.nd.array(all_ts)) < TOL
+    assert coherency_error(mx.nd.array(A), mx.nd.array(all_ts)) < TOL
