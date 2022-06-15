@@ -67,8 +67,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
 
     Parameters
     ----------
-    freq
-        Frequency of the data to train on and predict.
     prediction_length
         Length of the prediction horizon.
     context_length
@@ -102,7 +100,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         hidden_dimensions: Optional[List[int]] = None,
@@ -123,7 +120,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
             default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or 10 * prediction_length
         # TODO find way to enforce same defaults to network and estimator
@@ -246,7 +242,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
                 self.distr_output
             ),
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             device=torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu"

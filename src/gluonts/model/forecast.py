@@ -436,7 +436,7 @@ class Forecast:
             plt.savefig(output_file)
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def index(self) -> pd.PeriodIndex:
         if self._index is None:
             self._index = pd.period_range(
                 self.start_date,

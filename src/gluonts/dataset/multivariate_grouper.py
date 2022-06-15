@@ -125,7 +125,7 @@ class MultivariateGrouper:
             grouped_dataset = self._prepare_test_data(dataset)
         return grouped_dataset
 
-    def _prepare_train_data(self, dataset: Dataset) -> ListDataset:
+    def _prepare_train_data(self, dataset: Dataset) -> Dataset:
         logging.info("group training time-series to datasets")
 
         grouped_data = self._transform_target(self._align_data_entry, dataset)
@@ -137,7 +137,7 @@ class MultivariateGrouper:
             [grouped_data], freq=self.frequency, one_dim_target=False
         )
 
-    def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
+    def _prepare_test_data(self, dataset: Dataset) -> Dataset:
         assert self.num_test_dates is not None
 
         logging.info("group test time-series to datasets")
