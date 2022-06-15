@@ -336,8 +336,9 @@ class ModelIterationAveraging(Callback):
         self.avg_strategy.load_cached_model(training_network)
         return True
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         self.avg_strategy.apply(training_network)
+        return True
 
     def on_epoch_end(
         self,
