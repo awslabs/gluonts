@@ -28,7 +28,7 @@ For all other datasets, the more flexible `DateSplitter` can be used::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Timestamp('2018-01-31', freq='D')
+        split_date=pd.Period('2018-01-31', freq='D')
     )
     train, test = splitter.split(whole_dataset)
 
@@ -36,15 +36,17 @@ The module also supports rolling splits::
 
     splitter = DateSplitter(
         prediction_length=24,
-        split_date=pd.Timestamp('2018-01-31', freq='D')
+        split_date=pd.Period('2018-01-31', freq='D'), 
+        windows=7
     )
-    train, test = splitter.rolling_split(whole_dataset, windows=7)
+    train, test = splitter.split(whole_dataset)
 """
 
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, cast, Iterable, Tuple
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 import pydantic
 
@@ -77,8 +79,8 @@ class TimeSeriesSlice(pydantic.BaseModel):
         if freq is None:
             freq = item["start"].freq
 
-        index = pd.date_range(
-            start=item["start"].to_timestamp(), freq=freq, periods=len(item["target"])
+        index = pd.period_range(
+            start=item["start"], freq=freq, periods=len(item["target"])
         )
 
         feat_dynamic_cat = [
@@ -109,39 +111,42 @@ class TimeSeriesSlice(pydantic.BaseModel):
     def to_data_entry(self) -> DataEntry:
         ret = {
             FieldName.START: self.start,
-            FieldName.ITEM_ID: self.item_id,
             FieldName.TARGET: self.target.values,
         }
 
+        if self.item_id:
+            ret[FieldName.ITEM_ID] = self.item_id
         if self.feat_static_cat:
             ret[FieldName.FEAT_STATIC_CAT] = self.feat_static_cat
         if self.feat_static_real:
             ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
         if self.feat_dynamic_cat:
             ret[FieldName.FEAT_DYNAMIC_CAT] = [
-                cat.values.tolist() for cat in self.feat_dynamic_cat
+                cast(np.ndarray, cat.values).tolist()
+                for cat in self.feat_dynamic_cat
             ]
         if self.feat_dynamic_real:
             ret[FieldName.FEAT_DYNAMIC_REAL] = [
-                real.values.tolist() for real in self.feat_dynamic_real
+                cast(np.ndarray, real.values).tolist()
+                for real in self.feat_dynamic_real
             ]
 
         return ret
 
     @property
-    def start(self):
+    def start(self) -> pd.Period:
         return self.target.index[0]
 
     @property
-    def end(self):
+    def end(self) -> pd.Period:
         return self.target.index[-1]
 
     def __len__(self) -> int:
         return len(self.target)
 
     def __getitem__(self, slice_: slice) -> "TimeSeriesSlice":
-        feat_dynamic_real = None
-        feat_dynamic_cat = None
+        feat_dynamic_real = []
+        feat_dynamic_cat = []
 
         if self.feat_dynamic_real is not None:
             feat_dynamic_real = [
@@ -191,12 +196,13 @@ class AbstractBaseSplitter(ABC):
         pass
 
     def _trim_history(
-        self, 
-        item: Tuple[TimeSeriesSlice, TimeSeriesSlice]
+        self, item: Tuple[TimeSeriesSlice, TimeSeriesSlice]
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         if getattr(self, "max_history") is not None:
-            return (item[0][-getattr(self, "max_history") + 
-                    len(item[1]) :], item[1])
+            return (
+                item[0][-getattr(self, "max_history") + len(item[1]) :],
+                item[1],
+            )
         else:
             return item
 
@@ -204,27 +210,22 @@ class AbstractBaseSplitter(ABC):
         self,
         items: List[DataEntry],
     ):
-        test_data = TestDataset(
-            dataset=items, splitter=self
-        )
+        test_data = TestDataset(dataset=items, splitter=self)
         train_data = TrainingDataset(dataset=items, splitter=self)
 
-        return train_data, test_data 
-    
-    def _generate_train_slices(
-        self, 
-        items: List[DataEntry]
-    ):
+        return train_data, test_data
+
+    def _generate_train_slices(self, items: List[DataEntry]):
         for item in map(TimeSeriesSlice.from_data_entry, items):
             train = self._train_slice(item)
 
             yield train.to_data_entry()
 
     def _generate_test_slices(
-        self, 
+        self,
         items: List[DataEntry],
         windows: Optional[int],
-        distance: Optional[int]
+        distance: Optional[int],
     ):
         # distance defaults to prediction_length
         if distance is None:
@@ -241,19 +242,34 @@ class AbstractBaseSplitter(ABC):
                     self._test_slice(item, offset=offset)
                 )
 
-                assert (
-                    train.end + train.end.freq * prediction_length <= test[1].end
+                _check_split_length(
+                    train.end, test[1].end, train.end.freq * prediction_length
                 )
 
                 input = test[0].to_data_entry()
 
                 label = test[1].to_data_entry()
-                df_label = pd.DataFrame(label['target'], columns=[label['item_id']])
-                df_label = df_label.set_index(pd.date_range(start=label['start'], 
-                                            periods=len(label['target']), 
-                                            freq=train.end.freq))
+                df_label = pd.DataFrame(label["target"])
+                df_label = df_label.set_index(
+                    pd.period_range(
+                        start=label["start"],
+                        periods=len(label["target"]),
+                        freq=train.end.freq,
+                    )
+                )
 
                 yield input, df_label
+
+
+def _check_split_length(
+    train_end: pd.Period, test_end: pd.Period, prediction_length: int
+) -> None:
+    msg = (
+        "Not enough observations after the split point to construct"
+        " the test instance; consider using longer time series,"
+        " or splitting at an earlier point."
+    )
+    assert train_end + prediction_length <= test_end, msg
 
 
 @dataclass
@@ -265,12 +281,12 @@ class TestDataset(Iterable[DataEntry]):
         return self.splitter._generate_test_slices(
             self.dataset, self.splitter.windows, self.splitter.distance
         )
-    
+
     @property
     def inputs(self):
         for pairs in self:
             yield pairs[0]
-    
+
     @property
     def labels(self):
         for pairs in self:
@@ -292,17 +308,19 @@ class OffsetSplitter(AbstractBaseSplitter):
     A splitter that slices training and test data based on a fixed integer
     offset.
 
-    A positive offset indicates how many observations since the start of each
-    series should be in the training slice; a negative offset indicates how
-    many observations before the end of each series should be excluded from
-    the training slice.
-
     Parameters
     ----------
     prediction_length
         Length of the prediction interval in test data.
     split_offset
         Offset determining where the training data ends.
+        A positive offset indicates how many observations since the start of
+        each series should be in the training slice; a negative offset
+        indicates how many observations before the end of each series should
+        be excluded from the training slice. Please make sure that the number
+        of excluded values is enough for the test case, i.e., at least
+        ``prediction_length`` (for ``rolling_split`` multiple of
+        ``prediction_length``) values are left off.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
@@ -323,15 +341,14 @@ class OffsetSplitter(AbstractBaseSplitter):
         offset_ = self.split_offset + offset + self.prediction_length
         if self.split_offset < 0 and offset_ >= 0:
             offset_ += len(item)
-        return (item[: self.split_offset], 
-                item[self.split_offset : offset_])
+        return (item[: self.split_offset], item[self.split_offset : offset_])
 
 
 @dataclass
 class DateSplitter(AbstractBaseSplitter):
     """
     A splitter that slices training and test data based on a
-    ``pandas.Timestamp``.
+    ``pandas.Period``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``split_date``.
@@ -341,13 +358,15 @@ class DateSplitter(AbstractBaseSplitter):
     prediction_length
         Length of the prediction interval in test data.
     split_date
-        Timestamp determining where the training data ends.
+        Period determining where the training data ends. Please make sure
+        at least ``prediction_length`` (for ``rolling_split`` multiple of
+        ``prediction_length``) values are left over after the ``split_date``.
     max_history
         If given, all entries in the *test*-set have a max-length of
         `max_history`. This can be used to produce smaller file-sizes.
     """
 
-    split_date: pd.Timestamp
+    split_date: pd.Period
     prediction_length: int
     windows: Optional[int] = 1
     distance: Optional[int] = None
@@ -361,7 +380,10 @@ class DateSplitter(AbstractBaseSplitter):
         self, item: TimeSeriesSlice, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         return (
-            item[: self.split_date], 
-            item[self.split_date + item.start.freq : self.split_date 
-            + (self.prediction_length + offset) * item.start.freq]
+            item[: self.split_date],
+            item[
+                self.split_date
+                + item.start.freq : self.split_date
+                + (self.prediction_length + offset) * item.start.freq
+            ],
         )

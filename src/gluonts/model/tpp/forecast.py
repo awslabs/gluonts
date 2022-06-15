@@ -126,9 +126,9 @@ class PointProcessSampleForecast(Forecast):
         return self.interarrival_freq
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def index(self) -> pd.PeriodIndex:
         raise AttributeError(
-            "Datetime index not defined for point process samples"
+            "Period index not defined for point process samples"
         )
 
     def as_json_dict(self, config: "Config") -> dict:

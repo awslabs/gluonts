@@ -13,7 +13,6 @@
 
 import logging
 import math
-from pathlib import Path
 
 import pytest
 
@@ -26,7 +25,7 @@ from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
 )
-from gluonts.evaluation import backtest_metrics, Evaluator
+from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.evaluation.backtest import BacktestInformation
 from gluonts.model.trivial.mean import MeanEstimator
 
@@ -34,11 +33,9 @@ root = logging.getLogger()
 root.setLevel(logging.DEBUG)
 
 
-def make_estimator(freq, prediction_length):
+def make_estimator(prediction_length):
     # noinspection PyTypeChecker
-    return MeanEstimator(
-        prediction_length=prediction_length, freq=freq, num_samples=5
-    )
+    return MeanEstimator(prediction_length=prediction_length, num_samples=5)
 
 
 def test_forecast_parser():
@@ -47,9 +44,7 @@ def test_forecast_parser():
 
     dataset_info, train_ds, test_ds = constant_dataset()
 
-    estimator = make_estimator(
-        dataset_info.metadata.freq, dataset_info.prediction_length
-    )
+    estimator = make_estimator(dataset_info.prediction_length)
     assert repr(estimator) == repr(load_code(repr(estimator)))
 
     predictor = estimator.train(training_data=train_ds)
@@ -78,9 +73,7 @@ def test_benchmark(caplog):
     with caplog.at_level(logging.DEBUG):
         dataset_info, train_ds, test_ds = constant_dataset()
 
-        estimator = make_estimator(
-            dataset_info.metadata.freq, dataset_info.prediction_length
-        )
+        estimator = make_estimator(dataset_info.prediction_length)
         predictor = estimator.train(training_data=train_ds)
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
         backtest_metrics(test_ds, predictor, evaluator)

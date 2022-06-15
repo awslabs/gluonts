@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import logging
 from typing import List, Optional
 
 import numpy as np
@@ -35,6 +36,9 @@ from ._network import (
     DeepVARHierarchicalPredictionNetwork,
     DeepVARHierarchicalTrainingNetwork,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def constraint_mat(S: np.ndarray) -> np.ndarray:
@@ -143,11 +147,9 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         (e.g. if both num_samples_for_loss and target_dim are very large). In
         such cases, use seq_axis = [1]. By default, all axes are processeed in
         parallel.
-    assert_reconciliation
-        Flag to indicate whether to assert if the (projected) samples generated
-        during prediction are coherent.
-    reconciliation_tol
-        Tolerance for the reconciliation error.
+    log_coherency_error
+        Flag to indicate whether to compute and show the cohererncy error
+        on the samples generated during prediction.
     trainer
         Trainer object to be used (default: Trainer())
     context_length
@@ -202,7 +204,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         coherent_pred_samples: bool = True,
         warmstart_epoch_frac: float = 0.0,
         seq_axis: List[int] = None,
-        assert_reconciliation: bool = False,
+        log_coherency_error: bool = True,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
         num_layers: int = 2,
@@ -217,7 +219,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         batch_size: int = 32,
-        reconciliation_tol: float = 1e-2,
         **kwargs,
     ) -> None:
 
@@ -231,6 +232,14 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         )
         use_marginal_transformation = False
         conditioning_length = 0
+
+        # This estimator doesn't work in symbolic mode.
+        if trainer.hybridize:
+            logger.info(
+                f"Resetting `hybridize` flag of trainer to False, "
+                f"since {__name__} does not work in symbolic mode."
+            )
+            trainer.hybridize = False
 
         super().__init__(
             freq=freq,
@@ -257,6 +266,13 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             **kwargs,
         )
 
+        assert target_dim == S.shape[0], (
+            "The number of rows of `S` matrix must be equal to `target_dim`. "
+            f"Either `S` matrix is incorrectly constructed or a wrong value "
+            f"is passed for `target_dim`: shape of `S`: {S.shape} and "
+            f"`target_dim`: {target_dim}."
+        )
+
         # Assert that projection is *not* being done only during training
         assert coherent_pred_samples or (
             not coherent_train_samples
@@ -268,13 +284,12 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight
-        self.assert_reconciliation = assert_reconciliation
+        self.log_coherency_error = log_coherency_error
         self.coherent_train_samples = coherent_train_samples
         self.coherent_pred_samples = coherent_pred_samples
         self.warmstart_epoch_frac = warmstart_epoch_frac
         self.sample_LH = sample_LH
         self.seq_axis = seq_axis
-        self.reconciliation_tol = reconciliation_tol
 
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(
@@ -312,9 +327,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         prediction_network = DeepVARHierarchicalPredictionNetwork(
             M=self.M,
             A=self.A,
-            assert_reconciliation=self.assert_reconciliation,
+            log_coherency_error=self.log_coherency_error,
             coherent_pred_samples=self.coherent_pred_samples,
-            reconciliation_tol=self.reconciliation_tol,
             target_dim=self.target_dim,
             num_parallel_samples=self.num_parallel_samples,
             num_layers=self.num_layers,
@@ -337,7 +351,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             output_transform=self.output_transform,
