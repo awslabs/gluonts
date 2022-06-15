@@ -25,7 +25,7 @@ from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions import (
     NormalOutput,
     StudentTOutput,
 )
