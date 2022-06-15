@@ -45,7 +45,6 @@ __all__ = [
     "SelectFields",
     "SetField",
     "SetFieldIfNotPresent",
-    "shift_timestamp",
     "SimpleTransformation",
     "SwapAxes",
     "target_transformation_length",
@@ -125,5 +124,4 @@ from .split import (
     CanonicalInstanceSplitter,
     ContinuousTimeInstanceSplitter,
     InstanceSplitter,
-    shift_timestamp,
 )

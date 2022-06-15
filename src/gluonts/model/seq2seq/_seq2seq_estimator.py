@@ -29,7 +29,7 @@ from gluonts.env import env
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.block.decoder import OneShotDecoder
 from gluonts.mx.block.enc2dec import PassThroughEnc2Dec
 from gluonts.mx.block.encoder import (
@@ -183,7 +183,6 @@ class Seq2SeqEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -250,7 +249,6 @@ class Seq2SeqEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             forecast_generator=QuantileForecastGenerator(quantile_strs),

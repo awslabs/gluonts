@@ -45,14 +45,12 @@ class RotbaumForecast(Forecast):
         self,
         models: List,
         featurized_data: List,
-        start_date: pd.Timestamp,
-        freq,
+        start_date: pd.Period,
         prediction_length: int,
     ):
         self.models = models
         self.featurized_data = featurized_data
         self.start_date = start_date
-        self.freq = freq
         self.prediction_length = prediction_length
         self.item_id = None
         self.lead_time = None
@@ -110,6 +108,7 @@ class TreePredictor(RepresentablePredictor):
         min_bin_size: int = 100,  # Used only for "QRX" method.
         context_length: Optional[int] = None,
         use_feat_static_real: bool = False,
+        use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
         cardinality: Cardinality = "auto",
@@ -138,6 +137,7 @@ class TreePredictor(RepresentablePredictor):
             n_ignore_last=n_ignore_last,
             max_n_datapts=max_n_datapts,
             use_feat_static_real=use_feat_static_real,
+            use_past_feat_dynamic_real=use_past_feat_dynamic_real,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             cardinality=cardinality,
@@ -154,6 +154,7 @@ class TreePredictor(RepresentablePredictor):
         assert (
             prediction_length > 0
             or use_feat_dynamic_cat
+            or use_past_feat_dynamic_real
             or use_feat_dynamic_real
             or use_feat_static_real
             or cardinality != "ignore"
@@ -299,5 +300,4 @@ class TreePredictor(RepresentablePredictor):
                 [featurized_data],
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
-                freq=self.freq,
             )

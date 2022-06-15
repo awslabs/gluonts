@@ -30,14 +30,15 @@ def data_iterator(ts):
         yield ts[i]
 
 
-def fcst_iterator(fcst, start_dates, freq):
+def fcst_iterator(fcst, start_dates):
     """
     :param fcst: list of numpy arrays with the sample paths
     :return:
     """
     for i in range(len(fcst)):
         yield SampleForecast(
-            samples=fcst[i], start_date=start_dates[i], freq=freq
+            samples=fcst[i],
+            start_date=start_dates[i],
         )
 
 
@@ -107,8 +108,12 @@ def calculate_metrics(
     samples = []  # list of forecast samples
     start_dates = []  # start date of the prediction range
     for i in range(num_timeseries):
-        ts_start_dates.append(pd.Timestamp(year=2018, month=1, day=1, hour=1))
-        index = pd.date_range(
+        ts_start_dates.append(
+            pd.Period(
+                pd.Timestamp(year=2018, month=1, day=1, hour=1), freq=freq
+            )
+        )
+        index = pd.period_range(
             ts_start_dates[i], periods=num_timestamps, freq=freq
         )
 
@@ -117,14 +122,14 @@ def calculate_metrics(
             forecaster(pd_timeseries[i], prediction_length, num_samples)
         )
         start_dates.append(
-            pd.date_range(
+            pd.period_range(
                 ts_start_dates[i], periods=num_timestamps, freq=freq
             )[-prediction_length]
         )
 
     # data iterator
     data_iter = input_type(data_iterator(pd_timeseries))
-    fcst_iter = input_type(fcst_iterator(samples, start_dates, freq))
+    fcst_iter = input_type(fcst_iterator(samples, start_dates))
 
     # evaluate
     agg_df, item_df = evaluator(data_iter, fcst_iter)
@@ -649,15 +654,14 @@ def test_metrics_multivariate(
 def test_evaluation_with_QuantileForecast():
     start = "2012-01-11"
     target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 11
-    index = pd.date_range(start=start, freq="1D", periods=len(target))
+    index = pd.period_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
     ev = Evaluator(quantiles=("0.1", "0.2", "0.5"))
 
     fcst = [
         QuantileForecast(
-            start_date=pd.Timestamp("2012-01-11"),
-            freq="D",
+            start_date=pd.Period("2012-01-11", freq="D"),
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
         )

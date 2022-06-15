@@ -22,14 +22,13 @@ from gluonts.mx.model.forecast import DistributionForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
-START_DATE = pd.Timestamp(2017, 1, 1, 12)
 FREQ = "1D"
+START_DATE = pd.Period("2017-01-01 12:00", FREQ)
 
 FORECASTS = {
     "DistributionForecast": DistributionForecast(
         distribution=Uniform(low=mx.nd.zeros(1), high=mx.nd.ones(1)),
         start_date=START_DATE,
-        freq=FREQ,
     ),
 }
 
@@ -52,7 +51,7 @@ def test_Forecast(name):
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
+    assert forecast.index[0] == START_DATE
 
 
 def test_DistributionForecast():
@@ -61,7 +60,6 @@ def test_DistributionForecast():
             low=mx.nd.array([0.0, 0.0]), high=mx.nd.array([1.0, 2.0])
         ),
         start_date=START_DATE,
-        freq=FREQ,
     )
 
     def percentile(value):
@@ -78,7 +76,7 @@ def test_DistributionForecast():
     pred_length = 2
     assert forecast.prediction_length == pred_length
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
+    assert forecast.index[0] == START_DATE
 
 
 @pytest.mark.parametrize(
@@ -90,11 +88,10 @@ def test_DistributionForecast():
                     low=mx.nd.zeros(shape=(5, 2)),
                     high=mx.nd.ones(shape=(5, 2)),
                 ),
-                start_date=pd.Timestamp("2020-01-01 00:00:00"),
-                freq="W",
+                start_date=pd.Period("2020-01-01 00:00:00", freq="W"),
             ),
-            pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"),
+            pd.period_range(
+                start="2020-01-01 00:00:00",
                 freq="W",
                 periods=5,
             ),

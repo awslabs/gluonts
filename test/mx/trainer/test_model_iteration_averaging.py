@@ -51,7 +51,6 @@ def initialize_model() -> nn.HybridBlock:
         num_hidden_dimensions=[10],
         prediction_length=prediction_length,
         context_length=T,
-        freq=freq,
         trainer=Trainer(
             ctx="cpu",
             epochs=1,

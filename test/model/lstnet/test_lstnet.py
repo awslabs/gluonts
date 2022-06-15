@@ -76,7 +76,6 @@ def test_lstnet(
         channels=6,
         kernel_size=2,
         context_length=4,
-        freq=freq,
         lead_time=lead_time,
         prediction_length=prediction_length,
         trainer=Trainer(
@@ -99,7 +98,9 @@ def test_lstnet(
     forecasts = list(forecast_it)
     tss = list(ts_it)
     assert len(forecasts) == len(tss) == len(dataset.test)
-    test_ds = dataset.test.list_data[0]
+
+    test_ds = next(iter(dataset.test))
+
     for fct in forecasts:
         assert fct.freq == freq
         assert fct.samples.shape == (
@@ -109,8 +110,8 @@ def test_lstnet(
         )
         assert (
             fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
+            == pd.period_range(
+                start=test_ds["start"],
                 periods=test_ds["target"].shape[1],  # number of test periods
                 freq=freq,
             )[-prediction_length]

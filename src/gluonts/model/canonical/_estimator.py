@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.rnn import RNN
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
@@ -132,7 +132,6 @@ class CanonicalEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -183,7 +182,6 @@ class CanonicalEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_net,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

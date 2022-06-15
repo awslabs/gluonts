@@ -112,7 +112,6 @@ class ForecastGenerator:
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -130,7 +129,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -148,15 +146,14 @@ class QuantileForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield QuantileForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class SampleForecastGenerator(ForecastGenerator):
@@ -169,7 +166,6 @@ class SampleForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -197,14 +193,13 @@ class SampleForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield SampleForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class DistributionForecastGenerator(ForecastGenerator):
@@ -217,7 +212,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -240,11 +234,10 @@ class DistributionForecastGenerator(ForecastGenerator):
             for i, distr in enumerate(distributions):
                 yield make_distribution_forecast(
                     distr,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])

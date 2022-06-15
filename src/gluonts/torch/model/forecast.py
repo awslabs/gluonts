@@ -41,8 +41,6 @@ class DistributionForecast(Forecast):
 
     start_date
         start of the forecast
-    freq
-        forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -51,8 +49,7 @@ class DistributionForecast(Forecast):
     def __init__(
         self,
         distribution: Distribution,
-        start_date: pd.Timestamp,
-        freq: str,
+        start_date: pd.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -63,12 +60,10 @@ class DistributionForecast(Forecast):
         self.info = info
 
         assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
         self._mean = None
 
     @property
@@ -97,7 +92,6 @@ class DistributionForecast(Forecast):
         return SampleForecast(
             samples=self.distribution.sample((num_samples,)).cpu().numpy(),
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )

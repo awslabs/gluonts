@@ -19,19 +19,19 @@ import torch
 from torch.distributions import Uniform
 
 # First-party imports
-from gluonts.model.forecast import SampleForecast
 from gluonts.torch.model.forecast import DistributionForecast
+
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
-START_DATE = pd.Timestamp(2017, 1, 1, 12)
 FREQ = "1D"
+START_DATE = pd.Period(pd.Timestamp(2017, 1, 1, 12), FREQ)
+
 
 FORECASTS = {
     "DistributionForecast": DistributionForecast(
         distribution=Uniform(low=torch.zeros(1), high=torch.ones(1)),
         start_date=START_DATE,
-        freq=FREQ,
     ),
 }
 
@@ -54,7 +54,7 @@ def test_Forecast(name):
 
     assert forecast.prediction_length == 1
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
+    assert forecast.index[0] == START_DATE
 
 
 def test_DistributionForecast():
@@ -63,7 +63,6 @@ def test_DistributionForecast():
             low=torch.tensor([0.0, 0.0]), high=torch.tensor([1.0, 2.0])
         ),
         start_date=START_DATE,
-        freq=FREQ,
     )
 
     def percentile(value):
@@ -80,7 +79,7 @@ def test_DistributionForecast():
     pred_length = 2
     assert forecast.prediction_length == pred_length
     assert len(forecast.index) == pred_length
-    assert forecast.index[0] == pd.Timestamp(START_DATE)
+    assert forecast.index[0] == START_DATE
 
 
 @pytest.mark.parametrize(
@@ -92,11 +91,10 @@ def test_DistributionForecast():
                     low=torch.zeros(size=(5, 2)),
                     high=torch.ones(size=(5, 2)),
                 ),
-                start_date=pd.Timestamp("2020-01-01 00:00:00"),
-                freq="W",
+                start_date=pd.Period("2020-01-01 00:00:00", "W"),
             ),
-            pd.date_range(
-                start=pd.Timestamp("2020-01-01 00:00:00"),
+            pd.period_range(
+                start="2020-01-01 00:00:00",
                 freq="W",
                 periods=5,
             ),

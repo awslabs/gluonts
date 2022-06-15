@@ -40,11 +40,11 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-To download one of the built-in datasets, simply call get_dataset with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
+To download one of the built-in datasets, simply call get_dataset with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again the next time around.
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=True)
+dataset = get_dataset("m4_hourly")
 ```
 
 In general, the datasets provided by GluonTS are objects that consists of three main members:
@@ -83,7 +83,7 @@ print(f"Frequency of the time series: {dataset.metadata.freq}")
 
 ### Custom datasets
 
-At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Timestamp` (possibly different for each time series):
+At this point, it is important to emphasize that GluonTS does not require this specific format for a custom dataset that a user may have. The only requirements for a custom dataset are to be iterable and have a "target" and a "start" field. To make this more clear, assume the common case where a dataset is in the form of a `numpy.array` and the index of the time series in a `pandas.Period` (possibly different for each time series):
 
 
 ```python
@@ -92,7 +92,7 @@ T = 100  # number of timesteps
 prediction_length = 24
 freq = "1H"
 custom_dataset = np.random.normal(size=(N, T))
-start = pd.Timestamp("01-01-2019", freq=freq)  # can be different for each time series
+start = pd.Period("01-01-2019", freq=freq)  # can be different for each time series
 ```
 
 Now, you can split your dataset and bring it in a GluonTS appropriate format with just two lines of code:
@@ -120,7 +120,7 @@ test_ds = ListDataset(
 
 GluonTS comes with a number of pre-built models. All the user needs to do is configure some hyperparameters. The existing models focus on (but are not limited to) probabilistic forecasting. Probabilistic forecasts are predictions in the form of a probability distribution, rather than simply a single point estimate.
 
-We will begin with GulonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
+We will begin with GluonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
 
 GluonTS's built-in feedforward neural network (`SimpleFeedForwardEstimator`) accepts an input window of length `context_length` and predicts the distribution of the values of the subsequent `prediction_length` values. In GluonTS parlance, the feedforward neural network model is an example of `Estimator`. In GluonTS, `Estimator` objects represent a forecasting model as well as details such as its coefficients, weights, etc.
 
@@ -140,7 +140,6 @@ estimator = SimpleFeedForwardEstimator(
     num_hidden_dimensions=[10],
     prediction_length=dataset.metadata.prediction_length,
     context_length=100,
-    freq=dataset.metadata.freq,
     trainer=Trainer(
         ctx="cpu", 
         epochs=5, 

@@ -11,10 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import functools
+import logging
 import shutil
-from enum import Enum
-from functools import lru_cache
+from dataclasses import dataclass
 from pathlib import Path
+from types import ModuleType
 from typing import (
     Any,
     Callable,
@@ -30,14 +32,24 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
+
 import pydantic
-from pandas.tseries.offsets import Tick
 from typing_extensions import Protocol, runtime_checkable
 
-
 from gluonts import json
-from gluonts.dataset import jsonl, util
+from gluonts.itertools import roundrobin, Cached, Map
+from gluonts.dataset.field_names import FieldName
+from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
+
+
+arrow: Optional[ModuleType]
+
+try:
+    from . import arrow
+except ImportError:
+    arrow = None
 
 # Dictionary used for data flowing through the transformations.
 DataEntry = Dict[str, Any]
@@ -53,18 +65,28 @@ class Dataset(Protocol):
         raise NotImplementedError
 
 
-class Timestamp(pd.Timestamp):
-    # we need to sublcass, since pydantic otherwise converts the value into
-    # datetime.datetime instead of using pd.Timestamp
-    @classmethod
-    def __get_validators__(cls):
-        def conv(val):
-            if isinstance(val, pd.Timestamp):
-                return val
-            else:
-                return pd.Timestamp(val)
+@dataclass
+class DatasetCollection(Dataset):
+    """Flattened access to a collection of datasets."""
 
-        yield conv
+    datasets: List[Dataset]
+    interleave: bool = False
+
+    def iter_sequential(self):
+        for dataset in self.datasets:
+            yield from dataset
+
+    def iter_interleaved(self):
+        yield from roundrobin(*self.datasets)
+
+    def __iter__(self):
+        if self.interleave:
+            yield from self.iter_interleaved()
+        else:
+            yield from self.iter_sequential()
+
+    def __len__(self):
+        return sum(map(len, self.datasets))
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -138,88 +160,108 @@ class TrainDatasets(NamedTuple):
                     json.bdump(serialize_data_entry(entry), f, nl=True)
 
 
-class FileDataset(Dataset):
-    """
-    Dataset that loads JSON Lines files contained in a path.
+def infer_file_type(path):
+    suffix = "".join(path.suffixes)
 
-    Parameters
-    ----------
-    path
-        Path containing the dataset files. Each file is considered
-        and should be valid to the exception of files starting with '.'
-        or ending with '_SUCCESS'. A valid line in a file can be for
-        instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
-    freq
-        Frequency of the observation in the time series.
-        Must be a valid Pandas frequency.
-    one_dim_target
-        Whether to accept only univariate target time series.
-    cache
-        Indicates whether the dataset should be cached or not.
-    """
+    if suffix in jsonl.JsonLinesFile.SUFFIXES:
+        return jsonl.JsonLinesFile(path)
 
-    def __init__(
-        self,
-        path: Path,
-        freq: str,
-        one_dim_target: bool = True,
-        cache: bool = False,
-    ) -> None:
-        self.cache = cache
-        self.path = path
-        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
-        self._len_per_file = None
+    if arrow is not None and suffix in arrow.File.SUFFIXES:
+        return arrow.File.infer(path)
 
-        if not self.files():
-            raise OSError(f"no valid file found in {path}")
+    return None
 
-        # necessary, in order to preserve the cached datasets, in case caching
-        # was enabled
-        self._json_line_files = [
-            jsonl.JsonLinesFile(path=path, cache=cache)
-            for path in self.files()
+
+def _glob(path: Path, pattern="*", levels=1):
+    if levels is not None:
+        levels -= 1
+
+    for subpath in path.glob(pattern):
+        if subpath.is_dir():
+            if levels != 0:
+                yield from _glob(subpath, pattern, levels)
+        else:
+            yield subpath
+
+
+def FileDataset(
+    path: Path,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+    loader_class=None,
+    ignore=False,
+    pattern="*",
+    levels=1,
+) -> Dataset:
+    path = Path(path)
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    if path.is_dir():
+        subpaths = _glob(path, pattern, levels)
+
+        datasets = [
+            FileDataset(
+                subpath,
+                freq,
+                one_dim_target,
+                cache,
+                use_timestamp,
+                loader_class=loader_class,
+                ignore=True,
+            )
+            for subpath in subpaths
         ]
 
-    def __iter__(self) -> Iterator[DataEntry]:
-        for json_line_file in self._json_line_files:
-            for line in json_line_file:
-                data = self.process(line.content)
-                data["source"] = SourceContext(
-                    source=line.span.path, row=line.span.line
-                )
-                yield data
+        return DatasetCollection(
+            [dataset for dataset in datasets if dataset is not None]
+        )
 
-    # Returns array of the sizes for each subdataset per file
-    def len_per_file(self):
-        if self._len_per_file is None:
-            len_per_file = [
-                len(json_line_file) for json_line_file in self._json_line_files
-            ]
-            self._len_per_file = len_per_file
-        return self._len_per_file
+    assert path.is_file
 
-    def __len__(self):
-        return sum(self.len_per_file())
+    if loader_class is None:
+        loader = infer_file_type(path)
+        if loader is None:
+            message = f"Cannot infer loader for {path}."
+            if ignore:
+                logging.warning(message)
+                return None  # type: ignore
 
-    def files(self) -> List[Path]:
-        """
-        List the files that compose the dataset.
+            raise ValueError(message)
+    else:
+        loader = loader_class(path)
 
-        Returns
-        -------
-        List[Path]
-            List of the paths of all files composing the dataset.
-        """
-        return util.find_files(self.path, self.is_valid)
-
-    @classmethod
-    def is_valid(cls, path: Path) -> bool:
-        # TODO: given that we only support json, should we also filter json
-        # TODO: in the extension?
-        return not (path.name.startswith(".") or path.name == "_SUCCESS")
+    return _FileDataset(loader, freq, one_dim_target, cache, use_timestamp)
 
 
-class ListDataset(Dataset):
+def _FileDataset(
+    loader,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+) -> Dataset:
+    process = ProcessDataEntry(
+        freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+    )
+
+    dataset: Dataset = Map(process, loader)
+
+    if cache:
+        dataset = Cached(dataset)
+
+    return dataset
+
+
+def ListDataset(
+    data_iter: Iterable[DataEntry],
+    freq: str,
+    one_dim_target: bool = True,
+    use_timestamp: bool = False,
+) -> Dataset:
     """
     Dataset backed directly by a list of dictionaries.
 
@@ -235,45 +277,21 @@ class ListDataset(Dataset):
     one_dim_target
         Whether to accept only univariate target time series.
     """
-
-    def __init__(
-        self,
-        data_iter: Iterable[DataEntry],
-        freq: str,
-        one_dim_target: bool = True,
-    ) -> None:
-        self.process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = list(data_iter)  # dataset always cached
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        source_name = "list_data"
-        # Basic idea is to split the dataset into roughly equally sized
-        # segments with lower and upper bound, where each worker is assigned
-        # one segment
-        bounds = util.get_bounds_for_mp_data_loading(len(self))
-        for row_number, data in enumerate(self.list_data):
-            if not bounds.lower <= row_number < bounds.upper:
-                continue
-
-            data = data.copy()
-            data = self.process(data)
-            data["source"] = SourceContext(source=source_name, row=row_number)
-            yield data
-
-    def __len__(self):
-        return len(self.list_data)
+    return Map(
+        ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
+        list(data_iter),
+    )
 
 
-class TimeZoneStrategy(Enum):
-    ignore = "ignore"
-    utc = "utc"
-    error = "error"
+@functools.lru_cache(10_000)
+def _as_period(val, freq):
+    return pd.Period(val, freq)
 
 
 # TODO: find out whether this is a duplicate
 class ProcessStartField(pydantic.BaseModel):
     """
-    Transform the start field into a Timestamp with the given frequency.
+    Transform the start field into a Period with the given frequency.
 
     Parameters
     ----------
@@ -287,57 +305,21 @@ class ProcessStartField(pydantic.BaseModel):
         arbitrary_types_allowed = True
 
     freq: Union[str, pd.DateOffset]
-    name: str = "start"
-    tz_strategy: TimeZoneStrategy = TimeZoneStrategy.error
+    use_timestamp: bool = False
+    name: str = FieldName.START
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            timestamp = ProcessStartField.process(data[self.name], self.freq)
+            if self.use_timestamp:
+                data[self.name] = pd.Timestamp(data[self.name])
+            else:
+                data[self.name] = _as_period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
             ) from e
 
-        if timestamp.tz is not None:
-            if self.tz_strategy == TimeZoneStrategy.error:
-                raise GluonTSDataError(
-                    "Timezone information is not supported, "
-                    f'but provided in the "{self.name}" field.'
-                )
-            if self.tz_strategy == TimeZoneStrategy.utc:
-                # align timestamp to utc timezone
-                timestamp = timestamp.tz_convert("UTC")
-
-            # removes timezone information
-            timestamp = timestamp.tz_localize(None)
-
-        data[self.name] = timestamp
-
         return data
-
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def process(timestamp_input: Any, freq: str) -> pd.Timestamp:
-        """
-        Create timestamp from datetime-like, str, int or float input and align
-        it according to frequency.
-        """
-
-        timestamp = pd.Timestamp(timestamp_input, freq=freq)
-
-        # operate on time information (days, hours, minute, second)
-        if isinstance(timestamp.freq, Tick):
-            return pd.Timestamp(
-                timestamp.floor(timestamp.freq), timestamp.freq
-            )
-
-        # since we are only interested in the data piece, we normalize the
-        # time information
-        timestamp = timestamp.replace(
-            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-        )
-
-        return timestamp.freq.rollforward(timestamp)
 
 
 class ProcessTimeSeriesField:
@@ -402,7 +384,12 @@ class ProcessTimeSeriesField:
 
 
 class ProcessDataEntry:
-    def __init__(self, freq: str, one_dim_target: bool = True) -> None:
+    def __init__(
+        self,
+        freq: str,
+        one_dim_target: bool = True,
+        use_timestamp: bool = False,
+    ) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
         # TODO: In addition to passing freq, the descriptor should be carry
@@ -410,46 +397,46 @@ class ProcessDataEntry:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessStartField(freq=freq),
+                ProcessStartField(freq=freq, use_timestamp=use_timestamp),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
-                    "target",
+                    FieldName.TARGET,
                     is_required=True,
                     is_cat=False,
                     is_static=one_dim_target,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_cat",
+                    FieldName.FEAT_DYNAMIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "dynamic_feat",  # backwards compatible
+                    FieldName.FEAT_DYNAMIC_REAL_LEGACY,  # backwards compatible
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_real",
+                    FieldName.FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "past_feat_dynamic_real",
+                    FieldName.PAST_FEAT_DYNAMIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_cat",
+                    FieldName.FEAT_STATIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=True,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_real",
+                    FieldName.FEAT_STATIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=True,

@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -111,7 +111,7 @@ class NBEATSEstimator(GluonEstimator):
         Default and recommended value for generic mode: ["G"]
         Recommended value for interpretable mode: ["T","S"]
     loss_function
-        The loss funtion (also known as metric) to use for training the
+        The loss function (also known as metric) to use for training the
         network. Unlike other models in GluonTS this network does not use a
         distribution.
         One of the following: "sMAPE", "MASE" or "MAPE".
@@ -310,7 +310,6 @@ class NBEATSEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -368,7 +367,6 @@ class NBEATSEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

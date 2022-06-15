@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 # Standard library imports
+import logging
 from typing import List, Optional
 from itertools import product
 
@@ -31,6 +32,9 @@ from gluonts.model.deepvar._network import (
     DeepVARTrainingNetwork,
     DeepVARPredictionNetwork,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def reconcile_samples(
@@ -93,9 +97,9 @@ def reconcile_samples(
         return out
 
 
-def reconciliation_error(A: Tensor, samples: Tensor) -> float:
+def coherency_error(A: Tensor, samples: Tensor) -> float:
     r"""
-    Computes the maximum relative reconciliation error among all the aggregated
+    Computes the maximum relative coherency error among all the aggregated
     time series
 
     .. math::
@@ -127,7 +131,7 @@ def reconciliation_error(A: Tensor, samples: Tensor) -> float:
     Returns
     -------
     Float
-        Reconciliation error
+        Coherency error
 
 
     """
@@ -297,23 +301,25 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
             Tensor of coherent samples.
         """
         if not self.coherent_pred_samples:
-            return samples
+            samples_to_return = samples
         else:
-            coherent_samples = reconcile_samples(
+            samples_to_return = reconcile_samples(
                 reconciliation_mat=self.M,
                 samples=samples,
                 seq_axis=self.seq_axis,
             )
-            assert_shape(coherent_samples, samples.shape)
+            assert_shape(samples_to_return, samples.shape)
 
-            # assert that A*X_proj ~ 0
-            if self.assert_reconciliation:
-                assert (
-                    reconciliation_error(self.A, samples=coherent_samples)
-                    < self.reconciliation_tol
-                )
+        # Show coherency error: A*X_proj
+        if self.log_coherency_error:
+            coh_error = coherency_error(self.A, samples=samples_to_return)
+            logger.info(
+                "Coherency error of the predicted samples for time step"
+                f" {self.forecast_time_step}: {coh_error}"
+            )
+            self.forecast_time_step += 1
 
-            return coherent_samples
+        return samples_to_return
 
 
 class DeepVARHierarchicalTrainingNetwork(
@@ -375,12 +381,12 @@ class DeepVARHierarchicalPredictionNetwork(
     def __init__(
         self,
         num_parallel_samples: int,
-        assert_reconciliation: bool,
+        log_coherency_error: bool,
         coherent_pred_samples: bool,
-        reconciliation_tol: float,
         **kwargs,
     ) -> None:
         super().__init__(num_parallel_samples=num_parallel_samples, **kwargs)
         self.coherent_pred_samples = coherent_pred_samples
-        self.assert_reconciliation = assert_reconciliation
-        self.reconciliation_tol = reconciliation_tol
+        self.log_coherency_error = log_coherency_error
+        if log_coherency_error:
+            self.forecast_time_step = 1

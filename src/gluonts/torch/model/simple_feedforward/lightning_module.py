@@ -20,6 +20,26 @@ from .module import SimpleFeedForwardModel
 
 
 class SimpleFeedForwardLightningModule(pl.LightningModule):
+    """
+    A ``pl.LightningModule`` class that can be used to train a
+    ``SimpleFeedForwardModel`` with PyTorch Lightning.
+
+    This is a thin layer around a (wrapped) ``SimpleFeedForwardModel`` object,
+    that exposes the methods to evaluate training and validation loss.
+
+    Parameters
+    ----------
+    model
+        ``SimpleFeedForwardModel`` to be trained.
+    loss
+        Loss function to be used for training,
+        default: ``NegativeLogLikelihood()``.
+    lr
+        Learning rate, default: ``1e-3``.
+    weight_decay
+        Weight decay regularization parameter, default: ``1e-8``.
+    """
+
     def __init__(
         self,
         model: SimpleFeedForwardModel,
