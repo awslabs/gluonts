@@ -28,7 +28,7 @@ pip install gluonts[mxnet, pro]  # support for mxnet models, faster datasets
 pip install gluonts[torch, pro]  # support for torch models, faster datasets
 ```
 
-You can enable or disable optional dependencies as you prefer, depending on what GluonTS features you are interested in enabling:
+You can enable or disable extra dependencies as you prefer, depending on what GluonTS features you are interested in enabling.
 
 **Models:**
 
