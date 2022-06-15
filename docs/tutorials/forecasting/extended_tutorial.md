@@ -46,11 +46,11 @@ from gluonts.dataset.util import to_pandas
 print(f"Available datasets: {list(dataset_recipes.keys())}")
 ```
 
-To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again: simply set `regenerate=False`.
+To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again the next time around.
 
 
 ```python
-dataset = get_dataset("m4_hourly", regenerate=True)
+dataset = get_dataset("m4_hourly")
 ```
 
 ### What is in a dataset?
@@ -304,7 +304,7 @@ custom_ds_metadata = {
     'prediction_length': 24,
     'freq': '1H',
     'start': [
-        pd.Timestamp("01-01-2019", freq='1H') 
+        pd.Period("01-01-2019", freq='1H')
         for _ in range(100)
     ]
 }
@@ -563,7 +563,7 @@ GluonTS comes with a number of pre-built models. All the user needs to do is con
 
 ### Configuring an estimator
 
-We will begin with GulonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
+We will begin with GluonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
 
 GluonTS's built-in feedforward neural network (`SimpleFeedForwardEstimator`) accepts an input window of length `context_length` and predicts the distribution of the values of the subsequent `prediction_length` values. In GluonTS parlance, the feedforward neural network model is an example of `Estimator`. In GluonTS, `Estimator` objects represent a forecasting model as well as details such as its coefficients, weights, etc.
 
@@ -583,7 +583,6 @@ estimator = SimpleFeedForwardEstimator(
     num_hidden_dimensions=[10],
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
-    freq=custom_ds_metadata['freq'],
     trainer=Trainer(
         ctx="cpu", 
         epochs=5, 
@@ -788,7 +787,7 @@ The estimator should also include the following methods:
 - `create_transformation`, defining all the data pre-processing transformations (like adding features)
 - `create_training_data_loader`, constructing the data loader that gives batches to be used in training, out of a given dataset
 - `create_training_network`, returning the training network configured with any necessary hyperparameters
-- `create_predictor`, creting the prediction network, and returning a `Predictor` object 
+- `create_predictor`, creating the prediction network, and returning a `Predictor` object 
 
 If a validation dataset is to be accepted, for some validation metric to be computed, then also the following should be defined:
 
@@ -846,7 +845,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
 from gluonts.model.predictor import Predictor
 from gluonts.mx import (
-    as_in_context, 
     batchify,
     copy_parameters, 
     get_hybrid_forward_input_names,
@@ -872,7 +870,6 @@ class MyEstimator(GluonEstimator):
         self,
         prediction_length: int,
         context_length: int,
-        freq: str,
         num_cells: int,
         batch_size: int = 32,
         trainer: Trainer = Trainer()
@@ -880,7 +877,6 @@ class MyEstimator(GluonEstimator):
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.freq = freq
         self.num_cells = num_cells
             
     def create_transformation(self):
@@ -905,7 +901,6 @@ class MyEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
     
@@ -939,7 +934,6 @@ class MyEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -952,7 +946,6 @@ After defining the training and prediction network, as well as the estimator cla
 estimator = MyEstimator(
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
-    freq=custom_ds_metadata['freq'],
     num_cells=40,
     trainer=Trainer(
         ctx="cpu",
@@ -1106,7 +1099,6 @@ class MyProbEstimator(GluonEstimator):
         self,
         prediction_length: int,
         context_length: int,
-        freq: str,
         distr_output: DistributionOutput,
         num_cells: int,
         num_sample_paths: int = 100,
@@ -1116,7 +1108,6 @@ class MyProbEstimator(GluonEstimator):
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.freq = freq
         self.distr_output = distr_output
         self.num_cells = num_cells
         self.num_sample_paths = num_sample_paths
@@ -1143,7 +1134,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1181,7 +1171,6 @@ class MyProbEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1192,7 +1181,6 @@ class MyProbEstimator(GluonEstimator):
 estimator = MyProbEstimator(
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
-    freq=custom_ds_metadata['freq'],
     distr_output=GaussianOutput(),
     num_cells=40,
     trainer=Trainer(
@@ -1372,7 +1360,6 @@ class MyProbEstimator(GluonEstimator):
         self,
         prediction_length: int,
         context_length: int,
-        freq: str,
         distr_output: DistributionOutput,
         num_cells: int,
         num_sample_paths: int = 100,
@@ -1383,7 +1370,6 @@ class MyProbEstimator(GluonEstimator):
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.freq = freq
         self.distr_output = distr_output
         self.num_cells = num_cells
         self.num_sample_paths = num_sample_paths
@@ -1419,7 +1405,6 @@ class MyProbEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1465,7 +1450,6 @@ class MyProbEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1476,7 +1460,6 @@ class MyProbEstimator(GluonEstimator):
 estimator = MyProbEstimator(
     prediction_length=custom_ds_metadata['prediction_length'],
     context_length=2*custom_ds_metadata['prediction_length'],
-    freq=custom_ds_metadata['freq'],
     distr_output=GaussianOutput(),
     num_cells=40,
     trainer=Trainer(
@@ -1751,7 +1734,6 @@ class MyProbRNNEstimator(GluonEstimator):
         self,
         prediction_length: int,
         context_length: int,
-        freq: str,
         distr_output: DistributionOutput,
         num_cells: int,
         num_layers: int,
@@ -1763,7 +1745,6 @@ class MyProbRNNEstimator(GluonEstimator):
         super().__init__(trainer=trainer, batch_size=batch_size)
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.freq = freq
         self.distr_output = distr_output
         self.num_cells = num_cells
         self.num_layers = num_layers
@@ -1800,7 +1781,6 @@ class MyProbRNNEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -1847,7 +1827,6 @@ class MyProbRNNEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.trainer.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1858,7 +1837,6 @@ class MyProbRNNEstimator(GluonEstimator):
 estimator = MyProbRNNEstimator(
     prediction_length=24,
     context_length=48,
-    freq="1H",
     num_cells=40,
     num_layers=2,
     distr_output=GaussianOutput(),

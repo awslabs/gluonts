@@ -1,7 +1,7 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
 [stable docs url]: https://ts.gluon.ai/
-[development docs url]: https://ts.gluon.ai/master/index.html
+[development docs url]: https://ts.gluon.ai/dev/index.html
 
 [![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
@@ -21,12 +21,41 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 
 ## Installation
 
-GluonTS requires Python 3.7, and the easiest way to install it is via `pip`:
+GluonTS requires Python 3.6, and the easiest way to install it is via `pip`:
 
 ```bash
-pip install --upgrade gluonts mxnet~=1.8   # to be able to use MXNet-based models
-pip install --upgrade gluonts torch~=1.10  # to be able to use PyTorch-based models
+# minimal installation
+pip install gluonts
 ```
+
+However, this installs a minimal version of Python, with virtually no support for any models. To enable these, install the corresponding extra requirement.
+
+### Extra Dependencies
+
+GluonTS supports a range of additional dependencies via extras.
+
+**Models:**
+
+* `mxnet` - MXNet-based models
+* `torch` - PyTorch-based models
+* `R` - R-based models
+* `Prophet` - Prophet-based models
+
+**Datasets:**
+
+* `arrow` - Arrow and Parquet dataset support
+* `pro` - bundles `arrow` plus `orjson` for faster datasets
+
+**Misc:**
+
+* `shell` for integration with SageMaker
+
+A typical installation setup can look like this:
+
+```bash
+pip install 'gluonts[pro, torch]'
+````
+
 
 ## Documentation
 
@@ -46,7 +75,7 @@ Deep Renewal Processes           | Global       | Univariate               | RNN
 GPForecaster                     | Global       | Univariate               | MLP, Gaussian process | [MXNet](src/gluonts/model/gp_forecaster/_estimator.py) | -
 MQ-CNN                           | Global       | Univariate               | CNN encoder, MLP decoder | [MXNet](src/gluonts/model/seq2seq/_mq_dnn_estimator.py) | [paper](https://arxiv.org/abs/1711.11053)
 MQ-RNN                           | Global       | Univariate               | RNN encoder, MLP encoder | [MXNet](src/gluonts/model/seq2seq/_mq_dnn_estimator.py) | [paper](https://arxiv.org/abs/1711.11053)
-N-BEATS                          | Global       | Univariate               | MLP, residual links | [MXNet](https://github.com/awslabs/gluon-ts/blob/master/src/gluonts/model/n_beats/_estimator.py) | [paper](https://openreview.net/forum?id=r1ecqn4YwB)
+N-BEATS                          | Global       | Univariate               | MLP, residual links | [MXNet](src/gluonts/model/n_beats/_estimator.py) | [paper](https://openreview.net/forum?id=r1ecqn4YwB)
 Rotbaum                          | Global       | Univariate               | XGBoost, Quantile Regression Forests, LightGBM, Level Set Forecaster | [Numpy](src/gluonts/model/rotbaum/_estimator.py) | [paper](https://openreview.net/forum?id=VD3TMzyxKK)
 Causal Convolutional Transformer | Global       | Univariate               | Causal convolution, self attention | [MXNet](src/gluonts/model/san/_estimator.py) | [paper](https://papers.nips.cc/paper/2019/hash/6775a0635c302542da2c32aa19d86be0-Abstract.html)
 Temporal Fusion Transformer      | Global       | Univariate               | LSTM, self attention | [MXNet](src/gluonts/model/tft/_estimator.py) | [paper](https://doi.org/10.1016/j.ijforecast.2021.03.012)
@@ -65,8 +94,8 @@ NPTS                             | Local        | Univariate               | - |
 
 ## Running on Amazon SageMaker
 
-Training and deploying GluonTS models on [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) is easily done by using the `gluonts.shell` package, see [its README](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/shell) for more information.
-Dockerfiles compatible with Amazon SageMaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/master/examples/dockerfiles) folder.
+Training and deploying GluonTS models on [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) is easily done by using the `gluonts.shell` package, see [its README](https://github.com/awslabs/gluon-ts/tree/dev/src/gluonts/shell) for more information.
+Dockerfiles compatible with Amazon SageMaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/dev/examples/dockerfiles) folder.
 
 ## Quick example
 
@@ -79,7 +108,7 @@ AMZN ticker symbol.
 ```python
 import pandas as pd
 url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0, index_col=0)
+df = pd.read_csv(url, header=0)
 ```
 
 The first 100 data points look like follows:
@@ -91,7 +120,7 @@ plt.grid(which='both')
 plt.show()
 ```
 
-![Data](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_data.png)
+![Data](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_data.png)
 
 We can now prepare a training dataset for our model to train on.
 Datasets in GluonTS are essentially iterable collections of
@@ -102,10 +131,13 @@ first datapoint, and the `"target"` field containing time series data.
 For training, we will use data up to midnight on April 5th, 2015.
 
 ```python
-from gluonts.dataset.common import ListDataset
-training_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-05 00:00:00"]}],
-    freq = "5min"
+from gluonts.dataset.dataframes import DataFramesDataset
+
+training_data = DataFramesDataset(
+    [df[:"2015-04-05 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 ```
 
@@ -133,9 +165,11 @@ We're now ready to make predictions: we will forecast the hour following
 the midnight on April 15th, 2015.
 
 ```python
-test_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-15 00:00:00"]}],
-    freq = "5min"
+training_data = DataFramesDataset(
+    [df[:"2015-04-15 00:00:00"]],
+    freq="5min",
+    timestamp="timestamp",
+    target="value",
 )
 
 from gluonts.dataset.util import to_pandas
@@ -146,7 +180,7 @@ for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
 plt.grid(which='both')
 ```
 
-![Forecast](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_forecast.png)
+![Forecast](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_forecast.png)
 
 Note that the forecast is displayed in terms of a probability distribution:
 the shaded areas represent the 50% and 90% prediction intervals, respectively,
@@ -155,7 +189,7 @@ centered around the median (dark green line).
 ## Contributing
 
 If you wish to contribute to the project, please refer to our
-[contribution guidelines](https://github.com/awslabs/gluon-ts/tree/master/CONTRIBUTING.md).
+[contribution guidelines](https://github.com/awslabs/gluon-ts/tree/dev/CONTRIBUTING.md).
 
 ## Citing
 
@@ -192,7 +226,7 @@ in addition to any model-specific references that are relevant for your work:
 
 ## Other resources
 
-* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
+* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/dev/REFERENCES.md): a bibliography.
 * [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
 * [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)

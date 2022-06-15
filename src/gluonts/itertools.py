@@ -13,7 +13,28 @@
 
 import itertools
 import random
-from typing import Iterable, Iterator, List, Optional, TypeVar
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    TypeVar,
+    Sequence,
+)
+from dataclasses import dataclass, field
+
+from typing_extensions import Protocol
+
+
+class SizedIterable(Protocol):
+    def __len__(self):
+        ...
+
+    def __iter__(self):
+        ...
+
 
 T = TypeVar("T")
 
@@ -25,9 +46,9 @@ def maybe_len(obj) -> Optional[int]:
         return None
 
 
-def prod(xs: Iterable[T]) -> T:
+def prod(xs):
     """
-    Computes the product of the elements of an iterable object.
+    Compute the product of the elements of an iterable object.
     """
     p = 1
     for x in xs:
@@ -35,13 +56,13 @@ def prod(xs: Iterable[T]) -> T:
     return p
 
 
-class Cyclic(Iterable):
+@dataclass
+class Cyclic:
     """
     Like `itertools.cycle`, but does not store the data.
     """
 
-    def __init__(self, iterable: Iterable) -> None:
-        self.iterable = iterable
+    iterable: SizedIterable
 
     def __iter__(self):
         at_least_one = False
@@ -75,7 +96,8 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
     return iter(get_batch, [])
 
 
-class Cached(Iterable):
+@dataclass
+class Cached:
     """
     An iterable wrapper, which caches values in a list the first time it is
     iterated.
@@ -88,13 +110,11 @@ class Cached(Iterable):
     elements when iterated multiple times.
     """
 
-    def __init__(self, iterable: Iterable) -> None:
-        self.iterable = iterable
-        self.cache = None
+    iterable: SizedIterable
+    cache: list = field(default_factory=list, init=False)
 
     def __iter__(self):
-        if self.cache is None:
-            self.cache = []
+        if not self.cache:
             for element in self.iterable:
                 yield element
                 self.cache.append(element)
@@ -105,14 +125,14 @@ class Cached(Iterable):
         return len(self.iterable)
 
 
-class PseudoShuffled(Iterable):
+@dataclass
+class PseudoShuffled:
     """
-    Yields items from a given iterable in a pseudo-shuffled order.
+    Yield items from a given iterable in a pseudo-shuffled order.
     """
 
-    def __init__(self, iterable: Iterable, shuffle_buffer_length: int) -> None:
-        self.iterable = iterable
-        self.shuffle_buffer_length = shuffle_buffer_length
+    iterable: SizedIterable
+    shuffle_buffer_length: int
 
     def __iter__(self):
         shuffle_buffer = []
@@ -129,18 +149,71 @@ class PseudoShuffled(Iterable):
         return len(self.iterable)
 
 
-class IterableSlice(Iterable):
+# can't make this a dataclass because of pytorch-lightning assumptions
+class IterableSlice:
     """
     An iterable version of `itertools.islice`, i.e. one that can be iterated
-    over multiple times.
+    over multiple times:
+
+        >>> isl = IterableSlice(iter([1, 2, 3, 4, 5]), 3)
+        >>> list(isl)
+        [1, 2, 3]
+        >>> list(isl)
+        [4, 5]
+        >>> list(isl)
+        []
+
+    This needs to be a class to support re-entry iteration.
     """
 
-    def __init__(self, iterable: Iterable, length: Optional[int]) -> None:
+    def __init__(self, iterable, length):
         self.iterable = iterable
         self.length = length
 
     def __iter__(self):
-        return itertools.islice(self.iterable, self.length)
+        yield from itertools.islice(self.iterable, self.length)
 
-    def __len__(self) -> int:
-        return len(self.iterable)
+
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def rows_to_columns(
+    rows: Sequence[Dict[K, V]],
+    wrap: Callable[[Sequence[V]], Sequence[V]] = lambda x: x,
+) -> Dict[K, Sequence[V]]:
+    """Transpose rows of dicts, to one dict containing columns.
+
+    >>> rows_to_columns([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
+    {'a': [1, 3], 'b': [2, 4]}
+
+    This can also be understood as stacking the values of each dict onto each
+    other.
+    """
+
+    if not rows:
+        return {}
+
+    column_names = rows[0].keys()
+
+    return {
+        column_name: wrap([row[column_name] for row in rows])
+        for column_name in column_names
+    }
+
+
+def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
+    """Transpose column-orientation to row-orientation.
+
+    >>> columns_to_rows({'a': [1, 3], 'b': [2, 4]})
+    [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
+    """
+
+    if not columns:
+        return []
+
+    column_names = columns.keys()
+
+    return [
+        dict(zip(column_names, values)) for values in zip(*columns.values())
+    ]

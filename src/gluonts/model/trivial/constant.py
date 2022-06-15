@@ -30,20 +30,17 @@ class ConstantPredictor(RepresentablePredictor):
     samples
         Samples to use to construct SampleForecast objects for every
         prediction.
-    freq
-        Frequency of the predicted data.
     """
 
     @validated()
-    def __init__(self, samples: np.ndarray, freq: str) -> None:
-        super().__init__(samples.shape[1], freq)
+    def __init__(self, samples: np.ndarray) -> None:
+        super().__init__(samples.shape[1])
         self.samples = samples
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
         return SampleForecast(
             samples=self.samples,
             start_date=item["start"],
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -58,21 +55,18 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         The value to use as forecast.
     prediction_length
         Prediction horizon.
-    freq
-        Frequency of the predicted data.
     """
 
     @validated()
     def __init__(
         self,
         prediction_length: int,
-        freq: str,
         value: float = 0.0,
         # since we are emitting a constant values, we just predict a single
         # line on default
         num_samples: int = 1,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
         self.value = value
         self.num_samples = num_samples
 
@@ -82,6 +76,5 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get("id"),
         )

@@ -27,6 +27,7 @@ from typing import (
     Tuple,
     Union,
     Mapping,
+    cast,
 )
 
 import numpy as np
@@ -310,7 +311,7 @@ class Evaluator:
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = forecast.index[0] - forecast.index[0].freq
+        date_before_forecast = forecast.index[0] - forecast.freq
         return np.atleast_1d(
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
@@ -332,7 +333,7 @@ class Evaluator:
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
-            past_data, forecast, self.seasonality
+            past_data, forecast.start_date.freqstr, self.seasonality
         )
 
         metrics: Dict[str, Union[float, str, None]] = {
@@ -348,6 +349,9 @@ class Evaluator:
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
         }
+        metrics["ND"] = cast(float, metrics["abs_error"]) / cast(
+            float, metrics["abs_target_sum"]
+        )
 
         if self.custom_eval_fn is not None:
             for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():

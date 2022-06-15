@@ -76,7 +76,6 @@ def test_lstnet(
         channels=6,
         kernel_size=2,
         context_length=4,
-        freq=freq,
         lead_time=lead_time,
         prediction_length=prediction_length,
         trainer=Trainer(
@@ -109,8 +108,8 @@ def test_lstnet(
         )
         assert (
             fct.start_date
-            == pd.date_range(
-                start=str(test_ds["start"]),
+            == pd.period_range(
+                start=test_ds["start"],
                 periods=test_ds["target"].shape[1],  # number of test periods
                 freq=freq,
             )[-prediction_length]

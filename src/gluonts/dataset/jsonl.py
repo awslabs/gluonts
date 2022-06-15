@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import NamedTuple
 
 from gluonts import json
-from gluonts.dataset.util import get_bounds_for_mp_data_loading
 from gluonts.exceptions import GluonTSDataError
 
 
@@ -59,15 +58,9 @@ class JsonLinesFile:
         self._data_cache: list = []
 
     def __iter__(self):
-        # Basic idea is to split the dataset into roughly equally sized
-        # segments with lower and upper bound, where each worker is assigned
-        # one segment
-        bounds = get_bounds_for_mp_data_loading(len(self))
         if not self.cache or (self.cache and not self._data_cache):
             with self.open(self.path) as jsonl_file:
                 for line_number, raw in enumerate(jsonl_file):
-                    if not bounds.lower <= line_number < bounds.upper:
-                        continue
 
                     span = Span(path=self.path, line=line_number)
                     try:
@@ -75,6 +68,7 @@ class JsonLinesFile:
                         if self.cache:
                             self._data_cache.append(parsed_line)
                         yield parsed_line
+
                     except ValueError:
                         raise GluonTSDataError(
                             f"Could not read json line {line_number}, {raw}"

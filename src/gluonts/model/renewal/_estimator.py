@@ -32,7 +32,7 @@ from gluonts.model.renewal._network import (
 )
 from gluonts.model.renewal._predictor import DeepRenewalProcessPredictor
 from gluonts.model.renewal._transform import AddAxisLength
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
@@ -76,8 +76,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
 
     Parameters
     ----------
-    freq
-        Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
     context_length
@@ -114,7 +112,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: int,
         num_cells: int,
@@ -139,7 +136,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
 
-        self.freq = freq
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.num_cells = num_cells
@@ -230,7 +226,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
             stack_fn=self._stack_fn(),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
         )
 
     def create_validation_data_loader(
@@ -286,7 +281,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             input_transform=transformation + prediction_transform,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             input_names=["past_target", "time_remaining"],

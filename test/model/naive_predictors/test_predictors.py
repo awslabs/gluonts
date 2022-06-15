@@ -32,7 +32,7 @@ from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 def generate_random_dataset(
     num_ts: int, start_time: str, freq: str, min_length: int, max_length: int
 ) -> Dataset:
-    start_timestamp = pd.Timestamp(start_time, freq=freq)
+    start_timestamp = pd.Period(start_time, freq=freq)
     for _ in range(num_ts):
         ts_length = np.random.randint(low=min_length, high=max_length)
         target = np.random.uniform(size=(ts_length,))

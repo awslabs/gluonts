@@ -45,7 +45,7 @@ class PointProcessSampleForecast(Forecast):
         that only the first two entries of :code:`samples[0, ...]` are
         valid "points".
     start_date
-        Starting timestamp of the sample
+        Starting Timestamp of the sample
     freq
         The time unit of interarrival times
     prediction_interval_length
@@ -107,7 +107,7 @@ class PointProcessSampleForecast(Forecast):
         self.start_date = start_date
 
         assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
+        self.interarrival_freq = freq
 
         assert (
             prediction_interval_length > 0
@@ -115,17 +115,20 @@ class PointProcessSampleForecast(Forecast):
         self.prediction_interval_length = prediction_interval_length
 
         self.end_date = (
-            start_date
-            + to_timedelta(1, self.freq) * prediction_interval_length
+            start_date + to_timedelta(1, freq) * prediction_interval_length
         )
 
     def dim(self) -> int:
         return self._dim
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def freq(self):
+        return self.interarrival_freq
+
+    @property
+    def index(self) -> pd.PeriodIndex:
         raise AttributeError(
-            "Datetime index not defined for point process samples"
+            "Period index not defined for point process samples"
         )
 
     def as_json_dict(self, config: "Config") -> dict:

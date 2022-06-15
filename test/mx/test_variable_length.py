@@ -65,6 +65,7 @@ def loader_factory():
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
             instance_sampler=sampler,
+            freq=dataset.freq,
         )
 
         kwargs = dict(
@@ -77,9 +78,7 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return itertools.islice(
-                TrainDataLoader(num_workers=None, **kwargs), NUM_BATCHES
-            )
+            return itertools.islice(TrainDataLoader(**kwargs), NUM_BATCHES)
         else:
             return InferenceDataLoader(**kwargs)
 

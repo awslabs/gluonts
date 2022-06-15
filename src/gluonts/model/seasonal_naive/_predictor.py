@@ -53,13 +53,12 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         prediction_length: int,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0
         ), "The value of `season_length` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.season_length = (
             season_length
@@ -90,6 +89,5 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item.get("item_id", None),
         )

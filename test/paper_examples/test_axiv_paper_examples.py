@@ -107,7 +107,6 @@ def test_appendix_c():
         @validated()
         def __init__(
             self,
-            freq: str,
             prediction_length: int,
             act_type: str = "relu",
             context_length: int = 30,
@@ -115,7 +114,6 @@ def test_appendix_c():
             trainer: Trainer = Trainer(epochs=10),
         ) -> None:
             super().__init__(trainer=trainer)
-            self.freq = freq
             self.prediction_length = prediction_length
             self.act_type = act_type
             self.context_length = context_length
@@ -145,7 +143,6 @@ def test_appendix_c():
                 input_transform=transformation,
                 prediction_net=prediction_network,
                 batch_size=self.trainer.batch_size,
-                freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )
@@ -167,18 +164,16 @@ def test_appendix_c():
     from gluonts.evaluation import backtest_metrics, Evaluator
     from gluonts.mx.trainer import Trainer
 
-    dataset_info, train_ds, test_ds = constant_dataset()
+    _, train_ds, test_ds = constant_dataset()
 
-    meta = dataset_info.metadata
     estimator = MyEstimator(
-        freq=meta.freq,
         prediction_length=1,
         trainer=Trainer(epochs=1, batch_size=32),
     )
     predictor = estimator.train(train_ds)
 
     evaluator = Evaluator(quantiles=(0.1, 0.5, 0.9))
-    agg_metrics, item_metrics = backtest_metrics(
+    backtest_metrics(
         test_dataset=test_ds,
         predictor=predictor,
         evaluator=evaluator,

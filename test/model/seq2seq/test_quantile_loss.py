@@ -15,7 +15,7 @@
 from mxnet import nd
 import pytest
 import numpy as np
-from pandas import Timestamp
+from pandas import Period
 
 # First-party imports
 from gluonts.mx.block.quantile_output import QuantileLoss, crps_weights_pwl
@@ -132,8 +132,7 @@ def test_infer_quantile_forecast(
     output = np.array(output)
     quantile_forecast = QuantileForecast(
         output,
-        start_date=Timestamp(0),
-        freq="h",
+        start_date=Period("01-01-2019 04:00:00", freq="h"),
         forecast_keys=forecast_keys,
     )
     if len(forecast_keys) == 1:

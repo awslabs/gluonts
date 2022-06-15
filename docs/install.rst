@@ -1,7 +1,5 @@
-:orphan:
-
 Installation
-~~~~~~~~~~~~
+============
 
 GluonTS relies on the recent version of MXNet. The easiest way to install MXNet
 is through `pip <https://pip.pypa.io/en/stable/installing/>`_. The following
@@ -28,17 +26,17 @@ After installing MXNet, you can install the GluonTS toolkit by
    pip install gluonts
 
 
-Install from Master Branch
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install from Dev Branch
+-----------------------
 
-If you are interested in trying out features on master branch that hasn't been released yet, you have
-the option of installing from master branch directly.
+If you are interested in trying out features on dev branch that hasn't been released yet, you have
+the option of installing from dev branch directly.
 
 
 Install from GitHub
-+++++++++++++++++++
+-------------------
 
-Use the following command to automatically download and install the current code on master branch:
+Use the following command to automatically download and install the current code on dev branch:
 
 .. code-block:: console
 
@@ -46,7 +44,7 @@ Use the following command to automatically download and install the current code
 
 
 Install from Source Code
-++++++++++++++++++++++++
+------------------------
 
 You can also first check out the code locally using Git:
 
@@ -76,5 +74,5 @@ immediately reflected in the installed python package
 
 .. note::
 
-   The master branch may rely on MXNet nightly builds which are available on PyPI,
+   The dev branch may rely on MXNet nightly builds which are available on PyPI,
    please refer to `this page <http://beta.mxnet.io/install.html>`_ for installation guide.

@@ -56,8 +56,6 @@ class NBEATSEnsemblePredictor(Predictor):
     ----------
     prediction_length
         Prediction horizon.
-    freq
-        Frequency of the predicted data.
     predictors
         The list of 'RepresentableBlockPredictor' that the ensemble consists
         of.
@@ -70,11 +68,10 @@ class NBEATSEnsemblePredictor(Predictor):
     def __init__(
         self,
         prediction_length: int,
-        freq: str,
         predictors: List[RepresentableBlockPredictor],
         aggregation_method: Optional[str] = "median",
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         assert aggregation_method in AGGREGATION_METHODS
 
@@ -100,7 +97,6 @@ class NBEATSEnsemblePredictor(Predictor):
         with (path / "parameters.json").open("w") as fp:
             parameters = dict(
                 prediction_length=self.prediction_length,
-                freq=self.freq,
                 aggregation_method=self.aggregation_method,
                 num_predictors=len(self.predictors),
             )
@@ -146,7 +142,6 @@ class NBEATSEnsemblePredictor(Predictor):
 
         return NBEATSEnsemblePredictor(
             prediction_length=parameters["prediction_length"],
-            freq=parameters["freq"],
             predictors=predictors,
             aggregation_method=parameters["aggregation_method"],
         )
@@ -207,7 +202,6 @@ class NBEATSEnsemblePredictor(Predictor):
             yield SampleForecast(
                 output,
                 start_date=start_date,
-                freq=start_date.freqstr,
                 item_id=item[FieldName.ITEM_ID]
                 if FieldName.ITEM_ID in item
                 else None,
@@ -226,7 +220,6 @@ class NBEATSEnsemblePredictor(Predictor):
         try:
             if not (
                 self.prediction_length == that.prediction_length
-                and self.freq == that.freq
                 and self.aggregation_method == that.aggregation_method
             ):
                 return False
@@ -266,7 +259,7 @@ class NBEATSEnsembleEstimator(Estimator):
     prediction_length
         Length of the prediction. Also known as 'horizon'.
     meta_context_length
-        The different 'context_length' (aslso known as 'lookback period')
+        The different 'context_length' (also known as 'lookback period')
         to use for training the models.
         The 'context_length' is the number of time units that condition the
         predictions. Default and recommended value:
@@ -456,6 +449,4 @@ class NBEATSEnsembleEstimator(Estimator):
             )
             predictors.append(estimator.train(training_data, validation_data))
 
-        return NBEATSEnsemblePredictor(
-            self.prediction_length, self.freq, predictors
-        )
+        return NBEATSEnsemblePredictor(self.prediction_length, predictors)

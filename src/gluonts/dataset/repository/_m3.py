@@ -160,8 +160,8 @@ def generate_m3_dataset(
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 
-        s = pd.Timestamp(time_stamp, freq=subset.freq)
-        s = s.freq.rollforward(s)
+        s = pd.Period(time_stamp, freq=subset.freq)
+
         start = str(s).split(" ")[0]
         cat = [i, cat_map[category]]
 
