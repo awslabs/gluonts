@@ -397,7 +397,6 @@ class DeepNPTSEstimator(Estimator):
         return PyTorchPredictor(
             prediction_net=pred_net_multi_step,
             prediction_length=self.prediction_length,
-            freq=self.freq,
             input_names=self.features_fields + self.prediction_features_field,
             batch_size=batch_size,
             input_transform=self.input_transform()
