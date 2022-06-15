@@ -23,6 +23,10 @@ from .distribution_output import (
     StudentTOutput,
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
+from .implicit_quantile_network import (
+    ImplicitQuantile, 
+    ImplicitQuantileOutput
+)
 from .isqf import ISQF, ISQFOutput
 from .mqf2 import MQF2Distribution, MQF2DistributionOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
@@ -40,6 +44,8 @@ __all__ = [
     "GammaOutput",
     "GeneralizedPareto",
     "GeneralizedParetoOutput",
+    "ImplicitQuantile",
+    "ImplicitQuantileOutput",
     "ISQF",
     "ISQFOutput",
     "MQF2Distribution",
