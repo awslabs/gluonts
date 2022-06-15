@@ -25,7 +25,7 @@ from .distribution_output import (
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
 from .implicit_quantile_network import (
     ImplicitQuantile, 
-    ImplicitQuantileOutput
+    ImplicitQuantileNetworkOutput
 )
 from .isqf import ISQF, ISQFOutput
 from .mqf2 import MQF2Distribution, MQF2DistributionOutput
@@ -45,7 +45,7 @@ __all__ = [
     "GeneralizedPareto",
     "GeneralizedParetoOutput",
     "ImplicitQuantile",
-    "ImplicitQuantileOutput",
+    "ImplicitQuantileNetworkOutput",
     "ISQF",
     "ISQFOutput",
     "MQF2Distribution",
