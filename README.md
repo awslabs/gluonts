@@ -21,18 +21,14 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 
 ## Installation
 
-GluonTS requires Python 3.6, and the easiest way to install it is via `pip`:
+GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
 # minimal installation
 pip install gluonts
 ```
 
-However, this installs a minimal version of Python, with virtually no support for any models. To enable these, install the corresponding extra requirement.
-
-### Extra Dependencies
-
-GluonTS supports a range of additional dependencies via extras.
+However, this installs a minimal version of GluonTS, with virtually no support for any models. To enable these, install the corresponding extra requirement.
 
 **Models:**
 
