@@ -19,7 +19,7 @@ from gluonts.model.deepvar_hierarchical import (
     constraint_mat,
     null_space_projection_mat,
     reconcile_samples,
-    reconciliation_error,
+    coherency_error,
 )
 
 TOL = 1e-2
@@ -70,4 +70,4 @@ def test_reconciliation_error(samples, seq_axis):
         seq_axis=seq_axis,
     )
 
-    assert reconciliation_error(mx.nd.array(A), coherent_samples) < TOL
+    assert coherency_error(mx.nd.array(A), coherent_samples) < TOL
