@@ -34,6 +34,9 @@ from gluonts.model.deepvar._network import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def reconcile_samples(
     reconciliation_mat: Tensor,
     samples: Tensor,
@@ -310,7 +313,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         # Show coherency error: A*X_proj
         if self.log_coherency_error:
             coh_error = coherency_error(self.A, samples=samples_to_return)
-            self.logger.info(
+            logger.info(
                 "Coherency error of the predicted samples for time step"
                 f" {self.forecast_time_step}: {coh_error}"
             )
@@ -386,5 +389,4 @@ class DeepVARHierarchicalPredictionNetwork(
         self.coherent_pred_samples = coherent_pred_samples
         self.log_coherency_error = log_coherency_error
         if log_coherency_error:
-            self.logger = logging.getLogger("gluonts").getChild("model")
             self.forecast_time_step = 1

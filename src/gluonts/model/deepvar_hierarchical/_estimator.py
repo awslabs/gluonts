@@ -38,6 +38,9 @@ from ._network import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def constraint_mat(S: np.ndarray) -> np.ndarray:
     """
     Generates the constraint matrix in the equation: Ay = 0 (y being the
@@ -232,7 +235,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         # This estimator doesn't work in symbolic mode.
         if trainer.hybridize:
-            logger = logging.getLogger("gluonts").getChild("model")
             logger.info(
                 f"Resetting `hybridize` flag of trainer to False, "
                 f"since {__name__} does not work in symbolic mode."
