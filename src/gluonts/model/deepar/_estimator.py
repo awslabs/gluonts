@@ -26,6 +26,12 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.dataset.schema import (
+    PandasPeriodField,
+    NumpyArrayField,
+    FieldWithDefault,
+    Schema,
+)
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import as_in_context, batchify
@@ -60,7 +66,6 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
-from ._schema import Schema, PandasPeriodField, NumpyArrayField
 
 
 class DeepAREstimator(GluonEstimator):
@@ -454,30 +459,24 @@ class DeepAREstimator(GluonEstimator):
 
     def get_schema(self) -> Schema:
         fields: Dict[str, Any] = {}
-        default_values: Dict[str, Any] = {}
-
         fields["start"] = PandasPeriodField(freq=self.freq)
         # in the following line, we add 1 for the time dimension
         fields["target"] = NumpyArrayField(
             dtype=self.dtype,
             ndim=1 + len(self.distr_output.event_shape),
-            target_layout="T",
         )
 
         # DeepAR model always need "feat_static_cat" and "feat_static_real" as
         # input for model forward.
-        fields["feat_static_cat"] = NumpyArrayField(
-            dtype=self.dtype, ndim=1, target_layout="C"
+        fields["feat_static_cat"] = FieldWithDefault(
+            NumpyArrayField(dtype=self.dtype, ndim=1), [0.0]
         )
-        default_values["feat_static_cat"] = [0.0]
-
-        fields["feat_static_real"] = NumpyArrayField(
-            dtype=self.dtype, ndim=1, target_layout="C"
+        fields["feat_static_real"] = FieldWithDefault(
+            NumpyArrayField(dtype=self.dtype, ndim=1), [0.0]
         )
-        default_values["feat_static_real"] = [0.0]
 
         if self.use_feat_dynamic_real:
             fields["feat_dynamic_real"] = NumpyArrayField(
-                dtype=self.dtype, ndim=1, target_layout="CT"
+                dtype=self.dtype, ndim=1
             )
-        return Schema(fields, default_values)
+        return Schema(fields)
