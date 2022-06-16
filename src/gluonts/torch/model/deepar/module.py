@@ -24,8 +24,7 @@ from gluonts.torch.distributions import (
 )
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
-
-from .util import lagged_sequence_values
+from gluonts.torch.util import lagged_sequence_values
 
 
 class DeepARModel(nn.Module):
