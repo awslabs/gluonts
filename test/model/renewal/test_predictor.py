@@ -13,10 +13,10 @@
 
 import numpy as np
 import pytest
+
 from gluonts.dataset.common import ListDataset
 from gluonts.evaluation import make_evaluation_predictions
 from gluonts.model.renewal import DeepRenewalProcessEstimator
-
 from gluonts.model.renewal._predictor import (
     DeepRenewalProcessSampleOutputTransform,
 )
@@ -111,7 +111,6 @@ def test_predictor_smoke_test():
     )
 
     estimator = DeepRenewalProcessEstimator(
-        freq="1m",
         prediction_length=5,
         context_length=12,
         num_layers=1,

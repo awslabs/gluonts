@@ -792,7 +792,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
             min_past=2,
             min_future=1,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     # no boundary conditions
@@ -812,7 +812,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
             allow_empty_interval=False,
             min_past=2,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -837,7 +837,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -877,7 +877,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(shuffle_iterator(), is_train=True)
@@ -897,7 +897,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
             min_past=1.25,
             min_future=1.25,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -921,7 +921,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=point_process_dataset.freq,
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)

@@ -123,7 +123,7 @@ def test_prepare_prediction_data_nested():
 def test_prepare_prediction_data_with_features():
     res = dataframe.prepare_prediction_data(
         {
-            "start": pd.Timestamp("2021-01-01", freq="1H"),
+            "start": pd.Period("2021-01-01", freq="1H"),
             "target": np.array([1.0, 2.0, np.nan]),
             "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
             "past_feat_dynamic_real": np.array([[1.0, 2.0, np.nan]]),
@@ -131,7 +131,7 @@ def test_prepare_prediction_data_with_features():
         ignore_last_n_targets=1,
     )
     expected = {
-        "start": pd.Timestamp("2021-01-01", freq="1H"),
+        "start": pd.Period("2021-01-01", freq="1H"),
         "target": np.array([1.0, 2.0]),
         "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
         "past_feat_dynamic_real": np.array([[1.0, 2.0]]),

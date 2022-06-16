@@ -26,9 +26,7 @@ if not PROPHET_IS_INSTALLED:
 
 
 def test_feat_dynamic_real_success():
-    params = dict(
-        freq="1D", prediction_length=3, prophet_params=dict(n_changepoints=20)
-    )
+    params = dict(prediction_length=3, prophet_params=dict(n_changepoints=20))
 
     dataset = ListDataset(
         data_iter=[
@@ -43,7 +41,7 @@ def test_feat_dynamic_real_success():
                 ),
             }
         ],
-        freq=params["freq"],
+        freq="1D",
     )
 
     predictor = ProphetPredictor(**params)
@@ -57,7 +55,7 @@ def test_feat_dynamic_real_success():
 
 
 def test_feat_dynamic_real_bad_size():
-    params = dict(freq="1D", prediction_length=3, prophet_params={})
+    params = dict(prediction_length=3, prophet_params={})
 
     dataset = ListDataset(
         data_iter=[
@@ -72,7 +70,7 @@ def test_feat_dynamic_real_bad_size():
                 ),
             }
         ],
-        freq=params["freq"],
+        freq="1D",
     )
 
     with pytest.raises(AssertionError) as excinfo:
@@ -86,11 +84,11 @@ def test_feat_dynamic_real_bad_size():
 
 
 def test_min_obs_error():
-    params = dict(freq="1D", prediction_length=10, prophet_params={})
+    params = dict(prediction_length=10, prophet_params={})
 
     dataset = ListDataset(
         data_iter=[{"start": "2017-01-01", "target": np.array([1.0])}],
-        freq=params["freq"],
+        freq="1D",
     )
 
     with pytest.raises(ValueError) as excinfo:
@@ -104,5 +102,5 @@ def test_min_obs_error():
 
 
 def test_prophet_serialization():
-    predictor = ProphetPredictor(freq="1D", prediction_length=3)
+    predictor = ProphetPredictor(prediction_length=3)
     assert predictor == serde.decode(serde.encode(predictor))
