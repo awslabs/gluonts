@@ -35,8 +35,8 @@ from gluonts.torch.model.deepar.util import lagged_sequence_values
         ),
         (
             [0, 1, 5, 10, 20],
-            torch.ones((4, 100, 2)),
-            torch.ones((4, 8, 2)),
+            torch.randn((4, 100, 2)),
+            torch.randn((4, 8, 2)),
         ),
     ],
 )
