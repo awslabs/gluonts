@@ -14,8 +14,6 @@
 import tempfile
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 
@@ -23,7 +21,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import TestSplitSampler, InstanceSplitter
+from gluonts.transform import InstanceSplitter, TestSplitSampler
 
 
 class RandomNetwork(nn.Module):
@@ -67,7 +65,6 @@ def test_pytorch_predictor_serde():
 
     predictor = PyTorchPredictor(
         prediction_length=prediction_length,
-        freq="1H",
         input_names=["past_target"],
         prediction_net=pred_net,
         batch_size=16,

@@ -224,7 +224,6 @@ class DeepAREstimator(GluonEstimator):
         assert alpha >= 0, "The value of `alpha` should be >= 0"
         assert beta >= 0, "The value of `beta` should be >= 0"
 
-        self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
@@ -256,7 +255,7 @@ class DeepAREstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
@@ -483,7 +482,6 @@ class DeepAREstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             dtype=self.dtype,

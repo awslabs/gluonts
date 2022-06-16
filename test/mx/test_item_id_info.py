@@ -54,7 +54,6 @@ from gluonts.mx.trainer import Trainer
                 freq="5min",
             ),
             SimpleFeedForwardEstimator(
-                freq="5min",
                 prediction_length=4,
                 context_length=20,
                 trainer=Trainer(

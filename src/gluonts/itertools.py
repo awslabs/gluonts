@@ -22,6 +22,7 @@ from typing import (
     Optional,
     TypeVar,
     Sequence,
+    Tuple,
 )
 from dataclasses import dataclass, field
 
@@ -174,6 +175,21 @@ class IterableSlice:
         yield from itertools.islice(self.iterable, self.length)
 
 
+class Map:
+    def __init__(self, fn, iterable: SizedIterable):
+        self.fn = fn
+        self.iterable = iterable
+
+    def __iter__(self):
+        return map(self.fn, self.iterable)
+
+    def __len__(self):
+        return len(self.iterable)
+
+    def __repr__(self):
+        return f"Map(data={self.iterable!r})"
+
+
 K = TypeVar("K")
 V = TypeVar("V")
 
@@ -217,3 +233,43 @@ def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
     return [
         dict(zip(column_names, values)) for values in zip(*columns.values())
     ]
+
+
+def roundrobin(*iterables):
+    """`roundrobin('ABC', 'D', 'EF') --> A D E B F C`
+
+    Taken from: https://docs.python.org/3/library/itertools.html#recipes.
+    """
+
+    # Recipe credited to George Sakkis
+    num_active = len(iterables)
+    nexts = itertools.cycle(iter(it).__next__ for it in iterables)
+    while num_active:
+        try:
+            for next in nexts:
+                yield next()
+        except StopIteration:
+            # Remove the iterator we just exhausted from the cycle.
+            num_active -= 1
+            nexts = itertools.cycle(itertools.islice(nexts, num_active))
+
+
+def partition(
+    it: Iterator[T], fn: Callable[[T], bool]
+) -> Tuple[List[T], List[T]]:
+    """Partition `it` into two lists given predicate `fn`.
+
+    This is similar to the recipe defined in Python's `itertools` docs, however
+    this method consumes the iterator directly  and returns lists instead of
+    iterators.
+    """
+
+    left, right = [], []
+
+    for val in it:
+        if fn(val):
+            left.append(val)
+        else:
+            right.append(val)
+
+    return left, right

@@ -76,8 +76,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
 
     Parameters
     ----------
-    freq
-        Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
     context_length
@@ -114,7 +112,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: int,
         num_cells: int,
@@ -139,7 +136,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         ), "The value of `context_length` should be > 0"
         assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
 
-        self.freq = freq
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.num_cells = num_cells
@@ -285,7 +281,6 @@ class DeepRenewalProcessEstimator(GluonEstimator):
             input_transform=transformation + prediction_transform,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             input_names=["past_target", "time_remaining"],

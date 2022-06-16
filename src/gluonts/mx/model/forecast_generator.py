@@ -14,10 +14,9 @@
 from typing import Iterator
 
 import mxnet as mx
-
 from gluonts.model.forecast_generator import (
-    recursively_zip_arrays,
     make_distribution_forecast,
+    recursively_zip_arrays,
 )
 from gluonts.mx.distribution import Distribution
 from gluonts.mx.model.forecast import DistributionForecast

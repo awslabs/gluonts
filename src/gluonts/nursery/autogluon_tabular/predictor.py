@@ -104,7 +104,6 @@ class TabularPredictor(Predictor):
     def __init__(
         self,
         ag_model,
-        freq: str,
         prediction_length: int,
         time_features: List[TimeFeature],
         lag_indices: List[int],
@@ -113,7 +112,7 @@ class TabularPredictor(Predictor):
         quantiles_to_predict: Optional[List[float]] = None,
         dtype=np.float32,
     ) -> None:
-        super().__init__(prediction_length=prediction_length, freq=freq)
+        super().__init__(prediction_length=prediction_length)
         assert all(lag_idx >= 1 for lag_idx in lag_indices)
 
         self.ag_model = ag_model
@@ -370,7 +369,6 @@ class TabularPredictor(Predictor):
             parameters = dict(
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
-                freq=self.freq,
                 dtype=self.dtype,
                 time_features=self.time_features,
                 lag_indices=self.lag_indices,
