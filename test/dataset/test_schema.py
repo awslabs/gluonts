@@ -22,6 +22,7 @@ from gluonts.dataset.schema import (
     Schema,
     FieldWithDefault,
 )
+from gluonts.exceptions import GluonTSDataError
 
 
 @pytest.mark.parametrize(
@@ -148,3 +149,140 @@ def test_call_schema(input_data, schema_dir, expected):
             assert output_data[field].dtype == expected[field].dtype
         else:
             assert output_data[field] == expected[field]
+
+
+@pytest.mark.parametrize(
+    "input_data, schema_dir, expected",
+    [
+        (
+            {"start": "2022-12-16", "target": [1, 2, 5, 9]},
+            {
+                "start": PandasPeriodField(freq="D"),
+                "target": NumpyArrayField(dtype=float, ndim=1),
+                "feat_static_cat": FieldWithDefault(
+                    NumpyArrayField(dtype=float, ndim=1), [0.0]
+                ),
+            },
+            {
+                "start": pd.Period("2022-12-16", freq="D"),
+                "target": np.asarray([1, 2, 5, 9], dtype=float),
+                "feat_static_cat": np.asarray([0.0], dtype=float),
+            },
+        ),
+    ],
+)
+def test_call_schema_using_default_value(input_data, schema_dir, expected):
+    schema = Schema(schema_dir)
+    output_data = schema(input_data)
+    for field in expected:
+        assert field in output_data
+        if isinstance(expected[field], np.ndarray):
+            assert (output_data[field] == expected[field]).all()
+            assert output_data[field].dtype == expected[field].dtype
+        else:
+            assert output_data[field] == expected[field]
+
+
+@pytest.mark.parametrize(
+    "input_data, schema_dir, expected",
+    [
+        (
+            {"start": "2022-12-16", "target": [1, 2], "feat_static_cat": [4]},
+            {
+                "start": PandasPeriodField(freq="D"),
+                "target": NumpyArrayField(dtype=float, ndim=1),
+                "feat_static_cat": FieldWithDefault(
+                    NumpyArrayField(dtype=float, ndim=1), [0.0]
+                ),
+            },
+            {
+                "start": pd.Period("2022-12-16", freq="D"),
+                "target": np.asarray([1, 2], dtype=float),
+                "feat_static_cat": np.asarray([4], dtype=float),
+            },
+        ),
+    ],
+)
+def test_call_schema_not_using_default_value(input_data, schema_dir, expected):
+    schema = Schema(schema_dir)
+    output_data = schema(input_data)
+    for field in expected:
+        assert field in output_data
+        if isinstance(expected[field], np.ndarray):
+            assert (output_data[field] == expected[field]).all()
+            assert output_data[field].dtype == expected[field].dtype
+        else:
+            assert output_data[field] == expected[field]
+
+
+@pytest.mark.parametrize(
+    "input_data, schema_dir, expected",
+    [
+        (
+            {},
+            {
+                "x": FieldWithDefault(float, 0),
+                "y": FieldWithDefault(int, 0),
+                "z": FieldWithDefault(str, ""),
+                "w": FieldWithDefault(list, [0.0]),
+            },
+            {"x": 0, "y": 0.0, "z": "", "w": [0.0]},
+        ),
+    ],
+)
+def test_call_schema_for_plain_types_using_default_value(
+    input_data, schema_dir, expected
+):
+    schema = Schema(schema_dir)
+    output_data = schema(input_data)
+    for field in expected:
+        assert field in output_data
+        assert output_data[field] == expected[field]
+
+
+@pytest.mark.parametrize(
+    "input_data, schema_dir, expected",
+    [
+        (
+            {"x": 2, "y": 5.6, "z": 6, "w": (3, 2), "m": 7.8},
+            {
+                "x": FieldWithDefault(float, 0),
+                "y": FieldWithDefault(int, 0),
+                "z": FieldWithDefault(str, ""),
+                "w": FieldWithDefault(list, [0.0]),
+                "m": int,
+            },
+            {"x": 2.0, "y": 5, "z": "6", "w": [3, 2], "m": 7},
+        ),
+    ],
+)
+def test_call_schema_for_plain_types_not_using_default_value(
+    input_data, schema_dir, expected
+):
+    schema = Schema(schema_dir)
+    output_data = schema(input_data)
+    for field in expected:
+        assert field in output_data
+        assert output_data[field] == expected[field]
+
+
+@pytest.mark.parametrize(
+    "input_data, schema_dir, field_name",
+    [
+        (
+            {"start": "2022-12-16", "target": [1, 2, 5, 9]},
+            {
+                "start": PandasPeriodField(freq="D"),
+                "target": NumpyArrayField(dtype=float, ndim=1),
+                "feat_static_cat": NumpyArrayField(dtype=float, ndim=1),
+            },
+            "feat_static_cat",
+        ),
+    ],
+)
+def test_call_schema_raise_data_error(input_data, schema_dir, field_name):
+    schema = Schema(schema_dir)
+    with pytest.raises(GluonTSDataError) as e:
+        schema(input_data)
+    expected_msg = f"field {field_name} does not occur in the data"
+    assert e.value.args[0] == expected_msg
