@@ -20,7 +20,6 @@ import numpy as np
 import pytest
 
 from gluonts.core.component import equals
-from gluonts.dataset.common import FileDataset, ListDataset
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
@@ -107,9 +106,7 @@ def batch_transform(monkeypatch, train_env):
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
     for dataset in train_env.datasets.values():
         if listify_dataset == "yes":
-            assert isinstance(dataset, ListDataset)
-        else:
-            assert isinstance(dataset, FileDataset)
+            assert isinstance(dataset, list)
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
@@ -148,6 +145,7 @@ def test_server_shell(
         "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
+        **train_env.hyperparameters,
     }
 
     for entry in train_env.datasets["train"]:

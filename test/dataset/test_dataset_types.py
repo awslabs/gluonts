@@ -32,7 +32,6 @@ from gluonts.dataset.common import (
     serialize_data_entry,
 )
 from gluonts.dataset.jsonl import JsonLinesFile
-from gluonts.dataset.util import find_files
 
 
 class Timer:
@@ -48,20 +47,25 @@ class Timer:
         self.interval = self.end - self.start
 
 
+def find_files(path: Path):
+    for dataset in FileDataset(path).datasets:
+        yield dataset.path
+
+
 def baseline(path: Path, freq: str) -> Iterator[Any]:
-    for file in find_files(path, FileDataset.is_valid):
+    for file in find_files(path):
         for line in open(file):
             yield line
 
 
 def load_json(path: Path, freq: str) -> Iterator[Any]:
-    for file in find_files(path, FileDataset.is_valid):
+    for file in find_files(path):
         for line in open(file):
             yield json.loads(line)
 
 
 def load_json_lines_file(path: Path, freq: str) -> Iterator[Any]:
-    for file in find_files(path, FileDataset.is_valid):
+    for file in find_files(path):
         yield from JsonLinesFile(file)
 
 

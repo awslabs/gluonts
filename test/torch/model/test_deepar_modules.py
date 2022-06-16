@@ -12,13 +12,11 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
-import pytest
 
-from gluonts.torch.model.deepar import (
-    DeepARModel,
-    DeepARLightningModule,
-)
+import pytest
+import torch
+
+from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
 from gluonts.torch.model.deepar.module import LaggedLSTM
 
 

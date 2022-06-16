@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -51,6 +52,7 @@ def make_data(n: int):
     return data
 
 
+@pytest.mark.skipif(sys.version_info < (3, 7), reason="Requires PyArrow v8.")
 @pytest.mark.parametrize("File", [ArrowFile, ArrowStreamFile, ParquetFile])
 @pytest.mark.parametrize("flatten_arrays", [True, False])
 def test_arrow(File, flatten_arrays):

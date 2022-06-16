@@ -222,7 +222,6 @@ class DeepStateEstimator(GluonEstimator):
             " positive"
         )
 
-        self.freq = freq
         self.past_length = (
             past_length
             if past_length is not None
@@ -256,7 +255,7 @@ class DeepStateEstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.noise_std_bounds = noise_std_bounds
@@ -417,7 +416,6 @@ class DeepStateEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

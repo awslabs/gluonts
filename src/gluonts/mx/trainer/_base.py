@@ -384,12 +384,16 @@ class Trainer:
                             loss.backward()
                             trainer.step(batch_size)
 
-                            self.callbacks.on_train_batch_end(
-                                training_network=net
+                            should_continue = (
+                                self.callbacks.on_train_batch_end(
+                                    training_network=net
+                                )
                             )
                         else:
-                            self.callbacks.on_validation_batch_end(
-                                training_network=net
+                            should_continue = (
+                                self.callbacks.on_validation_batch_end(
+                                    training_network=net
+                                )
                             )
 
                         epoch_loss.update(None, preds=loss)
@@ -411,22 +415,26 @@ class Trainer:
                             f"Number of parameters in {net_name}:"
                             f" {num_model_param}"
                         )
+                    if not should_continue:
+                        self.halt = True
+                        break
                 it.close()
 
                 # mark epoch end time and log time cost of current epoch
-                toc = time.time()
-                logger.info(
-                    "Epoch[%d] Elapsed time %.3f seconds",
-                    epoch_no,
-                    (toc - tic),
-                )
+                if not self.halt:
+                    toc = time.time()
+                    logger.info(
+                        "Epoch[%d] Elapsed time %.3f seconds",
+                        epoch_no,
+                        (toc - tic),
+                    )
 
-                logger.info(
-                    "Epoch[%d] Evaluation metric '%s'=%f",
-                    epoch_no,
-                    ("" if is_training else "validation_") + "epoch_loss",
-                    lv,
-                )
+                    logger.info(
+                        "Epoch[%d] Evaluation metric '%s'=%f",
+                        epoch_no,
+                        ("" if is_training else "validation_") + "epoch_loss",
+                        lv,
+                    )
 
                 return epoch_loss
 

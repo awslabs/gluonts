@@ -177,7 +177,7 @@ If neither `setup.py` nor `__init__.py` exists in a folder, all other python
 files are simply copied to `/opt/ml/code` directly and all subfolders are
 searched for more possible modules and packages.
 
-Furhter, `.tar.gz` archives are unpackaged and their contents are then treated
+Further, `.tar.gz` archives are unpackaged and their contents are then treated
 as described above.
 
 In addition, the contents of the code-channel are copied to
