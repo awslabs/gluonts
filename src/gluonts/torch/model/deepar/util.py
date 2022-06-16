@@ -38,15 +38,12 @@ def lagged_sequence_values(
     sequence
         Tensor containing the input sequence in the time range where the
         output is required (shape: ``(N, T, C)``).
-    features
-        Tensor of additional features.
 
     Returns
     -------
     Tensor
         A tensor of shape ``(N, T, L)``: if ``I = len(indices)``,
-        ``sequence.shape = (N, T, C)``, and ``features.shape = (N, T, F)``,
-        then ``L = C * I + F``.
+        and ``sequence.shape = (N, T, C)``, then ``L = C * I``.
     """
     assert max(indices) <= prior_sequence.shape[1], (
         f"lags cannot go further than prior sequence length, found lag"
@@ -56,20 +53,11 @@ def lagged_sequence_values(
 
     full_sequence = torch.cat((prior_sequence, sequence), dim=1)
 
-    output_values = []
+    lags_values = []
     for lag_index in indices:
         begin_index = -lag_index - sequence.shape[1]
         end_index = -lag_index if lag_index > 0 else None
-        output_values.append(full_sequence[:, begin_index:end_index, ...])
+        lags_values.append(full_sequence[:, begin_index:end_index, ...])
 
-    output_sequence = torch.stack(output_values, dim=-1)
-
-    lags_shape = output_sequence.shape
-    reshaped_lagged_sequence = output_sequence.reshape(
-        lags_shape[0], lags_shape[1], -1
-    )
-
-    if features is None:
-        return reshaped_lagged_sequence
-    else:
-        return torch.cat((reshaped_lagged_sequence, features), dim=-1)
+    lags = torch.stack(lags_values, dim=-1)
+    return lags.reshape(lags.shape[0], lags.shape[1], -1)

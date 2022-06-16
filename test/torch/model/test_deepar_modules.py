@@ -21,40 +21,41 @@ from gluonts.torch.model.deepar.util import lagged_sequence_values
 
 
 @pytest.mark.parametrize(
-    "lag_seq, prior_input, input, features, expected_shape",
+    "lag_indices, prior_sequence, sequence",
     [
         (
             [0, 1, 5, 10, 20],
-            torch.ones((4, 100)),
-            torch.ones((4, 8)),
-            torch.ones((4, 8, 3)),
-            (4, 8, 8),
+            torch.randn((4, 100)),
+            torch.randn((4, 8)),
         ),
         (
             [0, 1, 5, 10, 20],
-            torch.ones((4, 100, 1)),
-            torch.ones((4, 8, 1)),
-            torch.ones((4, 8, 3)),
-            (4, 8, 8),
+            torch.randn((4, 100, 1)),
+            torch.randn((4, 8, 1)),
         ),
         (
             [0, 1, 5, 10, 20],
             torch.ones((4, 100, 2)),
             torch.ones((4, 8, 2)),
-            torch.ones((4, 8, 3)),
-            (4, 8, 13),
         ),
     ],
 )
 def test_lagged_sequence_values(
-    lag_seq: List[int],
-    prior_input: torch.Tensor,
-    input: torch.Tensor,
-    features: torch.Tensor,
-    expected_shape,
+    lag_indices: List[int],
+    prior_sequence: torch.Tensor,
+    sequence: torch.Tensor,
 ):
-    model_input = lagged_sequence_values(lag_seq, prior_input, input, features)
-    assert model_input.shape == expected_shape
+    res = lagged_sequence_values(lag_indices, prior_sequence, sequence, None)
+    full_sequence = torch.cat((prior_sequence, sequence), dim=1)
+    for t in range(res.shape[1]):
+        expected_lags_t = torch.stack(
+            [
+                full_sequence[:, t + prior_sequence.shape[1] - l]
+                for l in lag_indices
+            ],
+            dim=-1,
+        ).reshape(sequence.shape[0], -1)
+        assert torch.allclose(expected_lags_t, res[:, t, :])
 
 
 @pytest.mark.parametrize(

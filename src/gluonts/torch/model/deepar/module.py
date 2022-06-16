@@ -230,13 +230,9 @@ class DeepARModel(nn.Module):
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
+        lags = lagged_sequence_values(self.lags_seq, prior_input, input)
+        rnn_input = torch.cat((lags, features), dim=-1)
 
-        rnn_input = lagged_sequence_values(
-            self.lags_seq,
-            prior_input,
-            input,
-            features,
-        )
         output, new_state = self.rnn(rnn_input)
 
         params = self.param_proj(output)
@@ -352,12 +348,13 @@ class DeepARModel(nn.Module):
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
-            rnn_input = lagged_sequence_values(
+            next_lags = lagged_sequence_values(
                 self.lags_seq,
                 repeated_past_target,
                 scaled_next_sample,
-                next_features,
             )
+            rnn_input = torch.cat((next_lags, next_features), dim=-1)
+
             output, repeated_state = self.rnn(rnn_input, repeated_state)
 
             repeated_past_target = torch.cat(
