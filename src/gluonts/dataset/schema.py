@@ -37,7 +37,6 @@ class FieldType(Generic[T]):
 
 @dataclass
 class NumpyArrayField(FieldType[np.ndarray]):
-    default: ClassVar[list] = [0.0]
     dtype: Type = np.float32
     ndim: Optional[int] = None
 
@@ -112,6 +111,15 @@ class PandasPeriodField(FieldType[pd.Period]):
 
 
 @dataclass
+class FieldWithDefault:
+    field_type: Any
+    default_value: Any
+
+    def __call__(self, value: Any) -> Any:
+        return self.field_type(value)
+
+
+@dataclass
 class Schema:
     fields: Dict[str, Any]
 
@@ -133,8 +141,8 @@ class Schema:
             try:
                 value = d[field_name]
             except KeyError:
-                if "default" in dir(field_type):
-                    value = field_type.default
+                if isinstance(field_type, FieldWithDefault):
+                    value = field_type.default_value
                 else:
                     raise GluonTSDataError(
                         f"field {field_name} does not occur in the data"
