@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Any, Dict, ClassVar, Optional, Union, Generic, TypeVar, Type
+from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
