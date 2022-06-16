@@ -28,11 +28,10 @@ def lagged_sequence_values(
     Parameters
     ----------
     indices
-        Indices of the lagged observations that the RNN takes as input. For
-        example, ``[0]`` indicates that the RNN only takes the observation at
-        time ``t`` to produce the output for time ``t``; instead, ``[0, 24]``
-        indicates that the RNN takes observations at times ``t`` and ``t-24``
-        as input.
+        Indices of the lagged observations. For example, ``[0]`` indicates
+        that, at any time ``t``, the will have only the observation from
+        time ``t`` itself; instead, ``[0, 24]`` indicates that the output
+        will have observations from times ``t`` and ``t-24``.
     prior_sequence
         Tensor containing the input sequence prior to the time range for
         which the output is required (shape: ``(N, H, C)``).
@@ -49,19 +48,17 @@ def lagged_sequence_values(
         ``sequence.shape = (N, T, C)``, and ``features.shape = (N, T, F)``,
         then ``L = C * I + F``.
     """
-    full_sequence = torch.cat((prior_sequence, sequence), dim=1)
-    full_sequence_length = full_sequence.shape[1]
-
-    output_sequence_length = sequence.shape[1]
-
-    assert max(indices) + output_sequence_length <= full_sequence_length, (
-        "lags cannot go further than history length, found lag"
-        f" {max(indices)} while history length is only {full_sequence_length}"
+    assert max(indices) <= prior_sequence.shape[1], (
+        f"lags cannot go further than prior sequence length, found lag"
+        f" {max(indices)} while prior sequence is only"
+        f"{prior_sequence.shape[1]}-long"
     )
+
+    full_sequence = torch.cat((prior_sequence, sequence), dim=1)
 
     output_values = []
     for lag_index in indices:
-        begin_index = -lag_index - output_sequence_length
+        begin_index = -lag_index - sequence.shape[1]
         end_index = -lag_index if lag_index > 0 else None
         output_values.append(full_sequence[:, begin_index:end_index, ...])
 

@@ -46,7 +46,7 @@ from gluonts.torch.model.deepar.util import lagged_sequence_values
         ),
     ],
 )
-def test_prepare_lagged_inputs(
+def test_lagged_sequence_values(
     lag_seq: List[int],
     prior_input: torch.Tensor,
     input: torch.Tensor,
