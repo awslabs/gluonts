@@ -35,32 +35,32 @@ class DataFramesDataset(Dataset):
 
     Parameters
     ----------
-    dataframes:
+    dataframes
         List or Dict of ``DataFrame``s or a single ``DataFrame`` containing
         at least ``timestamp`` and ``target`` columns. If a Dict is provided,
         the key will be the associated ``item_id``.
-    target:
+    target
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
-    timestamp:
+    timestamp
         Name of the column that contains the timestamp information.
-    freq:
+    freq
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
-    item_id:
+    item_id
         Name of the column that contains the item_id information.
-    feat_dynamic_real:
+    feat_dynamic_real
         List of column names that contain dynamic real features.
-    feat_dynamic_cat:
+    feat_dynamic_cat
         List of column names that contain dynamic categorical features.
-    feat_static_real:
+    feat_static_real
         List of column names that contain static real features.
-    feat_static_cat:
+    feat_static_cat
         List of column names that contain static categorical features.
-    past_feat_dynamic_real:
+    past_feat_dynamic_real
         List of column names that contain dynamic real features only for the
         history.
-    ignore_last_n_targets:
+    ignore_last_n_targets
         For target and past dynamic features last ``ignore_last_n_targets``
         elements are removed when iterating over the data set. This becomes
         important when the predictor is called.
@@ -158,13 +158,13 @@ class DataFramesDataset(Dataset):
 
         Parameters
         ----------
-        dataframe:
+        dataframe
             pandas.DataFrame containing at least ``timestamp``, ``target`` and
             ``item_id`` columns.
-        item_id:
+        item_id
             Name of the column that, when grouped by, gives the different time
             series.
-        **kwargs:
+        **kwargs
             Additional arguments. Same as of DataFramesDataset class.
 
         Returns
@@ -191,25 +191,25 @@ def as_dataentry(
 
     Parameters
     ----------
-    data:
+    data
         pandas.DataFrame containing at least ``timestamp``, ``target`` and
         ``item_id`` columns.
-    target:
+    target
         Name of the column that contains the ``target`` time series.
         For multivariate targets ``target`` is expecting a list of column
         names.
-    timestamp:
+    timestamp
         Name of the column that contains the timestamp information.
         If ``None`` the index of ``data`` is assumed to be the time.
-    feat_dynamic_real:
+    feat_dynamic_real
         List of column names that contain dynamic real features.
-    feat_dynamic_cat:
+    feat_dynamic_cat
         List of column names that contain dynamic categorical features.
-    feat_static_real:
+    feat_static_real
         List of column names that contain static real features.
-    feat_static_cat:
+    feat_static_cat
         List of column names that contain static categorical features.
-    past_feat_dynamic_real:
+    past_feat_dynamic_real
         List of column names that contain dynamic real features only for
         the history.
 
