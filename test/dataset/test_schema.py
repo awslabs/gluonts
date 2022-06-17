@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pytest
+from numpy.testing import assert_equal
 
 from gluonts.dataset.schema import (
     NumpyArrayField,
@@ -99,14 +100,10 @@ def test_call_schema_using_default_value():
     output_data = schema({"start": "2022-12-16", "target": [1, 2, 5, 9]})
 
     assert output_data["start"] == pd.Period("2022-12-16", freq="D")
-
-    expected_target = np.asarray([1, 2, 5, 9], dtype=float)
-    assert (output_data["target"] == expected_target).all()
-    assert output_data["target"].dtype == expected_target.dtype
-
-    expected_cat = np.asarray([0.0], dtype=float)
-    assert (output_data["feat_static_cat"] == expected_cat).all()
-    assert output_data["feat_static_cat"].dtype == expected_cat.dtype
+    assert_equal(output_data["target"], np.asarray([1, 2, 5, 9], dtype=float))
+    assert_equal(
+        output_data["feat_static_cat"], np.asarray([0.0], dtype=float)
+    )
 
 
 def test_call_schema_not_using_default_value():
@@ -124,14 +121,8 @@ def test_call_schema_not_using_default_value():
     )
 
     assert output_data["start"] == pd.Period("2022-12-16", freq="D")
-
-    expected_target = np.asarray([1, 2], dtype=int)
-    assert (output_data["target"] == expected_target).all()
-    assert output_data["target"].dtype == expected_target.dtype
-
-    expected_cat = np.asarray([6], dtype=int)
-    assert (output_data["feat_static_cat"] == expected_cat).all()
-    assert output_data["feat_static_cat"].dtype == expected_cat.dtype
+    assert_equal(output_data["target"], np.asarray([1, 2], dtype=int))
+    assert_equal(output_data["feat_static_cat"], np.asarray([6], dtype=int))
 
 
 def test_call_schema_for_plain_types_using_default_value():
