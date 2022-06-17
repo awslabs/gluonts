@@ -1,5 +1,5 @@
 
-
+# Concepts
 
 ## Estimator and Predictor
 
@@ -32,3 +32,34 @@ predictor = estimator.train(train_data)
 
 predictor = ProphetPredictor(prediction_length=24)
 ```
+
+
+## Dataset
+
+In GluonTS a `Dataset` is a collection of time-series objects. Each of these objects has columns (or fields) which represent attributes of the time-series.
+
+In most models the `target`-field is the column that we want to predict:
+
+```json
+{"target": [1, 2, 3, 4, 5, 6]}
+```
+
+Note that the `target`-column is not imposed by GluonTS onto models, but it is used by most models by convention.
+
+
+### API
+
+To be more precise, a `Dataset` is defined as:
+
+```py
+DataEntry = dict[str, Any]
+
+class Dataset(Protocol):
+    def __iter__(self) -> Iterator[DataEntry]:
+        ...
+
+    def __len__(self) -> int:
+        raise ...
+```
+
+In other words, anything that can emit dictionaries can act as a `Dataset`.
