@@ -215,7 +215,7 @@ class ExponentialTailApproximation:
         return left_tail, right_tail
 
 
-class Quantile(NamedTuple):
+class Quantile(pydantic.BaseModel):
     value: float
     name: str
 
