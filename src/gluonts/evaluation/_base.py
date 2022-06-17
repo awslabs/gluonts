@@ -179,6 +179,20 @@ class Evaluator:
         self.aggregation_strategy = aggregation_strategy
         self.ignore_invalid_values = ignore_invalid_values
 
+    def evaluate(
+        self, predictor, test_dataset, **kwargs
+    ) -> Tuple[Dict[str, float], pd.DataFrame]:
+        from .backtest import make_evaluation_predictions
+
+        fcst_iterator, ts_iterator = make_evaluation_predictions(
+            dataset=test_dataset, predictor=predictor, **kwargs
+        )
+
+        fcst_iterator = list(fcst_iterator)
+        ts_iterator = list(ts_iterator)
+
+        return self(ts_iterator, fcst_iterator, len(fcst_iterator))
+
     def __call__(
         self,
         ts_iterator: Iterable[Union[pd.DataFrame, pd.Series]],
