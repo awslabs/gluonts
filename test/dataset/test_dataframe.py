@@ -19,15 +19,9 @@ from gluonts.dataset import dataframe
 
 
 @pytest.fixture()
-def my_series():
+def my_dataframe():
     idx = pd.date_range("2021-01-01", freq="1D", periods=3)
-    return pd.Series(np.random.normal(size=3), index=idx, name="a")
-
-
-@pytest.fixture()
-def my_dataframe(my_series):
-    df = my_series.reset_index()
-    df.columns = ["timestamp", "target"]
+    df = pd.DataFrame(np.random.normal(size=3), index=idx, columns=["target"])
     return df
 
 
@@ -170,27 +164,23 @@ def test_check_timestamps_fail(timestamps):
     assert not dataframe.check_timestamps(timestamps, freq="2H")
 
 
-def test_infer_timestamp(my_series):
-    ds = dataframe.DataFramesDataset(my_series, target="a", freq="1D")
-    assert isinstance(ds.timestamp, str)
+def test_infer_timestamp(my_dataframe):
+    ds = dataframe.DataFramesDataset(my_dataframe, target="target", freq="1D")
+    assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
-def test_infer_timestamp2(my_series):
-    seriess = {"A": my_series, "B": my_series}
-    ds = dataframe.DataFramesDataset(seriess, target="a", freq="1D")
-    assert isinstance(ds.timestamp, str)
+def test_infer_timestamp2(my_dataframe):
+    dfs = {"A": my_dataframe, "B": my_dataframe}
+    ds = dataframe.DataFramesDataset(dfs, target="target", freq="1D")
+    assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
 def test_infer_freq(my_dataframe):
-    ds = dataframe.DataFramesDataset(
-        my_dataframe, target="target", timestamp="timestamp"
-    )
+    ds = dataframe.DataFramesDataset(my_dataframe, target="target")
     assert ds.freq == "D"
 
 
 def test_infer_freq2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = dataframe.DataFramesDataset(
-        dfs, target="target", timestamp="timestamp"
-    )
+    ds = dataframe.DataFramesDataset(dfs, target="target")
     assert ds.freq == "D"

@@ -14,7 +14,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterator, List, Tuple, Union, Dict
+from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -70,9 +70,9 @@ class DataFramesDataset(Dataset):
         List[pd.DataFrame], Dict[str, pd.DataFrame], pd.DataFrame
     ]
     target: Union[str, List[str]] = "target"
-    timestamp: str = ""
-    freq: str = ""
-    item_id: str = ""
+    timestamp: Union[str, None] = None
+    freq: Union[str, None] = None
+    item_id: Union[str, None] = None
     feat_dynamic_real: List[str] = field(default_factory=list)
     feat_dynamic_cat: List[str] = field(default_factory=list)
     feat_static_real: List[str] = field(default_factory=list)
@@ -94,22 +94,21 @@ class DataFramesDataset(Dataset):
         else:  # case single dataframe
             self._dataframes = [self._to_tuple(self.dataframes)]
 
-        if not self.timestamp:  # infer timestamp from index
-            for i, (_, df) in enumerate(self._dataframes):
+        for i, (_, df) in enumerate(self._dataframes):
+            if self.timestamp:
+                df = df.set_index(keys=self.timestamp)
+                self._dataframes[i] = (self._dataframes[i][0], df)
+            else:
                 assert isinstance(
                     df.index, DatetimeIndexOpsMixin
                 ), "Please set ``timestamp`` or provide a DatetimeIndex."
-                df = df.reset_index()
-                df.columns = ["_timestamp"] + df.columns.tolist()[1:]
-                self._dataframes[i] = (self._dataframes[i][0], df)
-            self.timestamp = "_timestamp"
 
-        if not self.freq:  # infer frequency from timestamp-column
-            col = self._dataframes[0][1].loc[:, self.timestamp].values
-            self.freq = pd.infer_freq(pd.date_range(col[0], col[2], periods=3))
+        if not self.freq:  # infer frequency from index
+            ind = self._dataframes[0][1].index
+            self.freq = pd.infer_freq(pd.date_range(ind[0], ind[2], periods=3))
 
         self.process = ProcessDataEntry(
-            self.freq, one_dim_target=self.one_dim_target
+            cast(str, self.freq), one_dim_target=self.one_dim_target
         )
 
     def _to_tuple(self, ts: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
@@ -119,12 +118,11 @@ class DataFramesDataset(Dataset):
 
     def _dataentry(self, item_id: str, df: pd.DataFrame) -> DataEntry:
         assert check_timestamps(
-            df.loc[:, self.timestamp].to_list(), freq=self.freq
+            df.index.to_list(), freq=self.freq
         ), "``timestamps`` are not monotonically increasing or evenly spaced."
         dataentry = as_dataentry(
             data=df,
             target=self.target,
-            timestamp=self.timestamp,
             feat_dynamic_real=self.feat_dynamic_real,
             feat_dynamic_cat=self.feat_dynamic_cat,
             feat_static_real=self.feat_static_real,
@@ -180,7 +178,7 @@ class DataFramesDataset(Dataset):
 def as_dataentry(
     data: pd.DataFrame,
     target: Union[str, List[str]],
-    timestamp: str,
+    timestamp: Union[str, None] = None,
     feat_dynamic_real: List[str] = [],
     feat_dynamic_cat: List[str] = [],
     feat_static_real: List[str] = [],
@@ -202,6 +200,7 @@ def as_dataentry(
         names.
     timestamp:
         Name of the column that contains the timestamp information.
+        If ``None`` the index of ``data`` is assumed to be the time.
     feat_dynamic_real:
         List of column names that contain dynamic real features.
     feat_dynamic_cat:
@@ -219,9 +218,8 @@ def as_dataentry(
     DataEntry
         A dictionary with at least ``target`` and ``start`` field.
     """
-    dataentry = {
-        FieldName.START: data.loc[:, timestamp].iloc[0],
-    }
+    start = data.loc[:, timestamp].iloc[0] if timestamp else data.index[0]
+    dataentry = {FieldName.START: start}
 
     def set_field(fieldname, col_names, f=lambda x: x):
         if col_names:
@@ -261,7 +259,7 @@ def prepare_prediction_data(
 
 
 def check_timestamps(
-    timestamps: List[Union[str, datetime]], freq: str
+    timestamps: List[Union[str, datetime]], freq: Optional[str]
 ) -> bool:
     """
     Check if ``timestamps`` are monotonically increasing and evenly space with
