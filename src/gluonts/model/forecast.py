@@ -229,7 +229,7 @@ class Quantile(pydantic.BaseModel):
                 f"quantile value should be in [0, 1] but found {value}"
             )
 
-        return Quantile(value, name)
+        return Quantile(value=value, name=name)
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
