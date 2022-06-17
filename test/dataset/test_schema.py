@@ -13,7 +13,6 @@
 
 import numpy as np
 import pandas as pd
-import pyarrow as pa
 import pytest
 from numpy.testing import assert_equal
 
@@ -48,7 +47,6 @@ def test_call_PandasPeriodField(freq, expected):
         ([1.0, 2.0, 3, 4, 5], int, 1),
         ([[1.0, 2.0, 5], [2.0, 3.0, 4.0]], int, 2),
         ([1, 2, 3, 4, 5], float, 1),
-        (pa.array([1, 2, 3, 4, 5]), float, 1),
     ],
 )
 def test_call_NumpyArrayField(array, dtype, dim):
@@ -70,7 +68,6 @@ def test_call_NumpyArrayField(array, dtype, dim):
         ([1, 2, 3], int),
         ([1, 2.0, 3], float),
         ([1, "NaN", 2], float),
-        (pa.array([1, 3, 5]), int),
     ],
 )
 def test_compatible_NumpyArrayField(value, array_type):

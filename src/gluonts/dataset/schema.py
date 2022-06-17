@@ -16,7 +16,6 @@ from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
-import pyarrow as pa
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.exceptions import GluonTSDataError
@@ -41,11 +40,8 @@ class NumpyArrayField(FieldType[np.ndarray]):
     ndim: Optional[int] = None
 
     def __call__(self, value: Any) -> np.ndarray:
-        if isinstance(value, pa.Array):
-            value = value.to_numpy()
-            value = value.astype(self.dtype)
-        else:
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(value, dtype=self.dtype)
+
         if self.ndim is not None and self.ndim != value.ndim:
             raise GluonTSDataError(
                 f"expected array with dimension {self.ndim}, "
@@ -55,14 +51,11 @@ class NumpyArrayField(FieldType[np.ndarray]):
         return value
 
     def is_compatible(self, value: Any) -> bool:
-        if not isinstance(value, (list, tuple, np.ndarray, pa.Array)):
+        if not isinstance(value, (list, tuple, np.ndarray)):
             return False
 
         try:
-            if isinstance(value, pa.Array):
-                x = value.to_numpy()
-            else:
-                x = np.asarray(value)
+            x = np.asarray(value)
         except Exception:
             return False
 
