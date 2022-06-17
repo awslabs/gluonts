@@ -13,16 +13,7 @@
 
 import re
 from enum import Enum
-from typing import (
-    Callable,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-    Tuple,
-)
+from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 import numpy as np
 import pandas as pd
