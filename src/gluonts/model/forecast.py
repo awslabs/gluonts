@@ -13,16 +13,7 @@
 
 import re
 from enum import Enum
-from typing import (
-    Callable,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-    Tuple,
-)
+from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -215,7 +206,7 @@ class ExponentialTailApproximation:
         return left_tail, right_tail
 
 
-class Quantile(NamedTuple):
+class Quantile(pydantic.BaseModel):
     value: float
     name: str
 
@@ -238,7 +229,7 @@ class Quantile(NamedTuple):
                 f"quantile value should be in [0, 1] but found {value}"
             )
 
-        return Quantile(value, name)
+        return Quantile(value=value, name=name)
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
