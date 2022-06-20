@@ -1,4 +1,4 @@
-# Tutorial on pandas based dataframes dataset
+# Pandas dataframe based dataset
 
 ## Introduction
 
