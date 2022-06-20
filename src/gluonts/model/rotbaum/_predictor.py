@@ -117,6 +117,8 @@ class TreePredictor(RepresentablePredictor):
         max_workers: Optional[int] = None,
         method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
+        subtract_mean: bool = True,
+        count_nans: bool = False,
         model=None,
         seed=None,
     ) -> None:
@@ -142,6 +144,8 @@ class TreePredictor(RepresentablePredictor):
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             cardinality=cardinality,
             one_hot_encode=one_hot_encode,
+            subtract_mean=subtract_mean,
+            count_nans=count_nans,
             seed=seed,
         )
 

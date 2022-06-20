@@ -171,7 +171,6 @@ class TimeSeriesSlice(pydantic.BaseModel):
         )
 
 
-@dataclass
 class AbstractBaseSplitter(ABC):
     """
     Base class for all other splitter.
@@ -196,13 +195,10 @@ class AbstractBaseSplitter(ABC):
         pass
 
     def _trim_history(
-        self, item: Tuple[TimeSeriesSlice, TimeSeriesSlice]
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+        self, item: TimeSeriesSlice, label_len: int
+    ) -> TimeSeriesSlice:
         if getattr(self, "max_history") is not None:
-            return (
-                item[0][-getattr(self, "max_history") + len(item[1]) :],
-                item[1],
-            )
+            return item[-getattr(self, "max_history") + label_len :]
         else:
             return item
 
@@ -224,7 +220,7 @@ class AbstractBaseSplitter(ABC):
     def _generate_test_slices(
         self,
         items: List[DataEntry],
-        windows: Optional[int],
+        windows: int,
         distance: Optional[int],
     ):
         # distance defaults to prediction_length
@@ -238,15 +234,15 @@ class AbstractBaseSplitter(ABC):
             prediction_length = getattr(self, "prediction_length")
             for window in range(windows):
                 offset = window * distance
-                test = self._trim_history(
-                    self._test_slice(item, offset=offset)
-                )
+                test = self._test_slice(item, offset=offset)
 
                 _check_split_length(
                     train.end, test[1].end, train.end.freq * prediction_length
                 )
 
-                input = test[0].to_data_entry()
+                input = self._trim_history(
+                    test[0], len(test[1])
+                ).to_data_entry()
 
                 label = test[1].to_data_entry()
                 df_label = pd.DataFrame(label["target"])
@@ -328,7 +324,7 @@ class OffsetSplitter(AbstractBaseSplitter):
 
     split_offset: int
     prediction_length: int
-    windows: Optional[int] = 1
+    windows: int = 1
     distance: Optional[int] = None
     max_history: Optional[int] = None
 
@@ -368,7 +364,7 @@ class DateSplitter(AbstractBaseSplitter):
 
     split_date: pd.Period
     prediction_length: int
-    windows: Optional[int] = 1
+    windows: int = 1
     distance: Optional[int] = None
     max_history: Optional[int] = None
 

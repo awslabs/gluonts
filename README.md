@@ -24,8 +24,8 @@ GluonTS is a Python package for probabilistic time series modeling, focusing on 
 GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
-pip install gluonts[mxnet, pro]  # support for mxnet models, faster datasets
-pip install gluonts[torch, pro]  # support for torch models, faster datasets
+pip install gluonts[mxnet,pro]  # support for mxnet models, faster datasets
+pip install gluonts[torch,pro]  # support for torch models, faster datasets
 ```
 
 You can enable or disable extra dependencies as you prefer, depending on what GluonTS features you are interested in enabling.
