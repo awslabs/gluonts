@@ -12,11 +12,10 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union, Generic, TypeVar, Type
+from typing import Any, Dict, List, Optional, Union, Generic, TypeVar, Type
 
 import numpy as np
 import pandas as pd
-import pyarrow as pa
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.exceptions import GluonTSDataError
@@ -41,11 +40,8 @@ class NumpyArrayField(FieldType[np.ndarray]):
     ndim: Optional[int] = None
 
     def __call__(self, value: Any) -> np.ndarray:
-        if isinstance(value, pa.Array):
-            value = value.to_numpy()
-            value = value.astype(self.dtype)
-        else:
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(value, dtype=self.dtype)
+
         if self.ndim is not None and self.ndim != value.ndim:
             raise GluonTSDataError(
                 f"expected array with dimension {self.ndim}, "
@@ -55,14 +51,11 @@ class NumpyArrayField(FieldType[np.ndarray]):
         return value
 
     def is_compatible(self, value: Any) -> bool:
-        if not isinstance(value, (list, tuple, np.ndarray, pa.Array)):
+        if not isinstance(value, (list, tuple, np.ndarray)):
             return False
 
         try:
-            if isinstance(value, pa.Array):
-                x = value.to_numpy()
-            else:
-                x = np.asarray(value)
+            x = np.asarray(value)
         except Exception:
             return False
 
@@ -108,6 +101,16 @@ class PandasPeriodField(FieldType[pd.Period]):
         except Exception:
             return False
         return True
+
+
+@dataclass
+class PyArrayField:
+    shape: List
+    dtype: Type
+
+    def __call__(self, value: Any) -> List:
+        value = list(value)
+        return value
 
 
 @dataclass
@@ -158,3 +161,24 @@ class Schema:
                     "{field_type}"
                 ) from e
         return out
+
+    @staticmethod
+    def infer(entry: Dict[str, Any]):
+        """
+        Infers the schema from the passed data entry
+        """
+        out: Dict[str, Any] = {}
+        for field in entry:
+            if not isinstance(entry[field], list):
+                out[field] = type(entry[field])
+            else:
+                first_dim = len(entry[field])
+                if isinstance(entry[field][0], list):
+                    second_dim = len(entry[field][0])
+                    array_shape = [first_dim, second_dim]
+                    dtype = type(entry[field][0][0])
+                else:
+                    array_shape = [first_dim,]
+                    dtype = type(entry[field][0])
+                out[field] = PyArrayField(array_shape, dtype)
+        return Schema(out)
