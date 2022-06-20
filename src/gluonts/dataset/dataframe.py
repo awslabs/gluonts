@@ -14,9 +14,10 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterator, List, Union, Dict
+from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 from gluonts.dataset.common import Dataset, DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
@@ -34,32 +35,32 @@ class DataFramesDataset(Dataset):
 
     Parameters
     ----------
-    dataframes: Union[
-        List[pandas.DataFrame], Dict[str, pandas.DataFrame], pandas.DataFrame
-    ]
+    dataframes
         List or Dict of ``DataFrame``s or a single ``DataFrame`` containing
         at least ``timestamp`` and ``target`` columns. If a Dict is provided,
         the key will be the associated ``item_id``.
-    target: str or List[str]
+    target
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
-    timestamp: str
+    timestamp
         Name of the column that contains the timestamp information.
-    freq: str
+    freq
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
-    feat_dynamic_real: List[str]
+    item_id
+        Name of the column that contains the item_id information.
+    feat_dynamic_real
         List of column names that contain dynamic real features.
-    feat_dynamic_cat: List[str]
+    feat_dynamic_cat
         List of column names that contain dynamic categorical features.
-    feat_static_real: List[str]
+    feat_static_real
         List of column names that contain static real features.
-    feat_static_cat: List[str]
+    feat_static_cat
         List of column names that contain static categorical features.
-    past_feat_dynamic_real: List[str]
+    past_feat_dynamic_real
         List of column names that contain dynamic real features only for the
         history.
-    ignore_last_n_targets: int
+    ignore_last_n_targets
         For target and past dynamic features last ``ignore_last_n_targets``
         elements are removed when iterating over the data set. This becomes
         important when the predictor is called.
@@ -68,9 +69,10 @@ class DataFramesDataset(Dataset):
     dataframes: Union[
         List[pd.DataFrame], Dict[str, pd.DataFrame], pd.DataFrame
     ]
-    target: Union[str, List[str]]
-    timestamp: str
-    freq: str
+    target: Union[str, List[str]] = "target"
+    timestamp: Union[str, None] = None
+    freq: Union[str, None] = None
+    item_id: Union[str, None] = None
     feat_dynamic_real: List[str] = field(default_factory=list)
     feat_dynamic_cat: List[str] = field(default_factory=list)
     feat_static_real: List[str] = field(default_factory=list)
@@ -82,26 +84,45 @@ class DataFramesDataset(Dataset):
         if isinstance(self.target, list) and len(self.target) == 1:
             self.target = self.target[0]
         self.one_dim_target = not isinstance(self.target, list)
-        self.process = ProcessDataEntry(
-            self.freq, one_dim_target=self.one_dim_target
-        )
+
         # store data internally as List[Tuple[str, pandas.DataFrame]]
         # if str is not empty it will be set in ``DataEntry`` as ``item_id``.
         if isinstance(self.dataframes, dict):
             self._dataframes = list(self.dataframes.items())
         elif isinstance(self.dataframes, list):
-            self._dataframes = [("", df) for df in self.dataframes]
+            self._dataframes = [self._to_tuple(df) for df in self.dataframes]
         else:  # case single dataframe
-            self._dataframes = [("", self.dataframes)]
+            self._dataframes = [self._to_tuple(self.dataframes)]
+
+        for i, (_, df) in enumerate(self._dataframes):
+            if self.timestamp:
+                df = df.set_index(keys=self.timestamp)
+                self._dataframes[i] = (self._dataframes[i][0], df)
+            else:
+                assert isinstance(
+                    df.index, DatetimeIndexOpsMixin
+                ), "Please set ``timestamp`` or provide a DatetimeIndex."
+
+        if not self.freq:  # infer frequency from index
+            ind = self._dataframes[0][1].index
+            self.freq = pd.infer_freq(pd.date_range(ind[0], ind[2], periods=3))
+
+        self.process = ProcessDataEntry(
+            cast(str, self.freq), one_dim_target=self.one_dim_target
+        )
+
+    def _to_tuple(self, ts: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
+        if self.item_id and self.item_id in ts.columns:
+            return (str(ts.loc[:, self.item_id].iloc[0]), ts)
+        return ("", ts)
 
     def _dataentry(self, item_id: str, df: pd.DataFrame) -> DataEntry:
         assert check_timestamps(
-            df.loc[:, self.timestamp].to_list(), freq=self.freq
+            df.index.to_list(), freq=self.freq
         ), "``timestamps`` are not monotonically increasing or evenly spaced."
         dataentry = as_dataentry(
             data=df,
             target=self.target,
-            timestamp=self.timestamp,
             feat_dynamic_real=self.feat_dynamic_real,
             feat_dynamic_cat=self.feat_dynamic_cat,
             feat_static_real=self.feat_static_real,
@@ -126,7 +147,7 @@ class DataFramesDataset(Dataset):
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls, dataframe: pd.DataFrame, item_id: str = "item_id", **kwargs
     ) -> "DataFramesDataset":
         """
         Construct ``DataFramesDataset`` out of a long dataframe.
@@ -137,13 +158,13 @@ class DataFramesDataset(Dataset):
 
         Parameters
         ----------
-        dataframe: pandas.DataFrame
+        dataframe
             pandas.DataFrame containing at least ``timestamp``, ``target`` and
             ``item_id`` columns.
-        item_id: str
+        item_id
             Name of the column that, when grouped by, gives the different time
             series.
-        **kwargs:
+        **kwargs
             Additional arguments. Same as of DataFramesDataset class.
 
         Returns
@@ -157,7 +178,7 @@ class DataFramesDataset(Dataset):
 def as_dataentry(
     data: pd.DataFrame,
     target: Union[str, List[str]],
-    timestamp: str,
+    timestamp: Union[str, None] = None,
     feat_dynamic_real: List[str] = [],
     feat_dynamic_cat: List[str] = [],
     feat_static_real: List[str] = [],
@@ -170,24 +191,25 @@ def as_dataentry(
 
     Parameters
     ----------
-    data: pandas.DataFrame
+    data
         pandas.DataFrame containing at least ``timestamp``, ``target`` and
         ``item_id`` columns.
-    target: str or List[str]
+    target
         Name of the column that contains the ``target`` time series.
         For multivariate targets ``target`` is expecting a list of column
         names.
-    timestamp: str
+    timestamp
         Name of the column that contains the timestamp information.
-    feat_dynamic_real: List[str]
+        If ``None`` the index of ``data`` is assumed to be the time.
+    feat_dynamic_real
         List of column names that contain dynamic real features.
-    feat_dynamic_cat: List[str]
+    feat_dynamic_cat
         List of column names that contain dynamic categorical features.
-    feat_static_real: List[str]
+    feat_static_real
         List of column names that contain static real features.
-    feat_static_cat: List[str]
+    feat_static_cat
         List of column names that contain static categorical features.
-    past_feat_dynamic_real: List[str]
+    past_feat_dynamic_real
         List of column names that contain dynamic real features only for
         the history.
 
@@ -196,9 +218,8 @@ def as_dataentry(
     DataEntry
         A dictionary with at least ``target`` and ``start`` field.
     """
-    dataentry = {
-        FieldName.START: data.loc[:, timestamp].iloc[0],
-    }
+    start = data.loc[:, timestamp].iloc[0] if timestamp else data.index[0]
+    dataentry = {FieldName.START: start}
 
     def set_field(fieldname, col_names, f=lambda x: x):
         if col_names:
@@ -238,7 +259,7 @@ def prepare_prediction_data(
 
 
 def check_timestamps(
-    timestamps: List[Union[str, datetime]], freq: str
+    timestamps: List[Union[str, datetime]], freq: Optional[str]
 ) -> bool:
     """
     Check if ``timestamps`` are monotonically increasing and evenly space with
