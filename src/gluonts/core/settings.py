@@ -86,7 +86,7 @@ class StackElement:
         self.prv = prv
         self.nxt = nxt
 
-    def pop(self):
+    def destroy(self):
         if self.prv is not None:
             self.prv.nxt = self.nxt
 
@@ -103,6 +103,28 @@ class StackElement:
 
 
 class LinkedStack:
+    """A stack of `StackElement`.
+
+    This is like a linked list, except that this only has a pointer to the last
+    element of the stack, instead of the first element in a linked list.
+
+    Further, control over removing (popping) elements from the stack is
+    delegated to the elements. This allows for removal of values within the
+    stack, but only if one has control over the element.
+
+    This is needed to allow for behaviour like this:
+
+    >>> settings = Settings()
+    ...
+    ... with settings._let(x=1):
+    ...     settings._push(x=2)
+    ...
+    ... assert settings.x == 2
+
+    When going out of a `let` block, the pushed environment should be destroyed
+    and not just the last element of the stack.
+    """
+
     def __init__(self, elements=()):
         self.end = None
         self.len = 0
@@ -121,7 +143,7 @@ class LinkedStack:
         return new_end
 
     def pop(self):
-        return self.end.pop()
+        return self.end.destroy()
 
     def peek(self):
         return self.end.val
@@ -419,7 +441,7 @@ class _ScopedSettings:
 
     def __exit__(self, *args):
         self.settings._context_count -= 1
-        self.element.pop()
+        self.element.destroy()
 
 
 def let(settings, **kwargs):
