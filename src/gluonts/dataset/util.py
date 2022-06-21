@@ -12,13 +12,16 @@
 # permissions and limitations under the License.
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 from .field_names import FieldName
 
 
-def forecast_start(entry):
-    return entry[FieldName.START] + len(entry[FieldName.TARGET])
+def forecast_start(entry, time_axis: int = -1):
+    return (
+        entry[FieldName.START] + np.shape(entry[FieldName.TARGET])[time_axis]
+    )
 
 
 def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
