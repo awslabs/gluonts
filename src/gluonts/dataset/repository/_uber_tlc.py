@@ -19,11 +19,15 @@ from urllib import request
 
 import pandas as pd
 
+from gluonts.dataset.arrow import ArrowFile, write_dataset
 from gluonts.dataset.repository._util import metadata
 
 
 def generate_uber_dataset(
-    dataset_path: Path, uber_freq: str, prediction_length: int
+    dataset_path: Path,
+    uber_freq: str,
+    prediction_length: int,
+    use_arrow: bool = False,
 ):
     subsets = {"daily": "1D", "hourly": "1H"}
     assert (
@@ -62,37 +66,51 @@ def generate_uber_dataset(
     train_path.mkdir(exist_ok=True)
     test_path.mkdir(exist_ok=True)
 
-    train_file = train_path / "data.json"
-    test_file = test_path / "data.json"
-    with open(train_file, "w") as o_train, open(test_file, "w") as o_test:
-        for locationID, df in time_series_of_locations:
-            df.sort_index()
-            df.index = pd.to_datetime(df.index)
+    data = []
+    for locationID, df in time_series_of_locations:
+        df.sort_index()
+        df.index = pd.to_datetime(df.index)
 
-            count_series = df.resample(rule=freq_setting).size()
-            start_time = pd.Timestamp(df.index[0]).strftime("%Y-%m-%d %X")
-            target = count_series.values.tolist()
-            feat_static_cat = [locationID]
-            format_dict = {
-                "start": start_time,
-                "target": target,
-                "feat_static_cat": feat_static_cat,
-            }
-            test_json_line = json.dumps(format_dict)
-            o_test.write(test_json_line)
-            o_test.write("\n")
+        count_series = df.resample(rule=freq_setting).size()
+        start_time = pd.Timestamp(df.index[0]).strftime("%Y-%m-%d %X")
+        target = count_series.values.tolist()
+        feat_static_cat = [locationID]
+        format_dict = {
+            "start": start_time,
+            "target": target,
+            "feat_static_cat": feat_static_cat,
+        }
+        data.append(format_dict)
+
+    meta = metadata(
+        cardinality=len(time_series_of_locations),
+        freq=freq_setting[1],
+        prediction_length=prediction_length,
+    )
+
+    if not use_arrow:
+        train_file = train_path / "data.json"
+        test_file = test_path / "data.json"
+        with open(train_file, "w") as o_train, open(test_file, "w") as o_test:
+            for format_dict in data:
+                test_json_line = json.dumps(format_dict)
+                o_test.write(test_json_line)
+                o_test.write("\n")
+                format_dict["target"] = format_dict["target"][
+                    :-prediction_length
+                ]
+                train_json_line = json.dumps(format_dict)
+                o_train.write(train_json_line)
+                o_train.write("\n")
+
+        with open(dataset_path / "metadata.json", "w") as f:
+            f.write(json.dumps(meta))
+    else:
+        train_file = train_path / "data.arrow"
+        test_file = test_path / "data.arrow"
+        # create file on disk
+        write_dataset(ArrowFile, data, test_file, metadata=meta)
+
+        for format_dict in data:
             format_dict["target"] = format_dict["target"][:-prediction_length]
-            train_json_line = json.dumps(format_dict)
-            o_train.write(train_json_line)
-            o_train.write("\n")
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=len(time_series_of_locations),
-                    freq=freq_setting[1],
-                    prediction_length=prediction_length,
-                )
-            )
-        )
+        write_dataset(ArrowFile, data, train_file, metadata=meta)

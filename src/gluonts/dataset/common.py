@@ -39,6 +39,7 @@ from typing_extensions import Protocol, runtime_checkable
 
 from gluonts import json
 from gluonts.itertools import roundrobin, Cached, Map
+from gluonts.dataset.arrow import ArrowFile
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
@@ -456,6 +457,7 @@ def load_datasets(
     test: Optional[Path],
     one_dim_target: bool = True,
     cache: bool = False,
+    use_arrow: bool = False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -478,22 +480,31 @@ def load_datasets(
     TrainDatasets
         An object collecting metadata, training data, test data.
     """
-    meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(
-        path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
-    )
-    test_ds = (
-        FileDataset(
-            path=test,
-            freq=meta.freq,
-            one_dim_target=one_dim_target,
-            cache=cache,
+    if not use_arrow:
+        meta = MetaData.parse_file(Path(metadata) / "metadata.json")
+        train_ds = FileDataset(
+            path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
         )
-        if test
-        else None
-    )
+        test_ds = (
+            FileDataset(
+                path=test,
+                freq=meta.freq,
+                one_dim_target=one_dim_target,
+                cache=cache,
+            )
+            if test
+            else None
+        )
 
-    return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
+        return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
+    else:
+        train_ds = ArrowFile.infer(path=train)
+        test_ds = ArrowFile.infer(path=test)
+        metadata = train_ds.metadata()
+        # TODO: check how to solve the type problem
+        return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
+        
+
 
 
 def serialize_data_entry(data):

@@ -228,6 +228,7 @@ def materialize_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
+    use_arrow: bool = False,
     prediction_length: Optional[int] = None,
 ) -> Path:
     """
@@ -275,6 +276,8 @@ def materialize_dataset(
         kwargs: Dict[str, Any] = {"dataset_path": dataset_path}
         if prediction_length is not None:
             kwargs["prediction_length"] = prediction_length
+        if use_arrow:
+            kwargs["use_arrow"] = True
         dataset_recipe(**kwargs)
     else:
         logging.info(
@@ -288,6 +291,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
+    use_arrow: bool = False,
     prediction_length: Optional[int] = None,
 ) -> TrainDatasets:
     """
@@ -335,6 +339,7 @@ def get_dataset(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
+        use_arrow=use_arrow,
     )
 
 
