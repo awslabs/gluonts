@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib import request
 
 import pandas as pd
-
+from typing import Any
 from gluonts.dataset.arrow import ArrowFile, write_dataset
 from gluonts.dataset.repository._util import metadata
 
@@ -28,6 +28,7 @@ def generate_uber_dataset(
     uber_freq: str,
     prediction_length: int,
     use_arrow: bool = False,
+    arrow_write_format: Any = ArrowFile,
 ):
     subsets = {"daily": "1D", "hourly": "1H"}
     assert (
@@ -82,12 +83,6 @@ def generate_uber_dataset(
         }
         data.append(format_dict)
 
-    meta = metadata(
-        cardinality=len(time_series_of_locations),
-        freq=freq_setting[1],
-        prediction_length=prediction_length,
-    )
-
     if not use_arrow:
         train_file = train_path / "data.json"
         test_file = test_path / "data.json"
@@ -102,15 +97,21 @@ def generate_uber_dataset(
                 train_json_line = json.dumps(format_dict)
                 o_train.write(train_json_line)
                 o_train.write("\n")
-
-        with open(dataset_path / "metadata.json", "w") as f:
-            f.write(json.dumps(meta))
     else:
         train_file = train_path / "data.arrow"
         test_file = test_path / "data.arrow"
         # create file on disk
-        write_dataset(ArrowFile, data, test_file, metadata=meta)
+        write_dataset(arrow_write_format, data, test_file)
 
         for format_dict in data:
             format_dict["target"] = format_dict["target"][:-prediction_length]
-        write_dataset(ArrowFile, data, train_file, metadata=meta)
+        write_dataset(arrow_write_format, data, train_file)
+
+    # write metadata
+    meta = metadata(
+        cardinality=len(time_series_of_locations),
+        freq=freq_setting[1],
+        prediction_length=prediction_length,
+    )
+    with open(dataset_path / "metadata.json", "w") as f:
+        f.write(json.dumps(meta))

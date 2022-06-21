@@ -17,9 +17,10 @@ import shutil
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Union, Optional
 
 from gluonts.dataset.artificial import ConstantDataset
+from gluonts.dataset.arrow import ArrowFile, ParquetFile, ArrowStreamFile
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
 from gluonts.dataset.repository._gp_copula_2019 import (
@@ -229,6 +230,9 @@ def materialize_dataset(
     path: Path = default_dataset_path,
     regenerate: bool = False,
     use_arrow: bool = False,
+    arrow_write_format: Optional[
+        Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]
+    ] = ArrowFile,
     prediction_length: Optional[int] = None,
 ) -> Path:
     """
@@ -278,6 +282,7 @@ def materialize_dataset(
             kwargs["prediction_length"] = prediction_length
         if use_arrow:
             kwargs["use_arrow"] = True
+            kwargs["arrow_write_format"] = arrow_write_format
         dataset_recipe(**kwargs)
     else:
         logging.info(
@@ -292,6 +297,9 @@ def get_dataset(
     path: Path = default_dataset_path,
     regenerate: bool = False,
     use_arrow: bool = False,
+    arrow_write_format: Optional[
+        Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]
+    ] = ArrowFile,
     prediction_length: Optional[int] = None,
 ) -> TrainDatasets:
     """
@@ -332,14 +340,18 @@ def get_dataset(
         Dataset obtained by either downloading or reloading from local file.
     """
     dataset_path = materialize_dataset(
-        dataset_name, path, regenerate, prediction_length
+        dataset_name,
+        path,
+        regenerate,
+        use_arrow,
+        arrow_write_format,
+        prediction_length,
     )
 
     return load_datasets(
         metadata=dataset_path,
         train=dataset_path / "train",
         test=dataset_path / "test",
-        use_arrow=use_arrow,
     )
 
 
