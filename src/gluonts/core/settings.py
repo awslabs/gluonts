@@ -322,16 +322,9 @@ class Settings:
 
         dct[key] = value
 
-    def __setitem__(self, key, value):
+    def _set(self, key, value):
         # Always assigns to the most recent dictionary in our chain.
         self._set_(self._chain.last(), key, value)
-
-    def __setattr__(self, key, value):
-        # Same check as in `__getattribute__`.
-        if key.startswith("_"):
-            super().__setattr__(key, value)
-        else:
-            self[key] = value
 
     def _push(self, **kwargs):
         """
@@ -342,7 +335,7 @@ class Settings:
         el = self._chain.push({})
         # Since we want to type-check, we add the entries manually.
         for key, value in kwargs.items():
-            self[key] = value
+            self._set(key, value)
 
         return el
 
