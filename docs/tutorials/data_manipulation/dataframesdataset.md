@@ -1,18 +1,18 @@
-# Pandas dataframe based dataset
+# `pandas.DataFrame` based dataset
 
 ## Introduction
 
-This Tutorial covers how to use gluonts's pandas DataFrame based dataset
+This Tutorial covers how to use GluonTS's pandas DataFrame based dataset
 `DataFramesDataset`.
 We create dummy time series data to illustrate how single and
 multiple time series, given in pandas.DataFrame, can be converted
 to `gluonts.dataset.dataframe.DataFramesDataset` and used together with
-gluonts estimators.
+GluonTS estimators.
 
 
-The minimal requirement to start modelling using gluon-ts's dataframe dataset
+The minimal requirement to start modelling using GluonTS's dataframe dataset
 is a list of monotonically increasing timestamps with a fixed frequency
-and a list of corresponding target values in pandas.DataFrame:
+and a list of corresponding target values in `pandas.DataFrame`:
 
 |timestamp|target|
 |----|----|
@@ -31,7 +31,7 @@ in separate columns as following:
 |2021-01-01 02:00:00|-0.33|0|0.39|
 |...|...|...|...|
 
-Gluonts also supports multiple time series.
+GluonTS also supports multiple time series.
 Those can either be a list of the DataFrames with the format above
 (having at least a `timestamp` index or column and `target` column),
 a dict of DataFrames or a Long-DataFrame that has an additional
@@ -99,15 +99,15 @@ ts.loc[:, "target"].plot(figsize=(10, 5))
 
 ## Use single time series for training
 
-Now, we create a gluonts dataset using the time series, we generated and train
+Now, we create a GluonTS dataset using the time series we generated and train
 a model. Because we will use the train/evaluation loop multiple times, let's
 create a function for it. The input to the function will be the time series
-in multiple formats and the put is the `MSE` (mean squared error). In this
-function we create a model, train it to get the predictor, use the predictor
-to create forecasts and return a metric. Here, we run the training for just
-1 epoch. Usually you need more epochs to fully train the model.
-
-
+in multiple formats and an estimator.
+The output is the `MSE` (mean squared error). In this
+function we train an estimator to get the predictor, use the predictor
+to create forecasts and return a metric. We also create an DeepAREstimator.
+Note we run the training for just 1 epoch. Usually you need more epochs
+to fully train the model.
 
 
 ```python
@@ -115,20 +115,19 @@ from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx import Trainer
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 
-def train_and_predict(dataset, prediction_length):
-    model = DeepAREstimator(
-        freq=dataset.freq,
-        prediction_length=prediction_length,
-        trainer=Trainer(epochs=1),
-    )
-    predictor = model.train(dataset)
-    forecast_it, ts_it = make_evaluation_predictions(dataset=ds, predictor=predictor)
+def train_and_predict(dataset, estimator):
+    predictor = estimator.train(dataset)
+    forecast_it, ts_it = make_evaluation_predictions(dataset=dataset, predictor=predictor)
     evaluator = Evaluator(quantiles=(np.arange(20) / 20.0)[1:])
     agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(dataset))
     return agg_metrics["MSE"]
+
+estimator = DeepAREstimator(
+    freq=freq, prediction_length=prediction_length, trainer=Trainer(epochs=1)
+)
 ```
 
-We are ready to convert the `ts` dataframe into gluonts dataset and train
+We are ready to convert the `ts` dataframe into GluonTS dataset and train
 a model. For that, we import the `DataFramesDataset` and create an instance
 using our time series `ts`. If the `target`-column is called "target"
 we don't really need to provide it to the constructor. Also `freq` is
@@ -141,7 +140,7 @@ how to use those in general.
 from gluonts.dataset.dataframe import DataFramesDataset
 
 ds = DataFramesDataset(ts, target="target", freq=freq)
-train_and_predict(ds, prediction_length)
+train_and_predict(ds, estimator)
 ```
 
 ## Use multiple time series for training
@@ -149,7 +148,7 @@ train_and_predict(ds, prediction_length)
 As described above, we can also use a list of single time series
 dataframes. Even dict of dataframes or a single long-formatted-dataframe
 with multiple time series can be used and is described below.
-So, lets create multiple time series and train the model
+So, let's create multiple time series and train the model
 using those. 
 
 
@@ -158,7 +157,7 @@ N = 10
 multiple_ts = [generate_single_ts(date_range) for i in range(N)]
 
 ds = DataFramesDataset(multiple_ts, target="target", freq=freq)
-train_and_predict(ds, prediction_length)
+train_and_predict(ds, estimator)
 ```
 
 If the dataset is given as a long-dataframe, we can also use an
@@ -169,7 +168,6 @@ pass it to the constructor.
 
 
 ```python
-N = 10
 ts_in_long_format = pd.concat(
     [generate_single_ts(date_range, item_id=i) for i in range(N)]
 )
@@ -179,7 +177,7 @@ ts_in_long_format = pd.concat(
 ds = DataFramesDataset.from_long_dataframe(
     ts_in_long_format, item_id="item_id", target="target", freq=freq
 )
-train_and_predict(ds, prediction_length)
+train_and_predict(ds, estimator)
 ```
 
 ## Include static and dynamic features
@@ -206,33 +204,27 @@ ts = generate_single_ts_with_features(date_range, item_id=0)
 ts.head()
 ```
 
-Now, when we create the gluonts dataset, we need to let the constructor
+Now, when we create the GluonTS dataset, we need to let the constructor
 know which columns are the categorical and real features. Also, we need a
-minor modification to the `train_and_predict` function. Here, we need to
-let the model know as well that more features are coming in. Note, if
-categorical features are provided, DeepAR also needs the cardinality as input.
+minor modification to the `estimator`. We need to
+let the `estimator` know as well that more features are coming in. Note, if
+categorical features are provided, `DeepAR` also needs the cardinality as input.
 We have one static categorical feature that can take on two
 values (0 or 1). The cardinality in this case is a list of one element `[2,]`.
 
 
 ```python
-def train_and_predict_with_features(ds, prediction_length):
-    model = DeepAREstimator(
-        freq=ds.freq,
-        prediction_length=prediction_length,
-        use_feat_dynamic_real=True,
-        use_feat_static_cat=True,
-        cardinality=[2,],
-        trainer=Trainer(epochs=1),
-    )
-    predictor = model.train(ds)
-    forecast_it, ts_it = make_evaluation_predictions(dataset=ds, predictor=predictor)
-    evaluator = Evaluator(quantiles=(np.arange(20) / 20.0)[1:])
-    agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(ds))
-    return agg_metrics["MSE"]
+estimator_with_features = DeepAREstimator(
+    freq=ds.freq,
+    prediction_length=prediction_length,
+    use_feat_dynamic_real=True,
+    use_feat_static_cat=True,
+    cardinality=[2,],
+    trainer=Trainer(epochs=1),
+)
 ```
 
-Lets now generate single time series and multiple time series
+Let's now generate single time series and multiple time series
 (as list and as long-dataframe).
 Note we don't provide `freq` and `timestamp`, because they are automatically
 inferred from the index. We are also not passing "target" and "item_id"
@@ -268,59 +260,53 @@ multiple_ts_long_dataset = DataFramesDataset.from_long_dataframe(
 )
 ```
 
-Thats it! We can now call `train_and_predict_with_features` with all the datasets.
+That's it! We can now call `train_and_predict` with all
+the datasets.
 
 
 ```python
-train_and_predict_with_features(single_ts_dataset, prediction_length)
+train_and_predict(single_ts_dataset, estimator_with_features)
 ```
 
 ```python
-train_and_predict_with_features(multiple_ts_dataset, prediction_length)
+train_and_predict(multiple_ts_dataset, estimator_with_features)
 ```
 
 ```python
-train_and_predict_with_features(multiple_ts_dataset_dict, prediction_length)
+train_and_predict(multiple_ts_dataset_dict, estimator_with_features)
 ```
 
 ```python
-train_and_predict_with_features(multiple_ts_long_dataset, prediction_length)
+train_and_predict(multiple_ts_long_dataset, estimator_with_features)
 ```
 
 ## Use train/test split
 
-Here, we split the DataFrame/DataFrames into training and test data
-using the `OffsetSplitter` from gluonts. We can then
+Here, we split the DataFrame/DataFrames into training and test data.
+We can then
 use the training data to train the model and the test data for prediction.
-Note, the `OffsetSplitter` needs the `item_id`. If you want to split
-by date you can also use the `DateSplitter`.
+For training we will use the entire dataset up to last `prediction_length`
+entries. For testing we feed the entire dataset into
+`make_evaluation_predictions`, which automatically splits the last
+`prediction_length` entries for us and returns their predictions.
+Then, we forward those predictions to the `Evaluator`, which calculates
+a bunch of metrics for us
+(including `MSE`, `RMSE`, `MAPE`, `sMAPE`, ...).
 
 
 ```python
-prediction_length, freq = 24, "1H"
-T = 10*prediction_length
-date_range = pd.date_range("2021-01-01", periods=T, freq=freq)
-ts = generate_single_ts(date_range, item_id=0)
-```
-
-
-```python
-from gluonts.dataset.split import OffsetSplitter # DateSplitter
-
-#Note the minus-sign for `split_offset`. This will split the time series counting from the end.
-splitter = OffsetSplitter(prediction_length=prediction_length, split_offset=-prediction_length)
-split = splitter.split(DataFramesDataset(ts, item_id="item_id"))
-train, test = split.train, split.test
-```
-
-
-```python
-model = DeepAREstimator(
-    freq=freq,
-    prediction_length=prediction_length,
-    trainer=Trainer(epochs=1),
+to_dataframesdataset = lambda data: DataFramesDataset(
+    data,
+    feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
+    feat_static_cat=["static_cat_1"],
 )
-predictor = model.train(train)
+train = to_dataframesdataset([ts.iloc[:-prediction_length, :] for ts in multiple_ts])
+test = to_dataframesdataset(multiple_ts)
+```
+
+
+```python
+predictor = estimator_with_features.train(train)
 forecast_it, ts_it = make_evaluation_predictions(dataset=test, predictor=predictor)
 evaluator = Evaluator(quantiles=(np.arange(20) / 20.0)[1:])
 agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(test))
@@ -328,8 +314,7 @@ agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(test))
 
 ## Train and visualize forecasts
 
-Lets generate again some dummy data with only static categorical features,
-train an estimator and visualize the forecasts.
+Let's generate 100 time series, train an estimator and visualize the forecasts.
 
 
 ```python
@@ -339,21 +324,19 @@ date_range = pd.date_range("2021-01-01", periods=T, freq=freq)
 
 N = 100
 time_seriess = [generate_single_ts(date_range, item_id=i) for i in range(N)]
-dataset = DataFramesDataset(time_seriess, freq=freq, item_id="item_id")
 
-splitter = OffsetSplitter(prediction_length=prediction_length, split_offset=-prediction_length)
-split = splitter.split(dataset)
-train, test = split.train, split.test
+train = DataFramesDataset([ts.iloc[:-prediction_length, :] for ts in time_seriess])
+test = DataFramesDataset(time_seriess)
 ```
 
 
 ```python
-model = DeepAREstimator(
+estimator = DeepAREstimator(
     freq=freq,
     prediction_length=prediction_length,
     trainer=Trainer(epochs=10),
 )
-predictor = model.train(train)
+predictor = estimator.train(train)
 forecast_it, ts_it = make_evaluation_predictions(dataset=test, predictor=predictor)
 forecasts = list(forecast_it)
 tests = list(ts_it)
