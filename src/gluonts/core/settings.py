@@ -72,6 +72,7 @@ Whenever a new value is set, it is type-checked.
 
 import functools
 import inspect
+import itertools
 from operator import attrgetter
 from typing import Any
 
@@ -79,38 +80,29 @@ import pydantic
 from pydantic.utils import deep_update
 
 
-class StackElement:
-    def __init__(self, stack, val, prv=None, nxt=None):
-        self.stack = stack
+class ListElement:
+    def __init__(self, ll, val, prv=None, nxt=None):
+        self.ll = ll
         self.val = val
         self.prv = prv
         self.nxt = nxt
 
-    def destroy(self):
+    def remove(self):
         if self.prv is not None:
             self.prv.nxt = self.nxt
 
         if self.nxt is not None:
             self.nxt.prv = self.prv
 
-        if self.stack.end is self:
-            self.stack.end = self.prv
-            self.stack.len -= 1
+        if self.ll.end is self:
+            self.ll.end = self.prv
 
-        # prevent that element alters stack twice
         self.prv = self.nxt = None
         return self.val
 
 
-class LinkedStack:
-    """A stack of `StackElement`.
-
-    This is like a linked list, except that this only has a pointer to the last
-    element of the stack, instead of the first element in a linked list.
-
-    Further, control over removing (popping) elements from the stack is
-    delegated to the elements. This allows for removal of values within the
-    stack, but only if one has control over the element.
+class LinkedList:
+    """Simple linked list, where only elements controls removal of them.
 
     This is needed to allow for behaviour like this:
 
@@ -126,37 +118,41 @@ class LinkedStack:
     """
 
     def __init__(self, elements=()):
+        self.start = None
         self.end = None
-        self.len = 0
 
         for element in elements:
             self.push(element)
 
     def push(self, val):
-        new_end = StackElement(self, val, prv=self.end)
+        element = ListElement(self, val, prv=self.end)
 
-        if self.end is not None:
-            self.end.nxt = new_end
+        # is first element to add?
+        if self.start is None:
+            self.start = element
+        else:
+            self.end.nxt = element
 
-        self.len += 1
-        self.end = new_end
-        return new_end
+        self.end = element
+        return self.end
 
-    def pop(self):
-        return self.end.destroy()
-
-    def peek(self):
+    def last(self):
+        """Peek last value."""
         return self.end.val
 
-    def __len__(self):
-        return self.len
-
-    def __iter__(self):
+    def reverse(self):
         current = self.end
 
         while current is not None:
             yield current.val
             current = current.prv
+
+    def __iter__(self):
+        current = self.start
+
+        while current is not None:
+            yield current.val
+            current = current.nxt
 
 
 class Dependency:
@@ -200,7 +196,7 @@ class Settings:
         # ensured that there are always at least two entries in the chain:
         # A default, used to declare default values for any given key and a
         # base to guard from writing to the default through normal access.
-        self._chain = LinkedStack([self._default, kwargs])
+        self._chain = LinkedList([self._default, kwargs])
 
         # If sublcassed, `_cls_types` can contain declarations which we need to
         # execute.
@@ -215,10 +211,11 @@ class Settings:
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
 
-        for dct in reversed(self._chain)[1:]:
+        # skip 1 (default dict)
+        for dct in itertools.islice(self._chain, 1):
             compact.update(dct)
 
-        self._chain = LinkedStack([self._default, compact])
+        self._chain = LinkedList([self._default, compact])
 
     def _already_declared(self, key):
         return key in self._types or key in self._dependencies
@@ -283,7 +280,7 @@ class Settings:
         if key in self._dependencies:
             return self._dependencies[key].resolve(self)
 
-        for dct in self._chain:
+        for dct in self._chain.reverse():
             try:
                 return dct[key]
             except KeyError:
@@ -327,7 +324,7 @@ class Settings:
 
     def __setitem__(self, key, value):
         # Always assigns to the most recent dictionary in our chain.
-        self._set_(self._chain.peek(), key, value)
+        self._set_(self._chain.last(), key, value)
 
     def __setattr__(self, key, value):
         # Same check as in `__getattribute__`.
@@ -441,7 +438,7 @@ class _ScopedSettings:
 
     def __exit__(self, *args):
         self.settings._context_count -= 1
-        self.element.destroy()
+        self.element.remove()
 
 
 def let(settings, **kwargs):
