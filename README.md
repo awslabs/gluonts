@@ -127,9 +127,9 @@ first datapoint, and the `"target"` field containing time series data.
 For training, we will use data up to midnight on April 5th, 2015.
 
 ```python
-from gluonts.dataset.dataframe import DataFramesDataset
+from gluonts.dataset.pandas import PandasDataset
 
-training_data = DataFramesDataset(df[:"2015-04-05 00:00:00"])
+training_data = PandasDataset(df[:"2015-04-05 00:00:00"])
 ```
 
 A forecasting model in GluonTS is a *predictor* object. One way of obtaining
@@ -156,7 +156,7 @@ We're now ready to make predictions: we will forecast the hour following
 the midnight on April 15th, 2015.
 
 ```python
-test_data = DataFramesDataset(df[:"2015-04-15 00:00:00"])
+test_data = PandasDataset(df[:"2015-04-15 00:00:00"])
 
 from gluonts.dataset.util import to_pandas
 
