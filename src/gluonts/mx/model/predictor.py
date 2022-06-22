@@ -44,8 +44,8 @@ from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, inputs: mx.ndarray) -> np.ndarray:
-    return prediction_net(*inputs).asnumpy()
+def _(prediction_net: mx.gluon.Block, args) -> np.ndarray:
+    return prediction_net(*args).asnumpy()
 
 
 class GluonPredictor(Predictor):
