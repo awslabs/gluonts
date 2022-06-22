@@ -176,6 +176,4 @@ class ParquetWriter(DatasetWriter):
         if name is None:
             name = "data"
 
-        self.write_to_file(
-            dataset, (folder / name).with_suffix(self.suffix), **kwargs
-        )
+        self.write_to_file(dataset, (folder / name).with_suffix(self.suffix))
