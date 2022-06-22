@@ -441,6 +441,7 @@ class Forecast:
             self._index = pd.period_range(
                 self.start_date,
                 periods=self.prediction_length,
+                freq=self.start_date.freq,
             )
         return self._index
 
