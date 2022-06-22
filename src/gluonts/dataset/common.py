@@ -38,7 +38,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.exceptions import GluonTSDataError
 
 
-from . import Dataset, DatasetCollection, DataEntry
+from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl
 
 
