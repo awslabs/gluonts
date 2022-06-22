@@ -20,9 +20,9 @@ from numpy.testing import assert_equal
 import pytest
 
 from gluonts.dataset.arrow import (
-    ArrowFile,
-    ArrowStreamFile,
-    ParquetFile,
+    File,
+    ArrowWriter,
+    ParquetWriter,
     write_dataset,
 )
 
@@ -53,22 +53,23 @@ def make_data(n: int):
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7), reason="Requires PyArrow v8.")
-@pytest.mark.parametrize("File", [ArrowFile, ArrowStreamFile, ParquetFile])
+@pytest.mark.parametrize(
+    "writer",
+    [
+        ArrowWriter(stream=True, metadata={"freq": "H"}),
+        ArrowWriter(stream=False, metadata={"freq": "H"}),
+        ParquetWriter(metadata={"freq": "H"}),
+    ],
+)
 @pytest.mark.parametrize("flatten_arrays", [True, False])
-def test_arrow(File, flatten_arrays):
+def test_arrow(writer, flatten_arrays):
     data = make_data(5)
 
     with tempfile.TemporaryDirectory() as path:
         path = Path(path, "data.arrow")
 
         # create file on disk
-        write_dataset(
-            File,
-            data,
-            path,
-            metadata={"freq": "H"},
-            flatten_arrays=flatten_arrays,
-        )
+        writer.write_to_file(data, path)
 
         dataset = File.infer(path)
 
@@ -76,6 +77,4 @@ def test_arrow(File, flatten_arrays):
         assert dataset.metadata()["freq"] == "H"
 
         for orig, arrow_value in zip(data, dataset):
-            print("O", orig)
-            print("P", arrow_value)
             assert_equal(orig, arrow_value)

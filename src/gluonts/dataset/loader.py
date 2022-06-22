@@ -16,7 +16,7 @@ from typing import Callable, Iterable, Optional
 
 from pydantic import BaseModel
 
-from gluonts.dataset.common import DataBatch, Dataset
+from gluonts.dataset import DataBatch, Dataset
 from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
 from gluonts.transform import AdhocTransform, Identity, Transformation
 

@@ -14,15 +14,11 @@
 import functools
 import logging
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import (
-    Any,
     Callable,
-    Dict,
     Iterable,
-    Iterator,
     List,
     NamedTuple,
     Optional,
@@ -35,13 +31,15 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 import pydantic
-from typing_extensions import Protocol, runtime_checkable
 
 from gluonts import json
-from gluonts.itertools import roundrobin, Cached, Map
+from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
+
+
+from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
+from . import jsonl
 
 
 arrow: Optional[ModuleType]
@@ -50,43 +48,6 @@ try:
     from . import arrow
 except ImportError:
     arrow = None
-
-# Dictionary used for data flowing through the transformations.
-DataEntry = Dict[str, Any]
-DataBatch = Dict[str, Any]
-
-
-@runtime_checkable
-class Dataset(Protocol):
-    def __iter__(self) -> Iterator[DataEntry]:
-        raise NotImplementedError
-
-    def __len__(self) -> int:
-        raise NotImplementedError
-
-
-@dataclass
-class DatasetCollection(Dataset):
-    """Flattened access to a collection of datasets."""
-
-    datasets: List[Dataset]
-    interleave: bool = False
-
-    def iter_sequential(self):
-        for dataset in self.datasets:
-            yield from dataset
-
-    def iter_interleaved(self):
-        yield from roundrobin(*self.datasets)
-
-    def __iter__(self):
-        if self.interleave:
-            yield from self.iter_interleaved()
-        else:
-            yield from self.iter_sequential()
-
-    def __len__(self):
-        return sum(map(len, self.datasets))
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -520,8 +481,10 @@ def serialize_data_entry(data):
             field = field.astype(np.object_)
             field[nan_ix] = "NaN"
             return field.tolist()
+
         if isinstance(field, (int, float)):
             return field
+
         return str(field)
 
     return {k: serialize_field(v) for k, v in data.items() if v is not None}
