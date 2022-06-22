@@ -48,7 +48,7 @@ def log_once(msg):
 # numpy conversion differently, use a dispatching function to prevent needing
 # a ForecastGenerators for each framework
 @singledispatch
-def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
+def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
