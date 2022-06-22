@@ -18,6 +18,7 @@ from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from toolz import valmap
 
 from gluonts.dataset.common import Dataset, DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
@@ -194,7 +195,7 @@ def series_to_dataframe(
     if isinstance(series, list):
         return list(map(to_df, series))
     elif isinstance(series, dict):
-        return {k: to_df(s) for k, s in series.items()}
+        return valmap(to_df, series)
     return to_df(series)
 
 
@@ -203,9 +204,9 @@ def is_series(series: Any) -> bool:
     return True if `series` is `pd.Series` or a collection of `pd.Series`.
     """
     if isinstance(series, list):
-        return isinstance(series[0], pd.Series)
+        return is_series(series[0])
     elif isinstance(series, dict):
-        return isinstance(list(series.values())[0], pd.Series)
+        return is_series(list(series.values()))
     return isinstance(series, pd.Series)
 
 
