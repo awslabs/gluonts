@@ -91,7 +91,7 @@ class JsonLinesWriter(DatasetWriter):
 
         open_ = gzip.open if self.use_gzip else open
 
-        with open_(path, "wb") as out_file:
+        with open_(path, "wb") as out_file:  # type: ignore
             for entry in dataset:
                 json.bdump(serialize_data_entry(entry), out_file, nl=True)
 
