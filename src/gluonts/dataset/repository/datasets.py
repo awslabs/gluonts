@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import dataclass
+import json
 import logging
 import os
 import shutil
@@ -20,7 +22,12 @@ from pathlib import Path
 from typing import Any, Dict, Union, Optional
 
 from gluonts.dataset.artificial import ConstantDataset
-from gluonts.dataset.arrow import ArrowFile, ParquetFile, ArrowStreamFile
+from gluonts.dataset.arrow import (
+    ArrowFile,
+    ParquetFile,
+    ArrowStreamFile,
+    write_dataset,
+)
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
 from gluonts.dataset.repository._gp_copula_2019 import (
@@ -225,14 +232,33 @@ dataset_names = list(dataset_recipes.keys())
 default_dataset_path = get_download_path() / "datasets"
 
 
+@dataclass
+class DataWriter:
+    use_arrow: bool = False
+    arrow_file_format = ArrowFile
+
+    def __call__(self, data, path: Path):
+        if self.use_arrow:
+            file = path / "data.arrow"
+            write_dataset(self.arrow_file_format, data, file)
+
+        else:
+            file = path / "data.json"
+            with open(file, "w") as output:
+                for format_dict in data:
+                    json_line = json.dumps(format_dict)
+                    output.write(json_line)
+                    output.write("\n")
+
+
+default_dataset_writer = DataWriter()
+
+
 def materialize_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    use_arrow: bool = False,
-    arrow_write_format: Optional[
-        Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]
-    ] = ArrowFile,
+    dataset_writer: DataWriter = default_dataset_writer,
     prediction_length: Optional[int] = None,
 ) -> Path:
     """
@@ -280,9 +306,7 @@ def materialize_dataset(
         kwargs: Dict[str, Any] = {"dataset_path": dataset_path}
         if prediction_length is not None:
             kwargs["prediction_length"] = prediction_length
-        if use_arrow:
-            kwargs["use_arrow"] = True
-            kwargs["arrow_write_format"] = arrow_write_format
+        kwargs["dataset_writer"] = dataset_writer
         dataset_recipe(**kwargs)
     else:
         logging.info(
@@ -296,10 +320,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    use_arrow: bool = False,
-    arrow_write_format: Optional[
-        Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]
-    ] = ArrowFile,
+    dataset_writer: DataWriter = default_dataset_writer,
     prediction_length: Optional[int] = None,
 ) -> TrainDatasets:
     """
@@ -343,8 +364,7 @@ def get_dataset(
         dataset_name,
         path,
         regenerate,
-        use_arrow,
-        arrow_write_format,
+        dataset_writer,
         prediction_length,
     )
 
