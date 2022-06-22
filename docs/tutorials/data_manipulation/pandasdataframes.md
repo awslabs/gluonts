@@ -5,8 +5,8 @@
 This Tutorial covers how to use GluonTS's pandas DataFrame based dataset
 `PandasDataset`.
 We create dummy time series data to illustrate how single and
-multiple time series, given in pandas.DataFrame, can be converted
-to `gluonts.dataset.dataframe.PandasDataset` and used together with
+multiple time series, given in `pandas.DataFrame`, can be converted
+to `gluonts.dataset.pandas.PandasDataset` and used together with
 GluonTS estimators.
 
 
@@ -61,7 +61,7 @@ stated requirements (`timestamp` index and `target` column).
 The function randomly samples sin/cos curves and outputs their sum. You don't need
 to understand how this really works. We will just call `generate_single_ts`
 with datetime values which rise monotonically with fixed frequency and get
-a pandas.DataFrame with `timestamp` and `target` values.
+a `pandas.DataFrame` with `timestamp` and `target` values.
 
 
 ```python
@@ -137,7 +137,7 @@ how to use those in general.
 
 
 ```python
-from gluonts.dataset.dataframe import PandasDataset
+from gluonts.dataset.pandas import PandasDataset
 
 ds = PandasDataset(ts, target="target", freq=freq)
 train_and_predict(ds, estimator)
