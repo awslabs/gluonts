@@ -201,7 +201,7 @@ def series_to_dataframe(
 
 def is_series(series: Any) -> bool:
     """
-    return True if `series` is `pd.Series` or a collection of `pd.Series`.
+    return True if ``series`` is ``pd.Series`` or a collection of `pd.Series`.
     """
     if isinstance(series, list):
         return is_series(series[0])
