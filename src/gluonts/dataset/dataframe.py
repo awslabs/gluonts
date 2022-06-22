@@ -25,7 +25,7 @@ from gluonts.dataset.field_names import FieldName
 
 
 @dataclass
-class DataFramesDataset(Dataset):
+class PandasDataset(Dataset):
     """
     A pandas.DataFrame-based dataset type.
 
@@ -156,9 +156,9 @@ class DataFramesDataset(Dataset):
     @classmethod
     def from_long_dataframe(
         cls, dataframe: pd.DataFrame, item_id: str = "item_id", **kwargs
-    ) -> "DataFramesDataset":
+    ) -> "PandasDataset":
         """
-        Construct ``DataFramesDataset`` out of a long dataframe.
+        Construct ``PandasDataset`` out of a long dataframe.
         A long dataframe uses the long format for each variable. Target time
         series values, for example, are stacked on top of each other rather
         than side-by-side. The same is true for other dynamic or categorical
@@ -173,11 +173,11 @@ class DataFramesDataset(Dataset):
             Name of the column that, when grouped by, gives the different time
             series.
         **kwargs
-            Additional arguments. Same as of DataFramesDataset class.
+            Additional arguments. Same as of PandasDataset class.
 
         Returns
         -------
-        DataFramesDataset
+        PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
         return cls(dataframes=dict(list(dataframe.groupby(item_id))), **kwargs)

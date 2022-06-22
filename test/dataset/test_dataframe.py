@@ -57,7 +57,7 @@ def long_dataframe():
 
 @pytest.fixture
 def long_dataset(long_dataframe):  # initialized with dict
-    return dataframe.DataFramesDataset.from_long_dataframe(
+    return dataframe.PandasDataset.from_long_dataframe(
         dataframe=long_dataframe,
         target="target",
         timestamp="time",
@@ -69,8 +69,8 @@ def long_dataset(long_dataframe):  # initialized with dict
 
 
 @pytest.mark.parametrize("get_data", all_formats)
-def test_DataFramesDataset_init_with_all_formats(get_data, my_series):
-    dataset = dataframe.DataFramesDataset(dataframes=get_data(my_series))
+def test_PandasDataset_init_with_all_formats(get_data, my_series):
+    dataset = dataframe.PandasDataset(dataframes=get_data(my_series))
     assert len(dataset)
     for i in dataset:
         assert isinstance(i, dict)
@@ -161,24 +161,24 @@ def test_check_timestamps_fail(timestamps):
 
 
 def test_infer_timestamp(my_dataframe):
-    ds = dataframe.DataFramesDataset(my_dataframe, target="target", freq="1D")
+    ds = dataframe.PandasDataset(my_dataframe, target="target", freq="1D")
     assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
 def test_infer_timestamp2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = dataframe.DataFramesDataset(dfs, target="target", freq="1D")
+    ds = dataframe.PandasDataset(dfs, target="target", freq="1D")
     assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
 def test_infer_freq(my_dataframe):
-    ds = dataframe.DataFramesDataset(my_dataframe, target="target")
+    ds = dataframe.PandasDataset(my_dataframe, target="target")
     assert ds.freq == "D"
 
 
 def test_infer_freq2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = dataframe.DataFramesDataset(dfs, target="target")
+    ds = dataframe.PandasDataset(dfs, target="target")
     assert ds.freq == "D"
 
 
