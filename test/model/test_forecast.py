@@ -67,7 +67,7 @@ def test_Forecast(name):
         (
             SampleForecast(
                 samples=np.random.normal(size=(100, 7, 3)),
-                start_date=pd.Period("2020-01-01 00:00:00", freq="1D"),
+                start_date=pd.Period("2020-01-01 00:00:00", freq=2D"),
             ),
             pd.period_range(
                 start=pd.Period("2020-01-01 00:00:00", freq="2D"),
