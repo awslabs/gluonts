@@ -171,6 +171,7 @@ class TabularPredictor(Predictor):
             forecast_index = pd.period_range(
                 series.index[-1] + 1,
                 periods=self.prediction_length,
+                freq=series.index[-1].freq,
             )
 
             forecast_series = pd.Series(
