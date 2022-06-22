@@ -19,10 +19,26 @@ from gluonts.dataset import dataframe
 
 
 @pytest.fixture()
-def my_dataframe():
+def my_series():
     idx = pd.date_range("2021-01-01", freq="1D", periods=3)
-    df = pd.DataFrame(np.random.normal(size=3), index=idx, columns=["target"])
-    return df
+    series = pd.Series(np.random.normal(size=3), index=idx)
+    return series
+
+
+@pytest.fixture()
+def my_dataframe(my_series):
+    return my_series.to_frame(name="target")
+
+
+# elements will be called with my_series fixture, doesn't include long-format
+all_formats = [
+    lambda series: series,
+    lambda series: series.to_frame("target"),
+    lambda series: 3 * [series],
+    lambda series: 3 * [series.to_frame("target")],
+    lambda series: {i: series for i in ["A", "B", "C"]},
+    lambda series: {i: series.to_frame("target") for i in ["A", "B", "C"]},
+]
 
 
 @pytest.fixture()
@@ -52,30 +68,10 @@ def long_dataset(long_dataframe):  # initialized with dict
     )
 
 
-def test_DataFramesDataset_init_with_list(long_dataframe):
-    dataframes = list(map(lambda x: x[1], long_dataframe.groupby("item")))
-    dataset = dataframe.DataFramesDataset(
-        dataframes=dataframes,
-        target="target",
-        timestamp="time",
-        freq="1H",
-        feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
-    )
-    for i in dataset:
-        assert isinstance(i, dict)
-
-
-def test_DataFramesDataset_init_with_single_dataframe(long_dataframe):
-    df = long_dataframe.loc[long_dataframe.loc[:, "item"] == "A", :]
-    dataset = dataframe.DataFramesDataset(
-        dataframes=df,
-        target="target",
-        timestamp="time",
-        freq="1H",
-        feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
-    )
+@pytest.mark.parametrize("get_data", all_formats)
+def test_DataFramesDataset_init_with_all_formats(get_data, my_series):
+    dataset = dataframe.DataFramesDataset(dataframes=get_data(my_series))
+    assert len(dataset)
     for i in dataset:
         assert isinstance(i, dict)
 
@@ -184,3 +180,28 @@ def test_infer_freq2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
     ds = dataframe.DataFramesDataset(dfs, target="target")
     assert ds.freq == "D"
+
+
+def test_is_series(my_series):
+    assert dataframe.is_series(my_series)
+    assert dataframe.is_series([my_series])
+    assert dataframe.is_series({"A": my_series})
+
+
+def test_is_series_fail(my_dataframe):
+    with pytest.raises(AssertionError):
+        assert dataframe.is_series(my_dataframe)
+    with pytest.raises(AssertionError):
+        assert dataframe.is_series([my_dataframe])
+    with pytest.raises(AssertionError):
+        assert dataframe.is_series({"A": my_dataframe})
+
+
+def test_series_to_dataframe(my_series):
+    assert isinstance(dataframe.series_to_dataframe(my_series), pd.DataFrame)
+    assert isinstance(
+        dataframe.series_to_dataframe([my_series])[0], pd.DataFrame
+    )
+    dict_df = dataframe.series_to_dataframe({"A": my_series})
+    assert list(dict_df.keys())[0] == "A"
+    assert isinstance(list(dict_df.values())[0], pd.DataFrame)
