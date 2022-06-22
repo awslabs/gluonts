@@ -14,7 +14,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -36,9 +36,9 @@ class DataFramesDataset(Dataset):
     Parameters
     ----------
     dataframes
-        List or Dict of ``DataFrame``s or a single ``DataFrame`` containing
-        at least ``timestamp`` and ``target`` columns. If a Dict is provided,
-        the key will be the associated ``item_id``.
+        Single ``pd.DataFrame``/``pd.Series`` or a collection as list or dict
+        containing at least ``timestamp`` and ``target`` values.
+        If a Dict is provided, the key will be the associated ``item_id``.
     target
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
@@ -67,7 +67,12 @@ class DataFramesDataset(Dataset):
     """
 
     dataframes: Union[
-        List[pd.DataFrame], Dict[str, pd.DataFrame], pd.DataFrame
+        pd.DataFrame,
+        pd.Series,
+        List[pd.DataFrame],
+        List[pd.Series],
+        Dict[str, pd.DataFrame],
+        Dict[str, pd.Series],
     ]
     target: Union[str, List[str]] = "target"
     timestamp: Union[str, None] = None
@@ -85,6 +90,8 @@ class DataFramesDataset(Dataset):
             self.target = self.target[0]
         self.one_dim_target = not isinstance(self.target, list)
 
+        if is_series(self.dataframes):
+            self.dataframes = series_to_dataframe(self.dataframes)
         # store data internally as List[Tuple[str, pandas.DataFrame]]
         # if str is not empty it will be set in ``DataEntry`` as ``item_id``.
         if isinstance(self.dataframes, dict):
@@ -173,6 +180,33 @@ class DataFramesDataset(Dataset):
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
         return cls(dataframes=dict(list(dataframe.groupby(item_id))), **kwargs)
+
+
+def series_to_dataframe(
+    series: Union[pd.Series, List[pd.Series], Dict[str, pd.Series]]
+) -> Union[pd.DataFrame, List[pd.DataFrame], Dict[str, pd.DataFrame]]:
+    def to_df(series):
+        assert isinstance(
+            series.index, DatetimeIndexOpsMixin
+        ), "series index has to be a DatetimeIndex."
+        return series.to_frame(name="target")
+
+    if isinstance(series, list):
+        return list(map(to_df, series))
+    elif isinstance(series, dict):
+        return {k: to_df(s) for k, s in series.items()}
+    return to_df(series)
+
+
+def is_series(series: Any) -> bool:
+    """
+    return True if `series` is `pd.Series` or a collection of `pd.Series`.
+    """
+    if isinstance(series, list):
+        return isinstance(series[0], pd.Series)
+    elif isinstance(series, dict):
+        return isinstance(list(series.values())[0], pd.Series)
+    return isinstance(series, pd.Series)
 
 
 def as_dataentry(
