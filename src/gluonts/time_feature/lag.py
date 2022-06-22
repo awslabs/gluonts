@@ -53,12 +53,6 @@ def get_lags_for_frequency(
 
     # Lags are target values at the same `season` (+/- delta) but in the
     # previous cycle.
-    def _make_lags_for_second(multiple, num_cycles=3):
-        # We use previous ``num_cycles`` hours to generate lags
-        return [
-            _make_lags(k * 60 // multiple, 2) for k in range(1, num_cycles + 1)
-        ]
-
     def _make_lags_for_minute(multiple, num_cycles=3):
         # We use previous ``num_cycles`` hours to generate lags
         return [
@@ -127,15 +121,6 @@ def get_lags_for_frequency(
             + _make_lags_for_hour(offset.n / 60.0)
             + _make_lags_for_day(offset.n / (60.0 * 24))
             + _make_lags_for_week(offset.n / (60.0 * 24 * 7))
-        )
-    # second
-    elif offset_name == "S":
-        lags = (
-            _make_lags_for_second(offset.n)
-            + _make_lags_for_minute(offset.n / 60.0)
-            + _make_lags_for_hour(offset.n / (60.0 * 60.0))
-            + _make_lags_for_day(offset.n / (60.0 * 60.0 * 24))
-            + _make_lags_for_week(offset.n / (60.0 * 60.0 * 24 * 7))
         )
     else:
         raise Exception("invalid frequency")

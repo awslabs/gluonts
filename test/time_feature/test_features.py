@@ -16,24 +16,22 @@ import pandas as pd
 import pytest
 
 from gluonts.time_feature import (
-    Constant,
-    DayOfMonth,
-    DayOfMonthIndex,
-    DayOfWeek,
-    DayOfWeekIndex,
-    DayOfYear,
-    DayOfYearIndex,
-    HourOfDay,
-    HourOfDayIndex,
-    MinuteOfHour,
-    MinuteOfHourIndex,
-    MonthOfYear,
-    MonthOfYearIndex,
-    SecondOfMinute,
-    SecondOfMinuteIndex,
     TimeFeature,
+    MinuteOfHour,
+    HourOfDay,
+    DayOfWeek,
+    DayOfMonth,
+    DayOfYear,
     WeekOfYear,
+    MonthOfYear,
+    Constant,
+    MinuteOfHourIndex,
+    HourOfDayIndex,
+    DayOfWeekIndex,
+    DayOfMonthIndex,
+    DayOfYearIndex,
     WeekOfYearIndex,
+    MonthOfYearIndex,
 )
 
 
@@ -41,42 +39,21 @@ from gluonts.time_feature import (
     "feature, index",
     [
         (
-            SecondOfMinute(),
-            pd.period_range(
-                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="5S"
-            ),
-        ),
-        (
             MinuteOfHour(),
-            pd.period_range(
+            pd.date_range(
                 "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1min"
             ),
         ),
         (
             HourOfDay(),
-            pd.period_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
+            pd.date_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
         ),
-        (
-            DayOfWeek(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
-        ),
-        (
-            DayOfMonth(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
-        ),
-        (
-            DayOfYear(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
-        ),
-        (
-            WeekOfYear(),
-            pd.period_range("01-01-2015", periods=53 * 5, freq="W"),
-        ),
-        (
-            MonthOfYear(),
-            pd.period_range("01-01-2015", periods=12 * 5, freq="M"),
-        ),
-        (Constant(), pd.period_range("01-01-2015", periods=5, freq="A")),
+        (DayOfWeek(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
+        (DayOfMonth(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
+        (DayOfYear(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
+        (WeekOfYear(), pd.date_range("01-01-2015", periods=53 * 5, freq="W")),
+        (MonthOfYear(), pd.date_range("01-01-2015", periods=12 * 5, freq="M")),
+        (Constant(), pd.date_range("01-01-2015", periods=5, freq="A")),
     ],
 )
 def test_feature_normalized_bounds(
@@ -92,47 +69,40 @@ def test_feature_normalized_bounds(
     "feature, index, cardinality",
     [
         (
-            SecondOfMinuteIndex(),
-            pd.period_range(
-                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1S"
-            ),
-            60,
-        ),
-        (
             MinuteOfHourIndex(),
-            pd.period_range(
+            pd.date_range(
                 "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1min"
             ),
             60,
         ),
         (
             HourOfDayIndex(),
-            pd.period_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
+            pd.date_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
             24,
         ),
         (
             DayOfWeekIndex(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             7,
         ),
         (
             DayOfMonthIndex(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             31,
         ),
         (
             DayOfYearIndex(),
-            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
             366,
         ),
         (
             WeekOfYearIndex(),
-            pd.period_range("01-01-2015", periods=53 * 5, freq="W"),
+            pd.date_range("01-01-2015", periods=53 * 5, freq="W"),
             53,
         ),
         (
             MonthOfYearIndex(),
-            pd.period_range("01-01-2015", periods=12 * 5, freq="M"),
+            pd.date_range("01-01-2015", periods=12 * 5, freq="M"),
             12,
         ),
     ],

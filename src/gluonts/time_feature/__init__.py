@@ -25,13 +25,11 @@ from ._base import (
     MinuteOfHourIndex,
     MonthOfYear,
     MonthOfYearIndex,
-    SecondOfMinute,
-    SecondOfMinuteIndex,
+    norm_freq_str,
+    time_features_from_frequency_str,
     TimeFeature,
     WeekOfYear,
     WeekOfYearIndex,
-    norm_freq_str,
-    time_features_from_frequency_str,
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 from .lag import get_lags_for_frequency
@@ -53,8 +51,6 @@ __all__ = [
     "MinuteOfHourIndex",
     "MonthOfYear",
     "MonthOfYearIndex",
-    "SecondOfMinute",
-    "SecondOfMinuteIndex",
     "norm_freq_str",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
