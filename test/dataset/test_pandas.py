@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from gluonts.dataset import dataframe
+from gluonts.dataset import pandas
 
 
 @pytest.fixture()
@@ -57,7 +57,7 @@ def long_dataframe():
 
 @pytest.fixture
 def long_dataset(long_dataframe):  # initialized with dict
-    return dataframe.DataFramesDataset.from_long_dataframe(
+    return pandas.PandasDataset.from_long_dataframe(
         dataframe=long_dataframe,
         target="target",
         timestamp="time",
@@ -69,8 +69,8 @@ def long_dataset(long_dataframe):  # initialized with dict
 
 
 @pytest.mark.parametrize("get_data", all_formats)
-def test_DataFramesDataset_init_with_all_formats(get_data, my_series):
-    dataset = dataframe.DataFramesDataset(dataframes=get_data(my_series))
+def test_PandasDataset_init_with_all_formats(get_data, my_series):
+    dataset = pandas.PandasDataset(dataframes=get_data(my_series))
     assert len(dataset)
     for i in dataset:
         assert isinstance(i, dict)
@@ -91,7 +91,7 @@ def test_LongDataFrameDataset_len(long_dataset):
 
 def test_as_dataentry(long_dataframe):
     df = long_dataframe.groupby("item").get_group("A")
-    dataentry = dataframe.as_dataentry(
+    dataentry = pandas.as_dataentry(
         data=df,
         target="target",
         timestamp="time",
@@ -106,7 +106,7 @@ def test_as_dataentry(long_dataframe):
 
 def test_prepare_prediction_data():
     assert np.all(
-        dataframe.prepare_prediction_data(
+        pandas.prepare_prediction_data(
             {"target": np.arange(20)}, ignore_last_n_targets=5
         )["target"]
         == np.arange(15)
@@ -115,7 +115,7 @@ def test_prepare_prediction_data():
 
 def test_prepare_prediction_data_nested():
     assert np.all(
-        dataframe.prepare_prediction_data(
+        pandas.prepare_prediction_data(
             {"target": np.ones(shape=(3, 20))},
             ignore_last_n_targets=5,
         )["target"]
@@ -124,7 +124,7 @@ def test_prepare_prediction_data_nested():
 
 
 def test_prepare_prediction_data_with_features():
-    res = dataframe.prepare_prediction_data(
+    res = pandas.prepare_prediction_data(
         {
             "start": pd.Period("2021-01-01", freq="1H"),
             "target": np.array([1.0, 2.0, np.nan]),
@@ -145,7 +145,7 @@ def test_prepare_prediction_data_with_features():
 
 def test_check_timestamps():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    assert dataframe.check_timestamps(timestamps, freq="2H")
+    assert pandas.check_timestamps(timestamps, freq="2H")
 
 
 @pytest.mark.parametrize(
@@ -157,51 +157,49 @@ def test_check_timestamps():
     ],
 )
 def test_check_timestamps_fail(timestamps):
-    assert not dataframe.check_timestamps(timestamps, freq="2H")
+    assert not pandas.check_timestamps(timestamps, freq="2H")
 
 
 def test_infer_timestamp(my_dataframe):
-    ds = dataframe.DataFramesDataset(my_dataframe, target="target", freq="1D")
+    ds = pandas.PandasDataset(my_dataframe, target="target", freq="1D")
     assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
 def test_infer_timestamp2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = dataframe.DataFramesDataset(dfs, target="target", freq="1D")
+    ds = pandas.PandasDataset(dfs, target="target", freq="1D")
     assert str(next(iter(ds))["start"]) == "2021-01-01"
 
 
 def test_infer_freq(my_dataframe):
-    ds = dataframe.DataFramesDataset(my_dataframe, target="target")
+    ds = pandas.PandasDataset(my_dataframe, target="target")
     assert ds.freq == "D"
 
 
 def test_infer_freq2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = dataframe.DataFramesDataset(dfs, target="target")
+    ds = pandas.PandasDataset(dfs, target="target")
     assert ds.freq == "D"
 
 
 def test_is_series(my_series):
-    assert dataframe.is_series(my_series)
-    assert dataframe.is_series([my_series])
-    assert dataframe.is_series({"A": my_series})
+    assert pandas.is_series(my_series)
+    assert pandas.is_series([my_series])
+    assert pandas.is_series({"A": my_series})
 
 
 def test_is_series_fail(my_dataframe):
     with pytest.raises(AssertionError):
-        assert dataframe.is_series(my_dataframe)
+        assert pandas.is_series(my_dataframe)
     with pytest.raises(AssertionError):
-        assert dataframe.is_series([my_dataframe])
+        assert pandas.is_series([my_dataframe])
     with pytest.raises(AssertionError):
-        assert dataframe.is_series({"A": my_dataframe})
+        assert pandas.is_series({"A": my_dataframe})
 
 
 def test_series_to_dataframe(my_series):
-    assert isinstance(dataframe.series_to_dataframe(my_series), pd.DataFrame)
-    assert isinstance(
-        dataframe.series_to_dataframe([my_series])[0], pd.DataFrame
-    )
-    dict_df = dataframe.series_to_dataframe({"A": my_series})
+    assert isinstance(pandas.series_to_dataframe(my_series), pd.DataFrame)
+    assert isinstance(pandas.series_to_dataframe([my_series])[0], pd.DataFrame)
+    dict_df = pandas.series_to_dataframe({"A": my_series})
     assert list(dict_df.keys())[0] == "A"
     assert isinstance(list(dict_df.values())[0], pd.DataFrame)

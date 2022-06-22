@@ -3,10 +3,10 @@
 ## Introduction
 
 This Tutorial covers how to use GluonTS's pandas DataFrame based dataset
-`DataFramesDataset`.
+`PandasDataset`.
 We create dummy time series data to illustrate how single and
-multiple time series, given in pandas.DataFrame, can be converted
-to `gluonts.dataset.dataframe.DataFramesDataset` and used together with
+multiple time series, given in `pandas.DataFrame`, can be converted
+to `gluonts.dataset.pandas.PandasDataset` and used together with
 GluonTS estimators.
 
 
@@ -61,7 +61,7 @@ stated requirements (`timestamp` index and `target` column).
 The function randomly samples sin/cos curves and outputs their sum. You don't need
 to understand how this really works. We will just call `generate_single_ts`
 with datetime values which rise monotonically with fixed frequency and get
-a pandas.DataFrame with `timestamp` and `target` values.
+a `pandas.DataFrame` with `timestamp` and `target` values.
 
 
 ```python
@@ -128,7 +128,7 @@ estimator = DeepAREstimator(
 ```
 
 We are ready to convert the `ts` dataframe into GluonTS dataset and train
-a model. For that, we import the `DataFramesDataset` and create an instance
+a model. For that, we import the `PandasDataset` and create an instance
 using our time series `ts`. If the `target`-column is called "target"
 we don't really need to provide it to the constructor. Also `freq` is
 inferred from the data if the timestamp is a time- or period range.
@@ -137,9 +137,9 @@ how to use those in general.
 
 
 ```python
-from gluonts.dataset.dataframe import DataFramesDataset
+from gluonts.dataset.pandas import PandasDataset
 
-ds = DataFramesDataset(ts, target="target", freq=freq)
+ds = PandasDataset(ts, target="target", freq=freq)
 train_and_predict(ds, estimator)
 ```
 
@@ -156,7 +156,7 @@ using those.
 N = 10
 multiple_ts = [generate_single_ts(date_range) for i in range(N)]
 
-ds = DataFramesDataset(multiple_ts, target="target", freq=freq)
+ds = PandasDataset(multiple_ts, target="target", freq=freq)
 train_and_predict(ds, estimator)
 ```
 
@@ -174,7 +174,7 @@ ts_in_long_format = pd.concat(
 
 # Note we need an item_id column now and provide its name (default is "item_id") to
 # the constructor. Otherwise, there is no way to distinguish different time series.
-ds = DataFramesDataset.from_long_dataframe(
+ds = PandasDataset.from_long_dataframe(
     ts_in_long_format, item_id="item_id", target="target", freq=freq
 )
 train_and_predict(ds, estimator)
@@ -182,7 +182,7 @@ train_and_predict(ds, estimator)
 
 ## Include static and dynamic features
 
-The DataFramesDataset also allows us to include features of our time series.
+The PandasDataset also allows us to include features of our time series.
 The list of all available features is given in the documentation.
 Here, we use dynamic real and static categorical features.
 To mimic those features we will just wrap our fancy data generator
@@ -237,23 +237,23 @@ single_ts = generate_single_ts_with_features(date_range, item_id=0)
 multiple_ts = [generate_single_ts_with_features(date_range, item_id=i) for i in range(N)]
 multiple_ts_long = pd.concat(multiple_ts)
 
-single_ts_dataset = DataFramesDataset(
+single_ts_dataset = PandasDataset(
     single_ts,
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
 )
-multiple_ts_dataset = DataFramesDataset(
+multiple_ts_dataset = PandasDataset(
     multiple_ts,
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
 )
-multiple_ts_dataset_dict = DataFramesDataset(
+multiple_ts_dataset_dict = PandasDataset(
     {i: _ts for i, _ts in enumerate(multiple_ts)},
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
 )
 # for long-dataset we use a different constructor and need a `item_id` column
-multiple_ts_long_dataset = DataFramesDataset.from_long_dataframe(
+multiple_ts_long_dataset = PandasDataset.from_long_dataframe(
     multiple_ts_long,
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
@@ -295,13 +295,13 @@ a bunch of metrics for us
 
 
 ```python
-to_dataframesdataset = lambda data: DataFramesDataset(
+to_pandasdataset = lambda data: PandasDataset(
     data,
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
 )
-train = to_dataframesdataset([ts.iloc[:-prediction_length, :] for ts in multiple_ts])
-test = to_dataframesdataset(multiple_ts)
+train = to_pandasdataset([ts.iloc[:-prediction_length, :] for ts in multiple_ts])
+test = to_pandasdataset(multiple_ts)
 ```
 
 
@@ -325,8 +325,8 @@ date_range = pd.date_range("2021-01-01", periods=T, freq=freq)
 N = 100
 time_seriess = [generate_single_ts(date_range, item_id=i) for i in range(N)]
 
-train = DataFramesDataset([ts.iloc[:-prediction_length, :] for ts in time_seriess])
-test = DataFramesDataset(time_seriess)
+train = PandasDataset([ts.iloc[:-prediction_length, :] for ts in time_seriess])
+test = PandasDataset(time_seriess)
 ```
 
 
