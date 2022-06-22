@@ -15,9 +15,12 @@ import functools
 import gzip
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
+
+from . import Dataset, DatasetWriter
 
 
 def load(file_obj):
@@ -76,3 +79,31 @@ class JsonLinesFile:
                 chunk.count(b"\n") for chunk in iter(read_chunk, b"")
             )
             return file_len
+
+
+@dataclass
+class JsonLinesWriter(DatasetWriter):
+    use_gzip: bool = True
+    suffix: str = ".json"
+
+    def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        from .common import serialize_data_entry
+
+        open_ = gzip.open if self.use_gzip else open
+
+        with open_(path, "wb") as out_file:
+            for entry in dataset:
+                json.bdump(serialize_data_entry(entry), out_file, nl=True)
+
+    def write_to_folder(
+        self, dataset: Dataset, folder: Path, name: Optional[str] = None
+    ) -> None:
+        if name is None:
+            name = "data"
+
+        if self.use_gzip:
+            suffix = self.suffix + ".gz"
+        else:
+            suffix = self.suffix
+
+        self.write_to_file(dataset, (folder / name).with_suffix(suffix))
