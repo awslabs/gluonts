@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 from gluonts.core.component import equals
-from gluonts.dataset.json import encode_json
+from gluonts.dataset.jsonl import encode_json
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
