@@ -22,7 +22,8 @@ from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.repository._util import metadata, to_dict
 
 
 def load_from_pandas(
@@ -124,6 +125,7 @@ datasets_info = {
 def generate_lstnet_dataset(
     dataset_path: Path,
     dataset_name: str,
+    dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
     ds_info = datasets_info[dataset_name]
@@ -135,6 +137,10 @@ def generate_lstnet_dataset(
     )
 
     os.makedirs(dataset_path, exist_ok=True)
+    train_path = dataset_path / "train"
+    test_path = dataset_path / "test"
+    train_path.mkdir(exist_ok=True)
+    test_path.mkdir(exist_ok=True)
 
     with open(dataset_path / "metadata.json", "w") as f:
         json.dump(ds_metadata, f)
@@ -178,7 +184,7 @@ def generate_lstnet_dataset(
 
     assert len(train_ts) == ds_info.num_series
 
-    save_to_file(dataset_path / "train" / "data.json", train_ts)
+    dataset_writer.write_to_folder(train_ts, train_path)
 
     # time of the first prediction
     prediction_dates = [
@@ -205,4 +211,4 @@ def generate_lstnet_dataset(
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    save_to_file(dataset_path / "test" / "data.json", test_ts)
+    dataset_writer.write_to_folder(test_ts, test_path)

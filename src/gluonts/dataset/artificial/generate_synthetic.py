@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 import csv
-import json
-import os
+from pathlib import Path
 from typing import List, TextIO
 
 import holidays
 import pandas as pd
 
+from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial._base import (
     ArtificialDataset,
     ComplexSeasonalTimeSeries,
@@ -73,41 +73,38 @@ def write_csv_row(
 
 
 def generate_sf2(
-    filename: str, time_series: List, is_missing: bool, num_missing: int
+    path: Path,
+    time_series: List,
+    ds_writer: DatasetWriter,
+    is_missing: bool,
+    num_missing: int,
 ) -> None:
-    #  This function generates the test and train json files which will be
-    #  converted to csv format
-    if not os.path.exists(os.path.dirname(filename)):
-        os.makedirs(os.path.dirname(filename))
-    with open(filename, "w") as json_file:
-        for ts in time_series:
-            if is_missing:
-                target = []  # type: List
-                # For Forecast don't output feat_static_cat and
-                # feat_static_real
-                for j, val in enumerate(ts[FieldName.TARGET]):
-                    # only add ones that are not missing
-                    if j != 0 and j % num_missing == 0:
-                        target.append(None)
-                    else:
-                        target.append(val)
-                ts[FieldName.TARGET] = target
-            ts.pop(FieldName.FEAT_STATIC_CAT, None)
-            ts.pop(FieldName.FEAT_STATIC_REAL, None)
-            # Chop features in training set
-            if (
-                FieldName.FEAT_DYNAMIC_REAL in ts.keys()
-                and "train" in filename
+    data = []
+    for ts in time_series:
+        if is_missing:
+            target = []  # type: List
+            # For Forecast don't output feat_static_cat and
+            # feat_static_real
+            for j, val in enumerate(ts[FieldName.TARGET]):
+                # only add ones that are not missing
+                if j != 0 and j % num_missing == 0:
+                    target.append(None)
+                else:
+                    target.append(val)
+            ts[FieldName.TARGET] = target
+        ts.pop(FieldName.FEAT_STATIC_CAT, None)
+        ts.pop(FieldName.FEAT_STATIC_REAL, None)
+        # Chop features in training set
+        if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in str(path):
+            # TODO: Fix for missing values
+            for i, feat_dynamic_real in enumerate(
+                ts[FieldName.FEAT_DYNAMIC_REAL]
             ):
-                # TODO: Fix for missing values
-                for i, feat_dynamic_real in enumerate(
-                    ts[FieldName.FEAT_DYNAMIC_REAL]
-                ):
-                    ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
-                        : len(ts[FieldName.TARGET])
-                    ]
-            json.dump(ts, json_file)
-            json_file.write("\n")
+                ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
+                    : len(ts[FieldName.TARGET])
+                ]
+        data.append(ts)
+    ds_writer.write_to_folder(data, path)
 
 
 def generate_sf2s_and_csv(
@@ -117,17 +114,7 @@ def generate_sf2s_and_csv(
     is_missing: bool = False,
     num_missing: int = 4,
 ) -> None:
-    file_path += f"{folder_name}"
-    if not os.path.exists(os.path.dirname(file_path)):
-        os.makedirs(os.path.dirname(file_path))
-    freq = artificial_dataset.metadata.freq
-    train_set = artificial_dataset.train
-    generate_sf2(file_path + "train.json", train_set, is_missing, num_missing)
-    test_set = artificial_dataset.test
-    generate_sf2(file_path + "test.json", test_set, is_missing, num_missing)
-    with open(file_path + "input_to_forecast.csv", "w") as csv_file:
-        # Test set has training set with the additional values to predict
-        write_csv_row(test_set, freq, csv_file, is_missing, num_missing)
+    pass
 
 
 if __name__ == "__main__":

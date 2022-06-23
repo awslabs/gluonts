@@ -18,12 +18,15 @@ from pathlib import Path
 from urllib import request
 
 import pandas as pd
-from typing import Any
+from gluonts.dataset import DatasetWriter
 from gluonts.dataset.repository._util import metadata
 
 
 def generate_uber_dataset(
-    dataset_path: Path, uber_freq: str, prediction_length: int, dataset_writer
+    dataset_path: Path,
+    uber_freq: str,
+    prediction_length: int,
+    dataset_writer: DatasetWriter,
 ):
     subsets = {"daily": "1D", "hourly": "1H"}
     assert (
@@ -78,10 +81,10 @@ def generate_uber_dataset(
         }
         data.append(format_dict)
 
-    dataset_writer(data, test_path)
+    dataset_writer.write_to_folder(data, test_path)
     for format_dict in data:
         format_dict["target"] = format_dict["target"][:-prediction_length]
-    dataset_writer(data, train_path)
+    dataset_writer.write_to_folder(data, train_path)
 
     # write metadata
     meta = metadata(

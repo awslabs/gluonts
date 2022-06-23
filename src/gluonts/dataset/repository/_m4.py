@@ -18,11 +18,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.repository._util import metadata, to_dict
 
 
 def generate_m4_dataset(
-    dataset_path: Path, m4_freq: str, pandas_freq: str, prediction_length: int
+    dataset_path: Path,
+    m4_freq: str,
+    pandas_freq: str,
+    prediction_length: int,
+    dataset_writer: DatasetWriter,
 ):
     m4_dataset_url = (
         "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
@@ -47,9 +52,6 @@ def generate_m4_dataset(
             )
         )
 
-    train_file = dataset_path / "train" / "data.json"
-    test_file = dataset_path / "test" / "data.json"
-
     train_target_values = [ts[~np.isnan(ts)] for ts in train_df.values]
 
     test_target_values = [
@@ -73,28 +75,29 @@ def generate_m4_dataset(
     # point available in pandas as the start date for each time series.
     mock_start_dataset = "1750-01-01 00:00:00"
 
-    save_to_file(
-        train_file,
-        [
-            to_dict(
-                target_values=target,
-                start=mock_start_dataset,
-                cat=[cat],
-                item_id=cat,
-            )
-            for cat, target in enumerate(train_target_values)
-        ],
-    )
+    train_data = [
+        to_dict(
+            target_values=target,
+            start=mock_start_dataset,
+            cat=[cat],
+            item_id=cat,
+        )
+        for cat, target in enumerate(train_target_values)
+    ]
+    test_data = [
+        to_dict(
+            target_values=target,
+            start=mock_start_dataset,
+            cat=[cat],
+            item_id=cat,
+        )
+        for cat, target in enumerate(test_target_values)
+    ]
 
-    save_to_file(
-        test_file,
-        [
-            to_dict(
-                target_values=target,
-                start=mock_start_dataset,
-                cat=[cat],
-                item_id=cat,
-            )
-            for cat, target in enumerate(test_target_values)
-        ],
-    )
+    train_path = dataset_path / "train"
+    test_path = dataset_path / "test"
+    train_path.mkdir(exist_ok=True)
+    test_path.mkdir(exist_ok=True)
+
+    dataset_writer.write_to_folder(train_data, train_path)
+    dataset_writer.write_to_folder(test_data, test_path)

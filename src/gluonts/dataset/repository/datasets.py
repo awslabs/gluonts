@@ -11,24 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
-import json
 import logging
 import os
 import shutil
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Union, Optional
+from typing import Any, Dict, Optional
 
+from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ConstantDataset
-from gluonts.dataset.arrow import (
-    ArrowFile,
-    ParquetFile,
-    ArrowStreamFile,
-    write_dataset,
-)
 from gluonts.dataset.common import TrainDatasets, load_datasets
+from gluonts.dataset.jsonl import JsonLinesWriter
 from gluonts.dataset.repository._artificial import generate_artificial_dataset
 from gluonts.dataset.repository._gp_copula_2019 import (
     generate_gp_copula_dataset,
@@ -231,34 +225,14 @@ dataset_names = list(dataset_recipes.keys())
 
 default_dataset_path = get_download_path() / "datasets"
 
-
-@dataclass
-class DataWriter:
-    use_arrow: bool = False
-    arrow_file_format = ArrowFile
-
-    def __call__(self, data, path: Path):
-        if self.use_arrow:
-            file = path / "data.arrow"
-            write_dataset(self.arrow_file_format, data, file)
-
-        else:
-            file = path / "data.json"
-            with open(file, "w") as output:
-                for format_dict in data:
-                    json_line = json.dumps(format_dict)
-                    output.write(json_line)
-                    output.write("\n")
-
-
-default_dataset_writer = DataWriter()
+default_dataset_writer = JsonLinesWriter()
 
 
 def materialize_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    dataset_writer: DataWriter = default_dataset_writer,
+    dataset_writer: DatasetWriter = default_dataset_writer,
     prediction_length: Optional[int] = None,
 ) -> Path:
     """
@@ -320,7 +294,7 @@ def get_dataset(
     dataset_name: str,
     path: Path = default_dataset_path,
     regenerate: bool = False,
-    dataset_writer: DataWriter = default_dataset_writer,
+    dataset_writer: DatasetWriter = default_dataset_writer,
     prediction_length: Optional[int] = None,
 ) -> TrainDatasets:
     """

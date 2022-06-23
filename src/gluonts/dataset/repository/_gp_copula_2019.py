@@ -30,6 +30,7 @@ from typing import NamedTuple, Optional
 from urllib import request
 
 from gluonts.dataset.common import FileDataset
+from gluonts.dataset import DatasetWriter
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
 
@@ -111,6 +112,7 @@ datasets_info = {
 def generate_gp_copula_dataset(
     dataset_path: Path,
     dataset_name: str,
+    dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
     ds_info = datasets_info[dataset_name]
@@ -118,8 +120,8 @@ def generate_gp_copula_dataset(
 
     download_dataset(dataset_path.parent, ds_info)
     save_metadata(dataset_path, ds_info, prediction_length)
-    save_dataset(dataset_path / "train", ds_info)
-    save_dataset(dataset_path / "test", ds_info)
+    save_dataset(dataset_path / "train", ds_info, dataset_writer)
+    save_dataset(dataset_path / "test", ds_info, dataset_writer)
     clean_up_dataset(dataset_path, ds_info)
 
 
@@ -148,24 +150,23 @@ def save_metadata(
         )
 
 
-def save_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
+def save_dataset(
+    dataset_path: Path, ds_info: GPCopulaDataset, ds_writer: DatasetWriter
+):
     dataset = list(FileDataset(dataset_path, freq=ds_info.freq))
-    shutil.rmtree(dataset_path)
-    train_file = dataset_path / "data.json"
-    save_to_file(
-        train_file,
-        [
-            to_dict(
-                target_values=data_entry[FieldName.TARGET],
-                start=data_entry[FieldName.START],
-                # Handles adding categorical features of rolling
-                # evaluation dates
-                cat=[cat - ds_info.num_series * (cat // ds_info.num_series)],
-                item_id=cat,
-            )
-            for cat, data_entry in enumerate(dataset)
-        ],
-    )
+    dataset_path.mkdir(exist_ok=True)
+    data = [
+        to_dict(
+            target_values=data_entry[FieldName.TARGET],
+            start=data_entry[FieldName.START],
+            # Handles adding categorical features of rolling
+            # evaluation dates
+            cat=[cat - ds_info.num_series * (cat // ds_info.num_series)],
+            item_id=cat,
+        )
+        for cat, data_entry in enumerate(dataset)
+    ]
+    ds_writer.write_to_folder(data, dataset_path)
 
 
 def clean_up_dataset(dataset_path: Path, ds_info: GPCopulaDataset):

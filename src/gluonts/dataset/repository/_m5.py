@@ -18,8 +18,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from gluonts.dataset import DatasetWriter
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import metadata, save_to_file
+from gluonts.dataset.repository._util import metadata
 
 
 def generate_m5_dataset(
@@ -27,6 +28,7 @@ def generate_m5_dataset(
     pandas_freq: str,
     prediction_length: int,
     m5_file_path: Path,
+    dataset_writer: DatasetWriter,
 ):
     cal_path = f"{m5_file_path}/calendar.csv"
     sales_path = f"{m5_file_path}/sales_train_validation.csv"
@@ -42,6 +44,10 @@ def generate_m5_dataset(
 
     # Prepare directory
     dataset_path.mkdir(exist_ok=True)
+    train_path = dataset_path / "train"
+    test_path = dataset_path / "test"
+    train_path.mkdir(exist_ok=True)
+    test_path.mkdir(exist_ok=True)
 
     # Read M5 data from dataset_path
     calendar = pd.read_csv(cal_path)
@@ -135,7 +141,6 @@ def generate_m5_dataset(
         )
 
     # Build training set
-    train_file = dataset_path / "train" / "data.json"
     train_ds = [
         {
             FieldName.TARGET: target.tolist(),
@@ -152,10 +157,9 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    save_to_file(train_file, train_ds)
+    dataset_writer.write_to_folder(train_ds, train_path)
 
     # Build testing set
-    test_file = dataset_path / "test" / "data.json"
     test_ds = [
         {
             FieldName.TARGET: target.tolist(),
@@ -172,4 +176,4 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    save_to_file(test_file, test_ds)
+    dataset_writer.write_to_folder(test_ds, test_path)

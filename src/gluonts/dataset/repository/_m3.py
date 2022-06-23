@@ -21,7 +21,8 @@ from typing import NamedTuple, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.repository._util import metadata, to_dict
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -78,7 +79,10 @@ class M3Setting(NamedTuple):
 
 
 def generate_m3_dataset(
-    dataset_path: Path, m3_freq: str, prediction_length: Optional[int] = None
+    dataset_path: Path,
+    m3_freq: str,
+    dataset_writer: DatasetWriter,
+    prediction_length: Optional[int] = None,
 ):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
@@ -192,10 +196,12 @@ def generate_m3_dataset(
             )
         )
 
-    train_file = dataset_path / "train" / "data.json"
-    test_file = dataset_path / "test" / "data.json"
+    train_path = dataset_path / "train"
+    test_path = dataset_path / "test"
+    train_path.mkdir(exist_ok=True)
+    test_path.mkdir(exist_ok=True)
 
-    save_to_file(train_file, train_data)
-    save_to_file(test_file, test_data)
+    dataset_writer.write_to_folder(train_data, train_path)
+    dataset_writer.write_to_folder(test_data, test_path)
 
     check_dataset(dataset_path, len(df), subset.sheet_name)
