@@ -335,6 +335,6 @@ evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
 
 
 ```python
-metrics_pytorch, _ = evaluator(iter(tss_pytorch), iter(forecasts_pytorch), num_series=len(dataset.test))
+metrics_pytorch, _ = evaluator(tss_pytorch, forecasts_pytorch)
 pd.DataFrame.from_records(metrics_pytorch, index=["FeedForward"]).transpose()
 ```

@@ -74,6 +74,7 @@ def make_evaluation_predictions(
             index = pd.period_range(
                 start=data[FieldName.START],
                 periods=data[FieldName.TARGET].shape[-1],
+                freq=data[FieldName.START].freq,
             )
             data["ts"] = pd.DataFrame(
                 index=index, data=data[FieldName.TARGET].transpose()

@@ -32,7 +32,9 @@ __all__ = [
     "ArrowFile",
     "ArrowStreamFile",
     "ParquetFile",
+    "ArrowWriter",
+    "ParquetWriter",
 ]
 
-from .enc import write_dataset
+from .enc import write_dataset, ArrowWriter, ParquetWriter
 from .file import File, ArrowFile, ArrowStreamFile, ParquetFile

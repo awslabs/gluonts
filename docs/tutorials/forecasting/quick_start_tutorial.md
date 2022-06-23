@@ -270,7 +270,7 @@ from gluonts.evaluation import Evaluator
 
 ```python
 evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-agg_metrics, item_metrics = evaluator(iter(tss), iter(forecasts), num_series=len(dataset.test))
+agg_metrics, item_metrics = evaluator(tss, forecasts)
 ```
 
 Aggregate metrics aggregate both across time-steps and across time series.

@@ -32,6 +32,7 @@ See :doc:`community/devsetup` for setup instructions in case you want to develop
    :hidden:
 
    install
+   concepts
 
 .. toctree::
    :name: Tutorials
@@ -41,6 +42,7 @@ See :doc:`community/devsetup` for setup instructions in case you want to develop
 
    tutorials/forecasting/quick_start_tutorial
    tutorials/forecasting/extended_tutorial
+   tutorials/data_manipulation/pandasdataframes
    tutorials/data_manipulation/synthetic_data_generation
    tutorials/advanced_topics/trainer_callbacks
    tutorials/advanced_topics/hp_tuning_with_optuna

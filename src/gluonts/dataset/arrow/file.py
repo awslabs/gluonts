@@ -48,11 +48,6 @@ class File:
         else:
             return ArrowStreamFile(path)
 
-    @classmethod
-    @abc.abstractmethod
-    def writer(cls):
-        ...
-
     @abc.abstractmethod
     def metadata(self) -> Dict[str, str]:
         ...
@@ -74,10 +69,6 @@ class ArrowFile(File):
     _batch_offsets: Optional[np.ndarray] = field(
         default=None, init=False, repr=False
     )
-
-    @classmethod
-    def writer(cls):
-        return pa.RecordBatchFileWriter
 
     def metadata(self) -> Dict[str, str]:
         metadata = self.reader.schema.metadata
@@ -134,10 +125,6 @@ class ArrowStreamFile(File):
     path: Path
     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
 
-    @classmethod
-    def writer(cls):
-        return pa.RecordBatchStreamWriter
-
     def metadata(self) -> Dict[str, str]:
         with open(self.path, "rb") as infile:
             metadata = pa.RecordBatchStreamReader(infile).schema.metadata
@@ -176,10 +163,6 @@ class ParquetFile(File):
     def __post_init__(self):
         self.reader = pq.ParquetFile(self.path)
         self.decoder = ArrowDecoder.from_schema(self.reader.schema_arrow)
-
-    @classmethod
-    def writer(cls):
-        return pq.ParquetWriter
 
     def metadata(self) -> Dict[str, str]:
         metadata = self.reader.schema_arrow.metadata

@@ -97,15 +97,15 @@ def test_inject():
 def test_partial_assignment():
     assert settings.args.a == 1
 
-    settings.args = {"a": 9}
+    settings._set("args", {"a": 9})
     assert settings.args.a == 9
 
-    settings.args = {"b": 42}
-    assert settings.args.a == 9
+    settings._set("args", {"b": 42})
+    assert settings.args.b == 42
 
     with settings._let(args=dict(b=3)):
         assert settings.args.a == 9
         assert settings.args.b == 3
 
-    settings.args = {"a": "1"}
+    settings._set("args", {"a": "1"})
     assert settings.args.a == 1
