@@ -24,10 +24,10 @@ from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.jsonl import encode_json
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.shell.util import forecaster_type_by_name
 
-from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
 
@@ -120,7 +120,7 @@ def inference_invocations(predictor_factory) -> Callable[[], Response]:
         predictions = handle_predictions(
             predictor, req.instances, req.configuration
         )
-        return jsonify(predictions=jsonify_floats(predictions))
+        return jsonify(predictions=encode_json(predictions))
 
     return invocations
 
@@ -249,7 +249,7 @@ def batch_inference_invocations(
             for input_item, prediction in zip(dataset, predictions):
                 prediction[forward_field] = input_item.get(forward_field)
 
-        lines = list(map(json.dumps, map(jsonify_floats, predictions)))
+        lines = list(map(json.dumps, map(encode_json, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
     def invocations_error_wrapper() -> Response:

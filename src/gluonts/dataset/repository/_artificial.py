@@ -17,7 +17,7 @@ from typing import Optional
 
 from gluonts.dataset.artificial import ArtificialDataset
 from gluonts.dataset.artificial.generate_synthetic import generate_sf2
-from gluonts.dataset.common import serialize_data_entry
+from gluonts.dataset.jsonl import encode_json
 
 
 def generate_artificial_dataset(
@@ -42,14 +42,14 @@ def generate_artificial_dataset(
 
     generate_sf2(
         filename=str(dataset_path_train / "train.json"),
-        time_series=list(map(serialize_data_entry, ds.train)),
+        time_series=list(map(encode_json, ds.train)),
         is_missing=False,
         num_missing=0,
     )
 
     generate_sf2(
         filename=str(dataset_path_test / "test.json"),
-        time_series=list(map(serialize_data_entry, ds.test)),
+        time_series=list(map(encode_json, ds.test)),
         is_missing=False,
         num_missing=0,
     )
