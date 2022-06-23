@@ -14,14 +14,18 @@
 from dataclasses import dataclass, field
 from functools import singledispatch
 from itertools import chain
-from typing import List, Set
+from pathlib import Path
+from typing import List, Set, Optional
 
-from gluonts.itertools import batcher, rows_to_columns
 from toolz.curried import keyfilter, valmap
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
+
+from gluonts.dataset import Dataset, DatasetWriter
+from gluonts.itertools import batcher, rows_to_columns
 
 
 @dataclass
@@ -98,7 +102,7 @@ def _encode_py_pd_preiod(val: pd.Period):
 
 
 def write_dataset(
-    cls, dataset, path, metadata=None, batch_size=1024, flatten_arrays=True
+    Writer, dataset, path, metadata=None, batch_size=1024, flatten_arrays=True
 ):
     dataset = map(keyfilter(lambda key: key != "source"), dataset)
     dataset = map(valmap(_encode_py_to_arrow), dataset)
@@ -114,8 +118,62 @@ def write_dataset(
         schema = schema.with_metadata(metadata)
 
     with open(path, "wb") as fobj:
-        writer = cls.writer()(fobj, schema=schema)
+        writer = Writer(fobj, schema=schema)
         for batch in chain([first], batches):
             writer.write_batch(batch)
 
         writer.close()
+
+
+@dataclass
+class ArrowWriter(DatasetWriter):
+    stream: bool = False
+    suffix: str = ".arrow"
+    flatten_arrays: bool = True
+    metadata: Optional[dict] = None
+
+    def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        if self.stream:
+            writer = pa.RecordBatchStreamWriter
+        else:
+            writer = pa.RecordBatchFileWriter
+
+        write_dataset(
+            writer,
+            dataset,
+            path,
+            self.metadata,
+            flatten_arrays=self.flatten_arrays,
+        )
+
+    def write_to_folder(
+        self, dataset: Dataset, folder: Path, name: Optional[str] = None
+    ) -> None:
+        if name is None:
+            name = "data"
+
+        self.write_to_file(dataset, (folder / name).with_suffix(self.suffix))
+
+
+@dataclass
+class ParquetWriter(DatasetWriter):
+    suffix: str = ".parquet"
+    flatten_arrays: bool = True
+    metadata: Optional[dict] = None
+
+    def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        write_dataset(
+            pq.ParquetWriter,
+            dataset,
+            path,
+            self.metadata,
+            flatten_arrays=self.flatten_arrays,
+        )
+
+    def write_to_folder(
+        self, dataset: Dataset, folder: Path, name: Optional[str] = None
+    ) -> None:
+        if name is None:
+            name = "data"
+
+        self.write_to_file(dataset, (folder / name).with_suffix(self.suffix))
