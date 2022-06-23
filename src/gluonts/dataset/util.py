@@ -17,8 +17,8 @@ import pandas as pd
 from .field_names import FieldName
 
 
-def forecast_start(entry):
-    return entry[FieldName.START] + len(entry[FieldName.TARGET])
+def forecast_start(entry, time_axis: int = -1):
+    return entry[FieldName.START] + entry[FieldName.TARGET].shape[time_axis]
 
 
 def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
