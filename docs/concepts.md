@@ -53,7 +53,7 @@ In GluonTS a `Dataset` is a collection of time-series objects. Each of these
 objects has columns (or fields) which represent attributes of the
 time-series.
 
-Most odels use the `target`-column to indicate the time-series that we want to
+Most models use the `target`-column to indicate the time-series that we want to
 predict in the future:
 
 ```json
