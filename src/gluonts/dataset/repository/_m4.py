@@ -76,7 +76,7 @@ def generate_m4_dataset(
 
     train_data = [
         dict(
-            target_values=target,
+            target=target,
             start=mock_start_dataset,
             feat_static_cat=[cat],
             item_id=cat,
@@ -85,7 +85,7 @@ def generate_m4_dataset(
     ]
     test_data = [
         dict(
-            target_values=target,
+            target=target,
             start=mock_start_dataset,
             feat_static_cat=[cat],
             item_id=cat,
