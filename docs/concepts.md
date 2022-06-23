@@ -23,17 +23,17 @@ forecasts = predictor.predict(data)
 The reason to split `Estimator` and `Predictor` into two classes is that many
 models require a dedicated training step to generate a global model. This
 global model is only trained once, but is used to make predictions for all
-time-serires.
+time-series.
 
 This is in contrast to local models, which are fitted on individual time-series
 and therefore try to capture the characteristics of each time-series but not
 the dataset in its entirety.
 
-Training a global model usually takes a lot of time: often hours, but sometimes
-even days. Thus, it is not feasable to train the model "offline" (on demand).
-In contrast, a local model is usually fitted "oline" as part of the request.
+Training a global model can take a lot of time: up to hours, but sometimes
+even days. Thus, it is not feasible to train the model "offline" (on demand).
+In contrast, a local model is usually fitted "online" as part of the prediction.
 
-In GluonTS models that are local are available as predictors, whilst global
+In GluonTS, local models are directly available as predictors, whilst global
 models are offered as estimators:
 
 ```py
