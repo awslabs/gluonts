@@ -16,14 +16,13 @@ Here we reuse the datasets used by LSTNet as the processed url of the datasets
 are available on GitHub.
 """
 import json
-import os
 from pathlib import Path
 from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import metadata, to_dict
+from gluonts.dataset.repository._util import create_dataset_paths, metadata
 
 
 def load_from_pandas(
@@ -136,11 +135,7 @@ def generate_lstnet_dataset(
         prediction_length=prediction_length or ds_info.prediction_length,
     )
 
-    os.makedirs(dataset_path, exist_ok=True)
-    train_path = dataset_path / "train"
-    test_path = dataset_path / "test"
-    train_path.mkdir(exist_ok=True)
-    test_path.mkdir(exist_ok=True)
+    paths = create_dataset_paths(dataset_path, ["train", "test"])
 
     with open(dataset_path / "metadata.json", "w") as f:
         json.dump(ds_metadata, f)
@@ -174,17 +169,17 @@ def generate_lstnet_dataset(
         sliced_ts = ts[:training_end]
         if len(sliced_ts) > 0:
             train_ts.append(
-                to_dict(
+                dict(
                     target_values=sliced_ts.values,
                     start=sliced_ts.index[0],
-                    cat=[cat],
+                    feat_static_cat=[cat],
                     item_id=cat,
                 )
             )
 
     assert len(train_ts) == ds_info.num_series
 
-    dataset_writer.write_to_folder(train_ts, train_path)
+    dataset_writer.write_to_folder(train_ts, paths["train"])
 
     # time of the first prediction
     prediction_dates = [
@@ -201,14 +196,14 @@ def generate_lstnet_dataset(
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
-                to_dict(
+                dict(
                     target_values=sliced_ts.values,
                     start=sliced_ts.index[0],
-                    cat=[cat],
+                    feat_static_cat=[cat],
                     item_id=cat,
                 )
             )
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    dataset_writer.write_to_folder(test_ts, test_path)
+    dataset_writer.write_to_folder(test_ts, paths["test"])

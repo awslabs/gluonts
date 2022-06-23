@@ -19,7 +19,7 @@ from urllib import request
 
 import pandas as pd
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import metadata
+from gluonts.dataset.repository._util import create_dataset_paths, metadata
 
 
 def generate_uber_dataset(
@@ -59,11 +59,7 @@ def generate_uber_dataset(
     # during a day or an hour.
     time_series_of_locations = list(uber_df.groupby(by="locationID"))
 
-    dataset_path.mkdir(exist_ok=True)
-    train_path = dataset_path / "train"
-    test_path = dataset_path / "test"
-    train_path.mkdir(exist_ok=True)
-    test_path.mkdir(exist_ok=True)
+    paths = create_dataset_paths(dataset_path, ["train", "test"])
 
     data = []
     for locationID, df in time_series_of_locations:
@@ -81,10 +77,10 @@ def generate_uber_dataset(
         }
         data.append(format_dict)
 
-    dataset_writer.write_to_folder(data, test_path)
+    dataset_writer.write_to_folder(data, paths["test"])
     for format_dict in data:
         format_dict["target"] = format_dict["target"][:-prediction_length]
-    dataset_writer.write_to_folder(data, train_path)
+    dataset_writer.write_to_folder(data, paths["train"])
 
     # write metadata
     meta = metadata(

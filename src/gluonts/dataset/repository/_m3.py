@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import metadata, to_dict
+from gluonts.dataset.repository._util import create_dataset_paths ,metadata
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -169,21 +169,22 @@ def generate_m3_dataset(
         start = str(s).split(" ")[0]
         cat = [i, cat_map[category]]
 
-        d_train = to_dict(
+        d_train = dict(
             target_values=target[: -subset.prediction_length],
             start=start,
-            cat=cat,
+            feat_static_cat=cat,
             item_id=series,
         )
         train_data.append(d_train)
 
-        d_test = to_dict(
-            target_values=target, start=start, cat=cat, item_id=series
+        d_test = dict(
+            target_values=target, start=start, feat_static_cat=cat, item_id=series
         )
         test_data.append(d_test)
         i += 1
 
-    os.makedirs(dataset_path, exist_ok=True)
+    paths = create_dataset_paths(dataset_path, ["train", "test"])
+
     with open(dataset_path / "metadata.json", "w") as f:
         f.write(
             json.dumps(
@@ -195,13 +196,8 @@ def generate_m3_dataset(
                 )
             )
         )
-
-    train_path = dataset_path / "train"
-    test_path = dataset_path / "test"
-    train_path.mkdir(exist_ok=True)
-    test_path.mkdir(exist_ok=True)
-
-    dataset_writer.write_to_folder(train_data, train_path)
-    dataset_writer.write_to_folder(test_data, test_path)
+    
+    dataset_writer.write_to_folder(train_data, paths["train"])
+    dataset_writer.write_to_folder(test_data, paths["test"])
 
     check_dataset(dataset_path, len(df), subset.sheet_name)

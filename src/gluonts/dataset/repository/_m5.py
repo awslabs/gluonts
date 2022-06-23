@@ -20,7 +20,7 @@ import pandas as pd
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import metadata
+from gluonts.dataset.repository._util import create_dataset_paths ,metadata
 
 
 def generate_m5_dataset(
@@ -43,11 +43,7 @@ def generate_m5_dataset(
         )
 
     # Prepare directory
-    dataset_path.mkdir(exist_ok=True)
-    train_path = dataset_path / "train"
-    test_path = dataset_path / "test"
-    train_path.mkdir(exist_ok=True)
-    test_path.mkdir(exist_ok=True)
+    paths = create_dataset_paths(dataset_path, ["train", "test"])
 
     # Read M5 data from dataset_path
     calendar = pd.read_csv(cal_path)
@@ -157,7 +153,7 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    dataset_writer.write_to_folder(train_ds, train_path)
+    dataset_writer.write_to_folder(train_ds, paths["train"])
 
     # Build testing set
     test_ds = [
@@ -176,4 +172,4 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    dataset_writer.write_to_folder(test_ds, test_path)
+    dataset_writer.write_to_folder(test_ds, paths["test"])

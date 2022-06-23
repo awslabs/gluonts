@@ -25,7 +25,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.gluonts_tqdm import tqdm
 
 from ._tsf_reader import TSFReader, frequency_converter
-from ._util import metadata, request_retrieve_hook, to_dict
+from ._util import create_dataset_paths, metadata, request_retrieve_hook
 
 
 class Dataset(NamedTuple):
@@ -176,7 +176,7 @@ def save_datasets(
         #   timestamps
         # - `item_id` is added for all datasets ... many datasets provide
         #   the "series_name"
-        dic = to_dict(
+        dic = dict(
             target_values=data_entry["target"],
             start=str(
                 data_entry.get("start_timestamp", default_start_timestamp)
@@ -185,15 +185,12 @@ def save_datasets(
         )
         data.append(dic)
 
-    train = path / "train"
-    test = path / "test"
-    train.mkdir(exist_ok=True)
-    test.mkdir(exist_ok=True)
+    paths = create_dataset_paths(path, ["train", "test"])
 
-    dataset_writer.write_to_folder(data, test)
+    dataset_writer.write_to_folder(data, paths["test"])
     for format_dict in data:
         format_dict["target"] = format_dict["target"][:-train_offset]
-    dataset_writer.write_to_folder(data, train)
+    dataset_writer.write_to_folder(data, paths["test"])
 
 
 def generate_forecasting_dataset(

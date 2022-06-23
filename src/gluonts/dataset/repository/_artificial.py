@@ -13,12 +13,12 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ArtificialDataset
-from gluonts.dataset.artificial.generate_synthetic import generate_sf2
-from gluonts.dataset.common import serialize_data_entry
+from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.repository._util import create_dataset_paths
 
 
 def generate_artificial_dataset(
@@ -27,12 +27,7 @@ def generate_artificial_dataset(
     dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ) -> None:
-    dataset_path_train = dataset_path / "train"
-    dataset_path_test = dataset_path / "test"
-
-    dataset_path.mkdir(exist_ok=True)
-    dataset_path_train.mkdir(exist_ok=False)
-    dataset_path_test.mkdir(exist_ok=False)
+    paths = create_dataset_paths(dataset_path, ["train", "test"])
 
     ds = dataset.generate()
     assert ds.test is not None
@@ -43,17 +38,51 @@ def generate_artificial_dataset(
         json.dump(ds.metadata.dict(), fp, indent=2, sort_keys=True)
 
     generate_sf2(
-        path=dataset_path_train,
-        time_series=list(map(serialize_data_entry, ds.train)),
+        path=paths["train"],
+        time_series=list(ds.train),
         ds_writer=dataset_writer,
         is_missing=False,
         num_missing=0,
     )
 
     generate_sf2(
-        path=dataset_path_test,
-        time_series=list(map(serialize_data_entry, ds.test)),
+        path=paths["test"],
+        time_series=list(ds.test),
         ds_writer=dataset_writer,
         is_missing=False,
         num_missing=0,
     )
+
+def generate_sf2(
+    path: Path,
+    time_series: List,
+    ds_writer: DatasetWriter,
+    is_missing: bool,
+    num_missing: int,
+) -> None:
+    data = []
+    for ts in time_series:
+        if is_missing:
+            target = []  # type: List
+            # For Forecast don't output feat_static_cat and
+            # feat_static_real
+            for j, val in enumerate(ts[FieldName.TARGET]):
+                # only add ones that are not missing
+                if j != 0 and j % num_missing == 0:
+                    target.append(None)
+                else:
+                    target.append(val)
+            ts[FieldName.TARGET] = target
+        ts.pop(FieldName.FEAT_STATIC_CAT, None)
+        ts.pop(FieldName.FEAT_STATIC_REAL, None)
+        # Chop features in training set
+        if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in str(path):
+            # TODO: Fix for missing values
+            for i, feat_dynamic_real in enumerate(
+                ts[FieldName.FEAT_DYNAMIC_REAL]
+            ):
+                ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
+                    : len(ts[FieldName.TARGET])
+                ]
+        data.append(ts)
+    ds_writer.write_to_folder(data, path)
