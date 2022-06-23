@@ -32,6 +32,7 @@ See :doc:`community/devsetup` for setup instructions in case you want to develop
    :hidden:
 
    install
+   concepts
 
 .. toctree::
    :name: Tutorials
