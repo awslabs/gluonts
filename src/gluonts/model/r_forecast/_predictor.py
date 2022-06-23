@@ -59,8 +59,10 @@ class RBasePredictor(RepresentablePredictor):
 
         pip install 'rpy2>=2.9.*,<3.*'
 
-    Note that specific R packages need to be installed, depending on which wrapper one needs to run.
-    See `RForecastPredictor` and `RHierarchicalForecastPredictor` to know which packages are needed.
+    Note that specific R packages need to be installed, depending
+    on which wrapper one needs to run.
+    See `RForecastPredictor` and `RHierarchicalForecastPredictor` to know
+    which packages are needed.
 
     Parameters
     ----------
@@ -76,9 +78,11 @@ class RBasePredictor(RepresentablePredictor):
         Maximum history length to feed to the model (some models become slow
         with very long series).
     r_file_prefix
-        Prefix string of the R file(s) where our forecasting wrapper methods can be found.
-        This is to avoid loading all R files potentially having different implementations of the same method, thereby
-        making sure the expected R method is in fact used.
+        Prefix string of the R file(s) where our forecasting wrapper methods
+        can be found.
+        This is to avoid loading all R files potentially having different
+        implementations of the same method, thereby making sure the
+        expected R method is in fact used.
     """
 
     @validated()
@@ -203,8 +207,8 @@ class RBasePredictor(RepresentablePredictor):
 
     def _preprocess_data(self, data: Dict) -> Dict:
         """
-        Preprocessing of target time series, e.g., truncating length or slicing bottom time series in case of
-        hierarchical forecasting etc.
+        Preprocessing of target time series, e.g., truncating length or
+        slicing bottom time series in case of hierarchical forecasting etc.
 
         Parameters
         ----------
@@ -222,7 +226,8 @@ class RBasePredictor(RepresentablePredictor):
         self, params: Dict, num_samples: int, intervals: Optional[List] = None,
     ) -> Dict:
         """
-        Override default parameters depending on method type and with parameters given at predict time.
+        Override default parameters depending on method type and with
+        parameters given at predict time.
 
         Parameters
         ----------
@@ -242,7 +247,8 @@ class RBasePredictor(RepresentablePredictor):
 
     def _warning_message(self) -> None:
         """
-        Prints warning messages (once per whole dataset), e.g., if default parameters are overridden.
+        Prints warning messages (once per whole dataset), e.g., if default
+        parameters are overridden.
 
         Returns
         -------

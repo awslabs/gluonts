@@ -41,7 +41,7 @@ class RForecastPredictor(RBasePredictor):
     In order to use it you need to install R and run::
 
         pip install 'rpy2>=2.9.*,<3.*'
-        R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+        R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")' # noqa
 
     Parameters
     ----------
@@ -83,9 +83,10 @@ class RForecastPredictor(RBasePredictor):
             trunc_length=trunc_length,
             r_file_prefix=R_FILE_PREFIX,
         )
-        assert (
-            method_name in SUPPORTED_UNIVARIATE_METHODS
-        ), f"method {method_name} is not supported please use one of {SUPPORTED_UNIVARIATE_METHODS}"
+        assert method_name in SUPPORTED_UNIVARIATE_METHODS, (
+            f"method {method_name} is not supported please "
+            f"use one of {SUPPORTED_UNIVARIATE_METHODS}"
+        )
 
         self.method_name = method_name
         self._r_method = self._robjects.r[method_name]
@@ -118,7 +119,8 @@ class RForecastPredictor(RBasePredictor):
                     raise ValueError
                 return level / 100
 
-            # Post-processing quantiles on then Python side for the convenience of asserting and debugging.
+            # Post-processing quantiles on then Python side for the
+            # convenience of asserting and debugging.
             upper_quantiles = [
                 str(from_interval_to_level(interval, side="upper"))
                 for interval in params["intervals"]
@@ -129,7 +131,8 @@ class RForecastPredictor(RBasePredictor):
                 for interval in params["intervals"]
             ]
 
-            # Median forecasts would be available at two places: Lower 0 and Higher 0 (0-prediction interval)
+            # Median forecasts would be available at two places:
+            # Lower 0 and Higher 0 (0-prediction interval)
             forecast_dict["quantiles"] = dict(
                 zip(
                     lower_quantiles + upper_quantiles[1:],
@@ -138,7 +141,8 @@ class RForecastPredictor(RBasePredictor):
                 )
             )
 
-            # `QuantileForecast` allows "mean" as the key; we store them as well since they can differ from median.
+            # `QuantileForecast` allows "mean" as the key;
+            # we store them as well since they can differ from median.
             forecast_dict["quantiles"].update(
                 {"mean": forecast_dict.pop("mean")}
             )
@@ -202,7 +206,9 @@ class RForecastPredictor(RBasePredictor):
             )
         else:
             if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
-                # Handling special cases outside of R is better, since it is more visible and is easier to change.
+                # Handling special cases outside of R is better,
+                # since it is more visible and is easier to change.
+
                 # Repeat mean forecasts `num_samples` times.
                 samples = np.reshape(
                     forecast_dict["mean"] * num_samples,

@@ -57,7 +57,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     prediction_length
         Number of time points to be predicted.
     is_hts
-        Is the time series a hierarchical one as opposed to a grouped time series.
+        Is the time series a hierarchical one as opposed to a grouped time series. # noqa
     target_dim
         The dimension (size) of the multivariate target time series.
     num_bottom_ts
@@ -111,9 +111,10 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             r_file_prefix=R_FILE_PREFIX,
         )
 
-        assert (
-            method_name in SUPPORTED_HIERARCHICAL_METHODS
-        ), f"method {method_name} is not supported please use one of {SUPPORTED_HIERARCHICAL_METHODS}"
+        assert method_name in SUPPORTED_HIERARCHICAL_METHODS, (
+            f"method {method_name} is not supported please "
+            f"use one of {SUPPORTED_HIERARCHICAL_METHODS}"
+        )
 
         self.method_name = method_name
 
@@ -138,7 +139,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
         r_params = self._robjects.vectors.ListVector(params)
 
-        # R methods take only bottom level time series and the hierarchical (or grouping) structure in the form of
+        # R methods take only bottom level time series and the
+        # hierarchical (or grouping) structure in the form of
         # `nodes` (or `groups`).
         # First create these `nodes` (or `groups`) as R objects.
         if self.is_hts:
