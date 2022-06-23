@@ -29,12 +29,14 @@ This is in contrast to local models, which are fitted on individual time-series
 and therefore try to capture the characteristics of each time-series but not
 the dataset in its entirety.
 
-Training a global model can take a lot of time: up to hours, but sometimes
-even days. Thus, it is not feasible to train the model "offline" (on demand).
-In contrast, a local model is usually fitted "online" as part of the prediction.
+Training a global model can take a lot of time: up to hours, but sometimes even
+days. Thus, it is not feasible to train the model as part of the prediction
+request and it happens as a seperate "offline" step. In contrast, fitting a
+local model is usually much faster and is done "online" as part of the
+prediction.
 
 In GluonTS, local models are directly available as predictors, whilst global
-models are offered as estimators:
+models are offered as estimators, which need to be trained first:
 
 ```py
 # global DeepAR model
@@ -51,7 +53,8 @@ In GluonTS a `Dataset` is a collection of time-series objects. Each of these
 objects has columns (or fields) which represent attributes of the
 time-series.
 
-In most models the `target`-field is the column that we want to predict:
+Most odels use the `target`-column to indicate the time-series that we want to
+predict in the future:
 
 ```json
 {"target": [1, 2, 3, 4, 5, 6]}
