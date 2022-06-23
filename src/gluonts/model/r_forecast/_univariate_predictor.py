@@ -198,7 +198,6 @@ class RForecastPredictor(RBasePredictor):
                 ),
                 forecast_keys=list(quantile_forecasts_dict.keys()),
                 start_date=forecast_start_date,
-                # freq=self.freq,
                 item_id=item_id,
             )
         else:
