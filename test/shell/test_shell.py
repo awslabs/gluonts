@@ -20,13 +20,13 @@ import numpy as np
 import pytest
 
 from gluonts.core.component import equals
+from gluonts.dataset.json import encode_json
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
     from gluonts.shell.serve import Settings
-    from gluonts.shell.serve.util import jsonify_floats
     from gluonts.testutil import shell as testutil
 except ImportError:
     if sys.platform != "win32":
@@ -272,5 +272,4 @@ def test_as_json_dict_outputs_valid_json():
     with pytest.raises(ValueError):
         json.dumps(non_compliant_json, allow_nan=False)
 
-    output_json = jsonify_floats(non_compliant_json)
-    json.dumps(output_json, allow_nan=False)
+    json.dumps(encode_json(non_compliant_json), allow_nan=False)

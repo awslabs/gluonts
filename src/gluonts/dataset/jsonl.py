@@ -17,6 +17,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+import pandas as pd
+from toolz import valmap
+
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
 
@@ -30,6 +34,43 @@ def load(file_obj):
 def dump(objects, file_obj):
     for object_ in objects:
         json.dump(object_, file_obj, nl=True)
+
+
+@functools.singledispatch
+def encode_json(arg):
+    if isinstance(arg, (str, int)):
+        return arg
+
+    if isinstance(arg, float):
+        if np.isnan(arg):
+            return "NaN"
+        elif np.isposinf(arg):
+            return "Infinity"
+        elif np.isneginf(arg):
+            return "-Infinity"
+        return arg
+
+    raise ValueError(f"Can't encode {arg!r}")
+
+
+@encode_json.register(dict)
+def _encode_json_dict(arg: dict):
+    return valmap(encode_json, arg)
+
+
+@encode_json.register(list)
+def _encode_json_list(arg: list):
+    return list(map(encode_json, arg))
+
+
+@encode_json.register(np.ndarray)
+def _encode_json_list(arg: np.ndarray):
+    return _encode_json_list(arg.tolist())
+
+
+@encode_json.register(pd.Period)
+def _encode_json_period(arg: pd.Period):
+    return str(arg)
 
 
 @dataclass
@@ -87,13 +128,11 @@ class JsonLinesWriter(DatasetWriter):
     suffix: str = ".json"
 
     def write_to_file(self, dataset: Dataset, path: Path) -> None:
-        from .common import serialize_data_entry
-
         open_ = gzip.open if self.use_gzip else open
 
         with open_(path, "wb") as out_file:  # type: ignore
             for entry in dataset:
-                json.bdump(serialize_data_entry(entry), out_file, nl=True)
+                json.bdump(encode_json(entry), out_file, nl=True)
 
     def write_to_folder(
         self, dataset: Dataset, folder: Path, name: Optional[str] = None
