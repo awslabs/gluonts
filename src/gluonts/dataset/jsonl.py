@@ -64,7 +64,7 @@ def _encode_json_list(arg: list):
 
 
 @encode_json.register(np.ndarray)
-def _encode_json_list(arg: np.ndarray):
+def _encode_json_array(arg: np.ndarray):
     return _encode_json_list(arg.tolist())
 
 
