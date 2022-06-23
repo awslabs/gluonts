@@ -16,13 +16,13 @@ from typing import List, Union
 
 
 def create_dataset_paths(base_path: Path, channel_names: List[str]):
-    base_path.mkdir(exists_ok=True)
+    base_path.mkdir(exist_ok=True)
 
     channels = {}
 
     for channel_name in channel_names:
         channel = base_path / channel_name
-        channel.mkdir(exists_ok=True)
+        channel.mkdir(exist_ok=True)
 
         channels[channel_name] = channel
 

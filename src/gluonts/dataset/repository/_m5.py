@@ -20,7 +20,7 @@ import pandas as pd
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import create_dataset_paths ,metadata
+from gluonts.dataset.repository._util import create_dataset_paths, metadata
 
 
 def generate_m5_dataset(

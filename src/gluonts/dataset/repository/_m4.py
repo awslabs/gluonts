@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths ,metadata
+from gluonts.dataset.repository._util import create_dataset_paths, metadata
 
 
 def generate_m4_dataset(

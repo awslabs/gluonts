@@ -160,7 +160,9 @@ def save_dataset(
             start=data_entry[FieldName.START],
             # Handles adding categorical features of rolling
             # evaluation dates
-            feat_static_cat=[cat - ds_info.num_series * (cat // ds_info.num_series)],
+            feat_static_cat=[
+                cat - ds_info.num_series * (cat // ds_info.num_series)
+            ],
             item_id=cat,
         )
         for cat, data_entry in enumerate(dataset)

@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths ,metadata
+from gluonts.dataset.repository._util import create_dataset_paths, metadata
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -178,7 +178,10 @@ def generate_m3_dataset(
         train_data.append(d_train)
 
         d_test = dict(
-            target_values=target, start=start, feat_static_cat=cat, item_id=series
+            target_values=target,
+            start=start,
+            feat_static_cat=cat,
+            item_id=series,
         )
         test_data.append(d_test)
         i += 1
@@ -196,7 +199,7 @@ def generate_m3_dataset(
                 )
             )
         )
-    
+
     dataset_writer.write_to_folder(train_data, paths["train"])
     dataset_writer.write_to_folder(test_data, paths["test"])
 

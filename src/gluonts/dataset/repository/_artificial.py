@@ -53,6 +53,7 @@ def generate_artificial_dataset(
         num_missing=0,
     )
 
+
 def generate_sf2(
     path: Path,
     time_series: List,
