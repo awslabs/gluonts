@@ -22,17 +22,59 @@ from gluonts.mx.trainer import Trainer
     "likelihood_weight, CRPS_weight, sample_LH, coherent_train_samples, coherent_pred_samples, warmstart_epoch_frac",
     [
         # Hier-E2E
-        (0.0, 1.0, False, True, True, 0.0,),
+        (
+            0.0,
+            1.0,
+            False,
+            True,
+            True,
+            0.0,
+        ),
         # Hier-E2E with warm-start
-        (0.0, 1.0, False, True, True, 0.3,),
+        (
+            0.0,
+            1.0,
+            False,
+            True,
+            True,
+            0.3,
+        ),
         # Hier-E2E with sample-likelihood loss
-        (0.0, 1.0, True, True, True, 0.0,),
+        (
+            0.0,
+            1.0,
+            True,
+            True,
+            True,
+            0.0,
+        ),
         # Hier-E2E with warmstart and sample-likelihood loss
-        (0.0, 1.0, True, True, True, 0.3,),
+        (
+            0.0,
+            1.0,
+            True,
+            True,
+            True,
+            0.3,
+        ),
         # DeepVAR+ (diagonal covariance)
-        (1.0, 0.0, False, False, True, 0.0,),
+        (
+            1.0,
+            0.0,
+            False,
+            False,
+            True,
+            0.0,
+        ),
         # DeepVAR (diagonal covariance)
-        (1.0, 0.0, False, False, False, 0.0,),
+        (
+            1.0,
+            0.0,
+            False,
+            False,
+            False,
+            0.0,
+        ),
     ],
 )
 def test_deepvar_hierarchical(
@@ -58,7 +100,11 @@ def test_deepvar_hierarchical(
         coherent_train_samples=coherent_train_samples,
         coherent_pred_samples=coherent_pred_samples,
         warmstart_epoch_frac=warmstart_epoch_frac,
-        trainer=Trainer(epochs=10, num_batches_per_epoch=1, hybridize=False,),
+        trainer=Trainer(
+            epochs=10,
+            num_batches_per_epoch=1,
+            hybridize=False,
+        ),
         num_samples_for_loss=10,
     )
 

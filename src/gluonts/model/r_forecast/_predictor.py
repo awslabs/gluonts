@@ -223,7 +223,10 @@ class RBasePredictor(RepresentablePredictor):
         raise NotImplementedError()
 
     def _override_params(
-        self, params: Dict, num_samples: int, intervals: Optional[List] = None,
+        self,
+        params: Dict,
+        num_samples: int,
+        intervals: Optional[List] = None,
     ) -> Dict:
         """
         Override default parameters depending on method type and with
