@@ -35,7 +35,7 @@ jobs:
         make docs
 
     - name: Configure AWS Credentials
-      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.') }}
+      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
       uses: aws-actions/configure-aws-credentials@v1
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
