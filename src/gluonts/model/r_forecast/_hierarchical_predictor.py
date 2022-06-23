@@ -239,7 +239,6 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         return SampleForecast(
             samples,
             start_date=forecast_start_date,
-            freq=self.freq,
             info=info,
             item_id=item_id,
         )
