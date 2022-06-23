@@ -35,7 +35,7 @@ jobs:
         make docs
 
     - name: Configure AWS Credentials
-      if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.') }}
       uses: aws-actions/configure-aws-credentials@v1
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
@@ -46,3 +46,5 @@ jobs:
       if: ${{ github.event_name == 'push' }}
       run: |
         aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
+        aws s3 sync docs/_build/html s3://gluonts-website/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
+        aws cloudfront create-invalidation --distribution-id E2UK9K0BMN4MF1 --paths "/${GITHUB_REF#refs/heads/}/*"
