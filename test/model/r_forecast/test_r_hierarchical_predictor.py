@@ -30,22 +30,16 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
     skip_message = "Skipping test because `R` and `rpy2` are not installed!"
     pytest.skip(msg=skip_message, allow_module_level=True)
 
-from test.model.deepvar_hierarchical.generate_hierarchical_dataset import sine7
 
-seq_length = 100
-prediction_length = 5
-train_datasets = sine7(
-    seq_length=seq_length, prediction_length=prediction_length
-)
-
-
-TOLERANCE = 1.0
+TOLERANCE = 2.0
 SUPPORTED_BASE_FORECAST_METHODS = ["ets", "arima"]
 
 
 @pytest.mark.parametrize("method_name", SUPPORTED_HIERARCHICAL_METHODS)
 @pytest.mark.parametrize("fmethod", SUPPORTED_BASE_FORECAST_METHODS)
-def test_forecasts(method_name, fmethod):
+def test_forecasts(sine7, method_name, fmethod):
+    train_datasets = sine7
+    prediction_length = 10
 
     (train_dataset, test_dataset, metadata) = (
         train_datasets.train,
@@ -95,6 +89,7 @@ def test_forecasts(method_name, fmethod):
             quantiles=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
         ),
     )
+
     assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
     assert agg_metrics["NRMSE"] < TOLERANCE
     assert agg_metrics["RMSE"] < TOLERANCE
