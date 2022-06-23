@@ -90,9 +90,7 @@ def test_forecasts(method_name):
 
     evaluator = Evaluator()
     agg_metrics, item_metrics = backtest_metrics(
-        test_dataset=test_dataset,
-        predictor=predictor,
-        evaluator=evaluator,
+        test_dataset=test_dataset, predictor=predictor, evaluator=evaluator,
     )
     assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
     assert agg_metrics["NRMSE"] < TOLERANCE
