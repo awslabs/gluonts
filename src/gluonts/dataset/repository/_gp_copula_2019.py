@@ -142,21 +142,19 @@ def download_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
 
 
 def get_data(dataset_path: Path, ds_info: GPCopulaDataset):
-    dataset = list(FileDataset(dataset_path, freq=ds_info.freq))
-    data = [
-        dict(
-            target_values=data_entry[FieldName.TARGET],
-            start=data_entry[FieldName.START],
+    return [
+        {
+            "target": data_entry[FieldName.TARGET],
+            "start": data_entry[FieldName.START],
             # Handles adding categorical features of rolling
             # evaluation dates
-            feat_static_cat=[
-                cat - ds_info.num_series * (cat // ds_info.num_series)
-            ],
-            item_id=cat,
+            "feat_static_cat": [cat % ds_info.num_series],
+            "item_id": cat,
+        }
+        for cat, data_entry in enumerate(
+            FileDataset(dataset_path, freq=ds_info.freq)
         )
-        for cat, data_entry in enumerate(dataset)
     ]
-    return data
 
 
 def clean_up_dataset(dataset_path: Path, ds_info: GPCopulaDataset):

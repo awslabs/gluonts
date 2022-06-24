@@ -161,23 +161,26 @@ def convert_data(
         #   timestamps
         # - `item_id` is added for all datasets ... many datasets provide
         #   the "series_name"
-        test_dic = dict(
-            target_values=data_entry["target"],
-            start=str(
-                data_entry.get("start_timestamp", default_start_timestamp)
-            ),
-            item_id=data_entry.get("series_name", i),
+        test_data.append(
+            {
+                "target": data_entry["target"],
+                "start": str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                "item_id": data_entry.get("series_name", i),
+            }
         )
-        test_data.append(test_dic)
 
-        train_dic = dict(
-            target_values=data_entry["target"][:-train_offset],
-            start=str(
-                data_entry.get("start_timestamp", default_start_timestamp)
-            ),
-            item_id=data_entry.get("series_name", i),
+        train_data.append(
+            {
+                "target": data_entry["target"][:-train_offset],
+                "start": str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                "item_id": data_entry.get("series_name", i),
+            }
         )
-        train_data.append(train_dic)
+
     return train_data, test_data
 
 

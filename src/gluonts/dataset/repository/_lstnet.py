@@ -159,12 +159,12 @@ def generate_lstnet_dataset(
         sliced_ts = ts[:training_end]
         if len(sliced_ts) > 0:
             train_ts.append(
-                dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    feat_static_cat=[cat],
-                    item_id=cat,
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(train_ts) == ds_info.num_series
@@ -184,12 +184,12 @@ def generate_lstnet_dataset(
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
-                dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    feat_static_cat=[cat],
-                    item_id=cat,
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
