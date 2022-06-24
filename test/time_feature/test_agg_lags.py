@@ -74,7 +74,7 @@ valid_lags_rolling = {
 def test_agg_lags(pred_length):
     # create dummy dataset
     target = np.array([1, 1, 1, 2, 2, 3, 3, 4, 5, 6])
-    start = pd.Timestamp("01-01-2019 01:00:00", freq="1H")
+    start = pd.Period("01-01-2019 01:00:00", freq="1H")
     freq = "1H"
     ds = ListDataset(
         [{FieldName.TARGET: target, FieldName.START: start}], freq=freq
