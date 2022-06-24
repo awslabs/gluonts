@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 import tempfile
 import zipfile
 from pathlib import Path
@@ -19,7 +18,8 @@ from urllib import request
 
 import pandas as pd
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths, metadata
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 
 
 def generate_uber_dataset(
@@ -59,9 +59,8 @@ def generate_uber_dataset(
     # during a day or an hour.
     time_series_of_locations = list(uber_df.groupby(by="locationID"))
 
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
-
-    data = []
+    train_data = []
+    test_data = []
     for locationID, df in time_series_of_locations:
         df.sort_index()
         df.index = pd.to_datetime(df.index)
@@ -70,23 +69,28 @@ def generate_uber_dataset(
         start_time = pd.Timestamp(df.index[0]).strftime("%Y-%m-%d %X")
         target = count_series.values.tolist()
         feat_static_cat = [locationID]
-        format_dict = {
+
+        test_format_dict = {
             "start": start_time,
             "target": target,
             "feat_static_cat": feat_static_cat,
         }
-        data.append(format_dict)
+        test_data.append(test_format_dict)
 
-    dataset_writer.write_to_folder(data, paths["test"])
-    for format_dict in data:
-        format_dict["target"] = format_dict["target"][:-prediction_length]
-    dataset_writer.write_to_folder(data, paths["train"])
+        train_format_dict = {
+            "start": start_time,
+            "target": target[:-prediction_length],
+            "feat_static_cat": feat_static_cat,
+        }
+        train_data.append(train_format_dict)
 
-    # write metadata
-    meta = metadata(
-        cardinality=len(time_series_of_locations),
-        freq=freq_setting[1],
-        prediction_length=prediction_length,
+    meta = MetaData(
+        **metadata(
+            cardinality=len(time_series_of_locations),
+            freq=freq_setting[1],
+            prediction_length=prediction_length,
+        )
     )
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(json.dumps(meta))
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)

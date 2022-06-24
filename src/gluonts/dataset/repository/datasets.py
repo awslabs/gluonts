@@ -343,7 +343,7 @@ def get_dataset(
     )
 
     return load_datasets(
-        metadata=dataset_path,
+        metadata=dataset_path / "metadata",
         train=dataset_path / "train",
         test=dataset_path / "test",
     )

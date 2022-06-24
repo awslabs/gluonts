@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 import os
 import re
 import warnings
@@ -22,7 +21,8 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths, metadata
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -186,21 +186,15 @@ def generate_m3_dataset(
         test_data.append(d_test)
         i += 1
 
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=[len(train_data), len(categories)],
-                    freq=subset.freq,
-                    prediction_length=prediction_length
-                    or subset.prediction_length,
-                )
-            )
+    meta = MetaData(
+        **metadata(
+            cardinality=[len(train_data), len(categories)],
+            freq=subset.freq,
+            prediction_length=prediction_length or subset.prediction_length,
         )
+    )
 
-    dataset_writer.write_to_folder(train_data, paths["train"])
-    dataset_writer.write_to_folder(test_data, paths["test"])
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
 
     check_dataset(dataset_path, len(df), subset.sheet_name)

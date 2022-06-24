@@ -11,15 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 from pathlib import Path
 from this import d
 from typing import List, Optional
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ArtificialDataset
+from gluonts.dataset.common import TrainDatasets
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import create_dataset_paths
 from gluonts.dataset.jsonl import encode_json
 
 
@@ -29,40 +28,37 @@ def generate_artificial_dataset(
     dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ) -> None:
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
-
     ds = dataset.generate()
     assert ds.test is not None
     if prediction_length is not None:
         ds.metadata.prediction_length = prediction_length
 
-    with (dataset_path / "metadata.json").open("w") as fp:
-        json.dump(ds.metadata.dict(), fp, indent=2, sort_keys=True)
-
-    generate_sf2(
-        path=paths["train"],
+    train_data = generate_sf2(
+        train=True,
         time_series=list(map(encode_json, ds.train)),
         is_missing=False,
-        dataset_writer=dataset_writer,
         num_missing=0,
     )
 
-    generate_sf2(
-        path=paths["test"],
+    test_data = generate_sf2(
+        train=False,
         time_series=list(map(encode_json, ds.test)),
         is_missing=False,
-        dataset_writer=dataset_writer,
         num_missing=0,
     )
+
+    dataset = TrainDatasets(
+        metadata=ds.metadata, train=train_data, test=test_data
+    )
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
 
 
 def generate_sf2(
-    path: Path,
+    train: bool,
     time_series: List,
-    dataset_writer: DatasetWriter,
     is_missing: bool,
     num_missing: int,
-) -> None:
+) -> List:
     data = []
     for ts in time_series:
         if is_missing:
@@ -79,7 +75,7 @@ def generate_sf2(
         ts.pop(FieldName.FEAT_STATIC_CAT, None)
         ts.pop(FieldName.FEAT_STATIC_REAL, None)
         # Chop features in training set
-        if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and "train" in str(path):
+        if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and train:
             # TODO: Fix for missing values
             for i, feat_dynamic_real in enumerate(
                 ts[FieldName.FEAT_DYNAMIC_REAL]
@@ -88,4 +84,4 @@ def generate_sf2(
                     : len(ts[FieldName.TARGET])
                 ]
         data.append(ts)
-    dataset_writer.write_to_folder(data, path)
+    return data

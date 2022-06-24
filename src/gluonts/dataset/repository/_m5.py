@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 import os
 from pathlib import Path
 
@@ -19,8 +18,9 @@ import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import create_dataset_paths, metadata
+from gluonts.dataset.repository._util import metadata
 
 
 def generate_m5_dataset(
@@ -41,9 +41,6 @@ def generate_m5_dataset(
             " being able to download the data. After you have done that,"
             f" please supply the files at {m5_file_path}."
         )
-
-    # Prepare directory
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
 
     # Read M5 data from dataset_path
     calendar = pd.read_csv(cal_path)
@@ -123,19 +120,6 @@ def generate_m5_dataset(
     train_target_values = [ts[:-prediction_length] for ts in train_df.values]
     dates = ["2011-01-29 00:00:00" for _ in range(len(sales_train_validation))]
 
-    # Create metadata file
-    meta_file = dataset_path / "metadata.json"
-    with open(meta_file, "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=cardinalities,
-                    freq=pandas_freq,
-                    prediction_length=prediction_length,
-                )
-            )
-        )
-
     # Build training set
     train_ds = [
         {
@@ -153,7 +137,6 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    dataset_writer.write_to_folder(train_ds, paths["train"])
 
     # Build testing set
     test_ds = [
@@ -172,4 +155,14 @@ def generate_m5_dataset(
             train_ids,
         )
     ]
-    dataset_writer.write_to_folder(test_ds, paths["test"])
+
+    meta = MetaData(
+        **metadata(
+            cardinality=cardinalities,
+            freq=pandas_freq,
+            prediction_length=prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)

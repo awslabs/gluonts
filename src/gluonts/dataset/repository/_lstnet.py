@@ -22,7 +22,8 @@ from typing import List, NamedTuple, Optional, cast
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths, metadata
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 
 
 def load_from_pandas(
@@ -129,17 +130,6 @@ def generate_lstnet_dataset(
 ):
     ds_info = datasets_info[dataset_name]
 
-    ds_metadata = metadata(
-        cardinality=ds_info.num_series,
-        freq=ds_info.freq if ds_info.agg_freq is None else ds_info.agg_freq,
-        prediction_length=prediction_length or ds_info.prediction_length,
-    )
-
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        json.dump(ds_metadata, f)
-
     time_index = pd.period_range(
         start=ds_info.start_date,
         freq=ds_info.freq,
@@ -179,8 +169,6 @@ def generate_lstnet_dataset(
 
     assert len(train_ts) == ds_info.num_series
 
-    dataset_writer.write_to_folder(train_ts, paths["train"])
-
     # time of the first prediction
     prediction_dates = [
         training_end + i * ds_info.prediction_length
@@ -206,4 +194,15 @@ def generate_lstnet_dataset(
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    dataset_writer.write_to_folder(test_ts, paths["test"])
+    meta = MetaData(
+        **metadata(
+            cardinality=ds_info.num_series,
+            freq=ds_info.freq
+            if ds_info.agg_freq is None
+            else ds_info.agg_freq,
+            prediction_length=prediction_length or ds_info.prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_ts, test=test_ts)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)

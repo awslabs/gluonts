@@ -21,11 +21,12 @@ from pandas.tseries.frequencies import to_offset
 
 from gluonts import json
 from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
 from gluonts.gluonts_tqdm import tqdm
 
 from ._tsf_reader import TSFReader, frequency_converter
-from ._util import create_dataset_paths, metadata, request_retrieve_hook
+from ._util import metadata, request_retrieve_hook
 
 
 class Dataset(NamedTuple):
@@ -145,28 +146,13 @@ datasets = {
 }
 
 
-def save_metadata(
-    dataset_path: Path, cardinality: int, freq: str, prediction_length: int
-):
-    with open(dataset_path / "metadata.json", "w") as file:
-        json.dump(
-            metadata(
-                cardinality=cardinality,
-                freq=freq,
-                prediction_length=prediction_length,
-            ),
-            file,
-        )
-
-
-def save_datasets(
-    path: Path,
+def convert_data(
     data: List[Dict],
     train_offset: int,
-    dataset_writer: DatasetWriter,
     default_start_timestamp: Optional[str] = None,
 ):
-    data = []
+    train_data = []
+    test_data = []
     for i, data_entry in tqdm(
         enumerate(data), total=len(data), desc="creating json files"
     ):
@@ -176,21 +162,24 @@ def save_datasets(
         #   timestamps
         # - `item_id` is added for all datasets ... many datasets provide
         #   the "series_name"
-        dic = dict(
+        test_dic = dict(
             target_values=data_entry["target"],
             start=str(
                 data_entry.get("start_timestamp", default_start_timestamp)
             ),
             item_id=data_entry.get("series_name", i),
         )
-        data.append(dic)
+        test_data.append(test_dic)
 
-    paths = create_dataset_paths(path, ["train", "test"])
-
-    dataset_writer.write_to_folder(data, paths["test"])
-    for format_dict in data:
-        format_dict["target"] = format_dict["target"][:-train_offset]
-    dataset_writer.write_to_folder(data, paths["test"])
+        train_dic = dict(
+            target_values=data_entry["target"][:-train_offset],
+            start=str(
+                data_entry.get("start_timestamp", default_start_timestamp)
+            ),
+            item_id=data_entry.get("series_name", i),
+        )
+        train_data.append(train_dic)
+    return train_data, test_data
 
 
 def generate_forecasting_dataset(
@@ -219,8 +208,6 @@ def generate_forecasting_dataset(
         else:
             prediction_length = default_prediction_length_from_frequency(freq)
 
-    save_metadata(dataset_path, len(data), freq, prediction_length)
-
     # Impute missing start dates with unix epoch and remove time series whose
     # length is less than or equal to the prediction length
     data = [
@@ -228,7 +215,18 @@ def generate_forecasting_dataset(
         for d in data
         if len(d[FieldName.TARGET]) > prediction_length
     ]
-    save_datasets(dataset_path, data, prediction_length, dataset_writer)
+    train_data, test_data = convert_data(data, prediction_length)
+
+    meta = MetaData(
+        **metadata(
+            cardinality=len(data),
+            freq=freq,
+            prediction_length=prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
 
 
 def default_prediction_length_from_frequency(freq: str) -> int:

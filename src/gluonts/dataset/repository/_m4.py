@@ -11,14 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from gluonts.dataset import DatasetWriter
-from gluonts.dataset.repository._util import create_dataset_paths, metadata
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 
 
 def generate_m4_dataset(
@@ -37,19 +37,6 @@ def generate_m4_dataset(
     test_df = pd.read_csv(
         f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
     )
-
-    paths = create_dataset_paths(dataset_path, ["train", "test"])
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=len(train_df),
-                    freq=pandas_freq,
-                    prediction_length=prediction_length,
-                )
-            )
-        )
 
     train_target_values = [ts[~np.isnan(ts)] for ts in train_df.values]
 
@@ -93,5 +80,13 @@ def generate_m4_dataset(
         for cat, target in enumerate(test_target_values)
     ]
 
-    dataset_writer.write_to_folder(train_data, paths["train"])
-    dataset_writer.write_to_folder(test_data, paths["test"])
+    meta = MetaData(
+        **metadata(
+            cardinality=len(train_df),
+            freq=pandas_freq,
+            prediction_length=prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
