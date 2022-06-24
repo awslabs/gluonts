@@ -275,7 +275,7 @@ class TestTemplate:
 
 
 @dataclass
-class TrainingDataset(Iterable[DataEntry]):
+class TrainingDataset(Dataset):
     dataset: Iterable[DataEntry]
     splitter: AbstractBaseSplitter
 
