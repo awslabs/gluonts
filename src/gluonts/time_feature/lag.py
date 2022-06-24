@@ -117,25 +117,24 @@ def get_lags_for_frequency(
     elif offset_name == "H":
         lags = (
             _make_lags_for_hour(offset.n)
-            + _make_lags_for_day(offset.n / 24.0)
-            + _make_lags_for_week(offset.n / (24.0 * 7))
+            + _make_lags_for_day(offset.n / 24)
+            + _make_lags_for_week(offset.n / (24 * 7))
         )
     # minutes
     elif offset_name == "T":
         lags = (
             _make_lags_for_minute(offset.n)
-            + _make_lags_for_hour(offset.n / 60.0)
-            + _make_lags_for_day(offset.n / (60.0 * 24))
-            + _make_lags_for_week(offset.n / (60.0 * 24 * 7))
+            + _make_lags_for_hour(offset.n / 60)
+            + _make_lags_for_day(offset.n / (60 * 24))
+            + _make_lags_for_week(offset.n / (60 * 24 * 7))
         )
     # second
     elif offset_name == "S":
         lags = (
             _make_lags_for_second(offset.n)
-            + _make_lags_for_minute(offset.n / 60.0)
-            + _make_lags_for_hour(offset.n / (60.0 * 60.0))
-            + _make_lags_for_day(offset.n / (60.0 * 60.0 * 24))
-            + _make_lags_for_week(offset.n / (60.0 * 60.0 * 24 * 7))
+            + _make_lags_for_minute(offset.n / 60)
+            + _make_lags_for_hour(offset.n / (60 * 60))
+            + _make_lags_for_day(offset.n / (60 * 60 * 24))
         )
     else:
         raise Exception("invalid frequency")

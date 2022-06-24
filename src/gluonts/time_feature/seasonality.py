@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_SEASONALITIES = {
-    "S": 86400,
-    "T": 1440,
-    "H": 24,
-    "D": 1,
-    "W": 1,
+    "S": 3600,  # 1 hour
+    "T": 1440,  # 1 day
+    "H": 24,  # 1 day
+    "D": 1,  # 1 day
+    "W": 1,  # 1 week
     "M": 12,
     "B": 5,
     "Q": 4,
