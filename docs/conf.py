@@ -10,7 +10,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
+import os
+
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
@@ -61,6 +62,24 @@ pygments_style = "default"
 # a list of builtin themes.
 #
 html_theme = "furo"
+
+
+if os.environ.get("GITHUB_REF_NAME") == "dev":
+    html_theme_options = {
+        "announcement": "<strong>Warning:</strong> You are looking at the development docs.",
+        "light_css_variables": {
+            "color-announcement-background": "var(--color-background-secondary)",
+            "color-announcement-text": "#db6a00",
+            "color-brand-primary": "#ff6f00",
+            "color-brand-content": "#ff6f00",
+        },
+        "dark_css_variables": {
+            "color-announcement-background": "var(--color-background-secondary)",
+            "color-announcement-text": "#db6a00",
+            "color-brand-primary": "#ff6f00",
+            "color-brand-content": "#ff6f00",
+        },
+    }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
