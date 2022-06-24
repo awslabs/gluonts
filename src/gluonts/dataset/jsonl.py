@@ -15,7 +15,7 @@ import functools
 import gzip
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import cast, Optional, BinaryIO
 
 import numpy as np
 import pandas as pd
@@ -65,6 +65,17 @@ def _encode_json_list(arg: list):
 
 @encode_json.register(np.ndarray)
 def _encode_json_array(arg: np.ndarray):
+    if np.issubdtype(arg.dtype, int):
+        return arg.tolist()
+
+    if np.issubdtype(arg.dtype, np.floating):
+        b = np.array(arg, dtype=object)
+        b[np.isnan(arg)] = "Nan"
+        b[np.isposinf(arg)] = "Infinity"
+        b[np.isneginf(arg)] = "-Infinity"
+
+        return b.tolist()
+
     return _encode_json_list(arg.tolist())
 
 
@@ -126,11 +137,20 @@ class JsonLinesFile:
 class JsonLinesWriter(DatasetWriter):
     use_gzip: bool = True
     suffix: str = ".json"
+    # Python uses `compresslevel=9` by default, which is very slow
+    # We opt for faster writes by default, for more modest size savings
+    compresslevel: int = 4
 
     def write_to_file(self, dataset: Dataset, path: Path) -> None:
-        open_ = gzip.open if self.use_gzip else open
+        if self.use_gzip:
+            out_file = cast(
+                BinaryIO,
+                gzip.open(path, "wb", compresslevel=self.compresslevel),
+            )
+        else:
+            out_file = open(path, "wb")
 
-        with open_(path, "wb") as out_file:  # type: ignore
+        with out_file:
             for entry in dataset:
                 json.bdump(encode_json(entry), out_file, nl=True)
 
