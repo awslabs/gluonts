@@ -12,13 +12,11 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ArtificialDataset
 from gluonts.dataset.common import TrainDatasets
-from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.jsonl import encode_json
 
 
 def generate_artificial_dataset(
