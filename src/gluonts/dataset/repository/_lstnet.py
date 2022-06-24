@@ -15,7 +15,7 @@
 Here we reuse the datasets used by LSTNet as the processed url of the datasets
 are available on GitHub.
 """
-import json
+
 from pathlib import Path
 from typing import List, NamedTuple, Optional, cast
 

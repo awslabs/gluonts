@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-from this import d
 from typing import List, Optional
 
 from gluonts.dataset import DatasetWriter
