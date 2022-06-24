@@ -50,6 +50,7 @@ import numpy as np
 import pandas as pd
 import pydantic
 
+from gluonts.dataset import Dataset
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 
@@ -174,14 +175,6 @@ class TimeSeriesSlice(pydantic.BaseModel):
 class AbstractBaseSplitter(ABC):
     """
     Base class for all other splitter.
-
-    Args:
-        param prediction_length:
-            The prediction length which is used to train themodel.
-
-        max_history:
-            If given, all entries in the *test*-set have a max-length of
-            `max_history`. This can be used to produce smaller file-sizes.
     """
 
     @abstractmethod
@@ -190,7 +183,7 @@ class AbstractBaseSplitter(ABC):
 
     @abstractmethod
     def _test_slice(
-        self, item: TimeSeriesSlice, offset: int = 0
+        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         pass
 
@@ -215,11 +208,15 @@ class AbstractBaseSplitter(ABC):
             yield train.to_data_entry()
 
     def _generate_test_slices(
-        self, items: List[DataEntry], prediction_length: int, *args, **kwargs
+        self,
+        items: Dataset,
+        prediction_length: int,
+        windows,
+        distance,
+        max_history,
     ):
-        max_history = args[0] if len(args) else None
-        windows = kwargs.get("windows", 1)
-        distance = kwargs.get("distance", prediction_length)
+        if distance is None:
+            distance = prediction_length
 
         for item in map(TimeSeriesSlice.from_data_entry, items):
             train = self._train_slice(item)
@@ -264,17 +261,56 @@ def _check_split_length(
 
 @dataclass
 class TestTemplate:
-    dataset: Iterable[DataEntry]
+    """
+    A class used for generating test data.
+
+    Parameters
+    ----------
+    splitter:
+        A specific splitter that knows how to slices training and
+        test data.
+    """
+
+    dataset: Dataset
     splitter: AbstractBaseSplitter
 
-    def generate_instances(self, prediction_length, *args, **kwargs):
+    def generate_instances(
+        self,
+        prediction_length: int,
+        windows=1,
+        distance=None,
+        max_history=None,
+    ):
+        """
+        Generate an iterator of test dataset, which includes input part and
+        label part.
+
+        Parameters
+        ----------
+        prediction_length
+            Length of the prediction interval in test data.
+        windows
+            Windows is used especially when doing ``rolling_split``, otherwise,
+            it should be ``1`` for a simple ``split``.
+        distance
+            Length of each window. If set to None, the prediction_length is
+            set as default distance.
+        max_history
+            If given, all entries in the *test*-set have a max-length of
+            `max_history`. This can be used to produce smaller file-sizes.
+        """
+
         yield from self.splitter._generate_test_slices(
-            self.dataset, prediction_length, *args, **kwargs
+            self.dataset,
+            prediction_length=prediction_length,
+            windows=windows,
+            distance=distance,
+            max_history=max_history,
         )
 
 
 @dataclass
-class TrainingDataset(Dataset):
+class TrainingDataset:
     dataset: Iterable[DataEntry]
     splitter: AbstractBaseSplitter
 
@@ -290,8 +326,6 @@ class OffsetSplitter(AbstractBaseSplitter):
 
     Parameters
     ----------
-    prediction_length
-        Length of the prediction interval in test data.
     split_offset
         Offset determining where the training data ends.
         A positive offset indicates how many observations since the start of
@@ -301,9 +335,6 @@ class OffsetSplitter(AbstractBaseSplitter):
         of excluded values is enough for the test case, i.e., at least
         ``prediction_length`` (for ``rolling_split`` multiple of
         ``prediction_length``) values are left off.
-    max_history
-        If given, all entries in the *test*-set have a max-length of
-        `max_history`. This can be used to produce smaller file-sizes.
     """
 
     split_offset: int
@@ -312,7 +343,7 @@ class OffsetSplitter(AbstractBaseSplitter):
         return item[: self.split_offset]
 
     def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length, offset: int = 0
+        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         offset_ = self.split_offset + offset + prediction_length
         if self.split_offset < 0 and offset_ >= 0:
@@ -331,15 +362,10 @@ class DateSplitter(AbstractBaseSplitter):
 
     Parameters
     ----------
-    prediction_length
-        Length of the prediction interval in test data.
     split_date
         Period determining where the training data ends. Please make sure
         at least ``prediction_length`` (for ``rolling_split`` multiple of
         ``prediction_length``) values are left over after the ``split_date``.
-    max_history
-        If given, all entries in the *test*-set have a max-length of
-        `max_history`. This can be used to produce smaller file-sizes.
     """
 
     split_date: pd.Period
@@ -349,7 +375,7 @@ class DateSplitter(AbstractBaseSplitter):
         return item[: self.split_date]
 
     def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length, offset: int = 0
+        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         return (
             item[: self.split_date],
@@ -361,11 +387,11 @@ class DateSplitter(AbstractBaseSplitter):
         )
 
 
-def split(dataset, *, split_offset=None, split_date=None):
+def split(dataset, *, offset=None, date=None):
     # You need to provide `offset` or `date`, but not both
-    assert (split_offset is None) != (split_date is None)
-    if split_offset is not None:
-        splitter = OffsetSplitter(split_offset)
+    assert (offset is None) != (date is None)
+    if offset is not None:
+        splitter = OffsetSplitter(offset)
     else:
-        splitter = DateSplitter(split_date)
+        splitter = DateSplitter(date)
     return splitter.split(dataset)

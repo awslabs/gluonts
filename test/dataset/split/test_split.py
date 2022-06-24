@@ -81,69 +81,26 @@ def check_training_validation(
 def test_splitter():
     dataset = get_dataset("m4_hourly")
     prediction_length = dataset.metadata.prediction_length
+    max_history = 2 * prediction_length
+    windows = 3
     split_date = pd.Period("1750-01-05 04:00:00", freq="h")
-    splitter = DateSplitter(
-        prediction_length=prediction_length,
-        split_date=split_date,
+    date_splitter = DateSplitter(split_date=split_date)
+    train, test_template = date_splitter.split(dataset.train)
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length
     )
-    train, validation = splitter.split(dataset.train)
     for train_entry, valid_pair in zip(train, validation):
         check_training_validation(
             train_entry, valid_pair, prediction_length, cutoff_date=split_date
         )
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length
+    )
     assert len(list(train)) == len(list(validation))
 
-    max_history = 2 * prediction_length
-    split_offset = 4 * prediction_length
-    splitter = OffsetSplitter(
-        prediction_length=prediction_length,
-        split_offset=split_offset,
-        max_history=max_history,
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length, max_history=max_history
     )
-    train, validation = splitter.split(dataset.train)
-    for train_entry, valid_pair in zip(train, validation):
-        check_training_validation(
-            train_entry,
-            valid_pair,
-            prediction_length,
-            max_history=max_history,
-            split_offset=split_offset,
-        )
-    assert len(list(train)) == len(list(validation))
-
-    windows = 3
-    splitter = OffsetSplitter(
-        prediction_length=prediction_length,
-        split_offset=split_offset,
-        max_history=max_history,
-        windows=windows,
-    )
-    train, validation = splitter.split(dataset.train)
-    valid_list = list(validation)
-    train_list = list(train)
-    k = 0
-    for train_entry in train_list:
-        for i in range(windows):
-            valid_pair = valid_list[k]
-            window = i + 1
-            check_training_validation(
-                train_entry,
-                valid_pair,
-                prediction_length,
-                max_history=max_history,
-                split_offset=split_offset,
-                window=window,
-                is_rolling_split=True,
-            )
-            k += 1
-
-    max_history = 2 * prediction_length
-    splitter = DateSplitter(
-        prediction_length=prediction_length,
-        split_date=split_date,
-        max_history=max_history,
-    )
-    train, validation = splitter.split(dataset.train)
     for train_entry, valid_pair in zip(train, validation):
         check_training_validation(
             train_entry,
@@ -152,15 +109,16 @@ def test_splitter():
             max_history=max_history,
             cutoff_date=split_date,
         )
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length, max_history=max_history
+    )
     assert len(list(train)) == len(list(validation))
 
-    splitter = DateSplitter(
+    validation = test_template.generate_instances(
         prediction_length=prediction_length,
-        split_date=split_date,
-        max_history=max_history,
         windows=windows,
+        max_history=max_history,
     )
-    train, validation = splitter.split(dataset.train)
     valid_list = list(validation)
     train_list = list(train)
     k = 0
@@ -179,10 +137,51 @@ def test_splitter():
             )
             k += 1
 
+    split_offset = 4 * prediction_length
+    offset_splitter = OffsetSplitter(split_offset=split_offset)
+    train, test_template = offset_splitter.split(dataset.train)
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length, max_history=max_history
+    )
+    for train_entry, valid_pair in zip(train, validation):
+        check_training_validation(
+            train_entry,
+            valid_pair,
+            prediction_length,
+            max_history=max_history,
+            split_offset=split_offset,
+        )
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length, max_history=max_history
+    )
+    assert len(list(train)) == len(list(validation))
+
+    validation = test_template.generate_instances(
+        prediction_length=prediction_length,
+        windows=windows,
+        max_history=max_history,
+    )
+    valid_list = list(validation)
+    train_list = list(train)
+    k = 0
+    for train_entry in train_list:
+        for i in range(windows):
+            valid_pair = valid_list[k]
+            window = i + 1
+            check_training_validation(
+                train_entry,
+                valid_pair,
+                prediction_length,
+                max_history=max_history,
+                split_offset=split_offset,
+                window=window,
+                is_rolling_split=True,
+            )
+            k += 1
+
 
 def test_split_mult_freq():
     splitter = DateSplitter(
-        prediction_length=1,
         split_date=pd.Period("2021-01-01", "2h"),
     )
 
@@ -206,17 +205,23 @@ def test_negative_offset_splitter():
         freq="D",
     )
 
-    split = OffsetSplitter(prediction_length=7, split_offset=-7).split(dataset)
+    splitter = OffsetSplitter(split_offset=-7).split(dataset)
 
-    assert [len(t["target"]) for t in split[0]] == [93, 43]
-    assert [len(t["target"]) + len(s) for t, s in split[1]] == [100, 50]
+    assert [len(t["target"]) for t in splitter[0]] == [93, 43]
+    assert [
+        len(t["target"]) + len(s)
+        for t, s in splitter[1].generate_instances(prediction_length=7)
+    ] == [100, 50]
 
-    rolling_split = OffsetSplitter(
-        prediction_length=7, split_offset=-21, windows=3
-    ).split(dataset)
+    rolling_splitter = OffsetSplitter(split_offset=-21).split(dataset)
 
-    assert [len(t["target"]) for t in rolling_split[0]] == [79, 29]
-    assert [len(t["target"]) + len(s) for t, s in rolling_split[1]] == [
+    assert [len(t["target"]) for t in rolling_splitter[0]] == [79, 29]
+    assert [
+        len(t["target"]) + len(s)
+        for t, s in rolling_splitter[1].generate_instances(
+            prediction_length=7, windows=3
+        )
+    ] == [
         86,
         93,
         100,
