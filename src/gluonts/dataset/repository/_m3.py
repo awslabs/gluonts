@@ -131,8 +131,7 @@ def generate_m3_dataset(
 
     cat_map = {c: i for i, c in enumerate(categories)}
 
-    i = 0
-    for _, row in df.iterrows():
+    for i, (_, row) in enumerate(df.iterrows()):
         vals = row.values
         series, n, nf, category, starting_year, starting_offset = vals[:6]
         target = np.asarray(vals[6:], dtype=np.float64)
@@ -164,27 +163,26 @@ def generate_m3_dataset(
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 
-        s = pd.Period(time_stamp, freq=subset.freq)
-
-        start = str(s).split(" ")[0]
+        s = str(pd.Period(time_stamp, freq=subset.freq))
         cat = [i, cat_map[category]]
 
-        d_train = dict(
-            target_values=target[: -subset.prediction_length],
-            start=start,
-            feat_static_cat=cat,
-            item_id=series,
+        train_data.append(
+            {
+                "target": target[: -subset.prediction_length],
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
         )
-        train_data.append(d_train)
 
-        d_test = dict(
-            target_values=target,
-            start=start,
-            feat_static_cat=cat,
-            item_id=series,
+        test_data.append(
+            {
+                "target": target,
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
         )
-        test_data.append(d_test)
-        i += 1
 
     meta = MetaData(
         **metadata(
