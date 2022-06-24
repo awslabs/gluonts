@@ -15,7 +15,7 @@ import functools
 import gzip
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import cast, Optional, BinaryIO
 
 import numpy as np
 import pandas as pd
@@ -143,7 +143,10 @@ class JsonLinesWriter(DatasetWriter):
 
     def write_to_file(self, dataset: Dataset, path: Path) -> None:
         if self.use_gzip:
-            out_file = gzip.open(path, "wb", compresslevel=self.compresslevel)
+            out_file = cast(
+                BinaryIO,
+                gzip.open(path, "wb", compresslevel=self.compresslevel),
+            )
         else:
             out_file = open(path, "wb")
 
