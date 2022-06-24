@@ -134,7 +134,6 @@ def get_lags_for_frequency(
             _make_lags_for_second(offset.n)
             + _make_lags_for_minute(offset.n / 60)
             + _make_lags_for_hour(offset.n / (60 * 60))
-            + _make_lags_for_day(offset.n / (60 * 60 * 24))
         )
     else:
         raise Exception("invalid frequency")
