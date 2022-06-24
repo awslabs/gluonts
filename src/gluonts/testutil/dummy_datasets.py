@@ -17,7 +17,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.common import ListDataset
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
 
@@ -31,7 +31,7 @@ def make_dummy_datasets_with_features(
     cardinality: List[int] = [],
     num_feat_dynamic_real: int = 0,
     num_past_feat_dynamic_real: int = 0,
-) -> Tuple[ListDataset, ListDataset]:
+) -> Tuple[Dataset, Dataset]:
 
     data_iter_train = []
     data_iter_test = []

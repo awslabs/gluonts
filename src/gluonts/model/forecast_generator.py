@@ -48,7 +48,7 @@ def log_once(msg):
 # numpy conversion differently, use a dispatching function to prevent needing
 # a ForecastGenerators for each framework
 @singledispatch
-def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
+def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
@@ -112,7 +112,6 @@ class ForecastGenerator:
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -130,7 +129,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -149,7 +147,6 @@ class QuantileForecastGenerator(ForecastGenerator):
                 yield QuantileForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
@@ -169,7 +166,6 @@ class SampleForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -198,7 +194,6 @@ class SampleForecastGenerator(ForecastGenerator):
                 yield SampleForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
@@ -217,7 +212,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -241,7 +235,6 @@ class DistributionForecastGenerator(ForecastGenerator):
                 yield make_distribution_forecast(
                     distr,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    freq=freq,
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,

@@ -280,11 +280,14 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         n_ignore_last=0,
         num_samples=-1,
         use_feat_static_real=False,
+        use_past_feat_dynamic_real=False,
         use_feat_dynamic_real=False,
         use_feat_dynamic_cat=False,
         cardinality: Cardinality = CardinalityLabel.auto,
         # Should improve accuracy but will slow down model
         one_hot_encode: bool = True,
+        subtract_mean: bool = True,
+        count_nans: bool = False,
         **kwargs
     ):
 
@@ -308,12 +311,17 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         self.use_feat_static_real = use_feat_static_real
         self.cardinality = cardinality
+        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.one_hot_encode = one_hot_encode
+        self.subtract_mean = subtract_mean
+        self.count_nans = count_nans
 
     @classmethod
-    def _pre_transform(cls, time_series_window) -> Tuple:
+    def _pre_transform(
+        cls, time_series_window, subtract_mean, count_nans
+    ) -> Tuple:
         """
         Makes features given time series window. Returns list of features, one
         for every step of the lag (equaling mean-adjusted lag features); and a
@@ -323,25 +331,36 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         Parameters
         ----------
         time_series_window: list
+        subtract_mean: bool
+            Whether or not to subtract the mean of the context window in the
+            feaurization process.
+        count_nans: bool
+            Whether or not to add as a feature the number of nan values in the
+            context window.
 
         Returns
         -------------
         tuple
-            trasnformed time series, dictionary with transformation data
-        return (time_series_window - np.mean(time_series_window)), {
-            'mean': np.mean(time_series_window),
-            'std': np.std(time_series_window)
-        }
+            trasnformed time series, dictionary with transformation data (
+            std, mean, number of lag features, and number of nans of
+            count_nans)
         """
-        mean_value = np.mean(time_series_window)
-        return (
-            (time_series_window - mean_value),
+        mean_value = np.nanmean(time_series_window)
+        featurized_data = [
+            time_series_window,
             {
                 "mean": mean_value,
-                "std": np.std(time_series_window),
+                "std": np.nanstd(time_series_window),
                 "n_lag_features": len(time_series_window),
             },
-        )
+        ]
+        if subtract_mean:
+            featurized_data[0] = featurized_data[0] - mean_value
+        if count_nans:
+            featurized_data[1]["n_nans"] = np.count_nonzero(
+                np.isnan(time_series_window)
+            )
+        return featurized_data
 
     def encode_one_hot(self, feat: int, cardinality: int) -> List[int]:
         result = [0] * cardinality
@@ -389,7 +408,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             prefix = []
         time_series_window = time_series["target"][starting_index:end_index]
         only_lag_features, transform_dict = self._pre_transform(
-            time_series_window
+            time_series_window, self.subtract_mean, self.count_nans
         )
 
         feat_static_real = (
@@ -406,13 +425,33 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         else:
             feat_static_cat = []
 
-        feat_dynamic_real = (
+        past_feat_dynamic_real = (
             list(
                 chain(
                     *[
                         list(ent[0]) + list(ent[1].values())
                         for ent in [
                             self._pre_transform(ts[starting_index:end_index])
+                            for ts in time_series["past_feat_dynamic_real"]
+                        ]
+                    ]
+                )
+            )
+            if self.use_past_feat_dynamic_real
+            else []
+        )
+        feat_dynamic_real = (
+            list(
+                chain(
+                    *[
+                        list(ent[0]) + list(ent[1].values())
+                        for ent in [
+                            self._pre_transform(
+                                ts[
+                                    starting_index : end_index
+                                    + self.forecast_horizon
+                                ]
+                            )
                             for ts in time_series["feat_dynamic_real"]
                         ]
                     ]
@@ -442,7 +481,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
         )
 
-        feat_dynamics = feat_dynamic_real + feat_dynamic_cat
+        feat_dynamics = (
+            past_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
+        )
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
         return (

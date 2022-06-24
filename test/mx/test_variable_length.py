@@ -17,9 +17,10 @@ from typing import Any, Dict, Iterable
 
 import mxnet as mx
 import numpy as np
+from pandas.tseries.frequencies import to_offset
 import pytest
 
-from gluonts.dataset.common import ListDataset
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.loader import (
     DataBatch,
     DataLoader,
@@ -40,7 +41,7 @@ NUM_BATCHES = 22
 @pytest.fixture
 def loader_factory():
     def train_loader(
-        dataset: ListDataset,
+        dataset: Dataset,
         prediction_interval_length: float,
         context_interval_length: float,
         is_train: bool = True,
@@ -65,7 +66,7 @@ def loader_factory():
             future_interval_length=prediction_interval_length,
             past_interval_length=context_interval_length,
             instance_sampler=sampler,
-            freq=dataset.freq,
+            freq=to_offset("H"),
         )
 
         kwargs = dict(
@@ -78,9 +79,7 @@ def loader_factory():
         kwargs.update(override_args)
 
         if is_train:
-            return itertools.islice(
-                TrainDataLoader(num_workers=None, **kwargs), NUM_BATCHES
-            )
+            return itertools.islice(TrainDataLoader(**kwargs), NUM_BATCHES)
         else:
             return InferenceDataLoader(**kwargs)
 

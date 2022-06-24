@@ -32,7 +32,7 @@ from gluonts.model.transformer._network import (
 )
 from gluonts.model.transformer.trans_decoder import TransformerDecoder
 from gluonts.model.transformer.trans_encoder import TransformerEncoder
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -183,7 +183,6 @@ class TransformerEstimator(GluonEstimator):
             num_parallel_samples > 0
         ), "The value of `num_parallel_samples` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
             context_length if context_length is not None else prediction_length
@@ -203,7 +202,7 @@ class TransformerEstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
         self.history_length = self.context_length + max(self.lags_seq)
         self.scaling = scaling
@@ -326,7 +325,6 @@ class TransformerEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -386,7 +384,6 @@ class TransformerEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

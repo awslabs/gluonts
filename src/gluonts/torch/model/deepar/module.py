@@ -24,6 +24,7 @@ from gluonts.torch.distributions import (
 )
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
+from gluonts.torch.util import lagged_sequence_values
 
 
 class DeepARModel(nn.Module):
@@ -95,6 +96,7 @@ class DeepARModel(nn.Module):
         num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
+
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output
@@ -119,13 +121,13 @@ class DeepARModel(nn.Module):
             self.scaler = MeanScaler(dim=1, keepdim=True)
         else:
             self.scaler = NOPScaler(dim=1, keepdim=True)
-        self.lagged_rnn = LaggedLSTM(
-            input_size=1,  # TODO fix
-            features_size=self._number_of_features,
-            lags_seq=[lag - 1 for lag in self.lags_seq],
-            num_layers=num_layers,
+        self.rnn_input_size = len(self.lags_seq) + self._number_of_features
+        self.rnn = nn.LSTM(
+            input_size=self.rnn_input_size,
             hidden_size=hidden_size,
-            dropout_rate=dropout_rate,
+            num_layers=num_layers,
+            dropout=dropout_rate,
+            batch_first=True,
         )
 
     @property
@@ -227,8 +229,10 @@ class DeepARModel(nn.Module):
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
+        lags = lagged_sequence_values(self.lags_seq, prior_input, input)
+        rnn_input = torch.cat((lags, features), dim=-1)
 
-        output, new_state = self.lagged_rnn(prior_input, input, features)
+        output, new_state = self.rnn(rnn_input)
 
         params = self.param_proj(output)
         return params, scale, output, static_feat, new_state
@@ -343,12 +347,15 @@ class DeepARModel(nn.Module):
                 (repeated_static_feat, repeated_time_feat[:, k : k + 1]),
                 dim=-1,
             )
-            output, repeated_state = self.lagged_rnn(
+            next_lags = lagged_sequence_values(
+                self.lags_seq,
                 repeated_past_target,
                 scaled_next_sample,
-                next_features,
-                repeated_state,
             )
+            rnn_input = torch.cat((next_lags, next_features), dim=-1)
+
+            output, repeated_state = self.rnn(rnn_input, repeated_state)
+
             repeated_past_target = torch.cat(
                 (repeated_past_target, scaled_next_sample), dim=1
             )
@@ -364,136 +371,3 @@ class DeepARModel(nn.Module):
             (-1, num_parallel_samples, self.prediction_length)
             + self.target_shape,
         )
-
-
-class LaggedLSTM(nn.Module):
-    """
-    An LSTM that uses multiple lagged inputs at each time step.
-
-    Parameters
-    ----------
-    input_size
-        Size of the input sequence (usually 1).
-    features_size
-        Number of additional features to take as input.
-    lags_seq
-        Indices of the lagged observations that the RNN takes as input. For
-        example, ``[1]`` indicates that the RNN only takes the observation at
-        time ``t-1`` to produce the output for time ``t``; instead,
-        ``[1, 25]`` indicates that the RNN takes observations at times ``t-1``
-        and ``t-25`` as input.
-    num_layers
-        Number of layers. Default: 2.
-    hidden_size
-        Size of the hidden layers. Default: 40.
-    dropout_rate
-        Dropout rate to be used at training time. Default: 0.1.
-    """
-
-    def __init__(
-        self,
-        input_size: int,
-        features_size: int,
-        lags_seq: List[int],
-        num_layers: int = 2,
-        hidden_size: int = 40,
-        dropout_rate: float = 0.1,
-    ) -> None:
-        super().__init__()
-        self.input_size = input_size
-        self.features_size = features_size
-        self.dropout_rate = dropout_rate
-        self.lags_seq = lags_seq
-        self.rnn_input_size = input_size * len(self.lags_seq) + features_size
-        self.rnn = nn.LSTM(
-            input_size=self.rnn_input_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout_rate,
-            batch_first=True,
-        )
-
-    def get_lagged_subsequences(
-        self,
-        sequence: torch.Tensor,
-        subsequences_length: int,
-    ) -> torch.Tensor:
-        """
-        Returns lagged subsequences of a given sequence.
-
-        Parameters
-        ----------
-        sequence : Tensor
-            the sequence from which lagged subsequences should be extracted.
-            Shape: (N, T, C).
-        subsequences_length : int
-            length of the subsequences to be extracted.
-
-        Returns
-        --------
-        lagged : Tensor
-            a tensor of shape (N, S, C, I), where S = subsequences_length and
-            I = len(indices), containing lagged subsequences. Specifically,
-            lagged[i, j, :, k] = sequence[i, -indices[k]-S+j, :].
-        """
-        sequence_length = sequence.shape[1]
-        indices = self.lags_seq
-
-        assert max(indices) + subsequences_length <= sequence_length, (
-            "lags cannot go further than history length, found lag"
-            f" {max(indices)} while history length is only {sequence_length}"
-        )
-
-        lagged_values = []
-        for lag_index in indices:
-            begin_index = -lag_index - subsequences_length
-            end_index = -lag_index if lag_index > 0 else None
-            lagged_values.append(sequence[:, begin_index:end_index, ...])
-        return torch.stack(lagged_values, dim=-1)
-
-    def _check_shapes(
-        self,
-        prior_input: torch.Tensor,
-        input: torch.Tensor,
-        features: Optional[torch.Tensor],
-    ) -> None:
-        assert len(prior_input.shape) == len(input.shape)
-        assert (
-            len(prior_input.shape) == 2 and self.input_size == 1
-        ) or prior_input.shape[2] == self.input_size
-        assert (len(input.shape) == 2 and self.input_size == 1) or input.shape[
-            -1
-        ] == self.input_size
-        assert (
-            features is None or features.shape[2] == self.features_size
-        ), f"{features.shape[2]}, expected {self.features_size}"
-
-    def forward(
-        self,
-        prior_input: torch.Tensor,
-        input: torch.Tensor,
-        features: Optional[torch.Tensor] = None,
-        state: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
-    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        self._check_shapes(prior_input, input, features)
-
-        sequence = torch.cat((prior_input, input), dim=1)
-        lagged_sequence = self.get_lagged_subsequences(
-            sequence=sequence,
-            subsequences_length=input.shape[1],
-        )
-
-        lags_shape = lagged_sequence.shape
-        reshaped_lagged_sequence = lagged_sequence.reshape(
-            lags_shape[0], lags_shape[1], -1
-        )
-
-        if features is None:
-            rnn_input = reshaped_lagged_sequence
-        else:
-            rnn_input = torch.cat((reshaped_lagged_sequence, features), dim=-1)
-
-        if state is None:
-            return self.rnn(rnn_input)
-        else:
-            return self.rnn(rnn_input, state)

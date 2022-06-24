@@ -86,6 +86,10 @@ class ProphetDataEntry(NamedTuple):
     def forecast_start(self) -> pd.Period:
         return self.start + self.train_length * self.start.freq
 
+    @property
+    def freq(self):
+        return self.start.freq
+
 
 class ProphetPredictor(RepresentablePredictor):
     """
@@ -102,8 +106,6 @@ class ProphetPredictor(RepresentablePredictor):
 
     Parameters
     ----------
-    freq
-        Time frequency of the data, e.g. '1H'
     prediction_length
         Number of time points to predict
     prophet_params
@@ -122,12 +124,11 @@ class ProphetPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         prophet_params: Optional[Dict] = None,
         init_model: Callable = toolz.identity,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)
@@ -158,7 +159,6 @@ class ProphetPredictor(RepresentablePredictor):
             yield SampleForecast(
                 samples=forecast_samples,
                 start_date=data.forecast_start,
-                freq=self.freq,
             )
 
     def _run_prophet(self, data: ProphetDataEntry, params: dict) -> np.ndarray:
@@ -177,7 +177,7 @@ class ProphetPredictor(RepresentablePredictor):
 
         future_df = prophet.make_future_dataframe(
             periods=self.prediction_length,
-            freq=self.freq,
+            freq=data.freq,
             include_history=False,
         )
 

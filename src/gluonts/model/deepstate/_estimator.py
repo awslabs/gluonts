@@ -29,7 +29,7 @@ from gluonts.dataset.loader import (
 from gluonts.env import env
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -222,7 +222,6 @@ class DeepStateEstimator(GluonEstimator):
             " positive"
         )
 
-        self.freq = freq
         self.past_length = (
             past_length
             if past_length is not None
@@ -256,7 +255,7 @@ class DeepStateEstimator(GluonEstimator):
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
 
         self.noise_std_bounds = noise_std_bounds
@@ -353,7 +352,6 @@ class DeepStateEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -418,7 +416,6 @@ class DeepStateEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )

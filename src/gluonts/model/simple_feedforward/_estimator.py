@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.forecast_generator import DistributionForecastGenerator
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -85,8 +85,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     Parameters
     ----------
-    freq
-        Time time granularity of the data
     prediction_length
         Length of the prediction horizon
     trainer
@@ -117,12 +115,11 @@ class SimpleFeedForwardEstimator(GluonEstimator):
 
     # The validated() decorator makes sure that parameters are checked by
     # Pydantic and allows to serialize/print models. Note that all parameters
-    # have defaults except for `freq` and `prediction_length`. which is
+    # have defaults except for `prediction_length`. which is
     # recommended in GluonTS to allow to compare models easily.
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         sampling: bool = True,
         trainer: Trainer = Trainer(),
@@ -166,7 +163,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
-        self.freq = freq
         self.distr_output = distr_output
         self.batch_normalization = batch_normalization
         self.mean_scaling = mean_scaling
@@ -239,7 +235,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -295,7 +290,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
-                freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )
@@ -318,7 +312,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 forecast_generator=DistributionForecastGenerator(
                     self.distr_output
                 ),
-                freq=self.freq,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )

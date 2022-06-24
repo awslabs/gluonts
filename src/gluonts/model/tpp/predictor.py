@@ -31,14 +31,14 @@ from .forecast import PointProcessSampleForecast
 
 
 class PointProcessForecastGenerator(ForecastGenerator):
-    def __call__(
+    def __call__(  # type: ignore
         self,
         inference_data_loader: DataLoader,
         prediction_net: mx.gluon.Block,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
+        freq: str,
         **kwargs,
     ) -> Iterator[Forecast]:
 
@@ -131,7 +131,6 @@ class PointProcessGluonPredictor(GluonPredictor):
             prediction_length=np.ceil(
                 prediction_interval_length
             ),  # for validation only
-            freq=freq,
             ctx=ctx,
             input_transform=input_transform,
             output_transform=None,
@@ -145,6 +144,7 @@ class PointProcessGluonPredictor(GluonPredictor):
 
         self.forecast_generator = forecast_generator
         self.prediction_interval_length = prediction_interval_length
+        self.freq = freq
 
     def hybridize(self, batch: DataBatch) -> None:
         raise NotImplementedError(

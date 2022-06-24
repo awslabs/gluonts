@@ -13,12 +13,18 @@
 
 import functools
 import gzip
+from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
+from typing import cast, Optional, BinaryIO
+
+import numpy as np
+import pandas as pd
+from toolz import valmap
 
 from gluonts import json
-from gluonts.dataset.util import get_bounds_for_mp_data_loading
 from gluonts.exceptions import GluonTSDataError
+
+from . import Dataset, DatasetWriter
 
 
 def load(file_obj):
@@ -30,16 +36,55 @@ def dump(objects, file_obj):
         json.dump(object_, file_obj, nl=True)
 
 
-class Span(NamedTuple):
-    path: Path
-    line: int
+@functools.singledispatch
+def encode_json(arg):
+    if isinstance(arg, (str, int)):
+        return arg
+
+    if isinstance(arg, float):
+        if np.isnan(arg):
+            return "NaN"
+        elif np.isposinf(arg):
+            return "Infinity"
+        elif np.isneginf(arg):
+            return "-Infinity"
+        return arg
+
+    raise ValueError(f"Can't encode {arg!r}")
 
 
-class Line(NamedTuple):
-    content: object
-    span: Span
+@encode_json.register(dict)
+def _encode_json_dict(arg: dict):
+    return valmap(encode_json, arg)
 
 
+@encode_json.register(list)
+def _encode_json_list(arg: list):
+    return list(map(encode_json, arg))
+
+
+@encode_json.register(np.ndarray)
+def _encode_json_array(arg: np.ndarray):
+    if np.issubdtype(arg.dtype, int):
+        return arg.tolist()
+
+    if np.issubdtype(arg.dtype, np.floating):
+        b = np.array(arg, dtype=object)
+        b[np.isnan(arg)] = "Nan"
+        b[np.isposinf(arg)] = "Infinity"
+        b[np.isneginf(arg)] = "-Infinity"
+
+        return b.tolist()
+
+    return _encode_json_list(arg.tolist())
+
+
+@encode_json.register(pd.Period)
+def _encode_json_period(arg: pd.Period):
+    return str(arg)
+
+
+@dataclass
 class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
@@ -51,46 +96,73 @@ class JsonLinesFile:
         JSON Lines file.
     """
 
-    def __init__(self, path: Path, cache: bool = False) -> None:
-        self.path = path
-        self.open = gzip.open if path.suffix == ".gz" else open
-        self.cache = cache
-        self._len = None
-        self._data_cache: list = []
+    SUFFIXES = {
+        ".json",
+        ".json.gz",
+        ".jsonl",
+        ".jsonl.gz",
+    }
+
+    path: Path
+
+    def open(self):
+        if self.path.suffix == ".gz":
+            return gzip.open(self.path)
+
+        return open(self.path, "rb")
 
     def __iter__(self):
-        # Basic idea is to split the dataset into roughly equally sized
-        # segments with lower and upper bound, where each worker is assigned
-        # one segment
-        bounds = get_bounds_for_mp_data_loading(len(self))
-        if not self.cache or (self.cache and not self._data_cache):
-            with self.open(self.path) as jsonl_file:
-                for line_number, raw in enumerate(jsonl_file):
-                    if not bounds.lower <= line_number < bounds.upper:
-                        continue
-
-                    span = Span(path=self.path, line=line_number)
-                    try:
-                        parsed_line = Line(json.loads(raw), span=span)
-                        if self.cache:
-                            self._data_cache.append(parsed_line)
-                        yield parsed_line
-                    except ValueError:
-                        raise GluonTSDataError(
-                            f"Could not read json line {line_number}, {raw}"
-                        )
-        else:
-            yield from self._data_cache
+        with self.open() as jsonl_file:
+            for line_number, line in enumerate(jsonl_file):
+                try:
+                    yield json.loads(line)
+                except ValueError:
+                    raise GluonTSDataError(
+                        f"Could not read json line {line_number}, {line}"
+                    )
 
     def __len__(self):
-        if self._len is None:
-            # 1MB
-            BUF_SIZE = 1024**2
+        # 1MB
+        BUF_SIZE = 1024**2
 
-            with self.open(self.path, "rb") as file_obj:
-                read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-                file_len = sum(
-                    chunk.count(b"\n") for chunk in iter(read_chunk, b"")
-                )
-                self._len = file_len
-        return self._len
+        with self.open() as file_obj:
+            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
+            file_len = sum(
+                chunk.count(b"\n") for chunk in iter(read_chunk, b"")
+            )
+            return file_len
+
+
+@dataclass
+class JsonLinesWriter(DatasetWriter):
+    use_gzip: bool = True
+    suffix: str = ".json"
+    # Python uses `compresslevel=9` by default, which is very slow
+    # We opt for faster writes by default, for more modest size savings
+    compresslevel: int = 4
+
+    def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        if self.use_gzip:
+            out_file = cast(
+                BinaryIO,
+                gzip.open(path, "wb", compresslevel=self.compresslevel),
+            )
+        else:
+            out_file = open(path, "wb")
+
+        with out_file:
+            for entry in dataset:
+                json.bdump(encode_json(entry), out_file, nl=True)
+
+    def write_to_folder(
+        self, dataset: Dataset, folder: Path, name: Optional[str] = None
+    ) -> None:
+        if name is None:
+            name = "data"
+
+        if self.use_gzip:
+            suffix = self.suffix + ".gz"
+        else:
+            suffix = self.suffix
+
+        self.write_to_file(dataset, (folder / name).with_suffix(suffix))

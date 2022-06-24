@@ -12,69 +12,11 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
+
 import pytest
+import torch
 
-from gluonts.torch.model.deepar import (
-    DeepARModel,
-    DeepARLightningModule,
-)
-from gluonts.torch.model.deepar.module import LaggedLSTM
-
-
-@pytest.mark.parametrize(
-    "model, prior_input, input, features, more_input, more_features",
-    [
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100)),
-            torch.ones((4, 8)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 1)),
-            torch.ones((4, 8, 1)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 1)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=2, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 2)),
-            torch.ones((4, 8, 2)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 2)),
-            torch.ones((4, 5, 3)),
-        ),
-    ],
-)
-def test_lagged_lstm(
-    model: LaggedLSTM,
-    prior_input: torch.Tensor,
-    input: torch.Tensor,
-    features: torch.Tensor,
-    more_input: torch.Tensor,
-    more_features: torch.Tensor,
-):
-    torch.jit.script(model)
-    output, state = model(prior_input, input, features=features)
-    assert output.shape[:2] == input.shape[:2]
-    more_output, state = model(
-        torch.cat((prior_input, input), dim=1),
-        more_input,
-        features=more_features,
-        state=state,
-    )
-    assert more_output.shape[:2] == more_input.shape[:2]
+from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
 
 
 @pytest.mark.parametrize(

@@ -15,13 +15,12 @@ from typing import Optional
 
 import numpy as np
 
-from gluonts.model.forecast import Forecast
 from gluonts.time_feature import get_seasonality
 
 
 def calculate_seasonal_error(
     past_data: np.ndarray,
-    forecast: Forecast,
+    freq: Optional[str] = None,
     seasonality: Optional[int] = None,
 ):
     r"""
@@ -34,7 +33,8 @@ def calculate_seasonal_error(
     # Check if the length of the time series is larger than the seasonal
     # frequency
     if not seasonality:
-        seasonality = get_seasonality(forecast.freq)
+        assert freq is not None, "Either freq or seasonality must be provided"
+        seasonality = get_seasonality(freq)
 
     if seasonality < len(past_data):
         forecast_freq = seasonality

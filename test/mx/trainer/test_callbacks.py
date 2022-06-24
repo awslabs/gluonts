@@ -60,7 +60,6 @@ def test_callbacks():
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,
-        freq=freq,
         trainer=Trainer(epochs=n_epochs, callbacks=[history, iter_avg]),
     )
 
@@ -72,7 +71,6 @@ def test_callbacks():
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,
-        freq=freq,
         trainer=Trainer(epochs=n_epochs, callbacks=[history, iter_avg, ws]),
     )
     predictor = estimator.train(dataset.train, num_workers=None)

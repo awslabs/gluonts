@@ -19,7 +19,6 @@ from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
-
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -45,8 +44,8 @@ from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, inputs: mx.ndarray) -> np.ndarray:
-    return prediction_net(*inputs).asnumpy()
+def _(prediction_net: mx.gluon.Block, args) -> np.ndarray:
+    return prediction_net(*args).asnumpy()
 
 
 class GluonPredictor(Predictor):
@@ -63,8 +62,6 @@ class GluonPredictor(Predictor):
         Number of time series to predict in a single batch
     prediction_length
         Number of time steps to predict
-    freq
-        Frequency of the input data
     input_transform
         Input transformation pipeline
     output_transform
@@ -83,7 +80,6 @@ class GluonPredictor(Predictor):
         prediction_net: BlockType,
         batch_size: int,
         prediction_length: int,
-        freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
@@ -92,7 +88,6 @@ class GluonPredictor(Predictor):
         dtype: Type = np.float32,
     ) -> None:
         super().__init__(
-            freq=freq,
             lead_time=lead_time,
             prediction_length=prediction_length,
         )
@@ -165,7 +160,6 @@ class GluonPredictor(Predictor):
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
                 input_names=self.input_names,
-                freq=self.freq,
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
@@ -174,8 +168,6 @@ class GluonPredictor(Predictor):
         if type(self) != type(that):
             return False
 
-        if not equals(self.freq, that.freq):
-            return False
         if not equals(self.prediction_length, that.prediction_length):
             return False
         if not equals(self.lead_time, that.lead_time):
@@ -207,7 +199,6 @@ class GluonPredictor(Predictor):
             parameters = dict(
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
-                freq=self.freq,
                 lead_time=self.lead_time,
                 ctx=self.ctx,
                 dtype=self.dtype,
@@ -296,7 +287,6 @@ class RepresentableBlockPredictor(GluonPredictor):
         prediction_net: BlockType,
         batch_size: int,
         prediction_length: int,
-        freq: str,
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
@@ -311,7 +301,6 @@ class RepresentableBlockPredictor(GluonPredictor):
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,
-            freq=freq,
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
@@ -346,7 +335,6 @@ class RepresentableBlockPredictor(GluonPredictor):
             prediction_net=symbol_block_net,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            freq=self.freq,
             ctx=self.ctx,
             input_transform=self.input_transform,
             lead_time=self.lead_time,

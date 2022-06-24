@@ -34,8 +34,8 @@ from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(nn.Module)
-def _(prediction_net: nn.Module, inputs: torch.Tensor) -> np.ndarray:
-    return prediction_net(*inputs).cpu().numpy()
+def _(prediction_net: nn.Module, args) -> np.ndarray:
+    return prediction_net(*args).cpu().numpy()
 
 
 class PyTorchPredictor(Predictor):
@@ -45,14 +45,13 @@ class PyTorchPredictor(Predictor):
         prediction_net: nn.Module,
         batch_size: int,
         prediction_length: int,
-        freq: str,
         input_transform: Transformation,
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
         device: Optional[torch.device] = torch.device("cpu"),
     ) -> None:
-        super().__init__(prediction_length, freq=freq, lead_time=lead_time)
+        super().__init__(prediction_length, lead_time=lead_time)
         self.input_names = input_names
         self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
@@ -83,7 +82,6 @@ class PyTorchPredictor(Predictor):
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
                 input_names=self.input_names,
-                freq=self.freq,
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )
@@ -121,7 +119,6 @@ class PyTorchPredictor(Predictor):
             parameters = dict(
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
-                freq=self.freq,
                 lead_time=self.lead_time,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,

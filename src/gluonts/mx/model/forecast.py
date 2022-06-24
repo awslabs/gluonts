@@ -11,18 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Union, List
+from typing import Dict, List, Optional, Union
 
 import mxnet as mx
 import numpy as np
 import pandas as pd
-
 from gluonts.core.component import validated
 from gluonts.model.forecast import (
     Forecast,
-    SampleForecast,
     Quantile,
     QuantileForecast,
+    SampleForecast,
 )
 from gluonts.mx.distribution import Distribution
 
@@ -46,8 +45,6 @@ class DistributionForecast(Forecast):
 
     start_date
         start of the forecast
-    freq
-        forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -58,7 +55,6 @@ class DistributionForecast(Forecast):
         self,
         distribution: Distribution,
         start_date: pd.Period,
-        freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -75,8 +71,6 @@ class DistributionForecast(Forecast):
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
         self._mean = None
 
     @property
@@ -106,7 +100,6 @@ class DistributionForecast(Forecast):
         return SampleForecast(
             samples=self.distribution.sample(num_samples),
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
@@ -116,7 +109,6 @@ class DistributionForecast(Forecast):
             forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
             forecast_keys=quantiles,
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )

@@ -99,11 +99,11 @@ class RForecastPredictor(RepresentablePredictor):
         freq: str,
         prediction_length: int,
         method_name: str = "ets",
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         if not R_IS_INSTALLED:
             raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)
@@ -140,7 +140,6 @@ class RForecastPredictor(RepresentablePredictor):
         self._r_method = robjects.r[method_name]
 
         self.prediction_length = prediction_length
-        self.freq = freq
         self.period = period if period is not None else get_seasonality(freq)
         self.trunc_length = trunc_length
 
@@ -279,7 +278,6 @@ class RForecastPredictor(RepresentablePredictor):
                     ),
                     forecast_keys=list(quantile_forecasts_dict.keys()),
                     start_date=forecast_start(data),
-                    freq=self.freq,
                     item_id=data.get("item_id", None),
                 )
             else:
@@ -309,7 +307,6 @@ class RForecastPredictor(RepresentablePredictor):
                 yield SampleForecast(
                     samples,
                     forecast_start(data),
-                    self.freq,
                     info=info,
                     item_id=data.get("item_id", None),
                 )

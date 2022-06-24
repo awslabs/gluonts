@@ -20,14 +20,13 @@ import numpy as np
 import pytest
 
 from gluonts.core.component import equals
-from gluonts.dataset.common import FileDataset, ListDataset
+from gluonts.dataset.jsonl import encode_json
 from gluonts.model.trivial.mean import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
     from gluonts.shell.serve import Settings
-    from gluonts.shell.serve.util import jsonify_floats
     from gluonts.testutil import shell as testutil
 except ImportError:
     if sys.platform != "win32":
@@ -107,9 +106,7 @@ def batch_transform(monkeypatch, train_env):
 def test_listify_dataset(train_env: TrainEnv, listify_dataset):
     for dataset in train_env.datasets.values():
         if listify_dataset == "yes":
-            assert isinstance(dataset, ListDataset)
-        else:
-            assert isinstance(dataset, FileDataset)
+            assert isinstance(dataset, list)
 
 
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
@@ -148,6 +145,7 @@ def test_server_shell(
         "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
+        **train_env.hyperparameters,
     }
 
     for entry in train_env.datasets["train"]:
@@ -274,5 +272,4 @@ def test_as_json_dict_outputs_valid_json():
     with pytest.raises(ValueError):
         json.dumps(non_compliant_json, allow_nan=False)
 
-    output_json = jsonify_floats(non_compliant_json)
-    json.dumps(output_json, allow_nan=False)
+    json.dumps(encode_json(non_compliant_json), allow_nan=False)

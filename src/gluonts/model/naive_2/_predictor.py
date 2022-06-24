@@ -136,15 +136,19 @@ class Naive2Predictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
+        freq: Optional[str] = None,
         season_length: Optional[int] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         assert (
             season_length is None or season_length > 0
         ), "The value of `season_length` should be > 0"
+        assert freq is not None or season_length is not None, (
+            "Either the frequency or season length of the time series "
+            "has to be specified. "
+        )
 
         self.freq = freq
         self.prediction_length = prediction_length
@@ -170,6 +174,5 @@ class Naive2Predictor(RepresentablePredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item_id,
         )

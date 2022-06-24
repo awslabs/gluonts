@@ -30,23 +30,13 @@ lint:
 
 docs: release
 	make -C docs html # SPHINXOPTS=-W
-	for f in $(shell find docs/tutorials -type f -name '*.md' -print) ; do \
-		FILE=`echo $$f | sed 's/docs\///g'` ; \
-		DIR=`dirname $$FILE` ; \
-		BASENAME=`basename $$FILE` ; \
-		HTML_BASENAME=`echo $$BASENAME | sed 's/md/html/'` ; \
-		IPYNB_BASENAME=`echo $$BASENAME | sed 's/md/ipynb/'` ; \
-		TARGET_HTML="docs/_build/html/$$DIR/$$HTML_BASENAME" ; \
-		echo "processing" $$BASENAME ; \
-		sed -i "s/$$IPYNB_BASENAME/$$BASENAME/g" $$TARGET_HTML; \
-	done;
-	sed -i.bak 's/33\,150\,243/23\,141\,201/g' docs/_build/html/_static/material-design-lite-1.3.0/material.blue-deep_orange.min.css;
 
 clean:
 	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
 
 compile_notebooks:
-	python $(MD2IPYNB) "docs/tutorials/**/*.md"
+	python -m ipykernel install --user --name docsbuild
+	python $(MD2IPYNB) --kernel docsbuild "docs/tutorials/**/*.md"
 
 dist_notebooks: compile_notebooks
 	cd docs/tutorials && \

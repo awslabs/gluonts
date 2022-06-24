@@ -28,7 +28,7 @@ from gluonts.dataset.loader import (
 from gluonts.env import env
 from gluonts.model.lstnet._network import LSTNetPredict, LSTNetTrain
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context, batchify
+from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -59,8 +59,6 @@ class LSTNetEstimator(GluonEstimator):
 
     Parameters
     ----------
-    freq
-        Frequency of the data to train and predict
     prediction_length
         Length of the prediction p where given `(y_1, ..., y_t)` the model
         predicts `(y_{t+l+1}, ..., y_{t+l+p})`, where l is `lead_time`
@@ -115,7 +113,6 @@ class LSTNetEstimator(GluonEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: int,
         num_series: int,
@@ -145,7 +142,6 @@ class LSTNetEstimator(GluonEstimator):
             batch_size=batch_size,
             dtype=dtype,
         )
-        self.freq = freq
         self.num_series = num_series
         self.skip_size = skip_size
         self.ar_window = ar_window
@@ -222,7 +218,6 @@ class LSTNetEstimator(GluonEstimator):
             transform=instance_splitter + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 
@@ -295,7 +290,6 @@ class LSTNetEstimator(GluonEstimator):
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             lead_time=self.lead_time,
             ctx=self.trainer.ctx,

@@ -12,14 +12,15 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
-import pytest
 
-from gluonts.torch.model.mqf2 import (
-    MQF2MultiHorizonModel,
-    MQF2MultiHorizonLightningModule,
-)
+import pytest
+import torch
+
 from gluonts.torch.distributions import MQF2DistributionOutput
+from gluonts.torch.model.mqf2 import (
+    MQF2MultiHorizonLightningModule,
+    MQF2MultiHorizonModel,
+)
 
 
 @pytest.mark.parametrize(
@@ -81,7 +82,7 @@ def test_mqf2_modules(
 
     assert scale.shape == (batch_size, 1)
 
-    hidden_size = model.lagged_rnn.rnn.hidden_size
+    hidden_size = model.rnn.hidden_size
 
     assert hidden_state.shape == (batch_size, context_length, hidden_size)
 
