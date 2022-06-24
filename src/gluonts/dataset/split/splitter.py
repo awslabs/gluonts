@@ -43,7 +43,6 @@ The module also supports rolling splits::
 """
 
 from abc import ABC, abstractmethod
-from posixpath import split
 from typing import List, Optional, cast, Iterable, Tuple
 from dataclasses import dataclass
 
