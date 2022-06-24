@@ -163,7 +163,7 @@ def generate_m3_dataset(
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 
-        s = str(pd.Period(time_stamp, freq=subset.freq))
+        start = str(pd.Period(time_stamp, freq=subset.freq))
         cat = [i, cat_map[category]]
 
         train_data.append(
