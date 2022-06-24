@@ -15,20 +15,6 @@ from pathlib import Path
 from typing import List, Union
 
 
-def create_dataset_paths(base_path: Path, channel_names: List[str]):
-    base_path.mkdir(exist_ok=True)
-
-    channels = {}
-
-    for channel_name in channel_names:
-        channel = base_path / channel_name
-        channel.mkdir(exist_ok=True)
-
-        channels[channel_name] = channel
-
-    return channels
-
-
 def metadata(
     cardinality: Union[int, List[int]], freq: str, prediction_length: int
 ):
