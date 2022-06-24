@@ -14,7 +14,6 @@
 import logging
 import os
 import shutil
-from collections import OrderedDict
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -55,171 +54,160 @@ def get_download_path() -> Path:
     return Path.home() / ".mxnet" / "gluon-ts"
 
 
-dataset_recipes = OrderedDict(
-    {
-        # each recipe generates a dataset given a path
-        "constant": partial(
-            generate_artificial_dataset, dataset=ConstantDataset()
-        ),
-        "exchange_rate": partial(
-            generate_lstnet_dataset, dataset_name="exchange_rate"
-        ),
-        "solar-energy": partial(
-            generate_lstnet_dataset, dataset_name="solar-energy"
-        ),
-        "electricity": partial(
-            generate_lstnet_dataset, dataset_name="electricity"
-        ),
-        "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
-        "exchange_rate_nips": partial(
-            generate_gp_copula_dataset, dataset_name="exchange_rate_nips"
-        ),
-        "electricity_nips": partial(
-            generate_gp_copula_dataset, dataset_name="electricity_nips"
-        ),
-        "traffic_nips": partial(
-            generate_gp_copula_dataset, dataset_name="traffic_nips"
-        ),
-        "solar_nips": partial(
-            generate_gp_copula_dataset, dataset_name="solar_nips"
-        ),
-        "wiki-rolling_nips": partial(
-            generate_gp_copula_dataset, dataset_name="wiki-rolling_nips"
-        ),
-        "taxi_30min": partial(
-            generate_gp_copula_dataset, dataset_name="taxi_30min"
-        ),
-        "kaggle_web_traffic_with_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="kaggle_web_traffic_with_missing",
-        ),
-        "kaggle_web_traffic_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="kaggle_web_traffic_without_missing",
-        ),
-        "kaggle_web_traffic_weekly": partial(
-            generate_forecasting_dataset,
-            dataset_name="kaggle_web_traffic_weekly",
-        ),
-        "m1_yearly": partial(
-            generate_forecasting_dataset, dataset_name="m1_yearly"
-        ),
-        "m1_quarterly": partial(
-            generate_forecasting_dataset, dataset_name="m1_quarterly"
-        ),
-        "m1_monthly": partial(
-            generate_forecasting_dataset, dataset_name="m1_monthly"
-        ),
-        "nn5_daily_with_missing": partial(
-            generate_forecasting_dataset, dataset_name="nn5_daily_with_missing"
-        ),
-        "nn5_daily_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="nn5_daily_without_missing",
-        ),
-        "nn5_weekly": partial(
-            generate_forecasting_dataset, dataset_name="nn5_weekly"
-        ),
-        "tourism_monthly": partial(
-            generate_forecasting_dataset, dataset_name="tourism_monthly"
-        ),
-        "tourism_quarterly": partial(
-            generate_forecasting_dataset, dataset_name="tourism_quarterly"
-        ),
-        "tourism_yearly": partial(
-            generate_forecasting_dataset, dataset_name="tourism_yearly"
-        ),
-        "cif_2016": partial(
-            generate_forecasting_dataset, dataset_name="cif_2016"
-        ),
-        "london_smart_meters_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="london_smart_meters_without_missing",
-        ),
-        "wind_farms_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="wind_farms_without_missing",
-        ),
-        "car_parts_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="car_parts_without_missing",
-        ),
-        "dominick": partial(
-            generate_forecasting_dataset, dataset_name="dominick"
-        ),
-        "fred_md": partial(
-            generate_forecasting_dataset, dataset_name="fred_md"
-        ),
-        "pedestrian_counts": partial(
-            generate_forecasting_dataset, dataset_name="pedestrian_counts"
-        ),
-        "hospital": partial(
-            generate_forecasting_dataset, dataset_name="hospital"
-        ),
-        "covid_deaths": partial(
-            generate_forecasting_dataset, dataset_name="covid_deaths"
-        ),
-        "kdd_cup_2018_without_missing": partial(
-            generate_forecasting_dataset,
-            dataset_name="kdd_cup_2018_without_missing",
-        ),
-        "weather": partial(
-            generate_forecasting_dataset, dataset_name="weather"
-        ),
-        "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
-        "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),
-        "m3_yearly": partial(generate_m3_dataset, m3_freq="yearly"),
-        "m3_other": partial(generate_m3_dataset, m3_freq="other"),
-        "m4_hourly": partial(
-            generate_m4_dataset,
-            m4_freq="Hourly",
-            pandas_freq="H",
-            prediction_length=48,
-        ),
-        "m4_daily": partial(
-            generate_m4_dataset,
-            m4_freq="Daily",
-            pandas_freq="D",
-            prediction_length=14,
-        ),
-        "m4_weekly": partial(
-            generate_m4_dataset,
-            m4_freq="Weekly",
-            pandas_freq="W",
-            prediction_length=13,
-        ),
-        "m4_monthly": partial(
-            generate_m4_dataset,
-            m4_freq="Monthly",
-            pandas_freq="M",
-            prediction_length=18,
-        ),
-        "m4_quarterly": partial(
-            generate_m4_dataset,
-            m4_freq="Quarterly",
-            pandas_freq="Q",
-            prediction_length=8,
-        ),
-        "m4_yearly": partial(
-            generate_m4_dataset,
-            m4_freq="Yearly",
-            pandas_freq="Y",
-            prediction_length=6,
-        ),
-        "m5": partial(
-            generate_m5_dataset,
-            pandas_freq="D",
-            prediction_length=28,
-            m5_file_path=get_download_path() / "m5",
-        ),
-        "uber_tlc_daily": partial(
-            generate_uber_dataset, uber_freq="Daily", prediction_length=7
-        ),
-        "uber_tlc_hourly": partial(
-            generate_uber_dataset, uber_freq="Hourly", prediction_length=24
-        ),
-    }
-)
+dataset_recipes = {
+    # each recipe generates a dataset given a path
+    "constant": partial(
+        generate_artificial_dataset, dataset=ConstantDataset()
+    ),
+    "exchange_rate": partial(
+        generate_lstnet_dataset, dataset_name="exchange_rate"
+    ),
+    "solar-energy": partial(
+        generate_lstnet_dataset, dataset_name="solar-energy"
+    ),
+    "electricity": partial(
+        generate_lstnet_dataset, dataset_name="electricity"
+    ),
+    "traffic": partial(generate_lstnet_dataset, dataset_name="traffic"),
+    "exchange_rate_nips": partial(
+        generate_gp_copula_dataset, dataset_name="exchange_rate_nips"
+    ),
+    "electricity_nips": partial(
+        generate_gp_copula_dataset, dataset_name="electricity_nips"
+    ),
+    "traffic_nips": partial(
+        generate_gp_copula_dataset, dataset_name="traffic_nips"
+    ),
+    "solar_nips": partial(
+        generate_gp_copula_dataset, dataset_name="solar_nips"
+    ),
+    "wiki-rolling_nips": partial(
+        generate_gp_copula_dataset, dataset_name="wiki-rolling_nips"
+    ),
+    "taxi_30min": partial(
+        generate_gp_copula_dataset, dataset_name="taxi_30min"
+    ),
+    "kaggle_web_traffic_with_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="kaggle_web_traffic_with_missing",
+    ),
+    "kaggle_web_traffic_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="kaggle_web_traffic_without_missing",
+    ),
+    "kaggle_web_traffic_weekly": partial(
+        generate_forecasting_dataset,
+        dataset_name="kaggle_web_traffic_weekly",
+    ),
+    "m1_yearly": partial(
+        generate_forecasting_dataset, dataset_name="m1_yearly"
+    ),
+    "m1_quarterly": partial(
+        generate_forecasting_dataset, dataset_name="m1_quarterly"
+    ),
+    "m1_monthly": partial(
+        generate_forecasting_dataset, dataset_name="m1_monthly"
+    ),
+    "nn5_daily_with_missing": partial(
+        generate_forecasting_dataset, dataset_name="nn5_daily_with_missing"
+    ),
+    "nn5_daily_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="nn5_daily_without_missing",
+    ),
+    "nn5_weekly": partial(
+        generate_forecasting_dataset, dataset_name="nn5_weekly"
+    ),
+    "tourism_monthly": partial(
+        generate_forecasting_dataset, dataset_name="tourism_monthly"
+    ),
+    "tourism_quarterly": partial(
+        generate_forecasting_dataset, dataset_name="tourism_quarterly"
+    ),
+    "tourism_yearly": partial(
+        generate_forecasting_dataset, dataset_name="tourism_yearly"
+    ),
+    "cif_2016": partial(generate_forecasting_dataset, dataset_name="cif_2016"),
+    "london_smart_meters_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="london_smart_meters_without_missing",
+    ),
+    "wind_farms_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="wind_farms_without_missing",
+    ),
+    "car_parts_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="car_parts_without_missing",
+    ),
+    "dominick": partial(generate_forecasting_dataset, dataset_name="dominick"),
+    "fred_md": partial(generate_forecasting_dataset, dataset_name="fred_md"),
+    "pedestrian_counts": partial(
+        generate_forecasting_dataset, dataset_name="pedestrian_counts"
+    ),
+    "hospital": partial(generate_forecasting_dataset, dataset_name="hospital"),
+    "covid_deaths": partial(
+        generate_forecasting_dataset, dataset_name="covid_deaths"
+    ),
+    "kdd_cup_2018_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="kdd_cup_2018_without_missing",
+    ),
+    "weather": partial(generate_forecasting_dataset, dataset_name="weather"),
+    "m3_monthly": partial(generate_m3_dataset, m3_freq="monthly"),
+    "m3_quarterly": partial(generate_m3_dataset, m3_freq="quarterly"),
+    "m3_yearly": partial(generate_m3_dataset, m3_freq="yearly"),
+    "m3_other": partial(generate_m3_dataset, m3_freq="other"),
+    "m4_hourly": partial(
+        generate_m4_dataset,
+        m4_freq="Hourly",
+        pandas_freq="H",
+        prediction_length=48,
+    ),
+    "m4_daily": partial(
+        generate_m4_dataset,
+        m4_freq="Daily",
+        pandas_freq="D",
+        prediction_length=14,
+    ),
+    "m4_weekly": partial(
+        generate_m4_dataset,
+        m4_freq="Weekly",
+        pandas_freq="W",
+        prediction_length=13,
+    ),
+    "m4_monthly": partial(
+        generate_m4_dataset,
+        m4_freq="Monthly",
+        pandas_freq="M",
+        prediction_length=18,
+    ),
+    "m4_quarterly": partial(
+        generate_m4_dataset,
+        m4_freq="Quarterly",
+        pandas_freq="Q",
+        prediction_length=8,
+    ),
+    "m4_yearly": partial(
+        generate_m4_dataset,
+        m4_freq="Yearly",
+        pandas_freq="Y",
+        prediction_length=6,
+    ),
+    "m5": partial(
+        generate_m5_dataset,
+        pandas_freq="D",
+        prediction_length=28,
+        m5_file_path=get_download_path() / "m5",
+    ),
+    "uber_tlc_daily": partial(
+        generate_uber_dataset, uber_freq="Daily", prediction_length=7
+    ),
+    "uber_tlc_hourly": partial(
+        generate_uber_dataset, uber_freq="Hourly", prediction_length=24
+    ),
+}
+
 
 dataset_names = list(dataset_recipes.keys())
 

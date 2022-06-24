@@ -32,55 +32,5 @@ def generate_artificial_dataset(
     if prediction_length is not None:
         ds.metadata.prediction_length = prediction_length
 
-    train_data = generate_sf2(
-        train=True,
-        time_series=list(map(encode_json, ds.train)),
-        is_missing=False,
-        num_missing=0,
-    )
-
-    test_data = generate_sf2(
-        train=False,
-        time_series=list(map(encode_json, ds.test)),
-        is_missing=False,
-        num_missing=0,
-    )
-
-    dataset = TrainDatasets(
-        metadata=ds.metadata, train=train_data, test=test_data
-    )
+    dataset = TrainDatasets(metadata=ds.metadata, train=ds.train, test=ds.test)
     dataset.save(path_str=str(dataset_path), writer=dataset_writer)
-
-
-def generate_sf2(
-    train: bool,
-    time_series: List,
-    is_missing: bool,
-    num_missing: int,
-) -> List:
-    data = []
-    for ts in time_series:
-        if is_missing:
-            target = []  # type: List
-            # For Forecast don't output feat_static_cat and
-            # feat_static_real
-            for j, val in enumerate(ts[FieldName.TARGET]):
-                # only add ones that are not missing
-                if j != 0 and j % num_missing == 0:
-                    target.append(None)
-                else:
-                    target.append(val)
-            ts[FieldName.TARGET] = target
-        ts.pop(FieldName.FEAT_STATIC_CAT, None)
-        ts.pop(FieldName.FEAT_STATIC_REAL, None)
-        # Chop features in training set
-        if FieldName.FEAT_DYNAMIC_REAL in ts.keys() and train:
-            # TODO: Fix for missing values
-            for i, feat_dynamic_real in enumerate(
-                ts[FieldName.FEAT_DYNAMIC_REAL]
-            ):
-                ts[FieldName.FEAT_DYNAMIC_REAL][i] = feat_dynamic_real[
-                    : len(ts[FieldName.TARGET])
-                ]
-        data.append(ts)
-    return data
