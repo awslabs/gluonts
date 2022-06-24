@@ -19,7 +19,6 @@ from zipfile import ZipFile
 
 from pandas.tseries.frequencies import to_offset
 
-from gluonts import json
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
