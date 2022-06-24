@@ -13,12 +13,14 @@
 
 import json
 from pathlib import Path
+from this import d
 from typing import List, Optional
 
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ArtificialDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository._util import create_dataset_paths
+from gluonts.dataset.jsonl import encode_json
 
 
 def generate_artificial_dataset(
@@ -39,17 +41,17 @@ def generate_artificial_dataset(
 
     generate_sf2(
         path=paths["train"],
-        time_series=list(ds.train),
-        ds_writer=dataset_writer,
+        time_series=list(map(encode_json, ds.train)),
         is_missing=False,
+        dataset_writer=dataset_writer,
         num_missing=0,
     )
 
     generate_sf2(
         path=paths["test"],
-        time_series=list(ds.test),
-        ds_writer=dataset_writer,
+        time_series=list(map(encode_json, ds.test)),
         is_missing=False,
+        dataset_writer=dataset_writer,
         num_missing=0,
     )
 
@@ -57,7 +59,7 @@ def generate_artificial_dataset(
 def generate_sf2(
     path: Path,
     time_series: List,
-    ds_writer: DatasetWriter,
+    dataset_writer: DatasetWriter,
     is_missing: bool,
     num_missing: int,
 ) -> None:
@@ -86,4 +88,4 @@ def generate_sf2(
                     : len(ts[FieldName.TARGET])
                 ]
         data.append(ts)
-    ds_writer.write_to_folder(data, path)
+    dataset_writer.write_to_folder(data, path)
