@@ -22,6 +22,35 @@ import gluonts.time_feature.lag as date_feature_set
 # Remaining lags correspond to the same `season` (+/- `delta`) in previous `k` cycles.
 expected_lags = {
     # (apart from the default lags) centered around each of the last 3 hours (delta = 2)
+    "4S": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        13,
+        14,
+        15,
+        16,
+        17,
+        28,
+        29,
+        30,
+        31,
+        32,
+        43,
+        44,
+        45,
+        46,
+        47,
+        898,
+        899,
+        900,
+        901,
+        902,
+    ],
     "min": [
         1,
         2,
@@ -276,6 +305,7 @@ expected_lags["7D"] = expected_lags["1W"]
 def test_lags():
 
     freq_strs = [
+        "4S",
         "min",
         "1min",
         "15min",
