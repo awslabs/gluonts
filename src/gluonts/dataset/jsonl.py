@@ -137,6 +137,8 @@ class JsonLinesFile:
 class JsonLinesWriter(DatasetWriter):
     use_gzip: bool = True
     suffix: str = ".json"
+    # Python uses `compresslevel=9` by default, which is very slow
+    # We opt for faster writes by default, for more modest size savings
     compresslevel: int = 4
 
     def write_to_file(self, dataset: Dataset, path: Path) -> None:
