@@ -62,12 +62,12 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
                 (6, 30),
                 (9, 30),
                 (12, 31),
-            ], f"Invalid time stamp %d-%d" % (month, day)
+            ], f"Invalid time stamp {month}-{day}"
         elif sheet_name == "M3Year":
-            assert (month, day) == (12, 31), f"Invalid time stamp %d-%d" % (
-                month,
-                day,
-            )
+            assert (month, day) == (
+                12,
+                31,
+            ), f"Invalid time stamp {month}-{day}"
 
 
 class M3Setting(NamedTuple):
