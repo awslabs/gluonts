@@ -8,10 +8,10 @@ defaults:
 
 env:
   SKIP_BUILD_NOTEBOOK: >
-  ${{ !(
-    github.event_name == 'push'
-    || contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook')
-  ) }}
+    ${{ !(
+      github.event_name == 'push'
+      || contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook')
+    ) }}
 
 jobs:
   docs-build:
