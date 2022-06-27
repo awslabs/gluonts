@@ -195,7 +195,7 @@ class AbstractBaseSplitter(ABC):
         else:
             return item
 
-    def split(self, items: List[DataEntry]):
+    def split(self, dataset: Dataset):
         test_data = TestTemplate(dataset=items, splitter=self)
         train_data = TrainingDataset(dataset=items, splitter=self)
 
