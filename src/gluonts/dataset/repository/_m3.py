@@ -54,7 +54,7 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
 
         assert ts_train["start"] == ts_test["start"]
         start = ts_train["start"]
-        
+
         if sheet_name in ["M3Quart", "Other"]:
             assert (start.month, start.day) in [
                 (3, 31),
