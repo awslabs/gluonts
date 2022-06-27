@@ -55,21 +55,20 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
 
         assert ts_train["start"] == ts_test["start"]
         start = ts_train["start"]
-        regex = r"^(\d{4})-(\d{2})-(\d{2})( 00:00(:00)?)?$"
-        m = re.match(regex, str(start))
-        assert m
-        month, day = m.group(2), m.group(3)
+        assert isinstance(start, pd.Period)
+        month, day = start.month, start.day
         if sheet_name in ["M3Quart", "Other"]:
-            assert f"{month}-{day}" in [
-                "03-31",
-                "06-30",
-                "09-30",
-                "12-31",
-            ], f"Invalid time stamp `{month}-{day}`"
+            assert (month, day) in [
+                (3, 31),
+                (6, 30),
+                (9, 30),
+                (12, 31),
+            ], f"Invalid time stamp %d-%d" % (month, day)
         elif sheet_name == "M3Year":
-            assert (
-                f"{month}-{day}" == "12-31"
-            ), f"Invalid time stamp {month}-{day}"
+            assert (month, day) == (12, 31), f"Invalid time stamp %d-%d" % (
+                month,
+                day,
+            )
 
 
 class M3Setting(NamedTuple):
