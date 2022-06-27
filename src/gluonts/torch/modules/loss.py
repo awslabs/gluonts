@@ -17,27 +17,39 @@ from pydantic import create_model
 
 class DistributionLoss(torch.nn.Module):
     def __init_subclass__(cls):
+        # If a class doesn't have annotations, it inherits the ones from its
+        # parent. We don't want that!
         if cls.__annotations__ is torch.nn.Module.__annotations__:
-            return
+            annotations = {}
+        else:
+            annotations = cls.__annotations__
 
+        # We create a new pydantic model to check the input args
         cls.__pydantic_model__ = create_model(
             cls.__name__ + "Model",
             **{
                 name: (ty, cls.__dict__.get(name, ...))
-                for name, ty in cls.__annotations__.items()
+                for name, ty in annotations.items()
                 if not name.startswith("_")
             },
         )
 
     def __new__(cls, **kwargs):
+        # First we need to create the object.
         obj = object.__new__(cls)
+
+        # Now we check the **kwargs using the generated model.
         values = cls.__pydantic_model__(**kwargs).dict()
+
+        # Update the __dict__, which is like assigning the values to `obj`
         obj.__dict__.update(values)
-        obj.__newargs_ex__ = values
+
+        # Store the values so we can return them for the pickle protocol.
+        obj.__init_kwargs__ = values
         return obj
 
     def __getnewargs_ex__(self):
-        return (), self.__newargs_ex__
+        return (), self.__init_kwargs__
 
     def __init__(self, **kwargs):
         torch.nn.Module.__init__(self)
