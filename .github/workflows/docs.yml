@@ -25,6 +25,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - uses: extractions/setup-just@v1
 
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
@@ -44,7 +45,6 @@ jobs:
         sudo apt-get install pandoc
 
     - name: Build docs
-      uses: extractions/setup-just@v1
       run: |
         make docs
 
