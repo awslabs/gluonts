@@ -54,20 +54,19 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
 
         assert ts_train["start"] == ts_test["start"]
         start = ts_train["start"]
-        assert isinstance(start, pd.Period)
-        month, day = start.month, start.day
+        
         if sheet_name in ["M3Quart", "Other"]:
-            assert (month, day) in [
+            assert (start.month, start.day) in [
                 (3, 31),
                 (6, 30),
                 (9, 30),
                 (12, 31),
-            ], f"Invalid time stamp {month}-{day}"
+            ], f"Invalid time stamp {start.month}-{start.day}"
         elif sheet_name == "M3Year":
-            assert (month, day) == (
+            assert (start.month, start.day) == (
                 12,
                 31,
-            ), f"Invalid time stamp {month}-{day}"
+            ), f"Invalid time stamp {start.month}-{start.day}"
 
 
 class M3Setting(NamedTuple):
