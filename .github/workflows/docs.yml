@@ -44,6 +44,7 @@ jobs:
         sudo apt-get install pandoc
 
     - name: Build docs
+    - uses: extractions/setup-just@v1
       run: |
         make docs
 
