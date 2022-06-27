@@ -35,7 +35,7 @@ clean:
 	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
 
 compile_notebooks:
-	@if [ "$(SKIP_BUILD_NOTEBOOK)" = "true" ]; \
+	if [ "$(SKIP_BUILD_NOTEBOOK)" = "true" ]; \
 	then \
 		find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 cp; \
 	else \
