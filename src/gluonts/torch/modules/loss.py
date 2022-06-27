@@ -12,9 +12,36 @@
 # permissions and limitations under the License.
 
 import torch
+from pydantic import create_model
 
 
 class DistributionLoss(torch.nn.Module):
+    def __init_subclass__(cls):
+        if cls.__annotations__ is torch.nn.Module.__annotations__:
+            return
+
+        cls.__pydantic_model__ = create_model(
+            cls.__name__ + "Model",
+            **{
+                name: (ty, cls.__dict__.get(name, ...))
+                for name, ty in cls.__annotations__.items()
+                if not name.startswith("_")
+            },
+        )
+
+    def __new__(cls, **kwargs):
+        obj = object.__new__(cls)
+        values = cls.__pydantic_model__(**kwargs).dict()
+        obj.__dict__.update(values)
+        obj.__newargs_ex__ = values
+        return obj
+
+    def __getnewargs_ex__(self):
+        return (), self.__newargs_ex__
+
+    def __init__(self, **kwargs):
+        torch.nn.Module.__init__(self)
+
     """
     A ``torch.nn.Module`` extensions that computes loss values by comparing a
     ``Distribution`` (prediction) to a ``Tensor`` (ground-truth).
@@ -60,9 +87,7 @@ class NegativeLogLikelihood(DistributionLoss):
         https://openreview.net/forum?id=aPOpXlnV1T
     """
 
-    def __init__(self, beta: float = 0.0):
-        super().__init__()
-        self.beta = beta
+    beta: float = 0.0
 
     def forward(
         self, input: torch.distributions.Distribution, target: torch.Tensor
