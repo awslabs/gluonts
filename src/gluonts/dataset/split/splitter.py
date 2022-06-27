@@ -43,15 +43,14 @@ The module also supports rolling splits::
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, cast, Iterable, Tuple
 from dataclasses import dataclass
+from typing import cast, Generator, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import pydantic
 
-from gluonts.dataset import Dataset
-from gluonts.dataset.common import DataEntry
+from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 
 
@@ -188,16 +187,16 @@ class AbstractBaseSplitter(ABC):
         pass
 
     def _trim_history(
-        self, item: TimeSeriesSlice, label_len: int, max_history
+        self, item: TimeSeriesSlice, max_history: Optional[int]
     ) -> TimeSeriesSlice:
         if max_history is not None:
-            return item[-max_history + label_len :]
+            return item[-max_history:]
         else:
             return item
 
     def split(self, dataset: Dataset):
-        test_data = TestTemplate(dataset=items, splitter=self)
-        train_data = TrainingDataset(dataset=items, splitter=self)
+        test_data = TestTemplate(dataset=dataset, splitter=self)
+        train_data = TrainingDataset(dataset=dataset, splitter=self)
 
         return train_data, test_data
 
@@ -211,10 +210,10 @@ class AbstractBaseSplitter(ABC):
         self,
         items: Dataset,
         prediction_length: int,
-        windows,
-        distance,
-        max_history,
-    ):
+        windows: int = 1,
+        distance: Optional[int] = None,
+        max_history: Optional[int] = None,
+    ) -> Generator[Tuple[DataEntry, DataEntry], None, None]:
         if distance is None:
             distance = prediction_length
 
@@ -232,20 +231,12 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 input = self._trim_history(
-                    test[0], len(test[1]), max_history
+                    test[0], max_history
                 ).to_data_entry()
 
                 label = test[1].to_data_entry()
-                df_label = pd.DataFrame(label["target"])
-                df_label = df_label.set_index(
-                    pd.period_range(
-                        start=label["start"],
-                        periods=len(label["target"]),
-                        freq=train.end.freq,
-                    )
-                )
 
-                yield input, df_label
+                yield input, label
 
 
 def _check_split_length(
@@ -266,6 +257,8 @@ class TestTemplate:
 
     Parameters
     ----------
+    dataset:
+        Whole dataset used for testing.
     splitter:
         A specific splitter that knows how to slices training and
         test data.
@@ -280,7 +273,7 @@ class TestTemplate:
         windows=1,
         distance=None,
         max_history=None,
-    ):
+    ) -> Generator[Tuple[DataEntry, DataEntry], None, None]:
         """
         Generate an iterator of test dataset, which includes input part and
         label part.
@@ -290,11 +283,11 @@ class TestTemplate:
         prediction_length
             Length of the prediction interval in test data.
         windows
-            Windows is used especially when doing ``rolling_split``, otherwise,
-            it should be ``1`` for a simple ``split``.
+            Indicates how many test windows to generate for each original
+            dataset entry.
         distance
-            Length of each window. If set to None, the prediction_length is
-            set as default distance.
+            This is rather the difference between the start of each test
+            window generated, for each of the original dataset entries.
         max_history
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.
@@ -345,10 +338,16 @@ class OffsetSplitter(AbstractBaseSplitter):
     def _test_slice(
         self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
-        offset_ = self.split_offset + offset + prediction_length
+        offset_ = self.split_offset + offset
         if self.split_offset < 0 and offset_ >= 0:
             offset_ += len(item)
-        return (item[: self.split_offset], item[self.split_offset : offset_])
+        if offset_ + prediction_length:
+            return (
+                item[:offset_],
+                item[offset_ : offset_ + prediction_length],
+            )
+        else:
+            return (item[:offset_], item[offset_:])
 
 
 @dataclass
@@ -378,10 +377,10 @@ class DateSplitter(AbstractBaseSplitter):
         self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         return (
-            item[: self.split_date],
+            item[: self.split_date + offset * item.start.freq],
             item[
                 self.split_date
-                + item.start.freq : self.split_date
+                + (offset + 1) * item.start.freq : self.split_date
                 + (prediction_length + offset) * item.start.freq
             ],
         )
