@@ -35,7 +35,7 @@ clean:
 	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
 
 compile_notebooks:
-ifeq ($(SKIP_BUILD_NOTEBOOK), true)
+ifeq ($(SKIP_BUILD_NOTEBOOK),true)
 	find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 echo
 else
 	python -m ipykernel install --user --name docsbuild
