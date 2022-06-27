@@ -36,7 +36,7 @@ clean:
 
 compile_notebooks:
 	python -m ipykernel install --user --name docsbuild
-	python $(MD2IPYNB) --kernel docsbuild "docs/tutorials/**/*.md"
+	python $(MD2IPYNB) --kernel docsbuild "docs/tutorials/**/*.md.input"
 
 dist_notebooks: compile_notebooks
 	cd docs/tutorials && \
