@@ -22,7 +22,7 @@ def convert(path, kernel_name=None, timeout=40 * 60):
         notebook,
         timeout=600,
         kernel_name=kernel_name,
-        resources={'metadata': {'path': '.'}}
+        resources={"metadata": {"path": "."}},
     )
     client.execute()
 
@@ -31,17 +31,20 @@ def convert(path, kernel_name=None, timeout=40 * 60):
     # need to add language info to for syntax highlight
     notebook["metadata"].update(language_info={"name": "python"})
 
-    with path.with_suffix(".ipynb").open("w") as out_file:
-        out_file.write(nbformat.writes(notebook))
+    nbformat.write(notebook, path.with_suffix(".ipynb"))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-k', '--kernel', dest='kernel_name', default=None, help='name of ipython kernel to use'
+        "-k",
+        "--kernel",
+        dest="kernel_name",
+        default=None,
+        help="name of ipython kernel to use",
     )
     parser.add_argument(
-        'files', type=str, nargs='+', help='path to files to convert'
+        "files", type=str, nargs="+", help="path to files to convert"
     )
 
     args = parser.parse_args()
