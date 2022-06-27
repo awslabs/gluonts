@@ -46,7 +46,7 @@ jobs:
 
     - name: Build docs
       run: |
-        make docs
+        just docs
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
