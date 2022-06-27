@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import os
-import re
 import warnings
 from pathlib import Path
 from typing import NamedTuple, Optional
