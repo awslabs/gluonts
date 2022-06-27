@@ -31,7 +31,11 @@ def convert(path, kernel_name=None, timeout=40 * 60):
     # need to add language info to for syntax highlight
     notebook["metadata"].update(language_info={"name": "python"})
 
-    nbformat.write(notebook, path.with_suffix(".ipynb"))
+    # XXX.md.input -> XXX.ipynb
+    # `with_suffix` only operates on last suffix, so we need some more involved
+    # logic.
+    stem = path.name.split(".", 1)[0]
+    nbformat.write(notebook, path.with_name(stem).with_suffix(".ipynb"))
 
 
 if __name__ == "__main__":
