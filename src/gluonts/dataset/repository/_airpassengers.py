@@ -23,7 +23,7 @@ from gluonts.dataset.pandas import PandasDataset
 URL = "https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
 
 
-def generate_airtraffic_dataset(
+def generate_airpassengers_dataset(
     dataset_path: Path,
     dataset_writer: DatasetWriter,
 ):
@@ -35,7 +35,7 @@ def generate_airtraffic_dataset(
         parse_dates=True,
     )
 
-    train = PandasDataset(df[:test_split_index], target="#Passengers")
+    train = PandasDataset(df[:-test_split_index], target="#Passengers")
     test = PandasDataset(df, target="#Passengers")
 
     meta = MetaData(freq="1M", prediction_length=12)
