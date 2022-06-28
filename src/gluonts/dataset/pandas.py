@@ -111,10 +111,9 @@ class PandasDataset(Dataset):
 
             df = df.to_period(freq=self.freq).sort_index()
 
-            assert (
-                is_uniform(df.index),
-                "``timestamps`` are not monotonically increasing or evenly spaced.",
-            )
+            assert is_uniform(
+                df.index
+            ), "Dataframe index is not uniformly spaced."
 
             self._dataframes[i] = (item_id, df)
 
