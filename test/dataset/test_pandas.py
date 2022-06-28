@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import io
+
 import pandas as pd
 import numpy as np
 import pytest
@@ -194,3 +196,45 @@ def test_series_to_dataframe(my_series):
     dict_df = pandas.series_to_dataframe({"A": my_series})
     assert list(dict_df.keys())[0] == "A"
     assert isinstance(list(dict_df.values())[0], pd.DataFrame)
+
+
+def test_long_csv_3M():
+    data = \
+        "timestamp,item_id,target\n" \
+        "2021-03,0,102\n" \
+        "2021-06,0,103\n" \
+        "2021-09,0,102\n" \
+        "2021-12,0,99\n" \
+        "2021-04,1,134\n" \
+        "2021-07,1,151\n" \
+        "2021-10,1,144\n" \
+        "2022-01,1,148\n" \
+        "2022-04,1,117\n" \
+        "2022-07,1,138\n" \
+        "2021-02,2,212\n" \
+        "2021-05,2,225\n" \
+        "2021-08,2,221\n" \
+        "2021-11,2,227\n" \
+        "2022-02,2,230\n" \
+        "2022-05,2,229\n"
+
+    with io.StringIO(data) as fp:
+        ds = pandas.PandasDataset.from_long_dataframe(
+            pd.read_csv(fp),
+            target="target",
+            item_id="item_id",
+            timestamp="timestamp",
+            freq="3M",
+        )
+        for entry in ds:
+            assert entry["start"].freqstr == "3M"
+
+    with io.StringIO(data) as fp:
+        ds = pandas.PandasDataset.from_long_dataframe(
+            pd.read_csv(fp, index_col="timestamp"),
+            target="target",
+            item_id="item_id",
+            freq="3M",
+        )
+        for entry in ds:
+            assert entry["start"].freqstr == "3M"
