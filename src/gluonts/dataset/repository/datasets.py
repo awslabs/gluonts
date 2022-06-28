@@ -22,18 +22,16 @@ from gluonts.dataset import DatasetWriter
 from gluonts.dataset.artificial import ConstantDataset
 from gluonts.dataset.common import TrainDatasets, load_datasets
 from gluonts.dataset.jsonl import JsonLinesWriter
-from gluonts.dataset.repository._artificial import generate_artificial_dataset
-from gluonts.dataset.repository._gp_copula_2019 import (
-    generate_gp_copula_dataset,
-)
-from gluonts.dataset.repository._lstnet import generate_lstnet_dataset
-from gluonts.dataset.repository._m3 import generate_m3_dataset
-from gluonts.dataset.repository._m4 import generate_m4_dataset
-from gluonts.dataset.repository._m5 import generate_m5_dataset
-from gluonts.dataset.repository._tsf_datasets import (
-    generate_forecasting_dataset,
-)
-from gluonts.dataset.repository._uber_tlc import generate_uber_dataset
+
+from ._artificial import generate_artificial_dataset
+from ._airtraffic import generate_airtraffic_dataset
+from ._gp_copula_2019 import generate_gp_copula_dataset
+from ._lstnet import generate_lstnet_dataset
+from ._m3 import generate_m3_dataset
+from ._m4 import generate_m4_dataset
+from ._m5 import generate_m5_dataset
+from ._tsf_datasets import generate_forecasting_dataset
+from ._uber_tlc import generate_uber_dataset
 
 
 def get_download_path() -> Path:
@@ -206,6 +204,7 @@ dataset_recipes = {
     "uber_tlc_hourly": partial(
         generate_uber_dataset, uber_freq="Hourly", prediction_length=24
     ),
+    "airtraffic": partial(generate_airtraffic_dataset),
 }
 
 
