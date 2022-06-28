@@ -1,15 +1,128 @@
 # `pandas.DataFrame` based dataset
 
+
+This tutorial covers how to use GluonTS's pandas DataFrame based dataset
+`PandasDataset`. After going through a few common use cases we explain in
+detail what data formats `PandasDataset` can work with, how to include
+static and dynamic features and how to do train/test splits.
+
+
+
+## Use case 1 - Loading data from a `long` dataframe and training `DeepAR`
+
+In the first use case we are given multiple time series stacked on top
+of each other in a dataframe with an `item_id` column that distinguishes
+different series.
+
+```python
+import pandas as pd
+
+url = (
+    "https://gist.githubusercontent.com/rsnirwan/a8b424085c9f44ef2598da74ce43e7a3"
+    "/raw/b6fdef21fe1f654787fa0493846c546b7f9c4df2/ts_long.csv"
+)
+df = pd.read_csv(url, index_col=0, parse_dates=True)
+df.head()
+```
+
+After reading the data into a `pandas.DataFrame` we can easily convert
+it to `gluonts.dataset.pandas.PandasDataset` and train an estimator an get forecasts.
+
+```python
+from gluonts.dataset.pandas import PandasDataset
+
+ds = PandasDataset.from_long_dataframe(df, target="target", item_id="item_id")
+```
+
+```python
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import Trainer
+
+estimator = DeepAREstimator(freq=ds.freq, prediction_length=24, trainer=Trainer(epochs=1))
+predictor = estimator.train(ds)
+predictions = predictor.predict(ds)
+```
+
+
+## Use case 2 - Loading data from a `wide`-DataFrame
+
+Here, instead of a `long` dataset, we are given data in the `wide` format,
+where time series are stacked side-by-side. To convert the dataset
+to `PandasDataset` we first convert it to the `long` format and then use the
+`PandasDataset.from_long_dataframe` constructor.
+
+```python
+import pandas as pd
+
+url_wide = (
+    "https://gist.githubusercontent.com/rsnirwan/c8c8654a98350fadd229b00167174ec4"
+    "/raw/a42101c7786d4bc7695228a0f2c8cea41340e18f/ts_wide.csv"
+)
+df_wide = pd.read_csv(url_wide, index_col=0, parse_dates=True)
+print(df_wide.head())
+```
+
+```python
+df_long = pd.melt(df_wide.reset_index(), id_vars="index", value_vars=df_wide.columns)
+print(df_long.head())
+```
+
+```python
+from gluonts.dataset.pandas import PandasDataset
+
+ds = PandasDataset.from_long_dataframe(
+    df_long, item_id="variable", target="value", timestamp="index"
+)
+```
+As shown in `Use case 1` we can now use `ds` to train an estimator.
+
+
+## Use case 3 - Loading data with missing values
+
+In case the `timestamp` column is not evenly spaced and monotonically increasing
+we get an error when using `PandasDataset`. Here we show how to fill in the gaps
+that are missing.
+
+Let's first remove some random rows from the `long` dataset.
+
+```python
+import pandas as pd
+import numpy as np
+
+url = (
+    "https://gist.githubusercontent.com/rsnirwan/a8b424085c9f44ef2598da74ce43e7a3"
+    "/raw/b6fdef21fe1f654787fa0493846c546b7f9c4df2/ts_long.csv"
+)
+df = pd.read_csv(url, index_col=0, parse_dates=True)
+remove_ind = np.random.choice(np.arange(df.shape[0]), size=100, replace=False)
+mask = [False if i in remove_ind else True for i in range(df.shape[0])]
+df_missing_val = df.loc[mask, :] # dataframe with 100 rows removed from df
+```
+
+Now, we group by the `item_id` and reindex each of the grouped dataframes.
+Reindexing, as it is done below, will add new rows with `NaN` values where
+the data is missing. The user can then use the `fillna()` method on each
+dataframe to fill in desired value.
+
+```python
+from gluonts.dataset.pandas import PandasDataset
+
+# get the latest date. we also fill forward if latest entries are missing.
+max_end = max(df.groupby("item_id").apply(lambda _df: _df.index[-1]))
+dfs_dict = {}
+for item_id, gdf in df.groupby("item_id"):
+    new_index = pd.date_range(gdf.index[0], end=max_end, freq="1D")
+    dfs_dict[item_id] = gdf.reindex(new_index).drop("item_id", axis=1)
+
+# here we use the dict of dataframes directly to instantiate `PandasDataset`
+ds = PandasDataset(dfs_dict)
+```
+
 ## Introduction
 
-This Tutorial covers how to use GluonTS's pandas DataFrame based dataset
-`PandasDataset`.
-We create dummy time series data to illustrate how single and
-multiple time series, given in `pandas.DataFrame`, can be converted
-to `gluonts.dataset.pandas.PandasDataset` and used together with
-GluonTS estimators.
 
-
+`PandasDataset` is meant to work on `pandas.Dataset`, `pandas.Series` and
+any collection of both.
 The minimal requirement to start modelling using GluonTS's dataframe dataset
 is a list of monotonically increasing timestamps with a fixed frequency
 and a list of corresponding target values in `pandas.DataFrame`:
@@ -54,7 +167,7 @@ In this example, we have two time series, one indicated by item `A` and the othe
 by `B`. In addition, if we have other features we can include those too
 (`stat_cat_1` and `dyn_real_1` in the example above).
 
-## Dummy data generation
+### Dummy data generation
 
 Now, let's create a function that generates dummy time series conforming above
 stated requirements (`timestamp` index and `target` column).
@@ -97,7 +210,7 @@ print(ts.head())
 ts.loc[:, "target"].plot(figsize=(10, 5))
 ```
 
-## Use single time series for training
+### Use single time series for training
 
 Now, we create a GluonTS dataset using the time series we generated and train
 a model. Because we will use the train/evaluation loop multiple times, let's
@@ -143,7 +256,7 @@ ds = PandasDataset(ts, target="target", freq=freq)
 train_and_predict(ds, estimator)
 ```
 
-## Use multiple time series for training
+### Use multiple time series for training
 
 As described above, we can also use a list of single time series
 dataframes. Even dict of dataframes or a single long-formatted-dataframe
@@ -178,7 +291,7 @@ ds = PandasDataset.from_long_dataframe(
 train_and_predict(ds, estimator)
 ```
 
-## Include static and dynamic features
+### Include static and dynamic features
 
 The PandasDataset also allows us to include features of our time series.
 The list of all available features is given in the documentation.
@@ -278,7 +391,7 @@ train_and_predict(multiple_ts_dataset_dict, estimator_with_features)
 train_and_predict(multiple_ts_long_dataset, estimator_with_features)
 ```
 
-## Use train/test split
+### Use train/test split
 
 Here, we split the DataFrame/DataFrames into training and test data.
 We can then
@@ -310,9 +423,10 @@ evaluator = Evaluator(quantiles=(np.arange(20) / 20.0)[1:])
 agg_metrics, item_metrics = evaluator(ts_it, forecast_it, num_series=len(test))
 ```
 
-## Train and visualize forecasts
+### Train and visualize forecasts
 
-Let's generate 100 time series, train an estimator and visualize the forecasts.
+Let's generate 100 time series dataframes, create a train/test split,
+train an estimator and visualize the forecasts.
 
 
 ```python
