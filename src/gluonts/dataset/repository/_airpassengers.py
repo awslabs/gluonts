@@ -20,7 +20,10 @@ from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.pandas import PandasDataset
 
 
-URL = "https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
+URL = (
+    "https://raw.githubusercontent.com/AileenNielsen"
+    "/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
+)
 
 
 def generate_airpassengers_dataset(
