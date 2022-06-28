@@ -105,9 +105,12 @@ class PandasDataset(Dataset):
 
             df = df.to_period(freq=self.freq).sort_index()
 
-            assert is_uniform(
-                df.index
-            ), "Dataframe index is not uniformly spaced."
+            assert is_uniform(df.index), (
+                "Dataframe index is not uniformly spaced. "
+                "If your dataframe contains data from multiple series in the "
+                'same column ("long" format), consider constructing the '
+                "dataset with `PandasDataset.from_long_dataframe` instead."
+            )
 
             self._dataframes[i] = (item_id, df)
 
@@ -118,7 +121,9 @@ class PandasDataset(Dataset):
             cast(str, self.freq), one_dim_target=self.one_dim_target
         )
 
-    def _dataentry(self, item_id: Optional[str], df: pd.DataFrame) -> DataEntry:
+    def _dataentry(
+        self, item_id: Optional[str], df: pd.DataFrame
+    ) -> DataEntry:
         dataentry = as_dataentry(
             data=df,
             target=self.target,
