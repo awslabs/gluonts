@@ -162,9 +162,7 @@ train_and_predict(ds, estimator)
 
 If the dataset is given as a long-dataframe, we can also use an
 alternative constructor `from_long_dataframe`. Note in this case
-we have to provide the `item_id` as well. Also note, if the
-`item_id`-column is called "item_id", we don't need to explicitly
-pass it to the constructor.
+we have to provide the `item_id` as well.
 
 
 ```python
@@ -172,8 +170,8 @@ ts_in_long_format = pd.concat(
     [generate_single_ts(date_range, item_id=i) for i in range(N)]
 )
 
-# Note we need an item_id column now and provide its name (default is "item_id") to
-# the constructor. Otherwise, there is no way to distinguish different time series.
+# Note we need an item_id column now and provide its name to the constructor.
+# Otherwise, there is no way to distinguish different time series.
 ds = PandasDataset.from_long_dataframe(
     ts_in_long_format, item_id="item_id", target="target", freq=freq
 )
@@ -227,9 +225,8 @@ estimator_with_features = DeepAREstimator(
 Let's now generate single time series and multiple time series
 (as list and as long-dataframe).
 Note we don't provide `freq` and `timestamp`, because they are automatically
-inferred from the index. We are also not passing "target" and "item_id"
-(for long-dataframe) because those are the default values of `target`
-and `item_id`, respectively.
+inferred from the index. We are also not passing the `target` argument, since
+it's default value is "target", which is the target column in our dataframes.
 
 
 ```python
@@ -255,6 +252,7 @@ multiple_ts_dataset_dict = PandasDataset(
 # for long-dataset we use a different constructor and need a `item_id` column
 multiple_ts_long_dataset = PandasDataset.from_long_dataframe(
     multiple_ts_long,
+    item_id="item_id",
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
     feat_static_cat=["static_cat_1"],
 )
