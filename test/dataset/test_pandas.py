@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import io
+
 import pandas as pd
 import numpy as np
 import pytest
@@ -143,9 +145,9 @@ def test_prepare_prediction_data_with_features():
         assert np.all(res[key] == expected[key])
 
 
-def test_check_timestamps():
+def test_is_uniform_2H():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    assert pandas.check_timestamps(timestamps, freq="2H")
+    assert pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
 
 @pytest.mark.parametrize(
@@ -156,30 +158,21 @@ def test_check_timestamps():
         ["2021-01-01 04:00", "2021-01-01 02:00", "2021-01-01 00:00"],
     ],
 )
-def test_check_timestamps_fail(timestamps):
-    assert not pandas.check_timestamps(timestamps, freq="2H")
+def test_is_uniform_2H_fail(timestamps):
+    assert not pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
 
-def test_infer_timestamp(my_dataframe):
+def test_infer_period(my_dataframe):
     ds = pandas.PandasDataset(my_dataframe, target="target", freq="1D")
-    assert str(next(iter(ds))["start"]) == "2021-01-01"
+    for entry in ds:
+        assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
-def test_infer_timestamp2(my_dataframe):
+def test_infer_period2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
     ds = pandas.PandasDataset(dfs, target="target", freq="1D")
-    assert str(next(iter(ds))["start"]) == "2021-01-01"
-
-
-def test_infer_freq(my_dataframe):
-    ds = pandas.PandasDataset(my_dataframe, target="target")
-    assert ds.freq == "D"
-
-
-def test_infer_freq2(my_dataframe):
-    dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = pandas.PandasDataset(dfs, target="target")
-    assert ds.freq == "D"
+    for entry in ds:
+        assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
 def test_is_series(my_series):
@@ -203,3 +196,46 @@ def test_series_to_dataframe(my_series):
     dict_df = pandas.series_to_dataframe({"A": my_series})
     assert list(dict_df.keys())[0] == "A"
     assert isinstance(list(dict_df.values())[0], pd.DataFrame)
+
+
+def test_long_csv_3M():
+    data = (
+        "timestamp,item_id,target\n"
+        "2021-03,0,102\n"
+        "2021-06,0,103\n"
+        "2021-09,0,102\n"
+        "2021-12,0,99\n"
+        "2021-04,1,134\n"
+        "2021-07,1,151\n"
+        "2021-10,1,144\n"
+        "2022-01,1,148\n"
+        "2022-04,1,117\n"
+        "2022-07,1,138\n"
+        "2021-02,2,212\n"
+        "2021-05,2,225\n"
+        "2021-08,2,221\n"
+        "2021-11,2,227\n"
+        "2022-02,2,230\n"
+        "2022-05,2,229\n"
+    )
+
+    with io.StringIO(data) as fp:
+        ds = pandas.PandasDataset.from_long_dataframe(
+            pd.read_csv(fp),
+            target="target",
+            item_id="item_id",
+            timestamp="timestamp",
+            freq="3M",
+        )
+        for entry in ds:
+            assert entry["start"].freqstr == "3M"
+
+    with io.StringIO(data) as fp:
+        ds = pandas.PandasDataset.from_long_dataframe(
+            pd.read_csv(fp, index_col="timestamp"),
+            target="target",
+            item_id="item_id",
+            freq="3M",
+        )
+        for entry in ds:
+            assert entry["start"].freqstr == "3M"
