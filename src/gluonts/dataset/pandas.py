@@ -13,7 +13,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, Iterator, List, Optional, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -47,8 +47,6 @@ class PandasDataset(Dataset):
     freq
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
-    item_id
-        Name of the column that contains the item_id information.
     feat_dynamic_real
         List of column names that contain dynamic real features.
     feat_dynamic_cat
@@ -77,7 +75,6 @@ class PandasDataset(Dataset):
     target: Union[str, List[str]] = "target"
     timestamp: Optional[str] = None
     freq: Optional[str] = None
-    item_id: Optional[str] = None
     feat_dynamic_real: List[str] = field(default_factory=list)
     feat_dynamic_cat: List[str] = field(default_factory=list)
     feat_static_real: List[str] = field(default_factory=list)
@@ -97,9 +94,9 @@ class PandasDataset(Dataset):
         if isinstance(self.dataframes, dict):
             self._dataframes = list(self.dataframes.items())
         elif isinstance(self.dataframes, list):
-            self._dataframes = [self._to_tuple(df) for df in self.dataframes]
+            self._dataframes = [(None, df) for df in self.dataframes]
         else:  # case single dataframe
-            self._dataframes = [self._to_tuple(self.dataframes)]
+            self._dataframes = [(None, self.dataframes)]
 
         for i, (item_id, df) in enumerate(self._dataframes):
             if self.timestamp:
@@ -108,9 +105,12 @@ class PandasDataset(Dataset):
 
             df = df.to_period(freq=self.freq).sort_index()
 
-            assert is_uniform(
-                df.index
-            ), "Dataframe index is not uniformly spaced."
+            assert is_uniform(df.index), (
+                "Dataframe index is not uniformly spaced. "
+                "If your dataframe contains data from multiple series in the "
+                'same column ("long" format), consider constructing the '
+                "dataset with `PandasDataset.from_long_dataframe` instead."
+            )
 
             self._dataframes[i] = (item_id, df)
 
@@ -121,12 +121,9 @@ class PandasDataset(Dataset):
             cast(str, self.freq), one_dim_target=self.one_dim_target
         )
 
-    def _to_tuple(self, ts: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
-        if self.item_id and self.item_id in ts.columns:
-            return (str(ts.loc[:, self.item_id].iloc[0]), ts)
-        return ("", ts)
-
-    def _dataentry(self, item_id: str, df: pd.DataFrame) -> DataEntry:
+    def _dataentry(
+        self, item_id: Optional[str], df: pd.DataFrame
+    ) -> DataEntry:
         dataentry = as_dataentry(
             data=df,
             target=self.target,
@@ -136,7 +133,7 @@ class PandasDataset(Dataset):
             feat_static_cat=self.feat_static_cat,
             past_feat_dynamic_real=self.past_feat_dynamic_real,
         )
-        if item_id:
+        if item_id is not None:
             dataentry["item_id"] = item_id
         return dataentry
 
@@ -154,7 +151,7 @@ class PandasDataset(Dataset):
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str = "item_id", **kwargs
+        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe.
