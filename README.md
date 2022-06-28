@@ -11,40 +11,18 @@
 
 GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models.
 
-## Features
-
-* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/) (see [list](#available-models))
-* Easy AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) (see [here](#running-on-amazon-sagemaker))
-* Utilities for loading and iterating over time series datasets
-* Utilities to evaluate models performance and compare their accuracy
-* Building blocks to define custom models and quickly experiment
 
 ## Installation
 
 GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
-pip install gluonts[mxnet,pro]  # support for mxnet models, faster datasets
-pip install gluonts[torch,pro]  # support for torch models, faster datasets
+# support for mxnet models, faster datasets
+pip install gluonts[mxnet,pro]  
+
+# support for torch models, faster datasets
+pip install gluonts[torch,pro]
 ```
-
-You can enable or disable extra dependencies as you prefer, depending on what GluonTS features you are interested in enabling.
-
-**Models:**
-
-* `mxnet` - MXNet-based models
-* `torch` - PyTorch-based models
-* `R` - R-based models
-* `Prophet` - Prophet-based models
-
-**Datasets:**
-
-* `arrow` - Arrow and Parquet dataset support
-* `pro` - bundles `arrow` plus `orjson` for faster datasets
-
-**Misc:**
-
-* `shell` for integration with SageMaker
 
 
 ## Documentation
@@ -54,12 +32,17 @@ You can enable or disable extra dependencies as you prefer, depending on what Gl
 * [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
 * [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 
+## Features
+
+* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/) (see [list](/blob/dev/docs/docs/getting_started/models.md))
+* Easy AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) (see [here](#running-on-amazon-sagemaker))
+* Utilities for loading and iterating over time series datasets
+* Utilities to evaluate models performance and compare their accuracy
+* Building blocks to define custom models and quickly experiment
 
 
-## Running on Amazon SageMaker
 
-Training and deploying GluonTS models on [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) is easily done by using the `gluonts.shell` package, see [its README](https://github.com/awslabs/gluon-ts/tree/dev/src/gluonts/shell) for more information.
-Dockerfiles compatible with Amazon SageMaker can be found in the [examples/dockerfiles](https://github.com/awslabs/gluon-ts/tree/dev/examples/dockerfiles) folder.
+
 
 ## Quick example
 
