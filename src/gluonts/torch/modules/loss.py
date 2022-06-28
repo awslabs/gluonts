@@ -12,54 +12,16 @@
 # permissions and limitations under the License.
 
 import torch
-from pydantic import create_model
+from pydantic import BaseModel
 
 
-class DistributionLoss(torch.nn.Module):
-    def __init_subclass__(cls):
-        # If a class doesn't have annotations, it inherits the ones from its
-        # parent. We don't want that!
-        if cls.__annotations__ is torch.nn.Module.__annotations__:
-            annotations = {}
-        else:
-            annotations = cls.__annotations__
-
-        # We create a new pydantic model to check the input args
-        cls.__pydantic_model__ = create_model(
-            cls.__name__ + "Model",
-            **{
-                name: (ty, cls.__dict__.get(name, ...))
-                for name, ty in annotations.items()
-                if not name.startswith("_")
-            },
-        )
-
-    def __new__(cls, **kwargs):
-        # First we need to create the object.
-        obj = object.__new__(cls)
-
-        # Now we check the **kwargs using the generated model.
-        values = cls.__pydantic_model__(**kwargs).dict()
-
-        # Update the __dict__, which is like assigning the values to `obj`
-        obj.__dict__.update(values)
-
-        # Store the values so we can return them for the pickle protocol.
-        obj.__init_kwargs__ = values
-        return obj
-
-    def __getnewargs_ex__(self):
-        return (), self.__init_kwargs__
-
-    def __init__(self, **kwargs):
-        torch.nn.Module.__init__(self)
-
+class DistributionLoss(BaseModel):
     """
     A ``torch.nn.Module`` extensions that computes loss values by comparing a
     ``Distribution`` (prediction) to a ``Tensor`` (ground-truth).
     """
 
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         """
@@ -101,7 +63,7 @@ class NegativeLogLikelihood(DistributionLoss):
 
     beta: float = 0.0
 
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         nll = -input.log_prob(target)
@@ -112,12 +74,12 @@ class NegativeLogLikelihood(DistributionLoss):
 
 
 class CRPS(DistributionLoss):
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         return input.crps(target)
 
 
 class EnergyScore(DistributionLoss):
-    def forward(self, input, target: torch.Tensor) -> torch.Tensor:
+    def __call__(self, input, target: torch.Tensor) -> torch.Tensor:
         return input.energy_score(target)
