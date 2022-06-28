@@ -1,12 +1,12 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-[stable docs url]: https://ts.gluon.ai/
+[stable_docs_url]: https://ts.gluon.ai/
 [development docs url]: https://ts.gluon.ai/dev/index.html
 
 [![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
-[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)][stable docs url]
-[![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=blue&style=flat-square)][development docs url]
+[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)](https://ts.gluon.ai/)
+[![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=blue&style=flat-square)](https://ts.gluon.ai/dev/)
 [![PyPI Downloads](https://pepy.tech/badge/gluonts)](https://pypi.org/project/gluonts/)
 
 GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models.
@@ -23,7 +23,6 @@ pip install gluonts[mxnet,pro]
 # support for torch models, faster datasets
 pip install gluonts[torch,pro]
 ```
-
 
 ## Simple Example
 
