@@ -104,10 +104,7 @@ class PandasDataset(Dataset):
         for i, (item_id, df) in enumerate(self._dataframes):
             if self.timestamp:
                 df = df.set_index(keys=self.timestamp)
-
-            assert isinstance(
-                df.index, DatetimeIndexOpsMixin
-            ), "Please set ``timestamp`` or provide a DatetimeIndex."
+            df.index = pd.to_datetime(df.index)
 
             df = df.to_period(freq=self.freq).sort_index()
 

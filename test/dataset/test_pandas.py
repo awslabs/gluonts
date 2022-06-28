@@ -143,7 +143,7 @@ def test_prepare_prediction_data_with_features():
         assert np.all(res[key] == expected[key])
 
 
-def test_check_timestamps():
+def test_is_uniform_2H():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
     assert pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
@@ -156,30 +156,21 @@ def test_check_timestamps():
         ["2021-01-01 04:00", "2021-01-01 02:00", "2021-01-01 00:00"],
     ],
 )
-def test_check_timestamps_fail(timestamps):
+def test_is_uniform_2H_fail(timestamps):
     assert not pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
 
-def test_infer_timestamp(my_dataframe):
+def test_infer_period(my_dataframe):
     ds = pandas.PandasDataset(my_dataframe, target="target", freq="1D")
-    assert str(next(iter(ds))["start"]) == "2021-01-01"
+    for entry in ds:
+        assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
-def test_infer_timestamp2(my_dataframe):
+def test_infer_period2(my_dataframe):
     dfs = {"A": my_dataframe, "B": my_dataframe}
     ds = pandas.PandasDataset(dfs, target="target", freq="1D")
-    assert str(next(iter(ds))["start"]) == "2021-01-01"
-
-
-def test_infer_freq(my_dataframe):
-    ds = pandas.PandasDataset(my_dataframe, target="target")
-    assert ds.freq == "D"
-
-
-def test_infer_freq2(my_dataframe):
-    dfs = {"A": my_dataframe, "B": my_dataframe}
-    ds = pandas.PandasDataset(dfs, target="target")
-    assert ds.freq == "D"
+    for entry in ds:
+        assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
 def test_is_series(my_series):
