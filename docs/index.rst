@@ -31,8 +31,8 @@ See :doc:`community/devsetup` for setup instructions in case you want to develop
    :maxdepth: 1
    :hidden:
 
-   install
-   concepts
+   getting_started/install
+   getting_started/concepts
 
 .. toctree::
    :name: Tutorials
