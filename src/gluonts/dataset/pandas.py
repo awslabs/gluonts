@@ -13,7 +13,6 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
@@ -76,9 +75,9 @@ class PandasDataset(Dataset):
         Dict[str, pd.Series],
     ]
     target: Union[str, List[str]] = "target"
-    timestamp: Union[str, None] = None
-    freq: Union[str, None] = None
-    item_id: Union[str, None] = None
+    timestamp: Optional[str] = None
+    freq: Optional[str] = None
+    item_id: Optional[str] = None
     feat_dynamic_real: List[str] = field(default_factory=list)
     feat_dynamic_cat: List[str] = field(default_factory=list)
     feat_static_real: List[str] = field(default_factory=list)
@@ -102,18 +101,25 @@ class PandasDataset(Dataset):
         else:  # case single dataframe
             self._dataframes = [self._to_tuple(self.dataframes)]
 
-        for i, (_, df) in enumerate(self._dataframes):
+        for i, (item_id, df) in enumerate(self._dataframes):
             if self.timestamp:
                 df = df.set_index(keys=self.timestamp)
-                self._dataframes[i] = (self._dataframes[i][0], df)
-            else:
-                assert isinstance(
-                    df.index, DatetimeIndexOpsMixin
-                ), "Please set ``timestamp`` or provide a DatetimeIndex."
+
+            assert isinstance(
+                df.index, DatetimeIndexOpsMixin
+            ), "Please set ``timestamp`` or provide a DatetimeIndex."
+
+            df = df.to_period(freq=self.freq).sort_index()
+
+            assert (
+                is_uniform(df.index),
+                "``timestamps`` are not monotonically increasing or evenly spaced.",
+            )
+
+            self._dataframes[i] = (item_id, df)
 
         if not self.freq:  # infer frequency from index
-            ind = self._dataframes[0][1].index
-            self.freq = pd.infer_freq(pd.date_range(ind[0], ind[2], periods=3))
+            self.freq = self._dataframes[0][1].index.freqstr
 
         self.process = ProcessDataEntry(
             cast(str, self.freq), one_dim_target=self.one_dim_target
@@ -125,9 +131,6 @@ class PandasDataset(Dataset):
         return ("", ts)
 
     def _dataentry(self, item_id: str, df: pd.DataFrame) -> DataEntry:
-        assert check_timestamps(
-            df.index.to_list(), freq=self.freq
-        ), "``timestamps`` are not monotonically increasing or evenly spaced."
         dataentry = as_dataentry(
             data=df,
             target=self.target,
@@ -214,7 +217,7 @@ def is_series(series: Any) -> bool:
 def as_dataentry(
     data: pd.DataFrame,
     target: Union[str, List[str]],
-    timestamp: Union[str, None] = None,
+    timestamp: Optional[str] = None,
     feat_dynamic_real: List[str] = [],
     feat_dynamic_cat: List[str] = [],
     feat_static_real: List[str] = [],
@@ -294,20 +297,16 @@ def prepare_prediction_data(
     return entry
 
 
-def check_timestamps(
-    timestamps: List[Union[str, datetime]], freq: Optional[str]
-) -> bool:
+def is_uniform(index: pd.PeriodIndex) -> bool:
     """
-    Check if ``timestamps`` are monotonically increasing and evenly space with
-    frequency ``freq``.
+    Check if ``index`` contains monotonically increasing periods, evenly spaced
+    with frequency ``index.freq``.
 
     >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    >>> check_timestamps(ts, freq="2H")
+    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
     True
+    >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
+    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+    False
     """
-    return all(
-        pd.to_datetime(timestamps)
-        == pd.date_range(
-            start=timestamps[0], freq=freq, periods=len(timestamps)
-        )
-    )
+    return (index[1:] - index[:-1] == index.freq).all()

@@ -145,7 +145,7 @@ def test_prepare_prediction_data_with_features():
 
 def test_check_timestamps():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    assert pandas.check_timestamps(timestamps, freq="2H")
+    assert pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
 
 @pytest.mark.parametrize(
@@ -157,7 +157,7 @@ def test_check_timestamps():
     ],
 )
 def test_check_timestamps_fail(timestamps):
-    assert not pandas.check_timestamps(timestamps, freq="2H")
+    assert not pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
 
 
 def test_infer_timestamp(my_dataframe):
