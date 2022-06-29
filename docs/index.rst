@@ -1,7 +1,5 @@
 .. mdinclude:: ../README.md
 
-GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning models.
-
 
 .. toctree::
    :name: Getting started
