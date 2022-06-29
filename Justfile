@@ -28,8 +28,6 @@ clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
 compile_notebooks:
-  echo "-$SKIP_BUILD_NOTEBOOK-"
-
   if [ {{skip_build_notebook}} = "true" ] ; \
   then \
     find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 cp; \

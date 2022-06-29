@@ -9,6 +9,7 @@
 
    getting_started/install
    getting_started/concepts
+   getting_started/models
 
 .. toctree::
    :name: Tutorials
