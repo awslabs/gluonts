@@ -38,8 +38,8 @@ def generate_m4_dataset(
         f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
     )
 
-    train_list = []
-    test_list = []
+    train_dict = {}
+    test_dict = {}
     for idx, row in train_df.iterrows():
         target = row.dropna(axis=0)
         # some time series have more than 300 years which can not be
@@ -53,7 +53,7 @@ def generate_m4_dataset(
             freq=pandas_freq,
             periods=target.shape[0],
         )
-        train_list.append(pd.DataFrame({"target": target, "start": start}))
+        train_dict[idx] = pd.DataFrame({"target": target, "start": start})
 
     for idx, row in test_df.iterrows():
         target = row.dropna(axis=0)
@@ -64,10 +64,10 @@ def generate_m4_dataset(
             freq=pandas_freq,
             periods=target.shape[0],
         )
-        test_list.append(pd.DataFrame({"target": target, "start": start}))
+        test_dict[idx] = pd.DataFrame({"target": target, "start": start})
 
-    train_data = pandas.PandasDataset(dataframes=train_list, timestamp="start")
-    test_data = pandas.PandasDataset(dataframes=test_list, timestamp="start")
+    train_data = pandas.PandasDataset(dataframes=train_dict, timestamp="start")
+    test_data = pandas.PandasDataset(dataframes=test_dict, timestamp="start")
 
     meta = MetaData(
         **metadata(
