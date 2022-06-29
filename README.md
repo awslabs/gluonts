@@ -42,92 +42,94 @@ pip install gluonts[torch,pro]
 
 
 
-
-
 ## Quick example
 
-This simple example illustrates how to train a model from GluonTS on some data, and then use it to make predictions.
-For more extensive example, please refer to the [tutorial section of the documentation](https://ts.gluon.ai/tutorials/index.html)
+To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
+using the simple "airpassengers" dataset. The dataset consists of a single
+time-series, containing monthly international passengers between the years
+1949 and 1960, a total of 144 values (12 years * 12 months). We split the
+dataset into train and test parts, by removing the last three years (36 month)
+from the train data. Thus, we will train a model on just the first nine years
+of data
 
-As a first step, we need to collect some data: in this example we will use the volume of tweets mentioning the
-AMZN ticker symbol.
+Peak into data:
 
-```python
+```csv
+# Month,#Passengers
+# 1949-01,112
+# 1949-02,118
+# 1949-03,132
+...
+```
+
+Loading, splitting and plotting of data:
+
+```py
 import pandas as pd
-url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(
-    url,
-    index_col=0,
-    parse_dates=True,
-    header=0,
-    names=["target"],
-)
+
+URL = "https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
+
+df = pd.read_csv(URL, index_col=0, parse_dates=True)
+
+# Cut off three years for training
+train = df[:-36]
+# For testing, we take entire time-series
+test = df
+
+plt.plot(train.index, train.values, label="Train")
+plt.plot(test.index, test.values, label="Test")
+plt.legend(loc="upper left")
 ```
 
-The first 100 data points look like follows:
+Train a model using `DeepAR`. We wrap the dataframes into instances of
+`PandasDataset` and indicate that we want to use the `#Passengers` column as
+the prediction target:
 
-```python
-import matplotlib.pyplot as plt
-df[:100].plot(linewidth=2)
-plt.grid(which='both')
-plt.show()
-```
-
-![Data](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_data.png)
-
-We can now prepare a training dataset for our model to train on.
-Datasets in GluonTS are essentially iterable collections of
-dictionaries: each dictionary represents a time series
-with possibly associated features. For this example, we only have one
-entry, specified by the `"start"` field which is the timestamp of the
-first datapoint, and the `"target"` field containing time series data.
-For training, we will use data up to midnight on April 5th, 2015.
-
-```python
+```py
 from gluonts.dataset.pandas import PandasDataset
-
-training_data = PandasDataset(df[:"2015-04-05 00:00:00"])
-```
-
-A forecasting model in GluonTS is a *predictor* object. One way of obtaining
-predictors is by training a correspondent *estimator*. Instantiating an
-estimator requires specifying the frequency of the time series that it will
-handle, as well as the number of time steps to predict. In our example
-we're using 5 minutes data, so `freq="5min"`,
-and we will train a model to predict the next hour, so `prediction_length=12`.
-We also specify some minimal training options.
-
-```python
 from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx.trainer import Trainer
+from gluonts.mx import Trainer
 
-estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
-predictor = estimator.train(training_data=training_data)
+train_dataset = PandasDataset(train, target="#Passengers")
+
+deepar = DeepAREstimator(
+    # We want to predict one year at a time.
+    prediction_length=12,
+    # Use features for monthly-frequencies
+    freq="M",
+    # Train for just a few epochs.
+    trainer=Trainer(epochs=10),
+)
+model = deepar.train(train_dataset)
 ```
 
-During training, useful information about the progress will be displayed.
-To get a full overview of the available options, please refer to the
-documentation of `DeepAREstimator` (or other estimators) and `Trainer`.
+Now we can use the model to make predictions by asking the model to forecast
+each of the three years of our test dataset:
 
-We're now ready to make predictions: we will forecast the hour following
-the midnight on April 15th, 2015.
+```py
+prediction_input = PandasDataset(
+    [
+        test[:-36],
+        test[:-24],
+        test[:-12],
+    ],
+    target="#Passengers",
+)
 
-```python
-test_data = PandasDataset(df[:"2015-04-15 00:00:00"])
+predictions = model.predict(prediction_input)
 
-from gluonts.dataset.util import to_pandas
 
-for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
-    to_pandas(test_entry)[-60:].plot(linewidth=2)
-    forecast.plot(color='g', prediction_intervals=[50.0, 90.0])
-plt.grid(which='both')
+plt.plot(test.index, test.values, color="k")
+
+for color, prediction in zip(["green", "blue", "purple"], predictions):
+    prediction.plot(color=f"tab:{color}")
+
+
+plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
-
-![Forecast](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_forecast.png)
-
-Note that the forecast is displayed in terms of a probability distribution:
-the shaded areas represent the 50% and 90% prediction intervals, respectively,
-centered around the median (dark green line).
+Note that the forecasts are displayed in terms of a probability distribution:
+The shaded areas represent the 50% and 90% prediction intervals, respectively,
+centered around the median.
 
 ## Contributing
 
