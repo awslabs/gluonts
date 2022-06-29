@@ -379,6 +379,7 @@ class Trainer:
                             batch_no,
                             epoch_no,
                         )
+                        should_continue = True
                     else:
                         if is_training:
                             loss.backward()
