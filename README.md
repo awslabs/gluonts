@@ -63,16 +63,13 @@ from gluonts.mx import Trainer
 dataset = get_dataset("airpassengers")
 
 deepar = DeepAREstimator(prediction_length=12, freq="M", trainer=Trainer(epochs=5))
-
 model = deepar.train(dataset.train)
 
 # Make predictions
 true_values = to_pandas(list(dataset.test)[0])
 true_values.to_timestamp().plot(color="k")
 
-prediction_input = PandasDataset(
-    [ true_values[:-36], true_values[:-24], true_values[:-12] ],
-)
+prediction_input = PandasDataset([true_values[:-36], true_values[:-24], true_values[:-12]])
 predictions = model.predict(prediction_input)
 
 for color, prediction in zip(["green", "blue", "purple"], predictions):
