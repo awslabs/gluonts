@@ -25,109 +25,48 @@ pip install gluonts[torch,pro]
 ```
 
 
-## Documentation
+## Simple Example
 
-* [Documentation (stable version)][stable docs url]
-* [Documentation (development version)][development docs url]
-* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
-* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
-
-## Features
-
-* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/) (see [list](/blob/dev/docs/docs/getting_started/models.md))
-* Easy AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) (see [here](#running-on-amazon-sagemaker))
-* Utilities for loading and iterating over time series datasets
-* Utilities to evaluate models performance and compare their accuracy
-* Building blocks to define custom models and quickly experiment
+To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
+using the simple "airpassengers" dataset. The dataset consists of a single
+time-series, containing monthly international passengers between the years
+1949 and 1960, a total of 144 values (12 years * 12 months). We split the
+dataset into train and test parts, by removing the last three years (36 month)
+from the train data. Thus, we will train a model on just the first nine years
+of data.
 
 
-
-
-
-## Quick example
-
-This simple example illustrates how to train a model from GluonTS on some data, and then use it to make predictions.
-For more extensive example, please refer to the [tutorial section of the documentation](https://ts.gluon.ai/tutorials/index.html)
-
-As a first step, we need to collect some data: in this example we will use the volume of tweets mentioning the
-AMZN ticker symbol.
-
-```python
-import pandas as pd
-url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(
-    url,
-    index_col=0,
-    parse_dates=True,
-    header=0,
-    names=["target"],
-)
-```
-
-The first 100 data points look like follows:
-
-```python
-import matplotlib.pyplot as plt
-df[:100].plot(linewidth=2)
-plt.grid(which='both')
-plt.show()
-```
-
-![Data](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_data.png)
-
-We can now prepare a training dataset for our model to train on.
-Datasets in GluonTS are essentially iterable collections of
-dictionaries: each dictionary represents a time series
-with possibly associated features. For this example, we only have one
-entry, specified by the `"start"` field which is the timestamp of the
-first datapoint, and the `"target"` field containing time series data.
-For training, we will use data up to midnight on April 5th, 2015.
-
-```python
-from gluonts.dataset.pandas import PandasDataset
-
-training_data = PandasDataset(df[:"2015-04-05 00:00:00"])
-```
-
-A forecasting model in GluonTS is a *predictor* object. One way of obtaining
-predictors is by training a correspondent *estimator*. Instantiating an
-estimator requires specifying the frequency of the time series that it will
-handle, as well as the number of time steps to predict. In our example
-we're using 5 minutes data, so `freq="5min"`,
-and we will train a model to predict the next hour, so `prediction_length=12`.
-We also specify some minimal training options.
-
-```python
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx.trainer import Trainer
-
-estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
-predictor = estimator.train(training_data=training_data)
-```
-
-During training, useful information about the progress will be displayed.
-To get a full overview of the available options, please refer to the
-documentation of `DeepAREstimator` (or other estimators) and `Trainer`.
-
-We're now ready to make predictions: we will forecast the hour following
-the midnight on April 15th, 2015.
-
-```python
-test_data = PandasDataset(df[:"2015-04-15 00:00:00"])
-
+```py
 from gluonts.dataset.util import to_pandas
+from gluonts.dataset.pandas import PandasDataset
+from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import Trainer
 
-for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
-    to_pandas(test_entry)[-60:].plot(linewidth=2)
-    forecast.plot(color='g', prediction_intervals=[50.0, 90.0])
-plt.grid(which='both')
+dataset = get_dataset("airpassengers")
+
+deepar = DeepAREstimator(prediction_length=12, freq="M", trainer=Trainer(epochs=5))
+model = deepar.train(dataset.train)
+
+# Make predictions
+true_values = to_pandas(list(dataset.test)[0])
+true_values.to_timestamp().plot(color="k")
+
+prediction_input = PandasDataset([true_values[:-36], true_values[:-24], true_values[:-12]])
+predictions = model.predict(prediction_input)
+
+for color, prediction in zip(["green", "blue", "purple"], predictions):
+    prediction.plot(color=f"tab:{color}")
+
+plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 
-![Forecast](https://github.com/awslabs/gluon-ts/raw/dev/docs/figures/Tweets_AMZN_forecast.png)
+![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
 
-Note that the forecast is displayed in terms of a probability distribution:
-the shaded areas represent the 50% and 90% prediction intervals, respectively,
-centered around the median (dark green line).
+
+Note that the forecasts are displayed in terms of a probability distribution:
+The shaded areas represent the 50% and 90% prediction intervals, respectively,
+centered around the median.
 
 ## Contributing
 
@@ -167,8 +106,12 @@ in addition to any model-specific references that are relevant for your work:
 }
 ```
 
-## Other resources
+## Links
 
+* [Documentation (stable version)][stable docs url]
+* [Documentation (development version)][development docs url]
+* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
+* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/dev/REFERENCES.md): a bibliography.
 * [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
 * [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
