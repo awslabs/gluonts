@@ -9,7 +9,7 @@ static and dynamic features and how to do train/test splits.
 
 ## Introduction
 
-`PandasDataset` is meant to work on `pandas.Dataset`, `pandas.Series` and
+`PandasDataset` is meant to work on `pandas.DataFrame`, `pandas.Series` and
 any collection of both.
 The minimal requirement to start modelling using GluonTS's dataframe dataset
 is a list of monotonically increasing timestamps with a fixed frequency
