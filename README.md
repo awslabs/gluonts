@@ -81,7 +81,7 @@ plt.plot(test.index, test.values, label="Test")
 plt.legend(loc="upper left")
 ```
 
-![[train-test]](https://ts.gluon.ai/static/README/train-test.png)
+![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/train-test.png)
 
 Train a model using `DeepAR`. We wrap the dataframes into instances of
 `PandasDataset` and indicate that we want to use the `#Passengers` column as
@@ -130,7 +130,7 @@ for color, prediction in zip(["green", "blue", "purple"], predictions):
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 
-![[train-test]](https://ts.gluon.ai/static/README/forecasts.png)
+![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
 
 
 Note that the forecasts are displayed in terms of a probability distribution:
