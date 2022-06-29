@@ -50,49 +50,15 @@ time-series, containing monthly international passengers between the years
 1949 and 1960, a total of 144 values (12 years * 12 months). We split the
 dataset into train and test parts, by removing the last three years (36 month)
 from the train data. Thus, we will train a model on just the first nine years
-of data
+of data.
 
-Peak into data:
-
-```csv
-# Month,#Passengers
-# 1949-01,112
-# 1949-02,118
-# 1949-03,132
-...
-```
-
-Loading, splitting and plotting of data:
 
 ```py
-import pandas as pd
-
-URL = "https://raw.githubusercontent.com/AileenNielsen/TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
-
-df = pd.read_csv(URL, index_col=0, parse_dates=True)
-
-# Cut off three years for training
-train = df[:-36]
-# For testing, we take entire time-series
-test = df
-
-plt.plot(train.index, train.values, label="Train")
-plt.plot(test.index, test.values, label="Test")
-plt.legend(loc="upper left")
-```
-
-![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/train-test.png)
-
-Train a model using `DeepAR`. We wrap the dataframes into instances of
-`PandasDataset` and indicate that we want to use the `#Passengers` column as
-the prediction target:
-
-```py
-from gluonts.dataset.pandas import PandasDataset
+from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx import Trainer
 
-train_dataset = PandasDataset(train, target="#Passengers")
+dataset = get_dataset("airpassengers")
 
 deepar = DeepAREstimator(
     # We want to predict one year at a time.
@@ -102,22 +68,23 @@ deepar = DeepAREstimator(
     # Train for just a few epochs to prevent overfitting.
     trainer=Trainer(epochs=5),
 )
-model = deepar.train(train_dataset)
-```
+model = deepar.train(dataset.train)
 
-Now we can use the model to make predictions by asking the model to forecast
-each of the three years of our test dataset:
 
-```py
+# Make predictions
+
+from gluonts.dataset.util import to_pandas
+from gluonts.dataset.pandas import PandasDataset
+
+true_values = to_pandas(list(dataset.test)[0])
+
 prediction_input = PandasDataset(
     [
-        test[:-36],
-        test[:-24],
-        test[:-12],
+        true_values[:-36],
+        true_values[:-24],
+        true_values[:-12],
     ],
-    target="#Passengers",
 )
-
 predictions = model.predict(prediction_input)
 
 
