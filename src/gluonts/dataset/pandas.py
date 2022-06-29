@@ -106,7 +106,7 @@ class PandasDataset(Dataset):
                 df.index = pd.to_datetime(df.index)
                 df = df.to_period(freq=self.freq)
 
-            df.sort_index()
+            df.sort_index(inplace=True)
 
             assert is_uniform(df.index), (
                 "Dataframe index is not uniformly spaced. "
