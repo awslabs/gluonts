@@ -81,6 +81,8 @@ plt.plot(test.index, test.values, label="Test")
 plt.legend(loc="upper left")
 ```
 
+![[train-test]](https://ts.gluon.ai/static/README/train-test.png)
+
 Train a model using `DeepAR`. We wrap the dataframes into instances of
 `PandasDataset` and indicate that we want to use the `#Passengers` column as
 the prediction target:
@@ -97,8 +99,8 @@ deepar = DeepAREstimator(
     prediction_length=12,
     # Use features for monthly-frequencies
     freq="M",
-    # Train for just a few epochs.
-    trainer=Trainer(epochs=10),
+    # Train for just a few epochs to prevent overfitting.
+    trainer=Trainer(epochs=5),
 )
 model = deepar.train(train_dataset)
 ```
@@ -127,6 +129,10 @@ for color, prediction in zip(["green", "blue", "purple"], predictions):
 
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
+
+![[train-test]](https://ts.gluon.ai/static/README/forecasts.png)
+
+
 Note that the forecasts are displayed in terms of a probability distribution:
 The shaded areas represent the 50% and 90% prediction intervals, respectively,
 centered around the median.
