@@ -50,7 +50,7 @@ def generate_m4_dataset(
             continue
         start = pd.date_range(
             meta_info.loc[idx, "StartingDate"],
-            freq=m4_freq,
+            freq=pandas_freq,
             periods=target.shape[0],
         )
         train_list.append(pd.DataFrame({"target": target, "start": start}))
@@ -61,7 +61,7 @@ def generate_m4_dataset(
             continue
         start = pd.date_range(
             meta_info.loc[idx, "StartingDate"],
-            freq=m4_freq,
+            freq=pandas_freq,
             periods=target.shape[0],
         )
         test_list.append(pd.DataFrame({"target": target, "start": start}))
