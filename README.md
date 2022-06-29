@@ -54,6 +54,8 @@ of data.
 
 
 ```py
+from gluonts.dataset.util import to_pandas
+from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx import Trainer
@@ -61,22 +63,16 @@ from gluonts.mx import Trainer
 dataset = get_dataset("airpassengers")
 
 deepar = DeepAREstimator(
-    # We want to predict one year at a time.
     prediction_length=12,
-    # Use features for monthly-frequencies
     freq="M",
-    # Train for just a few epochs to prevent overfitting.
     trainer=Trainer(epochs=5),
 )
+
 model = deepar.train(dataset.train)
 
-
 # Make predictions
-
-from gluonts.dataset.util import to_pandas
-from gluonts.dataset.pandas import PandasDataset
-
 true_values = to_pandas(list(dataset.test)[0])
+true_values.to_timestamp().plot(color="k")
 
 prediction_input = PandasDataset(
     [
@@ -87,12 +83,8 @@ prediction_input = PandasDataset(
 )
 predictions = model.predict(prediction_input)
 
-
-plt.plot(test.index, test.values, color="k")
-
 for color, prediction in zip(["green", "blue", "purple"], predictions):
     prediction.plot(color=f"tab:{color}")
-
 
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
