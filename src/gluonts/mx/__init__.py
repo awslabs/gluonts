@@ -11,16 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
-
-# flake8: noqa
-
 import typing
-from pkgutil import extend_path
 
 import mxnet as mx
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+__all__ = [
+    "Tensor",
+    "as_in_context",
+    "batchify",
+    "DistributionOutput",
+    "GluonEstimator",
+    "GluonPredictor",
+    "RepresentableBlockPredictor",
+    "Trainer",
+]
 
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]

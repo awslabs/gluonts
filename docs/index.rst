@@ -28,7 +28,7 @@
    :maxdepth: 1
    :hidden:
 
-   api/gluonts/gluonts
+   api/index
 
 .. toctree::
    :name: Developing
