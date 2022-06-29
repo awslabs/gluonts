@@ -1,8 +1,5 @@
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-[stable_docs_url]: https://ts.gluon.ai/
-[development docs url]: https://ts.gluon.ai/dev/index.html
-
 [![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
 [![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
 [![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)](https://ts.gluon.ai/)
@@ -107,11 +104,19 @@ in addition to any model-specific references that are relevant for your work:
 
 ## Links
 
-* [Documentation (stable version)][stable docs url]
-* [Documentation (development version)][development docs url]
+### Documentation
+
+* [Documentation (stable)](https://ts.gluon.ai/stable/)
+* [Documentation (development)](https://ts.gluon.ai/dev/)
+
+### References
+
 * [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
 * [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/dev/REFERENCES.md): a bibliography.
+
+### Tutorials and Workshops
+
 * [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
 * [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
