@@ -7,8 +7,56 @@ detail what data formats `PandasDataset` can work with, how to include
 static and dynamic features and how to do train/test splits.
 
 
+## Introduction
 
-## Use case 1 - Loading data from a `long` dataframe and training `DeepAR`
+`PandasDataset` is meant to work on `pandas.Dataset`, `pandas.Series` and
+any collection of both.
+The minimal requirement to start modelling using GluonTS's dataframe dataset
+is a list of monotonically increasing timestamps with a fixed frequency
+and a list of corresponding target values in `pandas.DataFrame`:
+
+|timestamp|target|
+|----|----|
+|2021-01-01 00:00:00|-0.21|
+|2021-01-01 01:00:00|-0.33|
+|2021-01-01 02:00:00|-0.33|
+|...|...|
+
+If you have additional dynamic or static features, you can include those
+in separate columns as following:
+
+|timestamp|target|stat_cat_1|dyn_real_1|
+|----|----|----|----|
+|2021-01-01 00:00:00|-0.21|0|0.79|
+|2021-01-01 01:00:00|-0.33|0|0.59|
+|2021-01-01 02:00:00|-0.33|0|0.39|
+|...|...|...|...|
+
+GluonTS also supports multiple time series.
+Those can either be a list of the DataFrames with the format above
+(having at least a `timestamp` index or column and `target` column),
+a dict of DataFrames or a Long-DataFrame that has an additional
+`item_id` column that groups the different time series.
+When using a dict, the keys are used as `item_id`s. An example with
+two time series including static and dynamic feature is the following:
+
+|timestamp|target|item_id|stat_cat_1|dyn_real_1|
+|----|----|----|----|----|
+|2021-01-01 00:00:00|-0.21|A|0|0.79|
+|2021-01-01 01:00:00|-0.33|A|0|0.59|
+|2021-01-01 02:00:00|-0.33|A|0|0.39|
+|2021-01-01 01:00:00|-1.24|B|1|-0.60|
+|2021-01-01 02:00:00|-1.37|B|1|-0.91|
+
+Here, the time series values are represented by the `target` column with
+corresponding timestamp values in the `timestamp` column. Another necessary column
+is the `item_id` column that indicates which time series a specific row belongs to.
+In this example, we have two time series, one indicated by item `A` and the other
+by `B`. In addition, if we have other features we can include those too
+(`stat_cat_1` and `dyn_real_1` in the example above).
+
+
+## Use case 1 - Loading data from a `long` dataframe
 
 In the first use case we are given multiple time series stacked on top
 of each other in a dataframe with an `item_id` column that distinguishes
@@ -44,7 +92,7 @@ predictions = predictor.predict(ds)
 ```
 
 
-## Use case 2 - Loading data from a `wide`-DataFrame
+## Use case 2 - Loading data from a `wide` dataframe
 
 Here, instead of a `long` dataset, we are given data in the `wide` format,
 where time series are stacked side-by-side. To convert the dataset
@@ -115,61 +163,18 @@ for item_id, gdf in df.groupby("item_id"):
     dfs_dict[item_id] = gdf.reindex(new_index).drop("item_id", axis=1)
 
 # here we use the dict of dataframes directly to instantiate `PandasDataset`
-ds = PandasDataset(dfs_dict)
+ds = PandasDataset(dfs_dict, target="target")
 ```
 
-## Introduction
 
+## General use cases
 
-`PandasDataset` is meant to work on `pandas.Dataset`, `pandas.Series` and
-any collection of both.
-The minimal requirement to start modelling using GluonTS's dataframe dataset
-is a list of monotonically increasing timestamps with a fixed frequency
-and a list of corresponding target values in `pandas.DataFrame`:
-
-|timestamp|target|
-|----|----|
-|2021-01-01 00:00:00|-0.21|
-|2021-01-01 01:00:00|-0.33|
-|2021-01-01 02:00:00|-0.33|
-|...|...|
-
-If you have additional dynamic or static features, you can include those
-in separate columns as following:
-
-|timestamp|target|stat_cat_1|dyn_real_1|
-|----|----|----|----|
-|2021-01-01 00:00:00|-0.21|0|0.79|
-|2021-01-01 01:00:00|-0.33|0|0.59|
-|2021-01-01 02:00:00|-0.33|0|0.39|
-|...|...|...|...|
-
-GluonTS also supports multiple time series.
-Those can either be a list of the DataFrames with the format above
-(having at least a `timestamp` index or column and `target` column),
-a dict of DataFrames or a Long-DataFrame that has an additional
-`item_id` column that groups the different time series.
-When using a dict, the keys are used as `item_id`s. An example with
-two time series including static and dynamic feature is the following:
-
-|timestamp|target|item_id|stat_cat_1|dyn_real_1|
-|----|----|----|----|----|
-|2021-01-01 00:00:00|-0.21|A|0|0.79|
-|2021-01-01 01:00:00|-0.33|A|0|0.59|
-|2021-01-01 02:00:00|-0.33|A|0|0.39|
-|2021-01-01 01:00:00|-1.24|B|1|-0.60|
-|2021-01-01 02:00:00|-1.37|B|1|-0.91|
-
-Here, the time series values are represented by the `target` column with
-corresponding timestamp values in the `timestamp` column. Another necessary column
-is the `item_id` column that indicates which time series a specific row belongs to.
-In this example, we have two time series, one indicated by item `A` and the other
-by `B`. In addition, if we have other features we can include those too
-(`stat_cat_1` and `dyn_real_1` in the example above).
+Here, we explain in detail what data formats `PandasDataset` can work with,
+how to include static and dynamic features and how to do train/test splits.
 
 ### Dummy data generation
 
-Now, let's create a function that generates dummy time series conforming above
+Let's create a function that generates dummy time series conforming above
 stated requirements (`timestamp` index and `target` column).
 The function randomly samples sin/cos curves and outputs their sum. You don't need
 to understand how this really works. We will just call `generate_single_ts`
