@@ -25,24 +25,7 @@ pip install gluonts[torch,pro]
 ```
 
 
-## Documentation
-
-* [Documentation (stable version)][stable docs url]
-* [Documentation (development version)][development docs url]
-* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
-* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
-
-## Features
-
-* State-of-the-art models implemented with [MXNet](https://mxnet.incubator.apache.org/) and [PyTorch](https://pytorch.org/) (see [list](/blob/dev/docs/docs/getting_started/models.md))
-* Easy AWS integration via [Amazon SageMaker](https://aws.amazon.com/de/sagemaker/) (see [here](#running-on-amazon-sagemaker))
-* Utilities for loading and iterating over time series datasets
-* Utilities to evaluate models performance and compare their accuracy
-* Building blocks to define custom models and quickly experiment
-
-
-
-## Quick example
+## Simple Example
 
 To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
 using the simple "airpassengers" dataset. The dataset consists of a single
@@ -123,8 +106,12 @@ in addition to any model-specific references that are relevant for your work:
 }
 ```
 
-## Other resources
+## Links
 
+* [Documentation (stable version)][stable docs url]
+* [Documentation (development version)][development docs url]
+* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
+* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
 * [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/dev/REFERENCES.md): a bibliography.
 * [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
 * [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
