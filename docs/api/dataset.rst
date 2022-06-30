@@ -6,17 +6,29 @@ gluonts.dataset
 
 .. py:data:: gluonts.dataset.DataBatch
 
-.. automodule:: gluonts.dataset
+.. py:class:: gluonts.dataset.Dataset
+
+
+
+.. automodule:: gluonts.dataset.arrow
+
+.. autoclass:: gluonts.dataset.arrow.ArrowFile
     :members:
     :undoc-members:
 
-.. .. automodule:: gluonts.dataset.arrow
-..     :members:
-..     :undoc-members:
+.. autoclass:: gluonts.dataset.arrow.ArrowStreamFile
+    :members:
+    :undoc-members:
+
+.. autoclass:: gluonts.dataset.arrow.ParquetFile
+    :members:
+    :undoc-members:
+
+
+JsonLines
+---------
 
 .. .. automodule:: gluonts.dataset.jsonl
-..     :members:
-..     :undoc-members:
 
 
 Dataset Writers
