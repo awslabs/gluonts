@@ -161,7 +161,6 @@ for item_id, gdf in df.groupby("item_id"):
     new_index = pd.date_range(gdf.index[0], end=max_end, freq="1D")
     dfs_dict[item_id] = gdf.reindex(new_index).drop("item_id", axis=1)
 
-# here we use the dict of dataframes directly to instantiate `PandasDataset`
 ds = PandasDataset(dfs_dict, target="target")
 ```
 
