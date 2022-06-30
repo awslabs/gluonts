@@ -155,7 +155,6 @@ dataframe to fill in desired value.
 ```python
 from gluonts.dataset.pandas import PandasDataset
 
-# get the latest date. we also fill forward if latest entries are missing.
 max_end = max(df.groupby("item_id").apply(lambda _df: _df.index[-1]))
 dfs_dict = {}
 for item_id, gdf in df.groupby("item_id"):
