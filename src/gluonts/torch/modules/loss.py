@@ -12,14 +12,16 @@
 # permissions and limitations under the License.
 
 import torch
+from pydantic import BaseModel
 
 
-class DistributionLoss(torch.nn.Module):
-    """A ``torch.nn.Module`` extensions that computes loss values by comparing a ``Distribution``
-    (prediction) to a ``Tensor`` (ground-truth).
+class DistributionLoss(BaseModel):
+    """
+    A ``torch.nn.Module`` extensions that computes loss values by comparing a
+    ``Distribution`` (prediction) to a ``Tensor`` (ground-truth).
     """
 
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         """
@@ -46,14 +48,28 @@ class DistributionLoss(torch.nn.Module):
 
 
 class NegativeLogLikelihood(DistributionLoss):
-    def forward(
+    """
+    Compute the negative log likelihood loss.
+
+    Parameters
+    ----------
+    beta: float in range (0, 1)
+        beta parameter from the paper: "On the Pitfalls of Heteroscedastic
+        Uncertainty Estimation with Probabilistic Neural Networks" by
+        Seitzer et al. 2022
+        https://openreview.net/forum?id=aPOpXlnV1T
+    """
+
+    beta: float = 0.0
+
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         return -input.log_prob(target)
 
 
 class CRPS(DistributionLoss):
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         return input.crps(target)
