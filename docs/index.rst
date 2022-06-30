@@ -17,13 +17,10 @@
    :maxdepth: 1
    :hidden:
 
-   tutorials/forecasting/quick_start_tutorial
-   tutorials/forecasting/extended_tutorial
-   tutorials/data_manipulation/pandasdataframes
-   tutorials/data_manipulation/synthetic_data_generation
-   tutorials/advanced_topics/trainer_callbacks
-   tutorials/advanced_topics/hp_tuning_with_optuna
-   tutorials/advanced_topics/howto_pytorch_lightning
+   tutorials/forecasting/index
+   tutorials/data_manipulation/index
+   tutorials/advanced_topics/index
+
 
 .. toctree::
    :name: API docs
