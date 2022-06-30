@@ -86,6 +86,8 @@ def convert(path, mode, kernel_name=None, timeout=40 * 60):
 @click.option("--kernel", "-k", help="Name of iPython kernel to use.")
 @click.option("--mode", "-m", default="release")
 def cli(paths, kernel, mode):
+    mode = check_github_event(mode)
+
     for file in map(Path, paths):
         convert(file, kernel_name=kernel, mode=mode)
 
