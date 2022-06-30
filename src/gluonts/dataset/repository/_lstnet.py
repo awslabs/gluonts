@@ -205,4 +205,6 @@ def generate_lstnet_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_ts, test=test_ts)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )

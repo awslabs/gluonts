@@ -93,4 +93,6 @@ def generate_uber_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )

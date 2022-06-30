@@ -165,4 +165,6 @@ def generate_m5_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
