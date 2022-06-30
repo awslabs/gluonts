@@ -14,15 +14,11 @@
 import functools
 import logging
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import (
-    Any,
     Callable,
-    Dict,
     Iterable,
-    Iterator,
     List,
     NamedTuple,
     Optional,
@@ -35,13 +31,15 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 import pydantic
-from typing_extensions import Protocol, runtime_checkable
 
 from gluonts import json
-from gluonts.itertools import roundrobin, Cached, Map
+from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset import jsonl
 from gluonts.exceptions import GluonTSDataError
+
+
+from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
+from . import jsonl, DatasetWriter
 
 
 arrow: Optional[ModuleType]
@@ -50,43 +48,6 @@ try:
     from . import arrow
 except ImportError:
     arrow = None
-
-# Dictionary used for data flowing through the transformations.
-DataEntry = Dict[str, Any]
-DataBatch = Dict[str, Any]
-
-
-@runtime_checkable
-class Dataset(Protocol):
-    def __iter__(self) -> Iterator[DataEntry]:
-        raise NotImplementedError
-
-    def __len__(self) -> int:
-        raise NotImplementedError
-
-
-@dataclass
-class DatasetCollection(Dataset):
-    """Flattened access to a collection of datasets."""
-
-    datasets: List[Dataset]
-    interleave: bool = False
-
-    def iter_sequential(self):
-        for dataset in self.datasets:
-            yield from dataset
-
-    def iter_interleaved(self):
-        yield from roundrobin(*self.datasets)
-
-    def __iter__(self):
-        if self.interleave:
-            yield from self.iter_interleaved()
-        else:
-            yield from self.iter_sequential()
-
-    def __len__(self):
-        return sum(map(len, self.datasets))
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -128,7 +89,12 @@ class TrainDatasets(NamedTuple):
     train: Dataset
     test: Optional[Dataset] = None
 
-    def save(self, path_str: str, overwrite=True) -> None:
+    def save(
+        self,
+        path_str: str,
+        writer: DatasetWriter,
+        overwrite=False,
+    ) -> None:
         """
         Saves an TrainDatasets object to a JSON Lines file.
 
@@ -144,20 +110,18 @@ class TrainDatasets(NamedTuple):
         if overwrite:
             shutil.rmtree(path, ignore_errors=True)
 
-        (path / "metadata").mkdir(parents=True)
-        with open(path / "metadata/metadata.json", "wb") as f:
-            json.bdump(self.metadata.dict(), f, nl=True)
+        path.mkdir(parents=True)
+        with open(path / "metadata.json", "wb") as out_file:
+            json.bdump(self.metadata.dict(), out_file, nl=True)
 
-        (path / "train").mkdir(parents=True)
-        with open(path / "train/data.json", "wb") as f:
-            for entry in self.train:
-                json.bdump(serialize_data_entry(entry), f, nl=True)
+        train = path / "train"
+        train.mkdir(parents=True)
+        writer.write_to_folder(self.train, train)
 
         if self.test is not None:
-            (path / "test").mkdir(parents=True)
-            with open(path / "test/data.json", "wb") as f:
-                for entry in self.test:  # pylint: disable=not-an-iterable
-                    json.bdump(serialize_data_entry(entry), f, nl=True)
+            test = path / "test"
+            test.mkdir(parents=True)
+            writer.write_to_folder(self.test, test)
 
 
 def infer_file_type(path):
@@ -494,34 +458,3 @@ def load_datasets(
     )
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
-
-
-def serialize_data_entry(data):
-    """
-    Encode the numpy values in the a DataEntry dictionary into lists so the
-    dictionary can be JSON serialized.
-
-    Parameters
-    ----------
-    data
-        The dictionary to be transformed.
-
-    Returns
-    -------
-    Dict
-        The transformed dictionary, where all fields where transformed into
-        strings.
-    """
-
-    def serialize_field(field):
-        if isinstance(field, np.ndarray):
-            # circumvent https://github.com/micropython/micropython/issues/3511
-            nan_ix = np.isnan(field)
-            field = field.astype(np.object_)
-            field[nan_ix] = "NaN"
-            return field.tolist()
-        if isinstance(field, (int, float)):
-            return field
-        return str(field)
-
-    return {k: serialize_field(v) for k, v in data.items() if v is not None}

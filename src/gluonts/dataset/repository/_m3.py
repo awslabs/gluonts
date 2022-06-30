@@ -11,9 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
 import os
-import re
 import warnings
 from pathlib import Path
 from typing import NamedTuple, Optional
@@ -21,7 +19,9 @@ from typing import NamedTuple, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 from gluonts.gluonts_tqdm import tqdm
 
 
@@ -54,21 +54,19 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
 
         assert ts_train["start"] == ts_test["start"]
         start = ts_train["start"]
-        regex = r"^(\d{4})-(\d{2})-(\d{2})( 00:00(:00)?)?$"
-        m = re.match(regex, str(start))
-        assert m
-        month, day = m.group(2), m.group(3)
+
         if sheet_name in ["M3Quart", "Other"]:
-            assert f"{month}-{day}" in [
-                "03-31",
-                "06-30",
-                "09-30",
-                "12-31",
-            ], f"Invalid time stamp `{month}-{day}`"
+            assert (start.month, start.day) in [
+                (3, 31),
+                (6, 30),
+                (9, 30),
+                (12, 31),
+            ], f"Invalid time stamp {start.month}-{start.day}"
         elif sheet_name == "M3Year":
-            assert (
-                f"{month}-{day}" == "12-31"
-            ), f"Invalid time stamp {month}-{day}"
+            assert (start.month, start.day) == (
+                12,
+                31,
+            ), f"Invalid time stamp {start.month}-{start.day}"
 
 
 class M3Setting(NamedTuple):
@@ -78,7 +76,10 @@ class M3Setting(NamedTuple):
 
 
 def generate_m3_dataset(
-    dataset_path: Path, m3_freq: str, prediction_length: Optional[int] = None
+    dataset_path: Path,
+    m3_freq: str,
+    dataset_writer: DatasetWriter,
+    prediction_length: Optional[int] = None,
 ):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
@@ -127,8 +128,7 @@ def generate_m3_dataset(
 
     cat_map = {c: i for i, c in enumerate(categories)}
 
-    i = 0
-    for _, row in df.iterrows():
+    for i, (_, row) in enumerate(df.iterrows()):
         vals = row.values
         series, n, nf, category, starting_year, starting_offset = vals[:6]
         target = np.asarray(vals[6:], dtype=np.float64)
@@ -160,42 +160,38 @@ def generate_m3_dataset(
             assert 0 <= offset < 12
             time_stamp = f"{starting_year}-{offset + 1:02}-15"
 
-        s = pd.Period(time_stamp, freq=subset.freq)
-
-        start = str(s).split(" ")[0]
+        start = str(pd.Period(time_stamp, freq=subset.freq))
         cat = [i, cat_map[category]]
 
-        d_train = to_dict(
-            target_values=target[: -subset.prediction_length],
-            start=start,
-            cat=cat,
-            item_id=series,
-        )
-        train_data.append(d_train)
-
-        d_test = to_dict(
-            target_values=target, start=start, cat=cat, item_id=series
-        )
-        test_data.append(d_test)
-        i += 1
-
-    os.makedirs(dataset_path, exist_ok=True)
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=[len(train_data), len(categories)],
-                    freq=subset.freq,
-                    prediction_length=prediction_length
-                    or subset.prediction_length,
-                )
-            )
+        train_data.append(
+            {
+                "target": target[: -subset.prediction_length],
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
         )
 
-    train_file = dataset_path / "train" / "data.json"
-    test_file = dataset_path / "test" / "data.json"
+        test_data.append(
+            {
+                "target": target,
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
+        )
 
-    save_to_file(train_file, train_data)
-    save_to_file(test_file, test_data)
+    meta = MetaData(
+        **metadata(
+            cardinality=[len(train_data), len(categories)],
+            freq=subset.freq,
+            prediction_length=prediction_length or subset.prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
 
     check_dataset(dataset_path, len(df), subset.sheet_name)

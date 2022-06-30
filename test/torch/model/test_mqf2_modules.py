@@ -82,7 +82,7 @@ def test_mqf2_modules(
 
     assert scale.shape == (batch_size, 1)
 
-    hidden_size = model.lagged_rnn.rnn.hidden_size
+    hidden_size = model.rnn.hidden_size
 
     assert hidden_state.shape == (batch_size, context_length, hidden_size)
 
