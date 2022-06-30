@@ -29,7 +29,7 @@ clean:
 
 compile_notebooks mode="release":
     python -m ipykernel install --user --name docsbuild
-    python {{MD2IPYNB}} --kernel docsbuild "docs/tutorials/" --mode {{mode}}
+    python {{MD2IPYNB}} --kernel docsbuild docs/tutorials/**/*.md.template --mode {{mode}}
 
 release:
   python setup.py sdist
