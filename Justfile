@@ -27,15 +27,18 @@ docs: release
 clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
-compile_notebooks mode="SKIP":
-  #!/usr/bin/env sh
+compile_notebooks:
+  if [ {{skip_build_notebook}} = "true" ] ; \
+  then \
+    find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 cp; \
+  else \
+    python -m ipykernel install --user --name docsbuild; \
+    python {{MD2IPYNB}} --kernel docsbuild "docs/tutorials/**/*.md.input"; \
+  fi;
 
-  if [ {{mode}} = "SKIP" ]; then
-    fd -e md.input "" docs/tutorials -x cp {} {.};
-  else
-    python -m ipykernel install --user --name docsbuild;
-    python {{MD2IPYNB}} --kernel docsbuild "docs/tutorials/**/*.md.input" -m {mode};
-  fi
+dist_notebooks: compile_notebooks
+  cd docs/tutorials && \
+  find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
 
-release:
+release: dist_notebooks
   python setup.py sdist
