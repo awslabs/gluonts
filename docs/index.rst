@@ -34,7 +34,6 @@
    api/model
    api/mx
    api/shell
-   api/torch
    api/time_feature
    api/transform
 
