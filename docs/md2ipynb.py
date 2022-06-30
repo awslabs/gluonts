@@ -4,23 +4,14 @@ import time
 from itertools import chain
 from pathlib import Path
 
-import click
-import jinja2
 import nbformat
 import notedown
 from nbclient import NotebookClient
 
-from jinja2 import Environment
 
-env = Environment()
-
-
-def convert(path, mode, kernel_name=None, timeout=40 * 60):
+def convert(path, kernel_name=None, timeout=40 * 60):
     with path.open() as in_file:
-        template = env.from_string(in_file.read())
-
-    notebook_text = template.render(mode=mode)
-    notebook = notedown.MarkdownReader().reads(notebook_text)
+        notebook = notedown.MarkdownReader().read(in_file)
 
     print(f"=== {path.name} ", end="")
     sys.stdout.flush()
@@ -47,15 +38,23 @@ def convert(path, mode, kernel_name=None, timeout=40 * 60):
     nbformat.write(notebook, path.with_name(stem).with_suffix(".ipynb"))
 
 
-@click.command()
-@click.argument("files", type=click.Path(), nargs=-1)
-@click.option("--kernel", "-k", help="Name of iPython kernel to use.")
-@click.option("--mode", "-m", default="RELEASE")
-def cli(files, kernel, mode):
-
-    for file in chain.from_iterable(map(Path().glob, files)):
-        convert(file, kernel_name=kernel, mode=mode)
-
-
 if __name__ == "__main__":
-    cli()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-k",
+        "--kernel",
+        dest="kernel_name",
+        default=None,
+        help="name of ipython kernel to use",
+    )
+    parser.add_argument(
+        "files", type=str, nargs="+", help="path to files to convert"
+    )
+
+    args = parser.parse_args()
+
+    here = Path(".")
+    files = list(chain.from_iterable(map(here.glob, args.files)))
+
+    for file in files:
+        convert(file, kernel_name=args.kernel_name)
