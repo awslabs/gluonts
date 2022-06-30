@@ -28,7 +28,7 @@ def check_github_event(default):
         #     if label["name"] == "":
         #         return default
 
-        return "fast"
+        return "skip"
 
     return default
 
