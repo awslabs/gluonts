@@ -228,7 +228,9 @@ def generate_forecasting_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
 
 
 def default_prediction_length_from_frequency(freq: str) -> int:

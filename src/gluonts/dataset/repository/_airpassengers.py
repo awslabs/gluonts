@@ -44,4 +44,4 @@ def generate_airpassengers_dataset(
     meta = MetaData(freq="1M", prediction_length=12)
 
     dataset = TrainDatasets(metadata=meta, train=train, test=test)
-    dataset.save(str(dataset_path), writer=dataset_writer)
+    dataset.save(str(dataset_path), writer=dataset_writer, overwrite=True)

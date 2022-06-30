@@ -130,7 +130,9 @@ def generate_gp_copula_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
     clean_up_dataset(dataset_path, ds_info)
 
 
