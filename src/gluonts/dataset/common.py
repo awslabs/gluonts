@@ -93,7 +93,7 @@ class TrainDatasets(NamedTuple):
         self,
         path_str: str,
         writer: DatasetWriter,
-        overwrite=True,
+        overwrite=False,
     ) -> None:
         """
         Saves an TrainDatasets object to a JSON Lines file.
