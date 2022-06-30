@@ -15,16 +15,7 @@ import typing
 
 import mxnet as mx
 
-__all__ = [
-    "Tensor",
-    "as_in_context",
-    "batchify",
-    "DistributionOutput",
-    "GluonEstimator",
-    "GluonPredictor",
-    "RepresentableBlockPredictor",
-    "Trainer",
-]
+from gluonts.core import canonical_export
 
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
@@ -41,3 +32,17 @@ from .model.predictor import (
 )
 from .trainer import Trainer
 from .util import copy_parameters, get_hybrid_forward_input_names
+
+
+__all__ = canonical_export(
+    __name__,
+    [
+        as_in_context,
+        batchify,
+        DistributionOutput,
+        GluonEstimator,
+        GluonPredictor,
+        RepresentableBlockPredictor,
+        Trainer,
+    ],
+) + ["Tensor"]

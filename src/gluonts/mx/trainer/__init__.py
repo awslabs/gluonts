@@ -11,8 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from gluonts.core import canonical_export
+
 from . import learning_rate_scheduler as lrs
 from . import model_averaging, model_iteration_averaging
 from ._base import Trainer
 
-__all__ = ["lrs", "Trainer", "model_averaging", "model_iteration_averaging"]
+__all__ = canonical_export(__name__, [Trainer]) + [
+    "lrs",
+    "model_averaging",
+    "model_iteration_averaging",
+]
