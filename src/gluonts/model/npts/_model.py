@@ -16,7 +16,7 @@ from typing import Any, Callable, Iterator, List, Optional, cast
 import numpy as np
 import pandas as pd
 
-from gluonts.mx.model.forecast import SampleForecast
+from gluonts.model.forecast import SampleForecast
 
 from ._weighted_sampler import WeightedSampler
 

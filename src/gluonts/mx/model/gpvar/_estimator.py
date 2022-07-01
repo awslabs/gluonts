@@ -29,12 +29,12 @@ from gluonts.mx.model.deepvar._estimator import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput
-from gluonts.mx.model.base.estimator import GluonEstimator
-from gluonts.mx.model.base.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.itertools import maybe_len

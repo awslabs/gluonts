@@ -65,9 +65,9 @@ def test_appendix_c():
     from mxnet import gluon
 
     from gluonts.core.component import validated
-    from gluonts.mx.model.base.estimator import GluonEstimator
-    from gluonts.mx.model.predictor import Predictor
-    from gluonts.mx.model.base.predictor import RepresentableBlockPredictor
+    from gluonts.mx.model.estimator import GluonEstimator
+    from gluonts.model.predictor import Predictor
+    from gluonts.mx.model.predictor import RepresentableBlockPredictor
     from gluonts.mx.trainer import Trainer
     from gluonts.mx.util import copy_parameters
     from gluonts.transform import (

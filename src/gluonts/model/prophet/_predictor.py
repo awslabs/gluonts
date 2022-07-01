@@ -19,8 +19,8 @@ import toolz
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.mx.model.forecast import SampleForecast
-from gluonts.mx.model.predictor import RepresentablePredictor
+from gluonts.model.forecast import SampleForecast
+from gluonts.model.predictor import RepresentablePredictor
 
 try:
     from prophet import Prophet

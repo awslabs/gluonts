@@ -20,8 +20,8 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
-from gluonts.mx.model.forecast import SampleForecast, QuantileForecast
-from gluonts.mx.model.predictor import RepresentablePredictor
+from gluonts.model.forecast import SampleForecast, QuantileForecast
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import get_seasonality
 
 # https://stackoverflow.com/questions/25329955/check-if-r-is-installed-from-python

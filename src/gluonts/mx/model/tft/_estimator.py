@@ -26,10 +26,10 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.env import env
-from gluonts.mx.model.forecast_generator import QuantileForecastGenerator
+from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.mx.batchify import batchify
-from gluonts.mx.model.base.estimator import GluonEstimator
-from gluonts.mx.model.base.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.estimator import GluonEstimator
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
 from gluonts.itertools import maybe_len

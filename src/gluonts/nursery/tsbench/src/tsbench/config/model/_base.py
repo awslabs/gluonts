@@ -14,8 +14,8 @@
 from dataclasses import asdict, dataclass, MISSING
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypeVar
-from gluonts.mx.model.estimator import Estimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.estimator import Estimator
+from gluonts.model.predictor import Predictor
 from mxnet.gluon import nn
 from tsbench.config.dataset import DatasetConfig
 from tsbench.gluonts import TimedTrainer

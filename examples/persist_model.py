@@ -21,7 +21,7 @@ from gluonts.dataset.repository.datasets import get_dataset, get_download_path
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":
 

@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 from gluonts.core.component import validated
-from gluonts.mx.model.estimator import DummyEstimator
+from gluonts.model.estimator import DummyEstimator
 
-from gluonts.mx.model.trivial.constant import ConstantPredictor
-from gluonts.mx.model.trivial.identity import IdentityPredictor
-from gluonts.mx.model.trivial.mean import MeanPredictor, MovingAveragePredictor
+from gluonts.model.trivial.constant import ConstantPredictor
+from gluonts.model.trivial.identity import IdentityPredictor
+from gluonts.model.trivial.mean import MeanPredictor, MovingAveragePredictor
 
 
 class ConstantEstimator(DummyEstimator):

@@ -20,11 +20,11 @@ import numpy as np
 
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, DataLoader, InferenceDataLoader
-from gluonts.mx.model.forecast import Forecast
-from gluonts.mx.model.forecast_generator import ForecastGenerator
-from gluonts.mx.model.predictor import OutputTransform
+from gluonts.model.forecast import Forecast
+from gluonts.model.forecast_generator import ForecastGenerator
+from gluonts.model.predictor import OutputTransform
 from gluonts.mx.batchify import batchify
-from gluonts.mx.model.base.predictor import (
+from gluonts.mx.model.predictor import (
     GluonPredictor,
     SymbolBlockPredictor,
 )

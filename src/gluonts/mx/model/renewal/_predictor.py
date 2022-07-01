@@ -22,13 +22,13 @@ import numpy as np
 from gluonts.core.serde import load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.mx.model.forecast import Forecast
-from gluonts.mx.model.forecast_generator import (
+from gluonts.model.forecast import Forecast
+from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
 )
 from gluonts.mx.batchify import batchify
-from gluonts.mx.model.base.predictor import RepresentableBlockPredictor
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
 
 

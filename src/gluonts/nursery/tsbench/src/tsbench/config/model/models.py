@@ -16,13 +16,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast, List, Optional
 from gluonts.mx import DeepAREstimator
-from gluonts.mx.model.estimator import DummyEstimator, Estimator
+from gluonts.model.estimator import DummyEstimator, Estimator
 from gluonts.mx.model.n_beats import NBEATSEstimator
 from gluonts.mx.model.naive_2 import Naive2Predictor
 from gluonts.mx.model.npts import NPTSEstimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.model.prophet import ProphetPredictor
-from gluonts.mx.model.r_forecast import RForecastPredictor
+from gluonts.model.r_forecast import RForecastPredictor
 from gluonts.mx import SeasonalNaivePredictor
 from gluonts.mx import MQCNNEstimator, MQRNNEstimator
 from gluonts.mx import SimpleFeedForwardEstimator

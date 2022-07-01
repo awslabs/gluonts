@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import cast, List
 import numpy as np
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from mxnet.gluon import nn
 from tsbench.config import DatasetConfig, ModelConfig, TrainConfig
 from tsbench.gluonts.callbacks import (

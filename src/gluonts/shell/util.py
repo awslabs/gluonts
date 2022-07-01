@@ -18,8 +18,8 @@ from typing import Type, Union, cast
 import pkg_resources
 from toolz import keyfilter
 
-from gluonts.mx.model.estimator import Estimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.estimator import Estimator
+from gluonts.model.predictor import Predictor
 
 from .exceptions import ForecasterNotFound
 

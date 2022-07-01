@@ -18,7 +18,7 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from gluonts.mx.model.forecast import QuantileForecast
+from gluonts.model.forecast import QuantileForecast
 from gluonts.time_feature import get_seasonality
 
 

@@ -13,7 +13,7 @@
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.mx.model.estimator import Estimator, Predictor
+from gluonts.model.estimator import Estimator, Predictor
 
 from ._predictor import TreePredictor
 

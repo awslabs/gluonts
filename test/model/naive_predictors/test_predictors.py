@@ -25,7 +25,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.mx.model.naive_2 import Naive2Predictor
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx import SeasonalNaivePredictor
 
 

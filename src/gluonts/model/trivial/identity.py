@@ -17,8 +17,8 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
-from gluonts.mx.model.forecast import Forecast, SampleForecast
-from gluonts.mx.model.predictor import RepresentablePredictor
+from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.predictor import RepresentablePredictor
 
 
 class IdentityPredictor(RepresentablePredictor):

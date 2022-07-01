@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 from gluonts.env import env
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from tsbench.config import DatasetConfig, ModelConfig
 from tsbench.config.dataset import DatasetSplit
 from tsbench.forecasts import evaluate_forecasts, generate_forecasts

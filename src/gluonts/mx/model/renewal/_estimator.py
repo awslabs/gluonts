@@ -25,7 +25,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.itertools import Cyclic
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.model.renewal._network import (
     DeepRenewalPredictionNetwork,
     DeepRenewalTrainingNetwork,
@@ -34,7 +34,7 @@ from gluonts.mx.model.renewal._predictor import DeepRenewalProcessPredictor
 from gluonts.mx.model.renewal._transform import AddAxisLength
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
-from gluonts.mx.model.base.estimator import GluonEstimator
+from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.itertools import maybe_len

@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.mx.model.forecast import Forecast, Quantile
+from gluonts.model.forecast import Forecast, Quantile
 
 from .metrics import (
     abs_error,
@@ -392,7 +392,7 @@ class Evaluator:
             metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
-            from gluonts.mx.model.naive_2 import naive_2
+            from gluonts.model.naive_2 import naive_2
 
             naive_median_forecast = naive_2(
                 past_data, len(pred_target), freq=forecast.start_date.freqstr

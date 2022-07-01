@@ -22,8 +22,8 @@ from pydantic import BaseSettings
 
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.mx.model.estimator import Estimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.estimator import Estimator
+from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv
 
 from .app import make_app

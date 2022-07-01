@@ -27,7 +27,7 @@ from gluonts.dataset.stat import (
 )
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.evaluation.backtest import BacktestInformation
-from gluonts.mx.model.trivial.mean import MeanEstimator
+from gluonts.model.trivial.mean import MeanEstimator
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)

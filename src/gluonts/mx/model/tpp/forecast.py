@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from pandas import to_timedelta
 
-from gluonts.mx.model.forecast import Config, Forecast, OutputType
+from gluonts.model.forecast import Config, Forecast, OutputType
 
 
 class PointProcessSampleForecast(Forecast):

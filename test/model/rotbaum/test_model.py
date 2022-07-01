@@ -16,7 +16,7 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from gluonts.mx.model.rotbaum import TreeEstimator
+from gluonts.model.rotbaum import TreeEstimator
 
 
 @pytest.fixture()

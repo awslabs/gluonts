@@ -11,8 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from gluonts.core.component import validated
+from gluonts.model.estimator import DummyEstimator
 
-from pkgutil import extend_path
+from ._predictor import NPTSPredictor
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+
+class NPTSEstimator(DummyEstimator):
+    @validated(
+        getattr(NPTSPredictor.__init__, "Model")
+    )  # Reuse the model Predictor model
+    def __init__(self, **kwargs) -> None:
+        super().__init__(predictor_cls=NPTSPredictor, **kwargs)

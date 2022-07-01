@@ -26,7 +26,7 @@ from gluonts.evaluation import (
     MultivariateEvaluator,
 )
 from gluonts.mx.model.lstnet import LSTNetEstimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 
 NUM_SERIES = 10

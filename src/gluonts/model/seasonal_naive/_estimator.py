@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from gluonts.core.component import validated
-from gluonts.mx.model.estimator import DummyEstimator
+from gluonts.model.estimator import DummyEstimator
 
 from ._predictor import SeasonalNaivePredictor
 

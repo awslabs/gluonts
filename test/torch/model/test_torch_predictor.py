@@ -19,7 +19,7 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.dataset.field_names import FieldName
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import InstanceSplitter, TestSplitSampler
 

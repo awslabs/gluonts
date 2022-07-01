@@ -618,7 +618,7 @@ predictor.serialize(Path("/tmp/"))
 
 ```python
 # loads it back
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 predictor_deserialized = Predictor.deserialize(Path("/tmp/"))
 ```
 
@@ -843,7 +843,7 @@ from functools import partial
 from mxnet.gluon import HybridBlock
 from gluonts.core.component import validated
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx import (
     batchify,
     copy_parameters, 

@@ -21,13 +21,13 @@ import torch.nn as nn
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.mx.model.forecast import Forecast
-from gluonts.mx.model.forecast_generator import (
+from gluonts.model.forecast import Forecast
+from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.mx.model.predictor import OutputTransform, Predictor
+from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.component import equals
 from gluonts.transform import Transformation

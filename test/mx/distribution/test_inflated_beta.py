@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 from gluonts.dataset import common
-from gluonts.mx.model import deepar
+from gluonts.mx import deepar
 from gluonts.mx.distribution.inflated_beta import ZeroAndOneInflatedBetaOutput
 from gluonts.mx.trainer import Trainer
 

@@ -21,7 +21,7 @@ import torch.nn as nn
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cached
-from gluonts.mx.model.estimator import Estimator
+from gluonts.model.estimator import Estimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 

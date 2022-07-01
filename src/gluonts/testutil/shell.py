@@ -28,7 +28,7 @@ import requests
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.jsonl import encode_json
 from gluonts.dataset.repository.datasets import materialize_dataset
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters

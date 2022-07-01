@@ -29,8 +29,8 @@ from sagemaker.vpc_utils import VPC_CONFIG_DEFAULT
 
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
-from gluonts.mx.model.estimator import Estimator
-from gluonts.mx.model.predictor import Predictor
+from gluonts.model.estimator import Estimator
+from gluonts.model.predictor import Predictor
 
 from .defaults import (
     ENTRY_POINTS_FOLDER,
