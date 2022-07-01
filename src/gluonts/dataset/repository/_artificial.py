@@ -31,4 +31,6 @@ def generate_artificial_dataset(
         ds.metadata.prediction_length = prediction_length
 
     dataset = TrainDatasets(metadata=ds.metadata, train=ds.train, test=ds.test)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )

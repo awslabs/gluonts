@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import os
-import re
 import warnings
 from pathlib import Path
 from typing import NamedTuple, Optional
@@ -55,21 +54,19 @@ def check_dataset(dataset_path: Path, length: int, sheet_name):
 
         assert ts_train["start"] == ts_test["start"]
         start = ts_train["start"]
-        regex = r"^(\d{4})-(\d{2})-(\d{2})( 00:00(:00)?)?$"
-        m = re.match(regex, str(start))
-        assert m
-        month, day = m.group(2), m.group(3)
+
         if sheet_name in ["M3Quart", "Other"]:
-            assert f"{month}-{day}" in [
-                "03-31",
-                "06-30",
-                "09-30",
-                "12-31",
-            ], f"Invalid time stamp `{month}-{day}`"
+            assert (start.month, start.day) in [
+                (3, 31),
+                (6, 30),
+                (9, 30),
+                (12, 31),
+            ], f"Invalid time stamp {start.month}-{start.day}"
         elif sheet_name == "M3Year":
-            assert (
-                f"{month}-{day}" == "12-31"
-            ), f"Invalid time stamp {month}-{day}"
+            assert (start.month, start.day) == (
+                12,
+                31,
+            ), f"Invalid time stamp {start.month}-{start.day}"
 
 
 class M3Setting(NamedTuple):
@@ -193,6 +190,8 @@ def generate_m3_dataset(
     )
 
     dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
-    dataset.save(path_str=str(dataset_path), writer=dataset_writer)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
 
     check_dataset(dataset_path, len(df), subset.sheet_name)
