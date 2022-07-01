@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 import pandas as pd
+import pytest
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.dataset.split import DateSplitter, OffsetSplitter
+from gluonts.dataset.split import DateSplitter, OffsetSplitter, split
 from gluonts.dataset.split.splitter import TimeSeriesSlice
 
 
@@ -39,50 +40,49 @@ def test_ts_slice_to_item():
     sl.to_data_entry()
 
 
-def test_splitter():
-    dataset = get_dataset("m4_hourly")
-    prediction_length = dataset.metadata.prediction_length
-    splitter = DateSplitter(
-        prediction_length=prediction_length,
-        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
+def check_training_validation(
+    original_entry,
+    train_entry,
+    valid_pair,
+    prediction_length: int,
+    max_history,
+    date,
+    offset,
+) -> None:
+    assert (
+        str(original_entry[FieldName.ITEM_ID])
+        == train_entry[FieldName.ITEM_ID]
     )
-    train, validation = splitter.split(dataset.train)
-    assert len(train[1][0][FieldName.TARGET]) + prediction_length == len(
-        validation[1][0][FieldName.TARGET]
+    assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
+    if max_history is not None:
+        assert len(valid_pair[0][FieldName.TARGET]) == max_history
+    assert len(valid_pair[1][FieldName.TARGET]) == prediction_length
+    train_end = (
+        train_entry[FieldName.START]
+        + len(train_entry[FieldName.TARGET])
+        * train_entry[FieldName.START].freq
     )
-
-    max_history = 2 * prediction_length
-    splitter = OffsetSplitter(
-        prediction_length=prediction_length,
-        split_offset=4 * prediction_length,
-        max_history=max_history,
+    if date is not None:
+        assert train_end == date + train_entry[FieldName.START].freq
+    if offset is not None:
+        if offset > 0:
+            assert len(train_entry[FieldName.TARGET]) == offset
+        else:
+            assert len(train_entry[FieldName.TARGET]) - offset == len(
+                original_entry[FieldName.TARGET]
+            )
+    assert train_end <= valid_pair[1][FieldName.START]
+    valid_end = (
+        valid_pair[0][FieldName.START]
+        + len(valid_pair[0][FieldName.TARGET])
+        * valid_pair[0][FieldName.START].freq
     )
-    train, validation = splitter.split(dataset.train)
-    assert len(validation[1][0][FieldName.TARGET]) == max_history
-    assert len(train[1][0][FieldName.TARGET]) == 4 * prediction_length
-
-    train, validation = splitter.rolling_split(dataset.train, windows=3)
-    for i in range(3):
-        assert len(validation[1][i][FieldName.TARGET]) == max_history
-        assert len(train[1][i][FieldName.TARGET]) == 4 * prediction_length
-
-    max_history = 2 * prediction_length
-    splitter = DateSplitter(
-        prediction_length=prediction_length,
-        split_date=pd.Period("1750-01-05 04:00:00", freq="h"),
-        max_history=max_history,
-    )
-    train, validation = splitter.split(dataset.train)
-    assert len(validation[1][0][FieldName.TARGET]) == max_history
-
-    train, validation = splitter.rolling_split(dataset.train, windows=3)
-    for i in range(3):
-        assert len(validation[1][i][FieldName.TARGET]) == max_history
+    assert valid_end == valid_pair[1][FieldName.START]
 
 
 def test_split_mult_freq():
     splitter = DateSplitter(
-        prediction_length=1, split_date=pd.Period("2021-01-01", "2h")
+        split_date=pd.Period("2021-01-01", "2h"),
     )
 
     splitter.split(
@@ -105,17 +105,23 @@ def test_negative_offset_splitter():
         freq="D",
     )
 
-    split = OffsetSplitter(prediction_length=7, split_offset=-7).split(dataset)
+    splitter = OffsetSplitter(split_offset=-7).split(dataset)
 
-    assert [len(t["target"]) for t in split.train] == [93, 43]
-    assert [len(t["target"]) for t in split.test] == [100, 50]
+    assert [len(t["target"]) for t in splitter[0]] == [93, 43]
+    assert [
+        len(t["target"]) + len(s["target"])
+        for t, s in splitter[1].generate_instances(prediction_length=7)
+    ] == [100, 50]
 
-    rolling_split = OffsetSplitter(
-        prediction_length=7, split_offset=-21
-    ).rolling_split(dataset, windows=3)
+    rolling_splitter = OffsetSplitter(split_offset=-21).split(dataset)
 
-    assert [len(t["target"]) for t in rolling_split.train] == [79, 29]
-    assert [len(t["target"]) for t in rolling_split.test] == [
+    assert [len(t["target"]) for t in rolling_splitter[0]] == [79, 29]
+    assert [
+        len(t["target"]) + len(s["target"])
+        for t, s in rolling_splitter[1].generate_instances(
+            prediction_length=7, windows=3
+        )
+    ] == [
         86,
         93,
         100,
@@ -123,3 +129,59 @@ def test_negative_offset_splitter():
         43,
         50,
     ]
+
+
+@pytest.mark.parametrize(
+    "date, offset, windows, distance, max_history",
+    [
+        (pd.Period("2021-06-17", freq="D"), None, 1, None, None),
+        (pd.Period("2021-06-17", freq="D"), None, 1, None, 96),
+        (pd.Period("2021-06-17", freq="D"), None, 3, None, None),
+        (pd.Period("2021-06-17", freq="D"), None, 3, None, 96),
+        (None, 192, 1, None, 96),
+        (None, 192, 3, None, 96),
+        (None, -48, 1, None, None),
+    ],
+)
+def test_split(date, offset, windows, distance, max_history):
+    assert (offset is None) != (date is None)
+
+    dataset = ListDataset(
+        [
+            {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 365},
+            {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 265},
+        ],
+        freq="D",
+    )
+
+    prediction_length = 7
+
+    train, test_template = split(dataset, date=date, offset=offset)
+    train = list(train)
+
+    validation = list(
+        test_template.generate_instances(
+            prediction_length=prediction_length,
+            windows=windows,
+            distance=distance,
+            max_history=max_history,
+        )
+    )
+
+    assert len(train) == len(dataset)
+    assert len(validation) == windows * len(train)
+
+    k = 0
+    for original_entry, train_entry in zip(dataset, train):
+        for _ in range(windows):
+            valid_pair = validation[k]
+            check_training_validation(
+                original_entry=original_entry,
+                train_entry=train_entry,
+                valid_pair=valid_pair,
+                prediction_length=prediction_length,
+                max_history=max_history,
+                date=date,
+                offset=offset,
+            )
+            k += 1
