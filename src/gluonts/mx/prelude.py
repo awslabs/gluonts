@@ -15,6 +15,6 @@
 
 from .component import *
 from .serde import *
-from .model.base.forecast_generator import *
+from .model.forecast_generator import *
 
 __all__ = []
