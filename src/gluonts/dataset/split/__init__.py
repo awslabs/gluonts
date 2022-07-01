@@ -11,6 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["DateSplitter", "OffsetSplitter"]
+__all__ = ["DateSplitter", "OffsetSplitter", "split"]
 
-from .splitter import DateSplitter, OffsetSplitter
+from .splitter import DateSplitter, OffsetSplitter, split
