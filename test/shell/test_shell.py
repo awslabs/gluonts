@@ -21,7 +21,7 @@ import pytest
 
 from gluonts.core.component import equals
 from gluonts.dataset.jsonl import encode_json
-from gluonts.mx import MeanPredictor
+from gluonts.model.trivial._estimator import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 

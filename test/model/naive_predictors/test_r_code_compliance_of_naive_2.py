@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from gluonts.mx.model.naive_2 import naive_2
+from gluonts.model.naive_2 import naive_2
 
 # DISCLAIMER:
 # this script is only to test whether the R implementation

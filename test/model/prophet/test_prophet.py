@@ -16,7 +16,7 @@ import pytest
 
 from gluonts.core import serde
 from gluonts.dataset.common import ListDataset
-from gluonts.mx.model.prophet import PROPHET_IS_INSTALLED, ProphetPredictor
+from gluonts.model.prophet import PROPHET_IS_INSTALLED, ProphetPredictor
 
 # conditionally skip these tests if `prophet` is not installed
 # see https://docs.pytest.org/en/latest/skipping.html for details

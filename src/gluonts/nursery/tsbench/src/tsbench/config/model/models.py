@@ -18,12 +18,12 @@ from typing import cast, List, Optional
 from gluonts.mx import DeepAREstimator
 from gluonts.model.estimator import DummyEstimator, Estimator
 from gluonts.mx.model.n_beats import NBEATSEstimator
-from gluonts.mx.model.naive_2 import Naive2Predictor
-from gluonts.mx.model.npts import NPTSEstimator
+from gluonts.model.naive_2 import Naive2Predictor
+from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.prophet import ProphetPredictor
+from gluonts.model.prophet import ProphetPredictor
 from gluonts.model.r_forecast import RForecastPredictor
-from gluonts.mx import SeasonalNaivePredictor
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.mx import MQCNNEstimator, MQRNNEstimator
 from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.model.tft import TemporalFusionTransformerEstimator

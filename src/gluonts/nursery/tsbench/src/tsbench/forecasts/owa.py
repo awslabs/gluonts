@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import cast, Dict, Hashable, List, Tuple, TypeVar
 import numpy as np
 from gluonts.dataset.common import Dataset, MetaData
-from gluonts.mx.model.naive_2 import Naive2Predictor
+from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.time_feature.seasonality import get_seasonality
 from tsbench.config.dataset import DatasetSplit
 from .metrics import mase, naive_error, smape

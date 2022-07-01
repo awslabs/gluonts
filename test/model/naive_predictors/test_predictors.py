@@ -24,9 +24,9 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
-from gluonts.mx.model.naive_2 import Naive2Predictor
+from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
-from gluonts.mx import SeasonalNaivePredictor
+from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 
 
 def generate_random_dataset(

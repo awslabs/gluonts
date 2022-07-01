@@ -30,8 +30,8 @@ from .batchify import as_in_context, batchify
 from .block.scaler import MeanScaler, NOPScaler
 from .distribution import DistributionOutput, GaussianOutput
 from .kernels import RBFKernel
-from .model.base.estimator import GluonEstimator
-from .model.base.predictor import (
+from .model.estimator import GluonEstimator
+from .model.predictor import (
     GluonPredictor,
     RepresentableBlockPredictor,
 )
