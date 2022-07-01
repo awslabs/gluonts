@@ -53,10 +53,7 @@ def check_training_validation(
         str(original_entry[FieldName.ITEM_ID])
         == train_entry[FieldName.ITEM_ID]
     )
-    assert (
-        train_entry[FieldName.ITEM_ID]
-        == valid_pair[0][FieldName.ITEM_ID]
-    )
+    assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
     if max_history is not None:
         assert len(valid_pair[0][FieldName.TARGET]) == max_history
     assert len(valid_pair[1][FieldName.TARGET]) == prediction_length
