@@ -30,10 +30,53 @@ from .batchify import as_in_context, batchify
 from .block.scaler import MeanScaler, NOPScaler
 from .distribution import DistributionOutput, GaussianOutput
 from .kernels import RBFKernel
-from .model.estimator import GluonEstimator
-from .model.predictor import (
+from .model.base.estimator import GluonEstimator
+from .model.base.predictor import (
     GluonPredictor,
     RepresentableBlockPredictor,
 )
 from .trainer import Trainer
 from .util import copy_parameters, get_hybrid_forward_input_names
+
+from .model import forecast_generator
+
+from .model.canonical import CanonicalRNNEstimator
+from .model.deep_factor import DeepFactorEstimator
+from .model.deepar import DeepAREstimator
+from .model.deepstate import DeepStateEstimator
+from .model.deepvar import DeepVAREstimator
+from .model.deepvar_hierarchical import DeepVARHierarchicalEstimator
+from .model.gp_forecaster import GaussianProcessEstimator
+from .model.gpvar import GPVAREstimator
+from .model.lstnet import LSTNetEstimator
+from .model.n_beats import NBEATSEnsembleEstimator
+from .model.naive_2 import Naive2Predictor
+from .model.npts import NPTSEstimator
+from .model.prophet import ProphetPredictor
+from .model.r_forecast import RForecastPredictor
+from .model.renewal import DeepRenewalProcessEstimator
+from .model.rotbaum import TreeEstimator
+from .model.san import SelfAttentionEstimator
+from .model.seasonal_naive import (
+    SeasonalNaiveEstimator,
+    SeasonalNaivePredictor,
+)
+from .model.seq2seq import (
+    MQCNNEstimator,
+    MQRNNEstimator,
+    RNN2QRForecaster,
+    Seq2SeqEstimator,
+)
+from .model.simple_feedforward import SimpleFeedForwardEstimator
+from .model.tft import TemporalFusionTransformerEstimator
+from .model.tpp import DeepTPPEstimator
+from .model.transformer import TransformerEstimator
+from .model.trivial._estimator import (
+    ConstantEstimator,
+    IdentityEstimator,
+    MeanEstimator,
+    MovingAverageEstimator,
+    MovingAveragePredictor,
+    MeanPredictor,
+)
+from .model.wavenet import WaveNetEstimator

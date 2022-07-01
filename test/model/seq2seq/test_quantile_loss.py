@@ -19,7 +19,7 @@ from pandas import Period
 
 # First-party imports
 from gluonts.mx.block.quantile_output import QuantileLoss, crps_weights_pwl
-from gluonts.model.forecast import QuantileForecast
+from gluonts.mx.model.forecast import QuantileForecast
 
 
 @pytest.mark.parametrize(

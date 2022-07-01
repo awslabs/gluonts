@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.model.npts import NPTSEstimator
+from gluonts.mx.model.npts import NPTSEstimator
 
 hyperparameters = dict(
     kernel_type="uniform",

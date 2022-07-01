@@ -18,7 +18,7 @@ import pytest
 from gluonts.core.serde import dump_json, load_json
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import NPArrayLike
+from gluonts.mx.model.common import NPArrayLike
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Gamma,

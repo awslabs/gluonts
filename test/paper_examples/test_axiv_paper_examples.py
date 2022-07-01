@@ -28,7 +28,7 @@ def test_listing_1():
 
     from gluonts.dataset.repository.datasets import get_dataset
     from gluonts.evaluation import backtest_metrics, Evaluator
-    from gluonts.model.deepar import DeepAREstimator
+    from gluonts.mx import DeepAREstimator
     from gluonts.mx.trainer import Trainer
 
     # We use electricity in the paper but that would take too long to run in
@@ -65,9 +65,9 @@ def test_appendix_c():
     from mxnet import gluon
 
     from gluonts.core.component import validated
-    from gluonts.mx.model.estimator import GluonEstimator
-    from gluonts.model.predictor import Predictor
-    from gluonts.mx.model.predictor import RepresentableBlockPredictor
+    from gluonts.mx.model.base.estimator import GluonEstimator
+    from gluonts.mx.model.predictor import Predictor
+    from gluonts.mx.model.base.predictor import RepresentableBlockPredictor
     from gluonts.mx.trainer import Trainer
     from gluonts.mx.util import copy_parameters
     from gluonts.transform import (

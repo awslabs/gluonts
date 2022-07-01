@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.model.predictor import Localizer
+from gluonts.mx.model.predictor import Localizer
 
 from .estimator import TabularEstimator
 

@@ -15,7 +15,7 @@ import itertools
 
 import mxnet as mx
 
-from gluonts.model.deepar._network import DeepARTrainingNetwork
+from gluonts.mx.model.deepar._network import DeepARTrainingNetwork
 
 
 def test_lagged_subsequences():

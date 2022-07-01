@@ -16,7 +16,7 @@ import pandas as pd
 import pytest
 
 from gluonts.evaluation import Evaluator, MultivariateEvaluator
-from gluonts.model.forecast import QuantileForecast, SampleForecast
+from gluonts.mx.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
 

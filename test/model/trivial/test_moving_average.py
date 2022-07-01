@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.trivial.mean import MovingAveragePredictor
+from gluonts.mx import MovingAveragePredictor
 
 
 def get_predictions(

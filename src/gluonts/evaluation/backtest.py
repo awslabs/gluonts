@@ -26,9 +26,9 @@ from gluonts.dataset.stat import (
     calculate_dataset_statistics,
 )
 from gluonts.evaluation import Evaluator
-from gluonts.model.estimator import Estimator
-from gluonts.model.forecast import Forecast
-from gluonts.model.predictor import Predictor
+from gluonts.mx.model.estimator import Estimator
+from gluonts.mx.model.forecast import Forecast
+from gluonts.mx.model.predictor import Predictor
 from gluonts.itertools import maybe_len
 from gluonts.transform import AdhocTransform
 

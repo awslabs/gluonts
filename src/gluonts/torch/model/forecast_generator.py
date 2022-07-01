@@ -15,7 +15,7 @@ from typing import Iterator
 
 import torch
 
-from gluonts.model.forecast_generator import (
+from gluonts.mx.model.forecast_generator import (
     recursively_zip_arrays,
     make_distribution_forecast,
 )

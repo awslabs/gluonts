@@ -18,7 +18,7 @@ from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
-from gluonts.model.estimator import Estimator
+from gluonts.mx.model.estimator import Estimator
 from gluonts.time_feature import (
     TimeFeature,
     get_lags_for_frequency,

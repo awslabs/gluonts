@@ -11,215 +11,93 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Type
+from typing import Optional
 
-import numpy as np
-from gluonts.core import fqname_for
-from gluonts.core.component import (
-    GluonTSHyperparametersError,
-    from_hyperparameters,
-    validated,
-)
+import gluonts
+from gluonts.core.component import from_hyperparameters, validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.loader import DataLoader
-from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
-from gluonts.mx.trainer import Trainer
-from gluonts.transform import Transformation
-from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
+from gluonts.mx.model.predictor import Predictor
 
 
-class TrainOutput(NamedTuple):
-    transformation: Transformation
-    trained_net: HybridBlock
-    predictor: Predictor
-
-
-class GluonEstimator(Estimator):
+class Estimator:
     """
-    An `Estimator` type with utilities for creating Gluon-based models.
+    An abstract class representing a trainable model.
 
-    To extend this class, one needs to implement three methods:
-    `create_transformation`, `create_training_network`, `create_predictor`,
-    `create_training_data_loader`, and `create_validation_data_loader`.
+    The underlying model is trained by calling the `train` method with a
+    training `Dataset`, producing a `Predictor` object.
     """
 
-    @validated()
-    def __init__(
-        self,
-        *,
-        trainer: Trainer,
-        batch_size: int = 32,
-        lead_time: int = 0,
-        dtype: Type = np.float32,
-    ) -> None:
-        super().__init__(lead_time=lead_time)
+    __version__: str = gluonts.__version__
 
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
+    prediction_length: int
+    lead_time: int
 
-        self.batch_size = batch_size
-        self.trainer = trainer
-        self.dtype = dtype
+    def __init__(self, lead_time: int = 0, **kwargs) -> None:
+        # TODO validation of prediction_length could also
+        # TODO be bubbled-up here from subclasses classes
+        assert lead_time >= 0, "The value of `lead_time` should be >= 0"
 
-    @classmethod
-    def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
+        self.lead_time = lead_time
 
-        if not Model:
-            raise AttributeError(
-                "Cannot find attribute Model attached to the "
-                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                "the class constructor as @validated()."
-            )
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-
-            return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-            )
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
-
-    def create_transformation(self) -> Transformation:
-        """
-        Create and return the transformation needed for training and inference.
-
-        Returns
-        -------
-        Transformation
-            The transformation that will be applied entry-wise to datasets,
-            at training and inference time.
-        """
-        raise NotImplementedError
-
-    def create_training_network(self) -> HybridBlock:
-        """
-        Create and return the network used for training (i.e., computing the
-        loss).
-
-        Returns
-        -------
-        HybridBlock
-            The network that computes the loss given input data.
-        """
-        raise NotImplementedError
-
-    def create_predictor(
-        self, transformation: Transformation, trained_network: HybridBlock
+    def train(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
     ) -> Predictor:
         """
-        Create and return a predictor object.
+        Train the estimator on the given data.
 
         Parameters
         ----------
-        transformation
-            Transformation to be applied to data before it goes into the model.
-        module
-            A trained `HybridBlock` object.
+        training_data
+            Dataset to train the model on.
+        validation_data
+            Dataset to validate the model on during training.
 
         Returns
         -------
         Predictor
-            A predictor wrapping a `HybridBlock` used for inference.
+            The predictor containing the trained model.
         """
         raise NotImplementedError
 
-    def create_training_data_loader(
-        self, data: Dataset, **kwargs
-    ) -> DataLoader:
-        """
-        Create a data loader for training purposes.
+    @classmethod
+    def from_hyperparameters(cls, **hyperparameters):
+        return from_hyperparameters(cls, **hyperparameters)
 
-        Parameters
-        ----------
-        data
-            Dataset from which to create the data loader.
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        return {}
 
-        Returns
-        -------
-        DataLoader
-            The data loader, i.e. and iterable over batches of data.
-        """
-        raise NotImplementedError
+    @classmethod
+    def from_inputs(cls, train_iter, **params):
+        # auto_params usually include `use_feat_dynamic_real`,
+        # `use_feat_static_cat` and `cardinality`
+        auto_params = cls.derive_auto_fields(train_iter)
+        # user specified 'params' will take precedence:
+        params = {**auto_params, **params}
+        return cls.from_hyperparameters(**params)
 
-    def create_validation_data_loader(
-        self, data: Dataset, **kwargs
-    ) -> DataLoader:
-        """
-        Create a data loader for validation purposes.
 
-        Parameters
-        ----------
-        data
-            Dataset from which to create the data loader.
+class DummyEstimator(Estimator):
+    """
+    An `Estimator` that, upon training, simply returns a pre-constructed
+    `Predictor`.
 
-        Returns
-        -------
-        DataLoader
-            The data loader, i.e. and iterable over batches of data.
-        """
-        raise NotImplementedError
+    Parameters
+    ----------
+    predictor_cls
+        `Predictor` class to instantiate.
+    **kwargs
+        Keyword arguments to pass to the predictor constructor.
+    """
 
-    def train_model(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        cache_data: bool = False,
-    ) -> TrainOutput:
-        transformation = self.create_transformation()
-
-        transformed_training_data = transformation.apply(training_data)
-
-        training_data_loader = self.create_training_data_loader(
-            transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
-
-        validation_data_loader = None
-
-        if validation_data is not None:
-            transformed_validation_data = transformation.apply(validation_data)
-
-            validation_data_loader = self.create_validation_data_loader(
-                transformed_validation_data
-                if not cache_data
-                else Cached(transformed_validation_data),
-            )
-
-        training_network = self.create_training_network()
-
-        self.trainer(
-            net=training_network,
-            train_iter=training_data_loader,
-            validation_iter=validation_data_loader,
-        )
-
-        with self.trainer.ctx:
-            predictor = self.create_predictor(transformation, training_network)
-
-        return TrainOutput(
-            transformation=transformation,
-            trained_net=training_network,
-            predictor=predictor,
-        )
+    @validated()
+    def __init__(self, predictor_cls: type, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.predictor = predictor_cls(**kwargs)
 
     def train(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        cache_data: bool = False,
-        **kwargs,
     ) -> Predictor:
-        return self.train_model(
-            training_data=training_data,
-            validation_data=validation_data,
-            shuffle_buffer_length=shuffle_buffer_length,
-            cache_data=cache_data,
-        ).predictor
+        return self.predictor

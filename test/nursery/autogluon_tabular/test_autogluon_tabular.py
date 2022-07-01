@@ -25,7 +25,7 @@ from gluonts.nursery.autogluon_tabular.predictor import get_features_dataframe
 from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
 )
-from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import Predictor
 from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
 
 

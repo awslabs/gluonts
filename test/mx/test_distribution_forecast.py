@@ -18,7 +18,7 @@ import pandas as pd
 import pytest
 
 from gluonts.mx.distribution import Uniform
-from gluonts.mx.model.forecast import DistributionForecast
+from gluonts.mx.model.base.forecast import DistributionForecast
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100

@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.model.forecast import (
+from gluonts.mx.model.forecast import (
     QuantileForecast,
     SampleForecast,
     LinearInterpolation,

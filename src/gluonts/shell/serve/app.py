@@ -25,7 +25,7 @@ from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.jsonl import encode_json
-from gluonts.model.forecast import Config as ForecastConfig
+from gluonts.mx.model.forecast import Config as ForecastConfig
 from gluonts.shell.util import forecaster_type_by_name
 
 

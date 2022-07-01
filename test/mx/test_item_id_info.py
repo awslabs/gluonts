@@ -15,8 +15,8 @@ import numpy as np
 import pytest
 
 from gluonts.dataset.common import Dataset, ListDataset
-from gluonts.model.estimator import Estimator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx.model.estimator import Estimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 
 

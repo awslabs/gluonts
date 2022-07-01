@@ -23,8 +23,12 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import batcher
-from gluonts.model.forecast import SampleForecast, QuantileForecast, Forecast
-from gluonts.model.predictor import Predictor
+from gluonts.mx.model.forecast import (
+    SampleForecast,
+    QuantileForecast,
+    Forecast,
+)
+from gluonts.mx.model.predictor import Predictor
 from gluonts.time_feature import TimeFeature
 
 

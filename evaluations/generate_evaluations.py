@@ -23,7 +23,7 @@ from typing import Dict
 
 from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 from gluonts.evaluation import backtest_metrics
-from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+from gluonts.mx import SeasonalNaivePredictor
 
 metrics_persisted = ["mean_wQuantileLoss", "ND", "RMSE"]
 datasets = dataset_names

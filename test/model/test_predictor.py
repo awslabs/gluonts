@@ -15,9 +15,9 @@ import numpy as np
 
 from gluonts.dataset.common import ListDataset
 from gluonts.evaluation import backtest_metrics
-from gluonts.model.predictor import Localizer, ParallelizedPredictor
-from gluonts.model.trivial.identity import IdentityPredictor
-from gluonts.model.trivial.mean import MeanEstimator
+from gluonts.mx.model.predictor import Localizer, ParallelizedPredictor
+from gluonts.mx.model.trivial.identity import IdentityPredictor
+from gluonts.mx.model.trivial.mean import MeanEstimator
 
 
 def test_parallelized_predictor():

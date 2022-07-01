@@ -17,8 +17,8 @@ from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import Evaluator, backtest_metrics
-from gluonts.model.forecast import SampleForecast, QuantileForecast
-from gluonts.model.r_forecast import (
+from gluonts.mx.model.forecast import SampleForecast, QuantileForecast
+from gluonts.mx.model.r_forecast import (
     RForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,

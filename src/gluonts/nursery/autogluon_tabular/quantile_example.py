@@ -19,7 +19,7 @@ import os
 
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.nursery.autogluon_tabular import TabularEstimator
-from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import Predictor
 
 
 def run_example():

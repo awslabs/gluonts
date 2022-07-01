@@ -18,7 +18,7 @@ import pandas as pd
 import torch
 from torch.distributions import Distribution
 
-from gluonts.model.forecast import Forecast, Quantile, SampleForecast
+from gluonts.mx.model.forecast import Forecast, Quantile, SampleForecast
 
 
 class DistributionForecast(Forecast):

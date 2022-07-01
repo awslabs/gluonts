@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
+from gluonts.mx import MQCNNEstimator, MQRNNEstimator
 from gluonts.mx.distribution import GaussianOutput, ISQFOutput
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 

@@ -36,7 +36,7 @@ of data.
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx import Trainer
 
 dataset = get_dataset("airpassengers")

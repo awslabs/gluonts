@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.canonical._estimator import (
+from gluonts.mx.model.canonical._estimator import (
     CanonicalRNNEstimator,
     MLPForecasterEstimator,
 )

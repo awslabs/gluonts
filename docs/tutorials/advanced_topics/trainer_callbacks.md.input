@@ -18,7 +18,7 @@ To use callbacks, simply pass them as a list when constructing the `Trainer`:
 in the following example, we are using the `TrainingHistory` callback to record loss values measured during training.
 
 ```python
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx import Trainer
 from gluonts.mx.trainer.callback import TrainingHistory
 
