@@ -93,7 +93,7 @@ class TrainDatasets(NamedTuple):
         self,
         path_str: str,
         writer: DatasetWriter,
-        overwrite=True,
+        overwrite=False,
     ) -> None:
         """
         Saves an TrainDatasets object to a JSON Lines file.
@@ -110,9 +110,8 @@ class TrainDatasets(NamedTuple):
         if overwrite:
             shutil.rmtree(path, ignore_errors=True)
 
-        metadata = path / "metadata"
-        metadata.mkdir(parents=True)
-        with open(metadata / "metadata.json", "wb") as out_file:
+        path.mkdir(parents=True)
+        with open(path / "metadata.json", "wb") as out_file:
             json.bdump(self.metadata.dict(), out_file, nl=True)
 
         train = path / "train"

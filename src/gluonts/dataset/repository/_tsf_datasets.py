@@ -19,13 +19,13 @@ from zipfile import ZipFile
 
 from pandas.tseries.frequencies import to_offset
 
-from gluonts import json
-from gluonts.dataset import jsonl
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
 from gluonts.gluonts_tqdm import tqdm
 
 from ._tsf_reader import TSFReader, frequency_converter
-from ._util import metadata, request_retrieve_hook, to_dict
+from ._util import metadata, request_retrieve_hook
 
 
 class Dataset(NamedTuple):
@@ -145,61 +145,49 @@ datasets = {
 }
 
 
-def save_metadata(
-    dataset_path: Path, cardinality: int, freq: str, prediction_length: int
-):
-    with open(dataset_path / "metadata.json", "w") as file:
-        json.dump(
-            metadata(
-                cardinality=cardinality,
-                freq=freq,
-                prediction_length=prediction_length,
-            ),
-            file,
-        )
-
-
-def save_datasets(
-    path: Path,
+def convert_data(
     data: List[Dict],
     train_offset: int,
     default_start_timestamp: Optional[str] = None,
 ):
-    train = path / "train"
-    test = path / "test"
-
-    train.mkdir(exist_ok=True)
-    test.mkdir(exist_ok=True)
-
-    with open(train / "data.json", "w") as train_fp, open(
-        test / "data.json", "w"
-    ) as test_fp:
-        for i, data_entry in tqdm(
-            enumerate(data), total=len(data), desc="creating json files"
-        ):
-            # Convert the data to a GluonTS dataset...
-            # - `default_start_timestamp` is required for some datasets which
-            #   are not listed here since some datasets do not define start
-            #   timestamps
-            # - `item_id` is added for all datasets ... many datasets provide
-            #   the "series_name"
-            dic = to_dict(
-                target_values=data_entry["target"],
-                start=str(
+    train_data = []
+    test_data = []
+    for i, data_entry in tqdm(
+        enumerate(data), total=len(data), desc="creating json files"
+    ):
+        # Convert the data to a GluonTS dataset...
+        # - `default_start_timestamp` is required for some datasets which
+        #   are not listed here since some datasets do not define start
+        #   timestamps
+        # - `item_id` is added for all datasets ... many datasets provide
+        #   the "series_name"
+        test_data.append(
+            {
+                "target": data_entry["target"],
+                "start": str(
                     data_entry.get("start_timestamp", default_start_timestamp)
                 ),
-                item_id=data_entry.get("series_name", i),
-            )
+                "item_id": data_entry.get("series_name", i),
+            }
+        )
 
-            jsonl.dump([dic], test_fp)
+        train_data.append(
+            {
+                "target": data_entry["target"][:-train_offset],
+                "start": str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                "item_id": data_entry.get("series_name", i),
+            }
+        )
 
-            dic["target"] = dic["target"][:-train_offset]
-            jsonl.dump([dic], train_fp)
+    return train_data, test_data
 
 
 def generate_forecasting_dataset(
     dataset_path: Path,
     dataset_name: str,
+    dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
     dataset = datasets[dataset_name]
@@ -222,8 +210,6 @@ def generate_forecasting_dataset(
         else:
             prediction_length = default_prediction_length_from_frequency(freq)
 
-    save_metadata(dataset_path, len(data), freq, prediction_length)
-
     # Impute missing start dates with unix epoch and remove time series whose
     # length is less than or equal to the prediction length
     data = [
@@ -231,7 +217,20 @@ def generate_forecasting_dataset(
         for d in data
         if len(d[FieldName.TARGET]) > prediction_length
     ]
-    save_datasets(dataset_path, data, prediction_length)
+    train_data, test_data = convert_data(data, prediction_length)
+
+    meta = MetaData(
+        **metadata(
+            cardinality=len(data),
+            freq=freq,
+            prediction_length=prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
 
 
 def default_prediction_length_from_frequency(freq: str) -> int:

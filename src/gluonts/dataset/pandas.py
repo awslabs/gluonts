@@ -13,8 +13,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, cast, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, Iterator, List, Optional, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -48,8 +47,6 @@ class PandasDataset(Dataset):
     freq
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
-    item_id
-        Name of the column that contains the item_id information.
     feat_dynamic_real
         List of column names that contain dynamic real features.
     feat_dynamic_cat
@@ -76,9 +73,8 @@ class PandasDataset(Dataset):
         Dict[str, pd.Series],
     ]
     target: Union[str, List[str]] = "target"
-    timestamp: Union[str, None] = None
-    freq: Union[str, None] = None
-    item_id: Union[str, None] = None
+    timestamp: Optional[str] = None
+    freq: Optional[str] = None
     feat_dynamic_real: List[str] = field(default_factory=list)
     feat_dynamic_cat: List[str] = field(default_factory=list)
     feat_static_real: List[str] = field(default_factory=list)
@@ -98,36 +94,39 @@ class PandasDataset(Dataset):
         if isinstance(self.dataframes, dict):
             self._dataframes = list(self.dataframes.items())
         elif isinstance(self.dataframes, list):
-            self._dataframes = [self._to_tuple(df) for df in self.dataframes]
+            self._dataframes = [(None, df) for df in self.dataframes]
         else:  # case single dataframe
-            self._dataframes = [self._to_tuple(self.dataframes)]
+            self._dataframes = [(None, self.dataframes)]
 
-        for i, (_, df) in enumerate(self._dataframes):
+        for i, (item_id, df) in enumerate(self._dataframes):
             if self.timestamp:
                 df = df.set_index(keys=self.timestamp)
-                self._dataframes[i] = (self._dataframes[i][0], df)
-            else:
-                assert isinstance(
-                    df.index, DatetimeIndexOpsMixin
-                ), "Please set ``timestamp`` or provide a DatetimeIndex."
+
+            if not isinstance(df.index, pd.PeriodIndex):
+                df.index = pd.to_datetime(df.index)
+                df = df.to_period(freq=self.freq)
+
+            df.sort_index(inplace=True)
+
+            assert is_uniform(df.index), (
+                "Dataframe index is not uniformly spaced. "
+                "If your dataframe contains data from multiple series in the "
+                'same column ("long" format), consider constructing the '
+                "dataset with `PandasDataset.from_long_dataframe` instead."
+            )
+
+            self._dataframes[i] = (item_id, df)
 
         if not self.freq:  # infer frequency from index
-            ind = self._dataframes[0][1].index
-            self.freq = pd.infer_freq(pd.date_range(ind[0], ind[2], periods=3))
+            self.freq = self._dataframes[0][1].index.freqstr
 
         self.process = ProcessDataEntry(
             cast(str, self.freq), one_dim_target=self.one_dim_target
         )
 
-    def _to_tuple(self, ts: pd.DataFrame) -> Tuple[str, pd.DataFrame]:
-        if self.item_id and self.item_id in ts.columns:
-            return (str(ts.loc[:, self.item_id].iloc[0]), ts)
-        return ("", ts)
-
-    def _dataentry(self, item_id: str, df: pd.DataFrame) -> DataEntry:
-        assert check_timestamps(
-            df.index.to_list(), freq=self.freq
-        ), "``timestamps`` are not monotonically increasing or evenly spaced."
+    def _dataentry(
+        self, item_id: Optional[str], df: pd.DataFrame
+    ) -> DataEntry:
         dataentry = as_dataentry(
             data=df,
             target=self.target,
@@ -137,7 +136,7 @@ class PandasDataset(Dataset):
             feat_static_cat=self.feat_static_cat,
             past_feat_dynamic_real=self.past_feat_dynamic_real,
         )
-        if item_id:
+        if item_id is not None:
             dataentry["item_id"] = item_id
         return dataentry
 
@@ -155,7 +154,7 @@ class PandasDataset(Dataset):
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str = "item_id", **kwargs
+        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe.
@@ -214,7 +213,7 @@ def is_series(series: Any) -> bool:
 def as_dataentry(
     data: pd.DataFrame,
     target: Union[str, List[str]],
-    timestamp: Union[str, None] = None,
+    timestamp: Optional[str] = None,
     feat_dynamic_real: List[str] = [],
     feat_dynamic_cat: List[str] = [],
     feat_static_real: List[str] = [],
@@ -294,20 +293,16 @@ def prepare_prediction_data(
     return entry
 
 
-def check_timestamps(
-    timestamps: List[Union[str, datetime]], freq: Optional[str]
-) -> bool:
+def is_uniform(index: pd.PeriodIndex) -> bool:
     """
-    Check if ``timestamps`` are monotonically increasing and evenly space with
-    frequency ``freq``.
+    Check if ``index`` contains monotonically increasing periods, evenly spaced
+    with frequency ``index.freq``.
 
     >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    >>> check_timestamps(ts, freq="2H")
+    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
     True
+    >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
+    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+    False
     """
-    return all(
-        pd.to_datetime(timestamps)
-        == pd.date_range(
-            start=timestamps[0], freq=freq, periods=len(timestamps)
-        )
-    )
+    return (index[1:] - index[:-1] == index.freq).all()

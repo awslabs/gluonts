@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from datetime import datetime
 import functools
 import gzip
 from dataclasses import dataclass
@@ -49,6 +50,9 @@ def encode_json(arg):
         elif np.isneginf(arg):
             return "-Infinity"
         return arg
+
+    if isinstance(arg, datetime):
+        return str(arg)
 
     raise ValueError(f"Can't encode {arg!r}")
 

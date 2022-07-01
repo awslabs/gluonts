@@ -15,14 +15,15 @@
 Here we reuse the datasets used by LSTNet as the processed url of the datasets
 are available on GitHub.
 """
-import json
-import os
+
 from pathlib import Path
 from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 
 
 def load_from_pandas(
@@ -124,20 +125,10 @@ datasets_info = {
 def generate_lstnet_dataset(
     dataset_path: Path,
     dataset_name: str,
+    dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
     ds_info = datasets_info[dataset_name]
-
-    ds_metadata = metadata(
-        cardinality=ds_info.num_series,
-        freq=ds_info.freq if ds_info.agg_freq is None else ds_info.agg_freq,
-        prediction_length=prediction_length or ds_info.prediction_length,
-    )
-
-    os.makedirs(dataset_path, exist_ok=True)
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        json.dump(ds_metadata, f)
 
     time_index = pd.period_range(
         start=ds_info.start_date,
@@ -168,17 +159,15 @@ def generate_lstnet_dataset(
         sliced_ts = ts[:training_end]
         if len(sliced_ts) > 0:
             train_ts.append(
-                to_dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    cat=[cat],
-                    item_id=cat,
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(train_ts) == ds_info.num_series
-
-    save_to_file(dataset_path / "train" / "data.json", train_ts)
 
     # time of the first prediction
     prediction_dates = [
@@ -195,14 +184,27 @@ def generate_lstnet_dataset(
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
-                to_dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    cat=[cat],
-                    item_id=cat,
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    save_to_file(dataset_path / "test" / "data.json", test_ts)
+    meta = MetaData(
+        **metadata(
+            cardinality=ds_info.num_series,
+            freq=ds_info.freq
+            if ds_info.agg_freq is None
+            else ds_info.agg_freq,
+            prediction_length=prediction_length or ds_info.prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_ts, test=test_ts)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )

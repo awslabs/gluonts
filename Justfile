@@ -15,32 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 
-ROOTDIR = $(CURDIR)
-MD2IPYNB = $(ROOTDIR)/docs/md2ipynb.py
+ROOTDIR := invocation_directory()
+MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
 
-pylint:
-	pylint --rcfile=$(ROOTDIR)/.pylintrc $(lintdir)
+skip_build_notebook := env_var_or_default("SKIP_BUILD_NOTEBOOK", "false")
 
-restruc:
-	python setup.py check --restructuredtext --strict
-
-lint:
-	make lintdir=$(lintdir) pylint || true
-	make restruc || true
 
 docs: release
-	make -C docs html # SPHINXOPTS=-W
+  make -C docs html # SPHINXOPTS=-W
 
 clean:
-	git clean -ff -d -x --exclude="$(ROOTDIR)/tests/externaldata/*" --exclude="$(ROOTDIR)/tests/data/*" --exclude="$(ROOTDIR)/conda/"
+  git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
 compile_notebooks:
-	python -m ipykernel install --user --name docsbuild
-	python $(MD2IPYNB) --kernel docsbuild "docs/tutorials/**/*.md"
+  if [ {{skip_build_notebook}} = "true" ] ; \
+  then \
+    find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 cp; \
+  else \
+    python -m ipykernel install --user --name docsbuild; \
+    python {{MD2IPYNB}} --kernel docsbuild "docs/tutorials/**/*.md.input"; \
+  fi;
 
 dist_notebooks: compile_notebooks
-	cd docs/tutorials && \
-	find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
+  cd docs/tutorials && \
+  find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
 
 release: dist_notebooks
-	python setup.py sdist
+  python setup.py sdist
