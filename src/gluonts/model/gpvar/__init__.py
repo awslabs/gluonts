@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.gpvar._estimator import GPVAREstimator
+from gluonts.mx.model.gpvar import GPVAREstimator
 
 warnings.warn(
-    "The gpvar model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.gpvar has been moved to "
+    "gluonts.mx.model.gpvar. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "GPVAREstimator'.",
     FutureWarning,
 )

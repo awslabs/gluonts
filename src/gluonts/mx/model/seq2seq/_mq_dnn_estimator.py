@@ -20,7 +20,7 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.mx.model.seq2seq._forking_estimator import ForkingSeq2SeqEstimator
+from ._forking_estimator import ForkingSeq2SeqEstimator
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,

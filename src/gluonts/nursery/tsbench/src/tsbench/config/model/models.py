@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import cast, List, Optional
 from gluonts.mx import DeepAREstimator
 from gluonts.model.estimator import DummyEstimator, Estimator
-from gluonts.mx.model.n_beats import NBEATSEstimator
+from gluonts.mx import NBEATSEstimator
 from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor

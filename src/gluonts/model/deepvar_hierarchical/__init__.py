@@ -13,19 +13,18 @@
 
 import warnings
 
-from gluonts.mx.model.deepvar_hierarchical._estimator import (
+from gluonts.mx.model.deepvar_hierarchical import (
     constraint_mat,
     null_space_projection_mat,
     DeepVARHierarchicalEstimator,
-)
-from gluonts.mx.model.deepvar_hierarchical._network import (
     reconcile_samples,
     coherency_error,
 )
 
 warnings.warn(
-    "The deepvar_hierarchical model in gulonts.model is deprecated and will be"
-    " moved to 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.deepvar_hierarchical has been moved to "
+    "gluonts.mx.model.deepvar_hierarchical. In GluonTS v0.12 it will be no "
+    "longer possible to use the old path. Try to use 'from gluonts.mx import "
     "DeepVARHierarchicalEstimator'.",
     FutureWarning,
 )

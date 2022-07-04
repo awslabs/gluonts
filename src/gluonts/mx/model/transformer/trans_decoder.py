@@ -16,7 +16,7 @@ from typing import Dict, Optional
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.mx.model.transformer.layers import (
+from .layers import (
     InputLayer,
     MultiHeadAttention,
     MultiHeadSelfAttention,

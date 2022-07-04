@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.gp_forecaster._estimator import GaussianProcessEstimator
+from gluonts.mx.model.gp_forecaster import GaussianProcessEstimator
 
 warnings.warn(
-    "The gp_forecaster model in gulonts.model is deprecated and will be moved "
-    "to 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.gp_forecaster has been moved to "
+    "gluonts.mx.model.gp_forecaster. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "GaussianProcessEstimator'.",
     FutureWarning,
 )

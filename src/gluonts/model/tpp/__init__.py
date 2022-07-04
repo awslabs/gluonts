@@ -13,14 +13,16 @@
 
 import warnings
 
-from gluonts.mx.model.tpp.forecast import PointProcessSampleForecast
-from gluonts.mx.model.tpp.predictor import PointProcessGluonPredictor
-from gluonts.mx.model.tpp.deeptpp import DeepTPPEstimator
+from gluonts.mx.model.tpp import (
+    PointProcessSampleForecast,
+    PointProcessGluonPredictor,
+    DeepTPPEstimator
+)
 
 warnings.warn(
-    "The tpp model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
-    "DeepTPPEstimator'.",
+    "The module gluonts.model.tpp has been moved to gluonts.mx.model.tpp. "
+    "In GluonTS v0.12 it will be no longer possible to use the old path. "
+    "Try to use 'from gluonts.mx import DeepTPPEstimator'.",
     FutureWarning,
 )
 

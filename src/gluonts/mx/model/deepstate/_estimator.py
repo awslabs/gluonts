@@ -27,7 +27,7 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.env import env
-from gluonts.mx.model.deepstate.issm import ISSM, CompositeISSM
+from .issm import ISSM, CompositeISSM
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution.lds import ParameterBounds

@@ -13,12 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.tft._estimator import TemporalFusionTransformerEstimator
+from gluonts.mx.model.tft import TemporalFusionTransformerEstimator
 
 warnings.warn(
-    "The tft model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
-    "TemporalFusionTransformerEstimator'.",
+    "The module gluonts.model.tft has been moved to gluonts.mx.model.tft. "
+    "In GluonTS v0.12 it will be no longer possible to use the old path. "
+    "Try to use 'from gluonts.mx import TemporalFusionTransformerEstimator'.",
     FutureWarning,
 )
 

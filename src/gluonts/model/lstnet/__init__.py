@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.lstnet._estimator import LSTNetEstimator
+from gluonts.mx.model.lstnet import LSTNetEstimator
 
 warnings.warn(
-    "The lstnet model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.lstnet has been moved to "
+    "gluonts.mx.model.lstnet. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "LSTNetEstimator'.",
     FutureWarning,
 )

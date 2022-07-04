@@ -16,7 +16,7 @@ from typing import List, Optional
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.mx.model.deepstate.issm import ISSM
+from .issm import ISSM
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler

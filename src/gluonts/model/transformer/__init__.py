@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.transformer._estimator import TransformerEstimator
+from gluonts.mx.model.transformer import TransformerEstimator
 
 warnings.warn(
-    "The transformer model in gulonts.model is deprecated and will be moved to"
-    " 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.transformer has been moved to "
+    "gluonts.mx.model.transformer. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "TransformerEstimator'.",
     FutureWarning,
 )

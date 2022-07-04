@@ -49,7 +49,12 @@ from .model.deepvar_hierarchical import DeepVARHierarchicalEstimator
 from .model.gp_forecaster import GaussianProcessEstimator
 from .model.gpvar import GPVAREstimator
 from .model.lstnet import LSTNetEstimator
-from .model.n_beats import NBEATSEnsembleEstimator
+from .model.n_beats import (
+    NBEATSEstimator,
+    NBEATSEnsembleEstimator,
+    NBEATSEnsemblePredictor
+)
+
 from .model.renewal import DeepRenewalProcessEstimator
 from .model.san import SelfAttentionEstimator
 from .model.seq2seq import (
@@ -60,6 +65,10 @@ from .model.seq2seq import (
 )
 from .model.simple_feedforward import SimpleFeedForwardEstimator
 from .model.tft import TemporalFusionTransformerEstimator
-from .model.tpp import DeepTPPEstimator
+from .model.tpp import (
+    PointProcessGluonPredictor,
+    PointProcessSampleForecast,
+    DeepTPPEstimator,
+)
 from .model.transformer import TransformerEstimator
 from .model.wavenet import WaveNetEstimator

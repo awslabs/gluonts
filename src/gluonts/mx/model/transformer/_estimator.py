@@ -26,12 +26,12 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.mx.model.transformer._network import (
+from ._network import (
     TransformerPredictionNetwork,
     TransformerTrainingNetwork,
 )
-from gluonts.mx.model.transformer.trans_decoder import TransformerDecoder
-from gluonts.mx.model.transformer.trans_encoder import TransformerEncoder
+from .trans_decoder import TransformerDecoder
+from .trans_encoder import TransformerEncoder
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator

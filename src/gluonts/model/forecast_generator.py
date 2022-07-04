@@ -21,11 +21,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader
-from gluonts.model.forecast import (
-    Forecast,
-    QuantileForecast,
-    SampleForecast,
-)
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
 logger = logging.getLogger(__name__)
 

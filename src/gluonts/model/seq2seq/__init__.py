@@ -13,18 +13,17 @@
 
 import warnings
 
-from gluonts.mx.model.seq2seq._mq_dnn_estimator import (
+from gluonts.mx.model.seq2seq import (
     MQCNNEstimator,
     MQRNNEstimator,
-)
-from gluonts.mx.model.seq2seq._seq2seq_estimator import (
     RNN2QRForecaster,
     Seq2SeqEstimator,
 )
 
 warnings.warn(
-    "The seq2seq model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.seq2seq has been moved to "
+    "gluonts.mx.model.seq2seq. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "MQCNNEstimator, MQRNNEstimator, RNN2QRForecaster, Seq2SeqEstimator'.",
     FutureWarning,
 )

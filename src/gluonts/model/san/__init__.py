@@ -13,12 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.san._estimator import SelfAttentionEstimator
+from gluonts.mx.model.san import SelfAttentionEstimator
 
 warnings.warn(
-    "The san model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
-    "SelfAttentionEstimator'.",
+    "The module gluonts.model.san has been moved to gluonts.mx.model.san."
+    "In GluonTS v0.12 it will be no longer possible to use the old path. "
+    "Try to use 'from gluonts.mx import SelfAttentionEstimator'.",
     FutureWarning,
 )
 

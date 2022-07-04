@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.deepvar._estimator import DeepVAREstimator
+from gluonts.mx.model.deepvar import DeepVAREstimator
 
 warnings.warn(
-    "The deepvar model in gulonts.model is deprecated and will be moved to "
-    "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.deepvar has been moved to "
+    "gluonts.mx.model.deepvar. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "DeepVAREstimator'.",
     FutureWarning,
 )

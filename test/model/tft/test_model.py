@@ -15,7 +15,7 @@ import pytest
 
 from gluonts.model.forecast import QuantileForecast
 from gluonts.mx.model.predictor import GluonPredictor
-from gluonts.mx.model.tft import TemporalFusionTransformerEstimator
+from gluonts.mx import TemporalFusionTransformerEstimator
 from gluonts.mx.model.tft._network import (
     TemporalFusionTransformerPredictionNetwork,
 )

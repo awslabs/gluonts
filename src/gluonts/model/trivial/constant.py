@@ -18,10 +18,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import (
-    FallbackPredictor,
-    RepresentablePredictor,
-)
+from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 
 
 class ConstantPredictor(RepresentablePredictor):

@@ -13,11 +13,12 @@
 
 import warnings
 
-from gluonts.mx.model.deep_factor._estimator import DeepFactorEstimator
+from gluonts.mx.model.deep_factor import DeepFactorEstimator
 
 warnings.warn(
-    "The deep_factor model in gulonts.model is deprecated and will be moved to"
-    " 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
+    "The module gluonts.model.deep_factor has been moved to "
+    "gluonts.mx.model.deep_factor. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
     "DeepFactorEstimator'.",
     FutureWarning,
 )
