@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-ROOTDIR := invocation_directory()
+ROOTDIR := justfile_directory()
 MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
 
 docs: compile_notebooks
@@ -24,18 +24,9 @@ docs: compile_notebooks
 clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
-compile_notebooks:
-  if [ {{skip_build_notebook}} = "true" ] ; \
-  then \
-    find docs/tutorials/**/*.md.input | sed 'p;s/\.input//' | xargs -n2 cp; \
-  else \
-    python -m ipykernel install --user --name docsbuild; \
-    python {{MD2IPYNB}} --kernel docsbuild "docs/tutorials/**/*.md.input"; \
-  fi;
+compile_notebooks mode="release":
+    python -m ipykernel install --user --name docsbuild
+    python {{MD2IPYNB}} --kernel docsbuild docs/tutorials/**/*.md.template --mode {{mode}}
 
-dist_notebooks: compile_notebooks
-  cd docs/tutorials && \
-  find * -type d -prune | grep -v 'tests\|__pycache__' | xargs -t -n 1 -I{} zip --no-dir-entries -r {}.zip {} -x "*.md" -x "__pycache__" -x "*.pyc" -x "*.txt" -x "*.log" -x "*.params" -x "*.npz" -x "*.json"
-
-release: dist_notebooks
+release:
   python setup.py sdist
