@@ -28,7 +28,14 @@
    :maxdepth: 1
    :hidden:
 
-   api/gluonts/gluonts
+   api/core
+   api/dataset
+   api/evaluation
+   api/model
+   api/mx
+   api/shell
+   api/time_feature
+   api/transform
 
 .. toctree::
    :name: Developing

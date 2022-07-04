@@ -15,19 +15,7 @@ from typing import Any
 
 
 def fqname_for(obj: Any) -> str:
-    """
-    Returns the fully qualified name of ``obj``.
-
-    Parameters
-    ----------
-    obj
-        The class we are interested in.
-
-    Returns
-    -------
-    str
-        The fully qualified name of ``obj``.
-    """
+    """Return the fully qualified name of ``obj``."""
 
     if "<locals>" in obj.__qualname__:
         raise RuntimeError(

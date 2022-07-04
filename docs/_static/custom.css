@@ -1,0 +1,4 @@
+dl.class > dt > em.sig-param:before {
+    content: "";
+    display: block;
+}

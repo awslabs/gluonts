@@ -307,7 +307,18 @@ def validated(base_model=None):
             )
 
         def validated_repr(self) -> str:
-            return dump_code(self)
+            name = self.__class__.__qualname__
+
+            kwargs = {
+                name: value
+                for name, value in self.__init_args__.items()
+                if name in self.__kwargs_names__
+            }
+            inner = ", ".join(
+                [f"{name}={value}" for name, value in kwargs.items()]
+            )
+
+            return f"{name}({inner})"
 
         def validated_getnewargs_ex(self):
             return (), self.__init_args__
@@ -332,15 +343,14 @@ def validated(base_model=None):
             # __init_args__ is not already set in order to avoid overriding a
             # value set by a subclass initializer in super().__init__ calls
             if not getattr(self, "__init_args__", {}):
-                self.__init_args__ = OrderedDict(
-                    {
-                        name: arg
-                        for name, arg in sorted(all_args.items())
-                        if not skip_encoding(arg)
-                    }
-                )
+                self.__init_args__ = {
+                    name: arg
+                    for name, arg in sorted(all_args.items())
+                    if not skip_encoding(arg)
+                }
                 self.__class__.__getnewargs_ex__ = validated_getnewargs_ex
                 self.__class__.__repr__ = validated_repr
+                self.__kwargs_names__ = list(kwargs.keys())
 
             return init(self, **all_args)
 

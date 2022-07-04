@@ -14,3 +14,18 @@
 from ._base import fqname_for
 
 __all__ = ["fqname_for"]
+
+
+def canonical_export(module, objects=(), **renames):
+    names = []
+
+    for obj in objects:
+        obj.__module__ = module
+        names.append(obj.__name__)
+
+    for name, obj in renames.items():
+        obj.__module__ = module
+        obj.__name__ = name
+        names.append(name)
+
+    return names

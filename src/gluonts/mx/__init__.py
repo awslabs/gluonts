@@ -11,16 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
-
-# flake8: noqa
-
 import typing
-from pkgutil import extend_path
 
 import mxnet as mx
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+from gluonts.core import canonical_export
 
 # Tensor type for HybridBlocks in Gluon
 Tensor = typing.Union[mx.nd.NDArray, mx.sym.Symbol]
@@ -37,3 +32,17 @@ from .model.predictor import (
 )
 from .trainer import Trainer
 from .util import copy_parameters, get_hybrid_forward_input_names
+
+
+__all__ = canonical_export(
+    __name__,
+    [
+        as_in_context,
+        batchify,
+        DistributionOutput,
+        GluonEstimator,
+        GluonPredictor,
+        RepresentableBlockPredictor,
+        Trainer,
+    ],
+) + ["Tensor"]
