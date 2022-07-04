@@ -13,14 +13,14 @@
 
 import warnings
 
+from gluonts.mx.model.wavenet._estimator import WaveNetEstimator
+from gluonts.mx.model.wavenet._network import WaveNet, WaveNetSampler
+
 warnings.warn(
     "The wavenet model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "WaveNetEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.wavenet._estimator import WaveNetEstimator
-from gluonts.mx.model.wavenet._network import WaveNet, WaveNetSampler
 
 __all__ = ["WaveNet", "WaveNetEstimator", "WaveNetSampler"]

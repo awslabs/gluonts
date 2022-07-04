@@ -13,15 +13,15 @@
 
 import warnings
 
+from gluonts.mx.model.simple_feedforward._estimator import (
+    SimpleFeedForwardEstimator,
+)
+
 warnings.warn(
     "The simple_feedforward model in gulonts.model is deprecated and will be "
     "moved to 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "SimpleFeedForwardEstimator'.",
     FutureWarning,
-)
-
-from gluonts.mx.model.simple_feedforward._estimator import (
-    SimpleFeedForwardEstimator,
 )
 
 __all__ = ["SimpleFeedForwardEstimator"]

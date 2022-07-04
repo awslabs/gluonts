@@ -13,13 +13,13 @@
 
 import warnings
 
+from gluonts.mx.model.deepar._estimator import DeepAREstimator
+
 warnings.warn(
     "The deepar model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "DeepAREstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.deepar._estimator import DeepAREstimator
 
 __all__ = ["DeepAREstimator"]

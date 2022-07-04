@@ -13,13 +13,13 @@
 
 import warnings
 
+from gluonts.mx.model.canonical._estimator import CanonicalRNNEstimator
+
 warnings.warn(
     "The canonical model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "CanonicalRNNEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.canonical._estimator import CanonicalRNNEstimator
 
 __all__ = ["CanonicalRNNEstimator"]

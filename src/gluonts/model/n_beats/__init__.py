@@ -13,18 +13,18 @@
 
 import warnings
 
+from gluonts.mx.model.n_beats._ensemble import (
+    NBEATSEnsembleEstimator,
+    NBEATSEnsemblePredictor,
+)
+from gluonts.mx.model.n_beats._estimator import NBEATSEstimator
+
 warnings.warn(
     "The n_beats model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "NBEATSEnsembleEstimator, NBEATSEnsemblePredictor, NBEATSEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.n_beats._ensemble import (
-    NBEATSEnsembleEstimator,
-    NBEATSEnsemblePredictor,
-)
-from gluonts.mx.model.n_beats._estimator import NBEATSEstimator
 
 __all__ = [
     "NBEATSEstimator",

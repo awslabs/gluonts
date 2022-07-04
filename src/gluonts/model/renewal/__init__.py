@@ -13,13 +13,13 @@
 
 import warnings
 
+from gluonts.mx.model.renewal._estimator import DeepRenewalProcessEstimator
+
 warnings.warn(
     "The renewal model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "DeepRenewalProcessEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.renewal._estimator import DeepRenewalProcessEstimator
 
 __all__ = ["DeepRenewalProcessEstimator"]

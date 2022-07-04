@@ -13,14 +13,14 @@
 
 import warnings
 
+from gluonts.mx.model.tft._estimator import TemporalFusionTransformerEstimator
+
 warnings.warn(
     "The tft model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "TemporalFusionTransformerEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.tft._estimator import TemporalFusionTransformerEstimator
 
 __all__ = [
     "TemporalFusionTransformerEstimator",

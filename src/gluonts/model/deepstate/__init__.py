@@ -13,13 +13,13 @@
 
 import warnings
 
+from gluonts.mx.model.deepstate._estimator import DeepStateEstimator
+
 warnings.warn(
     "The deepstate model in gulonts.model is deprecated and will be moved to "
     "'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "DeepStateEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.deepstate._estimator import DeepStateEstimator
 
 __all__ = ["DeepStateEstimator"]

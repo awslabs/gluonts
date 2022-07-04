@@ -13,13 +13,13 @@
 
 import warnings
 
+from gluonts.mx.model.transformer._estimator import TransformerEstimator
+
 warnings.warn(
     "The transformer model in gulonts.model is deprecated and will be moved to"
     " 'gluonts.mx.model'. Try to use 'from gluonts.mx import "
     "TransformerEstimator'.",
     FutureWarning,
 )
-
-from gluonts.mx.model.transformer._estimator import TransformerEstimator
 
 __all__ = ["TransformerEstimator"]
