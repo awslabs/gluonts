@@ -7,6 +7,7 @@
    :maxdepth: 1
    :hidden:
 
+   getting_started/introduction
    getting_started/install
    getting_started/concepts
    getting_started/models
