@@ -16,7 +16,7 @@ import warnings
 from gluonts.mx.model.tpp import (
     PointProcessSampleForecast,
     PointProcessGluonPredictor,
-    DeepTPPEstimator
+    DeepTPPEstimator,
 )
 
 warnings.warn(

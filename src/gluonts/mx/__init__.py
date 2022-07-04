@@ -52,7 +52,7 @@ from .model.lstnet import LSTNetEstimator
 from .model.n_beats import (
     NBEATSEstimator,
     NBEATSEnsembleEstimator,
-    NBEATSEnsemblePredictor
+    NBEATSEnsemblePredictor,
 )
 
 from .model.renewal import DeepRenewalProcessEstimator
@@ -71,4 +71,4 @@ from .model.tpp import (
     DeepTPPEstimator,
 )
 from .model.transformer import TransformerEstimator
-from .model.wavenet import WaveNetEstimator
+from .model.wavenet import WaveNetEstimator, WaveNet, WaveNetSampler
