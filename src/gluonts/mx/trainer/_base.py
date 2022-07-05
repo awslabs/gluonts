@@ -441,42 +441,85 @@ class Trainer:
 
             self.callbacks.on_train_start(max_epochs=self.epochs)
 
-            for epoch_no in range(self.epochs):
-                if self.halt:
-                    logger.info(f"Epoch[{epoch_no}] Interrupting training")
-                    break
+            try:
+                for epoch_no in range(self.epochs):
+                    if self.halt:
+                        logger.info(f"Epoch[{epoch_no}] Interrupting training")
+                        break
 
-                curr_lr = trainer.learning_rate
-                logger.info(f"Epoch[{epoch_no}] Learning rate is {curr_lr}")
-
-                epoch_loss = loop(
-                    epoch_no,
-                    train_iter,
-                    num_batches_to_use=self.num_batches_per_epoch,
-                )
-
-                should_continue = self.callbacks.on_train_epoch_end(
-                    epoch_no=epoch_no,
-                    epoch_loss=loss_value(epoch_loss),
-                    training_network=net,
-                    trainer=trainer,
-                )
-
-                if is_validation_available:
-                    epoch_loss = loop(
-                        epoch_no, validation_iter, is_training=False
+                    curr_lr = trainer.learning_rate
+                    logger.info(
+                        f"Epoch[{epoch_no}] Learning rate is {curr_lr}"
                     )
+
+                    epoch_loss = loop(
+                        epoch_no,
+                        train_iter,
+                        num_batches_to_use=self.num_batches_per_epoch,
+                    )
+
+                    should_continue = self.callbacks.on_train_epoch_end(
+                        epoch_no=epoch_no,
+                        epoch_loss=loss_value(epoch_loss),
+                        training_network=net,
+                        trainer=trainer,
+                    )
+
+                    if is_validation_available:
+                        epoch_loss = loop(
+                            epoch_no, validation_iter, is_training=False
+                        )
+
+                        should_continue = (
+                            should_continue
+                            and self.callbacks.on_validation_epoch_end(
+                                epoch_no=epoch_no,
+                                epoch_loss=loss_value(epoch_loss),
+                                training_network=net,
+                                trainer=trainer,
+                            )
+                        )
+
+                    # save model and epoch info
+                    bp = base_path()
+                    epoch_info = {
+                        "params_path": f"{bp}-0000.params",
+                        "epoch_no": epoch_no,
+                        "score": loss_value(epoch_loss),
+                    }
+
+                    net.save_parameters(
+                        epoch_info["params_path"]
+                    )  # TODO: handle possible exception
+
+                    save_epoch_info(bp, epoch_info)
+
+                    # update best epoch info
+                    if loss_value(epoch_loss) < cast(
+                        float, best_epoch_info["score"]
+                    ):
+                        best_epoch_info = epoch_info.copy()
 
                     should_continue = (
                         should_continue
-                        and self.callbacks.on_validation_epoch_end(
+                        and self.callbacks.on_epoch_end(
                             epoch_no=epoch_no,
                             epoch_loss=loss_value(epoch_loss),
                             training_network=net,
                             trainer=trainer,
+                            best_epoch_info=best_epoch_info,
+                            ctx=self.ctx,
                         )
                     )
 
+                    if not should_continue:
+                        logger.info("Stopping training")
+                        break
+            except KeyboardInterrupt as exception:
+                warnings.warn(
+                    "Detected KeyboardInterrupt, attempting graceful "
+                    "shutdown..."
+                )
                 # save model and epoch info
                 bp = base_path()
                 epoch_info = {
@@ -487,31 +530,8 @@ class Trainer:
 
                 net.save_parameters(
                     epoch_info["params_path"]
-                )  # TODO: handle possible exception
-
-                save_epoch_info(bp, epoch_info)
-
-                # update best epoch info
-                if loss_value(epoch_loss) < cast(
-                    float, best_epoch_info["score"]
-                ):
-                    best_epoch_info = epoch_info.copy()
-
-                should_continue = (
-                    should_continue
-                    and self.callbacks.on_epoch_end(
-                        epoch_no=epoch_no,
-                        epoch_loss=loss_value(epoch_loss),
-                        training_network=net,
-                        trainer=trainer,
-                        best_epoch_info=best_epoch_info,
-                        ctx=self.ctx,
-                    )
                 )
-
-                if not should_continue:
-                    logger.info("Stopping training")
-                    break
+                save_epoch_info(bp, epoch_info)
 
             self.callbacks.on_train_end(
                 training_network=net,
