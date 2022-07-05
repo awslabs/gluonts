@@ -20,7 +20,6 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.stat import calculate_dataset_statistics
-from ._forking_estimator import ForkingSeq2SeqEstimator
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
     HierarchicalCausalConv1DEncoder,
@@ -32,6 +31,8 @@ from gluonts.mx.block.quantile_output import (
 )
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
+
+from ._forking_estimator import ForkingSeq2SeqEstimator
 
 
 class MQCNNEstimator(ForkingSeq2SeqEstimator):

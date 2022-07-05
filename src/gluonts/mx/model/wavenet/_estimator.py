@@ -29,7 +29,6 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from ._network import WaveNet, WaveNetSampler, WaveNetTraining
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -56,6 +55,8 @@ from gluonts.transform import (
     ValidationSplitSampler,
     VstackFeatures,
 )
+
+from ._network import WaveNet, WaveNetSampler, WaveNetTraining
 
 
 class QuantizeScaled(SimpleTransformation):

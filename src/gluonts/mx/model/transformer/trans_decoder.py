@@ -16,6 +16,8 @@ from typing import Dict, Optional
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
+from gluonts.mx import Tensor
+
 from .layers import (
     InputLayer,
     MultiHeadAttention,
@@ -23,7 +25,6 @@ from .layers import (
     TransformerFeedForward,
     TransformerProcessBlock,
 )
-from gluonts.mx import Tensor
 
 
 class TransformerDecoder(HybridBlock):

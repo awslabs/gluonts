@@ -17,12 +17,13 @@ import mxnet as mx
 
 from gluonts.core.component import validated
 from gluonts.itertools import prod
-from .trans_decoder import TransformerDecoder
-from .trans_encoder import TransformerEncoder
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
+
+from .trans_decoder import TransformerDecoder
+from .trans_encoder import TransformerEncoder
 
 LARGE_NEGATIVE_VALUE = -99999999
 

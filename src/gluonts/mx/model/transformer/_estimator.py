@@ -26,12 +26,6 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from ._network import (
-    TransformerPredictionNetwork,
-    TransformerTrainingNetwork,
-)
-from .trans_decoder import TransformerDecoder
-from .trans_encoder import TransformerEncoder
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -61,6 +55,10 @@ from gluonts.transform import (
     ValidationSplitSampler,
     VstackFeatures,
 )
+
+from ._network import TransformerPredictionNetwork, TransformerTrainingNetwork
+from .trans_decoder import TransformerDecoder
+from .trans_encoder import TransformerEncoder
 
 
 class TransformerEstimator(GluonEstimator):

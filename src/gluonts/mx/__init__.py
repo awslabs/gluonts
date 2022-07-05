@@ -38,8 +38,6 @@ from .model.predictor import (
 from .trainer import Trainer
 from .util import copy_parameters, get_hybrid_forward_input_names
 
-from .model import forecast_generator
-
 from .model.canonical import CanonicalRNNEstimator
 from .model.deep_factor import DeepFactorEstimator
 from .model.deepar import DeepAREstimator
