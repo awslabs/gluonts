@@ -44,70 +44,116 @@ pip install gluonts[arrow]
 
 ### Models
 
-You can enable or disable extra dependencies as you prefer, depending on what GluonTS features you are interested in enabling.
 
-* `mxnet` - MXNet-based models
-* `torch` - PyTorch-based models
-* `R` - R-based models
-* `Prophet` - Prophet-based models
+#### PyTorch
+
+Models written using [PyTorch](https://pytorch.org/) are available via the
+``gluonts.torch`` subpackage.
+
+In addition to PyTorch we require [PyTorch Lightning](https://www.pytorchlightning.ai/)
+to be installed as well.
+
+Both required dependencies are included in the ``torch``-extra:
+
+```sh
+pip install gluonts[torch]
+````
+
+
+#### MXNet
+
+MXNet based models require a version of ``mxnet`` to be installed.
+
+```{note}
+
+MXNet provives different package for CPU and GPU usages. Please refer to its
+[documentation](https://mxnet.apache.org/versions/1.9.1/get_started?) to
+select the right version fitting your use-case.
+
+```
+
+The ``mxnet``-extra will install a CPU-only version:
+
+```sh
+pip install gluonts[mxnet]
+
+````
+
+
+#### 3rd Party
+
+##### R-Forecast
+
+GluonTS includes a thin wrapper for calling the ``R`` `forecast` package.
+
+In order to use it you need to install [``R``](https://www.r-project.org/) and
+install the `forecast` package:
+
+```sh
+R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+```
+
+In addition, we require rpy2 to be installed:
+
+```sh
+pip install 'rpy2>=2.9.*,<3.*'
+````
+
+##### Prophet
+
+The [Prophet](https://facebook.github.io/prophet/) forecasting library is
+available via `gluonts.model.prophet` and requires the ``prophet`` package to
+be installed.
+
+The ``prophet``-extra also depends on it:
+
+```sh
+pip install gluonts[prophet]
+```
 
 
 ### Datasets
 
-* `arrow` - Arrow and Parquet dataset support
-* `pro` - bundles `arrow` plus `orjson` for faster datasets
+#### JSON
 
+Since Python's build in ``json`` package is known to be relatively slow, we use
+faster implementations if available: ``orjson`` (recommended) and ``ujson``.
+
+You can install ``orjson`` via:
+
+```sh
+pip install orjson
+```
+
+```{hint}
+GluonTS will emit a warning if neither ``orjson`` nor ``ujson`` are installed.
+There is no functional difference between the different implementations, but
+especially when working with larger datasets, performance can be notably
+impacted when relying on the default ``json`` package.
+```
+
+#### Arrow
+
+GluonTS support [Parquet](https://en.wikipedia.org/wiki/Apache_Parquet) files
+using [``PyArrow``](https://arrow.apache.org/docs/python/index.html).
+
+Further, [arrow's custom data formats](https://arrow.apache.org/docs/python/ipc.html)
+are also supported.
+
+To utilise these, either install the ``pyarrow`` package or use the
+``arrow``-extra:
+
+```sh
+pip install gluonts[arrow]
+```
 
 ### Other
 
-* `shell` for integration with SageMaker
+#### Shell
 
-
-## Install from Dev Branch
-
-
-If you are interested in trying out features on dev branch that hasn't been released yet, you have
-the option of installing from dev branch directly.
-
-
-## Install from GitHub
-
-
-Use the following command to automatically download and install the current code on dev branch:
+The ``shell`` module offers integration with Amazon SageMaker and is available
+through:
 
 ```sh
-pip install git+https://github.com/awslabs/gluon-ts.git
-````
-
-## Install from Source Code
-
-You can also first check out the code locally using Git:
-
-.. code-block:: console
-
-   git clone https://github.com/awslabs/gluon-ts
-   cd gluon-ts
-
-then use the provided `setup.py` to install into site-packages:
-
-.. code-block:: console
-
-   python setup.py install
-
-
-.. note::
-
-   You may need to use `sudo` in case you run into permission denied error.
-
-
-Alternatively, you can set up the package with development mode, so that local changes are
-immediately reflected in the installed python package
-
-.. code-block:: console
-
-   python setup.py develop
-
-.. note::
-
-   The dev branch may rely on MXNet nightly builds which are available on PyPI,
-   please refer to `this page <http://beta.mxnet.io/install.html>`_ for installation guide.
+pip install gluonts[shell]
+```
