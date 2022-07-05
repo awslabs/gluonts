@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+
+# Standard library imports
+import os
+import sys
+import textwrap
+from pathlib import Path
+from subprocess import CalledProcessError, check_output
+
+
+def type_check() -> int:
+    mypy_opts = ['--follow-imports=silent', '--ignore-missing-imports']
+    mypy_args = [
+        str(p.parent.resolve())
+        for p in Path(__file__).parents[2].glob('**/.typesafe')
+    ]
+
+    try:
+        check_output(['mypy'] + mypy_opts + mypy_args)
+        return 0
+    except CalledProcessError as e:
+        print(e.output.decode().strip())
+
+        print(
+            textwrap.dedent(
+                f'''
+                Mypy command
+
+                    mypy {" ".join(mypy_opts + mypy_args)}
+
+                returned a non-zero exit code. Fix the type errors listed above
+                and then run
+
+                    python setup.py type_check
+
+                in order to validate your fixes.
+                '''
+            ).lstrip(),
+            file=sys.stderr,
+        )
+
+        return e.returncode
+
+
+def style_check() -> int:
+    git_root = (
+        check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
+    )
+    git_files = (
+        check_output(['git', 'diff', '--name-only', '--cached'])
+        .decode()
+        .strip()
+        .split()
+    )
+
+    black_opts = []
+    black_args = [
+        os.path.join(git_root, git_file)
+        for git_file in git_files
+        if git_file.endswith('.py') and os.path.isfile(git_file)
+    ]
+
+    try:
+        check_output(['black'] + ['--check'] + black_opts + black_args)
+        return 0
+    except CalledProcessError as e:
+        print(
+            textwrap.dedent(
+                f'''
+                Black command
+
+                    black {" ".join(['--check'] + black_opts + black_args)}
+
+                returned a non-zero exit code. Fix the files listed above with
+
+                    black {" ".join(black_opts + black_args)}
+
+                and then run
+
+                    python setup.py style_check
+
+                in order to validate your fixes.
+                '''
+            ).lstrip(),
+            file=sys.stderr,
+        )
+
+        return e.returncode
+
+
+def license_check() -> int:
+    git_root = (
+        check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
+    )
+    git_files = (
+        check_output(['git', 'diff', '--name-only', '--cached'])
+        .decode()
+        .strip()
+        .split()
+    )
+
+    py_files = [
+        os.path.join(git_root, git_file)
+        for git_file in git_files
+        if git_file.endswith('.py') and os.path.isfile(git_file)
+    ]
+
+    try:
+        check_output(['.devtools/license'] + ['check'] + py_files)
+        return 0
+    except CalledProcessError as e:
+        print(
+            textwrap.dedent(
+                f'''
+                License check command
+
+                    .devtools/license {" ".join(['check'] + py_files)}
+
+                returned a non-zero exit code. Fix the files listed above with
+
+                    .devtools/license {" ".join(['fix'] + py_files)}
+
+                and then run
+
+                    .devtools/license check src test
+
+                in order to validate your fixes.
+                '''
+            ).lstrip(),
+            file=sys.stderr,
+        )
+
+        return e.returncode
+
+if __name__ == '__main__':
+    sys.exit(type_check() | style_check())
