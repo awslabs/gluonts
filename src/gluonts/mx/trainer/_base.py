@@ -25,7 +25,6 @@ import mxnet as mx
 import mxnet.autograd as autograd
 import mxnet.gluon.nn as nn
 import numpy as np
-from toolz import take
 
 from gluonts.core.component import validated
 from gluonts.dataset.loader import DataLoader
@@ -131,7 +130,6 @@ class Loop:
                 output = self.invoke_network(batch)
 
             losses = get_loss(output)
-            batch_size = len(losses)
 
             if not np.isfinite(losses.asnumpy()).all():
                 logger.warning(
@@ -468,7 +466,8 @@ class Trainer:
                 epoch = Epoch(epoch_no, self.epochs)
 
                 logger.info(
-                    f"Epoch[{epoch.no}] Learning rate is {trainer.learning_rate}"
+                    f"Epoch[{epoch.no}] Learning rate is "
+                    + trainer.learning_rate
                 )
 
                 epoch_loss = train_loop(epoch, train_batches)
