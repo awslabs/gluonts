@@ -11,13 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import itertools
 import logging
-import os
+import math
 import tempfile
 import time
 import uuid
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast, List, Optional, Union
 
@@ -31,6 +31,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.loader import DataLoader
 from gluonts.exceptions import GluonTSDataError
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.itertools import IterableSlice
 from gluonts.mx.context import get_mxnet_context
 from gluonts.mx.trainer.callback import Callback, CallbackList
 from gluonts.mx.util import HybridContext
@@ -73,6 +74,24 @@ def get_loss(output):
 
 
 @dataclass
+class EarlyStop(Exception):
+    epoch_loss: mx.metric.Loss
+
+
+@dataclass
+class Epoch:
+    no: int
+    total: int
+
+    @property
+    def progress(self):
+        digits = int(math.log10(self.total)) + 1
+        return ("{no:0%d}/{total}" % digits).format(
+            no=self.no + 1, total=self.total
+        )
+
+
+@dataclass
 class Loop:
     net: nn.HybridBlock
     callback: Callback
@@ -90,20 +109,20 @@ class Loop:
         pass
 
     def __call__(  # todo call run epoch
-        epoch_no: int,
+        self,
+        epoch: Epoch,
         batches,
-        num_batches: Optional[int] = None,
     ) -> mx.metric.Loss:
 
         epoch_loss = mx.metric.Loss()
-
-        it = tqdm(batches, total=num_batches)
+        tic = time.time()
+        it = tqdm(batches)
 
         # `batch` is expected to be a `dict` whose fields should correspond
         # 1-to-1 with the network inputs, since `batch.values()` is fed into
         # the network.
         for batch_no, batch in enumerate(it, start=1):
-            if epoch_no == 0 and batch_no == 1:
+            if epoch.no == 0 and batch_no == 1:
                 self.initialize_network(batch)
 
             self.callback_on_epoch_start()
@@ -114,11 +133,9 @@ class Loop:
             losses = get_loss(output)
             batch_size = len(losses)
 
-            assert batch_size == len(batch)
-
             if not np.isfinite(losses.asnumpy()).all():
                 logger.warning(
-                    f"Batch [{batch_no}] of Epoch[{epoch_no}] gave NaN loss "
+                    f"Batch [{batch_no}] of Epoch[{epoch.no}] gave NaN loss "
                     "and it will be ignored"
                 )
                 continue
@@ -129,9 +146,8 @@ class Loop:
 
             it.set_postfix(
                 {
-                    "epoch": f"{epoch_no + 1}/{self.epochs}",
-                    ("" if is_training else "validation_")
-                    + "avg_epoch_loss": loss_value(epoch_loss),
+                    "epoch": epoch.progress,
+                    self.loss_name: f"{loss_value(epoch_loss):.2f}",
                 }
             )
 
@@ -140,23 +156,30 @@ class Loop:
 
         it.close()
 
-        # # mark epoch end time and log time cost of current epoch
-        # toc = time.time()
-        # logger.info(
-        #     f"Epoch[{epoch_no}] Elapsed time {toc - tic:.3f} seconds",
-        # )
+        # mark epoch end time and log time cost of current epoch
+        toc = time.time()
+        logger.info(
+            f"Epoch[{epoch.no}] Elapsed time {toc - tic:.3f} seconds",
+        )
 
-        # logger.info(
-        #     "Epoch[%d] Evaluation metric '%s'=%f",
-        #     epoch_no,
-        #     ("" if is_training else "validation_") + "epoch_loss",
-        #     loss_value,
-        # )
+        logger.info(
+            "Epoch[%d] Evaluation metric '%s'=%f",
+            epoch.no,
+            "epoch_loss",
+            loss_value,
+        )
 
         return epoch_loss
 
 
+@dataclass
 class TrainLoop(Loop):
+    trainer: mx.gluon.Trainer
+
+    @property
+    def loss_name(self):
+        return "avg_epoch_loss"
+
     def backward(self, losses):
         losses.backward()
         self.trainer.step(batch_size=len(losses))
@@ -170,22 +193,34 @@ class TrainLoop(Loop):
 
         logger.info(
             f"Number of parameters in {self.net.__class__.__name__}:"
-            f" {count_model_params(net)}"
+            f" {count_model_params(self.net)}"
         )
 
-        self.callbacks.on_network_initializing_end(training_network=self.net)
+        self.callback.on_network_initializing_end(training_network=self.net)
 
     def callback_on_epoch_start(self):
-        self.callback.on_train_epoch_start(training_network=self.net)
+        return self.callback.on_train_epoch_start(training_network=self.net)
+
+    def callback_on_batch_end(self):
+        return self.callback.on_train_batch_end(training_network=self.net)
 
 
 class ValidationLoop(Loop):
+    @property
+    def loss_name(self):
+        return "validation_avg_epoch_loss"
+
     def invoke_network(self, batch):
         with autograd.predict_mode():
             return self.net(*batch.values())
 
     def callback_on_epoch_start(self):
-        self.callback.on_validation_epoch_start(training_network=self.net)
+        return self.callback.on_validation_epoch_start(
+            training_network=self.net
+        )
+
+    def callback_on_batch_end(self):
+        return self.callback.on_validation_batch_end(training_network=self.net)
 
 
 class Trainer:
@@ -334,7 +369,6 @@ class Trainer:
         self.init = init
         self.hybridize = hybridize
         self.ctx = ctx if ctx is not None else get_mxnet_context()
-        self.halt = False
 
         # Make sure callbacks is list -- they are assigned to `self.callbacks`
         # below
@@ -398,7 +432,7 @@ class Trainer:
                 return gluonts_temp / f"state_{uuid.uuid4()}"
 
             best_epoch_info = {
-                "params_path": f"{base_path()}-{init}.params",
+                "params_path": f"{base_path()}-init.params",
                 "epoch_no": -1,
                 "score": np.Inf,
             }
@@ -417,40 +451,42 @@ class Trainer:
 
             self.callbacks.on_train_start(max_epochs=self.epochs)
 
-            train_loop = TrainLoop()
+            train_loop = TrainLoop(
+                trainer=trainer, net=net, callback=self.callbacks
+            )
             val_loop = (
-                ValidationLoop() if validation_iter is not None else None
+                ValidationLoop(net=net, callback=self.callbacks)
+                if validation_iter is not None
+                else None
+            )
+
+            train_batches = IterableSlice(
+                train_iter, self.num_batches_per_epoch
             )
 
             for epoch_no in range(self.epochs):
-                if self.halt:
-                    logger.info(f"Epoch[{epoch_no}] Interrupting training")
-                    break
+                epoch = Epoch(epoch_no, self.epochs)
 
                 logger.info(
-                    f"Epoch[{epoch_no}] Learning rate is {trainer.learning_rate}"
+                    f"Epoch[{epoch.no}] Learning rate is {trainer.learning_rate}"
                 )
 
-                epoch_loss = train_loop(
-                    epoch_no, take(train_iter, self.num_batches_per_epoch)
-                )
+                epoch_loss = train_loop(epoch, train_batches)
 
                 should_continue = self.callbacks.on_train_epoch_end(
-                    epoch_no=epoch_no,
+                    epoch_no=epoch.no,
                     epoch_loss=loss_value(epoch_loss),
                     training_network=net,
                     trainer=trainer,
                 )
 
-                if validation_iter is not None:
-                    epoch_loss = loop(
-                        epoch_no, validation_iter, is_training=False
-                    )
+                if val_loop is not None:
+                    epoch_loss = val_loop(epoch, validation_iter)
 
                     should_continue = (
                         should_continue
                         and self.callbacks.on_validation_epoch_end(
-                            epoch_no=epoch_no,
+                            epoch_no=epoch.no,
                             epoch_loss=loss_value(epoch_loss),
                             training_network=net,
                             trainer=trainer,
@@ -461,7 +497,7 @@ class Trainer:
                 bp = base_path()
                 epoch_info = {
                     "params_path": f"{bp}-0000.params",
-                    "epoch_no": epoch_no,
+                    "epoch_no": epoch.no,
                     "score": loss_value(epoch_loss),
                 }
 
