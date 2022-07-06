@@ -25,7 +25,7 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.env import env
-from gluonts.model.deepvar._estimator import (
+from gluonts.mx.model.deepvar._estimator import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )

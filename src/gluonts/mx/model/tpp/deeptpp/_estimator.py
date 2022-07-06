@@ -23,8 +23,11 @@ from gluonts.dataset.loader import (
 )
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
-from gluonts.model.tpp import PointProcessGluonPredictor
-from gluonts.model.tpp.distribution import TPPDistributionOutput, WeibullOutput
+from gluonts.mx.model.tpp import PointProcessGluonPredictor
+from gluonts.mx.model.tpp.distribution import (
+    TPPDistributionOutput,
+    WeibullOutput,
+)
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer

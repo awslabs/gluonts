@@ -27,7 +27,7 @@ from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution import EmpiricalDistribution
 from gluonts.mx.util import assert_shape
 from gluonts.mx.distribution import LowrankMultivariateGaussian
-from gluonts.model.deepvar._network import (
+from gluonts.mx.model.deepvar._network import (
     DeepVARNetwork,
     DeepVARTrainingNetwork,
     DeepVARPredictionNetwork,

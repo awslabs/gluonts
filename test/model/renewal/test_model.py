@@ -14,7 +14,7 @@ import sys
 
 import pytest
 
-from gluonts.model.renewal import DeepRenewalProcessEstimator
+from gluonts.mx.model.renewal import DeepRenewalProcessEstimator
 
 
 @pytest.fixture()

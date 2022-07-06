@@ -15,7 +15,7 @@ from functools import partial
 
 import pytest
 
-from gluonts.model.deepstate import DeepStateEstimator
+from gluonts.mx.model.deepstate import DeepStateEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 

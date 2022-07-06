@@ -14,7 +14,7 @@
 from itertools import islice
 
 from gluonts.dataset.artificial import constant_dataset
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names

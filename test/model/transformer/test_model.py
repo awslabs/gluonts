@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.transformer import TransformerEstimator
+from gluonts.mx import TransformerEstimator
 
 
 @pytest.fixture()

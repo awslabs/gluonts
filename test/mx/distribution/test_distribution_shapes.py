@@ -16,7 +16,7 @@ from typing import Tuple
 import mxnet as mx
 import pytest
 
-from gluonts.model.tpp.distribution import Loglogistic, Weibull
+from gluonts.mx.model.tpp.distribution import Loglogistic, Weibull
 from gluonts.mx.distribution import (
     Beta,
     Dirichlet,

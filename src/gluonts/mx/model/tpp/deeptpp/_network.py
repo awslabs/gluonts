@@ -18,8 +18,8 @@ import numpy as np
 from mxnet import nd
 
 from gluonts.core.component import validated
-from gluonts.model.tpp import distribution
-from gluonts.model.tpp.distribution.base import TPPDistributionOutput
+from gluonts.mx.model.tpp import distribution
+from gluonts.mx.model.tpp.distribution.base import TPPDistributionOutput
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import CategoricalOutput
 

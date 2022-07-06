@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.wavenet import WaveNetEstimator
+from gluonts.mx import WaveNetEstimator
 
 
 @pytest.fixture()
