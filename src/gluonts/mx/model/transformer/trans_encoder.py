@@ -16,13 +16,14 @@ from typing import Dict
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
-from gluonts.model.transformer.layers import (
+from gluonts.mx import Tensor
+
+from .layers import (
     InputLayer,
     MultiHeadSelfAttention,
     TransformerFeedForward,
     TransformerProcessBlock,
 )
-from gluonts.mx import Tensor
 
 
 class TransformerEncoder(HybridBlock):

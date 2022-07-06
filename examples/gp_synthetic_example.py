@@ -3,7 +3,7 @@ import math
 
 # First-party imports
 from gluonts.mx.kernels import RBFKernel
-from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
+from gluonts.mx.model.gp_forecaster.gaussian_process import GaussianProcess
 
 # Third-party imports
 import mxnet.ndarray as nd

@@ -21,7 +21,7 @@ import mxnet as mx
 
 # First-party imports
 from gluonts.core.component import validated
-from gluonts.model.deepvar import DeepVAREstimator
+from gluonts.mx import DeepVAREstimator
 from gluonts.mx.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.distribution import LowrankMultivariateGaussianOutput

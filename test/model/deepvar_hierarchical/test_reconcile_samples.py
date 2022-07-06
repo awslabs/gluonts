@@ -15,7 +15,7 @@ import mxnet as mx
 import numpy as np
 import pytest
 
-from gluonts.model.deepvar_hierarchical import (
+from gluonts.mx.model.deepvar_hierarchical import (
     constraint_mat,
     null_space_projection_mat,
     reconcile_samples,

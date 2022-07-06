@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.gp_forecaster import GaussianProcessEstimator
+from gluonts.mx.model.gp_forecaster import GaussianProcessEstimator
 
 
 @pytest.fixture()

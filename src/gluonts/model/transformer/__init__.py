@@ -11,6 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import TransformerEstimator
+import warnings
+
+from gluonts.mx.model.transformer import TransformerEstimator
+
+warnings.warn(
+    "The module gluonts.model.transformer has been moved to "
+    "gluonts.mx.model.transformer. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
+    "TransformerEstimator'.",
+    FutureWarning,
+)
 
 __all__ = ["TransformerEstimator"]

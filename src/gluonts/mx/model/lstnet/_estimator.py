@@ -26,7 +26,7 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.env import env
-from gluonts.model.lstnet._network import LSTNetPredict, LSTNetTrain
+from gluonts.mx.model.lstnet._network import LSTNetPredict, LSTNetTrain
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator

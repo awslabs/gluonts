@@ -15,7 +15,7 @@ import mxnet as mx
 import numpy as np
 import pandas as pd
 
-from gluonts.model.deepstate.issm import (
+from gluonts.mx.model.deepstate.issm import (
     CompositeISSM,
     LevelISSM,
     LevelTrendISSM,

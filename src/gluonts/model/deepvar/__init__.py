@@ -11,6 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import DeepVAREstimator
+import warnings
+
+from gluonts.mx.model.deepvar import DeepVAREstimator
+
+warnings.warn(
+    "The module gluonts.model.deepvar has been moved to "
+    "gluonts.mx.model.deepvar. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
+    "DeepVAREstimator'.",
+    FutureWarning,
+)
 
 __all__ = ["DeepVAREstimator"]

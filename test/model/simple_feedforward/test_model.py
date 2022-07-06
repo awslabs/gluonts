@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.distribution import GaussianOutput
 
 

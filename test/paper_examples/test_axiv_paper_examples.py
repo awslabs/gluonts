@@ -28,7 +28,7 @@ def test_listing_1():
 
     from gluonts.dataset.repository.datasets import get_dataset
     from gluonts.evaluation import backtest_metrics, Evaluator
-    from gluonts.model.deepar import DeepAREstimator
+    from gluonts.mx import DeepAREstimator
     from gluonts.mx.trainer import Trainer
 
     # We use electricity in the paper but that would take too long to run in

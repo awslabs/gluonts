@@ -83,8 +83,7 @@ ds = PandasDataset.from_long_dataframe(df, target="target", item_id="item_id")
 ```
 
 ```python
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx import Trainer
+from gluonts.mx import DeepAREstimator, Trainer
 
 estimator = DeepAREstimator(freq=ds.freq, prediction_length=24, trainer=Trainer(epochs=1))
 predictor = estimator.train(ds)
@@ -227,8 +226,7 @@ to fully train the model.
 
 
 ```python
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.mx import Trainer
+from gluonts.mx import DeepAREstimator, Trainer
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 
 def train_and_predict(dataset, estimator):

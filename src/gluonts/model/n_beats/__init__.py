@@ -11,8 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._ensemble import NBEATSEnsembleEstimator, NBEATSEnsemblePredictor
-from ._estimator import NBEATSEstimator
+import warnings
+
+from gluonts.mx.model.n_beats._ensemble import (
+    NBEATSEnsembleEstimator,
+    NBEATSEnsemblePredictor,
+    NBEATSEstimator,
+)
+
+warnings.warn(
+    "The module gluonts.model.n_beats has been moved to "
+    "gluonts.mx.model.n_beats. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
+    "NBEATSEstimator, NBEATSEnsembleEstimator, NBEATSEnsemblePredictor'.",
+    FutureWarning,
+)
 
 __all__ = [
     "NBEATSEstimator",
