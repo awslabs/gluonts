@@ -19,12 +19,12 @@ import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import valmap
 
-from gluonts.dataset.common import Dataset, DataEntry, ProcessDataEntry
+from gluonts.dataset.common import DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
 
 
 @dataclass
-class PandasDataset(Dataset):
+class PandasDataset:
     """
     A pandas.DataFrame-based dataset type.
 
