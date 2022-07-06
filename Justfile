@@ -18,10 +18,7 @@
 ROOTDIR := invocation_directory()
 MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
 
-skip_build_notebook := env_var_or_default("SKIP_BUILD_NOTEBOOK", "false")
-
-
-docs: release
+docs: compile_notebooks
   make -C docs html # SPHINXOPTS=-W
 
 clean:
