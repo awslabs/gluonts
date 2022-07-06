@@ -11,16 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import glob
 import json
 import logging
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import mxnet as mx
 import mxnet.gluon.nn as nn
 import numpy as np
-
-from gluonts.core.component import validated
+from pydantic import BaseModel
 
 from .callback import Callback
 
@@ -48,33 +47,66 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
         json.dump(epoch_info, f)
 
 
-class AveragingStrategy:
-    @validated()
-    def __init__(
-        self,
-        num_models: int = 5,
-        metric: str = "score",
-        maximize: bool = False,
-    ):
-        r"""
-        Parameters
-        ----------
-        num_models
-            Number of model checkpoints to average.
-        metric
-            Metric which is used to average models.
-        maximize
-            Boolean flag to indicate whether the metric should be maximized or
-            minimized.
-        """
-        self.num_models = num_models
-        self.metric = metric
-        self.maximize = maximize
+def get_checkpoint_information(model_path: Path) -> List[Dict]:
+    epoch_info_files = list(model_path.glob("*-epoch-info.json"))
 
-    def apply(self, model_path: str) -> str:
-        r"""
-        Averages model parameters of serialized models based on the selected
+    assert epoch_info_files, f"No checkpoints found in {model_path}."
+
+    all_checkpoint_info = list()
+    for epoch_info in epoch_info_files:
+        with open(epoch_info) as f:
+            all_checkpoint_info.append(json.load(f))
+
+    return all_checkpoint_info
+
+
+def average_arrays(
+    arrays: List[mx.nd.NDArray], weights: List[float]
+) -> mx.nd.NDArray:
+    """
+    Takes a list of arrays of the same shape and computes the element wise
+    weighted average.
+
+    Parameters
+    ----------
+    arrays
+        List of NDArrays with the same shape that will be averaged.
+    weights
+        List of weights for the parameter average.
+
+    Returns
+    -------
+    The average of the NDArrays in the same context as arrays[0].
+    """
+
+    return np.sum(
+        mx.nd.stack(*arrays) * mx.nd.array(weights).reshape(-1, 1),
+        axis=1,
+    )
+
+
+class AveragingStrategy(BaseModel):
+    """
+    Parameters
+    ----------
+    num_models
+        Number of model checkpoints to average.
+    metric
+        Metric which is used to average models.
+    maximize
+        Boolean flag to indicate whether the metric should be maximized or
+        minimized.
+    """
+
+    num_models: int = 5
+    metric: str = "score"
+    maximize: bool = False
+
+    def apply(self, model_path: Path) -> Path:
+        """
+        Average model parameters of serialized models based on the selected
         model strategy and metric.
+
         IMPORTANT: Depending on the metric the user might want to minimize or
         maximize. The maximize flag has to be chosen appropriately to reflect
         this.
@@ -88,43 +120,17 @@ class AveragingStrategy:
         -------
         Path to file with the averaged model.
         """
-        checkpoints = self.get_checkpoint_information(model_path)
+        checkpoints = get_checkpoint_information(model_path)
 
         checkpoint_paths, weights = self.select_checkpoints(checkpoints)
 
-        average_parms = self.average(checkpoint_paths, weights)
-
-        average_parms_path = model_path + "/averaged_model-0000.params"
-        mx.nd.save(average_parms_path, average_parms)
-        return average_parms_path
-
-    @staticmethod
-    def get_checkpoint_information(model_path: str) -> List[Dict]:
-        r"""
-
-        Parameters
-        ----------
-        model_path
-            Path to the models directory.
-
-        Returns
-        -------
-        List of checkpoint information dictionaries (metric, epoch_no,
-        checkpoint path).
-        """
-        epoch_info_files = glob.glob(
-            f"{model_path}/*-{EPOCH_INFO_STRING}.json"
+        average_parms_path = model_path / "averaged_model-0000.params"
+        mx.nd.save(
+            str(average_parms_path),
+            self.average(checkpoint_paths, weights),
         )
 
-        assert (
-            len(epoch_info_files) >= 1
-        ), f"No checkpoints found in {model_path}."
-
-        all_checkpoint_info = list()
-        for epoch_info in epoch_info_files:
-            with open(epoch_info) as f:
-                all_checkpoint_info.append(json.load(f))
-        return all_checkpoint_info
+        return average_parms_path
 
     def select_checkpoints(
         self, checkpoints: List[Dict]
@@ -161,49 +167,15 @@ class AveragingStrategy:
         all_arg_params = []
 
         for path in param_paths:
-            params = mx.nd.load(path)
+            params = mx.nd.load(str(path))
             all_arg_params.append(params)
 
         avg_params = {}
         for k in all_arg_params[0]:
             arrays = [p[k] for p in all_arg_params]
-            avg_params[k] = self.average_arrays(arrays, weights)
+            avg_params[k] = average_arrays(arrays, weights)
+
         return avg_params
-
-    @staticmethod
-    def average_arrays(
-        arrays: List[mx.nd.NDArray], weights: List[float]
-    ) -> mx.nd.NDArray:
-        r"""
-        Takes a list of arrays of the same shape and computes the element wise
-        weighted average.
-
-        Parameters
-        ----------
-        arrays
-            List of NDArrays with the same shape that will be averaged.
-        weights
-            List of weights for the parameter average.
-
-        Returns
-        -------
-        The average of the NDArrays in the same context as arrays[0].
-        """
-
-        def _assert_shapes(arrays):
-            shape_set = {array.shape for array in arrays}
-            assert len(shape_set) == 1, (
-                "All arrays should be the same shape. Found arrays with these"
-                " shapes instead :{}".format(shape_set)
-            )
-
-        _assert_shapes(arrays)
-
-        if not arrays:
-            raise ValueError("arrays is empty.")
-        if len(arrays) == 1:
-            return arrays[0]
-        return mx.nd.add_n(*[a * w for a, w in zip(arrays, weights)])
 
 
 class SelectNBestSoftmax(AveragingStrategy):
@@ -211,7 +183,8 @@ class SelectNBestSoftmax(AveragingStrategy):
         self, checkpoints: List[Dict]
     ) -> Tuple[List[str], List[float]]:
         r"""
-        Selects the checkpoints with the best metric values.
+        Select the checkpoints with the best metric values.
+
         The weights are the softmax of the metric values, i.e.,
         w_i = exp(v_i) / sum(exp(v_j)) if maximize=True
         w_i = exp(-v_i) / sum(exp(-v_j)) if maximize=False
@@ -227,7 +200,8 @@ class SelectNBestSoftmax(AveragingStrategy):
         """
 
         metric_path_tuple = [
-            (c[self.metric], c["params_path"]) for c in checkpoints
+            (checkpoint[self.metric], checkpoint["params_path"])
+            for checkpoint in checkpoints
         ]
         top_checkpoints = sorted(metric_path_tuple, reverse=self.maximize)[
             : self.num_models
@@ -280,7 +254,7 @@ class SelectNBestMean(AveragingStrategy):
         return checkpoint_paths, weights
 
 
-class ModelAveraging(Callback):
+class ModelAveraging(BaseModel, Callback):
     """
     Callback to implement model averaging strategies. Selects the checkpoints
     with the best loss values and computes the model average or weighted model
@@ -293,9 +267,7 @@ class ModelAveraging(Callback):
         gluonts.mx.trainer.model_averaging.
     """
 
-    @validated()
-    def __init__(self, avg_strategy: AveragingStrategy):
-        self.avg_strategy = avg_strategy
+    avg_strategy: AveragingStrategy
 
     def on_train_end(
         self,

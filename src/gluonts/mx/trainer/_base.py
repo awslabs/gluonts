@@ -55,11 +55,6 @@ def count_model_params(net: nn.HybridBlock) -> int:
     return sum(np.prod(value.shape) for value in params.values())
 
 
-def loss_value(loss: mx.metric.Loss) -> float:
-    # Return first loss-value of `loss`.
-    return loss.get()[1]
-
-
 def get_loss(output):
     # Networks can return several outputs, the first being always the loss when
     # having multiple outputs. `forward()` returns a list in the case of
@@ -74,7 +69,7 @@ def get_loss(output):
 
 @dataclass
 class EarlyStop(Exception):
-    epoch_loss: mx.metric.Loss
+    epoch_loss: float
 
 
 @dataclass
@@ -95,7 +90,11 @@ class Loop:
     net: nn.HybridBlock
     callback: Callback
 
-    def callback_on_epoch_start(self, training_network):
+    @property
+    def loss_name(self):
+        raise NotImplementedError
+
+    def callback_on_epoch_start(self):
         raise NotImplementedError
 
     def invoke_network(self, batch):
@@ -111,7 +110,7 @@ class Loop:
         self,
         epoch: Epoch,
         batches,
-    ) -> mx.metric.Loss:
+    ) -> float:
 
         epoch_loss = mx.metric.Loss()
         tic = time.time()
@@ -139,18 +138,19 @@ class Loop:
                 continue
 
             self.backward(losses)
-
             epoch_loss.update(None, losses)
+
+            loss = epoch_loss.get()[1]
 
             it.set_postfix(
                 {
                     "epoch": epoch.progress,
-                    self.loss_name: f"{loss_value(epoch_loss):.2f}",
+                    self.loss_name: f"{loss:.2f}",
                 }
             )
 
             if not self.callback_on_batch_end():
-                raise EarlyStop(epoch_loss)
+                raise EarlyStop(loss)
 
         it.close()
 
@@ -164,10 +164,10 @@ class Loop:
             "Epoch[%d] Evaluation metric '%s'=%f",
             epoch.no,
             "epoch_loss",
-            loss_value,
+            loss,
         )
 
-        return epoch_loss
+        return loss
 
 
 @dataclass
@@ -219,6 +219,18 @@ class ValidationLoop(Loop):
 
     def callback_on_batch_end(self):
         return self.callback.on_validation_batch_end(training_network=self.net)
+
+
+@dataclass
+class EpochInfo:
+    epoch_no: int
+    score: float
+
+    def __lt__(self, other):
+        return self.score < other.score
+
+    def write_to(self, path):
+        pass
 
 
 class Trainer:
@@ -416,6 +428,8 @@ class Trainer:
         logger.info("Start model training")
         net.initialize(ctx=self.ctx, init=self.init)
 
+        train_batches = IterableSlice(train_iter, self.num_batches_per_epoch)
+
         with tempfile.TemporaryDirectory(
             prefix="gluonts-trainer-temp-"
         ) as gluonts_temp, HybridContext(
@@ -426,14 +440,15 @@ class Trainer:
         ):
             gluonts_temp = Path(gluonts_temp)
 
-            def base_path() -> str:
+            def base_path() -> Path:
                 return gluonts_temp / f"state_{uuid.uuid4()}"
 
-            best_epoch_info = {
-                "params_path": f"{base_path()}-init.params",
-                "epoch_no": -1,
-                "score": np.Inf,
-            }
+            best_epoch = EpochInfo(epoch_no=-1, score=np.Inf)
+            # best_epoch_info = {
+            #     "params_path": f"{base_path()}-init.params",
+            #     "epoch_no": -1,
+            #     "score": np.Inf,
+            # }
 
             optimizer = mx.optimizer.Adam(
                 learning_rate=self.learning_rate,
@@ -447,8 +462,6 @@ class Trainer:
                 kvstore="device",  # FIXME: initialize properly
             )
 
-            self.callbacks.on_train_start(max_epochs=self.epochs)
-
             train_loop = TrainLoop(
                 trainer=trainer, net=net, callback=self.callbacks
             )
@@ -458,23 +471,26 @@ class Trainer:
                 else None
             )
 
-            train_batches = IterableSlice(
-                train_iter, self.num_batches_per_epoch
-            )
+            should_continue = True
+
+            self.callbacks.on_train_start(max_epochs=self.epochs)
 
             for epoch_no in range(self.epochs):
                 epoch = Epoch(epoch_no, self.epochs)
 
                 logger.info(
-                    f"Epoch[{epoch.no}] Learning rate is "
-                    + trainer.learning_rate
+                    f"Epoch[{epoch.no}] Learning rate is %s",
+                    trainer.learning_rate,
                 )
 
-                epoch_loss = train_loop(epoch, train_batches)
+                try:
+                    epoch_loss = train_loop(epoch, train_batches)
+                except EarlyStop as early_stop:
+                    epoch_loss = early_stop.epoch_loss
 
-                should_continue = self.callbacks.on_train_epoch_end(
+                should_continue &= self.callbacks.on_train_epoch_end(
                     epoch_no=epoch.no,
-                    epoch_loss=loss_value(epoch_loss),
+                    epoch_loss=epoch_loss,
                     training_network=net,
                     trainer=trainer,
                 )
@@ -482,50 +498,42 @@ class Trainer:
                 if val_loop is not None:
                     epoch_loss = val_loop(epoch, validation_iter)
 
-                    should_continue = (
-                        should_continue
-                        and self.callbacks.on_validation_epoch_end(
-                            epoch_no=epoch.no,
-                            epoch_loss=loss_value(epoch_loss),
-                            training_network=net,
-                            trainer=trainer,
-                        )
+                    should_continue &= self.callbacks.on_validation_epoch_end(
+                        epoch_no=epoch.no,
+                        epoch_loss=epoch_loss,
+                        training_network=net,
+                        trainer=trainer,
                     )
 
                 # save model and epoch info
                 bp = base_path()
+
+                epoch_info = EpochInfo(epoch.no, score=epoch_loss)
+
                 epoch_info = {
-                    "params_path": f"{bp}-0000.params",
+                    # "params_path": f"{bp}-0000.params",
                     "epoch_no": epoch.no,
-                    "score": loss_value(epoch_loss),
+                    "score": epoch_loss,
                 }
 
-                net.save_parameters(
-                    epoch_info["params_path"]
-                )  # TODO: handle possible exception
+                # TODO: handle possible exception
+                net.save_parameters(epoch_info["params_path"])
 
                 save_epoch_info(bp, epoch_info)
 
-                # update best epoch info
-                if loss_value(epoch_loss) < cast(
-                    float, best_epoch_info["score"]
-                ):
-                    best_epoch_info = epoch_info.copy()
+                best_epoch = min(best_epoch, epoch_info)
 
-                should_continue = (
-                    should_continue
-                    and self.callbacks.on_epoch_end(
-                        epoch_no=epoch_no,
-                        epoch_loss=loss_value(epoch_loss),
-                        training_network=net,
-                        trainer=trainer,
-                        best_epoch_info=best_epoch_info,
-                        ctx=self.ctx,
-                    )
+                should_continue &= self.callbacks.on_epoch_end(
+                    epoch_no=epoch_no,
+                    epoch_loss=epoch_loss,
+                    training_network=net,
+                    trainer=trainer,
+                    best_epoch_info=best_epoch_info,
+                    ctx=self.ctx,
                 )
 
                 if not should_continue:
-                    logger.info("Stopping training")
+                    logger.info("Stopping training early.")
                     break
 
             self.callbacks.on_train_end(
