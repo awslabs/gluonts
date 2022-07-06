@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Dict, Any
 
 import numpy as np
 from mxnet.gluon import HybridBlock
@@ -26,6 +26,12 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.dataset.stat import calculate_dataset_statistics
+from gluonts.dataset.schema import (
+    PandasPeriodField,
+    NumpyArrayField,
+    FieldWithDefault,
+    Schema,
+)
 from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
@@ -44,14 +50,11 @@ from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
-    AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
-    RemoveFields,
     SelectFields,
-    SetField,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -299,45 +302,9 @@ class DeepAREstimator(GluonEstimator):
         }
 
     def create_transformation(self) -> Transformation:
-        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
-        if not self.use_feat_static_real:
-            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
-        if not self.use_feat_dynamic_real:
-            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
-            + (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
-            )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
-            )
-            + [
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.TARGET,
-                    # in the following line, we add 1 for the time dimension
-                    expected_ndim=1 + len(self.distr_output.event_shape),
-                    dtype=self.dtype,
-                ),
+            [
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -486,3 +453,27 @@ class DeepAREstimator(GluonEstimator):
             ctx=self.trainer.ctx,
             dtype=self.dtype,
         )
+
+    def get_schema(self) -> Schema:
+        fields: Dict[str, Any] = {}
+        fields["start"] = PandasPeriodField(freq=self.freq)
+        # in the following line, we add 1 for the time dimension
+        fields["target"] = NumpyArrayField(
+            dtype=self.dtype,
+            ndim=1 + len(self.distr_output.event_shape),
+        )
+
+        # DeepAR model always need "feat_static_cat" and "feat_static_real" as
+        # input for model forward.
+        fields["feat_static_cat"] = FieldWithDefault(
+            NumpyArrayField(dtype=self.dtype, ndim=1), [0.0]
+        )
+        fields["feat_static_real"] = FieldWithDefault(
+            NumpyArrayField(dtype=self.dtype, ndim=1), [0.0]
+        )
+
+        if self.use_feat_dynamic_real:
+            fields["feat_dynamic_real"] = NumpyArrayField(
+                dtype=self.dtype, ndim=1
+            )
+        return Schema(fields)
