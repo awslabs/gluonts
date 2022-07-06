@@ -24,7 +24,7 @@ from gluonts.dataset.field_names import FieldName
 
 
 @dataclass
-class PandasDataset(Dataset):
+class PandasDataset:
     """
     A pandas.DataFrame-based dataset type.
 
