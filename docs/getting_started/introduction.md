@@ -114,10 +114,25 @@ his is the guess of the model where this line is.
 
 ```
 
+## Local and Global Models
+
+In GluonTS we use the concepts of local and global models.
+
+A local model is fit for a single-time series and used to make predictions for
+that time-series, whilst a global model is trained across many time-series and
+a single global model is used to make predictions for all time-series of a
+dataset.
+
+Training a global model can take a lot of time: up to hours, but sometimes even
+days. Thus, it is not feasible to train the model as part of the prediction
+request and it happens as a seperate "offline" step. In contrast, fitting a
+local model is usually much faster and is done "online" as part of the
+prediction.
+
+In GluonTS, local models are directly available as predictors, whilst global
+models are offered as estimators, which need to be trained first:
 
 
 <!-- TODO -->
-<!-- ## Local and Global Models -->
 <!-- ## Train Test Split -->
-<!-- ## Overfitting -->
 <!-- ## Measuring Accuracy -->
