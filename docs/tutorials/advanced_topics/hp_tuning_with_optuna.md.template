@@ -73,7 +73,7 @@ from gluonts.torch.model.deepar import DeepAREstimator
 
 We will now tune the DeepAR estimator on our training data using Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
 
-First, we define a `dataentry_to_dataframe` method to transfer the DataEntry into DataFrame.
+First, we define a `dataentry_to_dataframe` method to transform a `DataEntry` into a `pandas.DataFrame`.
 Second, we define an `DeepARTuningObjective` class used in tuning process of Optuna.
 The class can be configured with the dataset, prediction length and data frequency, and the metric to be used for evaluating the model.
 In the `__init__` method, we initialize the objective and split the dataset using `split` method existed in our GluonTS project.
