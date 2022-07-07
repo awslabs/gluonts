@@ -16,7 +16,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features

@@ -20,10 +20,7 @@ from pandas.tseries.frequencies import to_offset
 import pytest
 from mxnet import nd
 
-from gluonts.model.tpp import (
-    PointProcessGluonPredictor,
-    PointProcessSampleForecast,
-)
+from gluonts.mx import PointProcessGluonPredictor, PointProcessSampleForecast
 
 from gluonts.mx import Tensor
 from gluonts.transform import (

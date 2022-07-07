@@ -16,12 +16,13 @@ from typing import List, Optional
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.deepstate.issm import ISSM
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
 from gluonts.mx.util import make_nd_diag, weighted_average
+
+from .issm import ISSM
 
 
 class DeepStateNetwork(mx.gluon.HybridBlock):

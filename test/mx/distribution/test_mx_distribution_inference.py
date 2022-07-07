@@ -25,7 +25,7 @@ import pytest
 from pydantic import PositiveFloat, PositiveInt
 
 from gluonts.model.common import NPArrayLike
-from gluonts.model.tpp.distribution import (
+from gluonts.mx.model.tpp.distribution import (
     Loglogistic,
     LoglogisticOutput,
     Weibull,

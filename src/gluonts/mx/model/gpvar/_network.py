@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
-from gluonts.model.deepvar._network import DeepVARNetwork
+from gluonts.mx.model.deepvar._network import DeepVARNetwork
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.distribution.lowrank_gp import LowrankGPOutput

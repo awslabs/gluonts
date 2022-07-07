@@ -15,7 +15,7 @@ from gluonts.core.serde.flat import clone
 from gluonts import time_feature, transform
 from gluonts.core.component import equals
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.canonical._estimator import CanonicalRNNEstimator
+from gluonts.mx import CanonicalRNNEstimator
 
 from pandas.tseries.frequencies import to_offset
 

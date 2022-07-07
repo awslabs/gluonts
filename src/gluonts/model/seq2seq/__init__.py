@@ -11,8 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._mq_dnn_estimator import MQCNNEstimator, MQRNNEstimator
-from ._seq2seq_estimator import RNN2QRForecaster, Seq2SeqEstimator
+import warnings
+
+from gluonts.mx.model.seq2seq import (
+    MQCNNEstimator,
+    MQRNNEstimator,
+    RNN2QRForecaster,
+    Seq2SeqEstimator,
+)
+
+warnings.warn(
+    "The module gluonts.model.seq2seq has been moved to "
+    "gluonts.mx.model.seq2seq. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
+    "MQCNNEstimator, MQRNNEstimator, RNN2QRForecaster, Seq2SeqEstimator'.",
+    FutureWarning,
+)
 
 __all__ = [
     "MQCNNEstimator",

@@ -24,7 +24,10 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import ForecastGenerator
 from gluonts.model.predictor import OutputTransform
 from gluonts.mx.batchify import batchify
-from gluonts.mx.model.predictor import GluonPredictor, SymbolBlockPredictor
+from gluonts.mx.model.predictor import (
+    GluonPredictor,
+    SymbolBlockPredictor,
+)
 from gluonts.transform import Transformation
 
 from .forecast import PointProcessSampleForecast

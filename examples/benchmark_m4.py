@@ -22,8 +22,8 @@ import pandas as pd
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.mx.distribution.piecewise_linear import PiecewiseLinearOutput
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.model.seq2seq import MQCNNEstimator
+from gluonts.mx import DeepAREstimator
+from gluonts.mx import MQCNNEstimator
 from gluonts.mx.trainer import Trainer
 
 datasets = [

@@ -18,7 +18,7 @@ import pytest
 from gluonts import transform
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.seq2seq._transform import ForkingSequenceSplitter
+from gluonts.mx.model.seq2seq._transform import ForkingSequenceSplitter
 from gluonts.time_feature import time_features_from_frequency_str
 
 # if we import TestSplitSampler as Test... pytest thinks it's a test

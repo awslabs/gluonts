@@ -17,11 +17,11 @@ import numpy as np
 import pytest
 from mxnet import nd
 
-from gluonts.model.tpp.deeptpp._network import (
+from gluonts.mx.model.tpp.deeptpp._network import (
     DeepTPPPredictionNetwork,
     DeepTPPTrainingNetwork,
 )
-from gluonts.model.tpp.distribution import WeibullOutput
+from gluonts.mx.model.tpp.distribution import WeibullOutput
 
 
 def _allclose(a: nd.NDArray, b: nd.NDArray):
