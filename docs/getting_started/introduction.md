@@ -1,11 +1,15 @@
+```{admonition} Succept to change!
+:class: hint
 
+This article may be extended or reworked in the future.
 
-# What is Time-Series Forecasting?
+```
+
+# An Overview Of Time-Series Forecasting
 
 Generally speaking, forecasting just means making predictions about events in
-the feature. Trivially, while weather forecasting tries to predict the
-weather, in time-series forecasting we want to predict the future values of a
-given time-series.
+the feature. Trivially, in time-series forecasting we want to predict the
+future values of a given time-series.
 
 For example, in electricy production it is very important that demand and
 supply are in balance. Thus, producers anticipate consumer demand for
@@ -32,10 +36,53 @@ for 2020.
 
 Thus, forecasting operates on the caveat that the underlying factors that
 generate the time-series values don't fundamentally change in the future. It is
-a tool to predict the ordinary and the surprising.
+a tool to predict the ordinary and not the surprising.
 
 To look at this another way: Models are actually trained to predict the past
 and it is only us that uses models to forecast into the future.
+
+
+## Target And Features
+
+We call the time-series that we want to predict the `target` time-series. The
+past target values are the most important information a model can use to make
+accurate predictions.
+
+In addition, models can make use of features, additional values that have an
+impact on the target value. We differentiate between "static" and "dynamic"
+features.
+
+A dynamic feature can be different for every time-point. For example, this
+could be the price of a product, but also more general information such as
+outside air temperature. Internally, we generate dynamic features for things
+like the age of the time-series or what day of the week it is.
+
+```{important}
+
+Most models require dynamic features to be available in the future time-range
+when making predictions.
+
+```
+
+In contrast, static features describe a time-series independently of time. If
+we were to predict different products across different stores, we can use
+static features to label each time-series to include store and product
+indentifiers.
+
+We further differentiate between categorical and continous (real) features. The
+idea is that in continous features the number itself has meaning: For example
+when using the price as a feature. A categorical feature on the other hand
+doesn't have the same property: Stores `0`, `1`, and `2` are distinct entities
+and there is notion of having "higher store".
+
+<!-- TODO: Have some nice example examplifying the above. -->
+
+<!-- ```{admonition} Example
+
+Image we are the owner of a cafe.
+
+``` -->
+
 
 ## Probabilistic Forecasting
 
@@ -59,9 +106,14 @@ that there is probably a demand of say 50 dishes, but unlikely more than 60.
 Predicting 24 hours, showing `p50`, `p90`, `p95`, `p98` confidence intervals.
 ```
 
-It is important to note that the predicted distributions are not authorative: A
-predicted 90th percentile doesn't mean that only 10% of actual values will be
-of higher value, but that his is the guess of the model where this line is.
+```{note}
+
+The predicted distributions are not authorative: A predicted 90th percentile
+doesn't mean that only 10% of actual values will be of higher value, but that
+his is the guess of the model where this line is.
+
+```
+
 
 
 <!-- TODO -->
