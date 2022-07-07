@@ -24,9 +24,9 @@ def check_github_event(default):
         event = json.load(infile)
 
     if "pull_request" in event:
-        # for label in event["pull_request"]["labels"]:
-        #     if label["name"] == "":
-        #         return default
+        for label in event["pull_request"]["labels"]:
+            if label["name"] == "pr:docs-build-notebook":
+                return default
 
         return "skip"
 
