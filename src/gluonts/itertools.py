@@ -174,6 +174,9 @@ class IterableSlice:
     def __iter__(self):
         yield from itertools.islice(self.iterable, self.length)
 
+    def __len__(self):
+        return self.length
+
 
 class Map:
     def __init__(self, fn, iterable: SizedIterable):
