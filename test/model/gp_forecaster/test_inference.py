@@ -16,7 +16,7 @@ import pytest
 
 from mxnet import nd
 
-from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
+from gluonts.mx.model.gp_forecaster.gaussian_process import GaussianProcess
 
 from gluonts.mx.kernels import RBFKernel
 

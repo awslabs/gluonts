@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 from gluonts.dataset import common
-from gluonts.model import deepar
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.distribution.inflated_beta import ZeroAndOneInflatedBetaOutput
 from gluonts.mx.trainer import Trainer
 
@@ -39,7 +39,7 @@ def test_symbol_and_array(hybridize: bool):
 
     trainer = Trainer(epochs=1, num_batches_per_epoch=2, hybridize=hybridize)
 
-    estimator = deepar.DeepAREstimator(
+    estimator = DeepAREstimator(
         freq="W",
         prediction_length=2,
         trainer=trainer,

@@ -15,7 +15,7 @@ import mxnet as mx
 import pytest
 
 from gluonts.core.serde import encode, decode, dump_json
-from gluonts.model.tpp.distribution import (
+from gluonts.mx.model.tpp.distribution import (
     LoglogisticOutput,
     WeibullOutput,
 )

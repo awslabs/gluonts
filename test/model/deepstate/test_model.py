@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.deepstate import DeepStateEstimator
+from gluonts.mx.model.deepstate import DeepStateEstimator
 
 
 @pytest.fixture()

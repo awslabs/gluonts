@@ -8,8 +8,6 @@ In this notebook we will see how to tune the hyperparameters of a GlutonTS model
 
 
 ```python
-import mxnet as mx
-from mxnet import gluon
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -66,23 +64,38 @@ plt.show()
 ```python
 import optuna
 import torch
-from gluonts.torch.model.deepar import DeepAREstimator
-from gluonts.mx import Trainer
+from gluonts.dataset.split.splitter import split
 from gluonts.evaluation import Evaluator
+from gluonts.torch.model.deepar import DeepAREstimator
 ```
 
 We will now tune the DeepAR estimator on our training data using Optuna. We choose two hyperparameters `num_layers` and `hidden_size` to optimize.
 
-First, we define an `DeepARTuningObjective` class used in tuning process of Optuna.
+First, we define a `dataentry_to_dataframe` method to transform a `DataEntry` into a `pandas.DataFrame`.
+Second, we define an `DeepARTuningObjective` class used in tuning process of Optuna.
 The class can be configured with the dataset, prediction length and data frequency, and the metric to be used for evaluating the model.
+In the `__init__` method, we initialize the objective and split the dataset using `split` method existed in our GluonTS project.
+- `validation_input`: the input part used in validation
+- `validation_label`: the label part used in validation
 In the `get_params` method, we define what hyperparameters to be tuned within given range.
-In the `split_entry` method, we split each time series of the dataset into two part:
-- `entry_past`: the training part 
-- `entry_future`: the label part used in validation
 In the `__call__` method, we define the way the `DeepAREstimator` is used in training and validation.
 
 
 ```python
+def dataentry_to_dataframe(entry):
+    df = pd.DataFrame(
+        entry['target'],
+        columns=[entry.get('item_id')],
+        index=pd.period_range(
+            start=entry['start'],
+            periods=len(entry['target']),
+            freq=entry['start'].freq
+        )
+    )
+
+    return df
+
+
 class DeepARTuningObjective:  
     def __init__(self, dataset, prediction_length, freq, metric_type="mean_wQuantileLoss"):
         self.dataset = dataset
@@ -90,35 +103,16 @@ class DeepARTuningObjective:
         self.freq = freq
         self.metric_type = metric_type
 
-        entry_split = [self.split_entry(entry) for entry in self.dataset]
-        self.entry_pasts = [entry[0] for entry in entry_split]
-        self.entry_futures = [entry[1] for entry in entry_split]
+        self.train, test_template = split(dataset, offset=-self.prediction_length)
+        validation = list(test_template.generate_instances(prediction_length=prediction_length))
+        self.validation_input = [entry[0] for entry in validation]
+        self.validation_label = [dataentry_to_dataframe(entry[1]) for entry in validation]
     
     def get_params(self, trial) -> dict:
         return {
             "num_layers": trial.suggest_int("num_layers", 1, 5),
             "hidden_size": trial.suggest_int("hidden_size", 10, 50),
         }
-
-    def split_entry(self, entry):
-        entry_past = {}
-        for key, value in entry.items():
-            if key == "target":
-                entry_past[key] = value[: -self.prediction_length]
-            else:
-                entry_past[key] = value
-
-        df = pd.DataFrame(
-            entry['target'],
-            columns=[entry['item_id']],
-            index=pd.period_range(
-                start=entry['start'],
-                periods=len(entry['target']),
-                freq=self.freq
-            )
-        )
-
-        return entry_past, df[-self.prediction_length:]
      
     def __call__(self, trial):
         params = self.get_params(trial)
@@ -135,13 +129,13 @@ class DeepARTuningObjective:
         )
         
         
-        predictor = estimator.train(self.entry_pasts, cache_data=True)
-        forecast_it = predictor.predict(self.entry_pasts)
+        predictor = estimator.train(self.train, cache_data=True)
+        forecast_it = predictor.predict(self.validation_input)
         
         forecasts = list(forecast_it)
         
         evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
-        agg_metrics, item_metrics = evaluator(self.entry_futures, forecasts, num_series=len(self.dataset))
+        agg_metrics, item_metrics = evaluator(self.validation_label, forecasts, num_series=len(self.dataset))
         return agg_metrics[self.metric_type]
 ```
 

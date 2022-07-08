@@ -14,7 +14,7 @@
 import pytest
 
 from gluonts.evaluation import backtest_metrics, MultivariateEvaluator
-from gluonts.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
+from gluonts.mx.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
 from gluonts.mx.trainer import Trainer
 from generate_hierarchical_dataset import sine7
 

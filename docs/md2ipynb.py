@@ -1,10 +1,12 @@
 import json
+import re
 import sys
 import time
 import os
 from itertools import chain
 from pathlib import Path
 
+import black
 import click
 import jinja2
 import nbformat
@@ -24,9 +26,9 @@ def check_github_event(default):
         event = json.load(infile)
 
     if "pull_request" in event:
-        # for label in event["pull_request"]["labels"]:
-        #     if label["name"] == "":
-        #         return default
+        for label in event["pull_request"]["labels"]:
+            if label["name"] == "pr:docs-build-notebook":
+                return default
 
         return "skip"
 
@@ -54,14 +56,31 @@ def run_notebook(text, kernel_name, timeout) -> str:
     return nbformat.writes(notebook)
 
 
+def black_cells(text):
+    CODE_RE = r"```py(?:thon)?\s*\n(.*?)```"
+
+    text = re.sub(r"^%", r"#%#", text, flags=re.M)
+
+    def apply_black(match):
+        code = match.group(1)
+
+        formatted = black.format_str(code, mode=black.Mode())
+
+        return "\n".join(["```", formatted.rstrip(), "```"])
+
+    formatted = re.sub(CODE_RE, apply_black, text, flags=re.S)
+    return re.sub(r"^#%#", r"%", formatted, flags=re.M)
+
+
 def convert(path, mode, kernel_name=None, timeout=40 * 60):
+    print(f"=== {path.name} ", end="")
+    sys.stdout.flush()
+
     with path.open() as in_file:
         template = env.from_string(in_file.read())
 
     markdown = template.render(mode=mode)
-
-    print(f"=== {path.name} ", end="")
-    sys.stdout.flush()
+    markdown = black_cells(markdown)
 
     if mode != "skip":
         suffix = ".ipynb"

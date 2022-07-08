@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.n_beats import NBEATSEnsembleEstimator, NBEATSEstimator
+from gluonts.mx.model.n_beats import NBEATSEnsembleEstimator, NBEATSEstimator
 
 
 @pytest.fixture()
