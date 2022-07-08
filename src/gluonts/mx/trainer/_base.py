@@ -515,7 +515,7 @@ class Trainer:
                     if not should_continue:
                         logger.info("Stopping training")
                         break
-            except KeyboardInterrupt as exception:
+            except KeyboardInterrupt:
                 warnings.warn(
                     "Detected KeyboardInterrupt, attempting graceful "
                     "shutdown..."
@@ -528,9 +528,7 @@ class Trainer:
                     "score": loss_value(epoch_loss),
                 }
 
-                net.save_parameters(
-                    epoch_info["params_path"]
-                )
+                net.save_parameters(epoch_info["params_path"])
                 save_epoch_info(bp, epoch_info)
 
             self.callbacks.on_train_end(
