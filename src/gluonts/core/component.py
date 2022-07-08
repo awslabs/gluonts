@@ -17,6 +17,7 @@ import logging
 from collections import OrderedDict
 from functools import singledispatch
 from typing import Any, Type, TypeVar
+from types import MethodType
 
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
@@ -339,8 +340,11 @@ def validated(base_model=None):
                         if not skip_encoding(arg)
                     }
                 )
-                self.__class__.__getnewargs_ex__ = validated_getnewargs_ex
                 self.__class__.__repr__ = validated_repr
+
+                # bind validated_getnewargs_ex to the object such that the
+                # __getnewargs_ex__ method is captured during serialization
+                self.__getnewargs_ex__ = MethodType(validated_getnewargs_ex, self)
 
             return init(self, **all_args)
 
