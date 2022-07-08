@@ -34,7 +34,7 @@ class Dataset(Protocol):
 
 
 @dataclass
-class DatasetCollection(Dataset):
+class DatasetCollection:
     """Flattened access to a collection of datasets."""
 
     datasets: List[Dataset]
