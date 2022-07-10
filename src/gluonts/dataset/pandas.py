@@ -305,4 +305,5 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
     False
     """
-    return (index[1:] - index[:-1] == index.freq).all()
+    other = pd.period_range(index[0], periods=len(index), freq=index.freq)
+    return (other == index).all()
