@@ -54,7 +54,7 @@ def dsinfo(request):
             num_parallel_samples=2,
             prediction_length=ds_info.prediction_length,
             # FIXME: Should time features should not be needed for GP
-            time_features=[time_feature.DayOfWeek(), time_feature.HourOfDay()],
+            time_features=[time_feature.day_of_week, time_feature.hour_of_day],
             train_ds=train_ds,
             test_ds=test_ds,
         )
