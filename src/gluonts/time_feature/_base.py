@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, List
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -192,7 +192,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         "5min", "1D" etc.
     """
 
-    features_by_offsets = {
+    features_by_offsets: Dict[Any, List[TimeFeature]] = {
         offsets.YearBegin: [],
         offsets.YearEnd: [],
         offsets.QuarterBegin: [month_of_year],
