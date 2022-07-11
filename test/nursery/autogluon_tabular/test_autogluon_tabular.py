@@ -26,7 +26,12 @@ from gluonts.nursery.autogluon_tabular import (
     TabularEstimator,
 )
 from gluonts.model.predictor import Predictor
-from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
+from gluonts.time_feature import (
+    TimeFeature,
+    hour_of_day,
+    day_of_week,
+    month_of_year,
+)
 
 
 @pytest.mark.parametrize(
@@ -39,7 +44,7 @@ from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
-            [MonthOfYear(), DayOfWeek(), HourOfDay()],
+            [month_of_year, day_of_week, hour_of_day],
             [1, 2, 5],
             None,
             pd.DataFrame(
@@ -76,7 +81,7 @@ from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
-            [MonthOfYear(), DayOfWeek(), HourOfDay()],
+            [month_of_year, day_of_week, hour_of_day],
             [1, 2, 5],
             pd.Series(
                 list(range(5)),

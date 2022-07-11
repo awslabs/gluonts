@@ -21,12 +21,12 @@ from gluonts.mx.distribution.distribution import getF
 from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
     Constant as ZeroFeature,
-    DayOfWeekIndex,
-    HourOfDayIndex,
-    MinuteOfHourIndex,
-    MonthOfYearIndex,
+    day_of_week_index,
+    hour_of_day,
+    minite_of_hour_index,
+    month_of_year_index,
     TimeFeature,
-    WeekOfYearIndex,
+    week_of_year_index,
     norm_freq_str,
 )
 
@@ -250,23 +250,23 @@ class SeasonalityISSM(LevelISSM):
 
 
 def MonthOfYearSeasonalISSM():
-    return SeasonalityISSM(num_seasons=12, time_feature=MonthOfYearIndex())
+    return SeasonalityISSM(num_seasons=12, time_feature=month_of_year_index)
 
 
 def WeekOfYearSeasonalISSM():
-    return SeasonalityISSM(num_seasons=53, time_feature=WeekOfYearIndex())
+    return SeasonalityISSM(num_seasons=53, time_feature=week_of_year_index)
 
 
 def DayOfWeekSeasonalISSM():
-    return SeasonalityISSM(num_seasons=7, time_feature=DayOfWeekIndex())
+    return SeasonalityISSM(num_seasons=7, time_feature=day_of_week_index)
 
 
 def HourOfDaySeasonalISSM():
-    return SeasonalityISSM(num_seasons=24, time_feature=HourOfDayIndex())
+    return SeasonalityISSM(num_seasons=24, time_feature=hour_of_day)
 
 
 def MinuteOfHourSeasonalISSM():
-    return SeasonalityISSM(num_seasons=60, time_feature=MinuteOfHourIndex())
+    return SeasonalityISSM(num_seasons=60, time_feature=minite_of_hour_index)
 
 
 class CompositeISSM(ISSM):

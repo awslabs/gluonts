@@ -64,10 +64,9 @@ from gluonts.transform import (
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 
 
-class FourierDateFeatures(TimeFeature):
+class FourierDateFeatures:
     @validated()
     def __init__(self, freq: str) -> None:
-        super().__init__()
         # reocurring freq
         freqs = [
             "month",
