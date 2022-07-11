@@ -23,7 +23,7 @@ from gluonts.time_feature import (
     Constant as ZeroFeature,
     day_of_week_index,
     hour_of_day,
-    minite_of_hour_index,
+    minute_of_hour_index,
     month_of_year_index,
     TimeFeature,
     week_of_year_index,
@@ -266,7 +266,7 @@ def HourOfDaySeasonalISSM():
 
 
 def MinuteOfHourSeasonalISSM():
-    return SeasonalityISSM(num_seasons=60, time_feature=minite_of_hour_index)
+    return SeasonalityISSM(num_seasons=60, time_feature=minute_of_hour_index)
 
 
 class CompositeISSM(ISSM):

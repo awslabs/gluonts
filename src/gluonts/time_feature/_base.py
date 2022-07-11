@@ -19,8 +19,6 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 from pydantic import BaseModel
 
-from gluonts.core.component import validated
-
 
 TimeFeature = Callable[[pd.PeriodIndex], np.ndarray]
 
@@ -224,9 +222,9 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
 
     offset = to_offset(freq_str)
 
-    for offset_type, feature_classes in features_by_offsets.items():
+    for offset_type, features in features_by_offsets.items():
         if isinstance(offset, offset_type):
-            return [cls() for cls in feature_classes]
+            return features
 
     supported_freq_msg = f"""
     Unsupported frequency {freq_str}
