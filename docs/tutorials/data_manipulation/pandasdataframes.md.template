@@ -91,32 +91,7 @@ predictions = predictor.predict(ds)
 ```
 
 
-## Use case 2 - Loading data from a `wide` dataframe
-
-Here, we are given data in the `wide` format, where time series are stacked side-by-side in a `DataFrame`.
-We can simply turn this into a dictionary of `Series` objects with `dict`, and construct a `PandasDataset` with it:
-
-```python
-import pandas as pd
-
-url_wide = (
-    "https://gist.githubusercontent.com/rsnirwan/c8c8654a98350fadd229b00167174ec4"
-    "/raw/a42101c7786d4bc7695228a0f2c8cea41340e18f/ts_wide.csv"
-)
-df_wide = pd.read_csv(url_wide, index_col=0, parse_dates=True)
-print(df_wide.head())
-```
-
-```python
-from gluonts.dataset.pandas import PandasDataset
-
-ds = PandasDataset(dict(df_wide))
-```
-
-As shown in `Use case 1` we can now use `ds` to train an estimator.
-
-
-## Use case 3 - Loading data with missing values
+## Use case 2 - Loading data with missing values
 
 In case the `timestamp` column is not evenly spaced and monotonically increasing
 we get an error when using `PandasDataset`. Here we show how to fill in the gaps
@@ -154,6 +129,31 @@ for item_id, gdf in df.groupby("item_id"):
 
 ds = PandasDataset(dfs_dict, target="target")
 ```
+
+
+## Use case 3 - Loading data from a `wide` dataframe
+
+Here, we are given data in the `wide` format, where time series are stacked side-by-side in a `DataFrame`.
+We can simply turn this into a dictionary of `Series` objects with `dict`, and construct a `PandasDataset` with it:
+
+```python
+import pandas as pd
+
+url_wide = (
+    "https://gist.githubusercontent.com/rsnirwan/c8c8654a98350fadd229b00167174ec4"
+    "/raw/a42101c7786d4bc7695228a0f2c8cea41340e18f/ts_wide.csv"
+)
+df_wide = pd.read_csv(url_wide, index_col=0, parse_dates=True)
+print(df_wide.head())
+```
+
+```python
+from gluonts.dataset.pandas import PandasDataset
+
+ds = PandasDataset(dict(df_wide))
+```
+
+As shown in `Use case 1` we can now use `ds` to train an estimator.
 
 
 ## General use cases
