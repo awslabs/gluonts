@@ -78,8 +78,7 @@ def get_features_dataframe(
     assert past_data is None or series.index[0] > past_data.index[-1]
 
     time_feature_columns = {
-        feature.__class__.__name__: feature(series.index)
-        for feature in time_features
+        feature.__name__: feature(series.index) for feature in time_features
     }
 
     all_data = (
