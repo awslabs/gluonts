@@ -93,10 +93,8 @@ predictions = predictor.predict(ds)
 
 ## Use case 2 - Loading data from a `wide` dataframe
 
-Here, instead of a `long` dataset, we are given data in the `wide` format,
-where time series are stacked side-by-side. To convert the dataset
-to `PandasDataset` we first convert it to the `long` format and then use the
-`PandasDataset.from_long_dataframe` constructor.
+Here, we are given data in the `wide` format, where time series are stacked side-by-side in a `DataFrame`.
+We can simply turn this into a dictionary of `Series` objects with `dict`, and construct a `PandasDataset` with it:
 
 ```python
 import pandas as pd
@@ -110,17 +108,11 @@ print(df_wide.head())
 ```
 
 ```python
-df_long = pd.melt(df_wide.reset_index(), id_vars="index", value_vars=df_wide.columns)
-print(df_long.head())
-```
-
-```python
 from gluonts.dataset.pandas import PandasDataset
 
-ds = PandasDataset.from_long_dataframe(
-    df_long, item_id="variable", target="value", timestamp="index"
-)
+ds = PandasDataset(dict(df_wide))
 ```
+
 As shown in `Use case 1` we can now use `ds` to train an estimator.
 
 
