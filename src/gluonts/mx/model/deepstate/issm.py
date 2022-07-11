@@ -22,7 +22,7 @@ from gluonts.mx.util import _broadcast_param
 from gluonts.time_feature import (
     Constant as ZeroFeature,
     day_of_week_index,
-    hour_of_day,
+    hour_of_day_index,
     minute_of_hour_index,
     month_of_year_index,
     TimeFeature,
@@ -262,7 +262,7 @@ def DayOfWeekSeasonalISSM():
 
 
 def HourOfDaySeasonalISSM():
-    return SeasonalityISSM(num_seasons=24, time_feature=hour_of_day)
+    return SeasonalityISSM(num_seasons=24, time_feature=hour_of_day_index)
 
 
 def MinuteOfHourSeasonalISSM():
