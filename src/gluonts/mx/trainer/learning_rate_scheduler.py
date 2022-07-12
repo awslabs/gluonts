@@ -153,6 +153,10 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
             self.current_patience = 0
 
             if self.cur_lr == self.min_lr:
+                print(
+                    "Early stopping based on learning rate scheduler callback"
+                    " (min_lr was reached)."
+                )
                 return False
 
             self.cur_lr = self.decay_factor * self.cur_lr
@@ -164,7 +168,7 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
 
 
 class LearningRateReduction(Callback):
-    r"""
+    """
     This Callback decreases the learning rate based on the value of some
     validation metric to be optimized (maximized or minimized). The value
     of such metric is provided by calling the `step` method on the scheduler.
@@ -234,33 +238,4 @@ class LearningRateReduction(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
-        if not should_continue:
-            print(
-                "Early stopping based on learning rate scheduler callback"
-                " (min_lr was reached)."
-            )
-            return False
-
-        pre_step_learning_rate = trainer.learning_rate
-
-        trainer.optimizer.set_learning_rate(
-            self.lr_scheduler(trainer.optimizer.num_update)
-        )
-
-        if not trainer.learning_rate == pre_step_learning_rate:
-            if best_epoch_info["epoch_no"] == -1:
-                raise GluonTSUserError(
-                    "Got NaN in first epoch. Try reducing initial learning"
-                    " rate."
-                )
-
-            logger.info(
-                "Loading parameters from best epoch "
-                f"({best_epoch_info['epoch_no']})"
-            )
-            training_network.load_parameters(
-                best_epoch_info["params_path"], ctx
-            )
-
-        return True
+        return self.lr_scheduler.step(metric_value=epoch_loss)
