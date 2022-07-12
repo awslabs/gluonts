@@ -11,12 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import field
 from typing import Dict, Any
+from typing_extensions import Literal
 
 import numpy as np
 import mxnet as mx
 from mxnet import gluon
 import mxnet.gluon.nn as nn
+from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated, logger
 from gluonts.exceptions import GluonTSUserError
@@ -24,6 +27,37 @@ from gluonts.exceptions import GluonTSUserError
 from .callback import Callback
 
 
+@dataclass
+class Metric:
+    best: float
+
+    def update(self, metric: float) -> bool:
+        if self.should_update(metric):
+            self.best = metric
+            return True
+        return False
+
+    def should_update(self, metric: float) -> bool:
+        raise NotImplementedError
+
+
+@dataclass
+class Min(Metric):
+    best: float = np.Inf
+
+    def should_update(self, metric: float) -> bool:
+        return metric < self.best
+
+
+@dataclass
+class Max(Metric):
+    best: float = -np.Inf
+
+    def should_update(self, metric: float) -> bool:
+        return metric > self.best
+
+
+@dataclass
 class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
     r"""
     This scheduler decreases the learning rate based on the value of some
@@ -60,49 +94,36 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         `min_lr`.
     """
 
-    def __init__(
-        self,
-        objective: str,
-        patience: int,
-        base_lr: float = 0.01,
-        decay_factor: float = 0.5,
-        min_lr: float = 0.0,
-    ) -> None:
+    objective: Literal["min", "max"]
+    patience: int
+    base_lr: float = 0.01
+    decay_factor: float = 0.5
+    min_lr: float = 0.0
+    metric: Metric = field(init=False)
+    current_patience: int = field(default=0, init=False)
 
-        assert base_lr > 0, f"base_lr should be positive, got {base_lr}"
+    def __post_init__(self) -> None:
+        assert (
+            self.base_lr > 0
+        ), f"base_lr should be positive, got {self.base_lr}"
+        assert (
+            self.base_lr > self.min_lr
+        ), f"base_lr should greater than min_lr, {self.base_lr} <= {self.min_lr}"
 
         assert (
-            base_lr > min_lr
-        ), f"base_lr should greater than min_lr, {base_lr} <= {min_lr}"
+            0 < self.decay_factor < 1
+        ), f"decay_factor factor should be between 0 and 1, got {self.decay_factor}"
 
         assert (
-            0 < decay_factor < 1
-        ), f"decay_factor factor should be between 0 and 1, got {decay_factor}"
+            self.patience >= 0
+        ), f"patience should be nonnegative, got {self.patience}"
 
-        assert patience >= 0, f"patience should be nonnegative, got {patience}"
-
-        assert objective in [
-            "min",
-            "max",
-        ], f"objective should be 'min' or 'max', got {objective}"
-
-        super().__init__(base_lr=base_lr)
-
-        self.decay_factor = decay_factor
-        self.patience = patience
-        self.objective = objective
-        self.min_lr = min_lr
-        self.best_metric = np.Inf if objective == "min" else -np.Inf
-        self.prev_change = 0
-        self.epoch_no = 0
-        self.curr_lr = None
+        super().__init__(base_lr=self.base_lr)
+        self.cur_lr = self.base_lr
+        self.metric = Min() if self.objective == "min" else Max()
 
     def __call__(self, num_update: int) -> float:
-        if self.curr_lr is None:
-            self.curr_lr = self.base_lr
-        assert self.curr_lr is not None
-
-        return self.curr_lr
+        return self.cur_lr
 
     def step(self, metric_value: float) -> bool:
         """
@@ -119,28 +140,25 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         -------
         bool value indicating, whether to continue training
         """
-        if self.curr_lr is None:
-            self.curr_lr = self.base_lr
-        assert self.curr_lr is not None
 
-        metric_improved = (
-            self.objective == "min" and metric_value < self.best_metric
-        ) or (self.objective == "max" and metric_value > self.best_metric)
+        if self.metric.update(metric_value):
+            self.current_patience = 0
+        else:
+            self.current_patience += 1
 
-        if metric_improved:
-            self.best_metric = metric_value
-            self.prev_change = self.epoch_no
-
-        if (
-            self.epoch_no - self.prev_change >= self.patience
-            or not np.isfinite(metric_value)
+        if self.current_patience >= self.patience or not np.isfinite(
+            metric_value
         ):
-            if self.curr_lr == self.min_lr:
-                return False
-            self.curr_lr = max(self.min_lr, self.decay_factor * self.curr_lr)
-            self.prev_change = self.epoch_no
+            self.current_patience = 0
 
-        self.epoch_no += 1
+            if self.cur_lr == self.min_lr:
+                return False
+
+            self.cur_lr = self.decay_factor * self.cur_lr
+
+            if self.cur_lr < self.min_lr:
+                self.cur_lr = self.min_lr
+
         return True
 
 
@@ -224,6 +242,7 @@ class LearningRateReduction(Callback):
             return False
 
         pre_step_learning_rate = trainer.learning_rate
+
         trainer.optimizer.set_learning_rate(
             self.lr_scheduler(trainer.optimizer.num_update)
         )
