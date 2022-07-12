@@ -21,8 +21,7 @@ from mxnet import gluon
 import mxnet.gluon.nn as nn
 from pydantic.dataclasses import dataclass
 
-from gluonts.core.component import validated, logger
-from gluonts.exceptions import GluonTSUserError
+from gluonts.core.component import validated
 
 from .callback import Callback
 
