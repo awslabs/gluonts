@@ -106,13 +106,14 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         assert (
             self.base_lr > 0
         ), f"base_lr should be positive, got {self.base_lr}"
-        assert (
-            self.base_lr > self.min_lr
-        ), f"base_lr should greater than min_lr, {self.base_lr} <= {self.min_lr}"
+        assert self.base_lr > self.min_lr, (
+            "base_lr should greater than min_lr, "
+            f"{self.base_lr} <= {self.min_lr}"
+        )
 
         assert (
             0 < self.decay_factor < 1
-        ), f"decay_factor factor should be between 0 and 1, got {self.decay_factor}"
+        ), f"decay_factor:  0 < {self.decay_factor} < 1"
 
         assert (
             self.patience >= 0
