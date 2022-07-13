@@ -220,6 +220,15 @@ def encode(v: Any) -> Any:
             "kwargs": encode(kwargs),
         }
 
+    if hasattr(v, "__pydantic_model__"):
+        member = v.__dict__
+        del member["__initialised__"]
+        return {
+            "__kind__": Kind.Instance,
+            "class": fqname_for(v.__class__),
+            "kwargs": encode(member),
+        }
+
     try:
         # as fallback, we try to just take the path of the value
         fqname = fqname_for(v)

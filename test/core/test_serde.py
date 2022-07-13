@@ -19,6 +19,7 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 import pytest
+from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import equals, equals_list
 from gluonts.core import serde
@@ -150,3 +151,20 @@ def test_serde_method():
     m = serde.decode(serde.encode(x.m))
 
     assert m() == 42
+
+
+@dataclass
+class C:
+    value: int
+
+
+@dataclass
+class D:
+    c: C
+    d: int
+
+
+def test_serde_dataclass():
+    d = D(c=C(value=42), d=99)
+
+    assert equals(d, serde.decode(serde.encode(d)))
