@@ -20,8 +20,7 @@ import mxnet as mx
 from mxnet import gluon
 import mxnet.gluon.nn as nn
 
-from pydantic import confloat, conint
-from pydantic.dataclasses import dataclass
+from pydantic.dataclasses import dataclass, Field
 
 from gluonts.core.component import validated
 
@@ -95,10 +94,10 @@ class MetricAttentiveScheduler:
         `min_learning_rate`.
     """
 
-    patience: conint(ge=0)
+    patience: int = field(metadata={"ge": 0})
     metric: Metric
-    base_learning_rate: confloat(gt=0) = 0.01
-    decay_factor: confloat(gt=0, lt=1) = 0.5
+    base_learning_rate: float = field(default=0.01, metadata={"gt": 0})
+    decay_factor: float = field(default=0.5, metadata={"gt": 0, "lt": 1})
     min_learning_rate: float = 0.0
     current_patience: int = field(default=0, init=False)
     learning_rate: float = field(init=False)
