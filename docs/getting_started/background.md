@@ -4,7 +4,9 @@ This article may be extended or reworked in the future.
 
 ```
 
-# An Overview Of Time-Series Forecasting
+# Background
+
+## What is Time-Series Forecasting?
 
 Generally speaking, forecasting just means making predictions about events in
 the feature. Trivially, in time-series forecasting we want to predict the
