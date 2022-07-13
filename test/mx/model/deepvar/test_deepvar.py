@@ -108,7 +108,6 @@ def test_deepvar(
         trainer=Trainer(
             epochs=1,
             learning_rate=1e-10,
-            minimum_learning_rate=1e-13,
             num_batches_per_epoch=num_batches_per_epoch,
             hybridize=hybridize,
         ),
