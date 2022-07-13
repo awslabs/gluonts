@@ -107,7 +107,6 @@ def test_deepvar(
         use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
             epochs=1,
-            batch_size=8,
             learning_rate=1e-10,
             minimum_learning_rate=1e-13,
             num_batches_per_epoch=num_batches_per_epoch,
