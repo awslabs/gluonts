@@ -13,14 +13,14 @@
 
 from dataclasses import field
 from typing import Dict, Any
+
+from pydantic.dataclasses import dataclass
 from typing_extensions import Literal
 
 import numpy as np
 import mxnet as mx
 from mxnet import gluon
 import mxnet.gluon.nn as nn
-
-from pydantic.dataclasses import dataclass, Field
 
 from gluonts.core.component import validated
 
