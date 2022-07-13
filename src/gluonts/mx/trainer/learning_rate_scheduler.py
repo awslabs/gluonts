@@ -19,6 +19,8 @@ import numpy as np
 import mxnet as mx
 from mxnet import gluon
 import mxnet.gluon.nn as nn
+
+from pydantic import confloat, conint
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
@@ -57,8 +59,8 @@ class Max(Metric):
 
 
 @dataclass
-class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
-    r"""
+class MetricAttentiveScheduler:
+    """
     This scheduler decreases the learning rate based on the value of some
     validation metric to be optimized (maximized or minimized). The value
     of such metric is provided by calling the `step` method on the scheduler.
@@ -88,42 +90,23 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         Initial learning rate to be used.
     decay_factor
         Factor (between 0 and 1) by which to decrease the learning rate.
-    min_lr
+    min_learning_rate
         Lower bound for the learning rate, learning rate will never go below
-        `min_lr`.
+        `min_learning_rate`.
     """
 
-    objective: Literal["min", "max"]
-    patience: int
-    base_lr: float = 0.01
-    decay_factor: float = 0.5
-    min_lr: float = 0.0
-    metric: Metric = field(init=False)
+    patience: conint(ge=0)
+    metric: Metric
+    base_learning_rate: confloat(gt=0) = 0.01
+    decay_factor: confloat(gt=0, lt=1) = 0.5
+    min_learning_rate: float = 0.0
     current_patience: int = field(default=0, init=False)
+    learning_rate: float = field(init=False)
 
     def __post_init__(self) -> None:
-        assert (
-            self.base_lr > 0
-        ), f"base_lr should be positive, got {self.base_lr}"
-        assert self.base_lr > self.min_lr, (
-            "base_lr should greater than min_lr, "
-            f"{self.base_lr} <= {self.min_lr}"
-        )
+        assert self.base_learning_rate > self.min_learning_rate
 
-        assert (
-            0 < self.decay_factor < 1
-        ), f"decay_factor:  0 < {self.decay_factor} < 1"
-
-        assert (
-            self.patience >= 0
-        ), f"patience should be nonnegative, got {self.patience}"
-
-        super().__init__(base_lr=self.base_lr)
-        self.cur_lr = self.base_lr
-        self.metric = Min() if self.objective == "min" else Max()
-
-    def __call__(self, num_update: int) -> float:
-        return self.cur_lr
+        self.learning_rate = self.base_learning_rate
 
     def step(self, metric_value: float) -> bool:
         """
@@ -151,17 +134,17 @@ class MetricAttentiveScheduler(mx.lr_scheduler.LRScheduler):
         ):
             self.current_patience = 0
 
-            if self.cur_lr == self.min_lr:
+            if self.learning_rate == self.min_learning_rate:
                 print(
                     "Early stopping based on learning rate scheduler callback"
-                    " (min_lr was reached)."
+                    " (min_learning_rate was reached)."
                 )
                 return False
 
-            self.cur_lr = self.decay_factor * self.cur_lr
+            self.learning_rate = self.decay_factor * self.learning_rate
 
-            if self.cur_lr < self.min_lr:
-                self.cur_lr = self.min_lr
+            if self.learning_rate < self.min_learning_rate:
+                self.learning_rate = self.min_learning_rate
 
         return True
 
@@ -205,7 +188,7 @@ class LearningRateReduction(Callback):
     @validated()
     def __init__(
         self,
-        objective: str,
+        objective: Literal["min", "max"],
         patience: int,
         base_lr: float = 0.01,
         decay_factor: float = 0.5,
@@ -221,11 +204,11 @@ class LearningRateReduction(Callback):
         ), "The value of `min_lr` should be >= 0 and <= base_lr"
 
         self.lr_scheduler = MetricAttentiveScheduler(
-            objective=objective,
+            metric=Min() if objective == "min" else Max(),
             patience=patience,
-            base_lr=base_lr,
+            base_learning_rate=base_lr,
             decay_factor=decay_factor,
-            min_lr=min_lr,
+            min_learning_rate=min_lr,
         )
 
     def on_epoch_end(
@@ -237,4 +220,6 @@ class LearningRateReduction(Callback):
         best_epoch_info: Dict[str, Any],
         ctx: mx.Context,
     ) -> bool:
-        return self.lr_scheduler.step(metric_value=epoch_loss)
+        should_continue = self.lr_scheduler.step(metric_value=epoch_loss)
+        trainer.optimizer.set_learning_rate(self.lr_scheduler.learning_rate)
+        return should_continue
