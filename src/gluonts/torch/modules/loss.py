@@ -81,7 +81,7 @@ class CRPS(DistributionLoss):
 
 
 class QuantileLoss(DistributionLoss):
-    def forward(
+    def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
         return input.quantile_loss(target)
