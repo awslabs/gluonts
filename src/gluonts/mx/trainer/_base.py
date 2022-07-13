@@ -65,10 +65,9 @@ class Trainer:
 
     A trainer is mainly defined by two sets of parameters. The first one
     determines the number of examples that the network will be trained on
-    (`epochs`, `num_batches_per_epoch`), while the second one specifies how the
-    gradient updates are performed (`learning_rate`,
-    `learning_rate_decay_factor`, `patience`, `minimum_learning_rate`,
-    `clip_gradient` and `weight_decay`).
+    (`epochs`, `num_batches_per_epoch`), while the second one specifies how
+    the gradient updates are performed (`learning_rate`, `clip_gradient` and
+    `weight_decay`).
 
     Parameters
     ----------
@@ -79,10 +78,6 @@ class Trainer:
         Number of batches at each epoch (default: 50).
     learning_rate
         Initial learning rate (default: :math:`10^{-3}`).
-    patience
-        The patience to observe before reducing the learning rate, nonnegative
-        integer
-        (default: 10).
     clip_gradient
         Maximum value of gradient. The gradient is clipped if it is too large
         (default: 10).
