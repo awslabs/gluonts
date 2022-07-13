@@ -25,7 +25,7 @@ from gluonts.evaluation import (
     make_evaluation_predictions,
     MultivariateEvaluator,
 )
-from gluonts.model.lstnet import LSTNetEstimator
+from gluonts.mx.model.lstnet import LSTNetEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 

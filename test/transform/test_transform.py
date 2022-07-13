@@ -115,9 +115,9 @@ def test_add_method():
         target_field=FieldName.TARGET,
         output_field="time_feat",
         time_features=[
-            time_feature.DayOfWeek(),
-            time_feature.DayOfMonth(),
-            time_feature.MonthOfYear(),
+            time_feature.day_of_week,
+            time_feature.day_of_month,
+            time_feature.month_of_year,
         ],
         pred_length=24,
     ) + transform.AddAgeFeature(
@@ -140,7 +140,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
         target_field=FieldName.TARGET,
         output_field="myout",
         pred_length=pred_length,
-        time_features=[time_feature.DayOfWeek(), time_feature.DayOfMonth()],
+        time_features=[time_feature.day_of_week, time_feature.day_of_month],
         dtype=np.float64,
     )
 
@@ -154,8 +154,8 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     tmp_idx = pd.period_range(
         start=start, freq=start.freq, periods=expected_length
     )
-    assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))
-    assert np.alltrue(mat[1] == time_feature.DayOfMonth()(tmp_idx))
+    assert np.alltrue(mat[0] == time_feature.day_of_week(tmp_idx))
+    assert np.alltrue(mat[1] == time_feature.day_of_month(tmp_idx))
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
@@ -377,9 +377,9 @@ def test_Transformation():
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=pred_length,
             ),
@@ -446,9 +446,9 @@ def test_multi_dim_transformation(is_train):
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=pred_length,
             ),

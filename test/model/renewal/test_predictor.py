@@ -16,8 +16,8 @@ import pytest
 
 from gluonts.dataset.common import ListDataset
 from gluonts.evaluation import make_evaluation_predictions
-from gluonts.model.renewal import DeepRenewalProcessEstimator
-from gluonts.model.renewal._predictor import (
+from gluonts.mx.model.renewal import DeepRenewalProcessEstimator
+from gluonts.mx.model.renewal._predictor import (
     DeepRenewalProcessSampleOutputTransform,
 )
 from gluonts.mx import Trainer

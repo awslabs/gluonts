@@ -13,16 +13,7 @@
 
 import re
 from enum import Enum
-from typing import (
-    Callable,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Union,
-    Tuple,
-)
+from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 import numpy as np
 import pandas as pd
@@ -215,7 +206,7 @@ class ExponentialTailApproximation:
         return left_tail, right_tail
 
 
-class Quantile(NamedTuple):
+class Quantile(pydantic.BaseModel):
     value: float
     name: str
 
@@ -238,7 +229,7 @@ class Quantile(NamedTuple):
                 f"quantile value should be in [0, 1] but found {value}"
             )
 
-        return Quantile(value, name)
+        return Quantile(value=value, name=name)
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
@@ -396,12 +387,12 @@ class Forecast:
         i_p50 = len(percentiles_sorted) // 2
 
         p50_data = ps_data[i_p50]
-        p50_series = pd.Series(data=p50_data, index=self.index)
+        p50_series = pd.Series(data=p50_data, index=self.index.to_timestamp())
         p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
 
         if show_mean:
             mean_data = np.mean(self._sorted_samples, axis=0)
-            pd.Series(data=mean_data, index=self.index).plot(
+            pd.Series(data=mean_data, index=self.index.to_timestamp()).plot(
                 color=color,
                 ls=":",
                 label=f"{label_prefix}mean",
@@ -413,7 +404,7 @@ class Forecast:
             ptile = percentiles_sorted[i]
             alpha = alpha_for_percentile(ptile)
             plt.fill_between(
-                self.index,
+                self.index.to_timestamp(),
                 ps_data[i],
                 ps_data[-i - 1],
                 facecolor=color,
@@ -424,7 +415,9 @@ class Forecast:
             )
             # Hack to create labels for the error intervals. Doesn't actually
             # plot anything, because we only pass a single data point
-            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
+            pd.Series(
+                data=p50_data[:1], index=self.index.to_timestamp()[:1]
+            ).plot(
                 color=color,
                 alpha=alpha,
                 linewidth=10,
@@ -441,6 +434,7 @@ class Forecast:
             self._index = pd.period_range(
                 self.start_date,
                 periods=self.prediction_length,
+                freq=self.start_date.freq,
             )
         return self._index
 

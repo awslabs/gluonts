@@ -25,7 +25,8 @@ from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
-from gluonts.dataset.common import DataEntry, serialize_data_entry
+from gluonts.dataset.common import DataEntry
+from gluonts.dataset.jsonl import encode_json
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
@@ -69,7 +70,7 @@ class ServerFacade:
     def invocations(
         self, data_entries: Iterable[DataEntry], configuration: dict
     ) -> List[dict]:
-        instances = list(map(serialize_data_entry, data_entries))
+        instances = list(map(encode_json, data_entries))
         response = requests.post(
             url=self.url("/invocations"),
             json={"instances": instances, "configuration": configuration},
@@ -88,7 +89,7 @@ class ServerFacade:
     def batch_invocations(
         self, data_entries: Iterable[DataEntry]
     ) -> List[dict]:
-        instances_pre = map(serialize_data_entry, data_entries)
+        instances_pre = map(encode_json, data_entries)
         instances = list(map(json.dumps, instances_pre))
 
         response = requests.post(

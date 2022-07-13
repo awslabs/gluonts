@@ -2,6 +2,10 @@ name: Docs
 
 on: [push, pull_request]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   docs-build:
     runs-on: ubuntu-latest
@@ -12,6 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - uses: extractions/setup-just@v1
 
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
@@ -32,10 +37,10 @@ jobs:
 
     - name: Build docs
       run: |
-        make docs
+        just docs
 
     - name: Configure AWS Credentials
-      if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
       uses: aws-actions/configure-aws-credentials@v1
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
@@ -45,4 +50,4 @@ jobs:
     - name: Publish docs
       if: ${{ github.event_name == 'push' }}
       run: |
-        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
+        aws s3 sync docs/_build/html s3://gluonts-website/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control

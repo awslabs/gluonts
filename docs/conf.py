@@ -10,16 +10,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("."))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'GluonTS'
-copyright = '2022, Amazon'
-author = 'Amazon'
+project = "GluonTS"
+copyright = "2022, Amazon"
+author = "Amazon"
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,15 +42,17 @@ extensions = [
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
+    "myst_parser",
+    "mdinclude",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "default"
@@ -59,12 +62,30 @@ pygments_style = "default"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'furo'
+html_theme = "furo"
+
+
+if os.environ.get("GITHUB_REF_NAME") == "dev":
+    html_theme_options = {
+        "announcement": "<strong>Warning:</strong> You are looking at the development docs.",
+        "light_css_variables": {
+            "color-announcement-background": "var(--color-background-secondary)",
+            "color-announcement-text": "#db6a00",
+            "color-brand-primary": "#ff6f00",
+            "color-brand-content": "#ff6f00",
+        },
+        "dark_css_variables": {
+            "color-announcement-background": "var(--color-background-secondary)",
+            "color-announcement-text": "#db6a00",
+            "color-brand-primary": "#ff6f00",
+            "color-brand-content": "#ff6f00",
+        },
+    }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -74,3 +95,6 @@ html_logo = "_static/gluon-logo.svg"
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
 html_favicon = "_static/gluon.ico"
+
+# Enable Markdown
+source_suffix = [".rst", ".md"]

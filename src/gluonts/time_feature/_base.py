@@ -11,183 +11,165 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import Any, Callable, Dict, List
 
 import numpy as np
 import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
+from pydantic import BaseModel
 
-from gluonts.core.component import validated
+
+TimeFeature = Callable[[pd.PeriodIndex], np.ndarray]
 
 
-class TimeFeature:
+def second_of_minute(index: pd.PeriodIndex) -> np.ndarray:
     """
-    Base class for features that only depend on time.
+    Second of minute encoded as value between [-0.5, 0.5]
     """
-
-    @validated()
-    def __init__(self):
-        pass
-
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        pass
-
-    def __repr__(self):
-        return self.__class__.__name__ + "()"
+    return index.second.values / 59.0 - 0.5
 
 
-class MinuteOfHour(TimeFeature):
+def second_of_minute_index(index: pd.PeriodIndex) -> np.ndarray:
+    """
+    Second of minute encoded as zero-based index, between 0 and 59.
+    """
+    return index.second.astype(float).values
+
+
+def minute_of_hour(index: pd.PeriodIndex) -> np.ndarray:
     """
     Minute of hour encoded as value between [-0.5, 0.5]
     """
-
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.minute.values / 59.0 - 0.5
+    return index.minute.values / 59.0 - 0.5
 
 
-class MinuteOfHourIndex(TimeFeature):
+def minute_of_hour_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Minute of hour encoded as zero-based index, between 0 and 59.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.minute.astype(float).values
+    return index.minute.astype(float).values
 
 
-class HourOfDay(TimeFeature):
+def hour_of_day(index: pd.PeriodIndex) -> np.ndarray:
     """
     Hour of day encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.hour.values / 23.0 - 0.5
+    return index.hour.values / 23.0 - 0.5
 
 
-class HourOfDayIndex(TimeFeature):
+def hour_of_day_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Hour of day encoded as zero-based index, between 0 and 23.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.hour.astype(float).values
+    return index.hour.astype(float).values
 
 
-class DayOfWeek(TimeFeature):
+def day_of_week(index: pd.PeriodIndex) -> np.ndarray:
     """
-    Hour of day encoded as value between [-0.5, 0.5]
-    """
-
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.dayofweek.values / 6.0 - 0.5
-
-
-class DayOfWeekIndex(TimeFeature):
-    """
-    Hour of day encoded as zero-based index, between 0 and 6.
+    Day of week encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.dayofweek.astype(float).values
+    return index.dayofweek.values / 6.0 - 0.5
 
 
-class DayOfMonth(TimeFeature):
+def day_of_week_index(index: pd.PeriodIndex) -> np.ndarray:
+    """
+    Day of week encoded as zero-based index, between 0 and 6.
+    """
+
+    return index.dayofweek.astype(float).values
+
+
+def day_of_month(index: pd.PeriodIndex) -> np.ndarray:
     """
     Day of month encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return (index.day.values - 1) / 30.0 - 0.5
+    return (index.day.values - 1) / 30.0 - 0.5
 
 
-class DayOfMonthIndex(TimeFeature):
+def day_of_month_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Day of month encoded as zero-based index, between 0 and 11.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.day.astype(float).values - 1
+    return index.day.astype(float).values - 1
 
 
-class DayOfYear(TimeFeature):
+def day_of_year(index: pd.PeriodIndex) -> np.ndarray:
     """
     Day of year encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return (index.dayofyear.values - 1) / 365.0 - 0.5
+    return (index.dayofyear.values - 1) / 365.0 - 0.5
 
 
-class DayOfYearIndex(TimeFeature):
+def day_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Day of year encoded as zero-based index, between 0 and 365.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.dayofyear.astype(float).values - 1
+    return index.dayofyear.astype(float).values - 1
 
 
-class MonthOfYear(TimeFeature):
+def month_of_year(index: pd.PeriodIndex) -> np.ndarray:
     """
     Month of year encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return (index.month.values - 1) / 11.0 - 0.5
+    return (index.month.values - 1) / 11.0 - 0.5
 
 
-class MonthOfYearIndex(TimeFeature):
+def month_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Month of year encoded as zero-based index, between 0 and 11.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        return index.month.astype(float).values - 1
+    return index.month.astype(float).values - 1
 
 
-class WeekOfYear(TimeFeature):
+def week_of_year(index: pd.PeriodIndex) -> np.ndarray:
     """
     Week of year encoded as value between [-0.5, 0.5]
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        # TODO:
-        # * pandas >= 1.1 does not support `.week`
-        # * pandas == 1.0 does not support `.isocalendar()`
-        # as soon as we drop support for `pandas == 1.0`, we should remove this
-        try:
-            week = index.isocalendar().week
-        except AttributeError:
-            week = index.week
-        return (week.astype(float).values - 1) / 52.0 - 0.5
+    # TODO:
+    # * pandas >= 1.1 does not support `.week`
+    # * pandas == 1.0 does not support `.isocalendar()`
+    # as soon as we drop support for `pandas == 1.0`, we should remove this
+    try:
+        week = index.isocalendar().week
+    except AttributeError:
+        week = index.week
+    return (week.astype(float).values - 1) / 52.0 - 0.5
 
 
-class WeekOfYearIndex(TimeFeature):
+def week_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Week of year encoded as zero-based index, between 0 and 52.
     """
 
-    def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
-        # TODO:
-        # * pandas >= 1.1 does not support `.week`
-        # * pandas == 1.0 does not support `.isocalendar()`
-        # as soon as we drop support for `pandas == 1.0`, we should remove this
-        try:
-            week = index.isocalendar().week
-        except AttributeError:
-            week = index.week
-        return week.astype(float).values - 1
+    # TODO:
+    # * pandas >= 1.1 does not support `.week`
+    # * pandas == 1.0 does not support `.isocalendar()`
+    # as soon as we drop support for `pandas == 1.0`, we should remove this
+    try:
+        week = index.isocalendar().week
+    except AttributeError:
+        week = index.week
+    return week.astype(float).values - 1
 
 
-class Constant(TimeFeature):
+class Constant(BaseModel):
     """
     Constant time feature using a predefined value.
     """
 
-    @validated()
-    def __init__(self, value: float = 0.0):
-        super().__init__()
-        self.value = value
+    value: float = 0.0
 
     def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
         return np.full(index.shape, self.value)
@@ -210,31 +192,39 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         "5min", "1D" etc.
     """
 
-    features_by_offsets = {
+    features_by_offsets: Dict[Any, List[TimeFeature]] = {
         offsets.YearBegin: [],
         offsets.YearEnd: [],
-        offsets.QuarterBegin: [MonthOfYear],
-        offsets.QuarterEnd: [MonthOfYear],
-        offsets.MonthBegin: [MonthOfYear],
-        offsets.MonthEnd: [MonthOfYear],
-        offsets.Week: [DayOfMonth, WeekOfYear],
-        offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.BusinessDay: [DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.Hour: [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear],
+        offsets.QuarterBegin: [month_of_year],
+        offsets.QuarterEnd: [month_of_year],
+        offsets.MonthBegin: [month_of_year],
+        offsets.MonthEnd: [month_of_year],
+        offsets.Week: [day_of_month, week_of_year],
+        offsets.Day: [day_of_week, day_of_month, day_of_year],
+        offsets.BusinessDay: [day_of_week, day_of_month, day_of_year],
+        offsets.Hour: [hour_of_day, day_of_week, day_of_month, day_of_year],
         offsets.Minute: [
-            MinuteOfHour,
-            HourOfDay,
-            DayOfWeek,
-            DayOfMonth,
-            DayOfYear,
+            minute_of_hour,
+            hour_of_day,
+            day_of_week,
+            day_of_month,
+            day_of_year,
+        ],
+        offsets.Second: [
+            second_of_minute,
+            minute_of_hour,
+            hour_of_day,
+            day_of_week,
+            day_of_month,
+            day_of_year,
         ],
     }
 
     offset = to_offset(freq_str)
 
-    for offset_type, feature_classes in features_by_offsets.items():
+    for offset_type, features in features_by_offsets.items():
         if isinstance(offset, offset_type):
-            return [cls() for cls in feature_classes]
+            return features
 
     supported_freq_msg = f"""
     Unsupported frequency {freq_str}
@@ -251,5 +241,6 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         H   - hourly
         T   - minutely
             alias: min
+        S   - secondly
     """
     raise RuntimeError(supported_freq_msg)

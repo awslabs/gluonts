@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.deep_factor import DeepFactorEstimator
+from gluonts.mx.model.deep_factor import DeepFactorEstimator
 
 
 @pytest.fixture()

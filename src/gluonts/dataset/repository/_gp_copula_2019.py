@@ -20,8 +20,6 @@ Loads the datasets used in Salinas et al.
 they don'thave to be attached as large files in GluonTS master.
 """
 
-
-import json
 import os
 import shutil
 import tarfile
@@ -30,8 +28,10 @@ from typing import NamedTuple, Optional
 from urllib import request
 
 from gluonts.dataset.common import FileDataset
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.dataset.repository._util import metadata
 
 
 class GPCopulaDataset(NamedTuple):
@@ -111,15 +111,28 @@ datasets_info = {
 def generate_gp_copula_dataset(
     dataset_path: Path,
     dataset_name: str,
+    dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
     ds_info = datasets_info[dataset_name]
-    os.makedirs(dataset_path, exist_ok=True)
 
     download_dataset(dataset_path.parent, ds_info)
-    save_metadata(dataset_path, ds_info, prediction_length)
-    save_dataset(dataset_path / "train", ds_info)
-    save_dataset(dataset_path / "test", ds_info)
+
+    train_data = get_data(dataset_path / "train", ds_info)
+    test_data = get_data(dataset_path / "test", ds_info)
+
+    meta = MetaData(
+        **metadata(
+            cardinality=ds_info.num_series,
+            freq=ds_info.freq,
+            prediction_length=prediction_length or ds_info.prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_data, test=test_data)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )
     clean_up_dataset(dataset_path, ds_info)
 
 
@@ -130,42 +143,20 @@ def download_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
         tar.extractall(path=dataset_path)
 
 
-def save_metadata(
-    dataset_path: Path,
-    ds_info: GPCopulaDataset,
-    prediction_length: Optional[int],
-):
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=ds_info.num_series,
-                    freq=ds_info.freq,
-                    prediction_length=prediction_length
-                    or ds_info.prediction_length,
-                )
-            )
+def get_data(dataset_path: Path, ds_info: GPCopulaDataset):
+    return [
+        {
+            "target": data_entry[FieldName.TARGET],
+            "start": data_entry[FieldName.START],
+            # Handles adding categorical features of rolling
+            # evaluation dates
+            "feat_static_cat": [cat % ds_info.num_series],
+            "item_id": cat,
+        }
+        for cat, data_entry in enumerate(
+            FileDataset(dataset_path, freq=ds_info.freq)
         )
-
-
-def save_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
-    dataset = list(FileDataset(dataset_path, freq=ds_info.freq))
-    shutil.rmtree(dataset_path)
-    train_file = dataset_path / "data.json"
-    save_to_file(
-        train_file,
-        [
-            to_dict(
-                target_values=data_entry[FieldName.TARGET],
-                start=data_entry[FieldName.START],
-                # Handles adding categorical features of rolling
-                # evaluation dates
-                cat=[cat - ds_info.num_series * (cat // ds_info.num_series)],
-                item_id=cat,
-            )
-            for cat, data_entry in enumerate(dataset)
-        ],
-    )
+    ]
 
 
 def clean_up_dataset(dataset_path: Path, ds_info: GPCopulaDataset):

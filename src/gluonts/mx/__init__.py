@@ -37,3 +37,36 @@ from .model.predictor import (
 )
 from .trainer import Trainer
 from .util import copy_parameters, get_hybrid_forward_input_names
+
+from .model.canonical import CanonicalRNNEstimator
+from .model.deep_factor import DeepFactorEstimator
+from .model.deepar import DeepAREstimator
+from .model.deepstate import DeepStateEstimator
+from .model.deepvar import DeepVAREstimator
+from .model.deepvar_hierarchical import DeepVARHierarchicalEstimator
+from .model.gp_forecaster import GaussianProcessEstimator
+from .model.gpvar import GPVAREstimator
+from .model.lstnet import LSTNetEstimator
+from .model.n_beats import (
+    NBEATSEstimator,
+    NBEATSEnsembleEstimator,
+    NBEATSEnsemblePredictor,
+)
+
+from .model.renewal import DeepRenewalProcessEstimator
+from .model.san import SelfAttentionEstimator
+from .model.seq2seq import (
+    MQCNNEstimator,
+    MQRNNEstimator,
+    RNN2QRForecaster,
+    Seq2SeqEstimator,
+)
+from .model.simple_feedforward import SimpleFeedForwardEstimator
+from .model.tft import TemporalFusionTransformerEstimator
+from .model.tpp import (
+    PointProcessGluonPredictor,
+    PointProcessSampleForecast,
+    DeepTPPEstimator,
+)
+from .model.transformer import TransformerEstimator
+from .model.wavenet import WaveNetEstimator, WaveNet, WaveNetSampler

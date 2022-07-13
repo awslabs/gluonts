@@ -29,7 +29,6 @@ from gluonts.dataset.common import (
     ListDataset,
     MetaData,
     ProcessDataEntry,
-    serialize_data_entry,
 )
 from gluonts.dataset.jsonl import JsonLinesFile
 

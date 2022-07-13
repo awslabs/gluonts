@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 
 
 @pytest.fixture()

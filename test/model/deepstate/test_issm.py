@@ -15,14 +15,14 @@ import mxnet as mx
 import numpy as np
 import pandas as pd
 
-from gluonts.model.deepstate.issm import (
+from gluonts.mx.model.deepstate.issm import (
     CompositeISSM,
     LevelISSM,
     LevelTrendISSM,
     SeasonalityISSM,
     ZeroFeature,
 )
-from gluonts.time_feature import DayOfWeekIndex, MonthOfYearIndex
+from gluonts.time_feature import day_of_week_index, month_of_year_index
 
 
 def test_zero_feature():
@@ -150,7 +150,7 @@ def test_level_trend_issm_h():
 
 
 def test_seasonality_issm_h():
-    issm = SeasonalityISSM(num_seasons=12, time_feature=MonthOfYearIndex())
+    issm = SeasonalityISSM(num_seasons=12, time_feature=month_of_year_index)
 
     assert issm.latent_dim() == 12
     assert issm.output_dim() == 1
@@ -213,8 +213,8 @@ def test_seasonality_issm_h():
 def test_composite_issm_h():
     issm = CompositeISSM(
         seasonal_issms=[
-            SeasonalityISSM(num_seasons=7, time_feature=DayOfWeekIndex()),
-            SeasonalityISSM(num_seasons=12, time_feature=MonthOfYearIndex()),
+            SeasonalityISSM(num_seasons=7, time_feature=day_of_week_index),
+            SeasonalityISSM(num_seasons=12, time_feature=month_of_year_index),
         ],
         add_trend=False,
     )

@@ -9,3 +9,8 @@ sphinx~=4.0
 docutils<=0.16
 optuna~=2.10
 furo==2022.6.4.1
+m2r2
+myst-parser
+click
+orjson
+black

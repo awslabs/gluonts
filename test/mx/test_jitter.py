@@ -20,7 +20,7 @@ import mxnet.ndarray as nd
 import numpy as np
 import pytest
 
-from gluonts.model.gp_forecaster.gaussian_process import GaussianProcess
+from gluonts.mx.model.gp_forecaster.gaussian_process import GaussianProcess
 
 from gluonts.mx.context import check_gpu_support
 from gluonts.mx.kernels import RBFKernel

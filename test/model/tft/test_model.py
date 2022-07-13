@@ -15,8 +15,8 @@ import pytest
 
 from gluonts.model.forecast import QuantileForecast
 from gluonts.mx.model.predictor import GluonPredictor
-from gluonts.model.tft import TemporalFusionTransformerEstimator
-from gluonts.model.tft._network import (
+from gluonts.mx import TemporalFusionTransformerEstimator
+from gluonts.mx.model.tft._network import (
     TemporalFusionTransformerPredictionNetwork,
 )
 
@@ -51,7 +51,7 @@ def test_serialize(serialize_test, hyperparameters):
 
 def test_quantile_levels():
     from gluonts.dataset.common import ListDataset
-    from gluonts.model.tft import TemporalFusionTransformerEstimator
+    from gluonts.mx.model.tft import TemporalFusionTransformerEstimator
     from gluonts.mx.trainer import Trainer
 
     dataset = ListDataset(
