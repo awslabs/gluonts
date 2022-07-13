@@ -1,5 +1,4 @@
-```{admonition} Succept to change!
-:class: hint
+```{admonition} **Draft**
 
 This article may be extended or reworked in the future.
 
@@ -77,11 +76,11 @@ and there is notion of having "higher store".
 
 <!-- TODO: Have some nice example examplifying the above. -->
 
-<!-- ```{admonition} Example
+<!-- ```{admonition} Example -->
 
-Image we are the owner of a cafe.
+<!-- Image we are the owner of a cafe. -->
 
-``` -->
+<!-- ``` -->
 
 
 ## Probabilistic Forecasting
