@@ -41,7 +41,7 @@ be installed.
 
 Python has the notion of [extras](https://peps.python.org/pep-0508/#extras)
 -- dependencies that can be optionally installed to unlock certain features of
-a pacakge.
+a package.
 
 When installing a package, they are passed via ``[...]`` after the package
 name (and version specifier):
