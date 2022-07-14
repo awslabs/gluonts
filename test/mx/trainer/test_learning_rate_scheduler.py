@@ -113,16 +113,12 @@ def test_PatientMetricAttentiveScheduler(
         # We construct the scheduler with a different rate, because we need
         # to test that the optimizer can override this setting: this is
         # consistent with how schedulers and optimizers operate in MXNet.
-        base_learning_rate=base_lr,
+        learning_rate=base_lr,
         decay_factor=decay_factor,
-        patience=patience,
-        metric=lrs.Min(),
+        patience=lrs.Patience(patience, lrs.Min()),
         min_learning_rate=minimum_lr,
     )
 
     for loss, lr_exp in seq_loss_lr:
         lr_scheduler.step(loss)
-
-        # check multiple times just to be sure
-        for _ in range(3):
-            assert np.isclose(lr_scheduler.learning_rate, lr_exp)
+        assert np.isclose(lr_scheduler.learning_rate, lr_exp)

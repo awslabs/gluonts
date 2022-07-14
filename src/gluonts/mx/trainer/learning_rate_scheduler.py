@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import field
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from pydantic.dataclasses import dataclass
 from typing_extensions import Literal
@@ -28,8 +28,15 @@ from .callback import Callback
 
 
 @dataclass
-class Metric:
+class Objective:
     best: float
+
+    @staticmethod
+    def from_str(s: Literal["min", "max"]) -> "Objective":
+        if s == "min":
+            return Min()
+        else:
+            return Max()
 
     def update(self, metric: float) -> bool:
         if self.should_update(metric):
@@ -42,7 +49,7 @@ class Metric:
 
 
 @dataclass
-class Min(Metric):
+class Min(Objective):
     best: float = np.Inf
 
     def should_update(self, metric: float) -> bool:
@@ -50,11 +57,53 @@ class Min(Metric):
 
 
 @dataclass
-class Max(Metric):
+class Max(Objective):
     best: float = -np.Inf
 
     def should_update(self, metric: float) -> bool:
         return metric > self.best
+
+
+@dataclass
+class Patience:
+    """Simple patience tracker.
+
+    Given an `Objective`, it will check whether the metric has improved and
+    update its patience count. A better value sets the patience back to zero.
+
+    In addition, one needs to call ``reset()`` explicitly after the patience
+    was exceeded, otherwise `RuntimError` is raised when trying to invoke
+    `step`.
+
+    ``Patience`` keeps track of the number of invocations to ``reset``, via
+    ``num_resets``.
+    """
+
+    patience: int = field(metadata={"ge": 0})
+    objective: Objective
+    _current_patience: int = field(default=0, init=False)
+    num_resets: int = field(default=0, init=False)
+    exceeded: bool = field(default=False, init=False)
+
+    def reset(self) -> None:
+        self._current_patience = 0
+        self.exceeded = False
+        self.num_resets += 1
+
+    def step(self, metric_value: float) -> bool:
+        if self.exceeded:
+            raise RuntimeError("Patience alread exceeded.")
+
+        has_improved = self.objective.update(metric_value)
+
+        if has_improved:
+            self._current_patience = 0
+        else:
+            self._current_patience += 1
+
+        # this can also trigger in case of improvement when `self.patience = 0`
+        self.exceeded = self._current_patience >= self.patience
+        return self.exceeded
 
 
 @dataclass
@@ -94,18 +143,14 @@ class MetricAttentiveScheduler:
         `min_learning_rate`.
     """
 
-    patience: int = field(metadata={"ge": 0})
-    metric: Metric
-    base_learning_rate: float = field(default=0.01, metadata={"gt": 0})
+    patience: Patience
+    learning_rate: float = field(default=0.01, metadata={"gt": 0})
     decay_factor: float = field(default=0.5, metadata={"gt": 0, "lt": 1})
     min_learning_rate: float = 0.0
-    current_patience: int = field(default=0, init=False)
-    learning_rate: float = field(init=False)
+    max_num_decays: Optional[int] = None
 
     def __post_init__(self) -> None:
-        assert self.base_learning_rate > self.min_learning_rate
-
-        self.learning_rate = self.base_learning_rate
+        assert self.learning_rate > self.min_learning_rate
 
     def step(self, metric_value: float) -> bool:
         """
@@ -123,29 +168,29 @@ class MetricAttentiveScheduler:
         bool value indicating, whether to continue training
         """
 
-        if self.metric.update(metric_value):
-            self.current_patience = 0
-        else:
-            self.current_patience += 1
+        self.patience.step(metric_value)
 
-        if self.current_patience >= self.patience or not np.isfinite(
-            metric_value
-        ):
-            self.current_patience = 0
+        should_continue = True
 
-            if self.learning_rate == self.min_learning_rate:
-                print(
-                    "Early stopping based on learning rate scheduler callback"
-                    " (min_learning_rate was reached)."
-                )
-                return False
+        if self.patience.exceeded or not np.isfinite(metric_value):
+            if (
+                self.learning_rate == self.min_learning_rate
+                or self.max_num_decays is not None
+                and self.max_num_decays <= self.patience.num_resets
+            ):
+                should_continue = False
 
-            self.learning_rate = self.decay_factor * self.learning_rate
+            # Even though we ask not to continue, we still reset the patience
+            # because we might still end up continuing training. (Can Happen
+            # in testing).
+            self.patience.reset()
 
+            self.learning_rate *= self.decay_factor
+            # ensure that we don't go below the minimum learning rate
             if self.learning_rate < self.min_learning_rate:
                 self.learning_rate = self.min_learning_rate
 
-        return True
+        return should_continue
 
 
 class LearningRateReduction(Callback):
@@ -203,9 +248,8 @@ class LearningRateReduction(Callback):
         ), "The value of `min_lr` should be >= 0 and <= base_lr"
 
         self.lr_scheduler = MetricAttentiveScheduler(
-            metric=Min() if objective == "min" else Max(),
-            patience=patience,
-            base_learning_rate=base_lr,
+            patience=Patience(patience, Objective.from_str(objective)),
+            learning_rate=base_lr,
             decay_factor=decay_factor,
             min_learning_rate=min_lr,
         )
