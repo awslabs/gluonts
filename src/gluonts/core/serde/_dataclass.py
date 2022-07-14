@@ -47,9 +47,19 @@ def dataclass(cls):
 
         fields[name] = ty, default
 
-    model = create_model(f"{cls.__name__}Model", **fields)
+    class Config:
+        """
+        `Config <https://pydantic-docs.helpmanual.io/#model-config>`_ for the
+        Pydantic model inherited by all :func:`validated` initializers.
 
-    dc = pydantic.dataclasses.dataclass(cls)
+        Allows the use of arbitrary type annotations in initializer parameters.
+        """
+
+        arbitrary_types_allowed = True
+
+    model = create_model(f"{cls.__name__}Model", __config__=Config, **fields)
+
+    dc = pydantic.dataclasses.dataclass(config=Config)(cls)
 
     orig_init = dc.__init__
 
@@ -62,11 +72,25 @@ def dataclass(cls):
         }
         model_kwargs.update(kwargs)
 
+        init_kwargs = model(**model_kwargs).dict()
+
         object.__setattr__(
-            self, "__init_kwargs__", model(**model_kwargs).dict()
+            self,
+            "__init_kwargs__",
+            init_kwargs,
         )
 
-        orig_init(self, **self.__init_kwargs__)
+        object.__setattr__(
+            self,
+            "__init_passed_kwargs__",
+            {
+                key: value
+                for key, value in init_kwargs.items()
+                if key in model_kwargs
+            },
+        )
+
+        orig_init(self, **init_kwargs)
 
     dc.__init__ = _init_
     return dc
