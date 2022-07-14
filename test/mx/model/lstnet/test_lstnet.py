@@ -78,9 +78,7 @@ def test_lstnet(
         context_length=4,
         lead_time=lead_time,
         prediction_length=prediction_length,
-        trainer=Trainer(
-            epochs=1, batch_size=2, learning_rate=0.01, hybridize=hybridize
-        ),
+        trainer=Trainer(epochs=1, learning_rate=0.01, hybridize=hybridize),
         scaling=scaling,
         dtype=dtype,
     )

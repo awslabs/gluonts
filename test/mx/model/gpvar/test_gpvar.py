@@ -113,7 +113,6 @@ def test_smoke(
         use_marginal_transformation=use_marginal_transformation,
         trainer=Trainer(
             epochs=2,
-            batch_size=10,
             learning_rate=1e-4,
             num_batches_per_epoch=num_batches_per_epoch,
             hybridize=hybridize,

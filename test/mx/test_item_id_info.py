@@ -59,7 +59,6 @@ from gluonts.mx.trainer import Trainer
                 trainer=Trainer(
                     epochs=2,
                     num_batches_per_epoch=2,
-                    batch_size=16,
                     hybridize=False,
                 ),
             ),
