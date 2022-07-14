@@ -1,4 +1,4 @@
-# Data Splitter Usage
+# Splitting datasets into training and test
 
 In this notebook, we are going to show how to use the `split` method existed in our GluonTS project.
 
