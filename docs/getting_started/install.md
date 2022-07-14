@@ -13,8 +13,7 @@ GluonTS uses [Semantic Versioning](https://semver.org) for managing versions.
 Since the library is actively developed we use `v0` as the major version.
 
 We plan to release a new minor version at the end of each quarter. The current
-minor release is `0.10`, with `0.11` being scheduled to be released end of
-September 2022.
+planned releases can be found on [GitHub](https://github.com/awslabs/gluon-ts/milestones).
 
 **Version Guarantees**
 
