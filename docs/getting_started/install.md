@@ -7,25 +7,48 @@ GluonTS is available from PyPi via:
 pip install gluonts
 ````
 
-```{attention}
+```{caution}
+
+GluonTS uses [Semantic Versioning](https://semver.org) for managing versions.
+Since the library is actively developed we use `v0` as the major version.
+
+We plan to release a new minor version at the end of each quarter. The current
+minor release is `0.10`, with `0.11` being scheduled to be released end of
+September 2022.
+
+**Version Guarantees**
+
+Breaking changes are only introduced with a new minor release. Bug fixes and
+minor improvements are provided for the current release and are published on
+demand.
+
+For production usage, we suggest restricting the version when installing
+GluonTS:
+
+```sh
+pip install gluonts==0.10.*
+```
+
+
+
+## Optional and Extra Dependencies
+
+```{important}
 **GluonTS uses a minimal dependency model.**
 
 This means that to use most models and features additional dependencies need to
-be installed. See the next section for more information.
-
+be installed.
 ```
-
-## Optional and Extra Dependencies
 
 Python has the notion of [extras](https://peps.python.org/pep-0508/#extras)
 -- dependencies that can be optionally installed to unlock certain features of
 a pacakge.
 
 When installing a package, they are passed via ``[...]`` after the package
-name:
+name (and version specifier):
 
 ```sh
-pip install some-package[extra-1,extra-2]
+pip install some-package==version[extra-1,extra-2]
 ````
 
 We make extensive use of optional dependencies in GluonTS to keep the amount of
