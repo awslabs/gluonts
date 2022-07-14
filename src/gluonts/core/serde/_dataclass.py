@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import dataclasses
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 import pydantic.dataclasses
 from pydantic import create_model
