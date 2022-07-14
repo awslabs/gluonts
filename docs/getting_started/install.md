@@ -5,9 +5,9 @@ GluonTS is available from PyPi via:
 
 ```sh
 pip install gluonts
-````
+```
 
-```{caution}
+````{caution}
 
 GluonTS uses [Semantic Versioning](https://semver.org) for managing versions.
 Since the library is actively developed we use `v0` as the major version.
@@ -27,7 +27,7 @@ GluonTS:
 ```sh
 pip install gluonts==0.10.*
 ```
-
+````
 
 
 ## Optional and Extra Dependencies
