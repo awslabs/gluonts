@@ -1,0 +1,118 @@
+# Splitting datasets into training and test
+
+In this notebook, we are going to show that given a dataset how can we split it when necessary. Specifically, we'll use the `split` function that already existed in our GluonTS project.
+
+In the `split` function:
+- you need to provide the `dataset` for the method to split.
+- you also need to provide `offset` or `date`, but not both simultaneously. These two arguments are provided for the method to know how to slices training and test data based on a fixed integer offset or a ``pandas.Period``.
+As a result, the `split` method returns the splited dataset, consisting of the training data `training_dataset` and the TestTemplate objectives `test_template` which knows how to generate test data `test_pairs` using the memeber function `generate_instances`.
+
+
+## Data loading and processing
+
+
+```python
+from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.pandas import PandasDataset
+from gluonts.dataset.split.splitter import split
+from gluonts.dataset.util import to_pandas
+```
+
+
+```python
+%matplotlib inline
+import pandas as pd
+import matplotlib.pyplot as plt
+```
+
+Config plotting attributes.
+
+
+```python
+plt.rcParams["axes.grid"] = True
+plt.rcParams["figure.figsize"] = (20,3)
+```
+
+### Get some datasets
+
+Load data from an online csv into `pandas.DataFrame`, which is a long time series, with the frequency being 5 minutes and the length being 15831, so we resample the time series into an hour bins and sum the values of the timestamps falling into a bin, making the time series look nicer and more organized.
+
+
+```python
+url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
+df = pd.read_csv(url, header=0)
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+df = df.set_index("timestamp")
+df_resample = df.resample("1H").sum()
+dataset = PandasDataset(df_resample.reset_index(), timestamp="timestamp", target="value")
+```
+
+Plot these two dataframe
+
+
+```python
+df.plot()
+plt.legend(["whole dataset"], loc="upper left")
+
+df_resample.plot()
+plt.legend(["sub dataset"], loc="upper left")
+plt.show()
+```
+
+## Specific splitting examples
+
+Define two methods:
+- In the `highlight_entry` method, we calculate the start and end of a given `entry` and highlight the region with the given `color`.
+- In the `plot_dataset_splitting` method, we plot the `original_dataset` and highlight the corresponding splitted `training_dataset` and `test_pairs`.
+
+
+```python
+def highlight_entry(entry, color):
+    start = entry[FieldName.START]
+    end = entry[FieldName.START] + len(entry[FieldName.TARGET])
+    plt.axvspan(start, end, facecolor=color, alpha=.2)
+
+
+def plot_dataset_splitting(original_dataset, training_dataset, test_pairs):
+    for original_entry, train_entry in zip(original_dataset, training_dataset):
+        to_pandas(original_entry).plot()
+        highlight_entry(train_entry, "red")
+        plt.legend(["sub dataset", "training dataset"], loc="upper left")
+        plt.show()
+
+    for original_entry in original_dataset:
+        for test_input, test_label in test_pairs:
+            to_pandas(original_entry).plot()
+            highlight_entry(test_input, "green")
+            highlight_entry(test_label, "blue")
+            plt.legend(["sub dataset", "test input", "test label"], loc="upper left")
+            plt.show()
+```
+
+For the first example, we will take training data up to specific date, and then directly generate several test instances from the same date onwards
+
+
+```python
+prediction_length = 3 * 24
+training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+test_pairs = test_template.generate_instances(
+                prediction_length=prediction_length,
+                windows=3,
+             )
+
+plot_dataset_splitting(dataset, training_dataset, test_pairs)
+```
+
+However, we don't necessarily need to align the date where training data ends with the date where the testing part starts. So, for the second example, we will take training data up to date `2015-03-27 00:00:00`, then generate several test instances from date `2015-04-07 00:00:00` onwards by applying the `split` function two times.
+
+
+```python
+training_dataset, _ = split(dataset, date=pd.Period("2015-03-28 00:00:00", freq='1H'))
+_, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+test_pairs = test_template.generate_instances(
+                prediction_length=prediction_length,
+                windows=3,
+             )
+
+plot_dataset_splitting(dataset, training_dataset, test_pairs)
+```
