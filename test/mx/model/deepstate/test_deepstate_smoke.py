@@ -22,9 +22,7 @@ from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 common_estimator_hps = dict(
     freq="D",
     prediction_length=3,
-    trainer=Trainer(
-        epochs=3, num_batches_per_epoch=2, batch_size=1, hybridize=True
-    ),
+    trainer=Trainer(epochs=3, num_batches_per_epoch=2, hybridize=True),
     past_length=10,
     add_trend=True,
 )
