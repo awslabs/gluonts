@@ -76,7 +76,7 @@ we will take training data up to date `2015-04-07 00:00:00`, then generate sever
 ```python
 def get_start_end(entry):
     start = entry['start']
-    end = entry['start'] + len(entry['target']) * entry['start'].freq
+    end = entry['start'] + len(entry['target'])
     return start, end
 ```
 
