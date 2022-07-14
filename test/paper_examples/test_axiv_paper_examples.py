@@ -40,7 +40,8 @@ def test_listing_1():
     estimator = DeepAREstimator(
         freq=meta.freq,
         prediction_length=1,
-        trainer=Trainer(epochs=1, batch_size=32),
+        batch_size=32,
+        trainer=Trainer(epochs=1),
     )
     predictor = estimator.train(train_ds)
 
@@ -108,6 +109,7 @@ def test_appendix_c():
         def __init__(
             self,
             prediction_length: int,
+            batch_size=32,
             act_type: str = "relu",
             context_length: int = 30,
             cells: List[int] = [40, 40, 40],
@@ -115,6 +117,7 @@ def test_appendix_c():
         ) -> None:
             super().__init__(trainer=trainer)
             self.prediction_length = prediction_length
+            self.batch_size = batch_size
             self.act_type = act_type
             self.context_length = context_length
             self.cells = cells
@@ -142,7 +145,7 @@ def test_appendix_c():
             return RepresentableBlockPredictor(
                 input_transform=transformation,
                 prediction_net=prediction_network,
-                batch_size=self.trainer.batch_size,
+                batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )
@@ -168,7 +171,7 @@ def test_appendix_c():
 
     estimator = MyEstimator(
         prediction_length=1,
-        trainer=Trainer(epochs=1, batch_size=32),
+        trainer=Trainer(epochs=1),
     )
     predictor = estimator.train(train_ds)
 
