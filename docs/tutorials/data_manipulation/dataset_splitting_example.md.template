@@ -1,11 +1,14 @@
 # Splitting datasets into training and test
 
-In this notebook, we are going to show that given a dataset how can we split it when necessary. Specifically, we'll use the `split` function that already existed in our GluonTS project.
+In this notebook, we are going to show how to split the entries of a dataset, along time, to construct training and test subsets of data (or training/validation/test). Specifically, we'll use the `split` function:
 
-In the `split` function:
-- you need to provide the `dataset` for the method to split.
-- you also need to provide `offset` or `date`, but not both simultaneously. These two arguments are provided for the method to know how to slices training and test data based on a fixed integer offset or a ``pandas.Period``.
-As a result, the `split` method returns the splited dataset, consisting of the training data `training_dataset` and the TestTemplate objectives `test_template` which knows how to generate test data `test_pairs` using the memeber function `generate_instances`.
+PUT IMPORT LINE FOR `split` HERE
+
+This needs to be given:
+- the `dataset` that we want to split;
+- an `offset` or a `date`, but not both simultaneously. These two arguments are provided for the function to know how to slice training and test data, based on a fixed integer offset or a ``pandas.Period``, respectively.
+
+As a result, the `split` method returns the splited dataset, consisting of the training data `training_dataset` and a "test template" that knows how to generate input/output test pairs.
 
 
 ## Data loading and processing
