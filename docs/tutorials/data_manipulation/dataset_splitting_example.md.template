@@ -56,9 +56,7 @@ df_resample.plot()
 
 ## Specific splitting examples
 
-Define two methods:
-- In the `highlight_entry` method, we calculate the start and end of a given `entry` and highlight the region with the given `color`.
-- In the `plot_dataset_splitting` method, we plot the `original_dataset` and highlight the corresponding splitted `training_dataset` and `test_pairs`.
+Let's define a few helper functions to visualize data splits.
 
 
 ```python
