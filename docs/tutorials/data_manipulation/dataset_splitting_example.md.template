@@ -49,17 +49,10 @@ df_resample = df.resample("1H").sum()
 dataset = PandasDataset(df_resample.reset_index(), timestamp="timestamp", target="value")
 ```
 
-Plot these two dataframe
-
+This is what the data looks like:
 
 ```python
-df.plot()
-plt.legend(["whole dataset"], loc="upper left")
-
 df_resample.plot()
-plt.legend(["sub dataset"], loc="upper left")
-plt.show()
-```
 
 ## Specific splitting examples
 
