@@ -15,7 +15,6 @@ As a result, the `split` method returns the splited dataset, consisting of the t
 
 
 ```python
-from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.split.splitter import split
 from gluonts.dataset.util import to_pandas
