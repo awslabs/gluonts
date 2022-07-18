@@ -2,7 +2,10 @@
 
 In this notebook, we are going to show how to split the entries of a dataset, along time, to construct training and test subsets of data (or training/validation/test). Specifically, we'll use the `split` function:
 
-PUT IMPORT LINE FOR `split` HERE
+
+```python
+from gluonts.dataset.split.splitter import split
+```
 
 This needs to be given:
 - the `dataset` that we want to split;
@@ -10,49 +13,43 @@ This needs to be given:
 
 As a result, the `split` method returns the splited dataset, consisting of the training data `training_dataset` and a "test template" that knows how to generate input/output test pairs.
 
-
 ## Data loading and processing
-
-
-```python
-from gluonts.dataset.pandas import PandasDataset
-from gluonts.dataset.split.splitter import split
-from gluonts.dataset.util import to_pandas
-```
 
 
 ```python
 %matplotlib inline
 import pandas as pd
 import matplotlib.pyplot as plt
-```
-
-Config plotting attributes.
-
-
-```python
 plt.rcParams["axes.grid"] = True
 plt.rcParams["figure.figsize"] = (20,3)
 ```
 
 ### Get some datasets
 
-Load data from an online csv into `pandas.DataFrame`, which is a long time series, with the frequency being 5 minutes and the length being 15831, so we resample the time series into an hour bins and sum the values of the timestamps falling into a bin, making the time series look nicer and more organized.
+For our examples, we will use data from the following `csv` file, which is originally sampled every 5 minutes, but we resample at hourly frequency. Note that this makes for a dataset consisting of a single time series, but everything we show here applies to any dataset, regardless of how many series it contains.
 
 
 ```python
 url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0)
-df["timestamp"] = pd.to_datetime(df["timestamp"])
-df = df.set_index("timestamp")
-df_resample = df.resample("1H").sum()
-dataset = PandasDataset(df_resample.reset_index(), timestamp="timestamp", target="value")
+df = pd.read_csv(url, header=0, index_col="timestamp", parse_dates=True).resample("1H").sum()
 ```
 
 This is what the data looks like:
 
+
 ```python
-df_resample.plot()
+df.plot()
+plt.legend(["dataset"], loc="upper left")
+plt.show()
+```
+
+Turn the dataframe into a GluonTS dataset using `PandasDataset`
+
+
+```python
+from gluonts.dataset.pandas import PandasDataset
+dataset = PandasDataset(df, target="value")
+```
 
 ## Specific splitting examples
 
@@ -60,9 +57,10 @@ Let's define a few helper functions to visualize data splits.
 
 
 ```python
+from gluonts.dataset.util import to_pandas
 def highlight_entry(entry, color):
-    start = entry[FieldName.START]
-    end = entry[FieldName.START] + len(entry[FieldName.TARGET])
+    start = entry["start"]
+    end = entry["start"] + len(entry["target"])
     plt.axvspan(start, end, facecolor=color, alpha=.2)
 
 
@@ -82,7 +80,7 @@ def plot_dataset_splitting(original_dataset, training_dataset, test_pairs):
             plt.show()
 ```
 
-For the first example, we will take training data up to specific date, and then directly generate several test instances from the same date onwards
+For the first example, we will take training data up to specific date, and then directly generate several test instances from the same date onwards.
 
 
 ```python
@@ -105,6 +103,20 @@ _, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H
 test_pairs = test_template.generate_instances(
                 prediction_length=prediction_length,
                 windows=3,
+             )
+
+plot_dataset_splitting(dataset, training_dataset, test_pairs)
+```
+
+Also, we don't necessarily need to align all the test instances time by time. So, for the third example, we will add `distance` arguments in `generate_instances` function to make test instances overlap between each other.
+
+
+```python
+training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+test_pairs = test_template.generate_instances(
+                prediction_length=prediction_length,
+                windows=3,
+                distance=24,
              )
 
 plot_dataset_splitting(dataset, training_dataset, test_pairs)
