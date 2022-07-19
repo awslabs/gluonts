@@ -8,6 +8,7 @@
    :hidden:
 
    getting_started/install
+   getting_started/background
    getting_started/concepts
    getting_started/models
 

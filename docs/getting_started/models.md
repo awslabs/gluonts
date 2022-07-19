@@ -31,14 +31,14 @@ NPTS                                                        | Local        | Uni
 [Salinas2020]: https://doi.org/10.1016/j.ijforecast.2019.07.001
 [Rangapuram2018]: https://papers.nips.cc/paper/2018/hash/5cf68969fb67aa6082363a6d4e6468e2-Abstract.html
 [Wang2019]: https://proceedings.mlr.press/v97/wang19k.html
-[Turkmen2021]: (https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0259764)
+[Turkmen2021]: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0259764
 [Wen2017]: https://arxiv.org/abs/1711.11053
 [Oreshkin2019]: https://openreview.net/forum?id=r1ecqn4YwB
 [Hasson2021]: https://openreview.net/forum?id=VD3TMzyxKK
 [Li2019]: https://papers.nips.cc/paper/2019/hash/6775a0635c302542da2c32aa19d86be0-Abstract.html
 [Lim2021]: https://doi.org/10.1016/j.ijforecast.2021.03.012
 [Vaswani2017]: https://papers.nips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html
-[vanDenOord2016]: (https://arxiv.org/abs/1609.03499)
+[vanDenOord2016]: https://arxiv.org/abs/1609.03499
 [Salinas2019]: https://proceedings.neurips.cc/paper/2019/hash/0b105cf1504c4e241fcc6d519ea962fb-Abstract.html
 [Lai2018]: https://doi.org/10.1145/3209978.3210006
 [Shchur2020]: https://arxiv.org/pdf/1909.12127
