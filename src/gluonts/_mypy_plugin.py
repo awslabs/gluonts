@@ -21,6 +21,7 @@ class GluonTSPlugin(Plugin):
     def get_class_decorator_hook(
         self, fullname: str
     ) -> typing.Optional[typing.Callable[[ClassDefContext], None]]:
+
         if fullname == "gluonts.core.serde._dataclass.dataclass":
             return dataclass_class_maker_callback
         return None

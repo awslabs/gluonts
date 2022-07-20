@@ -12,14 +12,35 @@
 # permissions and limitations under the License.
 
 import dataclasses
-from typing import Any, ClassVar
+from typing import cast, Any, ClassVar, Type
 
 import pydantic.dataclasses
 from pydantic import create_model
 
 
+class Infer:
+    pass
+
+
+INFER = cast(Any, Infer())
+
+
+@dataclasses.dataclass
+class InferOption:
+    value: Any
+
+    def map(self, value):
+        if self.value is INFER:
+            self.value = value
+
+    def unwrap(self):
+        assert self.value is not INFER
+        return self.value
+
+
 def dataclass(cls):
     fields = {}
+    inferred_fields = set()
 
     for name, ty in getattr(cls, "__annotations__", {}).items():
         value = cls.__dict__.get(name, dataclasses.MISSING)
@@ -45,6 +66,10 @@ def dataclass(cls):
         elif isinstance(ty, dataclasses.InitVar):
             ty = ty.type
 
+        if default is INFER:
+            inferred_fields.add(name)
+            continue
+
         fields[name] = ty, default
 
     class Config:
@@ -64,15 +89,26 @@ def dataclass(cls):
     orig_init = dc.__init__
 
     def _init_(self, *args, **kwargs):
-        assert len(args) <= len(fields), "Too many arguments"
-        assert len(args) + len(kwargs) <= len(fields)
+        # assert len(args) <= len(fields), "Too many arguments"
+        # assert len(args) + len(kwargs) <= len(fields)
 
-        model_kwargs = {
+        input_kwargs = {
             field_name: arg for arg, field_name in zip(args, fields)
         }
-        model_kwargs.update(kwargs)
+        input_kwargs.update(kwargs)
+        validated_model = model(**input_kwargs)
+        init_kwargs = validated_model.dict()
 
-        init_kwargs = model(**model_kwargs).dict()
+        inferred_kwargs = {
+            key: InferOption(input_kwargs.get(key, INFER))
+            for key in inferred_fields
+        }
+        self.__class__.__infer__(
+            validated_model,
+            **inferred_kwargs,
+        )
+        for name, value in inferred_kwargs.items():
+            inferred_kwargs[name] = value.unwrap()
 
         object.__setattr__(
             self,
@@ -86,11 +122,11 @@ def dataclass(cls):
             {
                 key: value
                 for key, value in init_kwargs.items()
-                if key in model_kwargs
+                if key in input_kwargs
             },
         )
 
-        orig_init(self, **init_kwargs)
+        orig_init(self, **init_kwargs, **inferred_kwargs)
 
     dc.__init__ = _init_
     return dc

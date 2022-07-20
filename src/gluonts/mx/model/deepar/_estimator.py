@@ -166,7 +166,7 @@ class DeepAREstimator(GluonEstimator):
     freq: str
     prediction_length: int
     trainer: Trainer = Trainer()
-    context_length: Optional[int] = None
+    context_length: int = serde.INFER
     num_layers: int = 2
     num_cells: int = 40
     cell_type: str = "lstm"
@@ -193,6 +193,9 @@ class DeepAREstimator(GluonEstimator):
     minimum_scale: float = 1e-10
     impute_missing_values: bool = False
     num_imputation_samples: int = 1
+
+    def __infer__(self, context_length):
+        context_length.map(self.prediction_length)
 
     def __post_init__(self):
 
@@ -228,8 +231,8 @@ class DeepAREstimator(GluonEstimator):
         # assert alpha >= 0, "The value of `alpha` should be >= 0"
         # assert beta >= 0, "The value of `beta` should be >= 0"
 
-        if self.context_length is None:
-            self.context_length = self.prediction_length
+        # if self.context_length is None:
+        # self.context_length = self.prediction_length
 
         self.cardinality = (
             self.cardinality
