@@ -20,6 +20,7 @@ import tempfile
 import time
 import typing
 from contextlib import closing, contextmanager
+from dataclasses import dataclass
 from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
@@ -111,9 +112,6 @@ def free_port() -> int:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         sock.bind(("", 0))
         return sock.getsockname()[1]
-
-
-from dataclasses import dataclass
 
 
 @dataclass
