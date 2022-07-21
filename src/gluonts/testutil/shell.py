@@ -113,6 +113,22 @@ def free_port() -> int:
         return sock.getsockname()[1]
 
 
+from dataclasses import dataclass
+
+
+@dataclass
+class Server:
+    env: ServeEnv
+    forecaster_type: Optional[Type[Predictor]]
+    settings: Settings = Settings()
+
+    def run(self):
+        gunicorn_app = make_gunicorn_app(
+            self.env, self.forecaster_type, self.settings
+        )
+        gunicorn_app.run()
+
+
 @contextmanager
 def temporary_server(
     env: ServeEnv,
@@ -140,11 +156,11 @@ def temporary_server(
         A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
     """
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context("spawn")
     context = typing.cast(ForkContext, context)  # cast to make mypi pass
 
-    gunicorn_app = make_gunicorn_app(env, forecaster_type, settings)
-    process = context.Process(target=gunicorn_app.run)
+    server = Server(env, forecaster_type, settings)
+    process = context.Process(target=server.run)
     process.start()
 
     endpoint = ServerFacade(
