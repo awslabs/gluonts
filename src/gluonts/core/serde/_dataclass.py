@@ -21,7 +21,6 @@ from typing import (
     Callable,
     ClassVar,
     Generic,
-    Type,
     TypeVar,
 )
 
@@ -42,10 +41,10 @@ EVENTUAL = cast(Any, _EventualType())
 class Eventual(Generic[T]):
     value: T
 
-    def insert(self, value: T) -> None:
+    def set(self, value: T) -> None:
         self.value = value
 
-    def insert_default(self, value: T) -> None:
+    def set_default(self, value: T) -> None:
         if self.value is EVENTUAL:
             self.value = value
 

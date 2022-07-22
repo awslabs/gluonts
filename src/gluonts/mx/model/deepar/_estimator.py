@@ -17,7 +17,7 @@ from typing import List, Optional, Type
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -63,10 +63,6 @@ from gluonts.transform.feature import (
 )
 
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
-
-
-from gluonts.core import serde
-from dataclasses import field
 
 
 @serde.dataclass
@@ -166,7 +162,9 @@ class DeepAREstimator(GluonEstimator):
     freq: str
     prediction_length: int
     trainer: Trainer = Trainer()
-    context_length: int = serde.INFER
+    context_length: int = serde.OrElse(
+        lambda prediction_length: prediction_length
+    )
     num_layers: int = 2
     num_cells: int = 40
     cell_type: str = "lstm"
@@ -175,7 +173,7 @@ class DeepAREstimator(GluonEstimator):
     use_feat_dynamic_real: bool = False
     use_feat_static_cat: bool = False
     use_feat_static_real: bool = False
-    cardinality: Optional[List[int]] = None
+    cardinality: List[int] = serde.EVENTUAL
     embedding_dimension: Optional[List[int]] = None
     distr_output: DistributionOutput = StudentTOutput()
     scaling: bool = True
@@ -194,51 +192,13 @@ class DeepAREstimator(GluonEstimator):
     impute_missing_values: bool = False
     num_imputation_samples: int = 1
 
-    def __infer__(self, context_length):
-        context_length.map(self.prediction_length)
+    def __eventually__(self, cardinality):
+        if not self.use_feat_static_cat:
+            cardinality.set([1])
+        else:
+            cardinality.set_default([1])
 
     def __post_init__(self):
-
-        # super().__init__(trainer=self.trainer, batch_size=self.batch_size, dtype=dtype)
-
-        # assert (
-        #     prediction_length > 0
-        # ), "The value of `prediction_length` should be > 0"
-        # assert (
-        #     context_length is None or context_length > 0
-        # ), "The value of `context_length` should be > 0"
-        # assert num_layers > 0, "The value of `num_layers` should be > 0"
-        # assert num_cells > 0, "The value of `num_cells` should be > 0"
-        # supported_dropoutcell_types = [
-        #     "ZoneoutCell",
-        #     "RNNZoneoutCell",
-        #     "VariationalDropoutCell",
-        #     "VariationalZoneoutCell",
-        # ]
-        # assert (
-        #     dropoutcell_type in supported_dropoutcell_types
-        # ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
-        # assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        # assert cardinality is None or all(
-        #     [c > 0 for c in cardinality]
-        # ), "Elements of `cardinality` should be > 0"
-        # assert embedding_dimension is None or all(
-        #     [e > 0 for e in embedding_dimension]
-        # ), "Elements of `embedding_dimension` should be > 0"
-        # assert (
-        #     num_parallel_samples > 0
-        # ), "The value of `num_parallel_samples` should be > 0"
-        # assert alpha >= 0, "The value of `alpha` should be >= 0"
-        # assert beta >= 0, "The value of `beta` should be >= 0"
-
-        # if self.context_length is None:
-        # self.context_length = self.prediction_length
-
-        self.cardinality = (
-            self.cardinality
-            if self.cardinality and self.use_feat_static_cat
-            else [1]
-        )
         self.embedding_dimension = (
             self.embedding_dimension
             if self.embedding_dimension is not None
