@@ -71,7 +71,7 @@ occurances. Consequently, ciruclar references do not work.
 """
 from . import flat
 from ._base import Stateful, Stateless, decode, encode
-from ._dataclass import dataclass, INFER
+from ._dataclass import dataclass, EVENTUAL, Eventual, OrElse
 from ._json import dump_json, load_json
 from ._repr import dump_code, load_code
 
@@ -94,5 +94,7 @@ __all__ = [
     "Stateful",
     "Stateless",
     "dataclass",
-    "INFER",
+    "EVENTUAL",
+    "Eventual",
+    "OrElse",
 ]

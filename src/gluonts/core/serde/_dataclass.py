@@ -12,35 +12,72 @@
 # permissions and limitations under the License.
 
 import dataclasses
-from typing import cast, Any, ClassVar, Type
+import inspect
+from types import SimpleNamespace
+from typing import (
+    TYPE_CHECKING,
+    cast,
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    Type,
+    TypeVar,
+)
 
 import pydantic.dataclasses
 from pydantic import create_model
 
-
-class Infer:
-    pass
+T = TypeVar("T")
 
 
-INFER = cast(Any, Infer())
+class _EventualType:
+    __init_kwargs__: dict = {}
+
+
+EVENTUAL = cast(Any, _EventualType())
 
 
 @dataclasses.dataclass
-class InferOption:
-    value: Any
+class Eventual(Generic[T]):
+    value: T
 
-    def map(self, value):
-        if self.value is INFER:
+    def insert(self, value: T) -> None:
+        self.value = value
+
+    def insert_default(self, value: T) -> None:
+        if self.value is EVENTUAL:
             self.value = value
 
-    def unwrap(self):
-        assert self.value is not INFER
+    def unwrap(self) -> T:
+        if self.value is EVENTUAL:
+            raise ValueError("UNWRAP")
+
         return self.value
+
+
+if TYPE_CHECKING:
+    AnyLike = Any
+else:
+    AnyLike = object
+
+
+@dataclasses.dataclass
+class OrElse(AnyLike):
+    fn: Callable
+
+    def get_parameters(self):
+        return set(inspect.signature(self.fn).parameters)
+
+    def call(self, values):
+        kwargs = {attr: values[attr] for attr in self.get_parameters()}
+        return self.fn(**kwargs)
 
 
 def dataclass(cls):
     fields = {}
-    inferred_fields = set()
+    orelse_fields = {}
+    eventual_fields = set()
 
     for name, ty in getattr(cls, "__annotations__", {}).items():
         value = cls.__dict__.get(name, dataclasses.MISSING)
@@ -66,11 +103,35 @@ def dataclass(cls):
         elif isinstance(ty, dataclasses.InitVar):
             ty = ty.type
 
-        if default is INFER:
-            inferred_fields.add(name)
-            continue
+        if default is EVENTUAL:
+            eventual_fields.add(name)
+
+        if isinstance(default, OrElse):
+            orelse_fields[name] = default
 
         fields[name] = ty, default
+
+    orelse_order = {}
+
+    if orelse_fields:
+        available_fields = set(fields)
+
+        unhandled = dict(orelse_fields)
+
+        while unhandled:
+            for orelse_name, orelse in unhandled.items():
+                params = orelse.get_parameters()
+
+                if params <= available_fields:
+                    available_fields.add(orelse_name)
+                    orelse_order[orelse_name] = orelse
+                    del unhandled[orelse_name]
+                    break
+            else:
+                # we made one pass over unhandled without resolving anything
+                raise ValueError(
+                    f"Can not resolve dependencies of {unhandled}"
+                )
 
     class Config:
         """
@@ -96,19 +157,29 @@ def dataclass(cls):
             field_name: arg for arg, field_name in zip(args, fields)
         }
         input_kwargs.update(kwargs)
+
         validated_model = model(**input_kwargs)
         init_kwargs = validated_model.dict()
 
-        inferred_kwargs = {
-            key: InferOption(input_kwargs.get(key, INFER))
-            for key in inferred_fields
-        }
-        self.__class__.__infer__(
-            validated_model,
-            **inferred_kwargs,
-        )
-        for name, value in inferred_kwargs.items():
-            inferred_kwargs[name] = value.unwrap()
+        for orelse_name, orelse in orelse_order.items():
+            value = orelse.call(init_kwargs)
+            init_kwargs[orelse_name] = value
+
+        if eventual_fields:
+            eventual_kwargs = {
+                key: Eventual(getattr(validated_model, key, EVENTUAL))
+                for key in eventual_fields
+            }
+
+            self.__class__.__eventually__(
+                SimpleNamespace(**init_kwargs),
+                **eventual_kwargs,
+            )
+
+            for name, value in eventual_kwargs.items():
+                eventual_kwargs[name] = value.unwrap()
+
+            init_kwargs.update(eventual_kwargs)
 
         object.__setattr__(
             self,
@@ -121,12 +192,12 @@ def dataclass(cls):
             "__init_passed_kwargs__",
             {
                 key: value
-                for key, value in init_kwargs.items()
+                for key, value in validated_model.dict().items()
                 if key in input_kwargs
             },
         )
 
-        orig_init(self, **init_kwargs, **inferred_kwargs)
+        orig_init(self, **init_kwargs)
 
     dc.__init__ = _init_
     return dc
