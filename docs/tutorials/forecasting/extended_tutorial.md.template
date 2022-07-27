@@ -932,7 +932,7 @@ class MyEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1169,7 +1169,7 @@ class MyProbEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1448,7 +1448,7 @@ class MyProbEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
@@ -1825,7 +1825,7 @@ class MyProbRNNEstimator(GluonEstimator):
         return RepresentableBlockPredictor(
             input_transform=transformation + prediction_splitter,
             prediction_net=prediction_network,
-            batch_size=self.trainer.batch_size,
+            batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
         )
