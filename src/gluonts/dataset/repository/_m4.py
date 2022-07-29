@@ -13,10 +13,9 @@
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
-from gluonts.dataset import DatasetWriter
+from gluonts.dataset import pandas, DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.repository._util import metadata
 
@@ -31,6 +30,7 @@ def generate_m4_dataset(
     m4_dataset_url = (
         "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
     )
+    meta_info = pd.read_csv(f"{m4_dataset_url}/M4-info.csv", index_col=0)
     train_df = pd.read_csv(
         f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0
     )
@@ -38,47 +38,36 @@ def generate_m4_dataset(
         f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
     )
 
-    train_target_values = [ts[~np.isnan(ts)] for ts in train_df.values]
-
-    test_target_values = [
-        np.hstack([train_ts, test_ts])
-        for train_ts, test_ts in zip(train_target_values, test_df.values)
-    ]
-
-    if m4_freq == "Yearly":
+    train_dict = {}
+    test_dict = {}
+    for idx, row in train_df.iterrows():
+        target = row.dropna(axis=0)
         # some time series have more than 300 years which can not be
         # represented in pandas, this is probably due to a misclassification
         # of those time series as Yearly. We use only those time series with
         # fewer than 300 items for this reason.
-        train_target_values = [
-            ts for ts in train_target_values if len(ts) <= 300
-        ]
-        test_target_values = [
-            ts for ts in test_target_values if len(ts) <= 300
-        ]
-
-    # the original dataset did not include time stamps, so we use the earliest
-    # point available in pandas as the start date for each time series.
-    mock_start_dataset = "1750-01-01 00:00:00"
-
-    train_data = [
-        dict(
-            target=target,
-            start=mock_start_dataset,
-            feat_static_cat=[cat],
-            item_id=cat,
+        if m4_freq == "Yearly" and target.shape[0] > 300:
+            continue
+        start = pd.date_range(
+            meta_info.loc[idx, "StartingDate"],
+            freq=pandas_freq,
+            periods=target.shape[0],
         )
-        for cat, target in enumerate(train_target_values)
-    ]
-    test_data = [
-        dict(
-            target=target,
-            start=mock_start_dataset,
-            feat_static_cat=[cat],
-            item_id=cat,
+        train_dict[idx] = pd.DataFrame({"target": target, "start": start})
+
+    for idx, row in test_df.iterrows():
+        target = row.dropna(axis=0)
+        if m4_freq == "Yearly" and target.shape[0] > 300:
+            continue
+        start = pd.date_range(
+            meta_info.loc[idx, "StartingDate"],
+            freq=pandas_freq,
+            periods=target.shape[0],
         )
-        for cat, target in enumerate(test_target_values)
-    ]
+        test_dict[idx] = pd.DataFrame({"target": target, "start": start})
+
+    train_data = pandas.PandasDataset(dataframes=train_dict, timestamp="start")
+    test_data = pandas.PandasDataset(dataframes=test_dict, timestamp="start")
 
     meta = MetaData(
         **metadata(

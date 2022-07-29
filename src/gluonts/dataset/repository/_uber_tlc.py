@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib import request
 
 import pandas as pd
-from gluonts.dataset import DatasetWriter
+from gluonts.dataset import pandas, DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.repository._util import metadata
 
@@ -59,30 +59,20 @@ def generate_uber_dataset(
     # during a day or an hour.
     time_series_of_locations = list(uber_df.groupby(by="locationID"))
 
-    train_data = []
-    test_data = []
+    train_df = []
+    test_df = []
+    cat = []
     for locationID, df in time_series_of_locations:
         df.sort_index()
         df.index = pd.to_datetime(df.index)
 
-        count_series = df.resample(rule=freq_setting).size()
-        start_time = pd.Timestamp(df.index[0]).strftime("%Y-%m-%d %X")
-        target = count_series.values.tolist()
-        feat_static_cat = [locationID]
+        count_series = df.resample(rule="1D").size()
+        train_df.append(count_series[:-prediction_length])
+        test_df.append(count_series)
+        cat.append(locationID)
 
-        test_format_dict = {
-            "start": start_time,
-            "target": target,
-            "feat_static_cat": feat_static_cat,
-        }
-        test_data.append(test_format_dict)
-
-        train_format_dict = {
-            "start": start_time,
-            "target": target[:-prediction_length],
-            "feat_static_cat": feat_static_cat,
-        }
-        train_data.append(train_format_dict)
+    train_data = pandas.PandasDataset(dataframes=train_df, feat_static_cat=cat)
+    test_data = pandas.PandasDataset(dataframes=test_df, feat_static_cat=cat)
 
     meta = MetaData(
         **metadata(
