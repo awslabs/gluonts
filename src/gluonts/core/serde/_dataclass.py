@@ -55,6 +55,11 @@ class Eventual(Generic[T]):
         return self.value
 
 
+# OrElse should have `Any` type, meaning that we can do
+#     x: int = OrElse(...)
+# without mypy complaining. We achieve this by nominally deriving from Any
+# during type checking. Because it's not actually possible to derive from Any
+# in Python, we inherit from object during runtime instead.
 if TYPE_CHECKING:
     AnyLike = Any
 else:
@@ -63,17 +68,76 @@ else:
 
 @dataclasses.dataclass
 class OrElse(AnyLike):
+    """A default field for a dataclass, that uses a function to calculate the
+    value if none was passed.
+
+    The function can take arguments, which are other fields of the annotated
+    dataclass, which can also be `OrElse` fields. In case of circular
+    dependencies an error is thrown.
+
+    ::
+
+        @serde.dataclass
+        class X:
+            a: int
+            b: int = serde.OrElse(lambda a: a + 1)
+            c: int = serde.OrEsle(lambda c: c * 2)
+
+        x = X(1)
+        assert x.b == 2
+        assert x.c == 4
+    ```
+
+    """
+
     fn: Callable
+    parameters: dict = dataclasses.field(init=False)
 
-    def get_parameters(self):
-        return set(inspect.signature(self.fn).parameters)
+    def __post_init__(self):
+        self.parameters = set(inspect.signature(self.fn).parameters)
 
-    def call(self, values):
-        kwargs = {attr: values[attr] for attr in self.get_parameters()}
+    def _call(self, env):
+        kwargs = {attr: env[attr] for attr in self.parameters}
         return self.fn(**kwargs)
 
 
-def dataclass(cls):
+def dataclass(
+    cls=None,
+    /,
+    *,
+    init=True,
+    repr=True,
+    eq=True,
+    order=False,
+    unsafe_hash=False,
+    frozen=True,
+):
+    """Custom dataclass wrapper for serde.
+
+
+    This works similar to the ``dataclasses.dataclass`` and
+    ``pydantic.dataclasses.dataclass`` decorators. Similar to the ``pydantic``
+    version, this does type checking of arguments during runtime.
+    """
+
+    # assert frozen
+    assert init
+
+    if cls is None:
+        return _dataclass
+
+    return _dataclass(cls, init, repr, eq, order, unsafe_hash, frozen)
+
+
+def _dataclass(
+    cls,
+    init=True,
+    repr=True,
+    eq=True,
+    order=False,
+    unsafe_hash=False,
+    frozen=True,
+):
     fields = {}
     orelse_fields = {}
     eventual_fields = set()
@@ -119,7 +183,7 @@ def dataclass(cls):
 
         while unhandled:
             for orelse_name, orelse in unhandled.items():
-                params = orelse.get_parameters()
+                params = orelse.parameters
 
                 if params <= available_fields:
                     available_fields.add(orelse_name)
@@ -133,18 +197,19 @@ def dataclass(cls):
                 )
 
     class Config:
-        """
-        `Config <https://pydantic-docs.helpmanual.io/#model-config>`_ for the
-        Pydantic model inherited by all :func:`validated` initializers.
-
-        Allows the use of arbitrary type annotations in initializer parameters.
-        """
-
         arbitrary_types_allowed = True
 
     model = create_model(f"{cls.__name__}Model", __config__=Config, **fields)
 
-    dc = pydantic.dataclasses.dataclass(config=Config)(cls)
+    dc = pydantic.dataclasses.dataclass(
+        init=init,
+        repr=repr,
+        eq=eq,
+        order=order,
+        unsafe_hash=unsafe_hash,
+        frozen=frozen,
+        config=Config,
+    )(cls)
 
     orig_init = dc.__init__
 
@@ -161,7 +226,7 @@ def dataclass(cls):
         init_kwargs = validated_model.dict()
 
         for orelse_name, orelse in orelse_order.items():
-            value = orelse.call(init_kwargs)
+            value = orelse._call(init_kwargs)
             init_kwargs[orelse_name] = value
 
         if eventual_fields:
