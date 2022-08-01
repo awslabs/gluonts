@@ -23,6 +23,7 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install .
+        pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-prophet.txt
     - name: Test with pytest
       run: |
