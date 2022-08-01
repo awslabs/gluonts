@@ -251,10 +251,13 @@ class Evaluator:
         # Thus we set dtype=np.float64 to convert masked values back to NaNs
         # which are handled correctly by pandas Dataframes during
         # aggregation.
-        metrics_per_ts = metrics_per_ts.astype({
-            col: np.float64 for col in metrics_per_ts.columns
-            if col != "item_id"
-        })
+        metrics_per_ts = metrics_per_ts.astype(
+            {
+                col: np.float64
+                for col in metrics_per_ts.columns
+                if col != "item_id"
+            }
+        )
 
         return self.get_aggregate_metrics(metrics_per_ts)
 
