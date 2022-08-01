@@ -26,11 +26,12 @@ if not PROPHET_IS_INSTALLED:
 
 
 @pytest.mark.parametrize(
-    "freq", [
+    "freq",
+    [
         "1H",
         "2D",
         "3W",
-    ]
+    ],
 )
 def test_feat_dynamic_real_success(freq: str):
     params = dict(prediction_length=3, prophet_params=dict(n_changepoints=20))
