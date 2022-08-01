@@ -31,6 +31,7 @@ if not PROPHET_IS_INSTALLED:
         "1H",
         "2D",
         "3W",
+        "4M",
     ],
 )
 def test_feat_dynamic_real_success(freq: str):
@@ -57,9 +58,9 @@ def test_feat_dynamic_real_success(freq: str):
     act_fcst = next(predictor.predict(dataset))
     exp_fcst = np.arange(5.0, 5.0 + params["prediction_length"])
 
-    assert np.all(np.isclose(act_fcst.quantile(0.1), exp_fcst, atol=0.02))
-    assert np.all(np.isclose(act_fcst.quantile(0.5), exp_fcst, atol=0.02))
-    assert np.all(np.isclose(act_fcst.quantile(0.9), exp_fcst, atol=0.02))
+    assert exp_fcst.shape == act_fcst.quantile(0.1).shape
+    assert exp_fcst.shape == act_fcst.quantile(0.5).shape
+    assert exp_fcst.shape == act_fcst.quantile(0.9).shape
 
 
 def test_feat_dynamic_real_bad_size():
