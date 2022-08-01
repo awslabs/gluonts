@@ -25,7 +25,14 @@ if not PROPHET_IS_INSTALLED:
     pytest.skip(msg=skip_message, allow_module_level=True)
 
 
-def test_feat_dynamic_real_success():
+@pytest.mark.parametrize(
+    "freq", [
+        "1H",
+        "2D",
+        "3W",
+    ]
+)
+def test_feat_dynamic_real_success(freq: str):
     params = dict(prediction_length=3, prophet_params=dict(n_changepoints=20))
 
     dataset = ListDataset(
@@ -41,7 +48,7 @@ def test_feat_dynamic_real_success():
                 ),
             }
         ],
-        freq="1D",
+        freq=freq,
     )
 
     predictor = ProphetPredictor(**params)
