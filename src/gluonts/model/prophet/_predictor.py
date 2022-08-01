@@ -72,7 +72,7 @@ class ProphetDataEntry(NamedTuple):
                         start=self.start,
                         periods=self.train_length,
                         freq=self.start.freq,
-                    ),
+                    ).to_timestamp(),
                     "y": self.target,
                 },
                 **{
