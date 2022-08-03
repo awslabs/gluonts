@@ -44,7 +44,6 @@ The module also supports rolling splits::
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from dis import dis
 from typing import cast, Generator, Iterable, List, Optional, Tuple
 
 import numpy as np
