@@ -104,7 +104,7 @@ class DeepARTuningObjective:
         self.metric_type = metric_type
 
         self.train, test_template = split(dataset, offset=-self.prediction_length)
-        validation = list(test_template.generate_instances(prediction_length=prediction_length))
+        validation = test_template.generate_instances(prediction_length=prediction_length)
         self.validation_input = [entry[0] for entry in validation]
         self.validation_label = [dataentry_to_dataframe(entry[1]) for entry in validation]
     
