@@ -166,7 +166,6 @@ def test_split(date, offset, windows, distance, max_history):
             distance=distance,
             max_history=max_history,
         )
-        )
     )
 
     assert len(train) == len(dataset)
