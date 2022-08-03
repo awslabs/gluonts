@@ -251,6 +251,34 @@ def _check_split_length(
 
 
 @dataclass
+class TestIterable:
+    """
+    An iterable class used for wrapping test data.
+
+    Parameters
+    ----------
+    dataset:
+        Whole dataset used for testing.
+    splitter:
+        A specific splitter that knows how to slices training and
+        test data.
+    kwargs:
+        Parameters used for generating specific test instances.
+        See `TestTemplate.generate_instances`
+    """
+
+    dataset: Dataset
+    splitter: AbstractBaseSplitter
+    kwargs: dict
+
+    def __iter__(self):
+        yield from self.splitter._generate_test_slices(
+            self.dataset,
+            **self.kwargs,
+        )
+
+
+@dataclass
 class TestTemplate:
     """
     A class used for generating test data.
@@ -273,7 +301,7 @@ class TestTemplate:
         windows=1,
         distance=None,
         max_history=None,
-    ) -> Generator[Tuple[DataEntry, DataEntry], None, None]:
+    ) -> TestIterable:
         """
         Generate an iterator of test dataset, which includes input part and
         label part.
@@ -292,14 +320,13 @@ class TestTemplate:
             If given, all entries in the *test*-set have a max-length of
             `max_history`. This can be used to produce smaller file-sizes.
         """
-
-        yield from self.splitter._generate_test_slices(
-            self.dataset,
-            prediction_length=prediction_length,
-            windows=windows,
-            distance=distance,
-            max_history=max_history,
-        )
+        kwargs = {
+            "prediction_length": prediction_length,
+            "windows": windows,
+            "distance": distance,
+            "max_history": max_history,
+        }
+        return TestIterable(self.dataset, self.splitter, kwargs)
 
 
 @dataclass
