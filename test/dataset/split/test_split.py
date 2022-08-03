@@ -160,13 +160,12 @@ def test_split(date, offset, windows, distance, max_history):
     train = list(train)
 
     validation = list(
-        iter(
-            test_template.generate_instances(
-                prediction_length=prediction_length,
-                windows=windows,
-                distance=distance,
-                max_history=max_history,
-            )
+        test_template.generate_instances(
+            prediction_length=prediction_length,
+            windows=windows,
+            distance=distance,
+            max_history=max_history,
+        )
         )
     )
 
