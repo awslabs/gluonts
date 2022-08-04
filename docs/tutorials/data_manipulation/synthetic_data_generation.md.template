@@ -385,5 +385,3 @@ def write_to_file(recipe, length, num_ts, fields, fn):
             g.write(json.dumps(z))
             g.write('\n')
 ```
-
-&nbsp;

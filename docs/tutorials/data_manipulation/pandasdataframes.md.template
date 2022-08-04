@@ -461,5 +461,3 @@ for index, ax in zip(indices, axes):
     forecasts[index].plot(prediction_intervals=[90.], color='g')
     plt.legend(["observed", "predicted median", "predicted 90% quantile"])
 ```
-
-&nbsp;

@@ -121,5 +121,3 @@ test_pairs = test_template.generate_instances(
 
 plot_dataset_splitting(dataset, training_dataset, test_pairs)
 ```
-
-&nbsp;
