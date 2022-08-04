@@ -36,9 +36,10 @@ def check_github_event(default):
 
 
 def run_notebook(text, kernel_name, timeout) -> str:
-    # NOTE: we add two blank lines at the end to ensure
-    # that the final cell also runs
-    notebook = notedown.MarkdownReader().reads(text + "\n\n")
+    # We add two blank lines at the end to ensure
+    # that the final cell also runs.
+    text += "\n" * 2
+    notebook = notedown.MarkdownReader().reads(text)
 
     kwargs = {}
     if kernel_name is not None:
