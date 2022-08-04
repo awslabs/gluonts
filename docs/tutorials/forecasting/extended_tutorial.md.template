@@ -1873,4 +1873,4 @@ tss = list(ts_it)
 ```python
 plot_prob_forecasts(tss[0], forecasts[0])
 ```
-
+ 
