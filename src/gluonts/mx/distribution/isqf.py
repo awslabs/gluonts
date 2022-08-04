@@ -367,7 +367,8 @@ class ISQF(Distribution):
         # Where we evaluate in between points, use spline value for the one region.
         # Where outside, use quantile value.
         quantile = F.sum(
-            F.broadcast_mul(is_in_between, spline_val), axis=-1,
+            F.broadcast_mul(is_in_between, spline_val),
+            axis=-1,
         ) + F.sum(
             F.expand_dims(
                 F.broadcast_mul(1 - F.max(is_in_between, axis=-1), quantile),

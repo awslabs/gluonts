@@ -294,8 +294,12 @@ def test_time(
     num_samples: int,
 ):
 
-    spline_knots = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu())
-    spline_heights = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu())
+    spline_knots = mx.nd.ones(
+        shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu()
+    )
+    spline_heights = mx.nd.ones(
+        shape=(*batch_shape, (num_qk - 1), num_pieces), ctx=mx.cpu()
+    )
     beta_l = mx.nd.ones(shape=batch_shape, ctx=mx.cpu())
     beta_r = mx.nd.ones(shape=batch_shape, ctx=mx.cpu())
 
@@ -322,7 +326,10 @@ def test_time(
     samples = distr.sample()
 
     from timeit import default_timer as timer
+
     start = timer()
     distr.quantile_internal(samples, axis=0)
     end = timer()
-    print(f"batch_shape {batch_shape} | num_qk {num_qk} | num_pieces {num_pieces} | time {end-start}")
+    print(
+        f"batch_shape {batch_shape} | num_qk {num_qk} | num_pieces {num_pieces} | time {end-start}"
+    )
