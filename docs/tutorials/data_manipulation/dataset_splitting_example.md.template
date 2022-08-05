@@ -8,12 +8,13 @@ from gluonts.dataset.split.splitter import split
 ```
 
 This needs to be given:
+
 - the `dataset` that we want to split;
 - an `offset` or a `date`, but not both simultaneously. These two arguments are provided for the function to know how to slice training and test data, based on a fixed integer offset or a ``pandas.Period``, respectively.
 
 As a result, the `split` method returns the splited dataset, consisting of the training data `training_dataset` and a "test template" that knows how to generate input/output test pairs.
 
-## Data loading and processing
+## Loading a dataset 
 
 
 ```python
@@ -23,8 +24,6 @@ import matplotlib.pyplot as plt
 plt.rcParams["axes.grid"] = True
 plt.rcParams["figure.figsize"] = (20,3)
 ```
-
-### Get some datasets
 
 For our examples, we will use data from the following `csv` file, which is originally sampled every 5 minutes, but we resample at hourly frequency. Note that this makes for a dataset consisting of a single time series, but everything we show here applies to any dataset, regardless of how many series it contains.
 
@@ -51,7 +50,7 @@ from gluonts.dataset.pandas import PandasDataset
 dataset = PandasDataset(df, target="value")
 ```
 
-## Specific splitting examples
+## Train/test splits
 
 Let's define a few helper functions to visualize data splits.
 
