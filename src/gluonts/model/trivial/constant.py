@@ -76,5 +76,5 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=samples,
             start_date=forecast_start(item),
-            item_id=item.get("id"),
+            item_id=item.get("item_id"),
         )
