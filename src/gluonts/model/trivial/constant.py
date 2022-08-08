@@ -83,5 +83,5 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
             samples=samples,
             start_date=forecast_start(item),
             freq=self.freq,
-            item_id=item.get("id"),
+            item_id=item.get("item_id"),
         )

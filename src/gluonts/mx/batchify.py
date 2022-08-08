@@ -78,7 +78,16 @@ def stack(
     if isinstance(data[0], np.ndarray):
         data = mx.nd.array(data, dtype=dtype, ctx=ctx)
     elif isinstance(data[0], (list, tuple)):
-        return list(stack(t, ctx=ctx) for t in zip(*data))
+        return list(
+            stack(
+                t,
+                ctx=ctx,
+                dtype=dtype,
+                variable_length=variable_length,
+                is_right_pad=is_right_pad,
+            )
+            for t in zip(*data)
+        )
     return data
 
 
