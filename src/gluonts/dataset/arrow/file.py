@@ -109,7 +109,7 @@ class ArrowFile(File):
             yield self.reader.get_batch(batch_no)
 
     def __len__(self):
-        return sum(self.batch_offsets)
+        return self.batch_offsets[-1]
 
     def __iter__(self):
         for batch in self.iter_batches():
