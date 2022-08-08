@@ -244,12 +244,21 @@ class Evaluator:
                 f" elements={len(rows)}"
             )
 
+        metrics_per_ts = pd.DataFrame.from_records(rows)
+
         # If all entries of a target array are NaNs, the resulting metric will
         # have value "masked". Pandas does not handle masked values correctly.
         # Thus we set dtype=np.float64 to convert masked values back to NaNs
         # which are handled correctly by pandas Dataframes during
         # aggregation.
-        metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
+        metrics_per_ts = metrics_per_ts.astype(
+            {
+                col: np.float64
+                for col in metrics_per_ts.columns
+                if col != "item_id"
+            }
+        )
+
         return self.get_aggregate_metrics(metrics_per_ts)
 
     @staticmethod
