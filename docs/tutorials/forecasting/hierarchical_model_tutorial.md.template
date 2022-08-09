@@ -1,0 +1,177 @@
+# Hierarchical Model Tutorial
+
+
+This tutorial illustrates how to use GluonTS' deep-learning based hierarchical model
+`DeepVarHierarchical`. We first explain the data preparation for hierarchical/grouped time series,
+and then show the model training, prediction and evaluation using common use-cases.
+
+
+## Introduction
+
+The important aspect in using hierarchical models is the proper preparation of hierarchical
+time series data. The minimal requirements in building the hierarchical or grouped time series
+are the time series at the bottom-level of the hierarchy and the hierarchical/grouped
+aggregation matrix.
+`Gluonts` provides a simple way to construct hierarchical time series by reading bottom-level
+time series and the aggregation matrix from csv files.
+Here we first describe the preparation of hierarchical time series before discussing the
+training of the hierarchical model.
+
+
+## Preparation of Hierarchical Time Series
+
+The bottom level time series are assumed to be available in a csv file as columns.
+The csv file should also contain the index column listing the time stamps for each row.
+Note that the aggregated time series are automatically constructed and should not be provided.
+Here is an [example csv](https://gist.githubusercontent.com/rshyamsundar/39e57075743537c4100a716a7b7ec047/raw/f02f5aeadad73e3f3e9cf54478606d3507826492/example_bottom_ts.csv) of bottom level time series.
+Similarly, the aggregation matrix can also be read from a csv file;
+here is an [example](https://gist.githubusercontent.com/rshyamsundar/17084fd1f28021867bcf6f2d69d9b73a/raw/32780ca43f57a78f2d521a75e73b136b17f34a02/example_agg_mat.csv).
+Note that grouped time series can also be represented by an aggregation matrix in the same
+way as the hierarchical time series and hence the material presented here is also applicable to
+grouped time series.
+
+
+```python
+import pandas as pd
+from gluonts.dataset.hierarchical import HierarchicalTimeSeries
+
+# Load (only!) the time series at the bottom level of the hierarchy.
+ts_at_bottom_level_csv = (
+    "https://gist.githubusercontent.com/rshyamsundar/39e57075743537c4100a716a7b7ec047/"
+    "raw/f02f5aeadad73e3f3e9cf54478606d3507826492/example_bottom_ts.csv"
+)
+ts_at_bottom_level = pd.read_csv(
+    ts_at_bottom_level_csv,
+    index_col=0,
+    parse_dates=True,
+)
+
+# Make sure the dataframe has `PeriodIndex`.
+ts_at_bottom_level = ts_at_bottom_level.to_period()
+
+# Load the aggregation matrix `S`.
+S_csv = (
+    "https://gist.githubusercontent.com/rshyamsundar/17084fd1f28021867bcf6f2d69d9b73a/raw/"
+    "32780ca43f57a78f2d521a75e73b136b17f34a02/example_agg_mat.csv"
+)
+S = pd.read_csv(S_csv).values
+
+# Create `HierarchicalTimeSeries` object.
+hts = HierarchicalTimeSeries(
+    ts_at_bottom_level=ts_at_bottom_level,
+    S=S,
+)
+
+# You can access all the time series of the hierarchy using `ts_at_all_levels` property.
+hts.ts_at_all_levels.head()
+```
+
+## Use case 1 - Simple Model Training and Forecasting
+
+We now show the simplest use-case where we want to train the model on the whole dataset available
+and produce predictions for the future time steps.
+We assume that the hierarchical time series `hts` of type `HierarchicalTimeSeries` has already been
+constructed as described above.
+The first step is to convert this hierarchical time series to a `Dataset` on which
+mini-batch training can be run.
+Here we convert it into `gluonts.dataset.pandas.PandasDataset`.
+
+```python
+from gluonts.dataset.hierarchical import to_pandas_dataset
+
+dataset = to_pandas_dataset(hts=hts)
+```
+
+Once the dataset is created, it is straightforward to use the hierarchical estimator.
+Here, we fix the prediction length and choose a smaller number of epochs for a quick illustration.
+We train on the whole dataset and give the same as the input to the predictor to
+generate predictions (or forecasts) for future/unseen time steps.
+The final output `forecasts` is an instance of `gluonts.model.forecast.SampleForecast`
+containing sample-based forecasts for all the time series in the hierarchy.
+
+```python
+from gluonts.mx.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
+from gluonts.mx.trainer import Trainer
+
+prediction_length = 24
+estimator = DeepVARHierarchicalEstimator(
+    freq=hts.freq,
+    prediction_length=prediction_length,
+    trainer=Trainer(epochs=2),
+    target_dim=hts.num_ts,
+    S=S,
+)
+predictor = estimator.train(dataset)
+
+forecast_it = predictor.predict(dataset)
+
+# There is only one element in `forecast_it` containing forecasts for all the time series.
+forecasts = next(forecast_it)
+```
+
+
+## Use case 2 - Model Evaluation via Backtesting
+
+We now explain how the hierarchical model can be evaluated via backtesting.
+We assume that time series at the bottom level `ts_at_bottom_level` and the
+aggregation matrix `S` are already created as described above.
+We create the train-test split along the time axis by withholding the
+last `prediction_length` time points for evaluation and the remaining for training.
+
+```python
+prediction_length = 24
+hts_train = HierarchicalTimeSeries(
+    ts_at_bottom_level=ts_at_bottom_level.iloc[:-prediction_length, :],
+    S=S,
+)
+hts_withheld = HierarchicalTimeSeries(
+    ts_at_bottom_level=ts_at_bottom_level.iloc[-prediction_length:, :],
+    S=S,
+)
+```
+
+We convert `hts_train` into `PandasDataset` and train the hierarchical model on it.
+
+```python
+dataset_train = to_pandas_dataset(hts=hts_train)
+
+estimator = DeepVARHierarchicalEstimator(
+    freq=hts.freq,
+    prediction_length=prediction_length,
+    trainer=Trainer(epochs=2),
+    target_dim=hts_train.num_ts,
+    S=S,
+)
+
+predictor = estimator.train(dataset_train)
+```
+
+We pass the same `train_dataset` (used for training) to the predictor to
+obtain forecasts for the time points corresponding to the
+unseen/withheld observations.
+
+```python
+forecast_it = predictor.predict(dataset=dataset_train)
+```
+
+Once the forecasts are obtained, we can evaluate them against the withheld observations.
+`Gluonts` evaluator takes as input an iterator over the true (withheld) observations and
+the corresponding forecasts to do the evaluation.
+Our forecasts are already in the correct format and our withheld observations are in
+`hts_withheld`.
+We just need to convert `hts_withheld` to `PandasDataset` before calling the evaluator.
+
+```python
+from gluonts.evaluation import MultivariateEvaluator
+
+dataset_withheld = to_pandas_dataset(hts=hts_withheld)
+
+evaluator = MultivariateEvaluator()
+agg_metrics, item_metrics = evaluator(
+    ts_iterator=[dataset_withheld.dataframes],
+    fcst_iterator=forecast_it,
+)
+
+print(f"Mean (weighted) quantile loss over all time series: "
+      f"{agg_metrics['mean_wQuantileLoss']}")
+```
