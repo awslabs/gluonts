@@ -91,8 +91,8 @@ def aggregate_valid(
     """
     Filter all `nan` & `inf` values from `metric_per_ts`.
 
-    If all metrics in a column of `metric_per_ts` are `nan` or `+/-inf` the result
-    will be masked for that column.
+    If all metrics in a column of `metric_per_ts` are `nan` or `+/-inf`
+    the result will be masked for that column.
     """
     metric_per_ts = metric_per_ts[
         ~metric_per_ts.isin([np.nan, np.inf, -np.inf]).any(1)
