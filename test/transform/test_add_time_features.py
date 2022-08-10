@@ -22,8 +22,7 @@ from gluonts.dataset.util import to_pandas
 from gluonts.transform.feature import AddTimeFeatures
 from gluonts.time_feature import (
     TimeFeature,
-    WeekOfYear,
-    MonthOfYear,
+    month_of_year,
     time_features_from_frequency_str,
 )
 
@@ -61,7 +60,7 @@ def compute_time_features(
                 ],
                 freq=freq_str,
             ),
-            time_features_from_frequency_str(freq_str) + [MonthOfYear()],
+            time_features_from_frequency_str(freq_str) + [month_of_year],
         )
         for freq_str in [
             "2M",

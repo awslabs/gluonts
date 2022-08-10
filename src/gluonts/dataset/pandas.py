@@ -19,12 +19,12 @@ import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import valmap
 
-from gluonts.dataset.common import Dataset, DataEntry, ProcessDataEntry
+from gluonts.dataset.common import DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
 
 
 @dataclass
-class PandasDataset(Dataset):
+class PandasDataset:
     """
     A pandas.DataFrame-based dataset type.
 
@@ -305,4 +305,5 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
     False
     """
-    return (index[1:] - index[:-1] == index.freq).all()
+    other = pd.period_range(index[0], periods=len(index), freq=index.freq)
+    return (other == index).all()

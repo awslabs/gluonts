@@ -21,7 +21,7 @@ import pytest
 
 from gluonts.core.component import equals
 from gluonts.dataset.jsonl import encode_json
-from gluonts.model.trivial.mean import MeanPredictor
+from gluonts.model.trivial._estimator import MeanPredictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
@@ -67,7 +67,9 @@ def static_server(
     predictor.serialize(train_env.path.model)
 
     serve_env = ServeEnv(train_env.path.base)
-    settings = Settings(sagemaker_server_port=testutil.free_port())
+    settings = Settings(
+        sagemaker_server_port=testutil.free_port(), model_server_workers=1
+    )
     with testutil.temporary_server(serve_env, None, settings) as server:
         yield server
 
@@ -77,7 +79,9 @@ def dynamic_server(
     train_env: TrainEnv,
 ) -> ContextManager["testutil.ServerFacade"]:
     serve_env = ServeEnv(train_env.path.base)
-    settings = Settings(sagemaker_server_port=testutil.free_port())
+    settings = Settings(
+        sagemaker_server_port=testutil.free_port(), model_server_workers=1
+    )
     with testutil.temporary_server(
         serve_env, MeanPredictor, settings
     ) as server:

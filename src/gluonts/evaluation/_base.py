@@ -23,10 +23,10 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Mapping,
     Optional,
     Tuple,
     Union,
-    Mapping,
     cast,
 )
 
@@ -91,10 +91,12 @@ def aggregate_valid(
     """
     Filter all `nan` & `inf` values from `metric_per_ts`.
 
-    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the result
-    will be `np.ma.masked` for that column.
+    If all metrics in a column of `metric_per_ts` are `nan` or `+/-inf`
+    the result will be masked for that column.
     """
-    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    metric_per_ts = metric_per_ts[
+        ~metric_per_ts.isin([np.nan, np.inf, -np.inf]).any(axis=1)
+    ]
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
         for key, agg in agg_funs.items()
@@ -214,7 +216,7 @@ class Evaluator:
             zip(ts_iterator, fcst_iterator),
             total=num_series,
             desc="Running evaluation",
-        ) as it, np.errstate(invalid="ignore"):
+        ) as it, np.errstate(divide="ignore", invalid="ignore"):
             if self.num_workers and not sys.platform == "win32":
                 mp_pool = multiprocessing.Pool(
                     initializer=None, processes=self.num_workers
@@ -244,12 +246,21 @@ class Evaluator:
                 f" elements={len(rows)}"
             )
 
+        metrics_per_ts = pd.DataFrame.from_records(rows)
+
         # If all entries of a target array are NaNs, the resulting metric will
         # have value "masked". Pandas does not handle masked values correctly.
         # Thus we set dtype=np.float64 to convert masked values back to NaNs
         # which are handled correctly by pandas Dataframes during
         # aggregation.
-        metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
+        metrics_per_ts = metrics_per_ts.astype(
+            {
+                col: np.float64
+                for col in metrics_per_ts.columns
+                if col != "item_id"
+            }
+        )
+
         return self.get_aggregate_metrics(metrics_per_ts)
 
     @staticmethod

@@ -17,7 +17,7 @@ import pytest
 from flaky import flaky
 
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
-from gluonts.model.tpp.distribution import Loglogistic, Weibull
+from gluonts.mx.model.tpp.distribution import Loglogistic, Weibull
 
 from gluonts.mx.distribution import (
     Beta,

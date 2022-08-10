@@ -28,7 +28,7 @@ from gluonts.dataset.rolling_dataset import (
 )
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
 

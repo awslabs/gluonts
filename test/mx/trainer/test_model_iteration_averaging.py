@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
     NTA,

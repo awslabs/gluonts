@@ -181,6 +181,7 @@ def hybrid_block_to_symbol_block(
         ):
             export_symb_block(hb, model_dir_path, model_name)
             sb = import_symb_block(num_inputs, model_dir_path, model_name)
+            sb(*data_batch)
 
         return sb
 

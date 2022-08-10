@@ -22,10 +22,10 @@ from gluonts.mx.trainer import learning_rate_scheduler as lrs
     "base_lr, decay_factor, patience, minimum_lr, seq_loss_lr",
     [
         (
-            1e0,
+            1.0,
             0.5,
             3,  # decrease if no best score is found every 3 steps
-            1e-1,
+            0.1,
             [
                 (10, 1.0),
                 (9, 1.0),
@@ -110,21 +110,12 @@ def test_PatientMetricAttentiveScheduler(
     base_lr, decay_factor, patience, minimum_lr, seq_loss_lr
 ):
     lr_scheduler = lrs.MetricAttentiveScheduler(
-        # We construct the scheduler with a different rate, because we need
-        # to test that the optimizer can override this setting: this is
-        # consistent with how schedulers and optimizers operate in MXNet.
-        base_lr=10 * base_lr,
+        learning_rate=base_lr,
         decay_factor=decay_factor,
-        patience=patience,
-        objective="min",
-        min_lr=minimum_lr,
+        patience=lrs.Patience(patience, lrs.Min()),
+        min_learning_rate=minimum_lr,
     )
-
-    opt = mx.optimizer.Adam(learning_rate=base_lr, lr_scheduler=lr_scheduler)
 
     for loss, lr_exp in seq_loss_lr:
         lr_scheduler.step(loss)
-
-        # check multiple times just to be sure
-        for _ in range(3):
-            assert np.isclose(opt.learning_rate, lr_exp)
+        assert np.isclose(lr_scheduler.learning_rate, lr_exp)

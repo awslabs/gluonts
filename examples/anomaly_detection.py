@@ -26,7 +26,7 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.batchify import batchify

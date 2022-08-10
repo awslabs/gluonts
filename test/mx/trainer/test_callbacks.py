@@ -27,7 +27,7 @@ from gluonts.mx.trainer.model_iteration_averaging import (
     ModelIterationAveraging,
 )
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 
 
 def test_callbacklist():

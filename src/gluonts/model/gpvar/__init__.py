@@ -11,6 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import GPVAREstimator
+import warnings
+
+from gluonts.mx.model.gpvar import GPVAREstimator
+
+warnings.warn(
+    "The module gluonts.model.gpvar has been moved to "
+    "gluonts.mx.model.gpvar. In GluonTS v0.12 it will be no longer "
+    "possible to use the old path. Try to use 'from gluonts.mx import "
+    "GPVAREstimator'.",
+    FutureWarning,
+)
 
 __all__ = ["GPVAREstimator"]
