@@ -43,6 +43,7 @@ The module also supports rolling splits::
 """
 
 from abc import ABC, abstractmethod
+from cProfile import label
 from dataclasses import dataclass
 from typing import cast, Generator, Iterable, List, Optional, Tuple
 
@@ -276,6 +277,22 @@ class TestIterable:
             self.dataset,
             **self.kwargs,
         )
+
+    @property
+    def input(self):
+        for input, _ in self.splitter._generate_test_slices(
+            self.dataset,
+            **self.kwargs,
+        ):
+            yield input
+
+    @property
+    def label(self):
+        for _, label in self.splitter._generate_test_slices(
+            self.dataset,
+            **self.kwargs,
+        ):
+            yield label
 
 
 @dataclass

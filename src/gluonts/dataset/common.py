@@ -36,7 +36,7 @@ from gluonts import json
 from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
 from gluonts.exceptions import GluonTSDataError
-
+from gluonts.dataset.split.splitter import split
 
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl, DatasetWriter
@@ -87,8 +87,17 @@ class TrainDatasets(NamedTuple):
 
     metadata: MetaData
     train: Dataset
-    test: Optional[Dataset] = None
+    test_original: Optional[Dataset] = None
 
+    @property
+    def test(self):
+        assert self.metadata.prediction_length is not None
+        _, test_template = split(self.test_original, 
+                                 offset=-self.metadata.prediction_length)
+        return test_template.generate_instances(
+            prediction_length=self.metadata.prediction_length
+        )
+    
     def save(
         self,
         path_str: str,
@@ -118,10 +127,10 @@ class TrainDatasets(NamedTuple):
         train.mkdir(parents=True)
         writer.write_to_folder(self.train, train)
 
-        if self.test is not None:
+        if self.test_original is not None:
             test = path / "test"
             test.mkdir(parents=True)
-            writer.write_to_folder(self.test, test)
+            writer.write_to_folder(self.test_original, test)
 
 
 def infer_file_type(path):
@@ -457,4 +466,4 @@ def load_datasets(
         else None
     )
 
-    return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
+    return TrainDatasets(metadata=meta, train=train_ds, test_original=test_ds)
