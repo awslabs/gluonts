@@ -12,7 +12,7 @@ The important aspect in using hierarchical models is the proper preparation of h
 time series data. The minimal requirements in building the hierarchical or grouped time series
 are the time series at the bottom-level of the hierarchy and the hierarchical/grouped
 aggregation matrix.
-`Gluonts` provides a simple way to construct hierarchical time series by reading bottom-level
+`GluonTS` provides a simple way to construct hierarchical time series by reading bottom-level
 time series and the aggregation matrix from csv files.
 Here we first describe the preparation of hierarchical time series before discussing the
 training of the hierarchical model.
@@ -155,7 +155,7 @@ forecast_it = predictor.predict(dataset=dataset_train)
 ```
 
 Once the forecasts are obtained, we can evaluate them against the withheld observations.
-`Gluonts` evaluator takes as input an iterator over the true (withheld) observations and
+`GluonTS` evaluator takes as input an iterator over the true (withheld) observations and
 the corresponding forecasts to do the evaluation.
 Our forecasts are already in the correct format and our withheld observations are in
 `hts_withheld`.
