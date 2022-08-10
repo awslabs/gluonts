@@ -35,9 +35,10 @@ class HierarchicalTimeSeries:
         ts_at_bottom_level: pd.DataFrame,
         S: np.ndarray,
     ):
-        assert isinstance(
-            ts_at_bottom_level.index, pd.PeriodIndex
-        ), "Index of `ts_at_bottom_level` must be an instance of `pd.PeriodIndex`."
+        assert isinstance(ts_at_bottom_level.index, pd.PeriodIndex), (
+            "Index of `ts_at_bottom_level` must be an instance of "
+            "`pd.PeriodIndex`."
+        )
 
         self._freq = ts_at_bottom_level.index.freqstr
 
@@ -92,8 +93,8 @@ class HierarchicalTimeSeries:
         S
             Summation or aggregation matrix whose ordering should be consistent
             with the orderig of the columns of `ts_at_all_levels`.
-            In particular, the bottom `k x k` sub-matrix should be identity matrix,
-            where `k` is the number of leaves of the hierarchy.
+            In particular, the bottom `k x k` sub-matrix should be an identity
+            matrix, where `k` is the number of leaves of the hierarchy.
 
         Returns
         -------
@@ -112,7 +113,7 @@ class HierarchicalTimeSeries:
         )
 
         # Last `num_bottom_ts` rows contain the identity marix.
-        assert (S[num_agg_ts:, ] == np.eye(num_bottom_ts)).all(), (
+        assert (S[num_agg_ts:, :] == np.eye(num_bottom_ts)).all(), (
             f"The last {num_bottom_ts} rows of aggregation matrix `S`"
             f" should contain Identity matrix."
         )
@@ -175,7 +176,8 @@ def to_pandas_dataset(
             "Features dataframe `features_df` and the time series dataframe "
             "in `hts` do not have the same index: \n"
             f"Index of `features_df`: {feat_dynamic_real.index}, \n "
-            f"Index of `ts_at_all_levels` of `hts`: {hts.ts_at_all_levels.index}. \n "
+            f"Index of `ts_at_all_levels` of `hts`: "
+            f"{hts.ts_at_all_levels.index}. \n "
             "Check if the periods of these indices also match. \n"
         )
 
