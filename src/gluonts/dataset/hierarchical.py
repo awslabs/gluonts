@@ -112,7 +112,7 @@ class HierarchicalTimeSeries:
         )
 
         # Last `num_bottom_ts` rows contain the identity marix.
-        assert (S[num_agg_ts:,] == np.eye(num_bottom_ts)).all(), (
+        assert (S[num_agg_ts:, ] == np.eye(num_bottom_ts)).all(), (
             f"The last {num_bottom_ts} rows of aggregation matrix `S`"
             f" should contain Identity matrix."
         )
