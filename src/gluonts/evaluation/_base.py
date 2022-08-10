@@ -95,7 +95,7 @@ def aggregate_valid(
     the result will be masked for that column.
     """
     metric_per_ts = metric_per_ts[
-        ~metric_per_ts.isin([np.nan, np.inf, -np.inf]).any(1)
+        ~metric_per_ts.isin([np.nan, np.inf, -np.inf]).any(axis=1)
     ]
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
