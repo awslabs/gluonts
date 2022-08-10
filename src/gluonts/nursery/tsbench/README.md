@@ -1,9 +1,9 @@
 # TSBench
 
-This repository provides the code for TSBench, the most comprehensive evaluation of forecasting
-methods to this data. TSBench is presented in the following paper:
+This repository provides the code for TSBench which, as far as we know, is the most comprehensive evaluation of forecasting
+methods to this date. Please reference the following paper if you use the benchmark in your research:
 
-<tbd>
+**Multi-Objective Model Selection for Time Series Forecasting**. *Oliver Borchert, David Salinas, Valentin Flunkert, Tim Januschowski, Stephan Günnemann*. https://arxiv.org/abs/2202.08485
 
 ## Features
 
@@ -20,6 +20,8 @@ The code that is found in this repository provides the following features:
   across datasets. The surrogate models then allow to select models and hyperparameters for unseen
   datasets while considering multiple objectives (e.g. accuracy and latency).
 
+While we provide out-of-the-box scripts to schedule all datasets/methods combinations in parallel on SageMaker, the code should be easy to adapt on other environments given that we run in docker containers.
+  
 ## Installation
 
 Prior to installation, you may want to install all dependencies (Python, CUDA, Poetry). If you are
