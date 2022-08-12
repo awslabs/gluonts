@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model import Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx import Trainer
 
@@ -36,6 +36,7 @@ def test_simplefeedforward_symbol_block_serde():
 
         estimator = SimpleFeedForwardEstimator(
             prediction_length=10,
+            freq="D",
             trainer=Trainer(
                 epochs=2,
                 num_batches_per_epoch=5,
