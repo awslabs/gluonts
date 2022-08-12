@@ -20,6 +20,7 @@ DeepVAR [[Salinas et al. 2019][Salinas2019]]                | Global       | Mul
 GPVAR [[Salinas et al. 2019][Salinas2019]]                  | Global       | Multivariate             | RNN, Gaussian process | [MXNet][GPVAR]
 LSTNet [[Lai et al. 2018][Lai2018]]                         | Global       | Multivariate             | LSTM | [MXNet][LSTNet]
 DeepTPP [[Shchur et al. 2020][Shchur2020]]                  | Global       | Multivariate events      | RNN, temporal point process | [MXNet][DeepTPP]
+DeepVARHierarchical [[Rangapuram et al. 2021][Rangapuram2021]]                  | Global       | Hierarchical             | RNN | [MXNet][DeepVARHierarchical]
 RForecast [[Hyndman et al. 2008][Hyndman2008]]              | Local        | Univariate               | ARIMA, ETS, Croston, TBATS | [Wrapped R package][RForecast]
 Prophet [[Taylor et al. 2017][Taylor2017]]                  | Local        | Univariate               | - | [Wrapped Python package][Prophet]
 NaiveSeasonal [[Hyndman et al. 2018][Hyndman2018]]          | Local        | Univariate               | - | [Numpy][NaiveSeasonal]
@@ -28,6 +29,7 @@ NPTS                                                        | Local        | Uni
 
 <!-- Links to bibliography -->
 
+[Rangapuram2021]: https://proceedings.mlr.press/v139/rangapuram21a.html
 [Salinas2020]: https://doi.org/10.1016/j.ijforecast.2019.07.001
 [Rangapuram2018]: https://papers.nips.cc/paper/2018/hash/5cf68969fb67aa6082363a6d4e6468e2-Abstract.html
 [Wang2019]: https://proceedings.mlr.press/v97/wang19k.html
@@ -49,25 +51,26 @@ NPTS                                                        | Local        | Uni
 
 <!-- Links to code -->
 
-[DeepAR_mx]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/deepar/_estimator.py
+[DeepAR_mx]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/deepar/_estimator.py
 [DeepAR_torch]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/torch/model/deepar/estimator.py
-[DeepState]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/deepstate/_estimator.py
-[DeepFactor]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/deep_factor/_estimator.py
-[DeepRenewal]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/renewal/_estimator.py
-[GP]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/gp_forecaster/_estimator.py
-[MQDNN]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/seq2seq/_mq_dnn_estimator.py
-[NBeats]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/n_beats/_estimator.py
+[DeepState]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/deepstate/_estimator.py
+[DeepFactor]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/deep_factor/_estimator.py
+[DeepRenewal]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/renewal/_estimator.py
+[GP]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/gp_forecaster/_estimator.py
+[MQDNN]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/seq2seq/_mq_dnn_estimator.py
+[NBeats]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/n_beats/_estimator.py
 [Rotbaum]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/rotbaum/_estimator.py
-[SAN]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/san/_estimator.py
-[TFT]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/tft/_estimator.py
-[Transformer]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/transformer/_estimator.py
-[WaveNet]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/wavenet/_estimator.py
-[SFF_mx]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/simple_feedforward/_estimator.py
+[SAN]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/san/_estimator.py
+[TFT]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/tft/_estimator.py
+[Transformer]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/transformer/_estimator.py
+[WaveNet]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/wavenet/_estimator.py
+[SFF_mx]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/simple_feedforward/_estimator.py
 [SFF_torch]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/torch/model/simple_feedforward/estimator.py
-[DeepVAR]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/deepvar/_estimator.py
-[GPVAR]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/gpvar/_estimator.py
-[LSTNet]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/lstnet/_estimator.py
-[DeepTPP]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/tpp/deeptpp/_estimator.py
+[DeepVAR]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/deepvar/_estimator.py
+[DeepVARHierarchical]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/deepvar_hierarchical/_estimator.py
+[GPVAR]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/gpvar/_estimator.py
+[LSTNet]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/lstnet/_estimator.py
+[DeepTPP]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/mx/model/tpp/deeptpp/_estimator.py
 [RForecast]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/r_forecast/_predictor.py
 [Prophet]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/prophet/_predictor.py
 [NaiveSeasonal]: https://github.com/awslabs/gluon-ts/blob/dev/src/gluonts/model/seasonal_naive/_predictor.py
