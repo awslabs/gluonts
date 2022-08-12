@@ -14,10 +14,9 @@
 import tempfile
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
 
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.common import ListDataset
 from gluonts.model.predictor import Predictor
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx import Trainer
@@ -27,12 +26,13 @@ def test_simplefeedforward_symbol_block_serde():
     with tempfile.TemporaryDirectory(
         prefix="gluonts-predictor-temp-"
     ) as temp_dir:
-        dataset = [
-            {
-                "start": pd.Period("2022-01-01", freq="D"),
+        dataset = ListDataset(
+            [{
+                "start": "2022-01-01",
                 "target": np.random.normal(size=(200)),
-            }
-        ]
+            }],
+            freq="D",
+        )
 
         estimator = SimpleFeedForwardEstimator(
             prediction_length=10,
