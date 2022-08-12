@@ -19,7 +19,7 @@ import numpy as np
 
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model import Predictor
-from gluonts.mx.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.mx import Trainer
 
 
