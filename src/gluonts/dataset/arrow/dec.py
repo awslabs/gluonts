@@ -41,6 +41,7 @@ def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
     return arr
 
 
+
 @dataclass
 class ArrowDecoder:
     columns: Dict[str, int]
@@ -64,8 +65,8 @@ class ArrowDecoder:
             return row
 
     def decode_batch(self, batch):
+        """
         rows = zip(*batch)
-
         for raw_row in rows:
             row = {}
             for column_name, column_idx in self.columns.items():
@@ -76,7 +77,26 @@ class ArrowDecoder:
                 if shape_idx is not None:
                     shape = _arrow_to_py(raw_row[shape_idx])
                     value = value.reshape(shape)
+                row[column_name] = value
+            yield row
 
+        #yield from batch.to_pandas().to_dict("records")
+        """
+        for raw_row in batch.to_pandas().to_dict("records"):
+            row = {}
+            for column_name, _ in self.columns.items():
+                value = raw_row[column_name]
+                shape_col_name = f"{column_name}._np_shape"
+                shape = raw_row.get(shape_col_name)
+
+                if shape is not None:
+                    value = np.stack(value).reshape(shape)
+                if isinstance(value, np.ndarray):
+                    if isinstance(value[0], np.ndarray) and len(value.shape) == 1:
+                        value = np.stack(value)
                 row[column_name] = value
 
             yield row
+
+
+

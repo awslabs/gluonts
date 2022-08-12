@@ -64,6 +64,7 @@ def make_data(n: int):
 @pytest.mark.parametrize("flatten_arrays", [True, False])
 def test_arrow(writer, flatten_arrays):
     data = make_data(5)
+    writer.flatten_arrays = flatten_arrays
 
     with tempfile.TemporaryDirectory() as path:
         path = Path(path, "data.arrow")
