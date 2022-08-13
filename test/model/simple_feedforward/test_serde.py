@@ -27,10 +27,12 @@ def test_simplefeedforward_symbol_block_serde():
         prefix="gluonts-predictor-temp-"
     ) as temp_dir:
         dataset = ListDataset(
-            [{
-                "start": "2022-01-01",
-                "target": np.random.normal(size=(200)),
-            }],
+            [
+                {
+                    "start": "2022-01-01",
+                    "target": np.random.normal(size=(200)),
+                }
+            ],
             freq="D",
         )
 
