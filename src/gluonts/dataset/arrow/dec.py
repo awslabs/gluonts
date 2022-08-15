@@ -48,13 +48,8 @@ class ArrowDecoder:
 
     @classmethod
     def from_schema(cls, schema):
-        columns = []
+        return cls([column.name for column in schema if not column.name.endswith("._np_shape")])
 
-        for column in schema:
-            if not column.name.endswith("._np_shape"):
-                columns.append(column.name)
-
-        return cls(columns)
 
     def decode(self, batch, row_number):
         for row in self.decode_batch(batch.slice(row_number, row_number + 1)):
