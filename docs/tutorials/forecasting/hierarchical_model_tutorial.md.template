@@ -26,6 +26,8 @@ Note that the aggregated time series are automatically constructed and should no
 Here is an [example csv](https://gist.githubusercontent.com/rshyamsundar/39e57075743537c4100a716a7b7ec047/raw/f02f5aeadad73e3f3e9cf54478606d3507826492/example_bottom_ts.csv) of bottom level time series.
 Similarly, the aggregation matrix can also be read from a csv file;
 here is an [example](https://gist.githubusercontent.com/rshyamsundar/17084fd1f28021867bcf6f2d69d9b73a/raw/32780ca43f57a78f2d521a75e73b136b17f34a02/example_agg_mat.csv).
+We use the standard format for the summation matrix;
+e.g., see Eq. 10.3 of the textbook [Forecasting: Principles and Practice](https://otexts.com/fpp2/hts.html)
 Note that grouped time series can also be represented by an aggregation matrix in the same
 way as the hierarchical time series and hence the material presented here is also applicable to
 grouped time series.
@@ -40,14 +42,13 @@ ts_at_bottom_level_csv = (
     "https://gist.githubusercontent.com/rshyamsundar/39e57075743537c4100a716a7b7ec047/"
     "raw/f02f5aeadad73e3f3e9cf54478606d3507826492/example_bottom_ts.csv"
 )
+
+# Make sure the dataframe has `PeriodIndex` by explicitly casting it to `PeriodIndex`.
 ts_at_bottom_level = pd.read_csv(
     ts_at_bottom_level_csv,
     index_col=0,
     parse_dates=True,
-)
-
-# Make sure the dataframe has `PeriodIndex`.
-ts_at_bottom_level = ts_at_bottom_level.to_period()
+).to_period()
 
 # Load the aggregation matrix `S`.
 S_csv = (
@@ -56,17 +57,20 @@ S_csv = (
 )
 S = pd.read_csv(S_csv).values
 
-# Create `HierarchicalTimeSeries` object.
 hts = HierarchicalTimeSeries(
     ts_at_bottom_level=ts_at_bottom_level,
     S=S,
 )
+```
 
-# You can access all the time series of the hierarchy using `ts_at_all_levels` property.
+
+One can access all the time series of the hierarchy using `ts_at_all_levels` property.
+
+```python
 hts.ts_at_all_levels.head()
 ```
 
-## Use case 1 - Simple Model Training and Forecasting
+## Model Training and Forecasting
 
 We now show the simplest use-case where we want to train the model on the whole dataset available
 and produce predictions for the future time steps.
@@ -110,7 +114,7 @@ forecasts = next(forecast_it)
 ```
 
 
-## Use case 2 - Model Evaluation via Backtesting
+## Model Evaluation via Backtesting
 
 We now explain how the hierarchical model can be evaluated via backtesting.
 We assume that time series at the bottom level `ts_at_bottom_level` and the
