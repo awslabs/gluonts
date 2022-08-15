@@ -368,14 +368,17 @@ class DeepNPTSEstimator(Estimator):
 
             if sum_epoch_loss < best_loss:
                 best_loss = sum_epoch_loss
-                torch.save(net, "best-model.pt")
+                torch.save(net.state_dict(), "best-model-params.pt")
 
-            print(f"Loss for epoch {epoch_num}: {sum_epoch_loss / num_batches_per_epoch}")
+            print(
+                f"Loss for epoch {epoch_num}: "
+                f"{sum_epoch_loss / num_batches_per_epoch}"
+            )
 
         print(f"Best loss: {best_loss / num_batches_per_epoch}")
 
-        best_net = torch.load("best-model.pt")
-        return best_net
+        net.load_state_dict(torch.load("best-model-params.pt"), strict=False)
+        return net
 
     def get_predictor(
         self, net: torch.nn.Module, batch_size: int, device=torch.device("cpu")
