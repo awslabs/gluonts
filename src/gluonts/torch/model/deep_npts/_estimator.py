@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from copy import deepcopy
 from typing import List, Optional, Callable, Union
 from functools import partial
 
@@ -379,7 +380,7 @@ class DeepNPTSEstimator(Estimator):
 
             if sum_epoch_loss < best_loss:
                 best_loss = sum_epoch_loss
-                best_net = net
+                best_net = deepcopy(net)
 
             print(
                 f"Loss for epoch {epoch_num}: "
