@@ -60,8 +60,7 @@ class ArrowDecoder:
             row = {}
             for column_name in self.columns:
                 value = raw_row[column_name]
-                shape_col_name = f"{column_name}._np_shape"
-                shape = raw_row.get(shape_col_name)
+                shape = raw_row.get(f"{column_name}._np_shape")
 
                 if shape is not None:
                     value = np.stack(value).reshape(shape)
