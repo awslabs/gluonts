@@ -153,65 +153,61 @@ class HierarchicalTimeSeries:
 
         return ts_aggregated
 
+    def to_dataset(
+        self,
+        feat_dynamic_real: Optional[pd.DataFrame] = None,
+        ignore_last_n_targets: int = 0,
+    ):
+        """
+        Convert the hierarchical time series into
+        `gluonts.dataset.PandasDataset`.
 
-def to_pandas_dataset(
-    hts: HierarchicalTimeSeries,
-    feat_dynamic_real: Optional[pd.DataFrame] = None,
-    ignore_last_n_targets: int = 0,
-):
-    """
-    Construct an instance of `gluonts.dataset.PandasDataset` for
-    the given hierarchical time series.
+        Note: Currently only dynamic real features are used by the hierarchical
+        model. However, the model internally creates a categorical feature
+        to distinguish between different time series of the hierarchy.
 
-    Note: Currently only dynamic real features are used by the hierarchical
-    model. Note that the model internally creates a categorical feature
-    to distinguish between different time series of the hierarchy.
+        Parameters
+        ----------
+        feat_dynamic_real
+            A pandas dataframe containing dynamic features as columns.
+            Note that features of any (or all) time series in the hierachy
+            can be passed here, since all time series are considered together
+            as a single multivariate time series.
+        ignore_last_n_targets
+            For target and past dynamic features last ``ignore_last_n_targets``
+            elements are removed when iterating over the data set. This becomes
+            important when the predictor is called.
 
-    Parameters
-    ----------
-    hts
-        Hierarchical time series represented as an instance of
-        `HierarchicalTimeSeries`.
-    feat_dynamic_real
-        A pandas dataframe containing dynamic features as columns.
-        Note that features of any (or all) time series in the hierachy
-        can be passed here, since all time series are considered together
-        as a single multivariate time series.
-    ignore_last_n_targets
-        For target and past dynamic features last ``ignore_last_n_targets``
-        elements are removed when iterating over the data set. This becomes
-        important when the predictor is called.
+        Returns
+        -------
+        PandasDataset
+            An instance of `PandasDataset`.
 
-    Returns
-    -------
-    PandasDataset
-        An instance of `PandasDataset`.
+        """
+        if feat_dynamic_real is not None:
+            assert (self.ts_at_all_levels.index == feat_dynamic_real.index).all(), (
+                "Features dataframe `features_df` and the time series dataframe "
+                "in `hts` do not have the same index: \n"
+                f"Index of `features_df`: {feat_dynamic_real.index}, \n "
+                f"Index of `ts_at_all_levels` of `hts`: "
+                f"{self.ts_at_all_levels.index}. \n "
+                "Check if the periods of these indices also match. \n"
+            )
 
-    """
-    if feat_dynamic_real is not None:
-        assert (hts.ts_at_all_levels.index == feat_dynamic_real.index).all(), (
-            "Features dataframe `features_df` and the time series dataframe "
-            "in `hts` do not have the same index: \n"
-            f"Index of `features_df`: {feat_dynamic_real.index}, \n "
-            f"Index of `ts_at_all_levels` of `hts`: "
-            f"{hts.ts_at_all_levels.index}. \n "
-            "Check if the periods of these indices also match. \n"
+            feat_dynamic_real.columns = [
+                f"feat_dynamic_real_{col}" for col in feat_dynamic_real.columns
+            ]
+        else:
+            feat_dynamic_real = pd.DataFrame()
+
+        pandas_ds = PandasDataset(
+            dataframes=pd.concat(
+                [self.ts_at_all_levels, feat_dynamic_real],
+                axis=1,
+            ),
+            target=list(self.ts_at_all_levels.columns),
+            feat_dynamic_real=list(feat_dynamic_real.columns),
+            ignore_last_n_targets=ignore_last_n_targets,
         )
 
-        feat_dynamic_real.columns = [
-            f"feat_dynamic_real_{col}" for col in feat_dynamic_real.columns
-        ]
-    else:
-        feat_dynamic_real = pd.DataFrame()
-
-    pandas_ds = PandasDataset(
-        dataframes=pd.concat(
-            [hts.ts_at_all_levels, feat_dynamic_real],
-            axis=1,
-        ),
-        target=list(hts.ts_at_all_levels.columns),
-        feat_dynamic_real=list(feat_dynamic_real.columns),
-        ignore_last_n_targets=ignore_last_n_targets,
-    )
-
-    return pandas_ds
+        return pandas_ds

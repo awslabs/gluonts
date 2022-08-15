@@ -81,9 +81,7 @@ mini-batch training can be run.
 Here we convert it into `gluonts.dataset.pandas.PandasDataset`.
 
 ```python
-from gluonts.dataset.hierarchical import to_pandas_dataset
-
-dataset = to_pandas_dataset(hts=hts)
+dataset = hts.to_dataset()
 ```
 
 Once the dataset is created, it is straightforward to use the hierarchical estimator.
@@ -137,7 +135,7 @@ hts_withheld = HierarchicalTimeSeries(
 We convert `hts_train` into `PandasDataset` and train the hierarchical model on it.
 
 ```python
-dataset_train = to_pandas_dataset(hts=hts_train)
+dataset_train = hts_train.to_dataset()
 
 estimator = DeepVARHierarchicalEstimator(
     freq=hts.freq,
@@ -168,7 +166,7 @@ We just need to convert `hts_withheld` to `PandasDataset` before calling the eva
 ```python
 from gluonts.evaluation import MultivariateEvaluator
 
-dataset_withheld = to_pandas_dataset(hts=hts_withheld)
+dataset_withheld = hts_withheld.to_dataset()
 
 evaluator = MultivariateEvaluator()
 agg_metrics, item_metrics = evaluator(

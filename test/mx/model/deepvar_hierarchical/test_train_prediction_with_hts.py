@@ -18,10 +18,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.dataset.hierarchical import (
-    HierarchicalTimeSeries,
-    to_pandas_dataset,
-)
+from gluonts.dataset.hierarchical import HierarchicalTimeSeries
 from gluonts.mx.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
 from gluonts.mx.trainer import Trainer
 
@@ -61,7 +58,7 @@ def test_train_prediction(features_df: pd.DataFrame):
         S=S,
     )
 
-    dataset = to_pandas_dataset(hts=hts, feat_dynamic_real=features_df)
+    dataset = hts.to_dataset(feat_dynamic_real=features_df)
 
     estimator = DeepVARHierarchicalEstimator(
         freq=hts.freq,
