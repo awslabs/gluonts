@@ -377,8 +377,21 @@ class DeepNPTSEstimator(Estimator):
 
         print(f"Best loss: {best_loss / num_batches_per_epoch}")
 
-        net.load_state_dict(torch.load("best-model-params.pt"), strict=False)
-        return net
+        best_net = self.network_type(
+            context_length=self.context_length,
+            num_hidden_nodes=self.num_hidden_nodes,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            num_time_features=self.num_time_features,
+            input_scaling=self.input_scaling,
+            dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm,
+        )
+        best_net.load_state_dict(
+            torch.load("best-model-params.pt"),
+            strict=False
+        )
+        return best_net
 
     def get_predictor(
         self, net: torch.nn.Module, batch_size: int, device=torch.device("cpu")
