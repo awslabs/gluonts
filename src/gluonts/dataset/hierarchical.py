@@ -188,8 +188,8 @@ class HierarchicalTimeSeries:
             assert (
                 self.ts_at_all_levels.index == feat_dynamic_real.index
             ).all(), (
-                "Features dataframe `features_df` and the time series dataframe "
-                "in `hts` do not have the same index: \n"
+                "Features dataframe `features_df` and the time series "
+                "dataframe in `hts` do not have the same index: \n"
                 f"Index of `features_df`: {feat_dynamic_real.index}, \n "
                 f"Index of `ts_at_all_levels` of `hts`: "
                 f"{self.ts_at_all_levels.index}. \n "
