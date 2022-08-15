@@ -45,55 +45,33 @@ def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
 @dataclass
 class ArrowDecoder:
     columns: Dict[str, int]
-    ndarray_columns: Dict[str, int]
 
     @classmethod
     def from_schema(cls, schema):
-        columns = {}
-        ndarray_columns = {}
+        columns = []
 
-        for idx, column in enumerate(schema):
-            if column.name.endswith("._np_shape"):
-                ndarray_columns[(column.name.rsplit(".", 1)[0])] = idx
-            else:
-                columns[column.name] = idx
+        for column in schema:
+            if not column.name.endswith("._np_shape"):
+                columns.append(column.name)
 
-        return cls(columns, ndarray_columns)
+        return cls(columns)
 
     def decode(self, batch, row_number):
         for row in self.decode_batch(batch.slice(row_number, row_number + 1)):
             return row
 
     def decode_batch(self, batch):
-        """
-        rows = zip(*batch)
-        for raw_row in rows:
-            row = {}
-            for column_name, column_idx in self.columns.items():
-                value = _arrow_to_py(raw_row[column_idx])
-
-                shape_idx = self.ndarray_columns.get(column_name)
-
-                if shape_idx is not None:
-                    shape = _arrow_to_py(raw_row[shape_idx])
-                    value = value.reshape(shape)
-                row[column_name] = value
-            yield row
-
-        #yield from batch.to_pandas().to_dict("records")
-        """
         for raw_row in batch.to_pandas().to_dict("records"):
             row = {}
-            for column_name, _ in self.columns.items():
+            for column_name in self.columns:
                 value = raw_row[column_name]
                 shape_col_name = f"{column_name}._np_shape"
                 shape = raw_row.get(shape_col_name)
 
                 if shape is not None:
                     value = np.stack(value).reshape(shape)
-                if isinstance(value, np.ndarray):
-                    if isinstance(value[0], np.ndarray) and len(value.shape) == 1:
-                        value = np.stack(value)
+                if isinstance(value, np.ndarray) and isinstance(value[0], np.ndarray) and len(value.shape) == 1:
+                    value = np.stack(value)
                 row[column_name] = value
 
             yield row
