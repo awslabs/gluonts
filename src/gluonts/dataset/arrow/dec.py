@@ -41,15 +41,19 @@ def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
     return arr
 
 
-
 @dataclass
 class ArrowDecoder:
     columns: Dict[str, int]
 
     @classmethod
     def from_schema(cls, schema):
-        return cls([column.name for column in schema if not column.name.endswith("._np_shape")])
-
+        return cls(
+            [
+                column.name
+                for column in schema
+                if not column.name.endswith("._np_shape")
+            ]
+        )
 
     def decode(self, batch, row_number):
         for row in self.decode_batch(batch.slice(row_number, row_number + 1)):
@@ -64,11 +68,12 @@ class ArrowDecoder:
 
                 if shape is not None:
                     value = np.stack(value).reshape(shape)
-                if isinstance(value, np.ndarray) and isinstance(value[0], np.ndarray) and len(value.shape) == 1:
+                if (
+                    isinstance(value, np.ndarray)
+                    and isinstance(value[0], np.ndarray)
+                    and len(value.shape) == 1
+                ):
                     value = np.stack(value)
                 row[column_name] = value
 
             yield row
-
-
-
