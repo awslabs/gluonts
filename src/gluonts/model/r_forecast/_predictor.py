@@ -249,6 +249,9 @@ class RForecastPredictor(RepresentablePredictor):
 
         for data in dataset:
             if self.trunc_length:
+                data["start"] = data["start"] + (
+                    data["target"].shape[-1] - self.trunc_length
+                )
                 data["target"] = data["target"][-self.trunc_length :]
 
             params = self.params.copy()
