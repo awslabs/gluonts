@@ -74,6 +74,7 @@ def generate_uber_dataset(
             "start": start_time,
             "target": target,
             "feat_static_cat": feat_static_cat,
+            "item_id": locationID,
         }
         test_data.append(test_format_dict)
 
@@ -81,6 +82,7 @@ def generate_uber_dataset(
             "start": start_time,
             "target": target[:-prediction_length],
             "feat_static_cat": feat_static_cat,
+            "item_id": locationID,
         }
         train_data.append(train_format_dict)
 
