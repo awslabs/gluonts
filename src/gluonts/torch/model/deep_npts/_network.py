@@ -187,7 +187,7 @@ class DeepNPTSNetwork(nn.Module):
 
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
-            (embedded_cat, torch.tensor(feat_static_real, requires_grad=False)),
+            (embedded_cat, torch.tensor(feat_static_real)),
             dim=1,
         )
         time_features = torch.cat(
