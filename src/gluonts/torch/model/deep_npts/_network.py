@@ -148,7 +148,7 @@ class DeepNPTSNetwork(nn.Module):
         for in_features, out_features in zip(dimensions[:-1], dimensions[1:]):
             modules += [nn.Linear(in_features, out_features), nn.ReLU()]
             if self.batch_norm:
-                modules.append(nn.BatchNorm1d(in_features))
+                modules.append(nn.BatchNorm1d(out_features))
             if self.dropout_rate:
                 modules.append(nn.Dropout(self.dropout_rate))
 
