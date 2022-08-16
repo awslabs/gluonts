@@ -29,7 +29,7 @@ from gluonts.torch.model.deep_npts import (
 )
 
 
-@pytest.mark.parametrize("batch_norm", [False])
+@pytest.mark.parametrize("batch_norm", [True, False])
 @pytest.mark.parametrize(
     "input_scaling", [None, "min_max_scaling", "standard_normal_scaling"]
 )
