@@ -146,11 +146,11 @@ class DeepNPTSNetwork(nn.Module):
         ] + num_hidden_nodes
         modules: List[nn.Module] = []
         for in_features, out_features in zip(dimensions[:-1], dimensions[1:]):
-            modules += [nn.Linear(in_features, out_features), nn.ReLU()]
             if self.dropout_rate:
                 modules.append(nn.Dropout(self.dropout_rate))
             if self.batch_norm:
-                modules.append(nn.BatchNorm1d(out_features))
+                modules.append(nn.BatchNorm1d(in_features))
+            modules += [nn.Linear(in_features, out_features), nn.ReLU()]
 
         self.model = nn.Sequential(*modules)
         self.model.apply(partial(init_weights, scale=0.07))
