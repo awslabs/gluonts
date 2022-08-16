@@ -377,7 +377,7 @@ class DeepNPTSEstimator(Estimator):
 
         print(f"Best loss: {best_loss / num_batches_per_epoch}")
 
-        best_net = torch.load("best-model.pt")
+        best_net = torch.load("best-model.pt", map_location="cpu")
         return best_net
 
     def get_predictor(
