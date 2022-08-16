@@ -388,7 +388,8 @@ class DeepNPTSEstimator(Estimator):
             batch_norm=self.batch_norm,
         )
         best_net.load_state_dict(
-            torch.load("best-model-params.pt"), strict=False,
+            torch.load("best-model-params.pt"),
+            strict=False,
         )
 
         return best_net
