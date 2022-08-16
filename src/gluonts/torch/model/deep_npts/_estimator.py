@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from copy import deepcopy
 from typing import List, Optional, Callable, Union
 from functools import partial
 
@@ -344,17 +343,6 @@ class DeepNPTSEstimator(Estimator):
             batch_norm=self.batch_norm,
         )
 
-        best_net = self.network_type(
-            context_length=self.context_length,
-            num_hidden_nodes=self.num_hidden_nodes,
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            num_time_features=self.num_time_features,
-            input_scaling=self.input_scaling,
-            dropout_rate=self.dropout_rate,
-            batch_norm=self.batch_norm,
-        )
-
         optimizer = torch.optim.Adam(net.parameters(), lr=lr)
 
         best_loss = float("inf")
@@ -380,7 +368,7 @@ class DeepNPTSEstimator(Estimator):
 
             if sum_epoch_loss < best_loss:
                 best_loss = sum_epoch_loss
-                best_net = deepcopy(net)
+                torch.save(net.state_dict(), "best-model-params.pt")
 
             print(
                 f"Loss for epoch {epoch_num}: "
@@ -388,6 +376,18 @@ class DeepNPTSEstimator(Estimator):
             )
 
         print(f"Best loss: {best_loss / num_batches_per_epoch}")
+
+        best_net = self.network_type(
+            context_length=self.context_length,
+            num_hidden_nodes=self.num_hidden_nodes,
+            cardinality=self.cardinality,
+            embedding_dimension=self.embedding_dimension,
+            num_time_features=self.num_time_features,
+            input_scaling=self.input_scaling,
+            dropout_rate=self.dropout_rate,
+            batch_norm=self.batch_norm,
+        )
+        best_net.load_state_dict(torch.load("best-model-params.pt"))
 
         return best_net
 
