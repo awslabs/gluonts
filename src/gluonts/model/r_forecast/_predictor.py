@@ -249,6 +249,8 @@ class RForecastPredictor(RepresentablePredictor):
 
         for data in dataset:
             if self.trunc_length:
+                shift_by = max(data["target"].shape[0] - self.trunc_length, 0)
+                data["start"] = data["start"] + shift_by
                 data["target"] = data["target"][-self.trunc_length :]
 
             params = self.params.copy()
