@@ -15,7 +15,7 @@ import pytest
 
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
-from gluonts.dataset.util import forecast_start
+from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
@@ -97,6 +97,16 @@ def test_forecasts(method_name):
     assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
     assert agg_metrics["NRMSE"] < TOLERANCE
     assert agg_metrics["RMSE"] < TOLERANCE
+
+    trunc_length = prediction_length
+
+    predictor = RForecastPredictor(**params, trunc_length=trunc_length)
+    predictions = list(predictor.predict(train_dataset))
+
+    assert all(
+        prediction.start_date == to_pandas(data).index[-1] + 1
+        for data, prediction in zip(train_dataset, predictions)
+    )
 
 
 def test_r_predictor_serialization():
