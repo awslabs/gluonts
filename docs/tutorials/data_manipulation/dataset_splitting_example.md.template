@@ -4,7 +4,7 @@ In this notebook, we are going to show how to split the entries of a dataset, al
 
 
 ```python
-from gluonts.dataset.split.splitter import split
+from gluonts.dataset.split import split
 ```
 
 This needs to be given:

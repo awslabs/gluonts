@@ -64,7 +64,7 @@ plt.show()
 ```python
 import optuna
 import torch
-from gluonts.dataset.split.splitter import split
+from gluonts.dataset.split import split
 from gluonts.evaluation import Evaluator
 from gluonts.torch.model.deepar import DeepAREstimator
 ```
