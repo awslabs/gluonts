@@ -129,7 +129,9 @@ class MultivariateGrouper:
         logging.info("group training time-series to datasets")
 
         grouped_data = self._transform_target(self._align_data_entry, dataset)
-        fields = [data.keys() for data in dataset]
+        for data in dataset:
+            fields = data.keys()
+            break
         if FieldName.FEAT_DYNAMIC_REAL in fields:
             grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
                 [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
@@ -160,7 +162,9 @@ class MultivariateGrouper:
             grouped_data[FieldName.TARGET] = np.array(
                 list(dataset_at_test_date), dtype=np.float32
             )
-            fields = [data.keys() for data in dataset]
+            for data in dataset:
+                fields = data.keys()
+                break
             if FieldName.FEAT_DYNAMIC_REAL in fields:
                 grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
                     [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
