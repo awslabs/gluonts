@@ -90,7 +90,7 @@ class ScaleHistogram:
     def __str__(self):
         string_repr = [
             "count of scales in {min}-{max}:{count}".format(
-                min=self._base**base_index - 1,
+                min=self._base ** base_index - 1,
                 max=self._base ** (base_index + 1) - 1,
                 count=count,
             )
@@ -176,6 +176,10 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
 
             # TARGET
             target = ts[FieldName.TARGET]
+            if target.ndim == 1:
+                target_length = len(target)
+            else:
+                target_length = len(target[0])
             observed_target = target[~np.isnan(target)]
             num_observations = len(observed_target)
 
@@ -294,13 +298,13 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 )
                 num_feat_dynamic_cat_time_steps = len(feat_dynamic_cat[0])
                 assert_data_error(
-                    num_feat_dynamic_cat_time_steps == len(target),
+                    num_feat_dynamic_cat_time_steps == target_length,
                     "Each feature in feat_dynamic_cat has to have the same"
                     " length as the target. Found an instance with"
                     " feat_dynamic_cat of length {} and a target of"
                     " length {}.",
                     num_feat_dynamic_cat_time_steps,
-                    len(target),
+                    target_length,
                 )
 
             # FEAT_DYNAMIC_REAL
@@ -341,13 +345,13 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
                 )
                 num_feat_dynamic_real_time_steps = len(feat_dynamic_real[0])
                 assert_data_error(
-                    num_feat_dynamic_real_time_steps == len(target),
+                    num_feat_dynamic_real_time_steps == target_length,
                     "Each feature in feat_dynamic_real has to have the same"
                     " length as the target. Found an instance with"
                     " feat_dynamic_real of length {} and a target of"
                     " length {}.",
                     num_feat_dynamic_real_time_steps,
-                    len(target),
+                    target_length,
                 )
 
             # PAST_FEAT_DYNAMIC_REAL
