@@ -16,7 +16,8 @@ from functools import partial
 import numpy as np
 import pytest
 
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
+from gluonts.mx.distribution import PiecewiseLinearOutput, StudentTOutput
 from gluonts.mx.trainer import Trainer
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
@@ -106,11 +107,18 @@ common_estimator_hps = dict(
         ),
     ],
 )
+@pytest.mark.parametrize(
+    "distr_output", [StudentTOutput(), PiecewiseLinearOutput(num_pieces=5)]
+)
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("impute_missing_values", [False, True])
-def test_deepar_smoke(estimator, datasets, dtype, impute_missing_values):
+def test_deepar_smoke(
+    distr_output, estimator, datasets, dtype, impute_missing_values
+):
     estimator = estimator(
-        dtype=dtype, impute_missing_values=impute_missing_values
+        distr_output=distr_output,
+        dtype=dtype,
+        impute_missing_values=impute_missing_values,
     )
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
