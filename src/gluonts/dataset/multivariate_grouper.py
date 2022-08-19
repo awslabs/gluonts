@@ -129,9 +129,11 @@ class MultivariateGrouper:
         logging.info("group training time-series to datasets")
 
         grouped_data = self._transform_target(self._align_data_entry, dataset)
-        grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
-            [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
-        )
+        fields = [data.keys() for data in dataset]
+        if FieldName.FEAT_DYNAMIC_REAL in fields:
+            grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+            )
         grouped_data = self._restrict_max_dimensionality(grouped_data)
         grouped_data[FieldName.START] = self.first_timestamp
         grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -158,9 +160,11 @@ class MultivariateGrouper:
             grouped_data[FieldName.TARGET] = np.array(
                 list(dataset_at_test_date), dtype=np.float32
             )
-            grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
-                [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
-            )
+            fields = [data.keys() for data in dataset]
+            if FieldName.FEAT_DYNAMIC_REAL in fields:
+                grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                    [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+                )
             grouped_data = self._restrict_max_dimensionality(grouped_data)
             grouped_data[FieldName.START] = self.first_timestamp
             grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -218,9 +222,10 @@ class MultivariateGrouper:
             data[FieldName.TARGET] = data[FieldName.TARGET][
                 -self.max_target_dimension :, :
             ]
-            data[FieldName.FEAT_DYNAMIC_REAL] = data[
-                FieldName.FEAT_DYNAMIC_REAL
-            ][-self.max_target_dimension :, :]
+            if FieldName.FEAT_DYNAMIC_REAL in data.keys():
+                data[FieldName.FEAT_DYNAMIC_REAL] = data[
+                    FieldName.FEAT_DYNAMIC_REAL
+                ][-self.max_target_dimension :, :]
         return data
 
     @staticmethod
