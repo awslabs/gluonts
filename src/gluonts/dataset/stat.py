@@ -90,7 +90,7 @@ class ScaleHistogram:
     def __str__(self):
         string_repr = [
             "count of scales in {min}-{max}:{count}".format(
-                min=self._base ** base_index - 1,
+                min=self._base**base_index - 1,
                 max=self._base ** (base_index + 1) - 1,
                 count=count,
             )
