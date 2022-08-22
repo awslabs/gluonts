@@ -15,36 +15,65 @@
 Train/test splitter
 ~~~~~~~~~~~~~~~~~~~
 
+.. testsetup:: *
+
+    import pandas as pd
+    import numpy as np
+    from gluonts.dataset.split import OffsetSplitter, DateSplitter
+    whole_dataset = [
+        {"start": pd.Period("2018-01-01", freq="D"), "target": np.arange(50)},
+        {"start": pd.Period("2018-01-01", freq="D"), "target": np.arange(50)},
+    ]
+
 This module defines strategies to split a whole dataset into train and test
-subsets.
+subsets. The :func:`split` function can also be used to trigger their logic.
 
 For uniform datasets, where all time-series start and end at the same point in
-time `OffsetSplitter` can be used::
+time :class:`OffsetSplitter` can be used::
 
-    splitter = OffsetSplitter(prediction_length=24, split_offset=24)
-    train, test = splitter.split(whole_dataset)
+.. testcode::
 
-For all other datasets, the more flexible `DateSplitter` can be used::
+    splitter = OffsetSplitter(offset=7)
+    train, test_template = splitter.split(whole_dataset)
 
-    splitter = DateSplitter(
-        prediction_length=24,
-        split_date=pd.Period('2018-01-31', freq='D')
-    )
-    train, test = splitter.split(whole_dataset)
+For all other datasets, the more flexible :class:`DateSplitter` can be used::
 
-The module also supports rolling splits::
+.. testcode::
 
     splitter = DateSplitter(
-        prediction_length=24,
-        split_date=pd.Period('2018-01-31', freq='D'), 
-        windows=7
+        date=pd.Period('2018-01-31', freq='D')
     )
-    train, test = splitter.split(whole_dataset)
+    train, test_template = splitter.split(whole_dataset)
+
+In the above examples, the ``train`` output is a regular ``Dataset`` that can
+be used for training purposes; ``test_template`` can generate test instances
+as follows::
+
+.. testcode::
+
+    test_dataset = test_template.generate_instances(
+        prediction_length=7,
+        windows=2,
+    )
+
+The ``windows`` argument controls how many test windows to generate from each
+entry in the original dataset. Each window will begin after the split point,
+and so will not contain any training data. By default, windows are
+non-overlapping, but this can be controlled with the ``distance`` optional
+argument.
+
+.. testcode::
+
+    test_dataset = test_template.generate_instances(
+        prediction_length=7,
+        windows=2,
+        distance=3, # windows are three time steps apart from each other
+    )
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import cast, Generator, Iterable, List, Optional, Tuple
+from typing import cast, Generator, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -194,21 +223,25 @@ class AbstractBaseSplitter(ABC):
         else:
             return item
 
-    def split(self, dataset: Dataset):
-        test_data = TestTemplate(dataset=dataset, splitter=self)
-        train_data = TrainingDataset(dataset=dataset, splitter=self)
+    def split(
+        self, dataset: Dataset
+    ) -> Tuple["TrainingDataset", "TestTemplate"]:
+        return (
+            TrainingDataset(dataset=dataset, splitter=self),
+            TestTemplate(dataset=dataset, splitter=self),
+        )
 
-        return train_data, test_data
-
-    def _generate_train_slices(self, items: List[DataEntry]):
-        for item in map(TimeSeriesSlice.from_data_entry, items):
-            train = self._train_slice(item)
+    def _generate_train_slices(
+        self, dataset: Dataset
+    ) -> Generator[DataEntry, None, None]:
+        for entry in map(TimeSeriesSlice.from_data_entry, dataset):
+            train = self._train_slice(entry)
 
             yield train.to_data_entry()
 
     def _generate_test_slices(
         self,
-        items: Dataset,
+        dataset: Dataset,
         prediction_length: int,
         windows: int = 1,
         distance: Optional[int] = None,
@@ -217,13 +250,13 @@ class AbstractBaseSplitter(ABC):
         if distance is None:
             distance = prediction_length
 
-        for item in map(TimeSeriesSlice.from_data_entry, items):
-            train = self._train_slice(item)
+        for entry in map(TimeSeriesSlice.from_data_entry, dataset):
+            train = self._train_slice(entry)
 
             for window in range(windows):
                 offset = window * distance
                 test = self._test_slice(
-                    item, prediction_length=prediction_length, offset=offset
+                    entry, prediction_length=prediction_length, offset=offset
                 )
 
                 _check_split_length(
@@ -251,9 +284,83 @@ def _check_split_length(
 
 
 @dataclass
-class TestIterable:
+class OffsetSplitter(AbstractBaseSplitter):
     """
-    An iterable class used for wrapping test data.
+    A splitter that slices training and test data based on a fixed integer
+    offset.
+
+    Parameters
+    ----------
+    offset
+        Offset determining where the training data ends.
+        A positive offset indicates how many observations since the start of
+        each series should be in the training slice; a negative offset
+        indicates how many observations before the end of each series should
+        be excluded from the training slice.
+    """
+
+    offset: int
+
+    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
+        return item[: self.offset]
+
+    def _test_slice(
+        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+        offset_ = self.offset + offset
+        if self.offset < 0 and offset_ >= 0:
+            offset_ += len(item)
+        if offset_ + prediction_length:
+            return (
+                item[:offset_],
+                item[offset_ : offset_ + prediction_length],
+            )
+        else:
+            return (item[:offset_], item[offset_:])
+
+
+@dataclass
+class DateSplitter(AbstractBaseSplitter):
+    """
+    A splitter that slices training and test data based on a
+    ``pandas.Period``.
+
+    Training entries obtained from this class will be limited to observations
+    up to (including) the given ``date``.
+
+    Parameters
+    ----------
+    date
+        ``pandas.Period`` determining where the training data ends.
+    """
+
+    date: pd.Period
+
+    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
+        # the train-slice includes everything up to (including) the split date
+        return item[: self.date]
+
+    def _test_slice(
+        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
+    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+        return (
+            item[: self.date + offset * item.start.freq],
+            item[
+                self.date
+                + (offset + 1) * item.start.freq : self.date
+                + (prediction_length + offset) * item.start.freq
+            ],
+        )
+
+
+@dataclass
+class TestDataset:
+    """
+    An iterable type used for wrapping test data.
+
+    Elements of a ``TestDataset`` are pairs ``(input, label)``, where
+    ``input`` is input data for models, while ``label`` is the future
+    ground truth that models are supposed to predict.
 
     Parameters
     ----------
@@ -262,20 +369,50 @@ class TestIterable:
     splitter:
         A specific splitter that knows how to slices training and
         test data.
-    kwargs:
-        Parameters used for generating specific test instances.
-        See `TestTemplate.generate_instances`
+    prediction_length
+        Length of the prediction interval in test data.
+    windows
+        Indicates how many test windows to generate for each original
+        dataset entry.
+    distance
+        This is rather the difference between the start of each test
+        window generated, for each of the original dataset entries.
+    max_history
+        If given, all entries in the *test*-set have a max-length of
+        `max_history`. This can be used to produce smaller file-sizes.
     """
 
     dataset: Dataset
     splitter: AbstractBaseSplitter
-    kwargs: dict
+    prediction_length: int
+    windows: int = 1
+    distance: Optional[int] = None
+    max_history: Optional[int] = None
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Tuple[DataEntry, DataEntry], None, None]:
         yield from self.splitter._generate_test_slices(
-            self.dataset,
-            **self.kwargs,
+            dataset=self.dataset,
+            prediction_length=self.prediction_length,
+            windows=self.windows,
+            distance=self.distance,
+            max_history=self.max_history,
         )
+
+    @property
+    def input(self) -> Generator[DataEntry, None, None]:
+        """
+        Iterable over the ``input`` portion of the test data.
+        """
+        for input, _ in self:
+            yield input
+
+    @property
+    def label(self) -> Generator[DataEntry, None, None]:
+        """
+        Iterable over the ``label`` portion of the test data.
+        """
+        for _, label in self:
+            yield label
 
 
 @dataclass
@@ -295,129 +432,35 @@ class TestTemplate:
     dataset: Dataset
     splitter: AbstractBaseSplitter
 
-    def generate_instances(
-        self,
-        prediction_length: int,
-        windows=1,
-        distance=None,
-        max_history=None,
-    ) -> TestIterable:
+    def generate_instances(self, **kwargs) -> TestDataset:
         """
         Generate an iterator of test dataset, which includes input part and
         label part.
 
-        Parameters
-        ----------
-        prediction_length
-            Length of the prediction interval in test data.
-        windows
-            Indicates how many test windows to generate for each original
-            dataset entry.
-        distance
-            This is rather the difference between the start of each test
-            window generated, for each of the original dataset entries.
-        max_history
-            If given, all entries in the *test*-set have a max-length of
-            `max_history`. This can be used to produce smaller file-sizes.
+        Keyword arguments are the same as for :class:`TestDataset`.
         """
-        kwargs = {
-            "prediction_length": prediction_length,
-            "windows": windows,
-            "distance": distance,
-            "max_history": max_history,
-        }
-        return TestIterable(self.dataset, self.splitter, kwargs)
+        return TestDataset(self.dataset, self.splitter, **kwargs)
 
 
 @dataclass
 class TrainingDataset:
-    dataset: Iterable[DataEntry]
+    dataset: Dataset
     splitter: AbstractBaseSplitter
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[DataEntry, None, None]:
         return self.splitter._generate_train_slices(self.dataset)
 
-
-@dataclass
-class OffsetSplitter(AbstractBaseSplitter):
-    """
-    A splitter that slices training and test data based on a fixed integer
-    offset.
-
-    Parameters
-    ----------
-    split_offset
-        Offset determining where the training data ends.
-        A positive offset indicates how many observations since the start of
-        each series should be in the training slice; a negative offset
-        indicates how many observations before the end of each series should
-        be excluded from the training slice. Please make sure that the number
-        of excluded values is enough for the test case, i.e., at least
-        ``prediction_length`` (for ``rolling_split`` multiple of
-        ``prediction_length``) values are left off.
-    """
-
-    split_offset: int
-
-    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        return item[: self.split_offset]
-
-    def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
-        offset_ = self.split_offset + offset
-        if self.split_offset < 0 and offset_ >= 0:
-            offset_ += len(item)
-        if offset_ + prediction_length:
-            return (
-                item[:offset_],
-                item[offset_ : offset_ + prediction_length],
-            )
-        else:
-            return (item[:offset_], item[offset_:])
+    def __len__(self) -> int:
+        return len(self.dataset)
 
 
-@dataclass
-class DateSplitter(AbstractBaseSplitter):
-    """
-    A splitter that slices training and test data based on a
-    ``pandas.Period``.
-
-    Training entries obtained from this class will be limited to observations
-    up to (including) the given ``split_date``.
-
-    Parameters
-    ----------
-    split_date
-        Period determining where the training data ends. Please make sure
-        at least ``prediction_length`` (for ``rolling_split`` multiple of
-        ``prediction_length``) values are left over after the ``split_date``.
-    """
-
-    split_date: pd.Period
-
-    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        # the train-slice includes everything up to (including) the split date
-        return item[: self.split_date]
-
-    def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
-        return (
-            item[: self.split_date + offset * item.start.freq],
-            item[
-                self.split_date
-                + (offset + 1) * item.start.freq : self.split_date
-                + (prediction_length + offset) * item.start.freq
-            ],
-        )
-
-
-def split(dataset, *, offset=None, date=None):
-    # You need to provide `offset` or `date`, but not both
-    assert (offset is None) != (date is None)
+def split(
+    dataset: Dataset, *, offset: int = None, date: pd.Period = None
+) -> Tuple[TrainingDataset, TestTemplate]:
+    assert (offset is None) != (
+        date is None
+    ), "You need to provide ``offset`` or ``date``, but not both."
     if offset is not None:
-        splitter = OffsetSplitter(offset)
+        return OffsetSplitter(offset).split(dataset)
     else:
-        splitter = DateSplitter(date)
-    return splitter.split(dataset)
+        return DateSplitter(date).split(dataset)
