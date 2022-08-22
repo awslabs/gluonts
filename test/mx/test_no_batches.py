@@ -20,16 +20,7 @@ from gluonts.mx.model.deepar import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
 
-@dataclass
-class CustomDataset:
-    data: list
-
-    def __iter__(self):
-        for el in self.data:
-            yield el
-
-
-@pytest.mark.parametrize("dataset", [CustomDataset([])])
+@pytest.mark.parametrize("dataset", [[]])
 def test_deepar_no_batches(dataset):
     estimator = DeepAREstimator(
         prediction_length=10,
