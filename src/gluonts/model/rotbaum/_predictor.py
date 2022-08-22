@@ -158,7 +158,7 @@ class TreePredictor(RepresentablePredictor):
         one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
-        method: str = "QuantileRegression",
+        method: str = "QRX",
         quantiles=None,  # Used only for "QuantileRegression" method.
         subtract_mean: bool = True,
         count_nans: bool = False,
