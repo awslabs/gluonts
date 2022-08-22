@@ -106,7 +106,7 @@ class RotbaumForecast(Forecast):
             )
         )
 
-    def as_json_dict(self, config: "Config") -> dict:
+    def as_json_dict(self, config) -> dict:
         result = {}
         assert OutputType.samples not in config.output_types
 
