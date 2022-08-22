@@ -45,6 +45,10 @@ class Settings(BaseSettings):
         env_prefix = ""
 
     model_server_workers: Optional[int] = None
+    # For models leveraging multi-threads inference
+    # need to set the gunicorn worker type to gthread
+    # see: https://docs.gunicorn.org/en/stable/design.html
+    model_server_worker_class: str = "gthread"
     max_content_length: int = 6 * MB
 
     sagemaker_server_address: IPv4Address = IPv4Address("0.0.0.0")
@@ -75,7 +79,7 @@ class Settings(BaseSettings):
         if self.model_server_workers:
             logging.info(
                 f"Using {self.model_server_workers} workers "
-                "(set by MODEL_SERVER_WORKERS environment variable)."
+                f"(set by MODEL_SERVER_WORKERS environment variable)."
             )
             return self.model_server_workers
 
@@ -85,7 +89,7 @@ class Settings(BaseSettings):
         ):
             logger.info(
                 f"Using {self.sagemaker_max_concurrent_transforms} workers "
-                "(set by MaxConcurrentTransforms parameter in batch mode)."
+                f"(set by MaxConcurrentTransforms parameter in batch mode)."
             )
             return self.sagemaker_max_concurrent_transforms
 
@@ -165,6 +169,7 @@ def make_gunicorn_app(
             "bind": settings.sagemaker_server_bind,
             "workers": settings.number_of_workers,
             "timeout": settings.sagemaker_server_timeout,
+            "worker_class": settings.model_server_worker_class,
         },
     )
 

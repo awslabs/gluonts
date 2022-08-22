@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
+import concurrent.futures
 import logging
 from enum import Enum
 from itertools import chain, starmap
@@ -19,6 +19,8 @@ from typing import Dict, List, Tuple, Union, Optional
 import numpy as np
 
 from gluonts.core.component import validated
+
+logger = logging.getLogger(__name__)
 
 
 class CardinalityLabel(str, Enum):
@@ -196,6 +198,9 @@ class PreprocessGeneric:
                 )
         return feature_data, target_data
 
+    def infer_feature_characteristics(self, ts):
+        raise NotImplementedError
+
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
     ) -> Tuple:
@@ -222,17 +227,18 @@ class PreprocessGeneric:
 
         if isinstance(self.cardinality, str):
             self.cardinality = (
-                self.infer_cardinalities(ts_list)
-                if self.cardinality == "auto"
-                else []
+                self.infer_cardinalities(ts_list) if self.cardinality == "auto" else []
             )
 
-        for time_series in ts_list:
-            ts_feature_data, ts_target_data = self.preprocess_from_single_ts(
-                time_series=time_series
-            )
-            feature_data += list(ts_feature_data)
-            target_data += list(ts_target_data)
+        self.infer_feature_characteristics(ts_list[0])
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            logger.info("using concurrent data preprocessing")
+            for result in executor.map(self.preprocess_from_single_ts, ts_list):
+                ts_feature_data, ts_target_data = result
+                feature_data += list(ts_feature_data)
+                target_data += list(ts_target_data)
+
         logging.info(
             "Done preprocessing. Resulting number of datapoints is: {}".format(
                 len(feature_data)
@@ -241,7 +247,10 @@ class PreprocessGeneric:
         if change_internal_variables:
             self.feature_data, self.target_data = feature_data, target_data
         else:
-            return feature_data, target_data
+            return (
+                feature_data,
+                target_data,
+            )
 
     def get_num_samples(self, ts_list) -> int:
         """
@@ -255,9 +264,7 @@ class PreprocessGeneric:
             >= 0
             for time_series in ts_list
         )
-        max_size_ts = max(
-            len(time_series["target"]) for time_series in ts_list
-        )
+        max_size_ts = max(len(time_series["target"]) for time_series in ts_list)
         n_windows_per_time_series = self.max_n_datapts // n_time_series
         if n_time_series * 1000 < n_windows_per_time_series:
             n_windows_per_time_series = n_time_series * 1000
@@ -293,8 +300,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         if one_hot_encode:
             assert cardinality != "ignore" or (
-                isinstance(cardinality, List)
-                and all(c > 0 for c in cardinality)
+                isinstance(cardinality, List) and all(c > 0 for c in cardinality)
             ), (
                 "You should set `one_hot_encode=True` if and only if"
                 " cardinality is a valid list or not ignored: {}"
@@ -317,11 +323,20 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         self.one_hot_encode = one_hot_encode
         self.subtract_mean = subtract_mean
         self.count_nans = count_nans
+        # The following logic needs to change of _pre_transform changes:
+        time_series_window, stats_dict = self._pre_transform(
+            [0] * self.context_window_size, subtract_mean, count_nans
+        )
+        self.dynamic_length = len(time_series_window) + len(stats_dict.values())
+
+        self.num_feat_dynamic_cat = None
+        self.num_feat_dynamic_real = None
+        self.num_feat_static_cat = None
+        self.num_feat_static_real = None
+        self.num_past_feat_dynamic_real = None
 
     @classmethod
-    def _pre_transform(
-        cls, time_series_window, subtract_mean, count_nans
-    ) -> Tuple:
+    def _pre_transform(cls, time_series_window, subtract_mean, count_nans) -> Tuple:
         """
         Makes features given time series window. Returns list of features, one
         for every step of the lag (equaling mean-adjusted lag features); and a
@@ -372,19 +387,41 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         np_feat_list = np.array(feat_list)
         assert all(np.floor(np_feat_list) == np_feat_list)
 
-        encoded = starmap(
-            self.encode_one_hot, zip(feat_list, self.cardinality)
-        )
+        encoded = starmap(self.encode_one_hot, zip(feat_list, self.cardinality))
         encoded_chain = chain.from_iterable(encoded)
         return list(encoded_chain)
 
     def infer_cardinalities(self, time_series):
         if "feat_static_cat" not in time_series[0]:
             return []
-        mat = np.array(
-            [elem["feat_static_cat"] for elem in time_series], dtype=int
-        )
+        mat = np.array([elem["feat_static_cat"] for elem in time_series], dtype=int)
         return [len(set(xs)) for xs in mat.T]
+
+    def infer_feature_characteristics(self, ts):
+        self.num_feat_static_real = (
+            0
+            if ("feat_static_real" not in ts) or (self.use_feat_static_real is False)
+            else len(ts["feat_static_real"])
+        )
+        self.num_feat_static_cat = (
+            0 if ("feat_static_cat" not in ts) else len(ts["feat_static_cat"])
+        )
+        self.num_past_feat_dynamic_real = (
+            0
+            if ("past_feat_dynamic_real" not in ts)
+            or (self.use_past_feat_dynamic_real is False)
+            else len(ts["past_feat_dynamic_real"])
+        )
+        self.num_feat_dynamic_real = (
+            0
+            if ("feat_dynamic_real" not in ts) or (self.use_feat_dynamic_real is False)
+            else len(ts["feat_dynamic_real"])
+        )
+        self.num_feat_dynamic_cat = (
+            0
+            if ("feat_dynamic_cat" not in ts) or (self.use_feat_dynamic_cat is False)
+            else len(ts["feat_dynamic_real"])
+        )
 
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
@@ -412,11 +449,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
 
         feat_static_real = (
-            list(time_series["feat_static_real"])
-            if self.use_feat_static_real
-            else []
+            list(time_series["feat_static_real"]) if self.use_feat_static_real else []
         )
-        if self.cardinality:
+        if self.cardinality and time_series.get("feat_static_cat", None) is not None:
             feat_static_cat = (
                 self.encode_one_hot_all(time_series["feat_static_cat"])
                 if self.one_hot_encode
@@ -429,9 +464,13 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             list(
                 chain(
                     *[
-                        list(ent[0]) + list(ent[1].values())
+                        prefix + list(ent[0]) + list(ent[1].values())
                         for ent in [
-                            self._pre_transform(ts[starting_index:end_index])
+                            self._pre_transform(
+                                ts[starting_index:end_index],
+                                self.subtract_mean,
+                                self.count_nans,
+                            )
                             for ts in time_series["past_feat_dynamic_real"]
                         ]
                     ]
@@ -444,13 +483,12 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             list(
                 chain(
                     *[
-                        list(ent[0]) + list(ent[1].values())
+                        prefix + list(ent[0]) + list(ent[1].values())
                         for ent in [
                             self._pre_transform(
-                                ts[
-                                    starting_index : end_index
-                                    + self.forecast_horizon
-                                ]
+                                ts[starting_index : end_index + self.forecast_horizon],
+                                self.subtract_mean,
+                                self.count_nans,
                             )
                             for ts in time_series["feat_dynamic_real"]
                         ]
@@ -481,9 +519,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             np.floor(np_feat_dynamic_cat) == np_feat_dynamic_cat
         )
 
-        feat_dynamics = (
-            past_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
-        )
+        feat_dynamics = past_feat_dynamic_real + feat_dynamic_real + feat_dynamic_cat
         feat_statics = feat_static_real + feat_static_cat
         only_lag_features = list(only_lag_features)
         return (

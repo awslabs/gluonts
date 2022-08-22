@@ -23,15 +23,13 @@ from gluonts.model.rotbaum import TreeEstimator
 def hyperparameters(dsinfo):
     return dict(
         context_length=2,
-        quantiles=[0.1, 0.5, 0.9],
+        quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         num_workers=0,
+        method="QuantileRegression",
     )
 
 
-@pytest.mark.parametrize("quantiles", [[0.1, 0.5, 0.9], [0.5]])
-def test_accuracy(accuracy_test, hyperparameters, quantiles):
-    hyperparameters.update(quantiles=quantiles, max_workers=32)
-
+def test_accuracy(accuracy_test, hyperparameters):
     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
 
 

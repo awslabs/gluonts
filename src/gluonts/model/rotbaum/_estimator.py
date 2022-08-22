@@ -11,9 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Iterator, Optional
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator, Predictor
+from gluonts.model.forecast import Forecast
 
 from ._predictor import TreePredictor
 
@@ -35,11 +37,18 @@ class ThirdPartyEstimator(Estimator):
     @validated()
     def __init__(self, predictor_cls: type, **kwargs) -> None:
         self.predictor = predictor_cls(**kwargs)
+        self.freq = kwargs["freq"]
+        self.prediction_length = kwargs["prediction_length"]
 
     def train(
         self, training_data: Dataset, validation_dataset=None
     ) -> Predictor:
         return self.predictor.train(training_data)
+
+    def predict(
+        self, dataset: Dataset, num_samples: Optional[int] = None
+    ) -> Iterator[Forecast]:
+        return self.predictor.predict(dataset, num_samples)
 
 
 class TreeEstimator(ThirdPartyEstimator):
