@@ -85,7 +85,8 @@ class RotbaumForecast(Forecast):
         return np.array(
             list(
                 chain.from_iterable(
-                    model.predict(self.featurized_data, q) for model in self.models
+                    model.predict(self.featurized_data, q)
+                    for model in self.models
                 )
             )
         )
@@ -99,7 +100,8 @@ class RotbaumForecast(Forecast):
         return np.array(
             list(
                 chain.from_iterable(
-                    model.estimate_dist(self.featurized_data) for model in self.models
+                    model.estimate_dist(self.featurized_data)
+                    for model in self.models
                 )
             )
         )
@@ -220,7 +222,8 @@ class TreePredictor(RepresentablePredictor):
         self.model_list = None
 
         logger.info(
-            "If using the Evaluator class with a TreePredictor, set" " num_workers=0."
+            "If using the Evaluator class with a TreePredictor, set"
+            " num_workers=0."
         )
 
     def train(
@@ -238,9 +241,9 @@ class TreePredictor(RepresentablePredictor):
                 + self.preprocess_object.forecast_horizon
             )
         if self.preprocess_object.use_past_feat_dynamic_real:
-            assert len(first(training_data)["past_feat_dynamic_real"][0]) == len(
-                first(training_data)["target"]
-            )
+            assert len(
+                first(training_data)["past_feat_dynamic_real"][0]
+            ) == len(first(training_data)["target"])
         assert self.freq is not None
         if first(training_data)["start"].freq is not None:
             assert self.freq == first(training_data)["start"].freq
@@ -259,7 +262,9 @@ class TreePredictor(RepresentablePredictor):
                 for _ in range(n_models)
             ]
         elif self.method == "QRF":
-            self.model_list = [QRF(params=self.model_params) for _ in range(n_models)]
+            self.model_list = [
+                QRF(params=self.model_params) for _ in range(n_models)
+            ]
         elif self.method == "QRX":
             self.model_list = [
                 QRX(
@@ -366,7 +371,10 @@ class TreePredictor(RepresentablePredictor):
         # persist feature importance for quantile regression method
         if self.method == "QuantileRegression":
             with (path / "feature_importance.json").open("w") as fp:
-                print(dump_json(self.explain(importance_type="gain").dict()), file=fp)
+                print(
+                    dump_json(self.explain(importance_type="gain").dict()),
+                    file=fp,
+                )
 
     @classmethod
     def deserialize(cls, path: Path) -> "RepresentablePredictor":
@@ -416,7 +424,9 @@ class TreePredictor(RepresentablePredictor):
                 [
                     self.model_list[time_stamp]
                     .models[quantile]
-                    .booster_.feature_importance(importance_type=importance_type)
+                    .booster_.feature_importance(
+                        importance_type=importance_type
+                    )
                     for time_stamp in range(self.prediction_length)
                 ]
                 for quantile in self.quantiles
@@ -431,7 +441,9 @@ class TreePredictor(RepresentablePredictor):
         dynamic_length = self.preprocess_object.dynamic_length
         num_feat_static_real = self.preprocess_object.num_feat_static_real
         num_feat_static_cat = self.preprocess_object.num_feat_static_cat
-        num_past_feat_dynamic_real = self.preprocess_object.num_past_feat_dynamic_real
+        num_past_feat_dynamic_real = (
+            self.preprocess_object.num_past_feat_dynamic_real
+        )
         num_feat_dynamic_real = self.preprocess_object.num_feat_dynamic_real
         num_feat_dynamic_cat = self.preprocess_object.num_feat_dynamic_cat
         coordinate_map = {}
@@ -454,7 +466,9 @@ class TreePredictor(RepresentablePredictor):
         for i in range(num_feat_static_cat):
             coordinate_map["feat_static_cat"].append(
                 (
-                    dynamic_length + num_feat_static_real + static_cat_features_so_far,
+                    dynamic_length
+                    + num_feat_static_real
+                    + static_cat_features_so_far,
                     dynamic_length
                     + num_feat_static_real
                     + static_cat_features_so_far
@@ -492,18 +506,22 @@ class TreePredictor(RepresentablePredictor):
                 num_feat_static_real
                 + static_cat_features_so_far
                 + (num_past_feat_dynamic_real + 1) * dynamic_length
-                + num_feat_dynamic_real * (dynamic_length + self.prediction_length)
+                + num_feat_dynamic_real
+                * (dynamic_length + self.prediction_length)
                 + i,
                 num_feat_static_real
                 + static_cat_features_so_far
                 + (num_past_feat_dynamic_real + 1) * dynamic_length
-                + num_feat_dynamic_real * (dynamic_length + self.prediction_length)
+                + num_feat_dynamic_real
+                * (dynamic_length + self.prediction_length)
                 + i
                 + 1,
             )
             for i in range(num_feat_dynamic_cat)
         ]
-        logger.info(f"coordinate_map from the preprocessor is: {coordinate_map}")
+        logger.info(
+            f"coordinate_map from the preprocessor is: {coordinate_map}"
+        )
         logger.info(f"shape of importance matrix is: {importances.shape}")
         assert (
             sum(
@@ -522,7 +540,8 @@ class TreePredictor(RepresentablePredictor):
         quantile_aggregated_importance_result = FeatureImportanceResult(
             target=np.expand_dims(
                 importances[
-                    coordinate_map["target"][0] : coordinate_map["target"][1], :
+                    coordinate_map["target"][0] : coordinate_map["target"][1],
+                    :,
                 ].sum(axis=0),
                 axis=0,
             ).tolist(),

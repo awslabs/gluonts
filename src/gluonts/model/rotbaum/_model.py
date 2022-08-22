@@ -21,7 +21,6 @@ import gc
 from collections import defaultdict
 
 from gluonts.core.component import validated
-from gluonts.model.forecast import OutputType
 
 
 class QRF:

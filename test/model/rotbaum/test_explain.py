@@ -52,7 +52,8 @@ def make_causal_datasets(
             randint(0, 1000) for c in range(num_feat_static_cat)
         ]
         data_entry_train[FieldName.PAST_FEAT_DYNAMIC_REAL] = [
-            [randint(0, 1000)] * ts_length for k in range(num_past_feat_dynamic_real)
+            [randint(0, 1000)] * ts_length
+            for k in range(num_past_feat_dynamic_real)
         ]
 
         data_entry_train[FieldName.START] = start
@@ -63,7 +64,9 @@ def make_causal_datasets(
                 FieldName.PAST_FEAT_DYNAMIC_REAL
             ]
         ]
-        sum_of_feat_static_cat = sum(data_entry_train[FieldName.FEAT_STATIC_CAT])
+        sum_of_feat_static_cat = sum(
+            data_entry_train[FieldName.FEAT_STATIC_CAT]
+        )
 
         data_entry_train[FieldName.TARGET] = (
             np.array(shifted_past_feat_dynamic_real).sum(axis=0)
@@ -108,19 +111,30 @@ def test_rotbaum_explain(methods):
     assert isclose(
         np.sum(
             list(
-                chain.from_iterable(result["time_quantile_aggregated_result"].values())
+                chain.from_iterable(
+                    result["time_quantile_aggregated_result"].values()
+                )
             )
         ),
         1.0,
     )
     assert (
         np.sum(
-            result["time_quantile_aggregated_result"][FieldName.PAST_FEAT_DYNAMIC_REAL]
+            result["time_quantile_aggregated_result"][
+                FieldName.PAST_FEAT_DYNAMIC_REAL
+            ]
         )
         >= 0
     )
     assert (
-        np.sum(result["time_quantile_aggregated_result"][FieldName.FEAT_STATIC_CAT])
+        np.sum(
+            result["time_quantile_aggregated_result"][
+                FieldName.FEAT_STATIC_CAT
+            ]
+        )
         >= 0
     )
-    assert np.sum(result["time_quantile_aggregated_result"][FieldName.TARGET]) >= 0
+    assert (
+        np.sum(result["time_quantile_aggregated_result"][FieldName.TARGET])
+        >= 0
+    )

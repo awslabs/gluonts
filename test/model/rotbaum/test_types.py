@@ -1,7 +1,10 @@
 import pytest
 from pydantic import ValidationError
 
-from gluonts.model.rotbaum._types import FeatureImportanceResult, ExplanationResult
+from gluonts.model.rotbaum._types import (
+    FeatureImportanceResult,
+    ExplanationResult,
+)
 
 
 @pytest.mark.parametrize(
@@ -92,9 +95,9 @@ def test_explanation_result():
     assert (
         ExplanationResult(
             quantile_aggregated_result=FeatureImportanceResult(**data_dict),
-            time_quantile_aggregated_result=FeatureImportanceResult(**data_dict).mean(
-                axis=1
-            ),
+            time_quantile_aggregated_result=FeatureImportanceResult(
+                **data_dict
+            ).mean(axis=1),
         ).time_quantile_aggregated_result
         is not None
     )

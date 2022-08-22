@@ -110,6 +110,7 @@ def free_port() -> int:
         sock.bind(("", 0))
         return sock.getsockname()[1]
 
+
 @dataclass
 class Server:
     env: ServeEnv
@@ -121,6 +122,7 @@ class Server:
             self.env, self.forecaster_type, self.settings
         )
         gunicorn_app.run()
+
 
 @contextmanager
 def temporary_server(
