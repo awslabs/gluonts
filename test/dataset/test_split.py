@@ -16,9 +16,12 @@ import pytest
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.dataset.split import DateSplitter, OffsetSplitter, split
-from gluonts.dataset.split.splitter import TimeSeriesSlice
+from gluonts.dataset.split import (
+    DateSplitter,
+    OffsetSplitter,
+    split,
+    TimeSeriesSlice,
+)
 
 
 def make_series(data, start="2020", freq="D"):
@@ -82,7 +85,7 @@ def check_training_validation(
 
 def test_split_mult_freq():
     splitter = DateSplitter(
-        split_date=pd.Period("2021-01-01", "2h"),
+        date=pd.Period("2021-01-01", "2h"),
     )
 
     splitter.split(
@@ -105,7 +108,7 @@ def test_negative_offset_splitter():
         freq="D",
     )
 
-    splitter = OffsetSplitter(split_offset=-7).split(dataset)
+    splitter = OffsetSplitter(offset=-7).split(dataset)
 
     assert [len(t["target"]) for t in splitter[0]] == [93, 43]
     assert [
@@ -113,7 +116,7 @@ def test_negative_offset_splitter():
         for t, s in splitter[1].generate_instances(prediction_length=7)
     ] == [100, 50]
 
-    rolling_splitter = OffsetSplitter(split_offset=-21).split(dataset)
+    rolling_splitter = OffsetSplitter(offset=-21).split(dataset)
 
     assert [len(t["target"]) for t in rolling_splitter[0]] == [79, 29]
     assert [

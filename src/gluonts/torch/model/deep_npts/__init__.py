@@ -11,6 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["DateSplitter", "OffsetSplitter", "split"]
+from ._estimator import DeepNPTSEstimator
+from ._network import (
+    DeepNPTSNetwork,
+    DeepNPTSMultiStepPredictor,
+    DeepNPTSNetworkDiscrete,
+    DeepNPTSNetworkSmooth,
+)
 
-from .splitter import DateSplitter, OffsetSplitter, split
+
+__all__ = [
+    "DeepNPTSEstimator",
+    "DeepNPTSNetwork",
+    "DeepNPTSMultiStepPredictor",
+    "DeepNPTSNetworkDiscrete",
+    "DeepNPTSNetworkSmooth",
+]
