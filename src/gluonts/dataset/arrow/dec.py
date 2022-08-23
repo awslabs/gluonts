@@ -12,71 +12,37 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from functools import singledispatch
-from typing import Dict
+from typing import List, Tuple
 
 import numpy as np
-import pyarrow as pa
-
-
-@singledispatch
-def _arrow_to_py(scalar):
-    """Convert arrow scalar value to python value."""
-
-    raise NotImplementedError(scalar, scalar.__class__)
-
-
-@_arrow_to_py.register(pa.Scalar)
-def _arrow_to_py_scalar(scalar: pa.Scalar):
-    return scalar.as_py()
-
-
-@_arrow_to_py.register(pa.ListScalar)
-def _arrow_to_py_list_scalar(scalar: pa.ListScalar):
-    arr = scalar.values.to_numpy(zero_copy_only=False)
-
-    if arr.dtype == object:
-        arr = np.array(list(arr))
-
-    return arr
 
 
 @dataclass
 class ArrowDecoder:
-    columns: Dict[str, int]
-    ndarray_columns: Dict[str, int]
+    reshape_columns: List[Tuple[str, str]]
 
     @classmethod
     def from_schema(cls, schema):
-        columns = {}
-        ndarray_columns = {}
+        return cls(
+            [
+                (column.name[: -len("._np_shape")], column.name)
+                for column in schema
+                if column.name.endswith("._np_shape")
+            ]
+        )
 
-        for idx, column in enumerate(schema):
-            if column.name.endswith("._np_shape"):
-                ndarray_columns[(column.name.rsplit(".", 1)[0])] = idx
-            else:
-                columns[column.name] = idx
-
-        return cls(columns, ndarray_columns)
-
-    def decode(self, batch, row_number):
-        for row in self.decode_batch(batch.slice(row_number, row_number + 1)):
-            return row
+    def decode(self, batch, row_number: int):
+        yield from self.decode_batch(batch.slice(row_number, row_number + 1))
 
     def decode_batch(self, batch):
-        rows = zip(*batch)
+        for row in batch.to_pandas().to_dict("records"):
+            for column_name, shape_column in self.reshape_columns:
+                row[column_name] = row[column_name].reshape(
+                    row.pop(shape_column)
+                )
 
-        for raw_row in rows:
-            row = {}
-            for column_name, column_idx in self.columns.items():
-                value = _arrow_to_py(raw_row[column_idx])
-
-                shape_idx = self.ndarray_columns.get(column_name)
-
-                if shape_idx is not None:
-                    shape = _arrow_to_py(raw_row[shape_idx])
-                    value = value.reshape(shape)
-
-                row[column_name] = value
+            for name, value in row.items():
+                if type(value) == np.ndarray and value.dtype == object:
+                    row[name] = np.stack(value)
 
             yield row
