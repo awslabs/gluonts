@@ -324,9 +324,12 @@ class Trainer:
                     )
 
                 batch_iter = itertools.islice(batch_iter, num_batches_to_use)
-
                 it = tqdm(batch_iter, total=num_batches_to_use)
+                any_batches = False
+
                 for batch_no, batch in enumerate(it, start=1):
+                    any_batches = True
+
                     # `batch` here is expected to be a dictionary whose fields
                     # should correspond 1-to-1 with the network inputs
                     # see below how `batch.values()` is fed into the network
@@ -420,6 +423,13 @@ class Trainer:
                         self.halt = True
                         break
                 it.close()
+
+                if not any_batches:
+                    raise GluonTSDataError(
+                        "No training data batch could be constructed; "
+                        "this usually indicates that the training dataset "
+                        "is empty, or consists of too short series."
+                    )
 
                 # mark epoch end time and log time cost of current epoch
                 if not self.halt:
