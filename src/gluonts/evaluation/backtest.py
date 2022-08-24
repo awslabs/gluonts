@@ -13,7 +13,7 @@
 
 import logging
 import re
-from typing import Dict, Iterator, NamedTuple, Optional, Tuple
+from typing import Dict, Iterator, NamedTuple, Optional, Tuple, Generator
 
 import pandas as pd
 
@@ -37,7 +37,7 @@ def make_evaluation_predictions(
     dataset: Dataset,
     predictor: Predictor,
     num_samples: int = 100,
-) -> Tuple[Iterator[Forecast], Iterator[pd.Series]]:
+) -> Tuple[Iterator[Forecast], Generator[pd.DataFrame, None, None]]:
     """
     Returns predictions for the trailing prediction_length observations of the
     given time series, using the given predictor.
@@ -58,32 +58,26 @@ def make_evaluation_predictions(
 
     Returns
     -------
-    Tuple[Iterator[Forecast], Iterator[pd.Series]]
+    Tuple
         A pair of iterators, the first one yielding the forecasts, and the
-        second one yielding the corresponding ground truth series.
+        second one yielding the corresponding ground truth data frames.
     """
 
     prediction_length = predictor.prediction_length
     lead_time = predictor.lead_time
 
-    def add_ts_dataframe(
-        data_iterator: Iterator[DataEntry],
-    ) -> Iterator[DataEntry]:
-        for data_entry in data_iterator:
-            data = data_entry.copy()
+    def generate_dataframes(
+        dataset: Dataset,
+    ) -> Generator[pd.DataFrame, None, None]:
+        for entry in dataset:
             index = pd.period_range(
-                start=data[FieldName.START],
-                periods=data[FieldName.TARGET].shape[-1],
-                freq=data[FieldName.START].freq,
+                start=entry[FieldName.START],
+                periods=entry[FieldName.TARGET].shape[-1],
+                freq=entry[FieldName.START].freq,
             )
-            data["ts"] = pd.DataFrame(
-                index=index, data=data[FieldName.TARGET].transpose()
-            )
-            yield data
-
-    def ts_iter(dataset: Dataset) -> pd.DataFrame:
-        for data_entry in add_ts_dataframe(iter(dataset)):
-            yield data_entry["ts"]
+            yield pd.DataFrame(
+                index=index, data=entry[FieldName.TARGET].transpose()
+            ).to_timestamp()
 
     def truncate_target(data):
         data = data.copy()
@@ -102,7 +96,7 @@ def make_evaluation_predictions(
 
     return (
         predictor.predict(dataset_trunc, num_samples=num_samples),
-        ts_iter(dataset),
+        generate_dataframes(dataset),
     )
 
 
