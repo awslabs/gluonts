@@ -19,7 +19,7 @@ import pandas as pd
 
 import gluonts  # noqa
 from gluonts.core.serde import load_code
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import (
     DatasetStatistics,
