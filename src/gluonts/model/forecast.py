@@ -416,9 +416,7 @@ class Forecast:
             )
             # Hack to create labels for the error intervals. Doesn't actually
             # plot anything, because we only pass a single data point
-            pd.Series(
-                data=p50_data[:1], index=self.datetime_index[:1]
-            ).plot(
+            pd.Series(data=p50_data[:1], index=self.datetime_index[:1]).plot(
                 color=color,
                 alpha=alpha,
                 linewidth=10,
