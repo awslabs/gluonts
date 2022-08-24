@@ -174,6 +174,9 @@ class DeepVAREstimator(GluonEstimator):
         the accuracy (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
     cardinality
         Number of values of each categorical feature (default: [1])
     embedding_dimension
@@ -225,6 +228,7 @@ class DeepVAREstimator(GluonEstimator):
         cell_type: str = "lstm",
         num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         distr_output: Optional[DistributionOutput] = None,
@@ -283,6 +287,7 @@ class DeepVAREstimator(GluonEstimator):
         self.embedding_dimension = embedding_dimension
         self.conditioning_length = conditioning_length
         self.use_marginal_transformation = use_marginal_transformation
+        self.use_feat_dynamic_real = use_feat_dynamic_real
 
         self.lags_seq = (
             lags_seq
@@ -351,7 +356,12 @@ class DeepVAREstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME],
+                    input_fields=[FieldName.FEAT_TIME]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
                 ),
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
