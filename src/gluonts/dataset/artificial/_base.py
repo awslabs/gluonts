@@ -843,6 +843,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
             )
         ],
         feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
+        feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
     )
 
     start_date = "2000-01-01 00:00:00"
@@ -855,6 +856,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
                 FieldName.TARGET: [float(i)] * 24,
                 FieldName.FEAT_STATIC_CAT: [i],
                 FieldName.FEAT_STATIC_REAL: [float(i)],
+                FieldName.FEAT_DYNAMIC_REAL: [[float(i) * 0.5] * 24],
             }
             for i in range(10)
         ],
@@ -869,6 +871,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
                 FieldName.TARGET: [float(i)] * 30,
                 FieldName.FEAT_STATIC_CAT: [i],
                 FieldName.FEAT_STATIC_REAL: [float(i)],
+                FieldName.FEAT_DYNAMIC_REAL: [[float(i) * 0.5] * 30],
             }
             for i in range(10)
         ],
