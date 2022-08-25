@@ -194,7 +194,15 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # transformation that includes time features, age feature, observed values
     # indicator, ...
     def create_transformation(self) -> Transformation:
-        return AddObservedValuesIndicator(
+        return SelectFields(
+            [
+                FieldName.ITEM_ID,
+                FieldName.INFO,
+                FieldName.START,
+                FieldName.TARGET,
+            ],
+            allow_missing=True,
+        ) + AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
             output_field=FieldName.OBSERVED_VALUES,
             dtype=self.dtype,
