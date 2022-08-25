@@ -139,7 +139,10 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return AddObservedValuesIndicator(
+        return SelectFields([
+            FieldName.START,
+            FieldName.TARGET,
+        ]) + AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
             output_field=FieldName.OBSERVED_VALUES,
         )
