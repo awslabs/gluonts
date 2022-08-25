@@ -32,6 +32,7 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
+    SelectOptionalFields,
 )
 from gluonts.torch.util import (
     IterableDataset,
@@ -139,7 +140,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return SelectFields(
+        return SelectOptionalFields(
             [
                 FieldName.ITEM_ID,
                 FieldName.INFO,

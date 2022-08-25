@@ -39,6 +39,7 @@ from gluonts.transform import (
     InstanceSampler,
     InstanceSplitter,
     SelectFields,
+    SelectOptionalFields,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -193,7 +194,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
     # transformation that includes time features, age feature, observed values
     # indicator, ...
     def create_transformation(self) -> Transformation:
-        return SelectFields(
+        return SelectOptionalFields(
             [
                 FieldName.ITEM_ID,
                 FieldName.INFO,

@@ -129,3 +129,21 @@ class SelectFields(MapTransformation):
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         return {f: data[f] for f in self.input_fields}
+
+
+class SelectOptionalFields(MapTransformation):
+    """
+    Only keep the listed fields, in case they are set.
+
+    Parameters
+    ----------
+    input_fields
+        List of fields to keep.
+    """
+
+    @validated()
+    def __init__(self, input_fields: List[str]) -> None:
+        self.input_fields = input_fields
+
+    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        return {f: data[f] for f in self.input_fields if f in data}
