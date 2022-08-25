@@ -1,3 +1,5 @@
+<img class="hide-on-website" height="100px" src="https://ts.gluon.ai/dev/_static/gluonts.svg">
+
 # GluonTS - Probabilistic Time Series Modeling in Python
 
 [![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
