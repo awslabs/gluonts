@@ -87,14 +87,16 @@ if os.environ.get("GITHUB_REF_NAME") == "dev":
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_css_files = ["style.css"]
+
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "_static/gluon-logo.svg"
+html_logo = "_static/logos/gluonts.svg"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "_static/gluon.ico"
+html_favicon = "_static/gluonts.ico"
 
 # Enable Markdown
 source_suffix = [".rst", ".md"]
