@@ -193,7 +193,7 @@ class PyTorchLightningEstimator(Estimator):
         training_network = self.create_lightning_module()
 
         if initial_network is not None:
-            # TODO here the prefix is hard-coded based on the DeepARLightningModule class
+            # TODO here prefix is hard-coded based on DeepARLightningModule
             # TODO need to find a better way to do this
             training_network.load_state_dict(
                 initial_network.state_dict(prefix="model.")
