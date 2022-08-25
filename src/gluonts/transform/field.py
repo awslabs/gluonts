@@ -121,29 +121,16 @@ class SelectFields(MapTransformation):
     ----------
     input_fields
         List of fields to keep.
+    allow_missing
+        If ``True``, skip any missing field. Default: ``False``.
     """
 
     @validated()
-    def __init__(self, input_fields: List[str]) -> None:
+    def __init__(self, input_fields: List[str], allow_missing: bool=False) -> None:
         self.input_fields = input_fields
+        self.allow_missing = allow_missing
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        if self.allow_missing:
+            return {f: data[f] for f in self.input_fields if f in data}
         return {f: data[f] for f in self.input_fields}
-
-
-class SelectOptionalFields(MapTransformation):
-    """
-    Only keep the listed fields, in case they are set.
-
-    Parameters
-    ----------
-    input_fields
-        List of fields to keep.
-    """
-
-    @validated()
-    def __init__(self, input_fields: List[str]) -> None:
-        self.input_fields = input_fields
-
-    def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        return {f: data[f] for f in self.input_fields if f in data}

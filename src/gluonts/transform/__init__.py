@@ -43,7 +43,6 @@ __all__ = [
     "RenameFields",
     "SampleTargetDim",
     "SelectFields",
-    "SelectOptionalFields",
     "SetField",
     "SetFieldIfNotPresent",
     "SimpleTransformation",
@@ -107,7 +106,6 @@ from .field import (
     RemoveFields,
     RenameFields,
     SelectFields,
-    SelectOptionalFields,
     SetField,
     SetFieldIfNotPresent,
 )
