@@ -141,6 +141,8 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     def create_transformation(self) -> Transformation:
         return SelectFields(
             [
+                FieldName.ITEM_ID,
+                FieldName.INFO,
                 FieldName.START,
                 FieldName.TARGET,
             ]
