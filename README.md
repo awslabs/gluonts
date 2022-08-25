@@ -1,4 +1,4 @@
-<img class="hide-on-website" src="https://ts.gluon.ai/dev/_static/gluonts.svg">
+<img class="hide-on-website" height="100px" src="https://ts.gluon.ai/dev/_static/gluonts.svg">
 
 # GluonTS - Probabilistic Time Series Modeling in Python
 
