@@ -19,6 +19,7 @@ class FieldName:
     """
 
     ITEM_ID = "item_id"
+    INFO = "info"
 
     START = "start"
     TARGET = "target"
