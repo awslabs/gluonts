@@ -126,7 +126,9 @@ class SelectFields(MapTransformation):
     """
 
     @validated()
-    def __init__(self, input_fields: List[str], allow_missing: bool=False) -> None:
+    def __init__(
+        self, input_fields: List[str], allow_missing: bool = False
+    ) -> None:
         self.input_fields = input_fields
         self.allow_missing = allow_missing
 
