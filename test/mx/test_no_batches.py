@@ -14,7 +14,7 @@
 import pytest
 
 from gluonts.exceptions import GluonTSDataError
-from gluonts.mx.model.deepar import DeepAREstimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.trainer import Trainer
 
 
