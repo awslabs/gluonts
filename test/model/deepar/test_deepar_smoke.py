@@ -16,7 +16,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-from gluonts.mx import DeepAREstimator
+from gluonts.model.deepar import DeepAREstimator
 from gluonts.mx.distribution import PiecewiseLinearOutput, StudentTOutput
 from gluonts.mx.trainer import Trainer
 
