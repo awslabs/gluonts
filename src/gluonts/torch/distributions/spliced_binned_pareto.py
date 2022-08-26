@@ -67,7 +67,9 @@ class SplicedBinnedPareto(BinnedUniforms):
         )
 
         device = logits.device
-        self.tail_percentile_gen_pareto = self.tail_percentile_gen_pareto.to(device)
+        self.tail_percentile_gen_pareto = self.tail_percentile_gen_pareto.to(
+            device
+        )
 
         self.lower_gp_xi = lower_gp_xi
         self.lower_gp_beta = lower_gp_beta
