@@ -156,7 +156,6 @@ class HierarchicalTimeSeries:
     def to_dataset(
         self,
         feat_dynamic_real: Optional[pd.DataFrame] = None,
-        ignore_last_n_targets: int = 0,
     ):
         """
         Convert the hierarchical time series into
@@ -173,10 +172,6 @@ class HierarchicalTimeSeries:
             Note that features of any (or all) time series in the hierachy
             can be passed here, since all time series are considered together
             as a single multivariate time series.
-        ignore_last_n_targets
-            For target and past dynamic features last ``ignore_last_n_targets``
-            elements are removed when iterating over the data set. This becomes
-            important when the predictor is called.
 
         Returns
         -------
@@ -184,13 +179,25 @@ class HierarchicalTimeSeries:
             An instance of `PandasDataset`.
 
         """
+        ignore_last_n_targets = 0
+
         if feat_dynamic_real is not None:
             assert (
-                self.ts_at_all_levels.index == feat_dynamic_real.index
-            ).all(), (
-                "Features dataframe `features_df` and the time series "
-                "dataframe in `hts` do not have the same index: \n"
-                f"Index of `features_df`: {feat_dynamic_real.index}, \n "
+                self.ts_at_all_levels.index[0] == feat_dynamic_real.index[0]
+            ), \
+                "The staring time point of dynamic features should match " \
+                "with that of the hierarhical time series. " \
+                f"Start of `feat_dynamic_real`: " \
+                f"{feat_dynamic_real.index[0]} and " \
+                f"the start of hierarchical time series: " \
+                f"{self.ts_at_all_levels.index[0]}."
+
+            assert feat_dynamic_real.index.intersection(
+                self.ts_at_all_levels.index
+            ).equals(self.ts_at_all_levels.index), (
+                "Dynamic features should be provied for all time "
+                "points where the target is defined. "                
+                f"Index of `feat_dynamic_real`: {feat_dynamic_real.index}, \n"
                 f"Index of `ts_at_all_levels` of `hts`: "
                 f"{self.ts_at_all_levels.index}. \n "
                 "Check if the periods of these indices also match. \n"
@@ -199,6 +206,9 @@ class HierarchicalTimeSeries:
             feat_dynamic_real.columns = [
                 f"feat_dynamic_real_{col}" for col in feat_dynamic_real.columns
             ]
+            ignore_last_n_targets = len(
+                feat_dynamic_real.index
+            ) - len(self.ts_at_all_levels.index)
         else:
             feat_dynamic_real = pd.DataFrame()
 
