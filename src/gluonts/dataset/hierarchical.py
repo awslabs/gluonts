@@ -184,19 +184,20 @@ class HierarchicalTimeSeries:
         if feat_dynamic_real is not None:
             assert (
                 self.ts_at_all_levels.index[0] == feat_dynamic_real.index[0]
-            ), \
-                "The staring time point of dynamic features should match " \
-                "with that of the hierarhical time series. " \
-                f"Start of `feat_dynamic_real`: " \
-                f"{feat_dynamic_real.index[0]} and " \
-                f"the start of hierarchical time series: " \
+            ), (
+                "The staring time point of dynamic features should match "
+                "with that of the hierarhical time series. "
+                f"Start of `feat_dynamic_real`: "
+                f"{feat_dynamic_real.index[0]} and "
+                f"the start of hierarchical time series: "
                 f"{self.ts_at_all_levels.index[0]}."
+            )
 
             assert feat_dynamic_real.index.intersection(
                 self.ts_at_all_levels.index
             ).equals(self.ts_at_all_levels.index), (
                 "Dynamic features should be provied for all time "
-                "points where the target is defined. "                
+                "points where the target is defined. "
                 f"Index of `feat_dynamic_real`: {feat_dynamic_real.index}, \n"
                 f"Index of `ts_at_all_levels` of `hts`: "
                 f"{self.ts_at_all_levels.index}. \n "
@@ -206,9 +207,9 @@ class HierarchicalTimeSeries:
             feat_dynamic_real.columns = [
                 f"feat_dynamic_real_{col}" for col in feat_dynamic_real.columns
             ]
-            ignore_last_n_targets = len(
-                feat_dynamic_real.index
-            ) - len(self.ts_at_all_levels.index)
+            ignore_last_n_targets = len(feat_dynamic_real.index) - len(
+                self.ts_at_all_levels.index
+            )
         else:
             feat_dynamic_real = pd.DataFrame()
 
