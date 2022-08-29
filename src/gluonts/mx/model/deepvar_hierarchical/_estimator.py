@@ -168,6 +168,9 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         the accuracy (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
     cardinality
         Number of values of each categorical feature (default: [1])
     embedding_dimension
@@ -212,6 +215,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         cell_type: str = "lstm",
         num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         scaling: bool = True,
@@ -251,6 +255,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             cell_type=cell_type,
             num_parallel_samples=num_parallel_samples,
             dropout_rate=dropout_rate,
+            use_feat_dynamic_real=use_feat_dynamic_real,
             cardinality=cardinality,
             embedding_dimension=embedding_dimension,
             distr_output=distr_output,

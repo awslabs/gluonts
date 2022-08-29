@@ -12,7 +12,7 @@ The important aspect in using hierarchical models is the proper preparation of h
 time series data. The minimal requirements in building the hierarchical or grouped time series
 are the time series at the bottom-level of the hierarchy and the hierarchical/grouped
 aggregation matrix.
-`GluonTS` provides a simple way to construct hierarchical time series by reading bottom-level
+`GluonTS` provides a simple way to construct hierarchical time series by reading the bottom-level
 time series and the aggregation matrix from csv files.
 Here we first describe the preparation of hierarchical time series before discussing the
 training of the hierarchical model.
@@ -27,7 +27,7 @@ Here is an [example csv](https://gist.githubusercontent.com/rshyamsundar/39e5707
 Similarly, the aggregation matrix can also be read from a csv file;
 here is an [example](https://gist.githubusercontent.com/rshyamsundar/17084fd1f28021867bcf6f2d69d9b73a/raw/32780ca43f57a78f2d521a75e73b136b17f34a02/example_agg_mat.csv).
 We use the standard format for the summation matrix;
-e.g., see Eq. 10.3 of the textbook [Forecasting: Principles and Practice](https://otexts.com/fpp2/hts.html)
+e.g., see Eq. 10.3 of the textbook [Forecasting: Principles and Practice](https://otexts.com/fpp2/hts.html).
 Note that grouped time series can also be represented by an aggregation matrix in the same
 way as the hierarchical time series and hence the material presented here is also applicable to
 grouped time series.
@@ -70,10 +70,15 @@ One can access all the time series of the hierarchy using `ts_at_all_levels` pro
 hts.ts_at_all_levels.head()
 ```
 
+
 ## Model Training and Forecasting
 
 We now show the simplest use-case where we want to train the model on the whole dataset available
 and produce predictions for the future time steps.
+Note that this is how the model would be used in practice, once the best model
+has already been selected based on some user-specific evaluation criteria;
+see the next section for model evaluation.
+
 We assume that the hierarchical time series `hts` of type `HierarchicalTimeSeries` has already been
 constructed as described above.
 The first step is to convert this hierarchical time series to a `Dataset` on which
@@ -84,9 +89,9 @@ Here we convert it into `gluonts.dataset.pandas.PandasDataset`.
 dataset = hts.to_dataset()
 ```
 
-Once the dataset is created, it is straightforward to use the hierarchical estimator.
-Here, we fix the prediction length and choose a smaller number of epochs for a quick illustration.
-We train on the whole dataset and give the same as the input to the predictor to
+Once the dataset is created, it is straightforward to use the hierarchical model.
+Here, for a quick illustration, we fix the prediction length and choose a smaller number of epochs.
+We train on the whole dataset and give the same as the input to the trained model (called predictor) to
 generate predictions (or forecasts) for future/unseen time steps.
 The final output `forecasts` is an instance of `gluonts.model.forecast.SampleForecast`
 containing sample-based forecasts for all the time series in the hierarchy.
@@ -107,16 +112,85 @@ predictor = estimator.train(dataset)
 
 forecast_it = predictor.predict(dataset)
 
-# There is only one element in `forecast_it` containing forecasts for all the time series.
+# There is only one element in `forecast_it` containing forecasts for all the time series in the hierarchy.
 forecasts = next(forecast_it)
+```
+
+
+### Using external dynamic features
+
+By default, the hierarchical model `DeepVarHierarchical` internally creates several time-based/dynamic
+features for model training.
+These are seasonal features automatically deduced from the frequency of the target time series.
+One could also provide external dynamic features to the model if available.
+Here we show how this is done; we restart from the point where the hierarchical time series `hts` has
+already been created.
+
+We first load the available external features from a csv file.
+```python
+dynamic_features_csv = (
+    "https://gist.githubusercontent.com/rshyamsundar/d8e63bad43397c95a4f5daaa17e122f8/"
+    "raw/a50657cf89f86d48cee41122f02cf5b1fcafdd2f/example_dynamic_features.csv"
+)
+
+dynamic_features_df = pd.read_csv(
+    dynamic_features_csv,
+    index_col=0,
+    parse_dates=True,
+).to_period()
+```
+
+The dynamic features are assumed to be available both for the "training range"
+(time points where the target is available) as well as for the "prediction range"
+(future time points where the forecast is required).
+Thus, dynamic features are longer than the target time series by `prediction_length` time steps.
+
+For training the model, we need dynamic features only for the training range.
+
+```python
+dynamic_features_df_train = dynamic_features_df.iloc[:-prediction_length, :]
+```
+
+We create the training dataset by passing the external features `dynamic_features_df_train`
+and train the model on it.
+```python
+dataset_train = hts.to_dataset(feat_dynamic_real=dynamic_features_df_train)
+estimator = DeepVARHierarchicalEstimator(
+    freq=hts.freq,
+    prediction_length=prediction_length,
+    trainer=Trainer(epochs=2),
+    target_dim=hts.num_ts,
+    S=S,
+)
+predictor = estimator.train(dataset_train)
+```
+
+To generate forecasts for future/unseen time steps, we need to pass both
+the past target (i.e., target in the training range) as well as
+full features `dynamic_features_df` (including those in the prediction range) to the trained model.
+Hence we need to create a new dataset that is separate from `dataset_train`,
+unlike in the earlier case.
+
+```python
+predictor_input = hts.to_dataset(feat_dynamic_real=dynamic_features_df)
+forecast_it = predictor.predict(predictor_input)
+
+# There is only one element in `forecast_it` containing forecasts for all the time series in the hierarchy.
+forecasts = next(forecast_it)
+
 ```
 
 
 ## Model Evaluation via Backtesting
 
 We now explain how the hierarchical model can be evaluated via backtesting.
+For ease of presentation, we describe the model evaluation for the case where
+external dynamic features are available.
+However, it is straightforward to modify the code, in case external features are not
+available; simply invoke the function `to_dataset()` below without any arguments.
+
 We assume that time series at the bottom level `ts_at_bottom_level` and the
-aggregation matrix `S` are already created as described above.
+aggregation matrix `S` have already been created as described above.
 We create the train-test split along the time axis by withholding the
 last `prediction_length` time points for evaluation and the remaining for training.
 
@@ -126,16 +200,34 @@ hts_train = HierarchicalTimeSeries(
     ts_at_bottom_level=ts_at_bottom_level.iloc[:-prediction_length, :],
     S=S,
 )
-hts_withheld = HierarchicalTimeSeries(
+hts_test_label = HierarchicalTimeSeries(
     ts_at_bottom_level=ts_at_bottom_level.iloc[-prediction_length:, :],
     S=S,
 )
 ```
 
-We convert `hts_train` into `PandasDataset` and train the hierarchical model on it.
+We load the external features as well and slice the features corresponding to the training range.
 
 ```python
-dataset_train = hts_train.to_dataset()
+dynamic_features_csv = (
+    "https://gist.githubusercontent.com/rshyamsundar/d8e63bad43397c95a4f5daaa17e122f8/"
+    "raw/a50657cf89f86d48cee41122f02cf5b1fcafdd2f/example_dynamic_features.csv"
+)
+
+dynamic_features_df = pd.read_csv(
+    dynamic_features_csv,
+    index_col=0,
+    parse_dates=True,
+).to_period()
+
+dynamic_features_df_train = dynamic_features_df.iloc[:-prediction_length, :]
+```
+
+We convert `hts_train` into `PandasDataset` by passing the external features `dynamic_features_df_train`
+and train the hierarchical model on it.
+
+```python
+dataset_train = hts_train.to_dataset(feat_dynamic_real=dynamic_features_df_train)
 
 estimator = DeepVARHierarchicalEstimator(
     freq=hts.freq,
@@ -148,29 +240,30 @@ estimator = DeepVARHierarchicalEstimator(
 predictor = estimator.train(dataset_train)
 ```
 
-We pass the same `train_dataset` (used for training) to the predictor to
-obtain forecasts for the time points corresponding to the
-unseen/withheld observations.
+To generate forecasts for time points corresponding to the
+withheld observations, we need to pass full features as well as the
+target in the training range to the trained model.
+So we create the input dataset for the predictor accordingly
+and generate forecasts.
 
 ```python
-forecast_it = predictor.predict(dataset=dataset_train)
+predictor_input = hts_train.to_dataset(feat_dynamic_real=dynamic_features_df)
+forecast_it = predictor.predict(predictor_input)
 ```
 
 Once the forecasts are obtained, we can evaluate them against the withheld observations.
 `GluonTS` evaluator takes as input an iterator over the true (withheld) observations and
 the corresponding forecasts to do the evaluation.
 Our forecasts are already in the correct format and our withheld observations are in
-`hts_withheld`.
-We just need to convert `hts_withheld` to `PandasDataset` before calling the evaluator.
+`hts_test_label`.
+
 
 ```python
 from gluonts.evaluation import MultivariateEvaluator
 
-dataset_withheld = hts_withheld.to_dataset()
-
 evaluator = MultivariateEvaluator()
 agg_metrics, item_metrics = evaluator(
-    ts_iterator=[dataset_withheld.dataframes],
+    ts_iterator=[hts_test_label.ts_at_all_levels],
     fcst_iterator=forecast_it,
 )
 
