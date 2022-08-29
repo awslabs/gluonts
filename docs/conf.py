@@ -15,6 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("."))
 
+from gluonts.meta import colors
 
 # -- Project information -----------------------------------------------------
 
@@ -65,22 +66,26 @@ pygments_style = "default"
 html_theme = "furo"
 
 
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": colors.RED,
+        "color-brand-content": colors.RED,
+        "color-announcement-text": colors.RED,
+        "color-announcement-background": "var(--color-background-secondary)",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": colors.GREEN,
+        "color-brand-content": colors.GREEN,
+        "color-announcement-text": colors.GREEN,
+        "color-announcement-background": "var(--color-background-secondary)",
+    },
+}
+
 if os.environ.get("GITHUB_REF_NAME") == "dev":
-    html_theme_options = {
-        "announcement": "<strong>Warning:</strong> You are looking at the development docs.",
-        "light_css_variables": {
-            "color-announcement-background": "var(--color-background-secondary)",
-            "color-announcement-text": "#db6a00",
-            "color-brand-primary": "#ff6f00",
-            "color-brand-content": "#ff6f00",
-        },
-        "dark_css_variables": {
-            "color-announcement-background": "var(--color-background-secondary)",
-            "color-announcement-text": "#db6a00",
-            "color-brand-primary": "#ff6f00",
-            "color-brand-content": "#ff6f00",
-        },
-    }
+    html_theme_options[
+        "announcement"
+    ] = "<strong>Note:</strong> You are looking at the development docs."
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
