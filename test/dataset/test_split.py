@@ -200,7 +200,3 @@ def test_split(date, offset, windows, distance, max_history):
                 offset=offset,
             )
             k += 1
-
-
-if __name__ == "__main__":
-    test_split(pd.Period("2021-06-17", freq="D"), None, 1, None, None)
