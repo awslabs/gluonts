@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -51,6 +52,7 @@ from ._network import (
 )
 
 
+@serde.dataclass
 class GaussianProcessEstimator(GluonEstimator):
     r"""
     GaussianProcessEstimator shows how to build a local time series model using
@@ -110,56 +112,34 @@ class GaussianProcessEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: int,
-        trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        kernel_output: KernelOutput = RBFKernelOutput(),
-        params_scaling: bool = True,
-        dtype: Type = np.float64,
-        max_iter_jitter: int = 10,
-        jitter_method: str = "iter",
-        sample_noise: bool = True,
-        time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: int = 100,
-        batch_size: int = 32,
-    ) -> None:
-        self.float_type = dtype
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    cardinality: int = Field(..., gt=0)
+    trainer: Trainer = Trainer()
+    context_length: int = Field(None, gt=0)
+    kernel_output: KernelOutput = RBFKernelOutput()
+    params_scaling: bool = True
+    dtype: Type = np.float64
+    max_iter_jitter: int = 10
+    jitter_method: str = "iter"
+    sample_noise: bool = True
+    time_features: List[TimeFeature] = Field(None)
+    num_parallel_samples: int = Field(100, gt=0)
+    batch_size: int = 32
+
+    def __post_init_post_parse__(self):
+        self.float_type = self.dtype
         super().__init__(
-            trainer=trainer, batch_size=batch_size, dtype=self.float_type
+            trainer=self.trainer,
+            batch_size=self.batch_size,
+            dtype=self.float_type,
         )
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert cardinality > 0, "The value of `cardinality` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
+        if self.context_length is None:
+            self.context_length = self.prediction_length
 
-        self.prediction_length = prediction_length
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.cardinality = cardinality
-        self.kernel_output = kernel_output
-        self.params_scaling = params_scaling
-        self.max_iter_jitter = max_iter_jitter
-        self.jitter_method = jitter_method
-        self.sample_noise = sample_noise
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
-        )
-        self.num_parallel_samples = num_parallel_samples
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
 
     def create_transformation(self) -> Transformation:
         return (

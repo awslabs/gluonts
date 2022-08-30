@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.model.estimator import DummyEstimator
 
 from ._predictor import SeasonalNaivePredictor
 
 
+@serde.dataclass
 class SeasonalNaiveEstimator(DummyEstimator):
-    @validated(
-        getattr(SeasonalNaivePredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=SeasonalNaivePredictor, **kwargs)
+    predictor_cls: type = SeasonalNaivePredictor

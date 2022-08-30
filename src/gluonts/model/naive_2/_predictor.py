@@ -14,9 +14,10 @@
 from typing import Optional
 
 import numpy as np
+from pydantic import Field
 import statsmodels.api as sm
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
@@ -114,6 +115,7 @@ def naive_2(
     return forecast
 
 
+@serde.dataclass
 class Naive2Predictor(RepresentablePredictor):
     """
     Naïve 2 forecaster as described in the M4 Competition Guide:
@@ -133,30 +135,21 @@ class Naive2Predictor(RepresentablePredictor):
         Length of the seasonality pattern of the input data
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        freq: Optional[str] = None,
-        season_length: Optional[int] = None,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    prediction_length: int = Field(...)
+    freq: Optional[str] = None
+    season_length: Optional[int] = None
 
+    def __post_init_post_parse__(self):
         assert (
-            season_length is None or season_length > 0
+            self.season_length is None or self.season_length > 0
         ), "The value of `season_length` should be > 0"
-        assert freq is not None or season_length is not None, (
+        assert self.freq is not None or self.season_length is not None, (
             "Either the frequency or season length of the time series "
             "has to be specified. "
         )
 
-        self.freq = freq
-        self.prediction_length = prediction_length
-        self.season_length = (
-            season_length
-            if season_length is not None
-            else get_seasonality(freq)
-        )
+        if self.season_length is None:
+            self.season_length = get_seasonality(self.freq)
 
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = item["target"]

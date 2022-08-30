@@ -14,9 +14,9 @@
 from typing import Optional
 
 import numpy as np
-from pydantic import PositiveInt
+from pydantic import Field, PositiveInt
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
@@ -26,6 +26,7 @@ from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
 
 
+@serde.dataclass
 class MeanPredictor(RepresentablePredictor, FallbackPredictor):
     """
     A :class:`Predictor` that predicts the samples based on the mean of the
@@ -42,16 +43,11 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         for every prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        num_samples: int = 100,
-        context_length: Optional[int] = None,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
-        self.context_length = context_length
-        self.num_samples = num_samples
+    prediction_length: int
+    num_samples: int = 100
+    context_length: Optional[int] = None
+
+    def __post_init_post_parse__(self):
         self.shape = (self.num_samples, self.prediction_length)
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
@@ -71,6 +67,7 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         )
 
 
+@serde.dataclass
 class MovingAveragePredictor(RepresentablePredictor):
     """
     A :class:`Predictor` that predicts the moving average based on the last
@@ -94,20 +91,14 @@ class MovingAveragePredictor(RepresentablePredictor):
         Length of the prediction horizon.
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    prediction_length: int = Field(...)
+    context_length: Optional[int] = None
 
-        if context_length is not None:
+    def __post_init_post_parse__(self):
+        if self.context_length is not None:
             assert (
-                context_length >= 1
+                self.context_length >= 1
             ), "The value of 'context_length' should be >= 1 or None"
-
-        self.context_length = context_length
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
         target = item["target"].tolist()
@@ -127,6 +118,7 @@ class MovingAveragePredictor(RepresentablePredictor):
         )
 
 
+@serde.dataclass
 class MeanEstimator(Estimator):
     """
     An `Estimator` that computes the mean targets in the training data, in the
@@ -142,15 +134,11 @@ class MeanEstimator(Estimator):
         produced by this predictor will all be identical.
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: PositiveInt,
-        num_samples: PositiveInt,
-    ) -> None:
+    prediction_length: PositiveInt
+    num_samples: PositiveInt
+
+    def __post_init_post_parse__(self):
         super().__init__()
-        self.prediction_length = prediction_length
-        self.num_samples = num_samples
 
     def train(
         self,

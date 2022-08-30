@@ -16,6 +16,8 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -127,8 +129,9 @@ class Gaussian(Distribution):
         return [self.mu, self.sigma]
 
 
+@serde.dataclass
 class GaussianOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "sigma": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "sigma": 1})
     distr_cls: type = Gaussian
 
     @classmethod

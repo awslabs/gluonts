@@ -16,7 +16,7 @@ from typing import List, Optional, Union, Type
 import numpy as np
 import pandas as pd
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.time_feature import TimeFeature
@@ -37,7 +37,6 @@ class MissingValueImputation:
     You can just implement your own inheriting this class.
     """
 
-    @validated()
     def __init__(self) -> None:
         pass
 
@@ -66,15 +65,14 @@ class LeavesMissingValues(MissingValueImputation):
         return values
 
 
+@serde.dataclass
 class DummyValueImputation(MissingValueImputation):
     """
     This class replaces all the missing values with the same dummy value given
     in advance.
     """
 
-    @validated()
-    def __init__(self, dummy_value: float = 0.0) -> None:
-        self.dummy_value = dummy_value
+    dummy_value: float = 0.0
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
         nan_indices = np.where(np.isnan(values))
@@ -168,6 +166,7 @@ class CausalMeanValueImputation(MissingValueImputation):
         return values
 
 
+@serde.dataclass
 class RollingMeanValueImputation(MissingValueImputation):
     """
     This class replaces each missing value with the average of all the last
@@ -177,9 +176,11 @@ class RollingMeanValueImputation(MissingValueImputation):
     missing value.)
     """
 
-    @validated()
-    def __init__(self, window_size: int = 10) -> None:
-        self.window_size = 1 if window_size < 1 else window_size
+    window_size: int = 10
+
+    def __post_init_post_parse__(self):
+        if self.window_size < 1:
+            self.window_size = 1
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
         if len(values) == 1 or np.isnan(values).all():
@@ -214,6 +215,7 @@ class RollingMeanValueImputation(MissingValueImputation):
         return values
 
 
+@serde.dataclass
 class AddObservedValuesIndicator(SimpleTransformation):
     """
     Replaces missing values in a numpy array (NaNs) with a dummy value and adds
@@ -231,20 +233,12 @@ class AddObservedValuesIndicator(SimpleTransformation):
         imputation is done and only the indicator is included.
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        output_field: str,
-        imputation_method: Optional[
-            MissingValueImputation
-        ] = DummyValueImputation(0.0),
-        dtype: Type = np.float32,
-    ) -> None:
-        self.target_field = target_field
-        self.output_field = output_field
-        self.dtype = dtype
-        self.imputation_method = imputation_method
+    target_field: str
+    output_field: str
+    imputation_method: Optional[MissingValueImputation] = DummyValueImputation(
+        0.0
+    )
+    dtype: Type = np.float32
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = data[self.target_field]
@@ -261,6 +255,7 @@ class AddObservedValuesIndicator(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class AddConstFeature(MapTransformation):
     """
     Expands a `const` value along the time axis as a dynamic feature, where the
@@ -287,20 +282,11 @@ class AddConstFeature(MapTransformation):
         Numpy dtype to use for resulting array.
     """
 
-    @validated()
-    def __init__(
-        self,
-        output_field: str,
-        target_field: str,
-        pred_length: int,
-        const: float = 1.0,
-        dtype: Type = np.float32,
-    ) -> None:
-        self.pred_length = pred_length
-        self.const = const
-        self.dtype = dtype
-        self.output_field = output_field
-        self.target_field = target_field
+    output_field: str
+    target_field: str
+    pred_length: int
+    const: float = 1.0
+    dtype: Type = np.float32
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         length = target_transformation_length(
@@ -312,6 +298,7 @@ class AddConstFeature(MapTransformation):
         return data
 
 
+@serde.dataclass
 class AddTimeFeatures(MapTransformation):
     """
     Adds a set of time features.
@@ -334,25 +321,15 @@ class AddTimeFeatures(MapTransformation):
         Prediction length
     """
 
-    @validated()
-    def __init__(
-        self,
-        start_field: str,
-        target_field: str,
-        output_field: str,
-        time_features: List[TimeFeature],
-        pred_length: int,
-        dtype: Type = np.float32,
-    ) -> None:
-        self.date_features = time_features
-        self.pred_length = pred_length
-        self.start_field = start_field
-        self.target_field = target_field
-        self.output_field = output_field
-        self.dtype = dtype
+    start_field: str
+    target_field: str
+    output_field: str
+    time_features: List[TimeFeature]
+    pred_length: int
+    dtype: Type = np.float32
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        if not self.date_features:
+        if not self.time_features:
             data[self.output_field] = None
             return data
 
@@ -364,12 +341,13 @@ class AddTimeFeatures(MapTransformation):
         index = pd.period_range(start, periods=length, freq=start.freq)
 
         data[self.output_field] = np.vstack(
-            [feat(index) for feat in self.date_features]
+            [feat(index) for feat in self.time_features]
         ).astype(self.dtype)
 
         return data
 
 
+@serde.dataclass
 class AddAgeFeature(MapTransformation):
     """
     Adds an 'age' feature to the data_entry.
@@ -394,21 +372,11 @@ class AddAgeFeature(MapTransformation):
         over time.
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        output_field: str,
-        pred_length: int,
-        log_scale: bool = True,
-        dtype: Type = np.float32,
-    ) -> None:
-        self.pred_length = pred_length
-        self.target_field = target_field
-        self.feature_name = output_field
-        self.log_scale = log_scale
-        self._age_feature = np.zeros(0)
-        self.dtype = dtype
+    target_field: str
+    output_field: str
+    pred_length: int
+    log_scale: bool = True
+    dtype: Type = np.float32
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         length = target_transformation_length(
@@ -420,11 +388,12 @@ class AddAgeFeature(MapTransformation):
         else:
             age = np.arange(length, dtype=self.dtype)
 
-        data[self.feature_name] = age.reshape((1, length))
+        data[self.output_field] = age.reshape((1, length))
 
         return data
 
 
+@serde.dataclass
 class AddAggregateLags(MapTransformation):
     """
     Adds aggregate lags as a feature to the data_entry.
@@ -457,27 +426,16 @@ class AddAggregateLags(MapTransformation):
         Aggregation function. Default is 'mean'.
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        output_field: str,
-        pred_length: int,
-        base_freq: str,
-        agg_freq: str,
-        agg_lags: List[int],
-        agg_fun: str = "mean",
-        dtype: Type = np.float32,
-    ) -> None:
-        self.pred_length = pred_length
-        self.target_field = target_field
-        self.feature_name = output_field
-        self.base_freq = base_freq
-        self.agg_freq = agg_freq
-        self.agg_lags = agg_lags
-        self.agg_fun = agg_fun
-        self.dtype = dtype
+    target_field: str
+    output_field: str
+    pred_length: int
+    base_freq: str
+    agg_freq: str
+    agg_lags: List[int]
+    agg_fun: str = "mean"
+    dtype: Type = np.float32
 
+    def __post_init_post_parse__(self):
         self.ratio = pd.Timedelta(self.agg_freq) / pd.Timedelta(self.base_freq)
         assert self.ratio.is_integer() and self.ratio >= 1, (
             "The aggregate frequency should be a multiple of the base"
@@ -540,9 +498,9 @@ class AddAggregateLags(MapTransformation):
         )
 
         # update the data entry
-        data[self.feature_name] = np.nan_to_num(lags)
+        data[self.output_field] = np.nan_to_num(lags)
 
-        assert data[self.feature_name].shape == (
+        assert data[self.output_field].shape == (
             len(self.valid_lags),
             len(data[self.target_field]) + self.pred_length * (not is_train),
         )
@@ -550,6 +508,7 @@ class AddAggregateLags(MapTransformation):
         return data
 
 
+@serde.dataclass
 class CountTrailingZeros(SimpleTransformation):
     """
     Add the number of 'trailing' zeros in each univariate time series as a
@@ -572,18 +531,10 @@ class CountTrailingZeros(SimpleTransformation):
         if True, the returned field will be a numpy array of shape (1,)
     """
 
-    @validated()
-    def __init__(
-        self,
-        new_field: str = "trailing_zeros",
-        target_field: str = FieldName.TARGET,
-        axis: int = -1,
-        as_array: bool = False,
-    ) -> None:
-        self.target_field = target_field
-        self.new_field = new_field
-        self.axis = axis
-        self.as_array = as_array
+    new_field: str = "trailing_zeros"
+    target_field: str = FieldName.TARGET
+    axis: int = -1
+    as_array: bool = False
 
     def transform(self, data: DataEntry) -> DataEntry:
         target = data[self.target_field]

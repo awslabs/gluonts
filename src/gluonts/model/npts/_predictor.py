@@ -16,8 +16,9 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.exceptions import GluonTSDataError
 from gluonts.model.forecast import SampleForecast
@@ -32,6 +33,7 @@ class KernelType(str, Enum):
     uniform = "uniform"
 
 
+@serde.dataclass
 class NPTSPredictor(RepresentablePredictor):
     r"""
     Implementation of Non-Parametric Time Series Forecaster.
@@ -150,38 +152,28 @@ class NPTSPredictor(RepresentablePredictor):
         with higher probability
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        kernel_type: KernelType = KernelType.exponential,
-        exp_kernel_weights: Union[float, List[float]] = 1.0,
-        use_seasonal_model: bool = True,
-        use_default_time_features: bool = True,
-        num_default_time_features: int = 1,
-        feature_scale: float = 1000.0,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    context_length: int = Field(default=1100)
+    kernel_type: KernelType = KernelType.exponential
+    exp_kernel_weights: Union[float, List[float]] = 1.0
+    use_seasonal_model: bool = True
+    use_default_time_features: bool = True
+    num_default_time_features: int = 1
+    feature_scale: float = 1000.0
+
+    def __post_init_post_parse__(self):
         # We limit the context length to some maximum value instead of
         # looking at the whole history which might be too large.
-        self.context_length = (
-            context_length if context_length is not None else 1100
-        )
-        self.kernel_type = kernel_type
-        self.num_default_time_features = num_default_time_features
-        self.use_seasonal_model = use_seasonal_model
-        self.use_default_time_features = use_default_time_features
-        self.feature_scale = feature_scale
-        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
-        elif isinstance(exp_kernel_weights, float):
-            self.kernel = NPTS.log_distance_kernel(exp_kernel_weights)
-        elif isinstance(exp_kernel_weights, list):
-            self.kernel = NPTS.log_weighted_distance_kernel(exp_kernel_weights)
+        elif isinstance(self.exp_kernel_weights, float):
+            self.kernel = NPTS.log_distance_kernel(self.exp_kernel_weights)
+        elif isinstance(self.exp_kernel_weights, list):
+            self.kernel = NPTS.log_weighted_distance_kernel(
+                self.exp_kernel_weights
+            )
         else:
             raise RuntimeError(
                 'Unexpected "exp_kernel_weights" type - should be either'

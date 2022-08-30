@@ -15,6 +15,7 @@ from collections import OrderedDict
 from typing import Optional, Tuple
 
 from mxnet import gluon
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -114,25 +115,18 @@ class GPArgProj(gluon.HybridBlock):
         return mu, D_positive, W_matrix
 
 
+@serde.dataclass
 class LowrankGPOutput(DistributionOutput):
-    @validated()
-    def __init__(
-        self,
-        rank: int,
-        dim: Optional[int] = None,  # needed to compute variance
-        sigma_init: float = 1.0,
-        mu_ratio: float = 1.0,
-        dropout_rate: float = 0.0,
-    ) -> None:
-        super().__init__(self)
-        self.dist_cls = LowrankMultivariateGaussian
-        self.dim = dim
-        self.rank = rank
-        self.args_dim = {"mu": 1, "sigma": 1, "w": rank}
+    rank: int
+    dim: Optional[int] = None  # needed to compute variance
+    sigma_init: float = 1.0
+    mu_ratio: float = 1.0
+    dropout_rate: float = 0.0
+    dist_cls = LowrankMultivariateGaussian
+
+    def __post_init_post_parse__(self):
+        self.args_dim = {"mu": 1, "sigma": 1, "w": self.rank}
         self.mu_bias = 0.0
-        self.sigma_init = sigma_init
-        self.mu_ratio = mu_ratio
-        self.dropout_rate = dropout_rate
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
 

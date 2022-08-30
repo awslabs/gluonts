@@ -16,13 +16,14 @@ from typing import Optional, Tuple
 import numpy as np
 import mxnet as mx
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, getF
 from .distribution_output import DistributionOutput, ArgProj
 
 
+@serde.dataclass
 class EmpiricalDistribution(Distribution):
     r"""
     A class representing empirical distribution.
@@ -46,14 +47,14 @@ class EmpiricalDistribution(Distribution):
         `2` over matrices, and so on.
     """
 
-    @validated()
-    def __init__(self, samples: Tensor, event_dim: int) -> None:
-        self.samples = samples
+    samples: Tensor
+    event_dim_: int
+
+    def __post_init_post_parse__(self):
         self.sorted_samples = self.F.sort(self.samples, axis=0)
         self.sorted_ix = self.F.argsort(self.samples, axis=0)
 
-        self._event_dim = event_dim
-        assert len(self.samples.shape) >= 1 + event_dim, (
+        assert len(self.samples.shape) >= 1 + self.event_dim_, (
             "Shape of samples do not match with the value given for"
             " `event_dim`!"
         )
@@ -78,7 +79,7 @@ class EmpiricalDistribution(Distribution):
 
     @property
     def event_dim(self) -> int:
-        return self._event_dim
+        return self.event_dim_
 
     @property
     def mean(self) -> Tensor:
@@ -219,6 +220,7 @@ class EmpiricalDistribution(Distribution):
         return self.crps_univariate(x=x)
 
 
+@serde.dataclass
 class EmpiricalDistributionOutput(DistributionOutput):
     """
     This allows us to wrap `EmpiricalDistribution` by any parametric
@@ -230,15 +232,8 @@ class EmpiricalDistributionOutput(DistributionOutput):
     loss is correctly implemented.
     """
 
-    @validated()
-    def __init__(
-        self,
-        num_samples: int,
-        distr_output: DistributionOutput,
-    ) -> None:
-        super().__init__(self)
-        self.num_samples = num_samples
-        self.distr_output = distr_output
+    num_samples: int
+    distr_output: DistributionOutput
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
         return self.distr_output.get_args_proj(prefix=prefix)
@@ -257,7 +252,7 @@ class EmpiricalDistributionOutput(DistributionOutput):
         samples = distr.sample_rep(num_samples=self.num_samples)
 
         return EmpiricalDistribution(
-            samples=samples, event_dim=distr.event_dim
+            samples=samples, event_dim_=distr.event_dim
         )
 
     def domain_map(self, F, *args, **kwargs):

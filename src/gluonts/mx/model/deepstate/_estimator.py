@@ -12,13 +12,14 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -84,6 +85,7 @@ def longest_period_from_frequency_str(freq_str: str) -> int:
     return FREQ_LONGEST_PERIOD_DICT[norm_freq_str(offset.name)] // offset.n
 
 
+@serde.dataclass
 class DeepStateEstimator(GluonEstimator):
     """
     Construct a DeepState estimator.
@@ -163,104 +165,72 @@ class DeepStateEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: List[int],
-        add_trend: bool = False,
-        past_length: Optional[int] = None,
-        num_periods_to_train: int = 4,
-        trainer: Trainer = Trainer(
-            epochs=100, num_batches_per_epoch=50, hybridize=False
-        ),
-        num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "lstm",
-        num_parallel_samples: int = 100,
-        dropout_rate: float = 0.1,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = True,
-        embedding_dimension: Optional[List[int]] = None,
-        issm: Optional[ISSM] = None,
-        scaling: bool = True,
-        time_features: Optional[List[TimeFeature]] = None,
-        noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
-        prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0),
-        innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01),
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    cardinality: List[int] = Field(...)
+    add_trend: bool = False
+    past_length: int = Field(None, gt=0)
+    num_periods_to_train: int = 4
+    trainer: Trainer = Trainer(
+        epochs=100, num_batches_per_epoch=50, hybridize=False
+    )
+    num_layers: int = Field(2, gt=0)
+    num_cells: int = Field(40, gt=0)
+    cell_type: str = "lstm"
+    num_parallel_samples: int = Field(100, gt=0)
+    dropout_rate: float = Field(0.1, ge=0)
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = True
+    embedding_dimension: List[int] = Field(None, gt=0)
+    issm: ISSM = Field(None)
+    scaling: bool = True
+    time_features: List[TimeFeature] = Field(None)
+    noise_std_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0)
+    prior_cov_bounds: ParameterBounds = ParameterBounds(1e-6, 1.0)
+    innovation_bounds: ParameterBounds = ParameterBounds(1e-6, 0.01)
+    batch_size: int = 32
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            past_length is None or past_length > 0
-        ), "The value of `past_length` should be > 0"
-        assert num_layers > 0, "The value of `num_layers` should be > 0"
-        assert num_cells > 0, "The value of `num_cells` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert not use_feat_static_cat or any(c > 1 for c in cardinality), (
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
+        assert not self.use_feat_static_cat or any(
+            c > 1 for c in self.cardinality
+        ), (
             "Cardinality of at least one static categorical feature must be"
             " larger than 1 if `use_feat_static_cat=True`. But cardinality"
-            f" provided is: {cardinality}"
+            f" provided is: {self.cardinality}"
         )
-        assert embedding_dimension is None or all(
-            e > 0 for e in embedding_dimension
-        ), "Elements of `embedding_dimension` should be > 0"
 
         assert all(
             np.isfinite(p.lower) and np.isfinite(p.upper) and p.lower > 0
-            for p in [noise_std_bounds, prior_cov_bounds, innovation_bounds]
+            for p in [
+                self.noise_std_bounds,
+                self.prior_cov_bounds,
+                self.innovation_bounds,
+            ]
         ), (
             "All parameter bounds should be finite, and lower bounds should be"
             " positive"
         )
 
-        self.past_length = (
-            past_length
-            if past_length is not None
-            else num_periods_to_train * longest_period_from_frequency_str(freq)
-        )
-        self.prediction_length = prediction_length
-        self.add_trend = add_trend
-        self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
-        self.num_parallel_samples = num_parallel_samples
-        self.scaling = scaling
-        self.dropout_rate = dropout_rate
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
-        self.cardinality = (
-            cardinality if cardinality and use_feat_static_cat else [1]
-        )
-        self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None
-            else [min(50, (cat + 1) // 2) for cat in self.cardinality]
-        )
+        if self.past_length is None:
+            self.past_length = (
+                self.num_periods_to_train
+                * longest_period_from_frequency_str(self.freq)
+            )
 
-        self.issm = (
-            issm
-            if issm is not None
-            else CompositeISSM.get_from_freq(freq, add_trend)
-        )
+        if self.cardinality is None or not self.use_feat_static_cat:
+            self.cardinality = [1]
 
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
-        )
+        if self.embedding_dimension is None:
+            self.embedding_dimension = [
+                min(50, (cat + 1) // 2) for cat in self.cardinality
+            ]
 
-        self.noise_std_bounds = noise_std_bounds
-        self.prior_cov_bounds = prior_cov_bounds
-        self.innovation_bounds = innovation_bounds
+        if self.issm is None:
+            self.issm = CompositeISSM.get_from_freq(self.freq, self.add_trend)
+
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -270,8 +240,10 @@ class DeepStateEstimator(GluonEstimator):
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
+        empty_list: List[Transformation] = []
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
+            empty_list
+            + [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat

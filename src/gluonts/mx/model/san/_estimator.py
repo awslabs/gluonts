@@ -15,8 +15,9 @@ from functools import partial
 from typing import List, Optional
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -57,69 +58,49 @@ from ._network import (
 )
 
 
+@serde.dataclass
 class SelfAttentionEstimator(GluonEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinalities: List[int] = [],
-        context_length: Optional[int] = None,
-        trainer: Trainer = Trainer(),
-        model_dim: int = 64,
-        ffn_dim_multiplier: int = 2,
-        num_heads: int = 4,
-        num_layers: int = 3,
-        num_outputs: int = 3,
-        kernel_sizes: List[int] = [3, 5, 7, 9],
-        distance_encoding: Optional[str] = "dot",
-        pre_layer_norm: bool = False,
-        dropout: float = 0.1,
-        temperature: float = 1.0,
-        time_features: Optional[List[TimeFeature]] = None,
-        use_feat_dynamic_real: bool = True,
-        use_feat_dynamic_cat: bool = False,
-        use_feat_static_real: bool = False,
-        use_feat_static_cat: bool = True,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ):
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int
+    cardinalities: List[int] = Field(default_factory=list)
+    context_length: Optional[int] = None
+    trainer: Trainer = Trainer()
+    model_dim: int = 64
+    ffn_dim_multiplier: int = 2
+    num_heads: int = 4
+    num_layers: int = 3
+    num_outputs: int = 3
+    kernel_sizes: List[int] = Field(default_factory=lambda: [3, 5, 7, 9])
+    distance_encoding: Optional[str] = "dot"
+    pre_layer_norm: bool = False
+    dropout: float = 0.1
+    temperature: float = 1.0
+    time_features: Optional[List[TimeFeature]] = None
+    use_feat_dynamic_real: bool = True
+    use_feat_dynamic_cat: bool = False
+    use_feat_static_real: bool = False
+    use_feat_static_cat: bool = True
+    train_sampler: Optional[InstanceSampler] = None
+    validation_sampler: Optional[InstanceSampler] = None
+    batch_size: int = 32
 
-        self.prediction_length = prediction_length
-        self.context_length = context_length or prediction_length
-        self.model_dim = model_dim
-        self.ffn_dim_multiplier = ffn_dim_multiplier
-        self.num_heads = num_heads
-        self.num_layers = num_layers
-        self.num_outputs = num_outputs
-        self.cardinalities = cardinalities
-        self.kernel_sizes = kernel_sizes
-        self.distance_encoding = distance_encoding
-        self.pre_layer_norm = pre_layer_norm
-        self.dropout = dropout
-        self.temperature = temperature
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
+        if self.context_length is None:
+            self.context_length = self.prediction_length
 
-        self.time_features = time_features or time_features_from_frequency_str(
-            freq
-        )
-        self.use_feat_dynamic_cat = use_feat_dynamic_cat
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
-        self.use_feat_static_real = use_feat_static_real
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
+
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
-        )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def create_transformation(self) -> Transformation:
         transforms = []

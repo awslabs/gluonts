@@ -13,8 +13,9 @@
 from functools import partial
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import (
     DataLoader,
@@ -47,6 +48,7 @@ from gluonts.transform import (
 from ._network import DeepTPPPredictionNetwork, DeepTPPTrainingNetwork
 
 
+@serde.dataclass
 class DeepTPPEstimator(GluonEstimator):
     r"""
     DeepTPP is a multivariate point process model based on an RNN.
@@ -102,57 +104,30 @@ class DeepTPPEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_interval_length: float,
-        context_interval_length: float,
-        num_marks: int,
-        time_distr_output: TPPDistributionOutput = WeibullOutput(),
-        embedding_dim: int = 5,
-        trainer: Trainer = Trainer(hybridize=False),
-        num_hidden_dimensions: int = 10,
-        num_parallel_samples: int = 100,
-        num_training_instances: int = 100,
-        freq: str = "H",
-        batch_size: int = 32,
-    ) -> None:
+    prediction_interval_length: int = Field(..., gt=0)
+    context_interval_length: int = Field(..., gt=0)
+    num_marks: int = Field(..., gt=0)
+    time_distr_output: TPPDistributionOutput = WeibullOutput()
+    embedding_dim: int = 5
+    trainer: Trainer = Trainer(hybridize=False)
+    num_hidden_dimensions: int = Field(10, gt=0)
+    num_parallel_samples: int = Field(100, gt=0)
+    num_training_instances: int = Field(100, gt=0)
+    freq: str = "H"
+    batch_size: int = 32
+
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
+
         assert (
-            not trainer.hybridize
+            not self.trainer.hybridize
         ), "DeepTPP currently only supports the non-hybridized training"
 
-        super().__init__(trainer=trainer, batch_size=batch_size)
-
-        assert (
-            prediction_interval_length > 0
-        ), "The value of `prediction_interval_length` should be > 0"
-        assert (
-            context_interval_length is None or context_interval_length > 0
-        ), "The value of `context_interval_length` should be > 0"
-        assert (
-            num_hidden_dimensions > 0
-        ), "The value of `num_hidden_dimensions` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
-        assert num_marks > 0, "The value of `num_marks` should be > 0"
-        assert (
-            num_training_instances > 0
-        ), "The value of `num_training_instances` should be > 0"
-
-        self.num_hidden_dimensions = num_hidden_dimensions
-        self.prediction_interval_length = prediction_interval_length
         self.context_interval_length = (
-            context_interval_length
-            if context_interval_length is not None
-            else prediction_interval_length
+            self.context_interval_length
+            if self.context_interval_length is not None
+            else self.prediction_interval_length
         )
-        self.num_marks = num_marks
-        self.time_distr_output = time_distr_output
-        self.embedding_dim = embedding_dim
-        self.num_parallel_samples = num_parallel_samples
-        self.num_training_instances = num_training_instances
-        self.freq = freq
 
     def create_transformation(self) -> Transformation:
         return Chain([])  # identity transformation
@@ -182,6 +157,7 @@ class DeepTPPEstimator(GluonEstimator):
         return Chain(
             [
                 ContinuousTimeInstanceSplitter(
+                    freq=self.freq,
                     past_interval_length=self.context_interval_length,
                     future_interval_length=self.prediction_interval_length,
                     instance_sampler=instance_sampler,

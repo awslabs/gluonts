@@ -14,6 +14,8 @@
 from typing import Dict, List, Tuple
 
 import mxnet as mx
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -246,15 +248,14 @@ class BoxCoxTransform(Bijection):
         )
 
 
+@serde.dataclass
 class BoxCoxTransformOutput(BijectionOutput):
+    lb_obs: float = 0.0
+    fix_lambda_2: bool = True
     bij_cls: type = BoxCoxTransform
-    args_dim: Dict[str, int] = dict(zip(BoxCoxTransform.arg_names, [1, 1]))
-
-    @validated()
-    def __init__(self, lb_obs: float = 0.0, fix_lambda_2: bool = True) -> None:
-        super().__init__()
-        self.lb_obs = lb_obs
-        self.fix_lambda_2 = fix_lambda_2
+    args_dim: Dict[str, int] = Field(
+        default=dict(zip(BoxCoxTransform.arg_names, [1, 1]))
+    )
 
     def domain_map(self, F, *args: Tensor) -> Tuple[Tensor, ...]:
         lambda_1, lambda_2 = args
@@ -297,11 +298,12 @@ class InverseBoxCoxTransform(InverseBijection):
         return 0
 
 
+@serde.dataclass
 class InverseBoxCoxTransformOutput(BoxCoxTransformOutput):
     bij_cls: type = InverseBoxCoxTransform
 
-    args_dim: Dict[str, int] = dict(
-        zip(InverseBoxCoxTransform.arg_names, [1, 1])
+    args_dim: Dict[str, int] = Field(
+        default=dict(zip(InverseBoxCoxTransform.arg_names, [1, 1]))
     )
 
     @property

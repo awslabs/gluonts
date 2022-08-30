@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import cast, Any, List, Optional, Tuple
+from typing import ClassVar, cast, Any, List, Optional, Tuple
 
 import mxnet as mx
 import numpy as np
@@ -75,8 +75,8 @@ class Distribution:
     A class representing probability distributions.
     """
 
-    arg_names: Tuple
-    is_reparameterizable = False
+    arg_names: ClassVar[Tuple]
+    is_reparameterizable: ClassVar[bool] = False
 
     @property
     def F(self):

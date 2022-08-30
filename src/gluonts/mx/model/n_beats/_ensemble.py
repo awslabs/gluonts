@@ -20,15 +20,14 @@ from typing import Iterator, List, Optional
 
 import mxnet as mx
 import numpy as np
-from pydantic import ValidationError
+from pydantic import Field
 
-from gluonts.core import fqname_for
-from gluonts.core.component import from_hyperparameters, validated
+from gluonts.core import serde
+from gluonts.core.component import from_hyperparameters
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
-from gluonts.exceptions import GluonTSHyperparametersError
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import Predictor
@@ -237,6 +236,7 @@ class NBEATSEnsemblePredictor(Predictor):
         return True
 
 
+@serde.dataclass
 class NBEATSEnsembleEstimator(Estimator):
     """
     An ensemble N-BEATS Estimator (approximately) as described in the paper:
@@ -316,78 +316,55 @@ class NBEATSEnsembleEstimator(Estimator):
         Arguments passed down to the individual estimators.
     """
 
-    # The validated() decorator makes sure that parameters are checked by
-    # Pydantic and allows to serialize/print models. Note that all parameters
-    # have defaults except for `freq` and `prediction_length`. which is
-    # recommended in GluonTS to allow to compare models easily.
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        meta_context_length: Optional[List[int]] = None,
-        meta_loss_function: Optional[List[str]] = None,
-        meta_bagging_size: int = 10,
-        trainer: Trainer = Trainer(),
-        num_stacks: int = 30,
-        widths: Optional[List[int]] = None,
-        num_blocks: Optional[List[int]] = None,
-        num_block_layers: Optional[List[int]] = None,
-        expansion_coefficient_lengths: Optional[List[int]] = None,
-        sharing: Optional[List[bool]] = None,
-        stack_types: Optional[List[str]] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__()
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    meta_context_length: List[int] = Field(None)
+    meta_loss_function: List[str] = Field(None)
+    meta_bagging_size: int = 10
+    trainer: Trainer = Trainer()
+    num_stacks: int = 30
+    widths: List[int] = Field(None)
+    num_blocks: List[int] = Field(None)
+    num_block_layers: List[int] = Field(None)
+    expansion_coefficient_lengths: List[int] = Field(None)
+    sharing: List[bool] = Field(None)
+    stack_types: List[str] = Field(None)
+
+    def __post_init_post_parse__(self):
 
         assert (
-            prediction_length > 0
+            self.prediction_length > 0
         ), "The value of `prediction_length` should be > 0"
 
-        self.freq = freq
-        self.prediction_length = prediction_length
-
-        assert meta_loss_function is None or all(
+        assert self.meta_loss_function is None or all(
             [
                 loss_function in VALID_LOSS_FUNCTIONS
-                for loss_function in meta_loss_function
+                for loss_function in self.meta_loss_function
             ]
         ), (
             "Each loss function has to be one of the following:"
             f" {VALID_LOSS_FUNCTIONS}."
         )
-        assert meta_context_length is None or all(
-            [context_length > 0 for context_length in meta_context_length]
+        assert self.meta_context_length is None or all(
+            [context_length > 0 for context_length in self.meta_context_length]
         ), "The value of each `context_length` should be > 0"
         assert (
-            meta_bagging_size is None or meta_bagging_size > 0
+            self.meta_bagging_size is None or self.meta_bagging_size > 0
         ), "The value of each `context_length` should be > 0"
 
-        self.meta_context_length = (
-            meta_context_length
-            if meta_context_length is not None
-            else [multiplier * prediction_length for multiplier in range(2, 8)]
-        )
-        self.meta_loss_function = (
-            meta_loss_function
-            if meta_loss_function is not None
-            else VALID_LOSS_FUNCTIONS
-        )
-        self.meta_bagging_size = meta_bagging_size
+        if self.meta_context_length is None:
+            self.meta_context_length = [
+                multiplier * self.prediction_length
+                for multiplier in range(2, 8)
+            ]
 
-        # The following arguments are validated in the NBEATSEstimator:
-        self.trainer = trainer
-        print(f"TRAINER:{str(trainer)}")
-        self.num_stacks = num_stacks
-        self.widths = widths
-        self.num_blocks = num_blocks
-        self.num_block_layers = num_block_layers
-        self.expansion_coefficient_lengths = expansion_coefficient_lengths
-        self.sharing = sharing
-        self.stack_types = stack_types
+        if self.meta_loss_function is None:
+            self.meta_loss_function = VALID_LOSS_FUNCTIONS
+
+        print(f"TRAINER:{str(self.trainer)}")
 
         # Actually instantiate the different models
-        self.estimators = self._estimator_factory(**kwargs)
+        self.estimators = self._estimator_factory(**self.kwargs)
 
     def _estimator_factory(self, **kwargs):
         estimators = []
@@ -421,22 +398,9 @@ class NBEATSEnsembleEstimator(Estimator):
     def from_hyperparameters(
         cls, **hyperparameters
     ) -> "NBEATSEnsembleEstimator":
-        Model = getattr(cls.__init__, "Model", None)
-
-        if not Model:
-            raise AttributeError(
-                "Cannot find attribute Model attached to the "
-                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                "the class constructor as @validated()."
-            )
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-            return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-            )
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
+        trainer = from_hyperparameters(Trainer, **hyperparameters)
+        hyperparameters["trainer"] = trainer
+        return cls(**hyperparameters)
 
     def train(
         self, training_data: Dataset, validation_data: Optional[Dataset] = None

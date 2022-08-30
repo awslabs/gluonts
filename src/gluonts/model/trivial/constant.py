@@ -12,8 +12,9 @@
 # permissions and limitations under the License.
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
@@ -21,6 +22,7 @@ from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 
 
+@serde.dataclass
 class ConstantPredictor(RepresentablePredictor):
     """
     A `Predictor` that always produces the same forecast.
@@ -32,10 +34,11 @@ class ConstantPredictor(RepresentablePredictor):
         prediction.
     """
 
-    @validated()
-    def __init__(self, samples: np.ndarray) -> None:
-        super().__init__(samples.shape[1])
-        self.samples = samples
+    samples: np.ndarray = Field(...)
+    prediction_length: int = Field(None)
+
+    def __post_init_post_parse__(self):
+        self.prediction_length = self.samples.shape[1]
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
         return SampleForecast(
@@ -45,7 +48,13 @@ class ConstantPredictor(RepresentablePredictor):
         )
 
 
+@serde.dataclass
 class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
+    prediction_length: int
+    value: float = 0.0
+    # since we are emitting a constant values, we just predict a single
+    # line on default
+    num_samples: int = 1
     """
     A `Predictor` that always produces the same value as forecast.
 
@@ -56,19 +65,6 @@ class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
     prediction_length
         Prediction horizon.
     """
-
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        value: float = 0.0,
-        # since we are emitting a constant values, we just predict a single
-        # line on default
-        num_samples: int = 1,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
-        self.value = value
-        self.num_samples = num_samples
 
     def predict_item(self, item: DataEntry) -> SampleForecast:
         samples_shape = self.num_samples, self.prediction_length

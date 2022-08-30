@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -55,6 +56,7 @@ from ._network import (
 )
 
 
+@serde.dataclass
 class SimpleFeedForwardEstimator(GluonEstimator):
     """
     SimpleFeedForwardEstimator shows how to build a simple MLP model predicting
@@ -113,78 +115,49 @@ class SimpleFeedForwardEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    # The validated() decorator makes sure that parameters are checked by
-    # Pydantic and allows to serialize/print models. Note that all parameters
-    # have defaults except for `prediction_length`. which is
-    # recommended in GluonTS to allow to compare models easily.
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        sampling: bool = True,
-        trainer: Trainer = Trainer(),
-        num_hidden_dimensions: Optional[List[int]] = None,
-        context_length: Optional[int] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
-        imputation_method: Optional[MissingValueImputation] = None,
-        batch_normalization: bool = False,
-        mean_scaling: bool = True,
-        num_parallel_samples: int = 100,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ) -> None:
+    prediction_length: int = Field(..., gt=0)
+    sampling: bool = True
+    trainer: Trainer = Trainer()
+    num_hidden_dimensions: List[int] = Field(None, gt=0)
+    context_length: int = Field(None, gt=0)
+    distr_output: DistributionOutput = StudentTOutput()
+    imputation_method: MissingValueImputation = Field(None)
+    batch_normalization: bool = False
+    mean_scaling: bool = True
+    num_parallel_samples: int = Field(100, gt=0)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
+
+    def __post_init_post_parse__(self):
         """
         Defines an estimator.
 
         All parameters should be serializable.
         """
-        super().__init__(trainer=trainer, batch_size=batch_size)
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_hidden_dimensions is None or (
-            [d > 0 for d in num_hidden_dimensions]
-        ), "Elements of `num_hidden_dimensions` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
 
-        self.num_hidden_dimensions = (
-            num_hidden_dimensions
-            if num_hidden_dimensions is not None
-            else list([40, 40])
-        )
-        self.prediction_length = prediction_length
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.distr_output = distr_output
-        self.batch_normalization = batch_normalization
-        self.mean_scaling = mean_scaling
-        self.num_parallel_samples = num_parallel_samples
-        self.sampling = sampling
-        self.imputation_method = (
-            imputation_method
-            if imputation_method is not None
-            else DummyValueImputation(self.distr_output.value_in_support)
-        )
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+        if self.num_hidden_dimensions is None:
+            self.num_hidden_dimensions = list([40, 40])
+
+        if self.context_length is None:
+            self.context_length = self.prediction_length
+
+        if self.imputation_method is None:
+            self.imputation_method = DummyValueImputation(
+                self.distr_output.value_in_support
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
-        )
+
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
+            )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     # Here we do only a simple operation to convert the input data to a form
     # that can be digested by our model by only splitting the target in two, a

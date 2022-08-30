@@ -15,6 +15,8 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -119,8 +121,9 @@ class Gamma(Distribution):
         return [self.alpha, self.beta]
 
 
+@serde.dataclass
 class GammaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1}
+    args_dim: Dict[str, int] = Field(default={"alpha": 1, "beta": 1})
     distr_cls: type = Gamma
 
     @classmethod

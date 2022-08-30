@@ -16,8 +16,9 @@ from typing import Any, List, Optional, Tuple
 import mxnet as mx
 import numpy as np
 from mxnet import autograd
+from pydantic import Field
+from gluonts.core import serde
 
-from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 from . import bijection as bij
@@ -25,18 +26,17 @@ from .distribution import Distribution, _index_tensor, getF
 from .bijection import AffineTransformation
 
 
+@serde.dataclass
 class TransformedDistribution(Distribution):
     r"""
     A distribution obtained by applying a sequence of transformations on top
     of a base distribution.
     """
 
-    @validated()
-    def __init__(
-        self, base_distribution: Distribution, transforms: List[bij.Bijection]
-    ) -> None:
-        self.base_distribution = base_distribution
-        self.transforms = transforms
+    base_distribution: Distribution
+    transforms: List[bij.Bijection]
+
+    def __post_init_post_parse__(self):
         self.is_reparameterizable = self.base_distribution.is_reparameterizable
 
         # use these to cache shapes and avoid recomputing all steps
@@ -194,18 +194,18 @@ class TransformedDistribution(Distribution):
         return q
 
 
+@serde.dataclass
 class AffineTransformedDistribution(TransformedDistribution):
-    @validated()
-    def __init__(
-        self,
-        base_distribution: Distribution,
-        loc: Optional[Tensor] = None,
-        scale: Optional[Tensor] = None,
-    ) -> None:
-        super().__init__(base_distribution, [AffineTransformation(loc, scale)])
+    base_distribution: Distribution
+    loc: Tensor = Field(None)
+    scale: Tensor = Field(None)
+    transforms: List[bij.Bijection] = Field(None)
 
-        self.loc = loc if loc is not None else 0
-        self.scale = scale if scale is not None else 1
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+        self.transforms = [AffineTransformation(self.loc, self.scale)]
+        self.loc = self.loc if self.loc is not None else 0
+        self.scale = self.scale if self.scale is not None else 1
 
     @property
     def mean(self) -> Tensor:

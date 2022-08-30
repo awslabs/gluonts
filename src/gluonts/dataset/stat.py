@@ -17,12 +17,13 @@ from typing import Any, List, NamedTuple, Optional, Set
 
 import numpy as np
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.field_names import FieldName
 from gluonts.exceptions import assert_data_error
 from gluonts.gluonts_tqdm import tqdm
 
 
+@serde.dataclass
 class ScaleHistogram:
     """
     Scale histogram of a timeseries dataset.
@@ -39,22 +40,18 @@ class ScaleHistogram:
     empty_target_count
     """
 
-    @validated()
-    def __init__(
-        self,
-        base: float = 2.0,
-        bin_counts: Optional[dict] = None,
-        empty_target_count: int = 0,
-    ) -> None:
-        self._base = base
+    _base: float = 2.0
+    bin_counts: Optional[dict] = None
+    empty_target_count: int = 0
+
+    def __post_init_post_parse__(self):
         self.bin_counts = defaultdict(
-            int, {} if bin_counts is None else bin_counts
+            int, {} if self.bin_counts is None else self.bin_counts
         )
-        self.empty_target_count = empty_target_count
-        self.__init_args__ = dict(
-            base=self._base,
+        self.__init_kwargs__ = dict(
+            _base=self._base,
             bin_counts=self.bin_counts,
-            empty_target_count=empty_target_count,
+            empty_target_count=self.empty_target_count,
         )
 
     def bucket_index(self, target_values):

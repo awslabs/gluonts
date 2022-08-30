@@ -14,6 +14,8 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -102,8 +104,9 @@ class LogitNormal(Distribution):
         return [self.mu, self.sigma]
 
 
+@serde.dataclass
 class LogitNormalOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "sigma": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "sigma": 1})
     distr_cls: type = LogitNormal
 
     @classmethod

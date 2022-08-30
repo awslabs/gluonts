@@ -15,6 +15,7 @@ import math
 from typing import Optional, Tuple
 
 import numpy as np
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -140,12 +141,13 @@ class MultivariateGaussian(Distribution):
         )
 
 
+@serde.dataclass
 class MultivariateGaussianOutput(DistributionOutput):
-    @validated()
-    def __init__(self, dim: int) -> None:
-        self.args_dim = {"mu": dim, "Sigma": dim * dim}
+    dim: int
+
+    def __post_init_post_parse__(self):
+        self.args_dim = {"mu": self.dim, "Sigma": self.dim * self.dim}
         self.distr_cls = MultivariateGaussian
-        self.dim = dim
         self.mask = None
 
     def domain_map(self, F, mu_vector, L_vector):

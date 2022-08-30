@@ -17,6 +17,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import AffineTransform, TransformedDistribution
 
+from gluonts.core import serde
 from gluonts.core.component import validated
 
 from .distribution_output import DistributionOutput
@@ -198,21 +199,24 @@ class PiecewiseLinear(torch.distributions.Distribution):
         return self.gamma.shape
 
 
+@serde.dataclass
 class PiecewiseLinearOutput(DistributionOutput):
+    num_pieces: int
     distr_cls: type = PiecewiseLinear
 
-    @validated()
-    def __init__(self, num_pieces: int) -> None:
-        super().__init__(self)
-
+    def __post_init_post_parse__(self):
         assert (
-            isinstance(num_pieces, int) and num_pieces > 1
+            isinstance(self.num_pieces, int) and self.num_pieces > 1
         ), "num_pieces should be an integer and greater than 1"
 
-        self.num_pieces = num_pieces
+        self.num_pieces = self.num_pieces
         self.args_dim = cast(
             Dict[str, int],
-            {"gamma": 1, "slopes": num_pieces, "knot_spacings": num_pieces},
+            {
+                "gamma": 1,
+                "slopes": self.num_pieces,
+                "knot_spacings": self.num_pieces,
+            },
         )
 
     @classmethod

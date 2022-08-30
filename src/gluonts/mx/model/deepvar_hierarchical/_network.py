@@ -277,7 +277,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         loss_CRPS = F.zeros_like(neg_likelihoods)
         if self.CRPS_weight > 0.0:
             loss_CRPS = (
-                EmpiricalDistribution(samples=samples, event_dim=1)
+                EmpiricalDistribution(samples=samples, event_dim_=1)
                 .crps_univariate(x=target)
                 .expand_dims(axis=-1)
             )

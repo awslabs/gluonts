@@ -14,7 +14,8 @@
 from typing import Optional
 
 import gluonts
-from gluonts.core.component import from_hyperparameters, validated
+from gluonts.core import serde
+from gluonts.core.component import from_hyperparameters
 from gluonts.dataset.common import Dataset
 from gluonts.model.predictor import Predictor
 
@@ -22,7 +23,6 @@ from gluonts.model.predictor import Predictor
 class Estimator:
     """
     An abstract class representing a trainable model.
-
     The underlying model is trained by calling the `train` method with a
     training `Dataset`, producing a `Predictor` object.
     """
@@ -77,6 +77,7 @@ class Estimator:
         return cls.from_hyperparameters(**params)
 
 
+@serde.dataclass
 class DummyEstimator(Estimator):
     """
     An `Estimator` that, upon training, simply returns a pre-constructed
@@ -90,10 +91,11 @@ class DummyEstimator(Estimator):
         Keyword arguments to pass to the predictor constructor.
     """
 
-    @validated()
-    def __init__(self, predictor_cls: type, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.predictor = predictor_cls(**kwargs)
+    predictor_cls: type
+    lead_time: int = 0
+
+    def __post_init_post_parse__(self):
+        self.predictor = self.predictor_cls(**self.kwargs)
 
     def train(
         self,

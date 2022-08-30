@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import (
@@ -29,6 +30,7 @@ from .distribution import (
 from .distribution_output import DistributionOutput
 
 
+@serde.dataclass
 class StudentT(Distribution):
     r"""
     Student's t-distribution.
@@ -45,14 +47,10 @@ class StudentT(Distribution):
         distribution, of shape `(*batch_shape, *event_shape)`.
     F
     """
-
-    is_reparameterizable = False
-
-    @validated()
-    def __init__(self, mu: Tensor, sigma: Tensor, nu: Tensor, F=None) -> None:
-        self.mu = mu
-        self.sigma = sigma
-        self.nu = nu
+    mu: Tensor
+    sigma: Tensor
+    nu: Tensor
+    is_reparameterizable: ClassVar = False
 
     @property
     def F(self):
@@ -122,8 +120,9 @@ class StudentT(Distribution):
         return [self.mu, self.sigma, self.nu]
 
 
+@serde.dataclass
 class StudentTOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "sigma": 1, "nu": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "sigma": 1, "nu": 1})
     distr_cls: type = StudentT
 
     @classmethod

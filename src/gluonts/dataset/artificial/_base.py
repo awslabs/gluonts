@@ -216,7 +216,7 @@ class ConstantDataset(ArtificialDataset):
         zero_to_one: float = 0.1,
         scale_features: float = 200,
     ) -> TrainDatasets:
-        recipe = []
+        recipe: List[Tuple[str, Callable]] = []
         recipe_type = Constant(constant)
         if self.is_noise:
             recipe_type += RandomGaussian()  # Use default stddev = 1.0

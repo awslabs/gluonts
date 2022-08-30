@@ -11,10 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from mxnet import autograd
+from gluonts.core import serde
 
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.bijection import AffineTransformation, Bijection
@@ -64,6 +65,7 @@ class TPPDistribution(Distribution):
         raise NotImplementedError()
 
 
+@serde.dataclass
 class TPPTransformedDistribution(TransformedDistribution):
     """
     TransformedDistribution used in temporal point processes.
@@ -79,21 +81,13 @@ class TPPTransformedDistribution(TransformedDistribution):
     # Necessary for Mypy to understand that base_distribution is
     # TPPDistribution
     base_distribution: TPPDistribution
+    transforms: List[Bijection]
 
-    def __init__(
-        self, base_distribution: TPPDistribution, transforms: List[Bijection]
-    ) -> None:
-        self.base_distribution = base_distribution
-        self.transforms = transforms
-        self._check_signs(transforms)
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+
+        self._check_signs(self.transforms)
         self.is_reparameterizable = self.base_distribution.is_reparameterizable
-
-        # use these to cache shapes and avoid recomputing all steps
-        # the reason we cannot do the computations here directly
-        # is that this constructor would fail in mx.symbol mode
-        self._event_dim: Optional[int] = None
-        self._event_shape: Optional[Tuple] = None
-        self._batch_shape: Optional[Tuple] = None
 
     def _check_signs(self, transforms):
         """

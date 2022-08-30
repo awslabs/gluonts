@@ -13,6 +13,8 @@
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -168,8 +170,9 @@ class GenPareto(Distribution):
         return [self.xi, self.beta]
 
 
+@serde.dataclass
 class GenParetoOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"xi": 1, "beta": 1}
+    args_dim: Dict[str, int] = Field(default={"xi": 1, "beta": 1})
     distr_cls: type = GenPareto
 
     @classmethod

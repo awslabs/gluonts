@@ -240,7 +240,7 @@ from gluonts.mx.util import make_nd_diag
         (
             EmpiricalDistribution(
                 samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-                event_dim=0,
+                event_dim_=0,
             ),
             (3, 4, 5),
             (),
@@ -248,7 +248,7 @@ from gluonts.mx.util import make_nd_diag
         (
             EmpiricalDistribution(
                 samples=mx.nd.random.normal(shape=(10, 3, 4, 5)),
-                event_dim=1,
+                event_dim_=1,
             ),
             (3, 4),
             (5,),
@@ -256,7 +256,7 @@ from gluonts.mx.util import make_nd_diag
         (
             EmpiricalDistribution(
                 samples=mx.nd.random.normal(shape=(10, 3, 4, 5, 20)),
-                event_dim=2,
+                event_dim_=2,
             ),
             (3, 4),
             (5, 20),

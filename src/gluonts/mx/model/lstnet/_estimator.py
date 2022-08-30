@@ -17,7 +17,7 @@ from typing import Optional, Type
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -47,6 +47,7 @@ from gluonts.transform import (
 )
 
 
+@serde.dataclass
 class LSTNetEstimator(GluonEstimator):
     """
     Constructs an LSTNet estimator for multivariate time-series data.
@@ -110,69 +111,46 @@ class LSTNetEstimator(GluonEstimator):
         Data type (default: np.float32)
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        context_length: int,
-        num_series: int,
-        skip_size: int,
-        ar_window: int,
-        channels: int,
-        lead_time: int = 0,
-        kernel_size: int = 6,
-        trainer: Trainer = Trainer(),
-        dropout_rate: Optional[float] = 0.2,
-        output_activation: Optional[str] = None,
-        rnn_cell_type: str = "gru",
-        rnn_num_cells: int = 100,
-        rnn_num_layers: int = 3,
-        skip_rnn_cell_type: str = "gru",
-        skip_rnn_num_layers: int = 1,
-        skip_rnn_num_cells: int = 10,
-        scaling: bool = True,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-        dtype: Type = np.float32,
-    ) -> None:
+    prediction_length: int
+    context_length: int
+    num_series: int
+    skip_size: int
+    ar_window: int
+    channels: int
+    lead_time: int = 0
+    kernel_size: int = 6
+    trainer: Trainer = Trainer()
+    dropout_rate: Optional[float] = 0.2
+    output_activation: Optional[str] = None
+    rnn_cell_type: str = "gru"
+    rnn_num_cells: int = 100
+    rnn_num_layers: int = 3
+    skip_rnn_cell_type: str = "gru"
+    skip_rnn_num_layers: int = 1
+    skip_rnn_num_cells: int = 10
+    scaling: bool = True
+    train_sampler: Optional[InstanceSampler] = None
+    validation_sampler: Optional[InstanceSampler] = None
+    batch_size: int = 32
+    dtype: Type = np.float32
+
+    def __post_init_post_parse__(self):
         super().__init__(
-            trainer=trainer,
-            lead_time=lead_time,
-            batch_size=batch_size,
-            dtype=dtype,
+            trainer=self.trainer,
+            lead_time=self.lead_time,
+            batch_size=self.batch_size,
+            dtype=self.dtype,
         )
-        self.num_series = num_series
-        self.skip_size = skip_size
-        self.ar_window = ar_window
-        self.prediction_length = prediction_length
-        self.context_length = context_length
-        self.channels = channels
-        self.kernel_size = kernel_size
-        self.dropout_rate = dropout_rate
-        self.output_activation = output_activation
-        self.rnn_cell_type = rnn_cell_type
-        self.rnn_num_layers = rnn_num_layers
-        self.rnn_num_cells = rnn_num_cells
-        self.skip_rnn_cell_type = skip_rnn_cell_type
-        self.skip_rnn_num_layers = skip_rnn_num_layers
-        self.skip_rnn_num_cells = skip_rnn_num_cells
-        self.scaling = scaling
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length + lead_time
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0,
+                min_future=self.prediction_length + self.lead_time,
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(
-                min_future=prediction_length + lead_time
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length + self.lead_time
             )
-        )
-        self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
         return AsNumpyArray(

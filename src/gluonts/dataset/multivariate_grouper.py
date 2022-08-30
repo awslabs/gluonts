@@ -17,11 +17,12 @@ from typing import Callable, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
 
+@serde.dataclass
 class MultivariateGrouper:
     """
     The MultivariateGrouper takes a univariate dataset and groups it into a
@@ -65,19 +66,12 @@ class MultivariateGrouper:
         time series for the test dataset.
     """
 
-    @validated()
-    def __init__(
-        self,
-        max_target_dim: Optional[int] = None,
-        num_test_dates: Optional[int] = None,
-        train_fill_rule: Callable = np.mean,
-        test_fill_rule: Callable = lambda x: 0.0,
-    ) -> None:
-        self.num_test_dates = num_test_dates
-        self.max_target_dimension = max_target_dim
-        self.train_fill_function = train_fill_rule
-        self.test_fill_rule = test_fill_rule
+    max_target_dim: Optional[int] = None
+    num_test_dates: Optional[int] = None
+    train_fill_rule: Callable = np.mean
+    test_fill_rule: Callable = lambda x: 0.0
 
+    def __post_init_post_parse__(self):
         self.first_timestamp = None
         self.last_timestamp = None
         self.frequency = ""
@@ -186,7 +180,7 @@ class MultivariateGrouper:
                 end=self.last_timestamp,
                 freq=data[FieldName.START].freq,
             ),
-            fill_value=self.train_fill_function(ts),
+            fill_value=self.train_fill_rule(ts),
         ).values
 
     def _left_pad_data(self, data: DataEntry) -> np.ndarray:
@@ -206,7 +200,7 @@ class MultivariateGrouper:
 
     def _restrict_max_dimensionality(self, data: DataEntry) -> DataEntry:
         """
-        Takes the last max_target_dimension dimensions from a multivariate
+        Takes the last max_target_dim dimensions from a multivariate
         dataentry.
 
         Parameters
@@ -218,13 +212,13 @@ class MultivariateGrouper:
         -------
         DataEntry
             data multivariate data entry with
-            (max_target_dimension, num_timesteps) target field
+            (max_target_dim, num_timesteps) target field
         """
 
-        if self.max_target_dimension is not None:
+        if self.max_target_dim is not None:
             # restrict maximum dimensionality (for faster testing)
             data[FieldName.TARGET] = data[FieldName.TARGET][
-                -self.max_target_dimension :, :
+                -self.max_target_dim :, :
             ]
             if FieldName.FEAT_DYNAMIC_REAL in data.keys():
                 data[FieldName.FEAT_DYNAMIC_REAL] = data[

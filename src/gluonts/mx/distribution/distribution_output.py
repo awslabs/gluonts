@@ -16,7 +16,6 @@ from typing import Callable, Dict, Optional, Tuple, Type
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 from .distribution import Distribution
@@ -76,7 +75,7 @@ class Output:
     r"""
     Class to connect a network to some output
     """
-
+    # TODO: Hongqing, change it later
     args_dim: Dict[str, int]
     _dtype: Type = np.float32
 
@@ -109,11 +108,9 @@ class DistributionOutput(Output):
     Class to construct a distribution given the output of a network.
     """
 
-    distr_cls: type
-
-    @validated()
+    # distr_cls: type
     def __init__(self) -> None:
-        pass
+        self.distr_cls: type = None  # type: ignore
 
     def distribution(
         self,

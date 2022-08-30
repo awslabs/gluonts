@@ -14,8 +14,9 @@
 from typing import Optional
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
@@ -23,6 +24,7 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import get_seasonality
 
 
+@serde.dataclass
 class SeasonalNaivePredictor(RepresentablePredictor):
     """
     Seasonal naïve forecaster.
@@ -46,25 +48,17 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         Length of the seasonality pattern of the input data
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        season_length: Optional[int] = None,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    season_length: Optional[int] = None
 
+    def __post_init_post_parse__(self):
         assert (
-            season_length is None or season_length > 0
+            self.season_length is None or self.season_length > 0
         ), "The value of `season_length` should be > 0"
 
-        self.prediction_length = prediction_length
-        self.season_length = (
-            season_length
-            if season_length is not None
-            else get_seasonality(freq)
-        )
+        if self.season_length is None:
+            self.season_length = get_seasonality(self.freq)
 
     def predict_item(self, item: DataEntry) -> Forecast:
         target = np.asarray(item["target"], np.float32)

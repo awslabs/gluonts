@@ -18,8 +18,9 @@ import numpy as np
 import pandas as pd
 from mxnet.gluon import HybridBlock
 from pandas.tseries.frequencies import to_offset
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -64,9 +65,11 @@ from gluonts.transform import (
 from ._network import DeepVARPredictionNetwork, DeepVARTrainingNetwork
 
 
+@serde.dataclass
 class FourierDateFeatures:
-    @validated()
-    def __init__(self, freq: str) -> None:
+    freq: str
+
+    def __post_init_post_parse__(self):
         # reocurring freq
         freqs = [
             "month",
@@ -80,8 +83,7 @@ class FourierDateFeatures:
             "daysinmonth",
         ]
 
-        assert freq in freqs
-        self.freq = freq
+        assert self.freq in freqs
 
     def __call__(self, index: pd.PeriodIndex) -> np.ndarray:
         values = getattr(index, self.freq)
@@ -135,6 +137,7 @@ def get_lags_for_frequency(
     return output_lags[:num_lags]
 
 
+@serde.dataclass
 class DeepVAREstimator(GluonEstimator):
     """
     Constructs a DeepVAR estimator, which is a multivariate variant of DeepAR.
@@ -215,95 +218,51 @@ class DeepVAREstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        target_dim: int,
-        trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "lstm",
-        num_parallel_samples: int = 100,
-        dropout_rate: float = 0.1,
-        use_feat_dynamic_real: bool = False,
-        cardinality: List[int] = [1],
-        embedding_dimension: int = 5,
-        distr_output: Optional[DistributionOutput] = None,
-        rank: Optional[int] = 5,
-        scaling: bool = True,
-        pick_incomplete: bool = False,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        conditioning_length: int = 200,
-        use_marginal_transformation=False,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-        **kwargs,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    target_dim: int = Field(...)
+    trainer: Trainer = Trainer()
+    context_length: int = Field(None, gt=0)
+    num_layers: int = Field(2, gt=0)
+    num_cells: int = Field(40, gt=0)
+    cell_type: str = "lstm"
+    num_parallel_samples: int = Field(100, gt=0)
+    dropout_rate: float = Field(0.1, ge=0)
+    use_feat_dynamic_real: bool = False
+    cardinality: List[int] = Field([1], gt=0)
+    embedding_dimension: int = Field(5, gt=0)
+    distr_output: DistributionOutput = Field(None)
+    rank: int = Field(default=5)
+    scaling: bool = True
+    pick_incomplete: bool = False
+    lags_seq: List[int] = Field(None)
+    time_features: List[TimeFeature] = Field(None)
+    conditioning_length: int = 200
+    use_marginal_transformation = False
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_layers > 0, "The value of `num_layers` should be > 0"
-        assert num_cells > 0, "The value of `num_cells` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
+    def __post_init_post_parse__(self):
+        super().__init__(
+            trainer=self.trainer, batch_size=self.batch_size, **self.kwargs
+        )
 
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            self.context_length
+            if self.context_length is not None
+            else self.prediction_length
         )
 
-        if distr_output is not None:
-            self.distr_output = distr_output
-        else:
+        if self.distr_output is None:
             self.distr_output = LowrankMultivariateGaussianOutput(
-                dim=target_dim, rank=rank
+                dim=self.target_dim, rank=self.rank
             )
 
-        self.prediction_length = prediction_length
-        self.target_dim = target_dim
-        self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
-        self.num_parallel_samples = num_parallel_samples
-        self.dropout_rate = dropout_rate
-        self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
-        self.conditioning_length = conditioning_length
-        self.use_marginal_transformation = use_marginal_transformation
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-
-        self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq)
-        )
-
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
-        )
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
 
         self.history_length = self.context_length + max(self.lags_seq)
-        self.pick_incomplete = pick_incomplete
-        self.scaling = scaling
 
         if self.use_marginal_transformation:
             self.output_transform: Optional[
@@ -312,23 +271,18 @@ class DeepVAREstimator(GluonEstimator):
         else:
             self.output_transform = None
 
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
                 num_instances=1.0,
-                min_past=0 if pick_incomplete else self.history_length,
-                min_future=prediction_length,
+                min_past=0 if self.pick_incomplete else self.history_length,
+                min_future=self.prediction_length,
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(
-                min_past=0 if pick_incomplete else self.history_length,
-                min_future=prediction_length,
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_past=0 if self.pick_incomplete else self.history_length,
+                min_future=self.prediction_length,
             )
-        )
 
     def create_transformation(self) -> Transformation:
         return Chain(

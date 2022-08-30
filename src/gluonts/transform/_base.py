@@ -14,8 +14,8 @@
 import abc
 from typing import Callable, Iterable, Iterator, List
 
-from gluonts.core.component import equals
-from gluonts.core.component import validated
+from gluonts.core import serde
+from gluonts.core.component import equals, validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.env import env
 
@@ -161,14 +161,14 @@ class AdhocTransform(SimpleTransformation):
         return self.func(data.copy())
 
 
+@serde.dataclass
 class FlatMapTransformation(Transformation):
     """
     Transformations that yield zero or more results per input, but do not
     combine elements from the input stream.
     """
 
-    @validated()
-    def __init__(self):
+    def __post_init_post_parse__(self):
         self.max_idle_transforms = max(env.max_idle_transforms, 100)
 
     def __call__(

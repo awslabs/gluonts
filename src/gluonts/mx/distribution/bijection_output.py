@@ -12,24 +12,21 @@
 # permissions and limitations under the License.
 
 from typing import Tuple
+from gluonts.core import serde
 
-from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 from .bijection import Bijection
 from .distribution_output import Output
 
 
+@serde.dataclass
 class BijectionOutput(Output):
     """
     Class to connect a network to a bijection.
     """
 
     bij_cls: type
-
-    @validated()
-    def __init__(self) -> None:
-        pass
 
     def domain_map(self, F, *args: Tensor):
         raise NotImplementedError()

@@ -11,12 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Tuple, Union, cast
+from typing import ClassVar, Dict, List, Optional, Tuple, Union, cast
 
 import mxnet as mx
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 from gluonts.mx.util import cumsum
 
@@ -26,6 +27,7 @@ from .distribution_output import ArgProj, DistributionOutput
 from .transformed_distribution import TransformedDistribution
 
 
+@serde.dataclass
 class PiecewiseLinear(Distribution):
     r"""
     Piecewise linear distribution.
@@ -58,20 +60,16 @@ class PiecewiseLinear(Distribution):
     F
     """
 
-    is_reparameterizable = False
+    gamma: Tensor = Field(None)
+    slopes: Tensor = Field(None)
+    knot_spacings: Tensor = Field(None)
+    is_reparameterizable: ClassVar[bool] = False
 
-    @validated()
-    def __init__(
-        self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor
-    ) -> None:
-        self.gamma = gamma
-        self.slopes = slopes
-        self.knot_spacings = knot_spacings
-
+    def __post_init_post_parse__(self):
         # Since most of the calculations are easily expressed in the original
         # parameters, we transform the learned parameters back
         self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
-            self.F, slopes, knot_spacings
+            self.F, self.slopes, self.knot_spacings
         )
 
     @property
@@ -333,21 +331,21 @@ class PiecewiseLinear(Distribution):
         return 0
 
 
+@serde.dataclass
 class PiecewiseLinearOutput(DistributionOutput):
+    num_pieces: int
     distr_cls: type = PiecewiseLinear
 
-    @validated()
-    def __init__(self, num_pieces: int) -> None:
-        super().__init__(self)
+    def __post_init_post_parse__(self):
+        assert self.num_pieces > 1, "num_pieces should be larger than 1"
 
-        assert (
-            isinstance(num_pieces, int) and num_pieces > 1
-        ), "num_pieces should be an integer larger than 1"
-
-        self.num_pieces = num_pieces
         self.args_dim = cast(
             Dict[str, int],
-            {"gamma": 1, "slopes": num_pieces, "knot_spacings": num_pieces},
+            {
+                "gamma": 1,
+                "slopes": self.num_pieces,
+                "knot_spacings": self.num_pieces,
+            },
         )
 
     @classmethod
@@ -371,7 +369,8 @@ class PiecewiseLinearOutput(DistributionOutput):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, [AffineTransformation(loc=loc, scale=scale)]
+                base_distribution=distr,
+                transforms=[AffineTransformation(loc=loc, scale=scale)],
             )
 
     @property
@@ -400,6 +399,7 @@ class FixedKnotsArgProj(ArgProj):
         return self.domain_map(*params_unbounded, ks_proj)
 
 
+@serde.dataclass
 class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
     """
     A simple extension of PiecewiseLinearOutput that "fixes" the knot positions
@@ -418,29 +418,27 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
         to :code:`gluonts.distribution.PiecewiseLinear`.
     """
 
+    quantile_levels: Union[List[float], np.ndarray] = Field(
+        default="no_default_field"
+    )
+    num_pieces: int = 0
     distr_cls: type = PiecewiseLinear
 
-    @validated()
-    def __init__(
-        self,
-        quantile_levels: Union[List[float], np.ndarray],
-    ) -> None:
+    def __post_init_post_parse__(self):
         assert all(
-            [0 < q < 1 for q in quantile_levels]
+            [0 < q < 1 for q in self.quantile_levels]
         ), "Quantiles must be strictly between 0 and 1."
 
-        assert np.all(np.diff(quantile_levels) > 0), (
+        assert np.all(np.diff(self.quantile_levels) > 0), (
             "Quantiles must be in increasing order, with quantile each"
             " specified once"
         )
 
-        super().__init__(
-            num_pieces=len(quantile_levels) + 1,
-        )
+        self.num_pieces = len(self.quantile_levels) + 1
 
         # store the "knot spacings" instead of quantiles. see PiecewiseLinear
         # for more information
-        self.knot_spacings = np.diff(np.r_[0, quantile_levels, 1])
+        self.knot_spacings = np.diff(np.r_[0, self.quantile_levels, 1])
         self.args_dim: Dict[str, int] = {"gamma": 1, "slopes": self.num_pieces}
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
@@ -464,12 +462,13 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
 
 
 # Need to inherit from PiecewiseLinear to get the overwritten loss method.
+@serde.dataclass
 class TransformedPiecewiseLinear(TransformedDistribution, PiecewiseLinear):
-    @validated()
-    def __init__(
-        self, base_distribution: PiecewiseLinear, transforms: List[Bijection]
-    ) -> None:
-        super().__init__(base_distribution, transforms)
+    base_distribution: PiecewiseLinear = Field(...)
+    transforms: List[Bijection] = Field(...)
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
 
     def crps(self, y: Tensor) -> Tensor:
         # TODO: use event_shape

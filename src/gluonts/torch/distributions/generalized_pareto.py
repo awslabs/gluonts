@@ -19,7 +19,7 @@ import torch
 from torch.distributions import Distribution, constraints
 from torch.distributions.utils import broadcast_all
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 
 from .distribution_output import DistributionOutput
 
@@ -140,15 +140,11 @@ class GeneralizedPareto(Distribution):
         return x.squeeze(dim=-1)
 
 
+@serde.dataclass
 class GeneralizedParetoOutput(DistributionOutput):
     distr_cls: type = GeneralizedPareto
 
-    @validated()
-    def __init__(
-        self,
-    ) -> None:
-        super().__init__(self)
-
+    def __post_init_post_parse__(self):
         self.args_dim = cast(
             Dict[str, int],
             {

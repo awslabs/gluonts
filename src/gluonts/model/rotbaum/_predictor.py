@@ -18,8 +18,9 @@ from typing import Iterator, List, Optional
 
 import numpy as np
 import pandas as pd
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
@@ -32,6 +33,7 @@ from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
 logger = logging.getLogger(__name__)
 
 
+@serde.dataclass
 class RotbaumForecast(Forecast):
     """
     Implements the quantile function in Forecast for TreePredictor, as well as
@@ -40,18 +42,12 @@ class RotbaumForecast(Forecast):
     (independently).
     """
 
-    @validated()
-    def __init__(
-        self,
-        models: List,
-        featurized_data: List,
-        start_date: pd.Period,
-        prediction_length: int,
-    ):
-        self.models = models
-        self.featurized_data = featurized_data
-        self.start_date = start_date
-        self.prediction_length = prediction_length
+    models: List
+    featurized_data: List
+    start_date: pd.Period
+    prediction_length: int
+
+    def __post_init_post_parse__(self):
         self.item_id = None
         self.lead_time = None
 
@@ -87,6 +83,7 @@ class RotbaumForecast(Forecast):
         )
 
 
+@serde.dataclass
 class TreePredictor(RepresentablePredictor):
     """
     A predictor that uses a QRX model for each of the steps in the forecast
@@ -97,83 +94,73 @@ class TreePredictor(RepresentablePredictor):
     distribution.) The list of these models is saved under self.model_list.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        n_ignore_last: int = 0,
-        lead_time: int = 0,
-        max_n_datapts: int = 1000000,
-        min_bin_size: int = 100,  # Used only for "QRX" method.
-        context_length: Optional[int] = None,
-        use_feat_static_real: bool = False,
-        use_past_feat_dynamic_real: bool = False,
-        use_feat_dynamic_real: bool = False,
-        use_feat_dynamic_cat: bool = False,
-        cardinality: Cardinality = "auto",
-        one_hot_encode: bool = False,
-        model_params: Optional[dict] = None,
-        max_workers: Optional[int] = None,
-        method: str = "QRX",
-        quantiles=None,  # Used only for "QuantileRegression" method.
-        subtract_mean: bool = True,
-        count_nans: bool = False,
-        model=None,
-        seed=None,
-    ) -> None:
-        assert method in [
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    n_ignore_last: int = 0
+    lead_time: int = 0
+    max_n_datapts: int = 1000000
+    min_bin_size: int = 100  # Used only for "QRX" method.
+    context_length: Optional[int] = None
+    use_feat_static_real: bool = False
+    use_past_feat_dynamic_real: bool = False
+    use_feat_dynamic_real: bool = False
+    use_feat_dynamic_cat: bool = False
+    cardinality: Cardinality = "auto"
+    one_hot_encode: bool = False
+    model_params: Optional[dict] = None
+    max_workers: Optional[int] = None
+    method: str = "QRX"
+    quantiles = None  # Used only for "QuantileRegression" method.
+    subtract_mean: bool = True
+    count_nans: bool = False
+    model = None
+    seed = None
+
+    def __post_init_post_parse__(self):
+        assert self.method in [
             "QRX",
             "QuantileRegression",
             "QRF",
         ], "method has to be either 'QRX', 'QuantileRegression', or 'QRF'"
-        self.method = method
-        self.lead_time = lead_time
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
+        if self.context_length is None:
+            self.context_length = self.prediction_length
         self.preprocess_object = PreprocessOnlyLagFeatures(
             self.context_length,
-            forecast_horizon=prediction_length,
+            forecast_horizon=self.prediction_length,
             stratify_targets=False,
-            n_ignore_last=n_ignore_last,
-            max_n_datapts=max_n_datapts,
-            use_feat_static_real=use_feat_static_real,
-            use_past_feat_dynamic_real=use_past_feat_dynamic_real,
-            use_feat_dynamic_real=use_feat_dynamic_real,
-            use_feat_dynamic_cat=use_feat_dynamic_cat,
-            cardinality=cardinality,
-            one_hot_encode=one_hot_encode,
-            subtract_mean=subtract_mean,
-            count_nans=count_nans,
-            seed=seed,
+            n_ignore_last=self.n_ignore_last,
+            max_n_datapts=self.max_n_datapts,
+            use_feat_static_real=self.use_feat_static_real,
+            use_past_feat_dynamic_real=self.use_past_feat_dynamic_real,
+            use_feat_dynamic_real=self.use_feat_dynamic_real,
+            use_feat_dynamic_cat=self.use_feat_dynamic_cat,
+            cardinality=self.cardinality,
+            one_hot_encode=self.one_hot_encode,
+            subtract_mean=self.subtract_mean,
+            count_nans=self.count_nans,
+            seed=self.seed,
         )
 
         assert (
-            context_length is None or context_length > 0
+            self.context_length is None or self.context_length > 0
         ), "The value of `context_length` should be > 0"
 
         # TODO: Figure out how to include 'auto' with no feat_static_cat in
         # this check
         assert (
-            prediction_length > 0
-            or use_feat_dynamic_cat
-            or use_past_feat_dynamic_real
-            or use_feat_dynamic_real
-            or use_feat_static_real
-            or cardinality != "ignore"
+            self.prediction_length > 0
+            or self.use_feat_dynamic_cat
+            or self.use_past_feat_dynamic_real
+            or self.use_feat_dynamic_real
+            or self.use_feat_static_real
+            or self.cardinality != "ignore"
         ), (
             "The value of `prediction_length` should be > 0 or there should be"
             " features for model training and prediction "
         )
 
-        self.model_params = model_params if model_params else {}
-        self.prediction_length = prediction_length
-        self.freq = freq
-        self.max_workers = max_workers
-        self.min_bin_size = min_bin_size
-        self.quantiles = quantiles
-        self.model = model
+        if self.model_params is None:
+            self.model_params = {}
         self.model_list = None
 
         logger.info(

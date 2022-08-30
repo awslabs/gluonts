@@ -16,7 +16,7 @@ from typing import Dict, Optional, Tuple, cast
 import torch
 from torch.distributions import constraints
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.torch.distributions import BinnedUniforms, GeneralizedPareto
 
 from .distribution_output import DistributionOutput
@@ -270,40 +270,31 @@ class SplicedBinnedPareto(BinnedUniforms):
         return cdf_value
 
 
+@serde.dataclass
 class SplicedBinnedParetoOutput(DistributionOutput):
+    bins_lower_bound: float
+    bins_upper_bound: float
+    num_bins: int
+    tail_percentile_gen_pareto: float
     distr_cls: type = SplicedBinnedPareto
 
-    @validated()
-    def __init__(
-        self,
-        bins_lower_bound: float,
-        bins_upper_bound: float,
-        num_bins: int,
-        tail_percentile_gen_pareto: float,
-    ) -> None:
-        super().__init__(self)
-
+    def __post_init_post_parse__(self):
         assert (
-            tail_percentile_gen_pareto > 0 and tail_percentile_gen_pareto < 0.5
+            self.tail_percentile_gen_pareto > 0
+            and self.tail_percentile_gen_pareto < 0.5
         ), "tail_percentile_gen_pareto must be between (0,0.5)"
         assert (
-            isinstance(num_bins, int) and num_bins > 1
+            isinstance(self.num_bins, int) and self.num_bins > 1
         ), "num_bins should be an integer and greater than 1"
-        assert bins_lower_bound < bins_upper_bound, (
-            f"bins_lower_bound {bins_lower_bound} needs to less than "
-            f"bins_upper_bound {bins_upper_bound}"
+        assert self.bins_lower_bound < self.bins_upper_bound, (
+            f"bins_lower_bound {self.bins_lower_bound} needs to less than "
+            f"bins_upper_bound {self.bins_upper_bound}"
         )
-
-        self.num_bins = num_bins
-        self.bins_lower_bound = bins_lower_bound
-        self.bins_upper_bound = bins_upper_bound
-
-        self.tail_percentile_gen_pareto = tail_percentile_gen_pareto
 
         self.args_dim = cast(
             Dict[str, int],
             {
-                "logits": num_bins,
+                "logits": self.num_bins,
                 "upper_gp_xi": 1,
                 "upper_gp_beta": 1,
                 "lower_gp_xi": 1,
