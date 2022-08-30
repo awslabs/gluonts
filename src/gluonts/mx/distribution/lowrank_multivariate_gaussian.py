@@ -12,12 +12,12 @@
 # permissions and limitations under the License.
 
 import math
-from typing import Optional, Tuple
+from typing import ClassVar, Optional, Tuple
 
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, _sample_multiple, getF
@@ -165,6 +165,7 @@ def lowrank_log_likelihood(
     return ll
 
 
+@serde.dataclass
 class LowrankMultivariateGaussian(Distribution):
     r"""
     Multivariate Gaussian distribution, with covariance matrix parametrized
@@ -195,22 +196,14 @@ class LowrankMultivariateGaussian(Distribution):
         Optional; if not provided, the covariance matrix is just diagonal.
     """  # noqa: E501
 
-    is_reparameterizable = True
+    dim: int
+    rank: int
+    mu: Tensor
+    D: Tensor
+    W: Optional[Tensor] = None
+    is_reparameterizable: ClassVar[bool] = True
 
-    @validated()
-    def __init__(
-        self,
-        dim: int,
-        rank: int,
-        mu: Tensor,
-        D: Tensor,
-        W: Optional[Tensor] = None,
-    ) -> None:
-        self.dim = dim
-        self.rank = rank
-        self.mu = mu
-        self.D = D
-        self.W = W
+    def __post_init_post_parse__(self):
         self.Cov = None
 
     @property
@@ -350,26 +343,24 @@ def inv_softplus(y):
         return y
 
 
+@serde.dataclass
 class LowrankMultivariateGaussianOutput(DistributionOutput):
-    @validated()
-    def __init__(
-        self,
-        dim: int,
-        rank: int,
-        sigma_init: float = 1.0,
-        sigma_minimum: float = sigma_minimum,
-    ) -> None:
-        super().__init__(self)
+    dim: int
+    rank: int
+    sigma_init: float = 1.0
+    sigma_minimum: float = sigma_minimum
+
+    def __post_init_post_parse__(self):
         self.distr_cls = LowrankMultivariateGaussian
-        self.dim = dim
-        self.rank = rank
-        if rank == 0:
-            self.args_dim = {"mu": dim, "D": dim}
+        if self.rank == 0:
+            self.args_dim = {"mu": self.dim, "D": self.dim}
         else:
-            self.args_dim = {"mu": dim, "D": dim, "W": dim * rank}
+            self.args_dim = {
+                "mu": self.dim,
+                "D": self.dim,
+                "W": self.dim * self.rank,
+            }
         self.mu_bias = 0.0
-        self.sigma_init = sigma_init
-        self.sigma_minimum = sigma_minimum
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
         return ArgProj(

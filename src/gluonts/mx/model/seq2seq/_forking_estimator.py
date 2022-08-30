@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Type
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -69,6 +70,7 @@ from ._forking_network import (
 from ._transform import ForkingSequenceSplitter
 
 
+@serde.dataclass
 class ForkingSeq2SeqEstimator(GluonEstimator):
     r"""
     Sequence-to-Sequence (seq2seq) structure with the so-called
@@ -163,68 +165,47 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        encoder: Seq2SeqEncoder,
-        decoder: Seq2SeqDecoder,
-        freq: str,
-        prediction_length: int,
-        quantile_output: Optional[QuantileOutput] = None,
-        distr_output: Optional[DistributionOutput] = None,
-        context_length: Optional[int] = None,
-        use_past_feat_dynamic_real: bool = False,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: List[int] = None,
-        embedding_dimension: List[int] = None,
-        add_time_feature: bool = True,
-        add_age_feature: bool = False,
-        enable_encoder_dynamic_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = True,
-        trainer: Trainer = Trainer(),
-        scaling: Optional[bool] = None,
-        scaling_decoder_dynamic_feature: bool = False,
-        dtype: Type = np.float32,
-        num_forking: Optional[int] = None,
-        max_ts_len: Optional[int] = None,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    encoder: Seq2SeqEncoder = Field(None)
+    decoder: Seq2SeqDecoder = Field(None)
+    freq: str = Field(...)
+    prediction_length: int = Field(..., gt=0)
+    quantile_output: QuantileOutput = Field(None)
+    distr_output: DistributionOutput = Field(None)
+    context_length: int = Field(None, gt=0)
+    use_past_feat_dynamic_real: bool = False
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = False
+    cardinality: List[int] = Field(None, gt=0)
+    embedding_dimension: List[int] = Field(None, gt=0)
+    add_time_feature: bool = True
+    add_age_feature: bool = False
+    enable_encoder_dynamic_feature: bool = True
+    enable_decoder_dynamic_feature: bool = True
+    trainer: Trainer = Trainer()
+    scaling: bool = Field(None)
+    scaling_decoder_dynamic_feature: bool = False
+    dtype: Type = np.float32
+    num_forking: int = Field(None)
+    max_ts_len: int = Field(None)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
 
-        assert (distr_output is None) != (quantile_output is None)
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert use_feat_static_cat or not cardinality, (
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
+        assert (self.distr_output is None) != (self.quantile_output is None)
+        assert self.use_feat_static_cat or not self.cardinality, (
             "You should set `cardinality` if and only if"
             " `use_feat_static_cat=True`"
         )
-        assert cardinality is None or all(
-            c > 0 for c in cardinality
-        ), "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or all(
-            e > 0 for e in embedding_dimension
-        ), "Elements of `embedding_dimension` should be > 0"
 
-        self.encoder = encoder
-        self.decoder = decoder
-        self.freq = freq
-        self.prediction_length = prediction_length
-        self.quantile_output = quantile_output
-        self.distr_output = distr_output
         self.context_length = (
-            context_length
-            if context_length is not None
+            self.context_length
+            if self.context_length is not None
             else 4 * self.prediction_length
         )
-        if max_ts_len is not None:
-            max_pad_len = max(max_ts_len - self.prediction_length, 0)
+        if self.max_ts_len is not None:
+            max_pad_len = max(self.max_ts_len - self.prediction_length, 0)
             # Don't allow context_length to be longer than the max pad length
             self.context_length = (
                 min(max_pad_len, self.context_length)
@@ -232,47 +213,44 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
                 else self.context_length
             )
         self.num_forking = (
-            min(num_forking, self.context_length)
-            if num_forking is not None
+            min(self.num_forking, self.context_length)
+            if self.num_forking is not None
             else self.context_length
         )
-        self.use_past_feat_dynamic_real = use_past_feat_dynamic_real
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
+
         self.cardinality = (
-            cardinality if cardinality and use_feat_static_cat else [1]
+            self.cardinality
+            if self.cardinality and self.use_feat_static_cat
+            else [1]
         )
         self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None
+            self.embedding_dimension
+            if self.embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
-        self.add_time_feature = add_time_feature
-        self.add_age_feature = add_age_feature
+
         self.use_dynamic_feat = (
-            use_feat_dynamic_real or add_age_feature or add_time_feature
+            self.use_feat_dynamic_real
+            or self.add_age_feature
+            or self.add_time_feature
         )
-        self.enable_encoder_dynamic_feature = enable_encoder_dynamic_feature
-        self.enable_decoder_dynamic_feature = enable_decoder_dynamic_feature
-        self.scaling = (
-            scaling if scaling is not None else (quantile_output is None)
-        )
-        self.scaling_decoder_dynamic_feature = scaling_decoder_dynamic_feature
-        self.dtype = dtype
+
+        if self.scaling is None:
+            self.scaling = self.quantile_output is None
 
         self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
+            self.train_sampler
+            if self.train_sampler is not None
+            else ValidationSplitSampler(min_future=self.prediction_length)
         )
         self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
+            self.validation_sampler
+            if self.validation_sampler is not None
+            else ValidationSplitSampler(min_future=self.prediction_length)
         )
 
     def create_transformation(self) -> Transformation:
-        chain = []
+        chain: List[Transformation] = []
         dynamic_feat_fields = []
         remove_field_names = [
             FieldName.FEAT_DYNAMIC_CAT,
@@ -390,7 +368,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             "test": TestSplitSampler(),
         }[mode]
 
-        chain = []
+        chain: List[Transformation] = []
 
         chain.append(
             # because of how the forking decoder works, every time step in

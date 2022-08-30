@@ -14,6 +14,7 @@
 import random
 from textwrap import dedent
 from typing import Dict, List
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.core.serde import dump_code, dump_json, load_code, load_json
@@ -60,17 +61,11 @@ class Baz(Foo):
         self.d = d
 
 
+@serde.dataclass
 class Bar:
-    @validated()
-    def __init__(
-        self,
-        x_list: List[Foo],
-        x_dict: Dict[int, Foo],
-        input_fields: List[Foo],
-    ) -> None:
-        self.x_list = x_list
-        self.x_dict = x_dict
-        self.input_fields = input_fields
+    x_list: List[Foo]
+    x_dict: Dict[int, Foo]
+    input_fields: List[Foo]
 
 
 # define test.test_components.X as alias of X within the scope of this

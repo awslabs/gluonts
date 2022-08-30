@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 import logging
-from typing import Callable, Optional, List, Tuple
+from typing import Any, Callable, Dict, Optional, List, Tuple
 import pandas as pd
 from autogluon.tabular import TabularPredictor as AutogluonTabularPredictor
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import to_pandas
 from gluonts.model.estimator import Estimator
@@ -34,6 +34,7 @@ from .predictor import (
 logger = logging.getLogger(__name__)
 
 
+@serde.dataclass
 class TabularEstimator(Estimator):
     """
     An estimator that trains an Autogluon Tabular model for time series
@@ -72,42 +73,28 @@ class TabularEstimator(Estimator):
         will be trained in a regular way.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        lag_indices: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        scaling: Callable[
-            [pd.Series], Tuple[pd.Series, float]
-        ] = mean_abs_scaling,
-        batch_size: Optional[int] = 32,
-        disable_auto_regression: bool = False,
-        last_k_for_val: Optional[int] = None,
-        quantiles_to_predict: Optional[List[float]] = None,
-        eval_metric: str = "mean_absolute_error",
-        **kwargs,
-    ) -> None:
-        super().__init__()
+    freq: str
+    prediction_length: int
+    lag_indices: Optional[List[int]] = None
+    time_features: Optional[List[TimeFeature]] = None
+    scaling: Callable[[pd.Series], Tuple[pd.Series, float]] = mean_abs_scaling
+    batch_size: Optional[int] = 32
+    disable_auto_regression: bool = False
+    last_k_for_val: Optional[int] = None
+    quantiles_to_predict: Optional[List[float]] = None
+    eval_metric: str = "mean_absolute_error"
 
-        self.prediction_length = prediction_length
+    def __post_init_post_parse__(self):
         self.lag_indices = (
-            lag_indices
-            if lag_indices is not None
-            else get_lags_for_frequency(freq)
+            self.lag_indices
+            if self.lag_indices is not None
+            else get_lags_for_frequency(self.freq)
         )
         self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
+            self.time_features
+            if self.time_features is not None
+            else time_features_from_frequency_str(self.freq)
         )
-        self.batch_size = batch_size
-        self.disable_auto_regression = disable_auto_regression
-        self.scaling = scaling
-        self.last_k_for_val = last_k_for_val
-        self.eval_metric = eval_metric
-        self.quantiles_to_predict = quantiles_to_predict
 
         if self.disable_auto_regression:
             self.lag_indices = [
@@ -125,7 +112,7 @@ class TabularEstimator(Estimator):
             ],
             "auto_stack": True,
         }
-        self.kwargs = {**default_kwargs, **kwargs}
+        self.kwargs = {**default_kwargs, **self.kwargs}
 
     def train(
         self,

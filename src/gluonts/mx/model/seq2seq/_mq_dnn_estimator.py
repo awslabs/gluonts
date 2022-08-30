@@ -13,12 +13,13 @@
 
 import logging
 from distutils.util import strtobool
-from typing import List, Optional
+from typing import List
 
 import mxnet as mx
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.mx.block.decoder import ForkingMLPDecoder
 from gluonts.mx.block.encoder import (
@@ -35,6 +36,7 @@ from gluonts.mx.trainer import Trainer
 from ._forking_estimator import ForkingSeq2SeqEstimator
 
 
+@serde.dataclass
 class MQCNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
@@ -137,77 +139,79 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        use_past_feat_dynamic_real: bool = False,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        cardinality: List[int] = None,
-        embedding_dimension: List[int] = None,
-        add_time_feature: bool = True,
-        add_age_feature: bool = False,
-        enable_encoder_dynamic_feature: bool = True,
-        enable_decoder_dynamic_feature: bool = True,
-        seed: Optional[int] = None,
-        decoder_mlp_dim_seq: Optional[List[int]] = None,
-        channels_seq: Optional[List[int]] = None,
-        dilation_seq: Optional[List[int]] = None,
-        kernel_size_seq: Optional[List[int]] = None,
-        use_residual: bool = True,
-        quantiles: Optional[List[float]] = None,
-        distr_output: Optional[DistributionOutput] = None,
-        trainer: Trainer = Trainer(),
-        scaling: Optional[bool] = None,
-        scaling_decoder_dynamic_feature: bool = False,
-        num_forking: Optional[int] = None,
-        max_ts_len: Optional[int] = None,
-        is_iqf: bool = True,
-        batch_size: int = 32,
-    ) -> None:
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    context_length: int = Field(None)
+    use_past_feat_dynamic_real: bool = False
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = False
+    cardinality: List[int] = Field(None)
+    embedding_dimension: List[int] = Field(None)
+    add_time_feature: bool = True
+    add_age_feature: bool = False
+    enable_encoder_dynamic_feature: bool = True
+    enable_decoder_dynamic_feature: bool = True
+    seed: int = Field(None)
+    decoder_mlp_dim_seq: List[int] = Field(None)
+    channels_seq: List[int] = Field(None)
+    dilation_seq: List[int] = Field(None)
+    kernel_size_seq: List[int] = Field(None)
+    use_residual: bool = True
+    quantiles: List[float] = Field(None)
+    distr_output: DistributionOutput = Field(None)
+    trainer: Trainer = Trainer()
+    scaling: bool = Field(None)
+    scaling_decoder_dynamic_feature: bool = False
+    num_forking: int = Field(None)
+    max_ts_len: int = Field(None)
+    is_iqf: bool = True
+    batch_size: int = 32
 
-        assert (distr_output is None) or (quantiles is None)
+    def __post_init_post_parse__(self):
+        assert (self.distr_output is None) or (self.quantiles is None)
         assert (
-            prediction_length > 0
-        ), f"Invalid prediction length: {prediction_length}."
-        assert decoder_mlp_dim_seq is None or all(
-            d > 0 for d in decoder_mlp_dim_seq
+            self.prediction_length > 0
+        ), f"Invalid prediction length: {self.prediction_length}."
+        assert self.decoder_mlp_dim_seq is None or all(
+            d > 0 for d in self.decoder_mlp_dim_seq
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
-        assert channels_seq is None or all(
-            d > 0 for d in channels_seq
+        assert self.channels_seq is None or all(
+            d > 0 for d in self.channels_seq
         ), "Elements of `channels_seq` should be > 0"
-        assert dilation_seq is None or all(
-            d > 0 for d in dilation_seq
+        assert self.dilation_seq is None or all(
+            d > 0 for d in self.dilation_seq
         ), "Elements of `dilation_seq` should be > 0"
         # TODO: add support for kernel size=1
-        assert kernel_size_seq is None or all(
-            d > 1 for d in kernel_size_seq
+        assert self.kernel_size_seq is None or all(
+            d > 1 for d in self.kernel_size_seq
         ), "Elements of `kernel_size_seq` should be > 0"
-        assert quantiles is None or all(
-            0 <= d <= 1 for d in quantiles
+        assert self.quantiles is None or all(
+            0 <= d <= 1 for d in self.quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (
-            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [30]
+            self.decoder_mlp_dim_seq
+            if self.decoder_mlp_dim_seq is not None
+            else [30]
         )
         self.channels_seq = (
-            channels_seq if channels_seq is not None else [30, 30, 30]
+            self.channels_seq
+            if self.channels_seq is not None
+            else [30, 30, 30]
         )
         self.dilation_seq = (
-            dilation_seq if dilation_seq is not None else [1, 3, 9]
+            self.dilation_seq if self.dilation_seq is not None else [1, 3, 9]
         )
         self.kernel_size_seq = (
-            kernel_size_seq if kernel_size_seq is not None else [7, 3, 3]
+            self.kernel_size_seq
+            if self.kernel_size_seq is not None
+            else [7, 3, 3]
         )
         self.quantiles = (
-            quantiles
-            if (quantiles is not None) or (distr_output is not None)
+            self.quantiles
+            if (self.quantiles is not None) or (self.distr_output is not None)
             else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
-        self.is_iqf = is_iqf
 
         assert (
             len(self.channels_seq)
@@ -218,60 +222,38 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
 
-        if seed:
-            np.random.seed(seed)
-            mx.random.seed(seed, trainer.ctx)
+        if self.seed:
+            np.random.seed(self.seed)
+            mx.random.seed(self.seed, self.trainer.ctx)
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
-        encoder = HierarchicalCausalConv1DEncoder(
+        self.encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=self.dilation_seq,
             kernel_size_seq=self.kernel_size_seq,
             channels_seq=self.channels_seq,
-            use_residual=use_residual,
+            use_residual=self.use_residual,
             use_static_feat=True,
             use_dynamic_feat=True,
             prefix="encoder_",
         )
 
-        decoder = ForkingMLPDecoder(
-            dec_len=prediction_length,
+        self.decoder = ForkingMLPDecoder(
+            dec_len=self.prediction_length,
             final_dim=self.decoder_mlp_dim_seq[-1],
             hidden_dimension_sequence=self.decoder_mlp_dim_seq[:-1],
             prefix="decoder_",
         )
 
         if not self.quantiles:
-            quantile_output = None
-        elif is_iqf:
-            quantile_output = IncrementalQuantileOutput(self.quantiles)
+            self.quantile_output = None
+        elif self.is_iqf:
+            self.quantile_output = IncrementalQuantileOutput(self.quantiles)
         else:
-            quantile_output = QuantileOutput(self.quantiles)
+            self.quantile_output = QuantileOutput(self.quantiles)
 
-        super().__init__(
-            encoder=encoder,
-            decoder=decoder,
-            quantile_output=quantile_output,
-            distr_output=distr_output,
-            freq=freq,
-            prediction_length=prediction_length,
-            context_length=context_length,
-            use_past_feat_dynamic_real=use_past_feat_dynamic_real,
-            use_feat_dynamic_real=use_feat_dynamic_real,
-            use_feat_static_cat=use_feat_static_cat,
-            enable_encoder_dynamic_feature=enable_encoder_dynamic_feature,
-            enable_decoder_dynamic_feature=enable_decoder_dynamic_feature,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            add_time_feature=add_time_feature,
-            add_age_feature=add_age_feature,
-            trainer=trainer,
-            scaling=scaling,
-            scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
-            num_forking=num_forking,
-            max_ts_len=max_ts_len,
-            batch_size=batch_size,
-        )
+        # TODO: Honqing, check where to put
+        super().__post_init_post_parse__()
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -336,6 +318,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         return cls.from_hyperparameters(**params)
 
 
+@serde.dataclass
 class MQRNNEstimator(ForkingSeq2SeqEstimator):
     """
     An :class:`MQDNNEstimator` with a Recurrent Neural Network (RNN) as an
@@ -344,46 +327,44 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
     Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        freq: str,
-        context_length: Optional[int] = None,
-        decoder_mlp_dim_seq: Optional[List[int]] = None,
-        trainer: Trainer = Trainer(),
-        quantiles: Optional[List[float]] = None,
-        distr_output: Optional[DistributionOutput] = None,
-        scaling: Optional[bool] = None,
-        scaling_decoder_dynamic_feature: bool = False,
-        num_forking: Optional[int] = None,
-        is_iqf: bool = True,
-        batch_size: int = 32,
-    ) -> None:
+    prediction_length: int = Field(...)
+    freq: str = Field(...)
+    context_length: int = Field(None)
+    decoder_mlp_dim_seq: List[int] = Field(None)
+    trainer: Trainer = Trainer()
+    quantiles: List[float] = Field(None)
+    distr_output: DistributionOutput = Field(None)
+    scaling: bool = Field(None)
+    scaling_decoder_dynamic_feature: bool = False
+    num_forking: int = Field(None)
+    is_iqf: bool = True
+    batch_size: int = 32
 
+    def __post_init_post_parse__(self):
         assert (
-            prediction_length > 0
-        ), f"Invalid prediction length: {prediction_length}."
-        assert decoder_mlp_dim_seq is None or all(
-            d > 0 for d in decoder_mlp_dim_seq
+            self.prediction_length > 0
+        ), f"Invalid prediction length: {self.prediction_length}."
+        assert self.decoder_mlp_dim_seq is None or all(
+            d > 0 for d in self.decoder_mlp_dim_seq
         ), "Elements of `mlp_hidden_dimension_seq` should be > 0"
-        assert quantiles is None or all(
-            0 <= d <= 1 for d in quantiles
+        assert self.quantiles is None or all(
+            0 <= d <= 1 for d in self.quantiles
         ), "Elements of `quantiles` should be >= 0 and <= 1"
 
         self.decoder_mlp_dim_seq = (
-            decoder_mlp_dim_seq if decoder_mlp_dim_seq is not None else [30]
+            self.decoder_mlp_dim_seq
+            if self.decoder_mlp_dim_seq is not None
+            else [30]
         )
         self.quantiles = (
-            quantiles
-            if (quantiles is not None) or (distr_output is not None)
+            self.quantiles
+            if (self.quantiles is not None) or (self.distr_output is not None)
             else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
-        self.is_iqf = is_iqf
 
         # `use_static_feat` and `use_dynamic_feat` always True because network
         # always receives input; either from the input data or constants
-        encoder = RNNEncoder(
+        self.encoder = RNNEncoder(
             mode="gru",
             hidden_size=50,
             num_layers=1,
@@ -393,31 +374,18 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             use_dynamic_feat=True,
         )
 
-        decoder = ForkingMLPDecoder(
-            dec_len=prediction_length,
+        self.decoder = ForkingMLPDecoder(
+            dec_len=self.prediction_length,
             final_dim=self.decoder_mlp_dim_seq[-1],
             hidden_dimension_sequence=self.decoder_mlp_dim_seq[:-1],
             prefix="decoder_",
         )
 
         if not self.quantiles:
-            quantile_output = None
-        elif is_iqf:
-            quantile_output = IncrementalQuantileOutput(self.quantiles)
+            self.quantile_output = None
+        elif self.is_iqf:
+            self.quantile_output = IncrementalQuantileOutput(self.quantiles)
         else:
-            quantile_output = QuantileOutput(self.quantiles)
+            self.quantile_output = QuantileOutput(self.quantiles)
 
-        super().__init__(
-            encoder=encoder,
-            decoder=decoder,
-            quantile_output=quantile_output,
-            distr_output=distr_output,
-            freq=freq,
-            prediction_length=prediction_length,
-            context_length=context_length,
-            trainer=trainer,
-            scaling=scaling,
-            scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
-            num_forking=num_forking,
-            batch_size=batch_size,
-        )
+        super().__post_init_post_parse__()

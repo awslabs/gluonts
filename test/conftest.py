@@ -234,7 +234,6 @@ def serialize_test(dsinfo):
             predictor_act = estimator.train(dsinfo.train_ds)
             predictor_act.serialize(Path(temp_dir))
             predictor_exp = Predictor.deserialize(Path(temp_dir))
-            # TODO: DeepFactorEstimator does not pass this assert
             assert predictor_act == predictor_exp
 
     return test_serialize

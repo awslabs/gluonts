@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from mxnet.gluon import nn
 from mxnet.gluon.loss import Loss
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -190,6 +191,7 @@ class QuantileLoss(Loss):
         return qt_loss
 
 
+@serde.dataclass
 class QuantileOutput:
     """
     Output layer using a quantile loss and projection layer to connect the
@@ -204,19 +206,18 @@ class QuantileOutput:
         weights of the quantiles.
     """
 
-    @validated()
-    def __init__(
-        self,
-        quantiles: List[float],
-        quantile_weights: Optional[List[float]] = None,
-    ) -> None:
-        self._quantiles = quantiles
-        self.num_quantiles = len(self._quantiles)
-        self.quantile_weights = quantile_weights
+    quantiles_: List[float]
+    quantile_weights: Optional[List[float]] = None
+
+    def __post_init_post_parse__(self):
+        if self.quantiles_ is None:
+            self.num_quantiles = 0
+        else:
+            self.num_quantiles = len(self.quantiles_)
 
     @property
     def quantiles(self) -> List[float]:
-        return self._quantiles
+        return self.quantiles_
 
     def get_loss(self) -> nn.HybridBlock:
         """
@@ -277,6 +278,7 @@ class IncrementalDenseLayerProjection(nn.HybridBlock):
         )
 
 
+@serde.dataclass
 class IncrementalQuantileOutput(QuantileOutput):
     """
     Output layer using a quantile loss and projection layer to connect the
@@ -295,13 +297,12 @@ class IncrementalQuantileOutput(QuantileOutput):
         weights of the quantiles.
     """
 
-    @validated()
-    def __init__(
-        self,
-        quantiles: List[float],
-        quantile_weights: Optional[List[float]] = None,
-    ) -> None:
-        super().__init__(sorted(quantiles), quantile_weights)
+    quantiles_: List[float]
+    quantile_weights: Optional[List[float]] = None
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+        sorted(self.quantiles_)
 
     def get_loss(self) -> nn.HybridBlock:
         """
@@ -311,11 +312,11 @@ class IncrementalQuantileOutput(QuantileOutput):
             constructs quantile loss object.
         """
         return QuantileLoss(
-            quantiles=self.quantiles,
+            quantiles=self.quantiles_,
             quantile_weights=(
                 self.quantile_weights
                 if self.quantile_weights is not None
-                else crps_weights_pwl(self.quantiles)
+                else crps_weights_pwl(self.quantiles_)
             ),
         )
 

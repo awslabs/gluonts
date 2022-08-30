@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Tuple, Type
+from typing import ClassVar, Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 from gluonts.mx.util import make_nd_diag
 
@@ -23,6 +23,7 @@ from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
+@serde.dataclass
 class DirichletMultinomial(Distribution):
     r"""
     Dirichlet-Multinomial distribution, specified by the concentration vector
@@ -55,20 +56,11 @@ class DirichletMultinomial(Distribution):
         API in MXNet
     """
 
-    is_reparameterizable = False
-
-    @validated()
-    def __init__(
-        self,
-        dim: int,
-        n_trials: int,
-        alpha: Tensor,
-        float_type: Type = np.float32,
-    ) -> None:
-        self.dim = dim
-        self.n_trials = n_trials
-        self.alpha = alpha
-        self.float_type = float_type
+    dim: int
+    n_trials: int
+    alpha: Tensor
+    float_type: Type = np.float32
+    is_reparameterizable: ClassVar[bool] = False
 
     @property
     def F(self):
@@ -167,16 +159,17 @@ class DirichletMultinomial(Distribution):
         return samples
 
 
+@serde.dataclass
 class DirichletMultinomialOutput(DistributionOutput):
-    @validated()
-    def __init__(self, dim: int, n_trials: int) -> None:
-        super().__init__(self)
-        assert dim > 1, "Dimension must be larger than one."
-        self.dim = dim
-        self.n_trials = n_trials
-        self.args_dim = {"alpha": dim}
+    dim: int
+    n_trials: int
+
+    def __post_init_post_parse__(
+        self,
+    ):
+        assert self.dim > 1, "Dimension must be larger than one."
+        self.args_dim = {"alpha": self.dim}
         self.distr_cls = DirichletMultinomial
-        self.dim = dim
         self.mask = None
 
     def distribution(self, distr_args, loc=None, scale=None) -> Distribution:

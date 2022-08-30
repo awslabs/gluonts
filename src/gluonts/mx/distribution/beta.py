@@ -11,17 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Tuple
+from typing import ClassVar, Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, _sample_multiple, getF, softplus
 from .distribution_output import DistributionOutput
 
 
+@serde.dataclass
 class Beta(Distribution):
     r"""
     Beta distribution.
@@ -37,12 +39,9 @@ class Beta(Distribution):
     F
     """
 
-    is_reparameterizable = False
-
-    @validated()
-    def __init__(self, alpha: Tensor, beta: Tensor) -> None:
-        self.alpha = alpha
-        self.beta = beta
+    alpha: Tensor
+    beta: Tensor
+    is_reparameterizable: ClassVar[bool] = False
 
     @property
     def F(self):
@@ -113,8 +112,9 @@ class Beta(Distribution):
         return [self.alpha, self.beta]
 
 
+@serde.dataclass
 class BetaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1}
+    args_dim: Dict[str, int] = Field(default={"alpha": 1, "beta": 1})
     distr_cls: type = Beta
 
     @classmethod

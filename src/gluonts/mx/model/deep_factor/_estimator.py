@@ -12,10 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
+
+from pydantic import Field
 
 from gluonts import transform
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -48,6 +50,7 @@ from ._network import DeepFactorPredictionNetwork, DeepFactorTrainingNetwork
 from .RNNModel import RNNModel
 
 
+@serde.dataclass
 class DeepFactorEstimator(GluonEstimator):
     r"""
     DeepFactorEstimator is an implementation of the 2019 ICML paper "Deep
@@ -97,75 +100,46 @@ class DeepFactorEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        num_hidden_global: int = 50,
-        num_layers_global: int = 1,
-        num_factors: int = 10,
-        num_hidden_local: int = 5,
-        num_layers_local: int = 1,
-        cell_type: str = "lstm",
-        trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        num_parallel_samples: int = 100,
-        cardinality: List[int] = list([1]),
-        embedding_dimension: int = 10,
-        distr_output: DistributionOutput = StudentTOutput(),
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    num_hidden_global: int = Field(50, gt=0)
+    num_layers_global: int = Field(1, gt=0)
+    num_factors: int = Field(10, gt=0)
+    num_hidden_local: int = Field(5, gt=0)
+    num_layers_local: int = Field(1, gt=0)
+    cell_type: str = "lstm"
+    trainer: Trainer = Trainer()
+    context_length: int = Field(None, gt=0)
+    num_parallel_samples: int = Field(100, gt=0)
+    cardinality: List[int] = Field([1], gt=0)
+    embedding_dimension: int = Field(10, gt=0)
+    distr_output: DistributionOutput = StudentTOutput()
+    batch_size: int = 32
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_layers_global > 0, "The value of `num_layers` should be > 0"
-        assert num_hidden_global > 0, "The value of `num_hidden` should be > 0"
-        assert num_factors > 0, "The value of `num_factors` should be > 0"
-        assert (
-            num_hidden_local > 0
-        ), "The value of `num_hidden_local` should be > 0"
-        assert (
-            num_layers_local > 0
-        ), "The value of `num_layers_local` should be > 0"
-        assert all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
-
-        self.freq = freq
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            self.context_length
+            if self.context_length is not None
+            else self.prediction_length
         )
-        self.prediction_length = prediction_length
-        self.distr_output = distr_output
-        self.num_parallel_samples = num_parallel_samples
-        self.cardinality = cardinality
-        self.embedding_dimensions = [embedding_dimension for _ in cardinality]
+        self.embedding_dimensions = [
+            self.embedding_dimension for _ in self.cardinality
+        ]
 
         self.global_model = RNNModel(
-            mode=cell_type,
-            num_hidden=num_hidden_global,
-            num_layers=num_layers_global,
-            num_output=num_factors,
+            mode=self.cell_type,
+            num_hidden=self.num_hidden_global,
+            num_layers=self.num_layers_global,
+            num_output=self.num_factors,
         )
 
         # TODO: Allow the local model to be defined as an arbitrary local
         # model, e.g. DF-GP and DF-LDS
         self.local_model = RNNModel(
-            mode=cell_type,
-            num_hidden=num_hidden_local,
-            num_layers=num_layers_local,
+            mode=self.cell_type,
+            num_hidden=self.num_hidden_local,
+            num_layers=self.num_layers_local,
             num_output=1,
         )
 

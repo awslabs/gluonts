@@ -11,27 +11,29 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import copy
 import numpy as np
 import pandas as pd
+from pydantic import Field
 import xgboost
 import gc
 from collections import defaultdict
+from gluonts.core import serde
 
-from gluonts.core.component import validated
 
-
+@serde.dataclass
 class QRF:
-    @validated()
-    def __init__(self, params: Optional[dict] = None):
+    params: Optional[dict] = None
+
+    def __post_init_post_parse__(self):
         """
         Implements Quantile Random Forests using skgarden.
         """
         from skgarden import RandomForestQuantileRegressor
 
-        self.model = RandomForestQuantileRegressor(**params)
+        self.model = RandomForestQuantileRegressor(**self.params)
 
     def fit(self, x_train, y_train):
         self.model.fit(np.array(x_train), np.array(y_train))
@@ -40,20 +42,22 @@ class QRF:
         return self.model.predict(x_test, quantile=100 * quantile)
 
 
+@serde.dataclass
 class QuantileReg:
-    @validated()
-    def __init__(self, quantiles: List, params: Optional[dict] = None):
+    quantiles: List
+    params: Optional[dict] = None
+
+    def __post_init_post_parse__(self):
         """
         Implements quantile regression using lightgbm.
         """
         from lightgbm import LGBMRegressor
 
-        self.quantiles = quantiles
         self.models = {
             quantile: LGBMRegressor(
-                objective="quantile", alpha=quantile, **params
+                objective="quantile", alpha=quantile, **self.params
             )
-            for quantile in quantiles
+            for quantile in self.quantiles
         }
 
     def fit(self, x_train, y_train):
@@ -64,14 +68,13 @@ class QuantileReg:
         return self.models[quantile].predict(x_test)
 
 
+@serde.dataclass
 class QRX:
-    @validated()
-    def __init__(
-        self,
-        model=None,
-        xgboost_params: Optional[dict] = None,
-        min_bin_size: int = 100,
-    ):
+    model: Any = None
+    xgboost_params: dict = Field(None)
+    min_bin_size: int = 100
+
+    def __post_init_post_parse__(self):
         """
         QRX is an algorithm that takes a point estimate algorithm and turns it
         into a probabilistic forecasting algorithm. By default it uses XGBoost.
@@ -100,11 +103,10 @@ class QRX:
             Hyperparameter that determines the minimal size of the list of
             true values associated with each prediction.
         """
-        if model:
-            self.model = copy.deepcopy(model)
+        if self.model:
+            self.model = copy.deepcopy(self.model)
         else:
-            self.model = self._create_xgboost_model(xgboost_params)
-        self.min_bin_size = min_bin_size
+            self.model = self._create_xgboost_model(self.xgboost_params)
         self.sorted_train_preds = None
         self.x_train_is_dataframe = None
         self.id_to_bins = None
@@ -139,7 +141,7 @@ class QRX:
         # XGBoost, but True if one uses lightgbm.
         model_is_already_trained: bool = False,  # True if there is no need to
         # train self.model
-        **kwargs
+        **kwargs,
     ):
         """
         Fits self.model and partitions R^n into cells.

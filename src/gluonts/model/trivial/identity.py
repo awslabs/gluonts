@@ -12,8 +12,9 @@
 # permissions and limitations under the License.
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
@@ -21,6 +22,7 @@ from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
 
+@serde.dataclass
 class IdentityPredictor(RepresentablePredictor):
     """
     A `Predictor` that uses the last `prediction_length` observations to
@@ -35,13 +37,11 @@ class IdentityPredictor(RepresentablePredictor):
         produced by this predictor will all be identical.
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, num_samples: int) -> None:
-        super().__init__(prediction_length=prediction_length)
+    prediction_length: int = Field(...)
+    num_samples: int = Field(...)
 
-        assert num_samples > 0, "The value of `num_samples` should be > 0"
-
-        self.num_samples = num_samples
+    def __post_init_post_parse__(self):
+        assert self.num_samples > 0, "The value of `num_samples` should be > 0"
 
     def predict_item(self, item: DataEntry) -> Forecast:
         prediction = item["target"][-self.prediction_length :]

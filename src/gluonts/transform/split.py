@@ -15,8 +15,9 @@ from typing import Iterator, List, Optional
 
 import numpy as np
 from pandas.tseries.offsets import BaseOffset
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 
@@ -24,6 +25,7 @@ from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 
+@serde.dataclass
 class InstanceSplitter(FlatMapTransformation):
     """
     Selects training instances, by slicing the target and other time series
@@ -74,36 +76,23 @@ class InstanceSplitter(FlatMapTransformation):
         Value to use for padding. (default: 0.0)
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        is_pad_field: str,
-        start_field: str,
-        forecast_start_field: str,
-        instance_sampler: InstanceSampler,
-        past_length: int,
-        future_length: int,
-        lead_time: int = 0,
-        output_NTC: bool = True,
-        time_series_fields: List[str] = [],
-        dummy_value: float = 0.0,
-    ) -> None:
-        super().__init__()
+    target_field: str
+    is_pad_field: str
+    start_field: str
+    forecast_start_field: str
+    instance_sampler: InstanceSampler
+    past_length: int
+    future_length: int
+    lead_time: int = 0
+    output_NTC: bool = True
+    time_series_fields: List[str] = Field(default_factory=list)
+    dummy_value: float = 0.0
 
-        assert future_length > 0, "The value of `future_length` should be > 0"
-
-        self.instance_sampler = instance_sampler
-        self.past_length = past_length
-        self.future_length = future_length
-        self.lead_time = lead_time
-        self.output_NTC = output_NTC
-        self.ts_fields = time_series_fields
-        self.target_field = target_field
-        self.is_pad_field = is_pad_field
-        self.start_field = start_field
-        self.forecast_start_field = forecast_start_field
-        self.dummy_value = dummy_value
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+        assert (
+            self.future_length > 0
+        ), "The value of `future_length` should be > 0"
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -116,7 +105,7 @@ class InstanceSplitter(FlatMapTransformation):
     ) -> Iterator[DataEntry]:
         pl = self.future_length
         lt = self.lead_time
-        slice_cols = self.ts_fields + [self.target_field]
+        slice_cols = self.time_series_fields + [self.target_field]
         target = data[self.target_field]
 
         sampled_indices = self.instance_sampler(target)
@@ -164,6 +153,7 @@ class InstanceSplitter(FlatMapTransformation):
             yield d
 
 
+@serde.dataclass
 class CanonicalInstanceSplitter(FlatMapTransformation):
     """
     Selects instances, by slicing the target and other time series like arrays
@@ -219,41 +209,25 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
         use_prediction_features is True
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        is_pad_field: str,
-        start_field: str,
-        forecast_start_field: str,
-        instance_sampler: InstanceSampler,
-        instance_length: int,
-        output_NTC: bool = True,
-        time_series_fields: List[str] = [],
-        allow_target_padding: bool = False,
-        pad_value: float = 0.0,
-        use_prediction_features: bool = False,
-        prediction_length: Optional[int] = None,
-    ) -> None:
-        super().__init__()
+    target_field: str
+    is_pad_field: str
+    start_field: str
+    forecast_start_field: str
+    instance_sampler: InstanceSampler
+    instance_length: int
+    output_NTC: bool = True
+    time_series_fields: List[str] = Field(default_factory=list)
+    allow_target_padding: bool = False
+    pad_value: float = 0.0
+    use_prediction_features: bool = False
+    prediction_length: Optional[int] = None
 
-        self.instance_sampler = instance_sampler
-        self.instance_length = instance_length
-        self.output_NTC = output_NTC
-        self.dynamic_feature_fields = time_series_fields
-        self.target_field = target_field
-        self.allow_target_padding = allow_target_padding
-        self.pad_value = pad_value
-        self.is_pad_field = is_pad_field
-        self.start_field = start_field
-        self.forecast_start_field = forecast_start_field
-
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
         assert (
-            not use_prediction_features or prediction_length is not None
+            not self.use_prediction_features
+            or self.prediction_length is not None
         ), "You must specify `prediction_length` if `use_prediction_features`"
-
-        self.use_prediction_features = use_prediction_features
-        self.prediction_length = prediction_length
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -264,7 +238,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        ts_fields = self.dynamic_feature_fields + [self.target_field]
+        ts_fields = self.time_series_fields + [self.target_field]
         ts_target = data[self.target_field]
 
         sampling_indices = self.instance_sampler(ts_target)
@@ -322,6 +296,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
             yield d
 
 
+@serde.dataclass
 class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     """
     Selects training instances by slicing "intervals" from a continous-time
@@ -371,32 +346,20 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         output field that will contain the time point where the forecast starts
     """
 
-    @validated()
-    def __init__(
-        self,
-        past_interval_length: float,
-        future_interval_length: float,
-        freq: BaseOffset,
-        instance_sampler: ContinuousTimePointSampler,
-        target_field: str = FieldName.TARGET,
-        start_field: str = FieldName.START,
-        end_field: str = "end",
-        forecast_start_field: str = FieldName.FORECAST_START,
-    ) -> None:
-        super().__init__()
+    past_interval_length: float
+    future_interval_length: float
+    freq: BaseOffset
+    instance_sampler: ContinuousTimePointSampler
+    target_field: str = FieldName.TARGET
+    start_field: str = FieldName.START
+    end_field: str = "end"
+    forecast_start_field: str = FieldName.FORECAST_START
 
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
         assert (
-            future_interval_length > 0
+            self.future_interval_length > 0
         ), "Prediction interval must have length greater than 0."
-
-        self.instance_sampler = instance_sampler
-        self.past_interval_length = past_interval_length
-        self.future_interval_length = future_interval_length
-        self.target_field = target_field
-        self.start_field = start_field
-        self.end_field = end_field
-        self.forecast_start_field = forecast_start_field
-        self.freq = freq
 
     # noinspection PyMethodMayBeStatic
     def _mask_sorted(self, a: np.ndarray, lb: float, ub: float):

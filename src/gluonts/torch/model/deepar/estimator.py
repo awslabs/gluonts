@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional, Iterable, Dict, Any
+from pydantic import Field
 
 import torch
 from torch.utils.data import DataLoader
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
@@ -70,6 +71,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 ]
 
 
+@serde.dataclass
 class DeepAREstimator(PyTorchLightningEstimator):
     """
     Estimator class to train a DeepAR model, as described in [SFG17]_.
@@ -141,75 +143,56 @@ class DeepAREstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during validation.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        hidden_size: int = 40,
-        dropout_rate: float = 0.1,
-        num_feat_dynamic_real: int = 0,
-        num_feat_static_cat: int = 0,
-        num_feat_static_real: int = 0,
-        cardinality: Optional[List[int]] = None,
-        embedding_dimension: Optional[List[int]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
-        scaling: bool = True,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: int = 100,
-        batch_size: int = 32,
-        num_batches_per_epoch: int = 50,
-        trainer_kwargs: Optional[Dict[str, Any]] = None,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-    ) -> None:
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    context_length: int = Field(None)
+    num_layers: int = 2
+    hidden_size: int = 40
+    dropout_rate: float = 0.1
+    num_feat_dynamic_real: int = 0
+    num_feat_static_cat: int = 0
+    num_feat_static_real: int = 0
+    cardinality: List[int] = Field(None)
+    embedding_dimension: List[int] = Field(None)
+    distr_output: DistributionOutput = StudentTOutput()
+    loss: DistributionLoss = NegativeLogLikelihood()
+    scaling: bool = True
+    lags_seq: List[int] = Field(None)
+    time_features: List[TimeFeature] = Field(None)
+    num_parallel_samples: int = 100
+    batch_size: int = 32
+    num_batches_per_epoch: int = 50
+    trainer_kwargs: Dict[str, Any] = Field(None)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+
+    def __post_init_post_parse__(self):
         default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
         }
-        if trainer_kwargs is not None:
-            default_trainer_kwargs.update(trainer_kwargs)
-        super().__init__(trainer_kwargs=default_trainer_kwargs)
+        if self.trainer_kwargs is not None:
+            default_trainer_kwargs.update(self.trainer_kwargs)
+        self.trainer_kwargs = default_trainer_kwargs
 
-        self.freq = freq
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.prediction_length = prediction_length
-        self.distr_output = distr_output
-        self.loss = loss
-        self.num_layers = num_layers
-        self.hidden_size = hidden_size
-        self.dropout_rate = dropout_rate
-        self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.num_feat_static_cat = num_feat_static_cat
-        self.num_feat_static_real = num_feat_static_real
-        self.cardinality = (
-            cardinality if cardinality and num_feat_static_cat > 0 else [1]
-        )
-        self.embedding_dimension = embedding_dimension
-        self.scaling = scaling
-        self.lags_seq = lags_seq
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(self.freq)
-        )
+        if self.context_length is None:
+            self.context_length = self.prediction_length
 
-        self.num_parallel_samples = num_parallel_samples
-        self.batch_size = batch_size
-        self.num_batches_per_epoch = num_batches_per_epoch
+        if self.cardinality is None or self.num_feat_static_cat <= 0:
+            self.cardinality = [1]
 
-        self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
-            num_instances=1.0, min_future=prediction_length
-        )
-        self.validation_sampler = validation_sampler or ValidationSplitSampler(
-            min_future=prediction_length
-        )
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
+
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
+            )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
@@ -218,8 +201,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         if self.num_feat_dynamic_real == 0:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
+        empty_list: List[Transformation] = []
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
+            empty_list
+            + [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])]
                 if not self.num_feat_static_cat > 0

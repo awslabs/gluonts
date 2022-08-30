@@ -14,6 +14,8 @@
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -101,8 +103,9 @@ class NegativeBinomial(Distribution):
         return [self.mu, self.alpha]
 
 
+@serde.dataclass
 class NegativeBinomialOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "alpha": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "alpha": 1})
     distr_cls: type = NegativeBinomial
 
     @classmethod

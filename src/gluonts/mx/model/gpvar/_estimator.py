@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -64,6 +65,7 @@ from gluonts.transform import (
 from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 
+@serde.dataclass
 class GPVAREstimator(GluonEstimator):
 
     """
@@ -142,109 +144,71 @@ class GPVAREstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        target_dim: int,
-        trainer: Trainer = Trainer(),
-        # number of dimension to sample at training time
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "lstm",
-        num_parallel_samples: int = 100,
-        dropout_rate: float = 0.1,
-        target_dim_sample: Optional[int] = None,
-        distr_output: Optional[DistributionOutput] = None,
-        rank: Optional[int] = 2,
-        scaling: bool = True,
-        pick_incomplete: bool = False,
-        lags_seq: Optional[List[int]] = None,
-        shuffle_target_dim: bool = True,
-        time_features: Optional[List[TimeFeature]] = None,
-        conditioning_length: int = 100,
-        use_marginal_transformation: bool = False,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    target_dim: int = Field(...)
+    trainer: Trainer = Trainer()
+    # number of dimension to sample at training time
+    context_length: int = Field(None, gt=0)
+    num_layers: int = Field(2, gt=0)
+    num_cells: int = Field(40, gt=0)
+    cell_type: str = "lstm"
+    num_parallel_samples: int = Field(100, gt=0)
+    dropout_rate: float = Field(0.1, ge=0)
+    target_dim_sample: int = Field(None)
+    distr_output: DistributionOutput = Field(None)
+    rank: int = Field(default=2)
+    scaling: bool = True
+    pick_incomplete: bool = False
+    lags_seq: List[int] = Field(None)
+    shuffle_target_dim: bool = True
+    time_features: List[TimeFeature] = Field(None)
+    conditioning_length: int = 100
+    use_marginal_transformation: bool = False
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_layers > 0, "The value of `num_layers` should be > 0"
-        assert num_cells > 0, "The value of `num_cells` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_eval_samples` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
 
-        if distr_output is not None:
-            self.distr_output = distr_output
-        else:
-            self.distr_output = LowrankGPOutput(rank=rank)
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.prediction_length = prediction_length
-        self.target_dim = target_dim
+        if self.distr_output is None:
+            self.distr_output = LowrankGPOutput(rank=self.rank)
+
+        if self.context_length is None:
+            self.context_length = self.prediction_length
+
         self.target_dim_sample = (
-            target_dim
-            if target_dim_sample is None
-            else min(target_dim_sample, target_dim)
+            self.target_dim
+            if self.target_dim_sample is None
+            else min(self.target_dim_sample, self.target_dim)
         )
-        self.shuffle_target_dim = shuffle_target_dim
-        self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
-        self.num_parallel_samples = num_parallel_samples
-        self.dropout_rate = dropout_rate
 
-        self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq)
-        )
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
-        )
+        if self.lags_seq is None:
+            self.lags_seq = get_lags_for_frequency(freq_str=self.freq)
+
+        if self.time_features is None:
+            self.time_features = time_features_from_frequency_str(self.freq)
 
         self.history_length = self.context_length + max(self.lags_seq)
-        self.pick_incomplete = pick_incomplete
-        self.scaling = scaling
-        self.conditioning_length = conditioning_length
-        self.use_marginal_transformation = use_marginal_transformation
         self.output_transform = (
             cdf_to_gaussian_forward_transform
             if self.use_marginal_transformation
             else None
         )
 
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
                 num_instances=1.0,
-                min_past=0 if pick_incomplete else self.history_length,
-                min_future=prediction_length,
+                min_past=0 if self.pick_incomplete else self.history_length,
+                min_future=self.prediction_length,
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(
-                min_past=0 if pick_incomplete else self.history_length,
-                min_future=prediction_length,
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_past=0 if self.pick_incomplete else self.history_length,
+                min_future=self.prediction_length,
             )
-        )
 
     def create_transformation(self) -> Transformation:
         return Chain(

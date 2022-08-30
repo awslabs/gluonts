@@ -14,6 +14,9 @@
 import math
 from typing import Dict, Tuple
 
+from pydantic import Field
+from gluonts.core import serde
+
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF, softplus
 
@@ -79,8 +82,11 @@ class RBFKernel(Kernel):
         )
 
 
+@serde.dataclass
 class RBFKernelOutput(KernelOutputDict):
-    args_dim: Dict[str, int] = {"amplitude": 1, "length_scale": 1}
+    args_dim: Dict[str, int] = Field(
+        default={"amplitude": 1, "length_scale": 1}
+    )
     kernel_cls: type = RBFKernel
 
     # noinspection PyMethodOverriding,PyPep8Naming

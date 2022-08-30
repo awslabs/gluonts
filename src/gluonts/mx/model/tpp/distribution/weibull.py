@@ -15,6 +15,8 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 from mxnet import autograd, nd
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -133,8 +135,9 @@ class Weibull(TPPDistribution):
         return x
 
 
+@serde.dataclass
 class WeibullOutput(TPPDistributionOutput):
-    args_dim: Dict[str, int] = {"rate": 1, "shape": 1}
+    args_dim: Dict[str, int] = Field(default={"rate": 1, "shape": 1})
     distr_cls: type = Weibull
 
     @classmethod

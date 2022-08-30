@@ -12,83 +12,76 @@
 # permissions and limitations under the License.
 
 from collections import Counter
-from typing import Iterator, List, Optional
+from typing import Any, Iterator, List
 
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import FlatMapTransformation
 
 
+@serde.dataclass
 class ForkingSequenceSplitter(FlatMapTransformation):
     """
     Forking sequence splitter.
     """
 
-    @validated()
-    def __init__(
-        self,
-        instance_sampler,
-        enc_len: int,
-        dec_len: int,
-        num_forking: Optional[int] = None,
-        target_field: str = FieldName.TARGET,
-        encoder_series_fields: Optional[List[str]] = None,
-        decoder_series_fields: Optional[List[str]] = None,
-        encoder_disabled_fields: Optional[List[str]] = None,
-        decoder_disabled_fields: Optional[List[str]] = None,
-        prediction_time_decoder_exclude: Optional[List[str]] = None,
-        is_pad_out: str = "is_pad",
-        start_input_field: str = "start",
-    ) -> None:
-        super().__init__()
+    instance_sampler: Any
+    enc_len: int
+    dec_len: int
+    num_forking: int = Field(None)
+    target_field: str = FieldName.TARGET
+    encoder_series_fields: List[str] = Field(None)
+    decoder_series_fields: List[str] = Field(None)
+    encoder_disabled_fields: List[str] = Field(None)
+    decoder_disabled_fields: List[str] = Field(None)
+    prediction_time_decoder_exclude: List[str] = Field(None)
+    is_pad_out: str = "is_pad"
+    start_input_field: str = "start"
 
-        assert enc_len > 0, "The value of `enc_len` should be > 0"
-        assert dec_len > 0, "The value of `dec_len` should be > 0"
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
 
-        self.instance_sampler = instance_sampler
-        self.enc_len = enc_len
-        self.dec_len = dec_len
+        assert self.enc_len > 0, "The value of `enc_len` should be > 0"
+        assert self.dec_len > 0, "The value of `dec_len` should be > 0"
+
         self.num_forking = (
-            num_forking if num_forking is not None else self.enc_len
+            self.num_forking if self.num_forking is not None else self.enc_len
         )
-        self.target_field = target_field
 
         self.encoder_series_fields = (
-            encoder_series_fields + [self.target_field]
-            if encoder_series_fields is not None
+            self.encoder_series_fields + [self.target_field]
+            if self.encoder_series_fields is not None
             else [self.target_field]
         )
         self.decoder_series_fields = (
-            decoder_series_fields + [self.target_field]
-            if decoder_series_fields is not None
+            self.decoder_series_fields + [self.target_field]
+            if self.decoder_series_fields is not None
             else [self.target_field]
         )
 
         self.encoder_disabled_fields = (
-            encoder_disabled_fields
-            if encoder_disabled_fields is not None
+            self.encoder_disabled_fields
+            if self.encoder_disabled_fields is not None
             else []
         )
 
         self.decoder_disabled_fields = (
-            decoder_disabled_fields
-            if decoder_disabled_fields is not None
+            self.decoder_disabled_fields
+            if self.decoder_disabled_fields is not None
             else []
         )
 
         # Fields that are not used at prediction time for the decoder
         self.prediction_time_decoder_exclude = (
-            prediction_time_decoder_exclude + [self.target_field]
-            if prediction_time_decoder_exclude is not None
+            self.prediction_time_decoder_exclude + [self.target_field]
+            if self.prediction_time_decoder_exclude is not None
             else [self.target_field]
         )
-
-        self.is_pad_out = is_pad_out
-        self.start_in = start_input_field
 
     def _past(self, col_name):
         return f"past_{col_name}"
@@ -211,6 +204,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             out[self._past(self.is_pad_out)] = pad_indicator
 
             # So far pad forecast_start not in use
-            out[FieldName.FORECAST_START] = out[self.start_in] + sampling_idx
+            out[FieldName.FORECAST_START] = (
+                out[self.start_input_field] + sampling_idx
+            )
 
             yield out

@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator, Predictor
 
 from ._predictor import TreePredictor
 
 
+@serde.dataclass
 class ThirdPartyEstimator(Estimator):
     """
     An `Estimator` that uses an external fitting mechanism, thus eliminating
@@ -32,9 +33,10 @@ class ThirdPartyEstimator(Estimator):
         Keyword arguments to pass to the predictor constructor.
     """
 
-    @validated()
-    def __init__(self, predictor_cls: type, **kwargs) -> None:
-        self.predictor = predictor_cls(**kwargs)
+    predictor_cls: type
+
+    def __post_init_post_parse__(self):
+        self.predictor = self.predictor_cls(**self.kwargs)
 
     def train(
         self, training_data: Dataset, validation_dataset=None
@@ -42,9 +44,6 @@ class ThirdPartyEstimator(Estimator):
         return self.predictor.train(training_data)
 
 
+@serde.dataclass
 class TreeEstimator(ThirdPartyEstimator):
-    @validated(
-        getattr(TreePredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=TreePredictor, **kwargs)
+    predictor_cls: type = TreePredictor

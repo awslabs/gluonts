@@ -14,8 +14,9 @@
 from typing import Iterator, List
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.transform import (
@@ -26,17 +27,11 @@ from gluonts.transform import (
 from gluonts.transform.sampler import InstanceSampler
 
 
+@serde.dataclass
 class BroadcastTo(MapTransformation):
-    @validated()
-    def __init__(
-        self,
-        field: str,
-        ext_length: int = 0,
-        target_field: str = FieldName.TARGET,
-    ) -> None:
-        self.field = field
-        self.ext_length = ext_length
-        self.target_field = target_field
+    field: str
+    ext_length: int = 0
+    target_field: str = FieldName.TARGET
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         length = target_transformation_length(
@@ -49,42 +44,26 @@ class BroadcastTo(MapTransformation):
         return data
 
 
+@serde.dataclass
 class TFTInstanceSplitter(InstanceSplitter):
-    @validated()
-    def __init__(
-        self,
-        instance_sampler: InstanceSampler,
-        past_length: int,
-        future_length: int,
-        target_field: str = FieldName.TARGET,
-        is_pad_field: str = FieldName.IS_PAD,
-        start_field: str = FieldName.START,
-        forecast_start_field: str = FieldName.FORECAST_START,
-        observed_value_field: str = FieldName.OBSERVED_VALUES,
-        lead_time: int = 0,
-        output_NTC: bool = True,
-        time_series_fields: List[str] = [],
-        past_time_series_fields: List[str] = [],
-        dummy_value: float = 0.0,
-    ) -> None:
-        super().__init__(
-            target_field=target_field,
-            is_pad_field=is_pad_field,
-            start_field=start_field,
-            forecast_start_field=forecast_start_field,
-            instance_sampler=instance_sampler,
-            past_length=past_length,
-            future_length=future_length,
-            lead_time=lead_time,
-            output_NTC=output_NTC,
-            time_series_fields=time_series_fields,
-            dummy_value=dummy_value,
-        )
+    instance_sampler: InstanceSampler = Field(...)
+    past_length: int = Field(...)
+    future_length: int = Field(...)
+    target_field: str = FieldName.TARGET
+    is_pad_field: str = FieldName.IS_PAD
+    start_field: str = FieldName.START
+    forecast_start_field: str = FieldName.FORECAST_START
+    observed_value_field: str = FieldName.OBSERVED_VALUES
+    lead_time: int = 0
+    output_NTC: bool = True
+    time_series_fields: List[str] = Field(default_factory=list)
+    past_time_series_fields: List[str] = Field(default_factory=list)
+    dummy_value: float = 0.0
 
-        assert past_length > 0, "The value of `past_length` should be > 0"
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
 
-        self.observed_value_field = observed_value_field
-        self.past_ts_fields = past_time_series_fields
+        assert self.past_length > 0, "The value of `past_length` should be > 0"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -96,8 +75,8 @@ class TFTInstanceSplitter(InstanceSplitter):
         sampled_indices = self.instance_sampler(target)
 
         slice_cols = (
-            self.ts_fields
-            + self.past_ts_fields
+            self.time_series_fields
+            + self.past_time_series_fields
             + [self.target_field, self.observed_value_field]
         )
         for i in sampled_indices:
@@ -117,7 +96,7 @@ class TFTInstanceSplitter(InstanceSplitter):
                         [pad_block, d[field][..., :i]], axis=-1
                     )
                 future_piece = d[field][..., (i + lt) : (i + lt + pl)]
-                if field in self.ts_fields:
+                if field in self.time_series_fields:
                     piece = np.concatenate([past_piece, future_piece], axis=-1)
                     if self.output_NTC:
                         piece = piece.transpose()
@@ -126,7 +105,7 @@ class TFTInstanceSplitter(InstanceSplitter):
                     if self.output_NTC:
                         past_piece = past_piece.transpose()
                         future_piece = future_piece.transpose()
-                    if field not in self.past_ts_fields:
+                    if field not in self.past_time_series_fields:
                         d[self._past(field)] = past_piece
                         d[self._future(field)] = future_piece
                         del d[field]

@@ -11,15 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.model.estimator import DummyEstimator
 
 from ._predictor import NPTSPredictor
 
 
+@serde.dataclass
 class NPTSEstimator(DummyEstimator):
-    @validated(
-        getattr(NPTSPredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=NPTSPredictor, **kwargs)
+    predictor_cls: type = NPTSPredictor

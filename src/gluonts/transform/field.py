@@ -14,12 +14,13 @@
 from collections import Counter
 from typing import Any, Dict, List
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry
 
 from ._base import MapTransformation, SimpleTransformation
 
 
+@serde.dataclass
 class RenameFields(SimpleTransformation):
     """
     Rename fields using a mapping, if source field present.
@@ -30,10 +31,10 @@ class RenameFields(SimpleTransformation):
         Name mapping `input_name -> output_name`
     """
 
-    @validated()
-    def __init__(self, mapping: Dict[str, str]) -> None:
-        self.mapping = mapping
-        values_count = Counter(mapping.values())
+    mapping: Dict[str, str]
+
+    def __post_init_post_parse__(self):
+        values_count = Counter(self.mapping.values())
         for new_key, count in values_count.items():
             assert count == 1, f"Mapped key {new_key} occurs multiple time"
 
@@ -47,6 +48,7 @@ class RenameFields(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class RemoveFields(SimpleTransformation):
     """
     " Remove field names if present.
@@ -57,9 +59,7 @@ class RemoveFields(SimpleTransformation):
         List of names of the fields that will be removed
     """
 
-    @validated()
-    def __init__(self, field_names: List[str]) -> None:
-        self.field_names = field_names
+    field_names: List[str]
 
     def transform(self, data: DataEntry) -> DataEntry:
         for k in self.field_names:
@@ -67,6 +67,7 @@ class RemoveFields(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class SetField(SimpleTransformation):
     """
     Sets a field in the dictionary with the given value.
@@ -79,16 +80,15 @@ class SetField(SimpleTransformation):
         Value to be set
     """
 
-    @validated()
-    def __init__(self, output_field: str, value: Any) -> None:
-        self.output_field = output_field
-        self.value = value
+    output_field: str
+    value: Any
 
     def transform(self, data: DataEntry) -> DataEntry:
         data[self.output_field] = self.value
         return data
 
 
+@serde.dataclass
 class SetFieldIfNotPresent(SimpleTransformation):
     """
     Sets a field in the dictionary with the given value, in case it does not
@@ -102,17 +102,16 @@ class SetFieldIfNotPresent(SimpleTransformation):
         Value to be set
     """
 
-    @validated()
-    def __init__(self, field: str, value: Any) -> None:
-        self.output_field = field
-        self.value = value
+    field: str
+    value: Any
 
     def transform(self, data: DataEntry) -> DataEntry:
-        if self.output_field not in data.keys():
-            data[self.output_field] = self.value
+        if self.field not in data.keys():
+            data[self.field] = self.value
         return data
 
 
+@serde.dataclass
 class SelectFields(MapTransformation):
     """
     Only keep the listed fields.
@@ -125,12 +124,8 @@ class SelectFields(MapTransformation):
         If ``True``, skip any missing field. Default: ``False``.
     """
 
-    @validated()
-    def __init__(
-        self, input_fields: List[str], allow_missing: bool = False
-    ) -> None:
-        self.input_fields = input_fields
-        self.allow_missing = allow_missing
+    input_fields: List[str]
+    allow_missing: bool = False
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         if self.allow_missing:

@@ -13,11 +13,12 @@
 
 from functools import partial
 from itertools import chain
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -66,61 +67,40 @@ def _default_feat_args(dims_or_cardinalities: List[int]):
     return [1]
 
 
+@serde.dataclass
 class TemporalFusionTransformerEstimator(GluonEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        trainer: Trainer = Trainer(),
-        hidden_dim: int = 32,
-        variable_dim: Optional[int] = None,
-        num_heads: int = 4,
-        num_outputs: int = 3,
-        num_instance_per_series: int = 100,
-        dropout_rate: float = 0.1,
-        time_features: List[TimeFeature] = [],
-        static_cardinalities: Dict[str, int] = {},
-        dynamic_cardinalities: Dict[str, int] = {},
-        static_feature_dims: Dict[str, int] = {},
-        dynamic_feature_dims: Dict[str, int] = {},
-        past_dynamic_features: List[str] = [],
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    context_length: int = Field(None, gt=0)
+    trainer: Trainer = Trainer()
+    hidden_dim: int = 32
+    variable_dim: int = Field(None)
+    num_heads: int = 4
+    num_outputs: int = 3
+    num_instance_per_series: int = 100
+    dropout_rate: float = Field(0.1, ge=0)
+    time_features: List[TimeFeature] = Field(default_factory=list)
+    static_cardinalities: Dict[str, int] = Field(default_factory=dict)
+    dynamic_cardinalities: Dict[str, int] = Field(default_factory=dict)
+    static_feature_dims: Dict[str, int] = Field(default_factory=dict)
+    dynamic_feature_dims: Dict[str, int] = Field(default_factory=dict)
+    past_dynamic_features: List[str] = Field(default_factory=list)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
 
-        self.prediction_length = prediction_length
-        self.context_length = context_length or prediction_length
-        self.dropout_rate = dropout_rate
-        self.hidden_dim = hidden_dim
-        self.variable_dim = variable_dim or hidden_dim
-        self.num_heads = num_heads
-        self.num_outputs = num_outputs
-        self.num_instance_per_series = num_instance_per_series
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
 
-        if not time_features:
-            self.time_features = time_features_from_frequency_str(freq)
+        self.context_length = self.context_length or self.prediction_length
+        self.variable_dim = self.variable_dim or self.hidden_dim
+
+        if not self.time_features:
+            self.time_features = time_features_from_frequency_str(self.freq)
             if not self.time_features:
                 # If time features are empty (as for yearly data), we add a
                 # constant feature of 0
                 self.time_features = [Constant()]
-        else:
-            self.time_features = time_features
-        self.static_cardinalities = static_cardinalities
-        self.dynamic_cardinalities = dynamic_cardinalities
-        self.static_feature_dims = static_feature_dims
-        self.dynamic_feature_dims = dynamic_feature_dims
-        self.past_dynamic_features = past_dynamic_features
 
         self.past_dynamic_cardinalities = {}
         self.past_dynamic_feature_dims = {}
@@ -138,22 +118,21 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                     f"Feature name {name} is not provided in feature dicts"
                 )
 
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
-        )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def create_transformation(self) -> Transformation:
+        empty_list: List[Transformation] = []
         transforms = (
-            [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
+            empty_list
+            + [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
             + (
                 [
                     AsNumpyArray(field=name, expected_ndim=1)

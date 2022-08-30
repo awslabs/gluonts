@@ -11,18 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Tuple, Type
+from typing import ClassVar, Dict, List, Optional, Tuple, Type
 
 import mxnet as mx
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
+@serde.dataclass
 class Deterministic(Distribution):
     r"""
     Deterministic/Degenerate distribution.
@@ -32,12 +34,8 @@ class Deterministic(Distribution):
         Tensor containing the values, of shape `(*batch_shape, *event_shape)`.
     F
     """
-
-    is_reparameterizable = True
-
-    @validated()
-    def __init__(self, value: Tensor) -> None:
-        self.value = value
+    value: Tensor
+    is_reparameterizable: ClassVar[bool] = True
 
     @property
     def F(self):
@@ -136,14 +134,11 @@ class DeterministicArgProj(mx.gluon.HybridBlock):
         return (self.value * F.ones_like(x.sum(axis=-1)),)
 
 
+@serde.dataclass
 class DeterministicOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"value": 1}
+    value: float
+    args_dim: Dict[str, int] = Field(default={"value": 1})
     distr_cls: type = Deterministic
-
-    @validated()
-    def __init__(self, value: float):
-        super().__init__()
-        self.value = value
 
     def get_args_proj(
         self, prefix: Optional[str] = None

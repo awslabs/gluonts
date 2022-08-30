@@ -14,6 +14,7 @@
 from typing import Callable, Dict, Optional, Tuple, Type
 
 import numpy as np
+from pydantic import Field
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,7 +28,7 @@ from torch.distributions import (
     StudentT,
 )
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.torch.modules.lambda_layer import LambdaLayer
 from gluonts.torch.distributions import AffineTransformed
 
@@ -100,16 +101,13 @@ class Output:
         raise NotImplementedError()
 
 
+@serde.dataclass
 class DistributionOutput(Output):
     r"""
     Class to construct a distribution given the output of a network.
     """
 
-    distr_cls: type
-
-    @validated()
-    def __init__(self) -> None:
-        pass
+    # distr_cls: type
 
     def _base_distribution(self, distr_args):
         return self.distr_cls(*distr_args)
@@ -176,8 +174,9 @@ class DistributionOutput(Output):
         raise NotImplementedError()
 
 
+@serde.dataclass
 class NormalOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
+    args_dim: Dict[str, int] = Field(default={"loc": 1, "scale": 1})
     distr_cls: type = Normal
 
     @classmethod
@@ -190,8 +189,9 @@ class NormalOutput(DistributionOutput):
         return ()
 
 
+@serde.dataclass
 class StudentTOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
+    args_dim: Dict[str, int] = Field(default={"df": 1, "loc": 1, "scale": 1})
     distr_cls: type = StudentT
 
     @classmethod
@@ -207,8 +207,11 @@ class StudentTOutput(DistributionOutput):
         return ()
 
 
+@serde.dataclass
 class BetaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"concentration1": 1, "concentration0": 1}
+    args_dim: Dict[str, int] = Field(
+        default={"concentration1": 1, "concentration0": 1}
+    )
     distr_cls: type = Beta
 
     @classmethod
@@ -229,8 +232,9 @@ class BetaOutput(DistributionOutput):
         return 0.5
 
 
+@serde.dataclass
 class GammaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"concentration": 1, "rate": 1}
+    args_dim: Dict[str, int] = Field(default={"concentration": 1, "rate": 1})
     distr_cls: type = Gamma
 
     @classmethod
@@ -249,8 +253,9 @@ class GammaOutput(DistributionOutput):
         return 0.5
 
 
+@serde.dataclass
 class PoissonOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"rate": 1}
+    args_dim: Dict[str, int] = Field(default={"rate": 1})
     distr_cls: type = Poisson
 
     @classmethod
@@ -263,8 +268,9 @@ class PoissonOutput(DistributionOutput):
         return ()
 
 
+@serde.dataclass
 class NegativeBinomialOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
+    args_dim: Dict[str, int] = Field(default={"total_count": 1, "logits": 1})
     distr_cls: type = NegativeBinomial
 
     @classmethod

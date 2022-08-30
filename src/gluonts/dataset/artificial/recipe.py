@@ -32,6 +32,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 
+from gluonts.core import serde
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 
@@ -199,10 +200,9 @@ def take_as_list(iterator, num):
     return list(itertools.islice(iterator, num))
 
 
+@serde.dataclass
 class Debug:
-    @validated()
-    def __init__(self, print_global=False) -> None:
-        self.print_global = print_global
+    print_global: bool = False
 
     def __call__(self, x: Env, global_state, **kwargs):
         print(x)
@@ -307,17 +307,14 @@ def expand_shape(s, length):
     return tuple(s)
 
 
+@serde.dataclass
 class NumpyFunc(Lifted):
-    @validated()
-    def __init__(
-        self,
-        func: str,
-        func_args: Tuple[Any, ...],
-        func_kwargs: Dict[str, Any],
-    ):
-        self.func: Callable = locate(f"numpy.{func}")  # type: ignore
-        self.func_args = func_args
-        self.func_kwargs = func_kwargs
+    func_name: str
+    func_args: Tuple[Any, ...]
+    func_kwargs: Dict[str, Any]
+
+    def __post_init_post_parse__(self):
+        self.func: Callable = locate(f"numpy.{self.func_name}")
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         func_args = [
@@ -457,10 +454,9 @@ for func_name in _NUMPY_FUNC_NAMES:
     exec(textwrap.dedent(s))
 
 
+@serde.dataclass
 class Length(Lifted):
-    @validated()
-    def __init__(self, l: ValueOrCallable = None):
-        self.l = l
+    l: ValueOrCallable = None
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         l = resolve(self.l, x, length, *args, **kwargs)
@@ -531,11 +527,10 @@ def lift(input: Union[int, Callable]):
         return w(input)
 
 
+@serde.dataclass
 class _LiftedUnpacked(Lifted):
-    @validated()
-    def __init__(self, base: Lifted, i: int):
-        self.base = base
-        self.i = i
+    base: Lifted
+    i: int
 
     def __call__(self, *args, **kwargs):
         v = resolve(self.base, *args, **kwargs)
@@ -570,13 +565,10 @@ class _LiftedBinaryOp(Lifted):
         return self.op(left, right)
 
 
+@serde.dataclass
 class RandomGaussian(Lifted):
-    @validated()
-    def __init__(
-        self, stddev: ValueOrCallable = 1.0, shape: Sequence[int] = (0,)
-    ) -> None:
-        self.stddev = stddev
-        self.shape = shape
+    stddev: ValueOrCallable = 1.0
+    shape: Sequence[int] = (0,)
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         stddev = resolve(self.stddev, x, length, *args, **kwargs)
@@ -585,12 +577,11 @@ class RandomGaussian(Lifted):
 
 
 # Binary recipe that returns 1 if date is in holidays list and 0 otherwise
+@serde.dataclass
 class BinaryHolidays(Lifted):
-    @validated()
     # TODO: holidays is type List[datetime.date]
-    def __init__(self, dates: List[pd.Timestamp], holidays: List[Any]) -> None:
-        self.dates = dates
-        self.holidays = holidays
+    dates: List[pd.Timestamp]
+    holidays: List[Any]
 
     def __call__(self, *args, **kwargs):
         length = len(self.dates)
@@ -604,23 +595,19 @@ class BinaryHolidays(Lifted):
         return out
 
 
+@serde.dataclass
 class RandomBinary(Lifted):
-    @validated()
-    def __init__(self, prob: ValueOrCallable = 0.1) -> None:
-        self.prob = prob
+    prob: ValueOrCallable = 0.1
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         prob = resolve(self.prob, x, length, *args, **kwargs)
         return 1.0 * (np.random.rand(length) < prob)
 
 
+@serde.dataclass
 class RandomSymmetricDirichlet(Lifted):
-    @validated()
-    def __init__(
-        self, alpha: ValueOrCallable = 1.0, shape: Sequence[int] = (0,)
-    ) -> None:
-        self.alpha = alpha
-        self.shape = shape
+    alpha: ValueOrCallable = 1.0
+    shape: Sequence[int] = (0,)
 
     def __call__(self, x, length, *args, **kwargs):
         alpha = resolve(self.alpha, x, length, *args, **kwargs)
@@ -628,13 +615,10 @@ class RandomSymmetricDirichlet(Lifted):
         return np.random.dirichlet(alpha * np.ones(s))
 
 
+@serde.dataclass
 class BinaryMarkovChain(Lifted):
-    @validated()
-    def __init__(
-        self, one_to_zero: ValueOrCallable, zero_to_one: ValueOrCallable
-    ) -> None:
-        self.one_to_zero = one_to_zero
-        self.zero_to_one = zero_to_one
+    one_to_zero: ValueOrCallable
+    zero_to_one: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         probs = np.zeros(2)
@@ -650,19 +634,17 @@ class BinaryMarkovChain(Lifted):
         return out
 
 
+@serde.dataclass
 class Constant(Lifted):
-    @validated()
-    def __init__(self, constant) -> None:
-        self.constant = constant
+    constant: Any
 
     def __call__(self, *args, **kwargs):
         return self.constant
 
 
+@serde.dataclass
 class ConstantVec(Lifted):
-    @validated()
-    def __init__(self, constant: ValueOrCallable) -> None:
-        self.constant = constant
+    constant: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         constant = resolve(self.constant, x, length, *args, **kwargs)
@@ -689,25 +671,19 @@ class OnesLike(Lifted):
         return np.ones_like(other)
 
 
+@serde.dataclass
 class LinearTrend(Lifted):
-    @validated()
-    def __init__(self, slope: ValueOrCallable = 1.0) -> None:
-        self.slope = slope
+    slope: ValueOrCallable = 1.0
 
     def __call__(self, x, length, *args, **kwargs):
         slope = resolve(self.slope, x, length, *args, **kwargs)
         return slope * np.arange(length) / length
 
 
+@serde.dataclass
 class RandomCat:
-    @validated()
-    def __init__(
-        self,
-        cardinalities: List[int],
-        prob_fun: Callable = RandomSymmetricDirichlet(alpha=1.0, shape=(0,)),
-    ) -> None:
-        self.cardinalities = cardinalities
-        self.prob_fun = prob_fun
+    cardinalities: List[int]
+    prob_fun: Callable = RandomSymmetricDirichlet(alpha=1.0, shape=(0,))
 
     def __call__(self, x, field_name, global_state, **kwargs):
         if field_name not in global_state:
@@ -723,17 +699,11 @@ class RandomCat:
         return cats
 
 
+@serde.dataclass
 class Lag(Lifted):
-    @validated()
-    def __init__(
-        self,
-        input: ValueOrCallable,
-        lag: ValueOrCallable = 0,
-        pad_const: int = 0,
-    ) -> None:
-        self.input = input
-        self.lag = lag
-        self.pad_const = pad_const
+    input: ValueOrCallable
+    lag: ValueOrCallable = 0
+    pad_const: int = 0
 
     def __call__(self, x, *args, **kwargs):
         feat = resolve(self.input, x, *args, **kwargs)
@@ -782,22 +752,18 @@ class ForEachCat(Lifted):
         return global_state[field_name][c]
 
 
+@serde.dataclass
 class Eval(Lifted):
-    @validated()
-    def __init__(self, expr: str) -> None:
-        self.expr = expr
+    expr: str
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         return eval(self.expr, globals(), dict(x=x, length=length, **kwargs))
 
 
+@serde.dataclass
 class SmoothSeasonality(Lifted):
-    @validated()
-    def __init__(
-        self, period: ValueOrCallable, phase: ValueOrCallable
-    ) -> None:
-        self.period = period
-        self.phase = phase
+    period: ValueOrCallable
+    phase: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         period = resolve(self.period, x, length, *args, **kwargs)
@@ -807,10 +773,9 @@ class SmoothSeasonality(Lifted):
         ) / 2.0
 
 
+@serde.dataclass
 class Add(Lifted):
-    @validated()
-    def __init__(self, inputs: List[ValueOrCallable]) -> None:
-        self.inputs = inputs
+    inputs: List[ValueOrCallable]
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         return sum(resolve(k, x, length, *args, **kwargs) for k in self.inputs)
@@ -828,13 +793,10 @@ class Mul(Lifted):
         )
 
 
+@serde.dataclass
 class NanWhere(Lifted):
-    @validated()
-    def __init__(
-        self, source: ValueOrCallable, nan_indicator: ValueOrCallable
-    ) -> None:
-        self.source = source
-        self.nan_indicator = nan_indicator
+    source: ValueOrCallable
+    nan_indicator: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         source = resolve(self.source, x, length, *args, **kwargs)
@@ -844,41 +806,37 @@ class NanWhere(Lifted):
         return out
 
 
+@serde.dataclass
 class OneMinus(Lifted):
-    @validated()
-    def __init__(self, source: ValueOrCallable) -> None:
-        self.source = source
+    source: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         value = resolve(self.source, x, length, *args, **kwargs)
         return 1 - value
 
 
+@serde.dataclass
 class Concatenate(Lifted):
-    @validated()
-    def __init__(self, inputs: List[ValueOrCallable], axis: int = 0) -> None:
-        self.inputs = inputs
-        self.axis = axis
+    inputs: List[ValueOrCallable]
+    axis: int = 0
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         inputs = [resolve(z, x, length, **kwargs) for z in self.inputs]
         return np.concatenate(inputs, self.axis)
 
 
+@serde.dataclass
 class Stack(Lifted):
-    @validated()
-    def __init__(self, inputs: List[ValueOrCallable]) -> None:
-        self.inputs = inputs
+    inputs: List[ValueOrCallable]
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         inputs = [resolve(z, x, length, **kwargs) for z in self.inputs]
         return np.stack(inputs, axis=0)
 
 
+@serde.dataclass
 class StackPrefix(Lifted):
-    @validated()
-    def __init__(self, prefix: str) -> None:
-        self.prefix = prefix
+    prefix: str
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         inputs = [v for k, v in x.items() if k.startswith(self.prefix)]
@@ -888,9 +846,11 @@ class StackPrefix(Lifted):
 _LEGACY_WARNING_WAS_SHOWN = False
 
 
+@serde.dataclass
 class Ref(Lifted):
-    @validated()
-    def __init__(self, field_name: str) -> None:
+    field_name: str
+
+    def __post_init_post_parse__(self):
         global _LEGACY_WARNING_WAS_SHOWN
         if not _LEGACY_WARNING_WAS_SHOWN:
             import warnings
@@ -899,23 +859,16 @@ class Ref(Lifted):
                 "Ref is deprecated. Please use the functional api.",
             )
             _LEGACY_WARNING_WAS_SHOWN = True
-        self.field_name = field_name
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         return x[self.field_name]
 
 
+@serde.dataclass
 class RandomUniform(Lifted):
-    @validated()
-    def __init__(
-        self,
-        low: ValueOrCallable = 0.0,
-        high: ValueOrCallable = 1.0,
-        shape=(0,),
-    ) -> None:
-        self.low = low
-        self.high = high
-        self.shape = shape
+    low: ValueOrCallable = 0.0
+    high: ValueOrCallable = 1.0
+    shape = (0,)
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         low = resolve(self.low, x, length, *args, **kwargs)
@@ -924,17 +877,11 @@ class RandomUniform(Lifted):
         return np.random.uniform(low, high, s)
 
 
+@serde.dataclass
 class RandomInteger(Lifted):
-    @validated()
-    def __init__(
-        self,
-        low: ValueOrCallable,
-        high: ValueOrCallable,
-        shape: Optional[Sequence[int]] = (0,),
-    ) -> None:
-        self.low = low
-        self.high = high
-        self.shape = shape
+    low: ValueOrCallable
+    high: ValueOrCallable
+    shape: Optional[Sequence[int]] = (0,)
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         low = resolve(self.low, x, length, *args, **kwargs)
@@ -943,10 +890,9 @@ class RandomInteger(Lifted):
         return np.random.randint(low, high, s)
 
 
+@serde.dataclass
 class RandomChangepoints(Lifted):
-    @validated()
-    def __init__(self, max_num_changepoints: ValueOrCallable) -> None:
-        self.max_num_changepoints = max_num_changepoints
+    max_num_changepoints: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         max_num_changepoints = resolve(
@@ -964,10 +910,9 @@ class RandomChangepoints(Lifted):
         return out
 
 
+@serde.dataclass
 class Repeated(Lifted):
-    @validated()
-    def __init__(self, pattern: ValueOrCallable) -> None:
-        self.pattern = pattern
+    pattern: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         pattern = resolve(self.pattern, x, length, **kwargs)
@@ -976,13 +921,10 @@ class Repeated(Lifted):
         return out[:length]
 
 
+@serde.dataclass
 class Convolve(Lifted):
-    @validated()
-    def __init__(
-        self, input: ValueOrCallable, filter: ValueOrCallable
-    ) -> None:
-        self.filter = filter
-        self.input = input
+    input: ValueOrCallable
+    filter: ValueOrCallable
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         fil = resolve(self.filter, x, length, **kwargs)
@@ -991,11 +933,10 @@ class Convolve(Lifted):
         return out
 
 
+@serde.dataclass
 class Dilated(Lifted):
-    @validated()
-    def __init__(self, source: Callable, dilation: int) -> None:
-        self.source = source
-        self.dilation = dilation
+    source: Callable
+    dilation: int
 
     def __call__(self, x: Env, length: int, *args, **kwargs):
         inner = self.source(x, length // self.dilation + 1, **kwargs)
@@ -1084,13 +1025,10 @@ def normalized_ar1(tau, x0=None, norm="minmax", sigma=1.0):
         raise NotImplementedError()
 
 
+@serde.dataclass
 class Choose(Lifted):
-    @validated()
-    def __init__(
-        self, options: ValueOrCallable, selector: ValueOrCallable
-    ) -> None:
-        self.options = options
-        self.selector = selector
+    options: ValueOrCallable
+    selector: ValueOrCallable
 
     def __call__(self, x, length, **kwargs):
         options = resolve(self.options, x, length, **kwargs)
@@ -1100,13 +1038,10 @@ class Choose(Lifted):
         return out
 
 
+@serde.dataclass
 class EvalRecipe(Lifted):
-    @validated()
-    def __init__(
-        self, recipe: Recipe, op: Optional[ValueOrCallable] = None
-    ) -> None:
-        self.recipe = recipe
-        self.op = op
+    recipe: Recipe
+    op: Optional[ValueOrCallable] = None
 
     def __call__(self, x: Env, *args, **kwargs):
         xx = evaluate(self.recipe, *args, **kwargs)

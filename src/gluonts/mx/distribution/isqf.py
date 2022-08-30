@@ -14,6 +14,7 @@
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -828,6 +829,7 @@ class ISQF(Distribution):
         return 0
 
 
+@serde.dataclass
 class ISQFOutput(DistributionOutput):
     r"""
     DistributionOutput class for the Incremental (Spline) Quantile Function
@@ -843,27 +845,23 @@ class ISQFOutput(DistributionOutput):
         tolerance for numerical safeguarding
     """
 
+    num_pieces: int
+    qk_x: List[float]
+    tol: float = 1e-4
     distr_cls: type = ISQF
 
-    @validated()
-    def __init__(
-        self, num_pieces: int, qk_x: List[float], tol: float = 1e-4
-    ) -> None:
+    def __post_init_post_parse__(self):
         # ISQF reduces to IQF when num_pieces = 1
 
-        super().__init__(self)
-
         assert (
-            isinstance(num_pieces, int) and num_pieces > 0
+            isinstance(self.num_pieces, int) and self.num_pieces > 0
         ), "num_pieces should be an integer and greater than 0"
 
-        self.num_pieces = num_pieces
-        self.qk_x = sorted(qk_x)
-        self.num_qk = len(qk_x)
-        self.tol = tol
+        self.qk_x = sorted(self.qk_x)
+        self.num_qk = len(self.qk_x)
         self.args_dim: Dict[str, int] = {
-            "spline_knots": (self.num_qk - 1) * num_pieces,
-            "spline_heights": (self.num_qk - 1) * num_pieces,
+            "spline_knots": (self.num_qk - 1) * self.num_pieces,
+            "spline_heights": (self.num_qk - 1) * self.num_pieces,
             "beta_l": 1,
             "beta_r": 1,
             "quantile_knots": self.num_qk,
@@ -1001,14 +999,14 @@ class ISQFOutput(DistributionOutput):
         return ()
 
 
+@serde.dataclass
 class TransformedISQF(TransformedDistribution, ISQF):
     # DistributionOutput class for the case when loc/scale is not None
-    @validated()
-    def __init__(
-        self, base_distribution: ISQF, transforms: List[Bijection]
-    ) -> None:
+    base_distribution: ISQF
+    transforms: List[Bijection]
 
-        super().__init__(base_distribution, transforms)
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
 
     def crps(self, y: Tensor) -> Tensor:
         F = getF(y)

@@ -15,7 +15,8 @@ from typing import Iterator, List, Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.core import serde
+from gluonts.core.component import tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.exceptions import assert_data_error
 
@@ -102,6 +103,7 @@ def erfinv(x: np.ndarray) -> np.ndarray:
     return p * x
 
 
+@serde.dataclass
 class AsNumpyArray(SimpleTransformation):
     """
     Converts the value of a field into a numpy array.
@@ -115,13 +117,9 @@ class AsNumpyArray(SimpleTransformation):
         numpy dtype to use.
     """
 
-    @validated()
-    def __init__(
-        self, field: str, expected_ndim: int, dtype: Type = np.float32
-    ) -> None:
-        self.field = field
-        self.expected_ndim = expected_ndim
-        self.dtype = dtype
+    field: str
+    expected_ndim: int
+    dtype: Type = np.float32
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = np.asarray(data[self.field], dtype=self.dtype)
@@ -138,6 +136,7 @@ class AsNumpyArray(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class ExpandDimArray(SimpleTransformation):
     """
     Expand dims in the axis specified, if the axis is not present does nothing.
@@ -151,10 +150,8 @@ class ExpandDimArray(SimpleTransformation):
         Axis to expand (see np.expand_dims for details)
     """
 
-    @validated()
-    def __init__(self, field: str, axis: Optional[int] = None) -> None:
-        self.field = field
-        self.axis = axis
+    field: str
+    axis: Optional[int] = None
 
     def transform(self, data: DataEntry) -> DataEntry:
         if self.axis is not None:
@@ -162,6 +159,7 @@ class ExpandDimArray(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class VstackFeatures(SimpleTransformation):
     """
     Stack fields together using ``np.vstack`` when h_stack = False.
@@ -181,24 +179,21 @@ class VstackFeatures(SimpleTransformation):
         To stack horizontally instead of vertically
     """
 
-    @validated()
-    def __init__(
-        self,
-        output_field: str,
-        input_fields: List[str],
-        drop_inputs: bool = True,
-        h_stack: bool = False,
-    ) -> None:
-        self.output_field = output_field
-        self.input_fields = input_fields
+    output_field: str
+    input_fields: List[str]
+    drop_inputs: bool = True
+    h_stack: bool = False
+
+    def __post_init_post_parse__(self):
         self.cols_to_drop = (
             []
-            if not drop_inputs
+            if not self.drop_inputs
             else [
-                fname for fname in self.input_fields if fname != output_field
+                fname
+                for fname in self.input_fields
+                if fname != self.output_field
             ]
         )
-        self.h_stack = h_stack
 
     def transform(self, data: DataEntry) -> DataEntry:
         r = [
@@ -213,6 +208,7 @@ class VstackFeatures(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class ConcatFeatures(SimpleTransformation):
     """
     Concatenate fields together using ``np.concatenate``.
@@ -229,20 +225,18 @@ class ConcatFeatures(SimpleTransformation):
         If set to true the input fields will be dropped.
     """
 
-    @validated()
-    def __init__(
-        self,
-        output_field: str,
-        input_fields: List[str],
-        drop_inputs: bool = True,
-    ) -> None:
-        self.output_field = output_field
-        self.input_fields = input_fields
+    output_field: str
+    input_fields: List[str]
+    drop_inputs: bool = True
+
+    def __post_init_post_parse__(self):
         self.cols_to_drop = (
             []
-            if not drop_inputs
+            if not self.drop_inputs
             else [
-                fname for fname in self.input_fields if fname != output_field
+                fname
+                for fname in self.input_fields
+                if fname != self.output_field
             ]
         )
 
@@ -259,6 +253,7 @@ class ConcatFeatures(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class SwapAxes(SimpleTransformation):
     """
     Apply `np.swapaxes` to fields.
@@ -271,10 +266,11 @@ class SwapAxes(SimpleTransformation):
         Axes to use
     """
 
-    @validated()
-    def __init__(self, input_fields: List[str], axes: Tuple[int, int]) -> None:
-        self.input_fields = input_fields
-        self.axis1, self.axis2 = axes
+    input_fields: List[str]
+    axes: Tuple[int, int]
+
+    def __post_init_post_parse__(self):
+        self.axis1, self.axis2 = self.axes
 
     def transform(self, data: DataEntry) -> DataEntry:
         for field in self.input_fields:
@@ -293,6 +289,7 @@ class SwapAxes(SimpleTransformation):
             )
 
 
+@serde.dataclass
 class ListFeatures(SimpleTransformation):
     """
     Creates a new field which contains a list of features.
@@ -307,20 +304,18 @@ class ListFeatures(SimpleTransformation):
         If true the input fields will be removed from the result.
     """
 
-    @validated()
-    def __init__(
-        self,
-        output_field: str,
-        input_fields: List[str],
-        drop_inputs: bool = True,
-    ) -> None:
-        self.output_field = output_field
-        self.input_fields = input_fields
+    output_field: str
+    input_fields: List[str]
+    drop_inputs: bool = True
+
+    def __post_init_post_parse__(self):
         self.cols_to_drop = (
             []
-            if not drop_inputs
+            if not self.drop_inputs
             else [
-                fname for fname in self.input_fields if fname != output_field
+                fname
+                for fname in self.input_fields
+                if fname != self.output_field
             ]
         )
 
@@ -331,42 +326,31 @@ class ListFeatures(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class TargetDimIndicator(SimpleTransformation):
     """
     Label-encoding of the target dimensions.
     """
 
-    @validated()
-    def __init__(self, field_name: str, target_field: str) -> None:
-        self.field_name = field_name
-        self.target_field = target_field
+    field_name: str
+    target_field: str
 
     def transform(self, data: DataEntry) -> DataEntry:
         data[self.field_name] = np.arange(0, data[self.target_field].shape[0])
         return data
 
 
+@serde.dataclass
 class SampleTargetDim(FlatMapTransformation):
     """
     Samples random dimensions from the target at training time.
     """
 
-    @validated()
-    def __init__(
-        self,
-        field_name: str,
-        target_field: str,
-        observed_values_field: str,
-        num_samples: int,
-        shuffle: bool = True,
-    ) -> None:
-        super().__init__()
-
-        self.field_name = field_name
-        self.target_field = target_field
-        self.observed_values_field = observed_values_field
-        self.num_samples = num_samples
-        self.shuffle = shuffle
+    field_name: str
+    target_field: str
+    observed_values_field: str
+    num_samples: int
+    shuffle: bool = True
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
@@ -396,6 +380,7 @@ class SampleTargetDim(FlatMapTransformation):
             yield data
 
 
+@serde.dataclass
 class CDFtoGaussianTransform(MapTransformation):
     """
     Marginal transformation that transforms the target via an empirical CDF to
@@ -406,18 +391,16 @@ class CDFtoGaussianTransform(MapTransformation):
     targets only.
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_dim: int,
-        target_field: str,
-        observed_values_field: str,
-        cdf_suffix="_cdf",
-        max_context_length: Optional[int] = None,
-        dtype: Type = np.float32,
-    ) -> None:
+    target_dim: int
+    target_field: str
+    observed_values_field: str
+    cdf_suffix = "_cdf"
+    max_context_length: Optional[int] = None
+    dtype: Type = np.float32
+
+    def __post_init_post_parse__(self):
         """
-        Constructor for CDFtoGaussianTransform.
+        Post constructor for CDFtoGaussianTransform.
 
         Parameters
         ----------
@@ -434,17 +417,12 @@ class CDFtoGaussianTransform(MapTransformation):
         dtype
             numpy dtype of output.
         """
-        self.target_field = target_field
         self.past_target_field = "past_" + self.target_field
         self.future_target_field = "future_" + self.target_field
-        self.past_observed_field = f"past_{observed_values_field}"
-        self.sort_target_field = f"past_{target_field}_sorted"
+        self.past_observed_field = f"past_{self.observed_values_field}"
+        self.sort_target_field = f"past_{self.target_field}_sorted"
         self.slopes_field = "slopes"
         self.intercepts_field = "intercepts"
-        self.cdf_suffix = cdf_suffix
-        self.max_context_length = max_context_length
-        self.target_dim = target_dim
-        self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
         self._preprocess_data(data, is_train=is_train)
@@ -829,6 +807,7 @@ def cdf_to_gaussian_forward_transform(
     return outputs
 
 
+@serde.dataclass
 class ToIntervalSizeFormat(FlatMapTransformation):
     """
     Convert a sparse univariate time series to the `interval-size` format,
@@ -857,18 +836,9 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         when the true starting index of the time-series is not known.
     """
 
-    @validated()
-    def __init__(
-        self,
-        target_field: str,
-        drop_empty: bool = False,
-        discard_first: bool = False,
-    ) -> None:
-        super().__init__()
-
-        self.target_field = target_field
-        self.drop_empty = drop_empty
-        self.discard_first = discard_first
+    target_field: str
+    drop_empty: bool = False
+    discard_first: bool = False
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
         a: np.ndarray = np.array(a)

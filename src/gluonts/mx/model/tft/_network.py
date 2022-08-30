@@ -304,7 +304,7 @@ class TemporalFusionTransformerNetwork(HybridBlock):
                 n_head=self.n_head,
                 dropout=dropout,
             )
-            self.output = QuantileOutput(quantiles=self.quantiles)
+            self.output = QuantileOutput(quantiles_=self.quantiles)
             self.output_proj = self.output.get_quantile_proj()
             self.loss = self.output.get_loss()
 

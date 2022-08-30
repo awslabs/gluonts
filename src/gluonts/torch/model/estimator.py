@@ -18,7 +18,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch.nn as nn
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
@@ -35,6 +35,7 @@ class TrainOutput(NamedTuple):
     predictor: PyTorchPredictor
 
 
+@serde.dataclass
 class PyTorchLightningEstimator(Estimator):
     """
     An `Estimator` type with utilities for creating PyTorch-Lightning-based
@@ -45,14 +46,7 @@ class PyTorchLightningEstimator(Estimator):
     `create_training_data_loader`, and `create_validation_data_loader`.
     """
 
-    @validated()
-    def __init__(
-        self,
-        trainer_kwargs: Dict[str, Any],
-        lead_time: int = 0,
-    ) -> None:
-        super().__init__(lead_time=lead_time)
-        self.trainer_kwargs = trainer_kwargs
+    trainer_kwargs: Dict[str, Any]
 
     def create_transformation(self) -> Transformation:
         """

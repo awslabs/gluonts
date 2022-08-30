@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.model.estimator import DummyEstimator
 
 from gluonts.model.trivial.constant import ConstantPredictor
@@ -19,33 +19,21 @@ from gluonts.model.trivial.identity import IdentityPredictor
 from gluonts.model.trivial.mean import MeanPredictor, MovingAveragePredictor
 
 
+@serde.dataclass
 class ConstantEstimator(DummyEstimator):
-    @validated(
-        getattr(ConstantPredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=ConstantPredictor, **kwargs)
+    predictor_cls: type = ConstantPredictor
 
 
+@serde.dataclass
 class IdentityEstimator(DummyEstimator):
-    @validated(
-        getattr(IdentityPredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=IdentityPredictor, **kwargs)
+    predictor_cls: type = IdentityPredictor
 
 
+@serde.dataclass
 class MeanEstimator(DummyEstimator):
-    @validated(
-        getattr(MeanPredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=MeanPredictor, **kwargs)
+    predictor_cls: type = MeanPredictor
 
 
+@serde.dataclass
 class MovingAverageEstimator(DummyEstimator):
-    @validated(
-        getattr(MovingAveragePredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=MovingAveragePredictor, **kwargs)
+    predictor_cls: type = MovingAveragePredictor

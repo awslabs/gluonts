@@ -13,14 +13,15 @@
 
 # Standard library imports
 import logging
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 import mxnet as mx
+from pydantic import Field
 
 # First-party imports
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import DeepVAREstimator
 from gluonts.mx.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -92,6 +93,7 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
     return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
 
 
+@serde.dataclass
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
     """
     Constructs a DeepVARHierarchical estimator, which is a hierachical
@@ -192,109 +194,72 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        target_dim: int,
-        S: np.ndarray,
-        num_samples_for_loss: int = 200,
-        likelihood_weight: float = 0.0,
-        CRPS_weight: float = 1.0,
-        sample_LH: bool = False,
-        coherent_train_samples: bool = True,
-        coherent_pred_samples: bool = True,
-        warmstart_epoch_frac: float = 0.0,
-        seq_axis: List[int] = None,
-        log_coherency_error: bool = True,
-        trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "lstm",
-        num_parallel_samples: int = 100,
-        dropout_rate: float = 0.1,
-        use_feat_dynamic_real: bool = False,
-        cardinality: List[int] = [1],
-        embedding_dimension: int = 5,
-        scaling: bool = True,
-        pick_incomplete: bool = False,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        batch_size: int = 32,
-        **kwargs,
-    ) -> None:
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    target_dim: int = Field(...)
+    S: np.ndarray = Field(...)
+    num_samples_for_loss: int = 200
+    likelihood_weight: float = 0.0
+    CRPS_weight: float = 1.0
+    sample_LH: bool = False
+    coherent_train_samples: bool = True
+    coherent_pred_samples: bool = True
+    warmstart_epoch_frac: float = 0.0
+    seq_axis: List[int] = Field(None)
+    log_coherency_error: bool = True
+    trainer: Trainer = Trainer()
+    context_length: int = Field(None)
+    num_layers: int = 2
+    num_cells: int = 40
+    cell_type: str = "lstm"
+    num_parallel_samples: int = 100
+    dropout_rate: float = 0.1
+    use_feat_dynamic_real: bool = False
+    cardinality: List[int] = Field(default_factory=lambda: [1])
+    embedding_dimension: int = 5
+    scaling: bool = True
+    pick_incomplete: bool = False
+    lags_seq: List[int] = Field(None)
+    time_features: List[TimeFeature] = Field(None)
+    batch_size: int = 32
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
 
         # This implementation only works for multivariate Gaussian with
         # diagonal covariance and no transformation. Fixing them here upfront.
         # If the method is exteneded, then these can be passed as arguments of
         # the estimator.
-        rank = 0
-        distr_output = LowrankMultivariateGaussianOutput(
-            dim=target_dim, rank=rank
+        self.rank = 0
+        self.distr_output = LowrankMultivariateGaussianOutput(
+            dim=self.target_dim, rank=self.rank
         )
-        use_marginal_transformation = False
-        conditioning_length = 0
+        self.use_marginal_transformation = False
+        self.conditioning_length = 0
 
         # This estimator doesn't work in symbolic mode.
-        if trainer.hybridize:
+        if self.trainer.hybridize:
             logger.info(
                 f"Resetting `hybridize` flag of trainer to False, "
                 f"since {__name__} does not work in symbolic mode."
             )
-            trainer.hybridize = False
+            self.trainer.hybridize = False
 
-        super().__init__(
-            freq=freq,
-            prediction_length=prediction_length,
-            target_dim=target_dim,
-            context_length=context_length,
-            num_layers=num_layers,
-            num_cells=num_cells,
-            cell_type=cell_type,
-            num_parallel_samples=num_parallel_samples,
-            dropout_rate=dropout_rate,
-            use_feat_dynamic_real=use_feat_dynamic_real,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            distr_output=distr_output,
-            rank=rank,
-            scaling=scaling,
-            pick_incomplete=pick_incomplete,
-            lags_seq=lags_seq,
-            time_features=time_features,
-            conditioning_length=conditioning_length,
-            use_marginal_transformation=use_marginal_transformation,
-            trainer=trainer,
-            batch_size=batch_size,
-            **kwargs,
-        )
-
-        assert target_dim == S.shape[0], (
+        assert self.target_dim == self.S.shape[0], (
             "The number of rows of `S` matrix must be equal to `target_dim`. "
             f"Either `S` matrix is incorrectly constructed or a wrong value "
-            f"is passed for `target_dim`: shape of `S`: {S.shape} and "
-            f"`target_dim`: {target_dim}."
+            f"is passed for `target_dim`: shape of `S`: {self.S.shape} and "
+            f"`target_dim`: {self.target_dim}."
         )
 
         # Assert that projection is *not* being done only during training
-        assert coherent_pred_samples or (
-            not coherent_train_samples
+        assert self.coherent_pred_samples or (
+            not self.coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        A = constraint_mat(S)
+        A = constraint_mat(self.S)
         M = null_space_projection_mat(A)
         self.M, self.A = mx.nd.array(M), mx.nd.array(A)
-        self.num_samples_for_loss = num_samples_for_loss
-        self.likelihood_weight = likelihood_weight
-        self.CRPS_weight = CRPS_weight
-        self.log_coherency_error = log_coherency_error
-        self.coherent_train_samples = coherent_train_samples
-        self.coherent_pred_samples = coherent_pred_samples
-        self.warmstart_epoch_frac = warmstart_epoch_frac
-        self.sample_LH = sample_LH
-        self.seq_axis = seq_axis
 
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(

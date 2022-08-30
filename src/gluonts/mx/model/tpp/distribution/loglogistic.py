@@ -15,6 +15,8 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 from mxnet import autograd, nd
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -152,8 +154,9 @@ class Loglogistic(TPPDistribution):
         return x
 
 
+@serde.dataclass
 class LoglogisticOutput(TPPDistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "sigma": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "sigma": 1})
     distr_cls: type = Loglogistic
 
     @classmethod

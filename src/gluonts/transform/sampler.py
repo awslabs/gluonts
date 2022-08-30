@@ -14,12 +14,14 @@
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from gluonts.core import serde
 from gluonts.dataset.stat import ScaleHistogram
 
 
-class InstanceSampler(BaseModel):
+@serde.dataclass
+class InstanceSampler:
     """
     An InstanceSampler is called with the time series ``ts``, and returns a set
     of indices at which training instances will be generated.
@@ -45,6 +47,7 @@ class InstanceSampler(BaseModel):
         raise NotImplementedError()
 
 
+@serde.dataclass
 class UniformSplitSampler(InstanceSampler):
     """
     Samples each point with the same fixed probability.
@@ -55,7 +58,7 @@ class UniformSplitSampler(InstanceSampler):
         Probability of selecting a time point
     """
 
-    p: float
+    p: float = Field(...)
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)
@@ -68,6 +71,7 @@ class UniformSplitSampler(InstanceSampler):
         return indices + a
 
 
+@serde.dataclass
 class PredictionSplitSampler(InstanceSampler):
     """
     Sampler used for prediction.
@@ -106,6 +110,7 @@ def TestSplitSampler(
     )
 
 
+@serde.dataclass
 class ExpectedNumInstanceSampler(InstanceSampler):
     """
     Keeps track of the average time series length and adjusts the probability
@@ -119,7 +124,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         number of training examples generated per time series on average
     """
 
-    num_instances: float
+    num_instances: float = Field(...)
     total_length: int = 0
     n: int = 0
 
@@ -142,6 +147,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         return indices + a
 
 
+@serde.dataclass
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
@@ -158,7 +164,7 @@ class BucketInstanceSampler(InstanceSampler):
         value of the time series.
     """
 
-    scale_histogram: ScaleHistogram
+    scale_histogram: ScaleHistogram = Field(...)
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         a, b = self._get_bounds(ts)

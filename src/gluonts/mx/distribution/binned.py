@@ -16,6 +16,8 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 import numpy as np
 from mxnet import gluon
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -307,23 +309,20 @@ class BinnedArgs(gluon.HybridBlock):
         return reshaped_probs, bin_centers
 
 
+@serde.dataclass
 class BinnedOutput(DistributionOutput):
+    bin_centers: mx.nd.NDArray = Field(...)
+    label_smoothing: float = Field(None)
     distr_cls: type = Binned
 
-    @validated()
-    def __init__(
-        self,
-        bin_centers: mx.nd.NDArray,
-        label_smoothing: Optional[float] = None,
-    ) -> None:
-        assert label_smoothing is None or (0 <= label_smoothing < 1), (
+    def __post_init_post_parse__(self):
+        assert self.label_smoothing is None or (
+            0 <= self.label_smoothing < 1
+        ), (
             "Smoothing factor should be less than 1 and greater than or equal"
             " to 0."
         )
-        super().__init__(self)
-        self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]
-        self.label_smoothing = label_smoothing
         assert len(self.bin_centers.shape) == 1
 
     def get_args_proj(self, *args, **kwargs) -> gluon.nn.HybridBlock:

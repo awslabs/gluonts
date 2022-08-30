@@ -156,7 +156,7 @@ class SelfAttentionNetwork(HybridBlock):
                     embedding_dims=[self.d_hidden] * len(cardinalities),
                     prefix="embedder_",
                 )
-            self.output = QuantileOutput(quantiles=self.quantiles)
+            self.output = QuantileOutput(quantiles_=self.quantiles)
             self.output_proj = self.output.get_quantile_proj()
             self.loss = self.output.get_loss()
 

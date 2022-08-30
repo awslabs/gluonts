@@ -16,8 +16,9 @@ from pathlib import Path
 from typing import Dict, Optional, List, Union, Iterator
 
 import numpy as np
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import SampleForecast, QuantileForecast
@@ -60,6 +61,7 @@ SUPPORTED_METHODS = (
 )
 
 
+@serde.dataclass
 class RForecastPredictor(RepresentablePredictor):
     """
     Wrapper for calling the `R forecast package.
@@ -93,18 +95,14 @@ class RForecastPredictor(RepresentablePredictor):
         Note that currently only `output_type = 'samples'` is supported.
     """  # noqa: E501
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        method_name: str = "ets",
-        period: Optional[int] = None,
-        trunc_length: Optional[int] = None,
-        params: Optional[Dict] = None,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    freq: str = Field(...)
+    prediction_length: int = Field(...)
+    method_name: str = "ets"
+    period: Optional[int] = None
+    trunc_length: Optional[int] = None
+    params: Optional[Dict] = None
 
+    def __post_init_post_parse__(self):
         if not R_IS_INSTALLED:
             raise ImportError("R is not Installed! \n " + USAGE_MESSAGE)
 
@@ -129,27 +127,23 @@ class RForecastPredictor(RepresentablePredictor):
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
-        assert method_name in SUPPORTED_METHODS, (
-            f"method {method_name} is not supported please use one of"
+        assert self.method_name in SUPPORTED_METHODS, (
+            f"method {self.method_name} is not supported please use one of"
             f" {SUPPORTED_METHODS}"
         )
 
-        self.method_name = method_name
-
         self._stats_pkg = rpackages.importr("stats")
-        self._r_method = robjects.r[method_name]
+        self._r_method = robjects.r[self.method_name]
 
-        self.prediction_length = prediction_length
-        self.period = period if period is not None else get_seasonality(freq)
-        self.trunc_length = trunc_length
+        if self.period is None:
+            self.period = get_seasonality(self.freq)
 
-        self.params = {
+        params = {
             "prediction_length": self.prediction_length,
             "output_types": ["samples"],
             "frequency": self.period,
         }
-        if params is not None:
-            self.params.update(params)
+        self.params.update(params)
 
     def _unlist(self, l):
         if type(l).__name__.endswith("Vector"):

@@ -157,7 +157,7 @@ test_cases = [
                     mx.nd.arange(start=100, stop=0, step=-10),
                 ]
             ).transpose(),
-            "event_dim": 1,
+            "event_dim_": 1,
         },
     ),
 ]
@@ -264,7 +264,7 @@ test_cases_quantile = [
                     mx.nd.arange(start=100, stop=0, step=-10),
                 ]
             ).transpose(),
-            "event_dim": 1,
+            "event_dim_": 1,
         },
     ),
 ]

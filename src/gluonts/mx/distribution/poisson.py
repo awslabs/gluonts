@@ -14,6 +14,8 @@
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -84,8 +86,9 @@ class Poisson(Distribution):
         return [self.rate]
 
 
+@serde.dataclass
 class PoissonOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"rate": 1}
+    args_dim: Dict[str, int] = Field(default={"rate": 1})
     distr_cls: type = Poisson
 
     @classmethod

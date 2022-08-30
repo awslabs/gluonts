@@ -17,6 +17,7 @@ import torch
 from torch.distributions import AffineTransform, TransformedDistribution
 from torch.distributions.normal import Normal
 
+from gluonts.core import serde
 from gluonts.core.component import validated
 
 from .distribution_output import DistributionOutput
@@ -286,30 +287,21 @@ class MQF2Distribution(torch.distributions.Distribution):
         return 0
 
 
+@serde.dataclass
 class MQF2DistributionOutput(DistributionOutput):
+    prediction_length: int
+    is_energy_score: bool = True
+    threshold_input: float = 100.0
+    es_num_samples: int = 50
+    beta: float = 1.0
     distr_cls: type = MQF2Distribution
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        is_energy_score: bool = True,
-        threshold_input: float = 100.0,
-        es_num_samples: int = 50,
-        beta: float = 1.0,
-    ) -> None:
-        super().__init__(self)
+    def __post_init_post_parse__(self):
         # A null args_dim to be called by PtArgProj
         self.args_dim = cast(
             Dict[str, int],
             {"null": 1},
         )
-
-        self.prediction_length = prediction_length
-        self.is_energy_score = is_energy_score
-        self.threshold_input = threshold_input
-        self.es_num_samples = es_num_samples
-        self.beta = beta
 
     @classmethod
     def domain_map(

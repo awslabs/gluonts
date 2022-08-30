@@ -17,6 +17,7 @@ from typing import Callable, Iterator, List, Optional
 
 import numpy as np
 
+from gluonts.core import serde
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -119,10 +120,9 @@ class ForecastGenerator:
         raise NotImplementedError()
 
 
+@serde.dataclass
 class QuantileForecastGenerator(ForecastGenerator):
-    @validated()
-    def __init__(self, quantiles: List[str]) -> None:
-        self.quantiles = quantiles
+    quantiles: List[str]
 
     def __call__(
         self,

@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 import mxnet as mx
+from pydantic import Field
 
 from gluonts import transform
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -58,71 +59,57 @@ from gluonts.transform import (
 from ._seq2seq_network import Seq2SeqPredictionNetwork, Seq2SeqTrainingNetwork
 
 
+@serde.dataclass
 class Seq2SeqEstimator(GluonEstimator):
     """
     Quantile-Regression Sequence-to-Sequence Estimator.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: List[int],
-        embedding_dimension: int,
-        encoder: Seq2SeqEncoder,
-        decoder_mlp_layer: List[int],
-        decoder_mlp_static_dim: int,
-        scaler: Scaler = NOPScaler(),
-        context_length: Optional[int] = None,
-        quantiles: Optional[List[float]] = None,
-        trainer: Trainer = Trainer(),
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        num_parallel_samples: int = 100,
-        batch_size: int = 32,
-    ) -> None:
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert quantiles is None or all(
-            0 <= d <= 1 for d in quantiles
-        ), "Elements of `quantiles` should be >= 0 and <= 1"
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    cardinality: List[int] = Field(...)
+    embedding_dimension: int = Field(...)
+    encoder: Seq2SeqEncoder = Field(...)
+    decoder_mlp_layer: List[int] = Field(...)
+    decoder_mlp_static_dim: int = Field(...)
+    scaler: Scaler = NOPScaler()
+    context_length: int = Field(None, gt=0)
+    quantiles: List[float] = Field(None, ge=0, le=1)
+    trainer: Trainer = Trainer()
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    num_parallel_samples: int = 100
+    batch_size: int = 32
 
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
 
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            self.context_length
+            if self.context_length is not None
+            else self.prediction_length
         )
-        self.prediction_length = prediction_length
-        self.freq = freq
         self.quantiles = (
-            quantiles if quantiles is not None else [0.1, 0.5, 0.9]
+            self.quantiles if self.quantiles is not None else [0.1, 0.5, 0.9]
         )
-        self.encoder = encoder
-        self.decoder_mlp_layer = decoder_mlp_layer
-        self.decoder_mlp_static_dim = decoder_mlp_static_dim
-        self.scaler = scaler
         self.embedder = FeatureEmbedder(
-            cardinalities=cardinality,
-            embedding_dims=[embedding_dimension for _ in cardinality],
+            cardinalities=self.cardinality,
+            embedding_dims=[
+                self.embedding_dimension for _ in self.cardinality
+            ],
         )
         self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
+            self.train_sampler
+            if self.train_sampler is not None
             else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+                num_instances=1.0, min_future=self.prediction_length
             )
         )
         self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
+            self.validation_sampler
+            if self.validation_sampler is not None
+            else ValidationSplitSampler(min_future=self.prediction_length)
         )
-        self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> transform.Transformation:
         return transform.Chain(
@@ -256,120 +243,80 @@ class Seq2SeqEstimator(GluonEstimator):
 
 
 # TODO: fix mutable arguments
+@serde.dataclass
 class MLP2QRForecaster(Seq2SeqEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: List[int],
-        embedding_dimension: int,
-        encoder_mlp_layer: List[int],
-        decoder_mlp_layer: List[int],
-        decoder_mlp_static_dim: int,
-        scaler: Scaler = NOPScaler(),
-        context_length: Optional[int] = None,
-        quantiles: Optional[List[float]] = None,
-        trainer: Trainer = Trainer(),
-        num_parallel_samples: int = 100,
-    ) -> None:
-        encoder = MLPEncoder(layer_sizes=encoder_mlp_layer)
-        super().__init__(
-            freq=freq,
-            prediction_length=prediction_length,
-            encoder=encoder,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            decoder_mlp_layer=decoder_mlp_layer,
-            decoder_mlp_static_dim=decoder_mlp_static_dim,
-            context_length=context_length,
-            scaler=scaler,
-            quantiles=quantiles,
-            trainer=trainer,
-            num_parallel_samples=num_parallel_samples,
-        )
+    freq: str
+    prediction_length: int
+    cardinality: List[int]
+    embedding_dimension: int
+    encoder_mlp_layer: List[int] = Field(...)
+    decoder_mlp_layer: List[int] = Field(...)
+    decoder_mlp_static_dim: int = Field(...)
+    scaler: Scaler = NOPScaler()
+    context_length: int = Field(None)
+    quantiles: List[float] = Field(None)
+    trainer: Trainer = Trainer()
+    num_parallel_samples: int = 100
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+
+        self.encoder = MLPEncoder(layer_sizes=self.encoder_mlp_layer)
 
 
+@serde.dataclass
 class RNN2QRForecaster(Seq2SeqEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: List[int],
-        embedding_dimension: int,
-        encoder_rnn_layer: int,
-        encoder_rnn_num_hidden: int,
-        decoder_mlp_layer: List[int],
-        decoder_mlp_static_dim: int,
-        encoder_rnn_model: str = "lstm",
-        encoder_rnn_bidirectional: bool = True,
-        scaler: Scaler = NOPScaler(),
-        context_length: Optional[int] = None,
-        quantiles: Optional[List[float]] = None,
-        trainer: Trainer = Trainer(),
-        num_parallel_samples: int = 100,
-    ) -> None:
-        encoder = RNNEncoder(
-            mode=encoder_rnn_model,
-            hidden_size=encoder_rnn_num_hidden,
-            num_layers=encoder_rnn_layer,
-            bidirectional=encoder_rnn_bidirectional,
+    freq: str
+    prediction_length: int
+    cardinality: List[int]
+    embedding_dimension: int
+    encoder_rnn_layer: int = Field(...)
+    encoder_rnn_num_hidden: int = Field(...)
+    decoder_mlp_layer: List[int] = Field(...)
+    decoder_mlp_static_dim: int = Field(...)
+    encoder_rnn_model: str = "lstm"
+    encoder_rnn_bidirectional: bool = True
+    scaler: Scaler = NOPScaler()
+    context_length: int = Field(None)
+    quantiles: List[float] = Field(None)
+    trainer: Trainer = Trainer()
+    num_parallel_samples: int = 100
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+
+        self.encoder = RNNEncoder(
+            mode=self.encoder_rnn_model,
+            hidden_size=self.encoder_rnn_num_hidden,
+            num_layers=self.encoder_rnn_layer,
+            bidirectional=self.encoder_rnn_bidirectional,
             use_static_feat=True,
             use_dynamic_feat=True,
         )
-        super().__init__(
-            freq=freq,
-            prediction_length=prediction_length,
-            encoder=encoder,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            decoder_mlp_layer=decoder_mlp_layer,
-            decoder_mlp_static_dim=decoder_mlp_static_dim,
-            context_length=context_length,
-            scaler=scaler,
-            quantiles=quantiles,
-            trainer=trainer,
-            num_parallel_samples=num_parallel_samples,
-        )
 
 
+@serde.dataclass
 class CNN2QRForecaster(Seq2SeqEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        cardinality: List[int],
-        embedding_dimension: int,
-        decoder_mlp_layer: List[int],
-        decoder_mlp_static_dim: int,
-        scaler: Scaler = NOPScaler(),
-        context_length: Optional[int] = None,
-        quantiles: Optional[List[float]] = None,
-        trainer: Trainer = Trainer(),
-        num_parallel_samples: int = 100,
-    ) -> None:
-        encoder = HierarchicalCausalConv1DEncoder(
+    freq: str
+    prediction_length: int
+    cardinality: List[int]
+    embedding_dimension: int
+    decoder_mlp_layer: List[int] = Field(...)
+    decoder_mlp_static_dim: int = Field(...)
+    scaler: Scaler = NOPScaler()
+    context_length: int = Field(None)
+    quantiles: List[float] = Field(None)
+    trainer: Trainer = Trainer()
+    num_parallel_samples: int = 100
+
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
+
+        self.encoder = HierarchicalCausalConv1DEncoder(
             dilation_seq=[1, 3, 9],
             kernel_size_seq=([3] * len([30, 30, 30])),
             channels_seq=[30, 30, 30],
             use_residual=True,
             use_dynamic_feat=True,
             use_static_feat=True,
-        )
-
-        super().__init__(
-            freq=freq,
-            prediction_length=prediction_length,
-            encoder=encoder,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            decoder_mlp_layer=decoder_mlp_layer,
-            decoder_mlp_static_dim=decoder_mlp_static_dim,
-            context_length=context_length,
-            scaler=scaler,
-            quantiles=quantiles,
-            trainer=trainer,
-            num_parallel_samples=num_parallel_samples,
         )

@@ -15,6 +15,8 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -113,8 +115,9 @@ class Uniform(Distribution):
         return [self.low, self.high]
 
 
+@serde.dataclass
 class UniformOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"low": 1, "width": 1}
+    args_dim: Dict[str, int] = Field(default={"low": 1, "width": 1})
     distr_cls: type = Uniform
 
     @classmethod

@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import pydantic
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.exceptions import GluonTSUserError
 
 
@@ -488,6 +488,7 @@ class Forecast:
         return result
 
 
+@serde.dataclass
 class SampleForecast(Forecast):
     """
     A `Forecast` object, where the predicted distribution is represented
@@ -505,32 +506,23 @@ class SampleForecast(Forecast):
         parameters, number of iterations ran etc.
     """
 
-    @validated()
-    def __init__(
-        self,
-        samples: np.ndarray,
-        start_date: pd.Period,
-        item_id: Optional[str] = None,
-        info: Optional[Dict] = None,
-    ) -> None:
-        assert isinstance(
-            samples, np.ndarray
-        ), "samples should be a numpy array"
-        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+    samples: np.ndarray
+    start_date: pd.Period
+    item_id: Optional[str] = None
+    info: Optional[Dict] = None
+
+    def __post_init_post_parse__(self):
+        assert (
+            len(np.shape(self.samples)) == 2
+            or len(np.shape(self.samples)) == 3
+        ), (
             "samples should be a 2-dimensional or 3-dimensional array."
-            " Dimensions found: {}".format(len(np.shape(samples)))
+            " Dimensions found: {}".format(len(np.shape(self.samples)))
         )
-        self.samples = samples
+
         self._sorted_samples_value = None
         self._mean = None
         self._dim = None
-        self.item_id = item_id
-        self.info = info
-
-        assert isinstance(
-            start_date, pd.Period
-        ), "start_date should be a pandas Period object"
-        self.start_date = start_date
 
     @property
     def _sorted_samples(self):

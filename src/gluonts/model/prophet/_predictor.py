@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Iterator, List, NamedTuple, Optional
+from typing import Callable, Dict, Iterator, List, NamedTuple
 
 import numpy as np
 import pandas as pd
+from pydantic import Field
 import toolz
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
@@ -91,6 +92,7 @@ class ProphetDataEntry(NamedTuple):
         return self.start.freq
 
 
+@serde.dataclass
 class ProphetPredictor(RepresentablePredictor):
     """
     Wrapper around `Prophet <https://github.com/facebook/prophet>`_.
@@ -121,28 +123,19 @@ class ProphetPredictor(RepresentablePredictor):
         ...     return model
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        prophet_params: Optional[Dict] = None,
-        init_model: Callable = toolz.identity,
-    ) -> None:
-        super().__init__(prediction_length=prediction_length)
+    prediction_length: int = Field(...)
+    prophet_params: Dict = Field(default={})
+    init_model: Callable = toolz.identity
+
+    def __post_init_post_parse__(self):
 
         if not PROPHET_IS_INSTALLED:
             raise ImportError(USAGE_MESSAGE)
 
-        if prophet_params is None:
-            prophet_params = {}
-
-        assert "uncertainty_samples" not in prophet_params, (
+        assert "uncertainty_samples" not in self.prophet_params, (
             "Parameter 'uncertainty_samples' should not be set directly. "
             "Please use 'num_samples' in the 'predict' method instead."
         )
-
-        self.prophet_params = prophet_params
-        self.init_model = init_model
 
     def predict(
         self, dataset: Dataset, num_samples: int = 100, **kwargs

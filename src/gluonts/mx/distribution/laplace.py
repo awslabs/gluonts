@@ -14,6 +14,8 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
+from pydantic import Field
+from gluonts.core import serde
 
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
@@ -106,8 +108,9 @@ class Laplace(Distribution):
         return [self.mu, self.b]
 
 
+@serde.dataclass
 class LaplaceOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"mu": 1, "b": 1}
+    args_dim: Dict[str, int] = Field(default={"mu": 1, "b": 1})
     distr_cls: type = Laplace
 
     @classmethod

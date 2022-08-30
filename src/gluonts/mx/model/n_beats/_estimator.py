@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -51,6 +52,7 @@ from ._network import (
 )
 
 
+@serde.dataclass
 class NBEATSEstimator(GluonEstimator):
     """
     An Estimator based on a single (!) NBEATS Network (approximately) as
@@ -128,88 +130,66 @@ class NBEATSEstimator(GluonEstimator):
         Arguments passed to 'GluonEstimator'.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        trainer: Trainer = Trainer(),
-        num_stacks: int = 30,
-        widths: Optional[List[int]] = None,
-        num_blocks: Optional[List[int]] = None,
-        num_block_layers: Optional[List[int]] = None,
-        expansion_coefficient_lengths: Optional[List[int]] = None,
-        sharing: Optional[List[bool]] = None,
-        stack_types: Optional[List[str]] = None,
-        loss_function: Optional[str] = "MAPE",
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-        scale: bool = False,
-        **kwargs,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    context_length: int = Field(None, gt=0)
+    trainer: Trainer = Trainer()
+    num_stacks: int = Field(30, gt=0)
+    widths: List[int] = Field(None)
+    num_blocks: List[int] = Field(None)
+    num_block_layers: List[int] = Field(None)
+    expansion_coefficient_lengths: List[int] = Field(None)
+    sharing: List[bool] = Field(None)
+    stack_types: List[str] = Field(None)
+    loss_function: str = Field(default="MAPE")
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
+    scale: bool = False
 
+    def __post_init_post_parse__(self):
+        super().__init__(batch_size=self.batch_size, trainer=self.trainer)
         assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert (
-            num_stacks is None or num_stacks > 0
-        ), "The value of `num_stacks` should be > 0"
-        assert (
-            loss_function is None or loss_function in VALID_LOSS_FUNCTIONS
+            self.loss_function is None
+            or self.loss_function in VALID_LOSS_FUNCTIONS
         ), (
             "The loss function has to be one of the following:"
             f" {VALID_LOSS_FUNCTIONS}."
         )
 
-        self.freq = freq
-        self.scale = scale
-        self.prediction_length = prediction_length
-        self.context_length = (
-            context_length
-            if context_length is not None
-            else 2 * prediction_length
-        )
-        # num_stacks has to be handled separately because other arguments have
-        # to match its length
-        self.num_stacks = num_stacks
-        self.loss_function = loss_function
+        if self.context_length is None:
+            self.context_length = 2 * self.prediction_length
 
         self.widths = self._validate_nbeats_argument(
-            argument_value=widths,
+            argument_value=self.widths,
             argument_name="widths",
             default_value=[512],
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'widths' should be > 0",
         )
         self.num_blocks = self._validate_nbeats_argument(
-            argument_value=num_blocks,
+            argument_value=self.num_blocks,
             argument_name="num_blocks",
             default_value=[1],
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'num_blocks' should be > 0",
         )
         self.num_block_layers = self._validate_nbeats_argument(
-            argument_value=num_block_layers,
+            argument_value=self.num_block_layers,
             argument_name="num_block_layers",
             default_value=[4],
             validation_condition=lambda val: val > 0,
             invalidation_message="Values of 'block_layers' should be > 0",
         )
         self.sharing = self._validate_nbeats_argument(
-            argument_value=sharing,
+            argument_value=self.sharing,
             argument_name="sharing",
             default_value=[False],
             validation_condition=lambda val: True,
             invalidation_message="",
         )
         self.expansion_coefficient_lengths = self._validate_nbeats_argument(
-            argument_value=expansion_coefficient_lengths,
+            argument_value=self.expansion_coefficient_lengths,
             argument_name="expansion_coefficient_lengths",
             default_value=[32],
             validation_condition=lambda val: val > 0,
@@ -218,7 +198,7 @@ class NBEATSEstimator(GluonEstimator):
             ),
         )
         self.stack_types = self._validate_nbeats_argument(
-            argument_value=stack_types,
+            argument_value=self.stack_types,
             argument_name="stack_types",
             default_value=["G"],
             validation_condition=lambda val: val in VALID_N_BEATS_STACK_TYPES,
@@ -227,18 +207,15 @@ class NBEATSEstimator(GluonEstimator):
                 f" {VALID_N_BEATS_STACK_TYPES}"
             ),
         )
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
-        )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def _validate_nbeats_argument(
         self,

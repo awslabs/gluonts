@@ -17,7 +17,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Distribution, constraints
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 
 from .distribution_output import DistributionOutput
 
@@ -436,33 +436,25 @@ class BinnedUniforms(Distribution):
         raise NotImplementedError
 
 
+@serde.dataclass
 class BinnedUniformsOutput(DistributionOutput):
+    bins_lower_bound: float
+    bins_upper_bound: float
+    num_bins: int
     distr_cls: type = BinnedUniforms
 
-    @validated()
-    def __init__(
-        self,
-        bins_lower_bound: float,
-        bins_upper_bound: float,
-        num_bins: int,
-    ) -> None:
-        super().__init__(self)
-
+    def __post_init_post_parse__(self):
         assert (
-            isinstance(num_bins, int) and num_bins > 1
+            isinstance(self.num_bins, int) and self.num_bins > 1
         ), "num_bins should be an integer and greater than 1"
-        assert bins_lower_bound < bins_upper_bound, (
-            f"bins_lower_bound {bins_lower_bound} needs to less than "
-            f"bins_upper_bound {bins_upper_bound}"
+        assert self.bins_lower_bound < self.bins_upper_bound, (
+            f"bins_lower_bound {self.bins_lower_bound} needs to less than "
+            f"bins_upper_bound {self.bins_upper_bound}"
         )
-
-        self.num_bins = num_bins
-        self.bins_lower_bound = bins_lower_bound
-        self.bins_upper_bound = bins_upper_bound
 
         self.args_dim = cast(
             Dict[str, int],
-            {"logits": num_bins},
+            {"logits": self.num_bins},
         )
 
     @classmethod

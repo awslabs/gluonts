@@ -16,13 +16,14 @@ from typing import List, Tuple
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, _sample_multiple, getF
 from .distribution_output import DistributionOutput
 
 
+@serde.dataclass
 class Categorical(Distribution):
     r"""
     A categorical distribution over num_cats-many categories.
@@ -35,10 +36,9 @@ class Categorical(Distribution):
     F
     """
 
-    @validated()
-    def __init__(self, log_probs: Tensor) -> None:
-        super().__init__()
-        self.log_probs = log_probs
+    log_probs: Tensor
+
+    def __post_init_post_parse__(self):
         self.num_cats = self.log_probs.shape[-1]
         self.cats = self.F.arange(self.num_cats)
         self._probs = None
@@ -95,18 +95,19 @@ class Categorical(Distribution):
         return [self.log_probs]
 
 
+@serde.dataclass
 class CategoricalOutput(DistributionOutput):
+    num_cats: int
+    temperature: float = 1.0
     distr_cls: type = Categorical
 
-    @validated()
-    def __init__(self, num_cats: int, temperature: float = 1.0) -> None:
-        super().__init__()
-        assert num_cats > 1, "Number of categories must be larger than one."
-        assert temperature > 0, "Temperature must be larger than zero."
-        self.args_dim = {"num_cats": num_cats}
+    def __post_init_post_parse__(self):
+        assert (
+            self.num_cats > 1
+        ), "Number of categories must be larger than one."
+        assert self.temperature > 0, "Temperature must be larger than zero."
+        self.args_dim = {"num_cats": self.num_cats}
         self.distr_cls = Categorical
-        self.num_cats = num_cats
-        self.temperature = temperature
 
     def domain_map(self, F, probs):
         if not mx.autograd.is_training():

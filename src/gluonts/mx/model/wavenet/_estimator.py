@@ -13,13 +13,14 @@
 
 import logging
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 import mxnet as mx
 import numpy as np
+from pydantic import Field
 
 from gluonts import transform
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -59,6 +60,7 @@ from gluonts.transform import (
 from ._network import WaveNet, WaveNetSampler, WaveNetTraining
 
 
+@serde.dataclass
 class QuantizeScaled(SimpleTransformation):
     """
     Rescale and quantize the target variable.
@@ -73,18 +75,13 @@ class QuantizeScaled(SimpleTransformation):
     The calculated scale is included as a new field "scale"
     """
 
-    @validated()
-    def __init__(
-        self,
-        bin_edges: List[float],
-        past_target: str,
-        future_target: str,
-        scale: str = "scale",
-    ):
-        self.bin_edges = np.array(bin_edges)
-        self.future_target = future_target
-        self.past_target = past_target
-        self.scale = scale
+    bin_edges: List[float]
+    past_target: str
+    future_target: str
+    scale: str = "scale"
+
+    def __post_init_post_parse__(self):
+        self.bin_edges = np.array(self.bin_edges)
 
     def transform(self, data: DataEntry) -> DataEntry:
         p = data[self.past_target]
@@ -100,6 +97,7 @@ class QuantizeScaled(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class WaveNetEstimator(GluonEstimator):
     """
     Model with Wavenet architecture and quantized target.
@@ -151,68 +149,52 @@ class WaveNetEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        trainer: Trainer = Trainer(
-            learning_rate=0.01,
-            epochs=200,
-            num_batches_per_epoch=50,
-            hybridize=False,
-        ),
-        cardinality: List[int] = [1],
-        seasonality: Optional[int] = None,
-        embedding_dimension: int = 5,
-        num_bins: int = 1024,
-        hybridize_prediction_net: bool = False,
-        n_residue=24,
-        n_skip=32,
-        dilation_depth: Optional[int] = None,
-        n_stacks: int = 1,
-        train_window_length: Optional[int] = None,
-        temperature: float = 1.0,
-        act_type: str = "elu",
-        num_parallel_samples: int = 200,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-        negative_data: bool = False,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int
+    trainer: Trainer = Trainer(
+        learning_rate=0.01,
+        epochs=200,
+        num_batches_per_epoch=50,
+        hybridize=False,
+    )
+    cardinality: List[int] = Field(default_factory=lambda: [1])
+    seasonality: int = Field(None)
+    embedding_dimension: int = 5
+    num_bins: int = 1024
+    hybridize_prediction_net: bool = False
+    n_residue = 24
+    n_skip = 32
+    dilation_depth: int = Field(None)
+    n_stacks: int = 1
+    train_window_length: int = Field(None)
+    temperature: float = 1.0
+    act_type: str = "elu"
+    num_parallel_samples: int = 200
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
+    negative_data: bool = False
 
-        self.freq = freq
-        self.prediction_length = prediction_length
-        self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
-        self.num_bins = num_bins
-        self.hybridize_prediction_net = hybridize_prediction_net
-
-        self.n_residue = n_residue
-        self.n_skip = n_skip
-        self.n_stacks = n_stacks
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
         self.train_window_length = (
-            train_window_length
-            if train_window_length is not None
-            else prediction_length
+            self.train_window_length
+            if self.train_window_length is not None
+            else self.prediction_length
         )
-        self.temperature = temperature
-        self.act_type = act_type
-        self.num_parallel_samples = num_parallel_samples
+
         self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
+            self.train_sampler
+            if self.train_sampler is not None
             else ExpectedNumInstanceSampler(
                 num_instances=1.0, min_future=self.train_window_length
             )
         )
         self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
+            self.validation_sampler
+            if self.validation_sampler is not None
             else ValidationSplitSampler(min_future=self.train_window_length)
         )
-        self.negative_data = negative_data
 
         low = -10.0 if self.negative_data else 0
         high = 10.0
@@ -223,7 +205,7 @@ class WaveNetEstimator(GluonEstimator):
         self.bin_centers = bin_centers.tolist()
         self.bin_edges = bin_edges.tolist()
 
-        seasonality = (
+        self.seasonality = (
             get_seasonality(
                 self.freq,
                 {
@@ -235,27 +217,26 @@ class WaveNetEstimator(GluonEstimator):
                     "min": 24 * 60,
                 },
             )
-            if seasonality is None
-            else seasonality
+            if self.seasonality is None
+            else self.seasonality
         )
 
         goal_receptive_length = max(
-            2 * seasonality, 2 * self.prediction_length
+            2 * self.seasonality, 2 * self.prediction_length
         )
-        if dilation_depth is None:
+        if self.dilation_depth is None:
             d = 1
             while (
                 WaveNet.get_receptive_field(
-                    dilation_depth=d, n_stacks=n_stacks
+                    dilation_depth=d, n_stacks=self.n_stacks
                 )
                 < goal_receptive_length
             ):
                 d += 1
             self.dilation_depth = d
-        else:
-            self.dilation_depth = dilation_depth
+
         self.context_length = WaveNet.get_receptive_field(
-            dilation_depth=self.dilation_depth, n_stacks=n_stacks
+            dilation_depth=self.dilation_depth, n_stacks=self.n_stacks
         )
         self.logger = logging.getLogger(__name__)
         self.logger.info(

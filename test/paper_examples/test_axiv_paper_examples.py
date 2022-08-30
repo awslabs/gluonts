@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
+from gluonts.core import serde
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.field_names import FieldName
@@ -65,7 +66,6 @@ def test_appendix_c():
 
     from mxnet import gluon
 
-    from gluonts.core.component import validated
     from gluonts.mx.model.estimator import GluonEstimator
     from gluonts.model.predictor import Predictor
     from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -104,23 +104,17 @@ def test_appendix_c():
             prediction = self.nn(past_target)
             return prediction.expand_dims(axis=1)
 
+    @serde.dataclass
     class MyEstimator(GluonEstimator):
-        @validated()
-        def __init__(
-            self,
-            prediction_length: int,
-            batch_size=32,
-            act_type: str = "relu",
-            context_length: int = 30,
-            cells: List[int] = [40, 40, 40],
-            trainer: Trainer = Trainer(epochs=10),
-        ) -> None:
-            super().__init__(trainer=trainer)
-            self.prediction_length = prediction_length
-            self.batch_size = batch_size
-            self.act_type = act_type
-            self.context_length = context_length
-            self.cells = cells
+        prediction_length: int
+        batch_size = 32
+        act_type: str = "relu"
+        context_length: int = 30
+        cells: List[int] = [40, 40, 40]
+        trainer: Trainer = Trainer(epochs=10)
+
+        def __post_init_post_parse__(self):
+            super().__init__(trainer=self.trainer)
 
         def create_training_network(self) -> MyTrainNetwork:
             return MyTrainNetwork(

@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
 import numpy as np
 
 import gluonts
-from gluonts.core import fqname_for
-from gluonts.core.component import equals, from_hyperparameters, validated
+from gluonts.core import fqname_for, serde
+from gluonts.core.component import equals, from_hyperparameters
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
@@ -135,6 +135,7 @@ class Predictor:
         return cls.from_hyperparameters(**params)
 
 
+@serde.dataclass
 class RepresentablePredictor(Predictor):
     """
     An abstract predictor that can be subclassed by models that are not based
@@ -148,11 +149,8 @@ class RepresentablePredictor(Predictor):
         Prediction horizon.
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, lead_time: int = 0) -> None:
-        super().__init__(
-            lead_time=lead_time, prediction_length=prediction_length
-        )
+    prediction_length: int
+    lead_time: int = 0
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for item in dataset:

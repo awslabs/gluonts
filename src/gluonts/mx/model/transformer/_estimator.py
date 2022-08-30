@@ -12,11 +12,12 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional
+from typing import List
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -61,6 +62,7 @@ from .trans_decoder import TransformerDecoder
 from .trans_encoder import TransformerEncoder
 
 
+@serde.dataclass
 class TransformerEstimator(GluonEstimator):
     """
     Construct a Transformer estimator.
@@ -132,87 +134,64 @@ class TransformerEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        trainer: Trainer = Trainer(),
-        dropout_rate: float = 0.1,
-        cardinality: Optional[List[int]] = None,
-        embedding_dimension: int = 20,
-        distr_output: DistributionOutput = StudentTOutput(),
-        model_dim: int = 32,
-        inner_ff_dim_scale: int = 4,
-        pre_seq: str = "dn",
-        post_seq: str = "drn",
-        act_type: str = "softrelu",
-        num_heads: int = 8,
-        scaling: bool = True,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        num_parallel_samples: int = 100,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    context_length: int = Field(None, gt=0)
+    trainer: Trainer = Trainer()
+    dropout_rate: float = Field(0.1, ge=0)
+    cardinality: List[int] = Field(None, gt=0)
+    embedding_dimension: int = Field(20, gt=0)
+    distr_output: DistributionOutput = StudentTOutput()
+    model_dim: int = 32
+    inner_ff_dim_scale: int = 4
+    pre_seq: str = "dn"
+    post_seq: str = "drn"
+    act_type: str = "softrelu"
+    num_heads: int = 8
+    scaling: bool = True
+    lags_seq: List[int] = Field(None)
+    time_features: List[TimeFeature] = Field(None)
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = False
+    num_parallel_samples: int = Field(100, gt=0)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    batch_size: int = 32
 
+    def __post_init_post_parse__(self):
+        super().__init__(trainer=self.trainer, batch_size=self.batch_size)
         assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert (
-            cardinality is not None or not use_feat_static_cat
+            self.cardinality is not None or not self.use_feat_static_cat
         ), "You must set `cardinality` if `use_feat_static_cat=True`"
-        assert cardinality is None or all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert (
-            embedding_dimension > 0
-        ), "The value of `embedding_dimension` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
 
-        self.prediction_length = prediction_length
         self.context_length = (
-            context_length if context_length is not None else prediction_length
+            self.context_length
+            if self.context_length is not None
+            else self.prediction_length
         )
-        self.distr_output = distr_output
-        self.dropout_rate = dropout_rate
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
-        self.cardinality = cardinality if use_feat_static_cat else [1]
-        self.embedding_dimension = embedding_dimension
-        self.num_parallel_samples = num_parallel_samples
+        self.cardinality = (
+            self.cardinality if self.use_feat_static_cat else [1]
+        )
         self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq)
+            self.lags_seq
+            if self.lags_seq is not None
+            else get_lags_for_frequency(freq_str=self.freq)
         )
         self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
+            self.time_features
+            if self.time_features is not None
+            else time_features_from_frequency_str(self.freq)
         )
         self.history_length = self.context_length + max(self.lags_seq)
-        self.scaling = scaling
 
         self.config = {
-            "model_dim": model_dim,
-            "pre_seq": pre_seq,
-            "post_seq": post_seq,
-            "dropout_rate": dropout_rate,
-            "inner_ff_dim_scale": inner_ff_dim_scale,
-            "act_type": act_type,
-            "num_heads": num_heads,
+            "model_dim": self.model_dim,
+            "pre_seq": self.pre_seq,
+            "post_seq": self.post_seq,
+            "dropout_rate": self.dropout_rate,
+            "inner_ff_dim_scale": self.inner_ff_dim_scale,
+            "act_type": self.act_type,
+            "num_heads": self.num_heads,
         }
 
         self.encoder = TransformerEncoder(
@@ -222,16 +201,16 @@ class TransformerEstimator(GluonEstimator):
             self.prediction_length, self.config, prefix="dec_"
         )
         self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
+            self.train_sampler
+            if self.train_sampler is not None
             else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+                num_instances=1.0, min_future=self.prediction_length
             )
         )
         self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
+            self.validation_sampler
+            if self.validation_sampler is not None
+            else ValidationSplitSampler(min_future=self.prediction_length)
         )
 
     def create_transformation(self) -> Transformation:
@@ -242,8 +221,10 @@ class TransformerEstimator(GluonEstimator):
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
+        empty_list: List[Transformation] = []
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
+            empty_list
+            + [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat

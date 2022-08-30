@@ -11,12 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core import serde
-from gluonts.model.estimator import DummyEstimator
+import typing
 
-from ._predictor import SeasonalNaivePredictor
+from mypy.plugin import Plugin, ClassDefContext
+from mypy.plugins.dataclasses import dataclass_class_maker_callback
 
 
-@serde.dataclass
-class SeasonalNaiveEstimator(DummyEstimator):
-    predictor_cls: type = SeasonalNaivePredictor
+class GluonTSPlugin(Plugin):
+    def get_class_decorator_hook(
+        self, fullname: str
+    ) -> typing.Optional[typing.Callable[[ClassDefContext], None]]:
+        if fullname == "gluonts.core.serde._dataclass.dataclass":
+            return dataclass_class_maker_callback
+        return None
+
+
+def plugin(version: str) -> typing.Type[Plugin]:
+    return GluonTSPlugin

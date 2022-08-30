@@ -13,16 +13,16 @@
 
 from typing import List, Optional, Dict, Any
 
+from gluonts.core import serde
+from gluonts.time_feature import TimeFeature
 from gluonts.torch.model.deepar.estimator import DeepAREstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
 from gluonts.torch.distributions import MQF2DistributionOutput
 
 from . import MQF2MultiHorizonLightningModule, MQF2MultiHorizonModel
 
-from gluonts.core.component import validated
-from gluonts.time_feature import TimeFeature
 
-
+@serde.dataclass
 class MQF2MultiHorizonEstimator(DeepAREstimator):
     r"""
     Estimator class for the model MQF2 proposed in the paper
@@ -98,83 +98,53 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         otherwise, the logdet is directly computed
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        hidden_size: int = 40,
-        dropout_rate: float = 0.1,
-        num_feat_dynamic_real: int = 0,
-        num_feat_static_cat: int = 0,
-        num_feat_static_real: int = 0,
-        cardinality: Optional[List[int]] = None,
-        embedding_dimension: Optional[List[int]] = None,
-        scaling: bool = True,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: int = 100,
-        batch_size: int = 32,
-        num_batches_per_epoch: int = 50,
-        trainer_kwargs: Optional[Dict[str, Any]] = dict(),
-        icnn_hidden_size: int = 20,
-        icnn_num_layers: int = 2,
-        is_energy_score: bool = True,
-        es_num_samples: int = 50,
-        beta: float = 1.0,
-        threshold_input: float = 100.0,
-        estimate_logdet: bool = False,
-    ) -> None:
+    freq: str
+    prediction_length: int
+    context_length: Optional[int] = None
+    num_layers: int = 2
+    hidden_size: int = 40
+    dropout_rate: float = 0.1
+    num_feat_dynamic_real: int = 0
+    num_feat_static_cat: int = 0
+    num_feat_static_real: int = 0
+    cardinality: Optional[List[int]] = None
+    embedding_dimension: Optional[List[int]] = None
+    scaling: bool = True
+    lags_seq: Optional[List[int]] = None
+    time_features: Optional[List[TimeFeature]] = None
+    num_parallel_samples: int = 100
+    batch_size: int = 32
+    num_batches_per_epoch: int = 50
+    trainer_kwargs: Optional[Dict[str, Any]] = None
+    icnn_hidden_size: int = 20
+    icnn_num_layers: int = 2
+    is_energy_score: bool = True
+    es_num_samples: int = 50
+    beta: float = 1.0
+    threshold_input: float = 100.0
+    estimate_logdet: bool = False
 
+    def __post_init_post_parse__(self):
+        super().__post_init_post_parse__()
         assert (
-            1 <= beta < 2
+            1 <= self.beta < 2
         ), "beta should be in [1,2) for energy score to be strictly proper"
 
         assert (
-            threshold_input > 0
+            self.threshold_input > 0
         ), "clamping threshold for input must be positive"
 
-        distr_output = MQF2DistributionOutput(
-            prediction_length=prediction_length,
-            is_energy_score=is_energy_score,
-            threshold_input=threshold_input,
-            es_num_samples=es_num_samples,
-            beta=beta,
+        self.distr_output = MQF2DistributionOutput(
+            prediction_length=self.prediction_length,
+            is_energy_score=self.is_energy_score,
+            threshold_input=self.threshold_input,
+            es_num_samples=self.es_num_samples,
+            beta=self.beta,
         )
 
-        loss = EnergyScore() if is_energy_score else NegativeLogLikelihood()
-
-        super().__init__(
-            freq=freq,
-            prediction_length=prediction_length,
-            context_length=context_length,
-            num_layers=num_layers,
-            hidden_size=hidden_size,
-            dropout_rate=dropout_rate,
-            num_feat_dynamic_real=num_feat_dynamic_real,
-            num_feat_static_cat=num_feat_static_cat,
-            num_feat_static_real=num_feat_static_real,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            distr_output=distr_output,
-            loss=loss,
-            scaling=scaling,
-            lags_seq=lags_seq,
-            time_features=time_features,
-            num_parallel_samples=num_parallel_samples,
-            batch_size=batch_size,
-            num_batches_per_epoch=num_batches_per_epoch,
-            trainer_kwargs=trainer_kwargs,
+        self.loss = (
+            EnergyScore() if self.is_energy_score else NegativeLogLikelihood()
         )
-
-        self.icnn_num_layers = icnn_num_layers
-        self.icnn_hidden_size = icnn_hidden_size
-        self.is_energy_score = is_energy_score
-        self.es_num_samples = es_num_samples
-        self.threshold_input = threshold_input
-        self.estimate_logdet = estimate_logdet
 
     def create_lightning_module(self) -> MQF2MultiHorizonLightningModule:
         model = MQF2MultiHorizonModel(

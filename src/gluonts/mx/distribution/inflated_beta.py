@@ -13,6 +13,9 @@
 
 from typing import Dict, Tuple
 
+from pydantic import Field
+from gluonts.core import serde
+
 from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
@@ -159,13 +162,16 @@ class OneInflatedBeta(ZeroAndOneInflatedBeta):
         )
 
 
+@serde.dataclass
 class ZeroAndOneInflatedBetaOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {
-        "alpha": 1,
-        "beta": 1,
-        "zero_probability": 1,
-        "one_probability": 1,
-    }
+    args_dim: Dict[str, int] = Field(
+        default={
+            "alpha": 1,
+            "beta": 1,
+            "zero_probability": 1,
+            "one_probability": 1,
+        }
+    )
     distr_cls: type = ZeroAndOneInflatedBeta
 
     @classmethod
@@ -211,8 +217,11 @@ class ZeroAndOneInflatedBetaOutput(DistributionOutput):
         return 0.5
 
 
+@serde.dataclass
 class ZeroInflatedBetaOutput(ZeroAndOneInflatedBetaOutput):
-    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1, "zero_probability": 1}
+    args_dim: Dict[str, int] = Field(
+        default={"alpha": 1, "beta": 1, "zero_probability": 1}
+    )
     distr_cls: type = ZeroInflatedBeta
 
     @classmethod
@@ -247,8 +256,11 @@ class ZeroInflatedBetaOutput(ZeroAndOneInflatedBetaOutput):
         )
 
 
+@serde.dataclass
 class OneInflatedBetaOutput(ZeroInflatedBetaOutput):
-    args_dim: Dict[str, int] = {"alpha": 1, "beta": 1, "one_probability": 1}
+    args_dim: Dict[str, int] = Field(
+        default={"alpha": 1, "beta": 1, "one_probability": 1}
+    )
     distr_cls: type = OneInflatedBeta
 
     @classmethod

@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional, Iterable, Dict, Any
+from pydantic import Field
 
 import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
@@ -56,6 +57,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 ]
 
 
+@serde.dataclass
 class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     """
     An estimator training a feedforward model for forecasting.
@@ -97,46 +99,44 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
 
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        context_length: Optional[int] = None,
-        hidden_dimensions: Optional[List[int]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
-        batch_norm: bool = False,
-        batch_size: int = 32,
-        num_batches_per_epoch: int = 50,
-        trainer_kwargs: Optional[Dict[str, Any]] = None,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-    ) -> None:
+    prediction_length: int = Field(...)
+    context_length: int = Field(None)
+    hidden_dimensions: List[int] = Field(None)
+    distr_output: DistributionOutput = StudentTOutput()
+    loss: DistributionLoss = NegativeLogLikelihood()
+    batch_norm: bool = False
+    batch_size: int = 32
+    num_batches_per_epoch: int = 50
+    trainer_kwargs: Dict[str, Any] = Field(None)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+
+    def __post_init_post_parse__(self):
         default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
         }
-        if trainer_kwargs is not None:
-            default_trainer_kwargs.update(trainer_kwargs)
-        super().__init__(trainer_kwargs=default_trainer_kwargs)
+        if self.trainer_kwargs is not None:
+            default_trainer_kwargs.update(self.trainer_kwargs)
+        self.trainer_kwargs = default_trainer_kwargs
 
-        self.prediction_length = prediction_length
-        self.context_length = context_length or 10 * prediction_length
+        if self.context_length is None:
+            self.context_length = 10 * self.prediction_length
+
         # TODO find way to enforce same defaults to network and estimator
         # somehow
-        self.hidden_dimensions = hidden_dimensions or [20, 20]
-        self.distr_output = distr_output
-        self.loss = loss
-        self.batch_norm = batch_norm
-        self.batch_size = batch_size
-        self.num_batches_per_epoch = num_batches_per_epoch
+        if self.hidden_dimensions is None:
+            self.hidden_dimensions = [20, 20]
 
-        self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
-            num_instances=1.0, min_future=prediction_length
-        )
-        self.validation_sampler = validation_sampler or ValidationSplitSampler(
-            min_future=prediction_length
-        )
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
+            )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def create_transformation(self) -> Transformation:
         return SelectFields(

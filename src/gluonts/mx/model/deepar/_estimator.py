@@ -12,12 +12,13 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -65,6 +66,7 @@ from gluonts.transform.feature import (
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 
+@serde.dataclass
 class DeepAREstimator(GluonEstimator):
     """
     Construct a DeepAR estimator.
@@ -158,50 +160,41 @@ class DeepAREstimator(GluonEstimator):
         impute_missing_values=True
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        trainer: Trainer = Trainer(),
-        context_length: Optional[int] = None,
-        num_layers: int = 2,
-        num_cells: int = 40,
-        cell_type: str = "lstm",
-        dropoutcell_type: str = "ZoneoutCell",
-        dropout_rate: float = 0.1,
-        use_feat_dynamic_real: bool = False,
-        use_feat_static_cat: bool = False,
-        use_feat_static_real: bool = False,
-        cardinality: Optional[List[int]] = None,
-        embedding_dimension: Optional[List[int]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
-        scaling: bool = True,
-        lags_seq: Optional[List[int]] = None,
-        time_features: Optional[List[TimeFeature]] = None,
-        num_parallel_samples: int = 100,
-        imputation_method: Optional[MissingValueImputation] = None,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        dtype: Type = np.float32,
-        alpha: float = 0.0,
-        beta: float = 0.0,
-        batch_size: int = 32,
-        default_scale: Optional[float] = None,
-        minimum_scale: float = 1e-10,
-        impute_missing_values: bool = False,
-        num_imputation_samples: int = 1,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
+    freq: str
+    prediction_length: int = Field(..., gt=0)
+    trainer: Trainer = Trainer()
+    context_length: int = Field(None, gt=0)
+    num_layers: int = Field(2, gt=0)
+    num_cells: int = Field(40, gt=0)
+    cell_type: str = "lstm"
+    dropoutcell_type: str = "ZoneoutCell"
+    dropout_rate: float = Field(0.1, ge=0)
+    use_feat_dynamic_real: bool = False
+    use_feat_static_cat: bool = False
+    use_feat_static_real: bool = False
+    cardinality: List[int] = Field(None, gt=0)
+    embedding_dimension: List[int] = Field(None, gt=0)
+    distr_output: DistributionOutput = StudentTOutput()
+    scaling: bool = True
+    lags_seq: List[int] = Field(None)
+    time_features: List[TimeFeature] = Field(None)
+    num_parallel_samples: int = Field(100, gt=0)
+    imputation_method: MissingValueImputation = Field(None)
+    train_sampler: InstanceSampler = Field(None)
+    validation_sampler: InstanceSampler = Field(None)
+    dtype: Type = np.float32
+    alpha: float = Field(0.0, ge=0)
+    beta: float = Field(0.0, ge=0)
+    batch_size: int = 32
+    default_scale: float = Field(None)
+    minimum_scale: float = 1e-10
+    impute_missing_values: bool = False
+    num_imputation_samples: int = 1
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert num_layers > 0, "The value of `num_layers` should be > 0"
-        assert num_cells > 0, "The value of `num_cells` should be > 0"
+    def __post_init_post_parse__(self):
+        super().__init__(
+            trainer=self.trainer, batch_size=self.batch_size, dtype=self.dtype
+        )
         supported_dropoutcell_types = [
             "ZoneoutCell",
             "RNNZoneoutCell",
@@ -209,84 +202,56 @@ class DeepAREstimator(GluonEstimator):
             "VariationalZoneoutCell",
         ]
         assert (
-            dropoutcell_type in supported_dropoutcell_types
+            self.dropoutcell_type in supported_dropoutcell_types
         ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-        assert cardinality is None or all(
-            [c > 0 for c in cardinality]
-        ), "Elements of `cardinality` should be > 0"
-        assert embedding_dimension is None or all(
-            [e > 0 for e in embedding_dimension]
-        ), "Elements of `embedding_dimension` should be > 0"
-        assert (
-            num_parallel_samples > 0
-        ), "The value of `num_parallel_samples` should be > 0"
-        assert alpha >= 0, "The value of `alpha` should be >= 0"
-        assert beta >= 0, "The value of `beta` should be >= 0"
 
-        self.context_length = (
-            context_length if context_length is not None else prediction_length
-        )
-        self.prediction_length = prediction_length
-        self.distr_output = distr_output
-        self.distr_output.dtype = dtype
-        self.num_layers = num_layers
-        self.num_cells = num_cells
-        self.cell_type = cell_type
-        self.dropoutcell_type = dropoutcell_type
-        self.dropout_rate = dropout_rate
-        self.use_feat_dynamic_real = use_feat_dynamic_real
-        self.use_feat_static_cat = use_feat_static_cat
-        self.use_feat_static_real = use_feat_static_real
+        if self.context_length is None:
+            self.context_length = self.prediction_length
+
         self.cardinality = (
-            cardinality if cardinality and use_feat_static_cat else [1]
+            self.cardinality
+            if self.cardinality and self.use_feat_static_cat
+            else [1]
         )
         self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None
+            self.embedding_dimension
+            if self.embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
-        self.scaling = scaling
+
         self.lags_seq = (
-            lags_seq
-            if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq)
+            self.lags_seq
+            if self.lags_seq is not None
+            else get_lags_for_frequency(freq_str=self.freq)
         )
         self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
+            self.time_features
+            if self.time_features is not None
+            else time_features_from_frequency_str(self.freq)
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
 
-        self.num_parallel_samples = num_parallel_samples
-
         self.imputation_method = (
-            imputation_method
-            if imputation_method is not None
+            self.imputation_method
+            if self.imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
 
         self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
+            self.train_sampler
+            if self.train_sampler is not None
             else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=prediction_length
+                num_instances=1.0, min_future=self.prediction_length
             )
         )
         self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
+            self.validation_sampler
+            if self.validation_sampler is not None
+            else ValidationSplitSampler(min_future=self.prediction_length)
         )
 
-        self.alpha = alpha
-        self.beta = beta
-        self.num_imputation_samples = num_imputation_samples
-        self.default_scale = default_scale
-        self.minimum_scale = minimum_scale
-        self.impute_missing_values = impute_missing_values
+        self.distr_output.dtype = self.dtype
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -305,8 +270,10 @@ class DeepAREstimator(GluonEstimator):
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
+        empty_list: List[Transformation] = []
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
+            empty_list
+            + [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat

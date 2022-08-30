@@ -14,8 +14,9 @@ from functools import partial
 from typing import Callable, Optional
 
 from mxnet.gluon import HybridBlock
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -53,6 +54,7 @@ from ._predictor import DeepRenewalProcessPredictor
 from ._transform import AddAxisLength
 
 
+@serde.dataclass
 class DeepRenewalProcessEstimator(GluonEstimator):
     """
     Implements a deep renewal process estimator designed to forecast
@@ -107,54 +109,32 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         accuracy (default: 100)
     """
 
-    @validated()
-    def __init__(
-        self,
-        prediction_length: int,
-        context_length: int,
-        num_cells: int,
-        num_layers: int,
-        dropout_rate: float = 0.1,
-        interval_distr_output: DistributionOutput = NegativeBinomialOutput(),
-        size_distr_output: DistributionOutput = NegativeBinomialOutput(),
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        trainer: Trainer = Trainer(hybridize=False),
-        batch_size: int = 32,
-        num_parallel_samples: int = 100,
-        **kwargs,
-    ):
-        super().__init__(trainer=trainer, batch_size=batch_size, **kwargs)
+    prediction_length: int = Field(..., gt=0)
+    context_length: int = Field(..., gt=0)
+    num_cells: int = Field(...)
+    num_layers: int = Field(...)
+    dropout_rate: float = Field(0.1, ge=0)
+    interval_distr_output: DistributionOutput = NegativeBinomialOutput()
+    size_distr_output: DistributionOutput = NegativeBinomialOutput()
+    train_sampler: Optional[InstanceSampler] = None
+    validation_sampler: Optional[InstanceSampler] = None
+    trainer: Trainer = Trainer(hybridize=False)
+    batch_size: int = 32
+    num_parallel_samples: int = 100
 
-        assert (
-            prediction_length > 0
-        ), "The value of `prediction_length` should be > 0"
-        assert (
-            context_length is None or context_length > 0
-        ), "The value of `context_length` should be > 0"
-        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
-
-        self.context_length = context_length
-        self.prediction_length = prediction_length
-        self.num_cells = num_cells
-        self.num_layers = num_layers
-        self.dropout_rate = dropout_rate
-        self.interval_distr_output = interval_distr_output
-        self.size_distr_output = size_distr_output
-        self.num_parallel_samples = num_parallel_samples
-
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=5, min_future=prediction_length
+    def __post_init_post_parse__(self):
+        super().__init__(
+            trainer=self.trainer, batch_size=self.batch_size, **self.kwargs
+        )
+        if self.train_sampler is None:
+            self.train_sampler = ExpectedNumInstanceSampler(
+                num_instances=5, min_future=self.prediction_length
             )
-        )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=prediction_length)
-        )
+
+        if self.validation_sampler is None:
+            self.validation_sampler = ValidationSplitSampler(
+                min_future=self.prediction_length
+            )
 
     def create_transformation(self) -> Transformation:
         return AddObservedValuesIndicator(
