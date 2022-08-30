@@ -61,6 +61,9 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
             patience=patience,
         )
 
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
+
     def _compute_loss(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
         Function to compute loss.

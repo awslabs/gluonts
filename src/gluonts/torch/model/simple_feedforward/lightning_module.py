@@ -54,6 +54,9 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
 
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
+
     def _compute_loss(self, batch):
         context = batch["past_target"]
         target = batch["future_target"]

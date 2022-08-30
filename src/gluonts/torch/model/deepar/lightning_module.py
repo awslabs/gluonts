@@ -60,6 +60,9 @@ class DeepARLightningModule(pl.LightningModule):
         self.weight_decay = weight_decay
         self.patience = patience
 
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
+
     def _compute_loss(self, batch):
         feat_static_cat = batch["feat_static_cat"]
         feat_static_real = batch["feat_static_real"]

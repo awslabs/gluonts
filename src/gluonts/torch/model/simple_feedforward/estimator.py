@@ -258,7 +258,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module.model,
+            prediction_net=module,
             forecast_generator=DistributionForecastGenerator(
                 self.distr_output
             ),

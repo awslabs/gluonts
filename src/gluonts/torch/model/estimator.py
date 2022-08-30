@@ -193,11 +193,7 @@ class PyTorchLightningEstimator(Estimator):
         training_network = self.create_lightning_module()
 
         if model_init is not None:
-            # TODO here prefix is hard-coded based on DeepARLightningModule
-            # TODO need to find a better way to do this
-            training_network.load_state_dict(
-                model_init.network.state_dict(prefix="model.")
-            )
+            training_network.load_state_dict(model_init.network.state_dict())
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
