@@ -29,14 +29,14 @@ This module defines strategies to split a whole dataset into train and test
 subsets. The :func:`split` function can also be used to trigger their logic.
 
 For uniform datasets, where all time-series start and end at the same point in
-time :class:`OffsetSplitter` can be used::
+time :class:`OffsetSplitter` can be used:
 
 .. testcode::
 
     splitter = OffsetSplitter(offset=7)
     train, test_template = splitter.split(whole_dataset)
 
-For all other datasets, the more flexible :class:`DateSplitter` can be used::
+For all other datasets, the more flexible :class:`DateSplitter` can be used:
 
 .. testcode::
 
@@ -47,7 +47,7 @@ For all other datasets, the more flexible :class:`DateSplitter` can be used::
 
 In the above examples, the ``train`` output is a regular ``Dataset`` that can
 be used for training purposes; ``test_template`` can generate test instances
-as follows::
+as follows:
 
 .. testcode::
 
@@ -83,120 +83,79 @@ from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 
 
-class TimeSeriesSlice(pydantic.BaseModel):
-    """
-    Like DataEntry, but all time-related fields are of type pd.Series and is
-    indexable, e.g `ts_slice['2018':]`.
-    """
+def slice_data_entry(
+    entry: DataEntry, slc: slice, prediction_length: int = 0
+) -> DataEntry:
+    if slc.stop is not None:
+        slc_extended = slice(slc.start, slc.stop + prediction_length, slc.step)
+    else:
+        assert prediction_length == 0
+        slc_extended = slc
+    sliced_entry = entry.copy()
+    if slc.start is not None:
+        offset = slc.start
+        if offset < 0:
+            offset += entry["target"].shape[0]
+        sliced_entry[FieldName.START] += offset
+    sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slc]
+    if FieldName.FEAT_DYNAMIC_REAL in sliced_entry:
+        sliced_entry[FieldName.FEAT_DYNAMIC_REAL] = sliced_entry[
+            FieldName.FEAT_DYNAMIC_REAL
+        ][:, slc_extended]
+    if FieldName.FEAT_DYNAMIC_CAT in sliced_entry:
+        sliced_entry[FieldName.FEAT_DYNAMIC_CAT] = sliced_entry[
+            FieldName.FEAT_DYNAMIC_CAT
+        ][:, slc_extended]
+    if FieldName.PAST_FEAT_DYNAMIC_REAL in sliced_entry:
+        sliced_entry[FieldName.PAST_FEAT_DYNAMIC_REAL] = sliced_entry[
+            FieldName.PAST_FEAT_DYNAMIC_REAL
+        ][:, slc]
+    return sliced_entry
 
-    class Config:
-        arbitrary_types_allowed = True
 
-    target: pd.Series
-    item_id: Optional[str] = None
-
-    feat_static_cat: List[int] = []
-    feat_static_real: List[float] = []
-
-    feat_dynamic_cat: List[pd.Series] = []
-    feat_dynamic_real: List[pd.Series] = []
+@dataclass
+class TimeSeriesSlice:
+    entry: DataEntry
 
     @classmethod
-    def from_data_entry(
-        cls, item: DataEntry, freq: Optional[str] = None
-    ) -> "TimeSeriesSlice":
-        if freq is None:
-            freq = item["start"].freq
-
-        index = pd.period_range(
-            start=item["start"], freq=freq, periods=len(item["target"])
-        )
-
-        feat_dynamic_cat = [
-            pd.Series(cat, index=index)
-            for cat in list(item.get("feat_dynamic_cat", []))
-        ]
-
-        feat_dynamic_real = [
-            pd.Series(real, index=index)
-            for real in list(item.get("feat_dynamic_real", []))
-        ]
-
-        feat_static_cat = list(item.get("feat_static_cat", []))
-
-        feat_static_real = list(item.get("feat_static_real", []))
-
-        item_id = item.get(FieldName.ITEM_ID, None)
-
-        return TimeSeriesSlice(
-            target=pd.Series(item["target"], index=index),
-            item_id=item_id,
-            feat_static_cat=feat_static_cat,
-            feat_static_real=feat_static_real,
-            feat_dynamic_cat=feat_dynamic_cat,
-            feat_dynamic_real=feat_dynamic_real,
-        )
+    def from_data_entry(cls, item: DataEntry) -> "TimeSeriesSlice":
+        return TimeSeriesSlice(item)
 
     def to_data_entry(self) -> DataEntry:
-        ret = {
-            FieldName.START: self.start,
-            FieldName.TARGET: self.target.values,
-        }
-
-        if self.item_id:
-            ret[FieldName.ITEM_ID] = self.item_id
-        if self.feat_static_cat:
-            ret[FieldName.FEAT_STATIC_CAT] = self.feat_static_cat
-        if self.feat_static_real:
-            ret[FieldName.FEAT_STATIC_REAL] = self.feat_static_real
-        if self.feat_dynamic_cat:
-            ret[FieldName.FEAT_DYNAMIC_CAT] = [
-                cast(np.ndarray, cat.values).tolist()
-                for cat in self.feat_dynamic_cat
-            ]
-        if self.feat_dynamic_real:
-            ret[FieldName.FEAT_DYNAMIC_REAL] = [
-                cast(np.ndarray, real.values).tolist()
-                for real in self.feat_dynamic_real
-            ]
-
-        return ret
+        return self.entry
 
     @property
     def start(self) -> pd.Period:
-        return self.target.index[0]
+        return self.entry[FieldName.START]
 
     @property
     def end(self) -> pd.Period:
-        return self.target.index[-1]
+        return self.start + len(self) - 1
 
     def __len__(self) -> int:
-        return len(self.target)
+        return len(self.entry[FieldName.TARGET])
 
-    def __getitem__(self, slice_: slice) -> "TimeSeriesSlice":
-        feat_dynamic_real = []
-        feat_dynamic_cat = []
+    def to_integer_slice(self, slc: slice) -> slice:
 
-        if self.feat_dynamic_real is not None:
-            feat_dynamic_real = [
-                feat[slice_] for feat in self.feat_dynamic_real
-            ]
+        if isinstance(slc.start, pd.Period):
+            start_offset = (slc.start - self.entry[FieldName.START]).n
+            assert start_offset >= 0
+        else:
+            assert slc.start is None or isinstance(slc.start, int)
+            start_offset = slc.start
 
-        if self.feat_dynamic_cat is not None:
-            feat_dynamic_cat = [feat[slice_] for feat in self.feat_dynamic_cat]
+        if isinstance(slc.stop, pd.Period):
+            stop_offset = (slc.stop - self.entry[FieldName.START]).n + 1
+            assert stop_offset >= 0
+        else:
+            assert slc.stop is None or isinstance(slc.stop, int)
+            stop_offset = slc.stop
 
-        target = self.target[slice_]
+        return slice(start_offset, stop_offset)
 
-        assert all([len(target) == len(feat) for feat in feat_dynamic_real])
-        assert all([len(target) == len(feat) for feat in feat_dynamic_cat])
-
+    def __getitem__(self, slc: slice) -> "TimeSeriesSlice":
         return TimeSeriesSlice(
-            target=target,
-            item_id=self.item_id,
-            feat_dynamic_cat=feat_dynamic_cat,
-            feat_dynamic_real=feat_dynamic_real,
-            feat_static_cat=self.feat_static_cat,
-            feat_static_real=self.feat_static_real,
+            slice_data_entry(self.entry, slc=self.to_integer_slice(slc))
         )
 
 

@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -24,23 +25,37 @@ from gluonts.dataset.split import (
 )
 
 
-def make_series(data, start="2020", freq="D"):
-    index = pd.period_range(start=start, freq=freq, periods=len(data))
-    return pd.Series(data, index=index)
+def test_time_series_slice():
+    entry = {
+        "start": pd.Period("2021-02-03", "D"),
+        "target": np.array(range(100), dtype=float),
+        "feat_dynamic_real": np.expand_dims(
+            np.array(range(100), dtype=float), 0
+        ),
+    }
 
+    tss = TimeSeriesSlice(entry)
 
-def test_ts_slice_to_item():
+    entry_slice = tss[10:20].to_data_entry()
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 10
+    assert (entry_slice["target"] == np.arange(10, 20)).all()
+    assert (
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(10, 20)])
+    ).all()
 
-    sl = TimeSeriesSlice(
-        target=make_series(range(100)),
-        item="",
-        feat_static_cat=[1, 2, 3],
-        feat_static_real=[0.1, 0.2, 0.3],
-        feat_dynamic_cat=[make_series(range(100))],
-        feat_dynamic_real=[make_series(range(100))],
-    )
+    entry_slice = tss[:-20].to_data_entry()
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D")
+    assert (entry_slice["target"] == np.arange(80)).all()
+    assert (
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(80)])
+    ).all()
 
-    sl.to_data_entry()
+    entry_slice = tss[-20:].to_data_entry()
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 80
+    assert (entry_slice["target"] == np.arange(80, 100)).all()
+    assert (
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(80, 100)])
+    ).all()
 
 
 def check_training_validation(
@@ -52,10 +67,7 @@ def check_training_validation(
     date,
     offset,
 ) -> None:
-    assert (
-        str(original_entry[FieldName.ITEM_ID])
-        == train_entry[FieldName.ITEM_ID]
-    )
+    assert original_entry[FieldName.ITEM_ID] == train_entry[FieldName.ITEM_ID]
     assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
     if max_history is not None:
         assert len(valid_pair[0][FieldName.TARGET]) == max_history
@@ -188,3 +200,7 @@ def test_split(date, offset, windows, distance, max_history):
                 offset=offset,
             )
             k += 1
+
+
+if __name__ == "__main__":
+    test_split(pd.Period("2021-06-17", freq="D"), None, 1, None, None)
