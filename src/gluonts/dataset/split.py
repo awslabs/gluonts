@@ -123,7 +123,7 @@ def slice_data_entry(
 ) -> DataEntry:
     slc = to_positive_slice(
         to_integer_slice(slc, entry[FieldName.START]),
-        len(entry[FieldName.TARGET])
+        len(entry[FieldName.TARGET]),
     )
     if slc.stop is not None:
         slc_extended = slice(slc.start, slc.stop + prediction_length, slc.step)
