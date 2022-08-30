@@ -175,7 +175,7 @@ class GluonEstimator(Estimator):
 
         transformation = self.create_transformation()
 
-        with env._let(max(max_idle_transforms=len(training_data), 100)):
+        with env._let(max_idle_transforms=max(len(training_data), 100)):
             transformed_training_data = transformation.apply(training_data)
             if cache_data:
                 transformed_training_data = Cached(transformed_training_data)
@@ -188,7 +188,7 @@ class GluonEstimator(Estimator):
         validation_data_loader = None
 
         if validation_data is not None:
-            with env._let(max(max_idle_transforms=len(validation_data), 100)):
+            with env._let(max_idle_transforms=max(len(validation_data), 100)):
                 transformed_validation_data = transformation.apply(
                     validation_data
                 )
