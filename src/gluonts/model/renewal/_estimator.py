@@ -23,7 +23,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.itertools import Cyclic
 from gluonts.model.predictor import Predictor
 from gluonts.model.renewal._network import (
@@ -37,7 +36,6 @@ from gluonts.mx.distribution import DistributionOutput, NegativeBinomialOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
-from gluonts.itertools import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AsNumpyArray,
@@ -216,12 +214,11 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            train_transform = (
-                self._create_instance_splitter("training")
-                + self._create_post_split_transform()
-                + SelectFields(["past_target", "valid_length"])
-            )
+        train_transform = (
+            self._create_instance_splitter("training")
+            + self._create_post_split_transform()
+            + SelectFields(["past_target", "valid_length"])
+        )
         return TrainDataLoader(
             train_transform.apply(Cyclic(data)),
             batch_size=self.batch_size,
@@ -233,12 +230,11 @@ class DeepRenewalProcessEstimator(GluonEstimator):
         data: Dataset,
         **kwargs,
     ) -> DataLoader:
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            validation_transform = (
-                self._create_instance_splitter("validation")
-                + self._create_post_split_transform()
-                + SelectFields(["past_target", "valid_length"])
-            )
+        validation_transform = (
+            self._create_instance_splitter("validation")
+            + self._create_post_split_transform()
+            + SelectFields(["past_target", "valid_length"])
+        )
         return ValidationDataLoader(
             validation_transform.apply(data),
             batch_size=self.batch_size,
