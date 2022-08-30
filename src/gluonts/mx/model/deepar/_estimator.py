@@ -17,7 +17,7 @@ from typing import List, Optional, Type
 import numpy as np
 from mxnet.gluon import HybridBlock
 
-from gluonts.core import serde
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -65,7 +65,6 @@ from gluonts.transform.feature import (
 from ._network import DeepARPredictionNetwork, DeepARTrainingNetwork
 
 
-@serde.dataclass
 class DeepAREstimator(GluonEstimator):
     """
     Construct a DeepAR estimator.
@@ -159,90 +158,135 @@ class DeepAREstimator(GluonEstimator):
         impute_missing_values=True
     """
 
-    freq: str
-    prediction_length: int
-    trainer: Trainer = Trainer()
-    context_length: int = serde.OrElse(
-        lambda prediction_length: prediction_length
-    )
-    num_layers: int = 2
-    num_cells: int = 40
-    cell_type: str = "lstm"
-    dropoutcell_type: str = "ZoneoutCell"
-    dropout_rate: float = 0.1
-    use_feat_dynamic_real: bool = False
-    use_feat_static_cat: bool = False
-    use_feat_static_real: bool = False
-    cardinality: List[int] = serde.EVENTUAL
-    embedding_dimension: Optional[List[int]] = None
-    distr_output: DistributionOutput = StudentTOutput()
-    scaling: bool = True
-    lags_seq: Optional[List[int]] = None
-    time_features: Optional[List[TimeFeature]] = None
-    num_parallel_samples: int = 100
-    imputation_method: Optional[MissingValueImputation] = None
-    train_sampler: Optional[InstanceSampler] = None
-    validation_sampler: Optional[InstanceSampler] = None
-    dtype: Type = np.float32
-    alpha: float = 0.0
-    beta: float = 0.0
-    batch_size: int = 32
-    default_scale: Optional[float] = None
-    minimum_scale: float = 1e-10
-    impute_missing_values: bool = False
-    num_imputation_samples: int = 1
+    @validated()
+    def __init__(
+        self,
+        freq: str,
+        prediction_length: int,
+        trainer: Trainer = Trainer(),
+        context_length: Optional[int] = None,
+        num_layers: int = 2,
+        num_cells: int = 40,
+        cell_type: str = "lstm",
+        dropoutcell_type: str = "ZoneoutCell",
+        dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
+        use_feat_static_cat: bool = False,
+        use_feat_static_real: bool = False,
+        cardinality: Optional[List[int]] = None,
+        embedding_dimension: Optional[List[int]] = None,
+        distr_output: DistributionOutput = StudentTOutput(),
+        scaling: bool = True,
+        lags_seq: Optional[List[int]] = None,
+        time_features: Optional[List[TimeFeature]] = None,
+        num_parallel_samples: int = 100,
+        imputation_method: Optional[MissingValueImputation] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
+        dtype: Type = np.float32,
+        alpha: float = 0.0,
+        beta: float = 0.0,
+        batch_size: int = 32,
+        default_scale: Optional[float] = None,
+        minimum_scale: float = 1e-10,
+        impute_missing_values: bool = False,
+        num_imputation_samples: int = 1,
+    ) -> None:
+        super().__init__(trainer=trainer, batch_size=batch_size, dtype=dtype)
 
-    def __eventually__(self, cardinality):
-        if not self.use_feat_static_cat:
-            cardinality.set([1])
-        else:
-            cardinality.set_default([1])
+        assert (
+            prediction_length > 0
+        ), "The value of `prediction_length` should be > 0"
+        assert (
+            context_length is None or context_length > 0
+        ), "The value of `context_length` should be > 0"
+        assert num_layers > 0, "The value of `num_layers` should be > 0"
+        assert num_cells > 0, "The value of `num_cells` should be > 0"
+        supported_dropoutcell_types = [
+            "ZoneoutCell",
+            "RNNZoneoutCell",
+            "VariationalDropoutCell",
+            "VariationalZoneoutCell",
+        ]
+        assert (
+            dropoutcell_type in supported_dropoutcell_types
+        ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
+        assert dropout_rate >= 0, "The value of `dropout_rate` should be >= 0"
+        assert cardinality is None or all(
+            [c > 0 for c in cardinality]
+        ), "Elements of `cardinality` should be > 0"
+        assert embedding_dimension is None or all(
+            [e > 0 for e in embedding_dimension]
+        ), "Elements of `embedding_dimension` should be > 0"
+        assert (
+            num_parallel_samples > 0
+        ), "The value of `num_parallel_samples` should be > 0"
+        assert alpha >= 0, "The value of `alpha` should be >= 0"
+        assert beta >= 0, "The value of `beta` should be >= 0"
 
-    def __post_init__(self):
+        self.context_length = (
+            context_length if context_length is not None else prediction_length
+        )
+        self.prediction_length = prediction_length
+        self.distr_output = distr_output
+        self.distr_output.dtype = dtype
+        self.num_layers = num_layers
+        self.num_cells = num_cells
+        self.cell_type = cell_type
+        self.dropoutcell_type = dropoutcell_type
+        self.dropout_rate = dropout_rate
+        self.use_feat_dynamic_real = use_feat_dynamic_real
+        self.use_feat_static_cat = use_feat_static_cat
+        self.use_feat_static_real = use_feat_static_real
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
         self.embedding_dimension = (
-            self.embedding_dimension
-            if self.embedding_dimension is not None
+            embedding_dimension
+            if embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
         )
-
+        self.scaling = scaling
         self.lags_seq = (
-            self.lags_seq
-            if self.lags_seq is not None
-            else get_lags_for_frequency(freq_str=self.freq)
+            lags_seq
+            if lags_seq is not None
+            else get_lags_for_frequency(freq_str=freq)
         )
         self.time_features = (
-            self.time_features
-            if self.time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            time_features
+            if time_features is not None
+            else time_features_from_frequency_str(freq)
         )
 
         self.history_length = self.context_length + max(self.lags_seq)
 
+        self.num_parallel_samples = num_parallel_samples
+
         self.imputation_method = (
-            self.imputation_method
-            if self.imputation_method is not None
+            imputation_method
+            if imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
         )
 
         self.train_sampler = (
-            self.train_sampler
-            if self.train_sampler is not None
+            train_sampler
+            if train_sampler is not None
             else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=self.prediction_length
+                num_instances=1.0, min_future=prediction_length
             )
         )
         self.validation_sampler = (
-            self.validation_sampler
-            if self.validation_sampler is not None
-            else ValidationSplitSampler(min_future=self.prediction_length)
+            validation_sampler
+            if validation_sampler is not None
+            else ValidationSplitSampler(min_future=prediction_length)
         )
 
-        # self.alpha = alpha
-        # self.beta = beta
-        # self.num_imputation_samples = num_imputation_samples
-        # self.default_scale = default_scale
-        # self.minimum_scale = minimum_scale
-        # self.impute_missing_values = impute_missing_values
+        self.alpha = alpha
+        self.beta = beta
+        self.num_imputation_samples = num_imputation_samples
+        self.default_scale = default_scale
+        self.minimum_scale = minimum_scale
+        self.impute_missing_values = impute_missing_values
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
