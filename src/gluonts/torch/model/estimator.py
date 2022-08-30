@@ -147,11 +147,11 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        model_init: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
-        initial_network: Optional[nn.Module] = None,
         **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
@@ -192,11 +192,11 @@ class PyTorchLightningEstimator(Estimator):
         
         training_network = self.create_lightning_module()
 
-        if initial_network is not None:
+        if model_init is not None:
             # TODO here prefix is hard-coded based on DeepARLightningModule
             # TODO need to find a better way to do this
             training_network.load_state_dict(
-                initial_network.state_dict(prefix="model.")
+                model_init.network.state_dict(prefix="model.")
             )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
@@ -236,20 +236,20 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        model_init: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
-        initial_network: Optional[nn.Module] = None,
         **kwargs,
     ) -> PyTorchPredictor:
         return self.train_model(
             training_data,
             validation_data,
+            model_init=model_init,
             num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
-            initial_network=initial_network,
             **kwargs,
         ).predictor

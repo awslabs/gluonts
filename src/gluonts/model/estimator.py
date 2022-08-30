@@ -40,7 +40,10 @@ class Estimator:
         self.lead_time = lead_time
 
     def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        model_init: Optional[Predictor] = None,
     ) -> Predictor:
         """
         Train the estimator on the given data.

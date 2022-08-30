@@ -27,6 +27,7 @@ from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.transform import Transformation
@@ -170,9 +171,9 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        model_init: Optional[GluonPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
-        initial_network: Optional[Block] = None,
     ) -> TrainOutput:
 
         transformation = self.create_transformation()
@@ -205,12 +206,12 @@ class GluonEstimator(Estimator):
 
         training_network = self.create_training_network()
 
-        if initial_network is None:
+        if model_init is None:
             training_network.initialize(
                 ctx=self.trainer.ctx, init=self.trainer.init
             )
         else:
-            copy_parameters(initial_network, training_network)
+            copy_parameters(model_init.network, training_network)
 
         self.trainer(
             net=training_network,
@@ -231,9 +232,9 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        model_init: Optional[GluonPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
-        initial_network: Optional[Block] = None,
         **kwargs,
     ) -> Predictor:
         return self.train_model(
@@ -241,5 +242,5 @@ class GluonEstimator(Estimator):
             validation_data=validation_data,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
-            initial_network=initial_network,
+            model_init=model_init,
         ).predictor
