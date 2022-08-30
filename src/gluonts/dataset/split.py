@@ -198,13 +198,13 @@ class AbstractBaseSplitter(ABC):
     """
 
     @abstractmethod
-    def training_entry(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
+    def training_entry(self, entry: DataEntry) -> DataEntry:
         pass
 
     @abstractmethod
     def test_pair(
-        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+        self, entry: DataEntry, prediction_length: int, offset: int = 0
+    ) -> Tuple[DataEntry, DataEntry]:
         pass
 
     def split(
