@@ -31,7 +31,6 @@ from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.itertools import maybe_len
 from gluonts.transform import (
     Chain,
     ContinuousTimeInstanceSplitter,
