@@ -14,6 +14,7 @@
 from typing import NamedTuple, Optional, Type
 
 import numpy as np
+
 from gluonts.core import fqname_for
 from gluonts.core.component import (
     GluonTSHyperparametersError,
@@ -22,6 +23,7 @@ from gluonts.core.component import (
 )
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
+from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
@@ -170,27 +172,34 @@ class GluonEstimator(Estimator):
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
     ) -> TrainOutput:
+
         transformation = self.create_transformation()
 
-        transformed_training_data = transformation.apply(training_data)
+        with env._let(max_idle_transforms=len(training_data)):
+            transformed_training_data = transformation.apply(training_data)
+            if cache_data:
+                transformed_training_data = Cached(transformed_training_data)
 
-        training_data_loader = self.create_training_data_loader(
-            transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
+            training_data_loader = self.create_training_data_loader(
+                transformed_training_data,
+                shuffle_buffer_length=shuffle_buffer_length,
+            )
 
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = transformation.apply(validation_data)
+            with env._let(max_idle_transforms=len(validation_data)):
+                transformed_validation_data = transformation.apply(
+                    validation_data
+                )
+                if cache_data:
+                    transformed_validation_data = Cached(
+                        transformed_validation_data
+                    )
 
-            validation_data_loader = self.create_validation_data_loader(
-                transformed_validation_data
-                if not cache_data
-                else Cached(transformed_validation_data),
-            )
+                validation_data_loader = self.create_validation_data_loader(
+                    transformed_validation_data
+                )
 
         training_network = self.create_training_network()
 

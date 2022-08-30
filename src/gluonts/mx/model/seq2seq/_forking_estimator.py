@@ -24,7 +24,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.forecast import Quantile
 from gluonts.model.forecast_generator import (
     DistributionForecastGenerator,
@@ -470,8 +469,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -488,8 +486,7 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         input_names = get_hybrid_forward_input_names(
             ForkingSeq2SeqTrainingNetwork
         )
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
