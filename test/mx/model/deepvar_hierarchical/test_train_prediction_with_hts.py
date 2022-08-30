@@ -12,6 +12,9 @@
 # permissions and limitations under the License.
 
 
+# Standard library imports
+from typing import Optional
+
 # Third-party imports
 import numpy as np
 import pandas as pd
@@ -44,9 +47,21 @@ def random_ts(num_ts: int, periods: int, freq: str):
 
 @pytest.mark.parametrize(
     "features_df",
-    [None, random_ts(num_ts=S.shape[0], periods=PERIODS, freq=FREQ)],
+    [
+        None,
+        random_ts(
+            num_ts=S.shape[0], periods=PERIODS + PREDICTION_LENGTH, freq=FREQ
+        ),
+    ],
 )
-def test_train_prediction(features_df: pd.DataFrame):
+def test_train_prediction(features_df: Optional[pd.DataFrame]):
+    if features_df is not None:
+        use_feat_dynamic_real = True
+        features_df_train = features_df.iloc[:-PREDICTION_LENGTH, :]
+    else:
+        use_feat_dynamic_real = False
+        features_df_train = None
+
     # HTS
     ts_at_bottom_level = random_ts(
         num_ts=NUM_BOTTOM_TS,
@@ -58,7 +73,7 @@ def test_train_prediction(features_df: pd.DataFrame):
         S=S,
     )
 
-    dataset = hts.to_dataset(feat_dynamic_real=features_df)
+    dataset = hts.to_dataset(feat_dynamic_real=features_df_train)
 
     estimator = DeepVARHierarchicalEstimator(
         freq=hts.freq,
@@ -66,11 +81,14 @@ def test_train_prediction(features_df: pd.DataFrame):
         trainer=Trainer(epochs=1, num_batches_per_epoch=1, hybridize=False),
         target_dim=hts.num_ts,
         S=hts.S,
+        use_feat_dynamic_real=use_feat_dynamic_real,
     )
 
     predictor = estimator.train(dataset)
 
-    forecasts = list(predictor.predict(dataset))
+    predictor_input = hts.to_dataset(feat_dynamic_real=features_df)
+    forecasts = list(predictor.predict(predictor_input))
+
     assert len(forecasts) == len(dataset)
     assert all(
         [
