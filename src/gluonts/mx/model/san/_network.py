@@ -207,6 +207,8 @@ class SelfAttentionNetwork(HybridBlock):
             is_past: bool,
         ) -> Tensor:
             covariates = []
+            if feat_dynamic_real.shape[-1] > 0:
+                covariates.append(feat_dynamic_real)
             if feat_static_real.shape[-1] > 0:
                 covariates.append(
                     feat_static_real.expand_dims(axis=1).repeat(
@@ -216,10 +218,6 @@ class SelfAttentionNetwork(HybridBlock):
                         else self.prediction_length,
                     )
                 )
-
-            if feat_dynamic_real.shape[-1] > 0:
-                covariates.append(feat_dynamic_real)
-
             if len(covariates) > 0:
                 covariates = F.concat(*covariates, dim=-1)
                 covariates = self.covar_proj(covariates)

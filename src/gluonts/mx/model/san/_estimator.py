@@ -123,7 +123,6 @@ class SelfAttentionEstimator(GluonEstimator):
 
     def create_transformation(self) -> Transformation:
         transforms = []
-
         if self.use_feat_dynamic_real:
             transforms.append(
                 AsNumpyArray(
@@ -132,23 +131,21 @@ class SelfAttentionEstimator(GluonEstimator):
                 )
             )
         else:
-            # transforms.extend(
-            #     [
-            #         SetField(
-            #             output_field=FieldName.FEAT_DYNAMIC_REAL,
-            #             value=[[]]
-            #             * (self.context_length + self.prediction_length),
-            #         ),
-            #         AsNumpyArray(
-            #             field=FieldName.FEAT_DYNAMIC_REAL,
-            #             expected_ndim=2,
-            #         ),
-            # SwapAxes(input_fields=
-            # [FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
-            # ]
-            # )
-            pass
-
+            transforms.extend(
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_DYNAMIC_REAL,
+                        value=[[]]
+                        * (self.context_length + self.prediction_length),
+                    ),
+                    AsNumpyArray(
+                        field=FieldName.FEAT_DYNAMIC_REAL,
+                        expected_ndim=2,
+                    ),
+                    # SwapAxes(input_fields=
+                    # [FieldName.FEAT_DYNAMIC_REAL], axes=(0,1)),
+                ]
+            )
         if self.use_feat_dynamic_cat:
             transforms.append(
                 AsNumpyArray(
@@ -253,7 +250,6 @@ class SelfAttentionEstimator(GluonEstimator):
         time_series_fields = [FieldName.OBSERVED_VALUES]
         if self.use_feat_dynamic_cat:
             time_series_fields.append(FieldName.FEAT_DYNAMIC_CAT)
-
         if self.use_feat_dynamic_real or (self.time_features is not None):
             time_series_fields.append(FieldName.FEAT_DYNAMIC_REAL)
 
