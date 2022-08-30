@@ -103,7 +103,6 @@ class OrElse(AnyLike):
 
 def dataclass(
     cls=None,
-    /,
     *,
     init=True,
     repr=True,
