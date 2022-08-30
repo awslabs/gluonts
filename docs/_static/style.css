@@ -1,3 +1,8 @@
 .sidebar-brand-text, .hide-on-website {
     display: none;
 }
+
+
+.highlight {
+    border-left: 2px solid #ccc;
+}
