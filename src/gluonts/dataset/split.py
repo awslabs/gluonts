@@ -73,11 +73,9 @@ argument.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import cast, Generator, List, Optional, Tuple
+from typing import Generator, Optional, Tuple
 
-import numpy as np
 import pandas as pd
-import pydantic
 
 from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
