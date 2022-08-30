@@ -24,14 +24,12 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.itertools import maybe_len
 from gluonts.transform import (
     AddObservedValuesIndicator,
     ExpectedNumInstanceSampler,
@@ -303,8 +301,7 @@ class NBEATSEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(NBEATSTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -319,8 +316,7 @@ class NBEATSEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(NBEATSTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

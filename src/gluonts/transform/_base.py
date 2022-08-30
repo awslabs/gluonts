@@ -169,7 +169,7 @@ class FlatMapTransformation(Transformation):
 
     @validated()
     def __init__(self):
-        self.max_idle_transforms = max(env.max_idle_transforms, 100)
+        self.max_idle_transforms = env.max_idle_transforms
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -180,7 +180,12 @@ class FlatMapTransformation(Transformation):
             for result in self.flatmap_transform(data_entry.copy(), is_train):
                 num_idle_transforms = 0
                 yield result
-            if num_idle_transforms > self.max_idle_transforms:
+
+            if (
+                # negative values disable the check
+                self.max_idle_transforms > 0
+                and num_idle_transforms > self.max_idle_transforms
+            ):
                 raise Exception(
                     "Reached maximum number of idle transformation"
                     " calls.\nThis means the transformation looped over"
