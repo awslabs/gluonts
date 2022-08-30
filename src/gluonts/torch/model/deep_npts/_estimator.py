@@ -21,7 +21,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader, TrainDataLoader
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -401,6 +401,7 @@ class DeepNPTSEstimator(Estimator):
         self,
         train_dataset: Dataset,
         validation_dataset: Optional[Dataset] = None,
+        model_init: Optional[Predictor] = None,
         epochs: int = 100,
         lr: float = 1e-5,
         batch_size: int = 32,

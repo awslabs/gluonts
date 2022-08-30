@@ -20,7 +20,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
@@ -156,6 +156,7 @@ class MeanEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_dataset: Optional[Dataset] = None,
+        model_init: Optional[Predictor] = None,
     ) -> ConstantPredictor:
         contexts = np.array(
             [

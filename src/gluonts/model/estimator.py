@@ -54,6 +54,9 @@ class Estimator:
             Dataset to train the model on.
         validation_data
             Dataset to validate the model on during training.
+        model_init
+            A previously trained model, from which to initialize the estimator
+            training.
 
         Returns
         -------
