@@ -101,19 +101,27 @@ def to_integer_slice(slc: slice, start: pd.Period) -> slice:
     Returns an equivalent slice with integer bounds, given the
     start timestamp of the sequence it will apply to.
     """
+    start_is_int = isinstance(slc.start, (int, type(None)))
+    stop_is_int = isinstance(slc.stop, (int, type(None)))
+
+    if start_is_int and stop_is_int:
+        return slc
+
     if isinstance(slc.start, pd.Period):
         start_offset = (slc.start - start).n
         assert start_offset >= 0
-    else:
-        assert slc.start is None or isinstance(slc.start, int)
+    elif start_is_int:
         start_offset = slc.start
+    else:
+        raise ValueError()
 
     if isinstance(slc.stop, pd.Period):
         stop_offset = (slc.stop - start).n + 1
         assert stop_offset >= 0
-    else:
-        assert slc.stop is None or isinstance(slc.stop, int)
+    elif stop_is_int:
         stop_offset = slc.stop
+    else:
+        raise ValueError()
 
     return slice(start_offset, stop_offset)
 
@@ -125,40 +133,44 @@ def slice_data_entry(
         to_integer_slice(slc, entry[FieldName.START]),
         len(entry[FieldName.TARGET]),
     )
+
     if slc.stop is not None:
         slc_extended = slice(slc.start, slc.stop + prediction_length, slc.step)
     else:
-        assert prediction_length == 0
         slc_extended = slc
+
     sliced_entry = entry.copy()
+
     if slc.start is not None:
         offset = slc.start
         if offset < 0:
             offset += entry["target"].shape[0]
         sliced_entry[FieldName.START] += offset
+
     sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slc]
+
     if FieldName.FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_REAL] = sliced_entry[
             FieldName.FEAT_DYNAMIC_REAL
         ][:, slc_extended]
+
     if FieldName.FEAT_DYNAMIC_CAT in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_CAT] = sliced_entry[
             FieldName.FEAT_DYNAMIC_CAT
         ][:, slc_extended]
+
     if FieldName.PAST_FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.PAST_FEAT_DYNAMIC_REAL] = sliced_entry[
             FieldName.PAST_FEAT_DYNAMIC_REAL
         ][:, slc]
+
     return sliced_entry
 
 
 @dataclass
 class TimeSeriesSlice:
     entry: DataEntry
-
-    @classmethod
-    def from_data_entry(cls, item: DataEntry) -> "TimeSeriesSlice":
-        return TimeSeriesSlice(item)
+    prediction_length: int = 0
 
     def to_data_entry(self) -> DataEntry:
         return self.entry
@@ -174,8 +186,10 @@ class TimeSeriesSlice:
     def __len__(self) -> int:
         return len(self.entry[FieldName.TARGET])
 
-    def __getitem__(self, slc: slice) -> "TimeSeriesSlice":
-        return TimeSeriesSlice(slice_data_entry(self.entry, slc))
+    def __getitem__(self, slc: slice) -> DataEntry:
+        return slice_data_entry(
+            self.entry, slc, prediction_length=self.prediction_length
+        )
 
 
 class AbstractBaseSplitter(ABC):
@@ -184,22 +198,14 @@ class AbstractBaseSplitter(ABC):
     """
 
     @abstractmethod
-    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
+    def training_entry(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
         pass
 
     @abstractmethod
-    def _test_slice(
+    def test_pair(
         self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
     ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
         pass
-
-    def _trim_history(
-        self, item: TimeSeriesSlice, max_history: Optional[int]
-    ) -> TimeSeriesSlice:
-        if max_history is not None:
-            return item[-max_history:]
-        else:
-            return item
 
     def split(
         self, dataset: Dataset
@@ -209,15 +215,12 @@ class AbstractBaseSplitter(ABC):
             TestTemplate(dataset=dataset, splitter=self),
         )
 
-    def _generate_train_slices(
+    def generate_training_entries(
         self, dataset: Dataset
     ) -> Generator[DataEntry, None, None]:
-        for entry in map(TimeSeriesSlice.from_data_entry, dataset):
-            train = self._train_slice(entry)
+        yield from map(self.training_entry, dataset)
 
-            yield train.to_data_entry()
-
-    def _generate_test_slices(
+    def generate_test_pairs(
         self,
         dataset: Dataset,
         prediction_length: int,
@@ -228,37 +231,19 @@ class AbstractBaseSplitter(ABC):
         if distance is None:
             distance = prediction_length
 
-        for entry in map(TimeSeriesSlice.from_data_entry, dataset):
-            train = self._train_slice(entry)
-
+        for entry in dataset:
             for window in range(windows):
                 offset = window * distance
-                test = self._test_slice(
+                test = self.test_pair(
                     entry, prediction_length=prediction_length, offset=offset
                 )
 
-                _check_split_length(
-                    train.end, test[1].end, train.end.freq * prediction_length
-                )
+                if max_history is not None:
+                    input = TimeSeriesSlice(test[0])[-max_history:]
+                else:
+                    input = test[0]
 
-                input = self._trim_history(
-                    test[0], max_history
-                ).to_data_entry()
-
-                label = test[1].to_data_entry()
-
-                yield input, label
-
-
-def _check_split_length(
-    train_end: pd.Period, test_end: pd.Period, prediction_length: int
-) -> None:
-    msg = (
-        "Not enough observations after the split point to construct"
-        " the test instance; consider using longer time series,"
-        " or splitting at an earlier point."
-    )
-    assert train_end + prediction_length <= test_end, msg
+                yield input, test[1]
 
 
 @dataclass
@@ -279,22 +264,27 @@ class OffsetSplitter(AbstractBaseSplitter):
 
     offset: int
 
-    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        return item[: self.offset]
+    def training_entry(self, entry: DataEntry) -> DataEntry:
+        return TimeSeriesSlice(entry)[: self.offset]
 
-    def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+    def test_pair(
+        self, entry: DataEntry, prediction_length: int, offset: int = 0
+    ) -> Tuple[DataEntry, DataEntry]:
         offset_ = self.offset + offset
         if self.offset < 0 and offset_ >= 0:
-            offset_ += len(item)
+            offset_ += len(entry)
         if offset_ + prediction_length:
             return (
-                item[:offset_],
-                item[offset_ : offset_ + prediction_length],
+                TimeSeriesSlice(entry, prediction_length)[:offset_],
+                TimeSeriesSlice(entry, prediction_length)[
+                    offset_ : offset_ + prediction_length
+                ],
             )
         else:
-            return (item[:offset_], item[offset_:])
+            return (
+                TimeSeriesSlice(entry, prediction_length)[:offset_],
+                TimeSeriesSlice(entry, prediction_length)[offset_:],
+            )
 
 
 @dataclass
@@ -314,19 +304,17 @@ class DateSplitter(AbstractBaseSplitter):
 
     date: pd.Period
 
-    def _train_slice(self, item: TimeSeriesSlice) -> TimeSeriesSlice:
-        # the train-slice includes everything up to (including) the split date
-        return item[: self.date]
+    def training_entry(self, entry: DataEntry) -> DataEntry:
+        return TimeSeriesSlice(entry)[: self.date]
 
-    def _test_slice(
-        self, item: TimeSeriesSlice, prediction_length: int, offset: int = 0
-    ) -> Tuple[TimeSeriesSlice, TimeSeriesSlice]:
+    def test_pair(
+        self, entry: DataEntry, prediction_length: int, offset: int = 0
+    ) -> Tuple[DataEntry, DataEntry]:
+        date = self.date.asfreq(entry[FieldName.START].freq)
         return (
-            item[: self.date + offset * item.start.freq],
-            item[
-                self.date
-                + (offset + 1) * item.start.freq : self.date
-                + (prediction_length + offset) * item.start.freq
+            TimeSeriesSlice(entry, prediction_length)[: date + offset],
+            TimeSeriesSlice(entry, prediction_length)[
+                date + (offset + 1) : date + (prediction_length + offset)
             ],
         )
 
@@ -368,7 +356,7 @@ class TestDataset:
     max_history: Optional[int] = None
 
     def __iter__(self) -> Generator[Tuple[DataEntry, DataEntry], None, None]:
-        yield from self.splitter._generate_test_slices(
+        yield from self.splitter.generate_test_pairs(
             dataset=self.dataset,
             prediction_length=self.prediction_length,
             windows=self.windows,
@@ -426,7 +414,7 @@ class TrainingDataset:
     splitter: AbstractBaseSplitter
 
     def __iter__(self) -> Generator[DataEntry, None, None]:
-        return self.splitter._generate_train_slices(self.dataset)
+        return self.splitter.generate_training_entries(self.dataset)
 
     def __len__(self) -> int:
         return len(self.dataset)
