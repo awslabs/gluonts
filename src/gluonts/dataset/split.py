@@ -81,9 +81,50 @@ from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 
 
+def to_positive_slice(slc: slice, length: int) -> slice:
+    """
+    Returns an equivalent slice with positive bounds, given the
+    length of the sequence it will apply to.
+    """
+    start, stop = slc.start, slc.stop
+    if start is not None and start < 0:
+        start += length
+        assert start >= 0
+    if stop is not None and stop < 0:
+        stop += length
+        assert stop >= 0
+    return slice(start, stop, slc.step)
+
+
+def to_integer_slice(slc: slice, start: pd.Period) -> slice:
+    """
+    Returns an equivalent slice with integer bounds, given the
+    start timestamp of the sequence it will apply to.
+    """
+    if isinstance(slc.start, pd.Period):
+        start_offset = (slc.start - start).n
+        assert start_offset >= 0
+    else:
+        assert slc.start is None or isinstance(slc.start, int)
+        start_offset = slc.start
+
+    if isinstance(slc.stop, pd.Period):
+        stop_offset = (slc.stop - start).n + 1
+        assert stop_offset >= 0
+    else:
+        assert slc.stop is None or isinstance(slc.stop, int)
+        stop_offset = slc.stop
+
+    return slice(start_offset, stop_offset)
+
+
 def slice_data_entry(
     entry: DataEntry, slc: slice, prediction_length: int = 0
 ) -> DataEntry:
+    slc = to_positive_slice(
+        to_integer_slice(slc, entry[FieldName.START]),
+        len(entry[FieldName.TARGET])
+    )
     if slc.stop is not None:
         slc_extended = slice(slc.start, slc.stop + prediction_length, slc.step)
     else:
@@ -133,28 +174,8 @@ class TimeSeriesSlice:
     def __len__(self) -> int:
         return len(self.entry[FieldName.TARGET])
 
-    def to_integer_slice(self, slc: slice) -> slice:
-
-        if isinstance(slc.start, pd.Period):
-            start_offset = (slc.start - self.entry[FieldName.START]).n
-            assert start_offset >= 0
-        else:
-            assert slc.start is None or isinstance(slc.start, int)
-            start_offset = slc.start
-
-        if isinstance(slc.stop, pd.Period):
-            stop_offset = (slc.stop - self.entry[FieldName.START]).n + 1
-            assert stop_offset >= 0
-        else:
-            assert slc.stop is None or isinstance(slc.stop, int)
-            stop_offset = slc.stop
-
-        return slice(start_offset, stop_offset)
-
     def __getitem__(self, slc: slice) -> "TimeSeriesSlice":
-        return TimeSeriesSlice(
-            slice_data_entry(self.entry, slc=self.to_integer_slice(slc))
-        )
+        return TimeSeriesSlice(slice_data_entry(self.entry, slc))
 
 
 class AbstractBaseSplitter(ABC):
