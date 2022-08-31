@@ -113,7 +113,9 @@ def to_integer_slice(slice_: slice, start: pd.Period) -> slice:
     elif start_is_int:
         start_offset = slice_.start
     else:
-        raise ValueError(f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.start)}")
+        raise ValueError(
+            f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.start)}"
+        )
 
     if isinstance(slice_.stop, pd.Period):
         stop_offset = (slice_.stop - start).n + 1
@@ -121,7 +123,9 @@ def to_integer_slice(slice_: slice, start: pd.Period) -> slice:
     elif stop_is_int:
         stop_offset = slice_.stop
     else:
-        raise ValueError(f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.stop)}")
+        raise ValueError(
+            f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.stop)}"
+        )
 
     return slice(start_offset, stop_offset)
 
@@ -135,7 +139,9 @@ def slice_data_entry(
     )
 
     if slice_.stop is not None:
-        slice_extended = slice(slice_.start, slice_.stop + prediction_length, slice_.step)
+        slice_extended = slice(
+            slice_.start, slice_.stop + prediction_length, slice_.step
+        )
     else:
         slice_extended = slice_
 
