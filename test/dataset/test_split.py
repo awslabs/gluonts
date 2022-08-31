@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -24,63 +25,37 @@ from gluonts.dataset.split import (
 )
 
 
-def make_series(data, start="2020", freq="D"):
-    index = pd.period_range(start=start, freq=freq, periods=len(data))
-    return pd.Series(data, index=index)
+def test_time_series_slice():
+    entry = {
+        "start": pd.Period("2021-02-03", "D"),
+        "target": np.array(range(100), dtype=float),
+        "feat_dynamic_real": np.expand_dims(
+            np.array(range(100), dtype=float), 0
+        ),
+    }
 
+    tss = TimeSeriesSlice(entry)
 
-def test_ts_slice_to_item():
-
-    sl = TimeSeriesSlice(
-        target=make_series(range(100)),
-        item="",
-        feat_static_cat=[1, 2, 3],
-        feat_static_real=[0.1, 0.2, 0.3],
-        feat_dynamic_cat=[make_series(range(100))],
-        feat_dynamic_real=[make_series(range(100))],
-    )
-
-    sl.to_data_entry()
-
-
-def check_training_validation(
-    original_entry,
-    train_entry,
-    valid_pair,
-    prediction_length: int,
-    max_history,
-    date,
-    offset,
-) -> None:
+    entry_slice = tss[10:20]
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 10
+    assert (entry_slice["target"] == np.arange(10, 20)).all()
     assert (
-        str(original_entry[FieldName.ITEM_ID])
-        == train_entry[FieldName.ITEM_ID]
-    )
-    assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
-    if max_history is not None:
-        assert len(valid_pair[0][FieldName.TARGET]) == max_history
-    assert len(valid_pair[1][FieldName.TARGET]) == prediction_length
-    train_end = (
-        train_entry[FieldName.START]
-        + len(train_entry[FieldName.TARGET])
-        * train_entry[FieldName.START].freq
-    )
-    if date is not None:
-        assert train_end == date + train_entry[FieldName.START].freq
-    if offset is not None:
-        if offset > 0:
-            assert len(train_entry[FieldName.TARGET]) == offset
-        else:
-            assert len(train_entry[FieldName.TARGET]) - offset == len(
-                original_entry[FieldName.TARGET]
-            )
-    assert train_end <= valid_pair[1][FieldName.START]
-    valid_end = (
-        valid_pair[0][FieldName.START]
-        + len(valid_pair[0][FieldName.TARGET])
-        * valid_pair[0][FieldName.START].freq
-    )
-    assert valid_end == valid_pair[1][FieldName.START]
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(10, 20)])
+    ).all()
+
+    entry_slice = tss[:-20]
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D")
+    assert (entry_slice["target"] == np.arange(80)).all()
+    assert (
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(80)])
+    ).all()
+
+    entry_slice = tss[-20:]
+    assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 80
+    assert (entry_slice["target"] == np.arange(80, 100)).all()
+    assert (
+        entry_slice["feat_dynamic_real"] == np.array([np.arange(80, 100)])
+    ).all()
 
 
 def test_split_mult_freq():
@@ -134,6 +109,48 @@ def test_negative_offset_splitter():
     ]
 
 
+def check_training_validation(
+    original_entry,
+    train_entry,
+    valid_pair,
+    prediction_length: int,
+    max_history,
+    date,
+    offset,
+) -> None:
+    assert original_entry[FieldName.ITEM_ID] == train_entry[FieldName.ITEM_ID]
+    assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
+    if max_history is not None:
+        assert valid_pair[0][FieldName.TARGET].shape[0] == max_history
+    assert valid_pair[1][FieldName.TARGET].shape[0] == prediction_length
+    train_end = (
+        train_entry[FieldName.START]
+        + train_entry[FieldName.TARGET].shape[0]
+        * train_entry[FieldName.START].freq
+    )
+    if date is not None:
+        assert train_end == date + train_entry[FieldName.START].freq
+    if offset is not None:
+        if offset > 0:
+            assert train_entry[FieldName.TARGET].shape[0] == offset
+        else:
+            assert train_entry[FieldName.TARGET].shape[0] - offset == len(
+                original_entry[FieldName.TARGET]
+            )
+    assert train_end <= valid_pair[1][FieldName.START]
+    valid_end = (
+        valid_pair[0][FieldName.START]
+        + valid_pair[0][FieldName.TARGET].shape[0]
+        * valid_pair[0][FieldName.START].freq
+    )
+    assert valid_end == valid_pair[1][FieldName.START]
+    if FieldName.FEAT_DYNAMIC_REAL in valid_pair[0]:
+        assert (
+            valid_pair[0][FieldName.FEAT_DYNAMIC_REAL].shape[-1]
+            == valid_pair[0][FieldName.TARGET].shape[0] + prediction_length
+        )
+
+
 @pytest.mark.parametrize(
     "date, offset, windows, distance, max_history",
     [
@@ -151,8 +168,18 @@ def test_split(date, offset, windows, distance, max_history):
 
     dataset = ListDataset(
         [
-            {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 365},
-            {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 265},
+            {
+                "item_id": 0,
+                "start": "2021-03-04",
+                "target": [1.0] * 365,
+                "feat_dynamic_real": [[2.0] * 365],
+            },
+            {
+                "item_id": 1,
+                "start": "2021-03-04",
+                "target": [2.0] * 265,
+                "feat_dynamic_real": [[3.0] * 265],
+            },
         ],
         freq="D",
     )
