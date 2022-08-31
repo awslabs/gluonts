@@ -81,88 +81,88 @@ from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 
 
-def to_positive_slice(slc: slice, length: int) -> slice:
+def to_positive_slice(slice_: slice, length: int) -> slice:
     """
-    Returns an equivalent slice with positive bounds, given the
+    Return an equivalent slice with positive bounds, given the
     length of the sequence it will apply to.
     """
-    start, stop = slc.start, slc.stop
+    start, stop = slice_.start, slice_.stop
     if start is not None and start < 0:
         start += length
         assert start >= 0
     if stop is not None and stop < 0:
         stop += length
         assert stop >= 0
-    return slice(start, stop, slc.step)
+    return slice(start, stop, slice_.step)
 
 
-def to_integer_slice(slc: slice, start: pd.Period) -> slice:
+def to_integer_slice(slice_: slice, start: pd.Period) -> slice:
     """
     Returns an equivalent slice with integer bounds, given the
     start timestamp of the sequence it will apply to.
     """
-    start_is_int = isinstance(slc.start, (int, type(None)))
-    stop_is_int = isinstance(slc.stop, (int, type(None)))
+    start_is_int = isinstance(slice_.start, (int, type(None)))
+    stop_is_int = isinstance(slice_.stop, (int, type(None)))
 
     if start_is_int and stop_is_int:
-        return slc
+        return slice_
 
-    if isinstance(slc.start, pd.Period):
-        start_offset = (slc.start - start).n
+    if isinstance(slice_.start, pd.Period):
+        start_offset = (slice_.start - start).n
         assert start_offset >= 0
     elif start_is_int:
-        start_offset = slc.start
+        start_offset = slice_.start
     else:
-        raise ValueError()
+        raise ValueError(f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.start)}")
 
-    if isinstance(slc.stop, pd.Period):
-        stop_offset = (slc.stop - start).n + 1
+    if isinstance(slice_.stop, pd.Period):
+        stop_offset = (slice_.stop - start).n + 1
         assert stop_offset >= 0
     elif stop_is_int:
-        stop_offset = slc.stop
+        stop_offset = slice_.stop
     else:
-        raise ValueError()
+        raise ValueError(f"Can only use None, int, or pd.Period for slicing, got type {type(slice_.stop)}")
 
     return slice(start_offset, stop_offset)
 
 
 def slice_data_entry(
-    entry: DataEntry, slc: slice, prediction_length: int = 0
+    entry: DataEntry, slice_: slice, prediction_length: int = 0
 ) -> DataEntry:
-    slc = to_positive_slice(
-        to_integer_slice(slc, entry[FieldName.START]),
+    slice_ = to_positive_slice(
+        to_integer_slice(slice_, entry[FieldName.START]),
         len(entry[FieldName.TARGET]),
     )
 
-    if slc.stop is not None:
-        slc_extended = slice(slc.start, slc.stop + prediction_length, slc.step)
+    if slice_.stop is not None:
+        slice_extended = slice(slice_.start, slice_.stop + prediction_length, slice_.step)
     else:
-        slc_extended = slc
+        slice_extended = slice_
 
-    sliced_entry = entry.copy()
+    sliced_entry = dict(entry)
 
-    if slc.start is not None:
-        offset = slc.start
+    if slice_.start is not None:
+        offset = slice_.start
         if offset < 0:
             offset += entry["target"].shape[0]
         sliced_entry[FieldName.START] += offset
 
-    sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slc]
+    sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slice_]
 
     if FieldName.FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_REAL] = sliced_entry[
             FieldName.FEAT_DYNAMIC_REAL
-        ][:, slc_extended]
+        ][:, slice_extended]
 
     if FieldName.FEAT_DYNAMIC_CAT in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_CAT] = sliced_entry[
             FieldName.FEAT_DYNAMIC_CAT
-        ][:, slc_extended]
+        ][:, slice_extended]
 
     if FieldName.PAST_FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.PAST_FEAT_DYNAMIC_REAL] = sliced_entry[
             FieldName.PAST_FEAT_DYNAMIC_REAL
-        ][:, slc]
+        ][:, slice_]
 
     return sliced_entry
 
