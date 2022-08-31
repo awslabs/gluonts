@@ -156,7 +156,7 @@ def FileDataset(
     use_timestamp: bool = False,
     loader_class=None,
     ignore=False,
-    pattern="[!._]*",
+    pattern="*",
     levels=1,
 ) -> Dataset:
     path = Path(path)
