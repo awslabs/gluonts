@@ -46,8 +46,10 @@ class InpuDataConfig(BaseModel):
 class TrainPaths:
     def __init__(self, base: Path = Path("/opt/ml")) -> None:
         self.base = base.expanduser().resolve()
-        self.config = self.base / "input" / "config"
-        self.data = self.base / "input" / "data"
+        self.input = self.base / "input"
+        self.config = self.input / "config"
+        self.data = self.input / "data"
+        self.input_model = self.input / "model"
         self.model = self.base / "model"
         self.output = self.base / "output"
         self.failure = self.output / "failure"
@@ -58,6 +60,7 @@ class TrainPaths:
 
         self.config.mkdir(parents=True, exist_ok=True)
         self.data.mkdir(parents=True, exist_ok=True)
+        self.input_model.mkdir(parents=True, exist_ok=True)
         self.model.mkdir(parents=True, exist_ok=True)
         self.output.mkdir(parents=True, exist_ok=True)
 
@@ -67,6 +70,7 @@ class TrainEnv:
         self.path = TrainPaths(path)
         self.inputdataconfig = self._load_inputdataconfig()
         self.channels = self._load_channels()
+        self.input_model_path = self._load_input_model_path()
         self.current_host = self._get_current_host()
 
         hyperparameters, env = self._load_hyperparameters()
@@ -113,6 +117,11 @@ class TrainEnv:
             return {
                 channel.name: channel for channel in self.path.data.iterdir()
             }
+
+    def _load_input_model_path(self) -> Optional[Path]:
+        if any(self.path.input_model.iterdir()):
+            return self.path.input_model
+        return None
 
     def _get_current_host(self) -> str:
         if not self.path.resourceconfig.exists():

@@ -14,12 +14,12 @@
 import os
 from distutils.util import strtobool
 from functools import partial
-from typing import Dict
+from typing import Dict, Optional
 
 from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
-from gluonts.model import forecast
+from gluonts.model import forecast, Predictor
 
 from . import sagemaker
 
@@ -27,9 +27,10 @@ from . import sagemaker
 class TrainEnv(sagemaker.TrainEnv):
     def __init__(self, *args, **kwargs):
         sagemaker.TrainEnv.__init__(self, *args, **kwargs)
-        self.datasets = self._load()
+        self.datasets = self._load_datasets()
+        self.input_model = self._load_input_model()
 
-    def _load(self) -> Dict[str, Dataset]:
+    def _load_datasets(self) -> Dict[str, Dataset]:
         if "metadata" in self.channels:
             path = self.channels.pop("metadata")
             self.hyperparameters["freq"] = MetaData.parse_file(
@@ -43,6 +44,11 @@ class TrainEnv(sagemaker.TrainEnv):
             datasets = valmap(list, datasets)
 
         return datasets
+
+    def _load_input_model(self) -> Optional[Predictor]:
+        if self.input_model_path is None:
+            return None
+        return Predictor.deserialize(self.input_model_path)
 
     def _listify_dataset(self):
         return strtobool(self.hyperparameters.get("listify_dataset", "no"))

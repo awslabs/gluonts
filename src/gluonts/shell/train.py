@@ -69,6 +69,7 @@ def run_train_and_test(
             train_dataset=env.datasets["train"],
             validation_dataset=env.datasets.get("validation"),
             hyperparameters=env.hyperparameters,
+            input_model=env.input_model,
         )
 
     predictor.serialize(env.path.model)
@@ -82,6 +83,7 @@ def run_train(
     train_dataset: Dataset,
     hyperparameters: dict,
     validation_dataset: Optional[Dataset],
+    input_model: Optional[Predictor],
 ) -> Predictor:
     num_workers = (
         int(hyperparameters["num_workers"])
@@ -103,6 +105,7 @@ def run_train(
         forecaster.train,
         training_data=train_dataset,
         validation_data=validation_dataset,
+        model_init=input_model,
         num_workers=num_workers,
         num_prefetch=num_prefetch,
         shuffle_buffer_length=shuffle_buffer_length,
