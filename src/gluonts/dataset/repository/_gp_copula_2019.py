@@ -154,7 +154,7 @@ def get_data(dataset_path: Path, ds_info: GPCopulaDataset):
             "item_id": cat,
         }
         for cat, data_entry in enumerate(
-            FileDataset(dataset_path, freq=ds_info.freq)
+            FileDataset(dataset_path, freq=ds_info.freq, pattern="[!._]*")
         )
     ]
 
