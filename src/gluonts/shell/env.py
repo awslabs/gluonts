@@ -36,11 +36,10 @@ class TrainEnv(sagemaker.TrainEnv):
                 path / "metadata.json"
             ).freq
 
+        input_model: Optional[Predictor] = None
         if "model" in self.channels:
             path = self.channels.pop("model")
             input_model = Predictor.deserialize(path)
-        else:
-            input_model = None
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
 
