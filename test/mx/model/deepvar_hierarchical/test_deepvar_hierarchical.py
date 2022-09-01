@@ -16,14 +16,6 @@ import pytest
 from gluonts.evaluation import backtest_metrics, MultivariateEvaluator
 from gluonts.mx.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
 from gluonts.mx.trainer import Trainer
-from generate_hierarchical_dataset import sine7
-
-
-seq_length = 100
-prediction_length = 10
-train_datasets = sine7(
-    seq_length=seq_length, prediction_length=prediction_length
-)
 
 
 @pytest.mark.parametrize(
@@ -86,6 +78,7 @@ train_datasets = sine7(
     ],
 )
 def test_deepvar_hierarchical(
+    sine7,
     likelihood_weight,
     CRPS_weight,
     sample_LH,
@@ -93,6 +86,9 @@ def test_deepvar_hierarchical(
     coherent_pred_samples,
     warmstart_epoch_frac,
 ):
+    train_datasets = sine7
+    prediction_length = 10
+
     estimator = DeepVARHierarchicalEstimator(
         freq=train_datasets.metadata.freq,
         prediction_length=prediction_length,
