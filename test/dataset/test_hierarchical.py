@@ -17,7 +17,12 @@ import numpy as np
 import pandas as pd
 
 # First-party imports
+import pytest
 from gluonts.dataset.hierarchical import HierarchicalTimeSeries
+
+
+PERIODS = 24
+FREQ = "H"
 
 
 def random_ts(num_ts: int, periods: int, freq: str):
@@ -37,11 +42,10 @@ def test_three_level_hierarchy():
     S = np.vstack(([[1, 1, 1, 1], [1, 1, 0, 0], [0, 0, 1, 1]], np.eye(4)))
 
     num_ts, num_bottom_ts = S.shape
-    periods = 24
     ts_at_bottom_level = random_ts(
         num_ts=num_bottom_ts,
-        periods=periods,
-        freq="H",
+        periods=PERIODS,
+        freq=FREQ,
     )
 
     hts = HierarchicalTimeSeries(ts_at_bottom_level=ts_at_bottom_level, S=S)
@@ -54,9 +58,9 @@ def test_three_level_hierarchy():
         f"Index of `ts_at_all_levels`: {ts_at_all_levels.index}."
     )
 
-    assert ts_at_all_levels.shape == (periods, num_ts), (
+    assert ts_at_all_levels.shape == (PERIODS, num_ts), (
         "Hierarchical time series do not have the right shape. "
-        f"Expected: {(periods, num_ts)}, "
+        f"Expected: {(PERIODS, num_ts)}, "
         f"Obtained: {ts_at_bottom_level.shape}!"
     )
 
@@ -92,3 +96,78 @@ def test_three_level_hierarchy():
         err_msg="Values of the time series at the bottom "
         "level do not agree with the given inputs.",
     )
+
+
+def get_random_hts(S: np.ndarray, periods: int, freq: str):
+    num_ts, num_bottom_ts = S.shape
+    ts_at_bottom_level = random_ts(
+        num_ts=num_bottom_ts,
+        periods=periods,
+        freq=freq,
+    )
+
+    hts = HierarchicalTimeSeries(ts_at_bottom_level=ts_at_bottom_level, S=S)
+    return hts
+
+
+@pytest.mark.parametrize("mode", ["train", "inference", "fail"])
+def test_hts_to_dataset(mode: str):
+    S = np.vstack(([[1, 1, 1, 1], [1, 1, 0, 0], [0, 0, 1, 1]], np.eye(4)))
+    hts = get_random_hts(S=S, periods=PERIODS, freq=FREQ)
+
+    num_features = 10
+    num_future_time_steps = {
+        "train": 0,
+        "inference": PERIODS // 2,
+        "fail": PERIODS // 2,
+    }[mode]
+
+    features_df = random_ts(
+        num_ts=num_features,
+        periods=PERIODS + num_future_time_steps,
+        freq=FREQ,
+    )
+
+    if mode == "fail":
+        # Create a misalignment with the index of target time series.
+        features_df.index = features_df.index.shift(periods=-1)
+
+        with pytest.raises(Exception):
+            ds = hts.to_dataset(feat_dynamic_real=features_df)
+    else:
+        ds = hts.to_dataset(feat_dynamic_real=features_df)
+
+        # In both train and inference modes, the index of the target
+        # dataframe should be same as that of time features since we pad
+        # NaNs in inference mode.
+        assert (ds.dataframes.index == features_df.index).all(), (
+            "The index of target dataframe and the features dataframe "
+            "do not match!\n"
+            f"Index of target dataframe: {ds.dataframes.index}.\n"
+            f"Index of features dataframe: {features_df.index}."
+        )
+
+        if mode == "train":
+            # There should be no NaN in the target dataframe after concatenating
+            # with the features dataframe since there are no future time steps.
+            assert not ds.dataframes.isnull().values.any(), (
+                "The target dataframe is incorrectly constructed and "
+                "contains NaNs."
+            )
+        elif mode == "inference":
+            assert ds.ignore_last_n_targets == num_future_time_steps, (
+                "The field `ignore_last_n_targets` is not correctly set "
+                "while creating the hierarchical dataset.\n"
+                f"Expected value: {num_future_time_steps}, "
+                f"Obtained: {ds.ignore_last_n_targets}."
+            )
+
+            # For each target column there would be `num_future_time_steps` NaNs.
+            num_nans_expected = len(ds.target) * num_future_time_steps
+            num_nans = ds.dataframes.isnull().values.sum()
+            assert num_nans == num_nans_expected, (
+                "The target dataframe is incorrectly constructed and "
+                "do not contain the correct number of NaNs. \n"
+                f"Expected no. of NaNs: {num_nans_expected}, "
+                f"Obtained: {num_nans}."
+            )
