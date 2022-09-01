@@ -47,8 +47,8 @@ class TrainPaths:
     def __init__(self, base: Path = Path("/opt/ml")) -> None:
         self.base = base.expanduser().resolve()
         self.input = self.base / "input"
-        self.config = self.input / "config"
-        self.data = self.input / "data"
+        self.config = self.base / "input" / "config"
+        self.data = self.base / "input" / "data"
         self.model = self.base / "model"
         self.output = self.base / "output"
         self.failure = self.output / "failure"
