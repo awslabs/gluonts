@@ -158,13 +158,16 @@ def test_hts_to_dataset(mode: str):
             assert ds.ignore_last_n_targets == num_future_time_steps, (
                 "The field `ignore_last_n_targets` is not correctly set "
                 "while creating the hierarchical dataset.\n"
-                f"Expected: {num_future_time_steps}, "
+                f"Expected value: {num_future_time_steps}, "
                 f"Obtained: {ds.ignore_last_n_targets}."
             )
 
             # For each target column there would be `num_future_time_steps` NaNs.
-            num_nans = len(ds.target) * num_future_time_steps
-            assert ds.dataframes.isnull().values.sum() == num_nans, (
+            num_nans_expected = len(ds.target) * num_future_time_steps
+            num_nans = ds.dataframes.isnull().values.sum()
+            assert num_nans == num_nans_expected, (
                 "The target dataframe is incorrectly constructed and "
-                "do not contain the correct number of NaNs."
+                "do not contain the correct number of NaNs. \n"
+                f"Expected no. of NaNs: {num_nans_expected}, "
+                f"Obtained: {num_nans}."
             )
