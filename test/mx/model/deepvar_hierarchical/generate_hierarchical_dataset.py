@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 
-from typing import NamedTuple
+from typing import List, NamedTuple
 import numpy as np
 import pandas as pd
 
@@ -22,6 +22,7 @@ from gluonts.dataset.common import ListDataset
 class HierarchicalMetaData(NamedTuple):
     S: np.ndarray
     freq: str
+    nodes: List
 
 
 class HierarchicalTrainDatasets(NamedTuple):
@@ -67,7 +68,9 @@ def sine7(seq_length: int, prediction_length: int):
         freq="D",
     )
 
-    metadata = HierarchicalMetaData(S=S, freq=index.freqstr)
+    metadata = HierarchicalMetaData(
+        S=S, freq=index.freqstr, nodes=[2, [2] * 2]
+    )
 
     train_dataset = ListDataset(
         [

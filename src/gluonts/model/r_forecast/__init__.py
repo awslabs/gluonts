@@ -12,17 +12,35 @@
 # permissions and limitations under the License.
 
 from ._predictor import (
-    RForecastPredictor,
+    RBasePredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    SUPPORTED_METHODS,
-    QUANTILE_FORECAST_METHODS,
+)
+from ._univariate_predictor import (
+    SUPPORTED_UNIVARIATE_METHODS,
+    RForecastPredictor,
+    UNIVARIATE_POINT_FORECAST_METHODS,
+    UNIVARIATE_QUANTILE_FORECAST_METHODS,
+    UNIVARIATE_SAMPLE_FORECAST_METHODS,
+)
+from ._hierarchical_predictor import (
+    HIERARCHICAL_POINT_FORECAST_METHODS,
+    HIERARCHICAL_SAMPLE_FORECAST_METHODS,
+    RHierarchicalForecastPredictor,
+    SUPPORTED_HIERARCHICAL_METHODS,
 )
 
 __all__ = [
+    "HIERARCHICAL_POINT_FORECAST_METHODS",
+    "HIERARCHICAL_SAMPLE_FORECAST_METHODS",
+    "RBasePredictor",
+    "RHierarchicalForecastPredictor",
     "RForecastPredictor",
     "R_IS_INSTALLED",
     "RPY2_IS_INSTALLED",
-    "SUPPORTED_METHODS",
-    "QUANTILE_FORECAST_METHODS",
+    "SUPPORTED_HIERARCHICAL_METHODS",
+    "SUPPORTED_UNIVARIATE_METHODS",
+    "UNIVARIATE_POINT_FORECAST_METHODS",
+    "UNIVARIATE_QUANTILE_FORECAST_METHODS",
+    "UNIVARIATE_SAMPLE_FORECAST_METHODS",
 ]
