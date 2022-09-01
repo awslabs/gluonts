@@ -24,8 +24,14 @@ def test_incremental_training_smoke_torch():
     )
 
     dataset = [
-        {"start": pd.Period("2022-03-04 00", "1H"), "target": np.ones((100,), dtype=np.float32)},
-        {"start": pd.Period("2022-04-05 00", "1H"), "target": np.ones((100,), dtype=np.float32)},
+        {
+            "start": pd.Period("2022-03-04 00", "1H"),
+            "target": np.ones((100,), dtype=np.float32),
+        },
+        {
+            "start": pd.Period("2022-04-05 00", "1H"),
+            "target": np.ones((100,), dtype=np.float32),
+        },
     ]
 
     predictor = estimator.train(dataset)
