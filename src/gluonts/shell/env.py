@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import os
+import tarfile
 from distutils.util import strtobool
 from functools import partial
 from typing import Dict, Optional, Tuple
@@ -39,6 +40,8 @@ class TrainEnv(sagemaker.TrainEnv):
         input_model: Optional[Predictor] = None
         if "model" in self.channels:
             path = self.channels.pop("model")
+            with tarfile.open(path / "model.tar.gz") as targz:
+                targz.extractall(path=path)
             input_model = Predictor.deserialize(path)
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
