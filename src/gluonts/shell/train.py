@@ -69,7 +69,7 @@ def run_train_and_test(
             train_dataset=env.datasets["train"],
             validation_dataset=env.datasets.get("validation"),
             hyperparameters=env.hyperparameters,
-            input_model=env.input_model,
+            input_model=env.datasets.get("model"),
         )
 
     predictor.serialize(env.path.model)

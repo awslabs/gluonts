@@ -15,7 +15,7 @@ import os
 import tarfile
 from distutils.util import strtobool
 from functools import partial
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from toolz import valmap
 
@@ -28,29 +28,31 @@ from . import sagemaker
 class TrainEnv(sagemaker.TrainEnv):
     def __init__(self, *args, **kwargs):
         sagemaker.TrainEnv.__init__(self, *args, **kwargs)
-        self.datasets, self.input_model = self._load()
+        self.datasets = self._load()
 
-    def _load(self) -> Tuple[Dict[str, Dataset], Optional[Predictor]]:
+    def _load(self) -> Tuple[Dict[str, Any]]:
         if "metadata" in self.channels:
             path = self.channels.pop("metadata")
             self.hyperparameters["freq"] = MetaData.parse_file(
                 path / "metadata.json"
             ).freq
 
-        input_model: Optional[Predictor] = None
+        model: Optional[Predictor] = None
         if "model" in self.channels:
             path = self.channels.pop("model")
             with tarfile.open(path / "model.tar.gz") as targz:
                 targz.extractall(path=path)
-            input_model = Predictor.deserialize(path)
+            model = Predictor.deserialize(path)
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
 
         datasets = valmap(file_dataset, self.channels)
         if self._listify_dataset():
             datasets = valmap(list, datasets)
+        if model is not None:
+            datasets["model"] = model
 
-        return datasets, input_model
+        return datasets
 
     def _listify_dataset(self):
         return strtobool(self.hyperparameters.get("listify_dataset", "no"))
