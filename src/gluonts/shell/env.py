@@ -15,7 +15,7 @@ import os
 import tarfile
 from distutils.util import strtobool
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Union
 
 from toolz import valmap
 
@@ -30,7 +30,7 @@ class TrainEnv(sagemaker.TrainEnv):
         sagemaker.TrainEnv.__init__(self, *args, **kwargs)
         self.datasets = self._load()
 
-    def _load(self) -> Tuple[Dict[str, Any]]:
+    def _load(self) -> Dict[str, Union[Dataset, Predictor]]:
         if "metadata" in self.channels:
             path = self.channels.pop("metadata")
             self.hyperparameters["freq"] = MetaData.parse_file(
