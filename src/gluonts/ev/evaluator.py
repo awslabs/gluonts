@@ -20,19 +20,20 @@ from typing import Dict, Collection, Iterator, List
 from toolz import keyfilter
 
 from .api import Metric
-from .metrics import MSE
+from .metrics import MSE, Mape
 from ..dataset.split import TestDataset
 from ..model import Forecast
 
 
 def resolve_dependencies(metrics: Collection[Metric]) -> Collection[Metric]:
-    def resolve(entity):
+    # note: only considers metric.name as the only "dependency" for an aggregation is the underlying metric
+    def resolve(metric):
         metrics = {}
 
-        for dep in map(resolve, entity.dependencies):
+        for dep in map(resolve, metric.dependencies):
             metrics.update(dep)
 
-        metrics[entity.name] = entity
+        metrics[metric.name] = metric
 
         return metrics
 
@@ -69,7 +70,11 @@ class LocalMetrics:
 
 
 class Evaluator:
-    _default_metrics = MSE(aggr="mean")
+    _default_metrics = (
+        MSE(),
+        MSE(aggr="mean"),
+        Mape(aggr="mean"),
+    )
 
     def __init__(self, metrics: Collection[Metric] = _default_metrics) -> None:
         self.local_metric_targets = [
@@ -79,7 +84,7 @@ class Evaluator:
             metric for metric in metrics if metric.can_aggregate
         ]
 
-        required_metrics = resolve_dependencies(self.local_metric_targets)
+        required_metrics = resolve_dependencies(metrics)
         self.local_metrics = topo_sort_metrics(required_metrics)
 
     def apply(
