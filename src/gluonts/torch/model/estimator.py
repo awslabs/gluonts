@@ -20,6 +20,7 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -154,35 +155,39 @@ class PyTorchLightningEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = transformation.apply(
-            training_data, is_train=True
-        )
+        with env._let(max_idle_transforms=max(len(training_data), 100)):
+            transformed_training_data = transformation.apply(
+                training_data, is_train=True
+            )
+            if cache_data:
+                transformed_training_data = Cached(transformed_training_data)
 
-        training_network = self.create_lightning_module()
+            training_network = self.create_lightning_module()
 
-        training_data_loader = self.create_training_data_loader(
-            transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            training_network,
-            num_workers=num_workers,
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
+            training_data_loader = self.create_training_data_loader(
+                transformed_training_data,
+                training_network,
+                num_workers=num_workers,
+                shuffle_buffer_length=shuffle_buffer_length,
+            )
 
         validation_data_loader = None
 
-        if validation_data is not None:
-            transformed_validation_data = transformation.apply(
-                validation_data, is_train=True
-            )
+        with env._let(max_idle_transforms=max(len(training_data), 100)):
+            if validation_data is not None:
+                transformed_validation_data = transformation.apply(
+                    validation_data, is_train=True
+                )
+                if cache_data:
+                    transformed_validation_data = Cached(
+                        transformed_validation_data
+                    )
 
-            validation_data_loader = self.create_validation_data_loader(
-                transformed_validation_data
-                if not cache_data
-                else Cached(transformed_validation_data),
-                training_network,
-                num_workers=num_workers,
-            )
+                validation_data_loader = self.create_validation_data_loader(
+                    transformed_validation_data,
+                    training_network,
+                    num_workers=num_workers,
+                )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
