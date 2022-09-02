@@ -13,20 +13,21 @@
 
 
 import numpy as np
-import pandas as pd
 from dataclasses import dataclass
 from typing import Dict, Collection, Iterator, List
 
 from toolz import keyfilter
 
-from .api import Metric
-from .metrics import MSE, Mape
+from .api import Metric, PointMetric
+from .metrics import MSE, Mape, AbsError, Error
 from ..dataset.split import TestDataset
 from ..model import Forecast
 
 
 def resolve_dependencies(metrics: Collection[Metric]) -> Collection[Metric]:
-    # note: only considers metric.name as the only "dependency" for an aggregation is the underlying metric
+    # note: only considers metric.name
+    # we don't worry about aggregation_name here because the only
+    # "dependency" for an aggregation is the underlying metric
     def resolve(metric):
         metrics = {}
 
@@ -50,47 +51,68 @@ def topo_sort_metrics(metrics: Collection[Metric]) -> List[Metric]:
 
 
 @dataclass
-class LocalMetrics:
-    data: Dict[str, np.ndarray]
-    target_metrics: Collection[str]
-    metrics: Collection[Metric]
+class Metrics:
+    data: Dict[str, Dict[str, np.ndarray]]
+    target_metrics: Dict[str, List[str]]
     metadata: dict
 
-    def get(self) -> Dict[str, pd.DataFrame]:
-        return keyfilter(lambda name: name in self.target_metrics, self.data)
+    def get_point_metrics(self) -> Dict[str, np.ndarray]:
+        return keyfilter(
+            lambda name: name in self.target_metrics["point"], self.data
+        )
 
-    def aggregate(self) -> dict:
-        aggregations = dict()
-        for metric in self.metrics:
-            if metric.can_aggregate:
-                aggregations[metric.aggregation_name] = metric.get_aggregate(
-                    self.data[metric.name]
-                )
-        return aggregations
+    def get_local_metrics(self) -> Dict[str, np.ndarray]:
+        return keyfilter(
+            lambda name: name in self.target_metrics["local"], self.data
+        )
+
+    def get_global_metrics(self) -> Dict[str, float]:
+        return keyfilter(
+            lambda name: name in self.target_metrics["global"], self.data
+        )
+
+    def get_all(self):
+        all_target_metrics = dict()
+        for key, value in self.data.items():
+            if (
+                key in self.target_metrics["point"]
+                or key in self.target_metrics["local"]
+                or key in self.target_metrics["global"]
+            ):
+                all_target_metrics[key] = value
+        return all_target_metrics
 
 
 class Evaluator:
     _default_metrics = (
         MSE(),
+        Error(),
+        # AbsError(aggr="sum"),  # todo: make point metric aggregatable
         MSE(aggr="mean"),
         Mape(aggr="mean"),
     )
 
     def __init__(self, metrics: Collection[Metric] = _default_metrics) -> None:
-        self.local_metric_targets = [
-            metric for metric in metrics if not metric.can_aggregate
-        ]
-        self.aggregation_targets = [
-            metric for metric in metrics if metric.can_aggregate
-        ]
+        self.target_metrics = {"point": [], "local": [], "global": []}
+        self.aggregations = []
+        for metric in metrics:
+            if isinstance(metric, PointMetric):
+                self.target_metrics["point"].append(metric.name)
+            elif metric.can_aggregate:
+                self.target_metrics["global"].append(metric.aggregation_name)
+                self.aggregations.append(metric)
+            else:
+                self.target_metrics["local"].append(metric.name)
 
         required_metrics = resolve_dependencies(metrics)
-        self.local_metrics = topo_sort_metrics(required_metrics)
+        self.required_metrics = topo_sort_metrics(
+            required_metrics
+        )  # aggregations will be calculated later
 
     def apply(
         self, test_pairs: TestDataset, forecasts: Iterator[Forecast]
-    ) -> LocalMetrics:
-        metrics_data = {metric.name: [] for metric in self.local_metrics}
+    ) -> Metrics:
+        metrics_data = {metric.name: [] for metric in self.required_metrics}
         metadata = {"item_id": [], "start": []}
 
         test_pairs_iter = iter(test_pairs)
@@ -101,7 +123,7 @@ class Evaluator:
             forecast = next(forecasts)
 
             latest_metrics_data = dict()
-            for metric in self.local_metrics:
+            for metric in self.required_metrics:
                 value = metric.get(
                     input_data, label, forecast, latest_metrics_data
                 )
@@ -111,11 +133,15 @@ class Evaluator:
         metrics_data_np = {
             key: np.stack(value, axis=0) for key, value in metrics_data.items()
         }
-        return LocalMetrics(
-            data=metrics_data_np,
-            metrics=self.local_metrics + self.aggregation_targets,
-            target_metrics=[
-                metric.name for metric in self.local_metric_targets
-            ],
+
+        aggregations = dict()
+        for metric in self.aggregations:
+            aggregations[metric.aggregation_name] = metric.get_aggregate(
+                metrics_data[metric.name]
+            )
+
+        return Metrics(
+            data={**metrics_data_np, **aggregations},
+            target_metrics=self.target_metrics,
             metadata=metadata,
         )

@@ -1,17 +1,13 @@
-from typing import Dict
-
 import numpy as np
 import pandas as pd
 
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import split
-from gluonts.ev.metrics import MSE, Mape
 
 from gluonts.ev.evaluator import Evaluator
 from gluonts.mx import SimpleFeedForwardEstimator, Trainer
 
 # SETUP
-
 dataset = get_dataset(
     "m4_hourly"
 ).train  # let's pretend, this is the entire dataset
@@ -48,24 +44,43 @@ def sum_of_last_ten(values: np.ndarray) -> float:
     return np.sum(values[-10:]).item()
 
 
-evaluator = Evaluator([MSE(aggr="mean")])
+evaluator = Evaluator()
 
-local_metrics = evaluator.apply(
-    test_pairs, forecast_it
-)  # returns a LocalMetrics object
-print(pd.DataFrame(local_metrics.get()).rename_axis("item_id").reset_index())
+metrics = evaluator.apply(test_pairs, forecast_it)
 
-global_metrics = (
-    local_metrics.aggregate()
-)  # todo: returns a dict, should maybe also return a Metrics object
-print(global_metrics)
+# we can get very detailed metrics (for every time stamp of every series)
+global_metrics = metrics.get_point_metrics()
+print(np.shape(global_metrics["error"]))  # 2 dimensional values
+
+# local metrics refer to metrics that consist of a single number per entry in test dataset
+print(
+    pd.DataFrame(metrics.get_local_metrics())
+    .rename_axis("item_id")
+    .reset_index()
+)
+
+# global metrics describe the entire dataset in one number
+print(metrics.get_global_metrics())
 
 """
 RESULT:
 
-100%|██████████| 100/100 [00:00<00:00, 177.19it/s, epoch=1/1, avg_epoch_loss=6.25]
-Empty DataFrame
-Columns: [item_id]
-Index: []
-{'mse_mean': 12172456.495098885}
+100%|██████████| 100/100 [00:00<00:00, 182.18it/s, epoch=1/1, avg_epoch_loss=6.19]
+{'mse_mean': 11440645.357514339, 'mape_mean': 0.40203682122671086}
+(414, 48)
+     item_id            mse
+0          0    6409.585938
+1          1  504531.250000
+2          2   12911.440430
+3          3  164485.031250
+4          4   65625.437500
+..       ...            ...
+409      409    1917.923462
+410      410    2463.419189
+411      411    2342.378906
+412      412     132.304184
+413      413     359.834381
+
+[414 rows x 2 columns]
+{'mse_mean': 11440645.357514339, 'mape_mean': 0.40203682122671086}
 """
