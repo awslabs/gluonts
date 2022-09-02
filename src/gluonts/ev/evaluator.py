@@ -15,7 +15,7 @@
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
-from typing import Dict, Collection, Iterator
+from typing import Dict, Collection, Iterator, List
 
 from toolz import keyfilter
 
@@ -25,7 +25,7 @@ from ..dataset.split import TestDataset
 from ..model import Forecast
 
 
-def resolve_dependencies(metrics: Collection[Metric]):
+def resolve_dependencies(metrics: Collection[Metric]) -> Collection[Metric]:
     def resolve(entity):
         metrics = {}
 
@@ -41,11 +41,11 @@ def resolve_dependencies(metrics: Collection[Metric]):
     for metric in map(resolve, metrics):
         result.update(metric)
 
-    return result
+    return result.values()
 
 
-def topo_sort_metrics(metrics: Collection[Metric]):
-    return metrics  # todo: actually sort
+def topo_sort_metrics(metrics: Collection[Metric]) -> List[Metric]:
+    return list(metrics)  # todo: actually sort
 
 
 @dataclass
@@ -63,7 +63,7 @@ class LocalMetrics:
         for metric in self.metrics:
             if metric.can_aggregate:
                 aggregations[metric.aggregation_name] = metric.get_aggregate(
-                    self.data
+                    self.data[metric.name]
                 )
         return aggregations
 
@@ -72,17 +72,20 @@ class Evaluator:
     _default_metrics = MSE(aggr="mean")
 
     def __init__(self, metrics: Collection[Metric] = _default_metrics) -> None:
-        self.target_metrics = [
-            metric.aggregation_name if metric.can_aggregate else metric.name
-            for metric in metrics
+        self.local_metric_targets = [
+            metric for metric in metrics if not metric.can_aggregate
         ]
-        required_metrics = resolve_dependencies(metrics).values()
-        self.metrics = topo_sort_metrics(required_metrics)
+        self.aggregation_targets = [
+            metric for metric in metrics if metric.can_aggregate
+        ]
+
+        required_metrics = resolve_dependencies(self.local_metric_targets)
+        self.local_metrics = topo_sort_metrics(required_metrics)
 
     def apply(
         self, test_pairs: TestDataset, forecasts: Iterator[Forecast]
     ) -> LocalMetrics:
-        metrics_data = {metric.name: [] for metric in self.metrics}
+        metrics_data = {metric.name: [] for metric in self.local_metrics}
         metadata = {"item_id": [], "start": []}
 
         test_pairs_iter = iter(test_pairs)
@@ -93,7 +96,7 @@ class Evaluator:
             forecast = next(forecasts)
 
             latest_metrics_data = dict()
-            for metric in self.metrics:
+            for metric in self.local_metrics:
                 value = metric.get(
                     input_data, label, forecast, latest_metrics_data
                 )
@@ -105,7 +108,9 @@ class Evaluator:
         }
         return LocalMetrics(
             data=metrics_data_np,
-            metrics=self.metrics,
-            target_metrics=self.target_metrics,
+            metrics=self.local_metrics + self.aggregation_targets,
+            target_metrics=[
+                metric.name for metric in self.local_metric_targets
+            ],
             metadata=metadata,
         )

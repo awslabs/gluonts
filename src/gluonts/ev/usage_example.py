@@ -1,3 +1,6 @@
+from typing import Dict
+
+import numpy as np
 import pandas as pd
 
 from gluonts.dataset.repository.datasets import get_dataset
@@ -35,10 +38,26 @@ forecast_it = predictor.predict(
     dataset=test_pairs.input  # expected datatype is Dataset so this is not the best way to do it...
 )
 
+
 # EVALUATION
 # let's get the MSE per entry as well as aggregated and also the mean MAPE
 # TODO: this might not work because metrics aren't properly sorted yet in Evaluator
-evaluator = Evaluator([MSE(), MSE(aggr="mean"), Mape(aggr="mean")])
+
+# define a custom aggregation function
+def sum_of_last_ten(values: np.ndarray) -> float:
+    return np.sum(values[-10:]).item()
+
+
+evaluator = Evaluator(
+    [
+        MSE(),
+        MSE(aggr="mean"),
+        MSE(aggr="sum"),
+        Mape(aggr="sum"),
+        Mape(),
+        MSE(aggr=sum_of_last_ten),
+    ]
+)
 
 local_metrics = evaluator.apply(
     test_pairs, forecast_it
@@ -53,20 +72,20 @@ print(global_metrics)
 """
 RESULT:
 
-100%|██████████| 100/100 [00:00<00:00, 176.26it/s, epoch=1/1, avg_epoch_loss=6.2]
-     item_id            mse
-0          0    5371.170898
-1          1  542593.437500
-2          2   13979.238281
-3          3  126263.937500
-4          4   78110.429688
-..       ...            ...
-409      409    2183.541748
-410      410    3023.763672
-411      411    2451.927979
-412      412     119.274406
-413      413     397.788818
+100%|██████████| 100/100 [00:00<00:00, 180.28it/s, epoch=1/1, avg_epoch_loss=6.14]
+     item_id            mse      mape
+0          0    6332.337402  0.106487
+1          1  578881.000000  0.314353
+2          2   17221.837891  0.082568
+3          3  160789.437500  0.068083
+4          4   75936.507812  0.103300
+..       ...            ...       ...
+409      409    2292.286865  0.699178
+410      410    3170.718506  1.031616
+411      411    2601.059570  0.951782
+412      412     111.052147  0.260463
+413      413     372.103760  0.415241
 
-[414 rows x 2 columns]
-{'mse_mean': 12059636.396682188, 'mape_mean': 0.40135596130169243}
+[414 rows x 3 columns]
+{'mse_mean': 16916181.978052687, 'mse_sum': 7003299338.913813, 'mape_sum': 179.80691988021135, 'mse_sum_of_last_ten': 174118.18099212646}
 """

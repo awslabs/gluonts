@@ -36,7 +36,7 @@ class Metric(ABC):
     ) -> Union[float, np.ndarray]:
         raise NotImplementedError
 
-    def get_aggregate(self, metrics: Dict[str, np.ndarray]) -> float:
+    def get_aggregate(self, values: np.ndarray) -> float:
         raise NotImplementedError
 
 
@@ -53,17 +53,15 @@ class PointMetric(Metric, ABC):
 
 
 class LocalMetric(Metric, ABC):
-    def _get_aggregate_mean(self, metrics: Dict[str, np.ndarray]) -> float:
-        return np.mean(metrics[self.name]).item()
+    def _get_aggregate_mean(self, values: np.ndarray) -> float:
+        return np.mean(values).item()
 
-    def _get_aggregate_sum(self, metrics: Dict[str, np.ndarray]) -> float:
-        return np.sum(metrics[self.name]).item()
+    def _get_aggregate_sum(self, values: np.ndarray) -> float:
+        return np.sum(values).item()
 
     def __init__(
         self,
-        aggr: Optional[
-            Union[str, Callable[[Dict[str, np.ndarray]], float]]
-        ] = None,
+        aggr: Optional[Union[str, Callable[[np.ndarray], float]]] = None,
     ):
         super().__init__()
         if aggr is not None:
