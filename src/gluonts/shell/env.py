@@ -15,7 +15,7 @@ import os
 import tarfile
 from distutils.util import strtobool
 from functools import partial
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 from toolz import valmap
 
