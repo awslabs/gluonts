@@ -12,18 +12,20 @@
 # permissions and limitations under the License.
 
 
+from pathlib import Path
+from typing import List, NamedTuple
+import gluonts
 import logging
+import numpy as np
 import os
+import pandas as pd
+import pytest
 import random
 import sys
 import tempfile
 import warnings
-from pathlib import Path
 
-import numpy as np
-import pytest
-
-import gluonts
+from gluonts.dataset.common import ListDataset
 
 try:
     import mxnet as mx
@@ -34,6 +36,84 @@ try:
     import statsmodels
 except ImportError:
     statsmodels = None
+
+
+class HierarchicalMetaData(NamedTuple):
+    S: np.ndarray
+    freq: str
+    nodes: List
+
+
+class HierarchicalTrainDatasets(NamedTuple):
+    train: ListDataset
+    test: ListDataset
+    metadata: HierarchicalMetaData
+
+
+@pytest.fixture
+def sine7(seq_length: int = 100, prediction_length: int = 10):
+    x = np.arange(0, seq_length)
+
+    # Bottom layer (4 series)
+    amps = [0.8, 0.9, 1, 1.1]
+    freqs = [1 / 20, 1 / 30, 1 / 50, 1 / 100]
+
+    b = np.zeros((4, seq_length))
+    for i, f in enumerate(freqs):
+        omega = 0
+        if i == 3:
+            np.random.seed(0)
+            omega = np.random.uniform(0, np.pi)  # random phase shift
+        b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
+
+    # Aggregation matrix S
+    S = np.array(
+        [
+            [1, 1, 1, 1],
+            [1, 1, 0, 0],
+            [0, 0, 1, 1],
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ],
+    )
+
+    Y = S @ b
+
+    # Indices and timestamps
+    index = pd.date_range(
+        start=pd.Timestamp("2020-01-01", freq="D"),
+        periods=Y.shape[1],
+        freq="D",
+    )
+
+    metadata = HierarchicalMetaData(
+        S=S, freq=index.freqstr, nodes=[2, [2] * 2]
+    )
+
+    train_dataset = ListDataset(
+        [
+            {
+                "start": index[0],
+                "item_id": "all_items",
+                "target": Y[:, :-prediction_length],
+            }
+        ],
+        freq=index.freqstr,
+        one_dim_target=False,
+    )
+
+    test_dataset = ListDataset(
+        [{"start": index[0], "item_id": "all_items", "target": Y}],
+        freq=index.freqstr,
+        one_dim_target=False,
+    )
+
+    assert Y.shape[0] == S.shape[0]
+    return HierarchicalTrainDatasets(
+        train=train_dataset, test=test_dataset, metadata=metadata
+    )
 
 
 @pytest.fixture(scope="function", autouse=True)

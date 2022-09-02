@@ -27,7 +27,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import (
@@ -38,7 +37,6 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.itertools import maybe_len
 from gluonts.time_feature import TimeFeature, norm_freq_str
 from gluonts.transform import (
     AddObservedValuesIndicator,
@@ -174,6 +172,9 @@ class DeepVAREstimator(GluonEstimator):
         the accuracy (default: 100)
     dropout_rate
         Dropout regularization parameter (default: 0.1)
+    use_feat_dynamic_real
+        Whether to use the ``feat_dynamic_real`` field from the data
+        (default: False)
     cardinality
         Number of values of each categorical feature (default: [1])
     embedding_dimension
@@ -225,6 +226,7 @@ class DeepVAREstimator(GluonEstimator):
         cell_type: str = "lstm",
         num_parallel_samples: int = 100,
         dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
         distr_output: Optional[DistributionOutput] = None,
@@ -283,6 +285,7 @@ class DeepVAREstimator(GluonEstimator):
         self.embedding_dimension = embedding_dimension
         self.conditioning_length = conditioning_length
         self.use_marginal_transformation = use_marginal_transformation
+        self.use_feat_dynamic_real = use_feat_dynamic_real
 
         self.lags_seq = (
             lags_seq
@@ -351,7 +354,12 @@ class DeepVAREstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME],
+                    input_fields=[FieldName.FEAT_TIME]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
                 ),
                 SetFieldIfNotPresent(
                     field=FieldName.FEAT_STATIC_CAT, value=[0.0]
@@ -409,8 +417,7 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -425,8 +432,7 @@ class DeepVAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepVARTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

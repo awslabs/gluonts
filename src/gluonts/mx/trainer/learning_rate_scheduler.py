@@ -81,12 +81,12 @@ class Patience:
 
     patience: int = field(metadata={"ge": 0})
     objective: Objective
-    _current_patience: int = field(default=0, init=False)
+    current_patience: int = field(default=0, init=False)
     num_resets: int = field(default=0, init=False)
     exceeded: bool = field(default=False, init=False)
 
     def reset(self) -> None:
-        self._current_patience = 0
+        self.current_patience = 0
         self.exceeded = False
         self.num_resets += 1
 
@@ -97,12 +97,12 @@ class Patience:
         has_improved = self.objective.update(metric_value)
 
         if has_improved:
-            self._current_patience = 0
+            self.current_patience = 0
         else:
-            self._current_patience += 1
+            self.current_patience += 1
 
         # this can also trigger in case of improvement when `self.patience = 0`
-        self.exceeded = self._current_patience >= self.patience
+        self.exceeded = self.current_patience >= self.patience
         return self.exceeded
 
 

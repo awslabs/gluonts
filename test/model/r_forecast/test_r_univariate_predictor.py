@@ -15,15 +15,15 @@ import pytest
 
 from gluonts.core import serde
 from gluonts.dataset.repository import datasets
-from gluonts.dataset.util import forecast_start
+from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.model.forecast import SampleForecast, QuantileForecast
 from gluonts.model.r_forecast import (
     RForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    SUPPORTED_METHODS,
-    QUANTILE_FORECAST_METHODS,
+    UNIVARIATE_QUANTILE_FORECAST_METHODS,
+    SUPPORTED_UNIVARIATE_METHODS,
 )
 
 
@@ -36,7 +36,7 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
 TOLERANCE = 1e-6
 
 
-@pytest.mark.parametrize("method_name", SUPPORTED_METHODS)
+@pytest.mark.parametrize("method_name", SUPPORTED_UNIVARIATE_METHODS)
 def test_forecasts(method_name):
     if method_name == "mlp":
         # https://stackoverflow.com/questions/56254321/error-in-ifncol-matrix-rep-argument-is-of-length-zero
@@ -69,7 +69,7 @@ def test_forecasts(method_name):
 
     forecast_type = (
         QuantileForecast
-        if method_name in QUANTILE_FORECAST_METHODS
+        if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS
         else SampleForecast
     )
     assert all(
@@ -97,6 +97,16 @@ def test_forecasts(method_name):
     assert agg_metrics["mean_wQuantileLoss"] < TOLERANCE
     assert agg_metrics["NRMSE"] < TOLERANCE
     assert agg_metrics["RMSE"] < TOLERANCE
+
+    trunc_length = prediction_length
+
+    predictor = RForecastPredictor(**params, trunc_length=trunc_length)
+    predictions = list(predictor.predict(train_dataset))
+
+    assert all(
+        prediction.start_date == to_pandas(data).index[-1] + 1
+        for data, prediction in zip(train_dataset, predictions)
+    )
 
 
 def test_r_predictor_serialization():

@@ -109,7 +109,11 @@ class ArrowFile(File):
             yield self.reader.get_batch(batch_no)
 
     def __len__(self):
-        return sum(self.batch_offsets)
+        if len(self.batch_offsets) > 0:
+            return self.batch_offsets[-1]
+
+        # empty file
+        return 0
 
     def __iter__(self):
         for batch in self.iter_batches():
@@ -158,7 +162,6 @@ class ArrowStreamFile(File):
 class ParquetFile(File):
     path: Path
     reader: pq.ParquetFile = field(init=False)
-    _length: Optional[int] = field(default=None, init=False)
 
     def __post_init__(self):
         self.reader = pq.ParquetFile(self.path)
@@ -178,7 +181,5 @@ class ParquetFile(File):
             yield from self.decoder.decode_batch(batch)
 
     def __len__(self):
-        if self._length is None:
-            self._length = self.reader.scan_contents()
-
-        return self._length
+        # One would think that pq.ParquetFile had a nicer way to get its length
+        return self.reader.metadata.num_rows

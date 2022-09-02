@@ -86,12 +86,14 @@ estimator = DeepVAREstimator
         ),
     ],
 )
+@pytest.mark.parametrize("use_feat_dynamic_real", [True, False])
 def test_deepvar(
     distr_output,
     num_batches_per_epoch,
     Estimator,
     hybridize,
     use_marginal_transformation,
+    use_feat_dynamic_real,
 ):
 
     estimator = Estimator(
@@ -105,6 +107,7 @@ def test_deepvar(
         distr_output=distr_output,
         scaling=False,
         use_marginal_transformation=use_marginal_transformation,
+        use_feat_dynamic_real=use_feat_dynamic_real,
         trainer=Trainer(
             epochs=1,
             learning_rate=1e-10,

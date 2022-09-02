@@ -26,7 +26,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution.lds import ParameterBounds
@@ -34,7 +33,6 @@ from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters, get_hybrid_forward_input_names
-from gluonts.itertools import maybe_len
 from gluonts.time_feature import (
     TimeFeature,
     norm_freq_str,
@@ -345,8 +343,7 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("training")
+        instance_splitter = self._create_instance_splitter("training")
         return TrainDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),
@@ -361,8 +358,7 @@ class DeepStateEstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(DeepStateTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self._create_instance_splitter("validation")
+        instance_splitter = self._create_instance_splitter("validation")
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter + SelectFields(input_names),

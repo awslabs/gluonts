@@ -11,24 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import warnings
 
-# flake8: noqa
-
-from gluonts.exceptions import (
-    assert_gluonts,
-    assert_data_error,
-    GluonTSException,
-    GluonTSDataError,
-    GluonTSDateBoundsError,
-    GluonTSHyperparametersError,
-    GluonTSUserError,
-)
-
-
-warnings.warn(
-    "`gluonts.core.exception` is deprecated, "
-    "use `gluonts.exceptions` instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+COPPER = "#6d2f20"
+RED = "#b75347"
+SALMON = "#df7e66"
+ORANGE = "#e09351"
+YELLOW = "#edc775"
+GREEN = "#94b594"
+BLUE = "#224b5e"

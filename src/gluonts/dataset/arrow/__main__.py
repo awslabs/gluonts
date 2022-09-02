@@ -16,8 +16,9 @@ from pathlib import Path
 import click
 
 from gluonts.dataset.common import FileDataset
+from gluonts.gluonts_tqdm import tqdm
 
-from . import ArrowFile, ArrowStreamFile, ParquetFile, write_dataset
+from . import ArrowWriter, ParquetWriter
 
 
 @click.group()
@@ -43,20 +44,11 @@ def write(dataset, out, freq, type_, stream):
             raise click.UsageError(f"Unsupported suffix {out.suffix}.")
 
     if type_ == "arrow":
-        if stream:
-            File = ArrowStreamFile
-        else:
-            File = ArrowFile
+        writer = ArrowWriter(stream=stream)
     else:
-        File = ParquetFile
+        writer = ParquetWriter()
 
-    write_dataset(
-        File,
-        FileDataset(dataset, freq),
-        out,
-        metadata={"freq": freq},
-        flatten_arrays=True,
-    )
+    writer.write_to_file(tqdm(FileDataset(dataset, freq)), out)
 
 
 if __name__ == "__main__":

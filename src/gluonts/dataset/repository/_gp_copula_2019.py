@@ -154,11 +154,11 @@ def get_data(dataset_path: Path, ds_info: GPCopulaDataset):
             "item_id": cat,
         }
         for cat, data_entry in enumerate(
-            FileDataset(dataset_path, freq=ds_info.freq)
+            FileDataset(dataset_path, freq=ds_info.freq, pattern="[!._]*")
         )
     ]
 
 
 def clean_up_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
     os.remove(dataset_path.parent / f"{ds_info.name}.tar.gz")
-    shutil.rmtree(dataset_path / "metadata")
+    shutil.rmtree(dataset_path / "metadata", ignore_errors=True)

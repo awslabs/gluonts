@@ -1,6 +1,6 @@
 ipython
 ipykernel~=6.5
-nbconvert~=6.4.4
+nbconvert~=6.5.1
 nbsphinx~=0.8.8
 notedown
 pytest-runner~=2.11
@@ -14,3 +14,5 @@ myst-parser
 click
 orjson
 black
+holidays~=0.9
+matplotlib

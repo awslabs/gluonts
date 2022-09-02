@@ -11,6 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["DateSplitter", "OffsetSplitter", "split"]
+import typing
 
-from .splitter import DateSplitter, OffsetSplitter, split
+from mypy.plugin import Plugin, ClassDefContext
+from mypy.plugins.dataclasses import dataclass_class_maker_callback
+
+
+class GluonTSPlugin(Plugin):
+    def get_class_decorator_hook(
+        self, fullname: str
+    ) -> typing.Optional[typing.Callable[[ClassDefContext], None]]:
+
+        if fullname == "gluonts.core.serde._dataclass.dataclass":
+            return dataclass_class_maker_callback
+        return None
+
+
+def plugin(version: str) -> typing.Type[Plugin]:
+    return GluonTSPlugin
