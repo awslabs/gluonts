@@ -1,48 +1,51 @@
-Development Setup
-=================
+# Development Setup
 
-.. highlight:: bash
+This setup guide assumes that the ``python`` command references a Python 3.7 version or higher.
+We recommend using [pyenv][pyenv] for managing Python versions.
 
-GluonTS requires Python 3.7 or higher to run. This setup guide assumes that the
-``python`` command references a Python 3.7 version or higher. We recommend
-using pyenv_ for managing Python versions.
+Upon checking out this package, please run the following:
 
-Upon checking out this package, please run the following::
+```bash
+./dev_setup.sh
+pip install -e .[dev]
 
-    ./dev_setup.sh
-    pip install -e .[dev]
-
-    # if you use zsh you might need to escape `[` and `]`
-    pip install -e ".[dev]"
+# if you use zsh you might need to escape `[` and `]`
+pip install -e ".[dev]"
+```
 
 This will install all required packages with pip and setup a Git hook that does
 automated type and style checks when you try to create a new Git commit.
 
-When you create commits on a |WIP| branch, you can disable these checks for a
+When you create commits on a branch, you can disable these checks for a
 with the ``--no-verify`` Git commit option.
 
-.. _pyenv: https://github.com/pyenv/pyenv
+[pyenv]: https://github.com/pyenv/pyenv
 
-Build Instructions
-------------------
+## Build Instructions
 
-To run the project tests::
+To run the project tests:
 
-    pytest
-    # or
-    python setup.py tests
+```bash
+pytest
+# or
+python setup.py tests
+```
 
-To build the project documentation::
+To build the project documentation:
 
-    python setup.py docs
+```bash
+python setup.py docs
+```
 
 This will put the documentation in ``docs/_build/html``, where you can inspect
 it by opening ``index.html``.
 
-You can also run the code quality checks manually using ``setup.py``::
+You can also run the code quality checks manually using ``setup.py``:
 
-    python setup.py type_check   # for Mypy type checks
-    python setup.py style_check  # for Black code style checks
+```bash
+python setup.py type_check   # for Mypy type checks
+python setup.py style_check  # for Black code style checks
+```
 
 Note that the above commands are executed automatically as part of the
 ``build`` command. Developers that want to merge their code changes in the
@@ -52,14 +55,13 @@ using ``./dev_setup.sh`` and are not relying on the ``--no-verify`` option,
 this should already be asserted when you create your commits.
 
 
-Writing Type-Safe Code
-----------------------
+## Writing Type-Safe Code
 
-The codebase makes extensive use of `type hints`_. The benefits of using types
+The codebase makes extensive use of [type hints][type hints]. The benefits of using types
 are twofold. On the one hand, typing the arguments and the return type of
 methods and functions provides additional layer of meta-information and
 improves the readability of the code. On the other, with the help of an
-external type-checker such as `mypy`_ we can statically catch a number of
+external type-checker such as [mypy][mypy] we can statically catch a number of
 corner cases that can possibly cause bugs in production.
 
 As explained above, in order to implement the latter, the ``type_check``
@@ -79,42 +81,41 @@ to ensure that code added to the repository is type-safe and type-checked.
    marked with return type ``None``.
 
 If you adhere to the above guidelines, you should be able to run
-``python setup.py style_check`` and catch type errors early directly on your
-|WIP| branch.
+``python setup.py style_check`` and catch type errors early directly on your branch.
 
-.. _type hints: https://docs.python.org/3.7/library/typing.html
-.. _mypy: https://mypy.readthedocs.io/en/latest/
+[type hints]: https://docs.python.org/3.7/library/typing.html
+[mypy]: https://mypy.readthedocs.io/en/latest/
 
-Editing the documentation
--------------------------
+## Editing the documentation
 
-GluonTS documentation follows the `NumPy docstring format`_.
+GluonTS documentation follows the [NumPy docstring format][numpy_doc].
 
 If you are editing docstrings in source code, you can preview them with the
-following commands::
+following commands:
 
-    make -C docs html                # generate the docs
-    open docs/_build/html/index.html # open the generated docs in a browser
+```bash
+make -C docs html                # generate the docs
+open docs/_build/html/index.html # open the generated docs in a browser
+```
 
 Ensure that there are no syntax errors and warnings before committing a PR.
 
 If you are directly editing ``*.rst`` files within the ``docs`` folder, you
 can use a ``sphinx-autobuild`` autobuild session that starts a web server and
 a watchdog that automatically rebuilds the documentation when you change an
-``*.rst`` file::
+``*.rst`` file:
 
-    cd docs                          # go to the docs folder
-    make livehtml                    # run the autobuild watchdog, ensure that
-                                     # there are no syntax errors and warnings
-    open http://127.0.0.1:8000       # open the autobuild preview
+```bash
+cd docs                          # go to the docs folder
+make livehtml                    # run the autobuild watchdog, ensure that
+                                 # there are no syntax errors and warnings
+open http://127.0.0.1:8000       # open the autobuild preview
+```
 
 Here are some useful links summarizing the Sphinx syntax:
 
-- `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
-- `rst cheat sheet <https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst>`_
-- `rst basics <http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_
+- [numpydoc docstring guide](https://numpydoc.readthedocs.io/en/latest/format.html)
+- [rst cheat sheet](https://github.com/ralsina/rst-cheatsheet/blob/master/rst-cheatsheet.rst)
+- [rst basics](http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
 
-.. _NumPy docstring format: https://numpydoc.readthedocs.io/en/latest/format.html
-.. |WIP| raw:: html
-
-  <abbr title="work in progress">WIP</abbr>
+[numpy_doc]: https://numpydoc.readthedocs.io/en/latest/format.html
