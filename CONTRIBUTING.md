@@ -6,11 +6,9 @@ documentation, we greatly value feedback and contributions from our community.
 Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
 information to effectively respond to your bug report or contribution.
 
-
 ## Questions and discussion topics
 
 Questions and discussion topics can be proposed using [discussions](https://github.com/awslabs/gluon-ts/discussions).
-
 
 ## Reporting Bugs/Feature Requests
 
@@ -24,11 +22,11 @@ reported the issue. Please try to include as much information as you can. Detail
 * Any modifications you've made relevant to the bug
 * Anything unusual about your environment or deployment
 
-
 ## Contributing via Pull Requests
+
 Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
 
-1. You are working against the latest source on the *dev* branch.
+1. You are working against the latest source on the `dev` branch.
 2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
 3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
 
@@ -44,61 +42,26 @@ To send us a pull request, please:
 GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
+## Development setup
 
-## Development setup and coding style
-
-For development you need the requirements listed in all `requirements...txt` files.
-
-We use [black](https://github.com/python/black) and mypy for style and
-type checking. Any code changes that you contribute should pass these checks.
-
-The easiest way to get set up for development is to run the following script:
-
-```bash
-# first fork the repo on github
-
-# then clone your fork
-git clone https://github.com/<your-github-username>/gluon-ts.git
-
-# enter the cloned repo
-cd gluon-ts
-
-# run development setup
-./dev_setup.sh
-
-# install GluonTS from current source with shell dependencies
-pip install -e ".[shell]"
-```
-Note that windows and other versions of linux (not mac versions) will require
-something slightly different to initiate the `dev_setup.sh` script.
-
-This will install all the requirements and also install a git hook that runs
-all code checks when you commit. This also separates your workflow so that
-pull-requests go through your forked repo and then into upstream if approved.
-
-You may wish to familiarize yourself with forked repositories on github, for
-more see:
-https://help.github.com/en/articles/working-with-forks
-
-To avoid conflicts with existing python installations you may want to setup
-a virtual environment. For more on virtual environments in python see:
-https://docs.python.org/3/tutorial/venv.html
-for python virtual environments and
-https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html
-for conda virtual environments.
+Please refer to the [documentation](https://ts.gluon.ai/dev/community/devsetup.html) on how to set up your development environment.
 
 ## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted) issues is a great place to start.
+
+Looking at the existing issues is a great way to find something to contribute on: issues labeled with
+['good first issue'](https://github.com/awslabs/gluon-ts/labels/good%20first%20issue) or
+['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted)
+are a great place to start.
 
 ## Code of Conduct
+
 This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
 For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
 opensource-codeofconduct@amazon.com with any additional questions or comments.
 
-
 ## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
+If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 ## Licensing
 
