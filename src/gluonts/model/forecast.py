@@ -779,14 +779,11 @@ class QuantileForecast(Forecast):
             keys = self.forecast_keys
 
         for k, v in zip(keys, self.forecast_array):
-            plt.plot(
-                self.index,
-                v,
+            pd.Series(data=v, index=self.index.to_timestamp()).plot(
                 label=f"{label_prefix}q{k}",
                 *args,
                 **kwargs,
             )
-            plt.legend()
         if output_file:
             plt.savefig(output_file)
 

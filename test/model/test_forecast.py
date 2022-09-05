@@ -60,6 +60,8 @@ def test_Forecast(name):
     assert len(forecast.index) == pred_length
     assert forecast.index[0] == START_DATE
 
+    forecast.plot()
+
 
 @pytest.mark.parametrize(
     "forecast, exp_index",
