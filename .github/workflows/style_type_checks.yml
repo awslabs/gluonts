@@ -22,6 +22,6 @@ jobs:
         black --check src test examples
     - name: Type check
       run: |
-        python ./devtools/type-check src/gluonts
+        python .devtools/type-check src/gluonts
     - name: Check license headers
       run: python .devtools/license check src test
