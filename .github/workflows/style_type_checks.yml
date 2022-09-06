@@ -8,6 +8,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - uses: extractions/setup-just@v1
+
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
@@ -21,7 +23,6 @@ jobs:
       run: |
         black --check src test examples
     - name: Type check
-      run: |
-        python .devtools/type-check src/gluonts
+      run: just type-check src/gluonts
     - name: Check license headers
       run: python .devtools/license check src test

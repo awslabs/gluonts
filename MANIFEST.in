@@ -13,7 +13,6 @@ prune src/gluonts/nursery
 
 exclude .dockerignore
 exclude .gitignore
-exclude dev_setup.sh
 
 
 global-exclude *.ipynb

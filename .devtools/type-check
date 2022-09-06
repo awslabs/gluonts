@@ -37,6 +37,10 @@ def run_mypy(path):
         str(marker.parent) for marker in directory.rglob("**/.typesafe")
     ]
 
+    if not folders:
+        click.secho("No folders with .typesafe marker found.", fg="red")
+        sys.exit(1)
+
     std_out, std_err, exit_code = mypy.api.run(mypy_opts + folders)
 
     print(std_out, file=sys.stdout)

@@ -16,7 +16,11 @@
 # under the License.
 
 ROOTDIR := justfile_directory()
+SRCDIR := ROOTDIR + "/src/gluonts"
 MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
+
+default:
+  just --list
 
 docs: compile_notebooks
   make -C docs html # SPHINXOPTS=-W
@@ -30,3 +34,9 @@ compile_notebooks mode="release":
 
 release:
   python setup.py sdist
+
+type-check path=".":
+  python .devtools/type-check {{ invocation_directory() + "/" + path }}
+
+license-check path=".":
+  python .devtools/license check {{ invocation_directory() + "/" + path }}
