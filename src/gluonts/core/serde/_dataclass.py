@@ -13,7 +13,8 @@
 
 import dataclasses
 import inspect
-from types import SimpleNamespace
+
+# from types import SimpleNamespace
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -25,7 +26,7 @@ from typing import (
 )
 
 import pydantic.dataclasses
-from pydantic import create_model
+from pydantic.fields import FieldInfo
 
 T = TypeVar("T")
 
@@ -105,11 +106,11 @@ def dataclass(
     cls=None,
     *,
     init=True,
-    repr=True,
+    repr=False,
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=True,
+    frozen=False,
 ):
     """Custom dataclass wrapper for serde.
 
@@ -131,47 +132,65 @@ def dataclass(
 def _dataclass(
     cls,
     init=True,
-    repr=True,
+    repr=False,
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=True,
+    frozen=False,
 ):
-    fields = {}
+    fields = []
     orelse_fields = {}
-    eventual_fields = set()
+    # eventual_fields = {}
+    optional_fields = []
+    init_fields = []
 
-    for name, ty in getattr(cls, "__annotations__", {}).items():
-        value = cls.__dict__.get(name, dataclasses.MISSING)
+    class Config:
+        arbitrary_types_allowed = True
 
+    dc = pydantic.dataclasses.dataclass(
+        init=init,
+        repr=repr,
+        eq=eq,
+        order=order,
+        unsafe_hash=unsafe_hash,
+        frozen=frozen,
+        config=Config,
+    )(cls)
+
+    for name in getattr(cls, "__annotations__", {}):
+        init_fields.append(name)
+
+    for name, field in getattr(dc, "__dataclass_fields__", {}).items():
+        field: dataclasses.Field
         # skip if: field(init=False)
-        if isinstance(value, dataclasses.Field):
-            if not value.init:
-                continue
-            default = value.default
-        else:
-            default = value
-
-        if default is dataclasses.MISSING:
-            default = ...
-
-        # skip ClassVar
-        if ty is ClassVar or getattr(cls, "__origin__", None) is ClassVar:
+        if not field.init:
+            init_fields.remove(name)
             continue
 
-        # if InitVar is used, we extract the inner value
-        if ty is dataclasses.InitVar:
-            ty = Any
-        elif isinstance(ty, dataclasses.InitVar):
-            ty = ty.type
+        # skip ClassVar
+        # TODO: how to recognize ClassVar[int]
+        if field.type is ClassVar:
+            init_fields.remove(name)
+            continue
 
-        if default is EVENTUAL:
-            eventual_fields.add(name)
+        if (
+            hasattr(field.type, "__args__")
+            and len(field.type.__args__) == 2
+            and field.type.__args__[-1] is type(None)
+        ):
+            # Check if exactly two arguments exists and one of them are None type
+            optional_fields.append(name)
 
-        if isinstance(default, OrElse):
-            orelse_fields[name] = default
+        fields.append(name)
 
-        fields[name] = ty, default
+        if isinstance(field.default, FieldInfo):
+            """
+            if field.default.default is EVENTUAL:
+                eventual_fields[name] = Eventual(field.default.default)
+            """
+
+            if isinstance(field.default.default, OrElse):
+                orelse_fields[name] = field.default.default
 
     orelse_order = {}
 
@@ -195,39 +214,22 @@ def _dataclass(
                     f"Can not resolve dependencies of {unhandled}"
                 )
 
-    class Config:
-        arbitrary_types_allowed = True
-
-    model = create_model(f"{cls.__name__}Model", __config__=Config, **fields)
-
-    dc = pydantic.dataclasses.dataclass(
-        init=init,
-        repr=repr,
-        eq=eq,
-        order=order,
-        unsafe_hash=unsafe_hash,
-        frozen=frozen,
-        config=Config,
-    )(cls)
-
     orig_init = dc.__init__
 
     def _init_(self, *args, **kwargs):
         # assert len(args) <= len(fields), "Too many arguments"
         # assert len(args) + len(kwargs) <= len(fields)
 
-        input_kwargs = {
-            field_name: arg for arg, field_name in zip(args, fields)
+        init_kwargs = {
+            field_name: arg for arg, field_name in zip(args, init_fields)
         }
-        input_kwargs.update(kwargs)
-
-        validated_model = model(**input_kwargs)
-        init_kwargs = validated_model.dict()
+        init_kwargs.update(kwargs)
 
         for orelse_name, orelse in orelse_order.items():
             value = orelse._call(init_kwargs)
             init_kwargs[orelse_name] = value
 
+        """
         if eventual_fields:
             eventual_kwargs = {
                 key: Eventual(getattr(validated_model, key, EVENTUAL))
@@ -243,24 +245,39 @@ def _dataclass(
                 eventual_kwargs[name] = value.unwrap()
 
             init_kwargs.update(eventual_kwargs)
+        """
 
         object.__setattr__(
             self,
             "__init_kwargs__",
-            init_kwargs,
+            dict(init_kwargs),
         )
+
+        kwargs_attr_dict = {}
+        for field in list(init_kwargs.keys()):
+            delete_field = False
+            if field not in fields:
+                kwargs_attr_dict[field] = init_kwargs[field]
+                delete_field = True
+            if init_kwargs[field] is None and field not in optional_fields:
+                delete_field = True
+            if delete_field:
+                del init_kwargs[field]
 
         object.__setattr__(
             self,
-            "__init_passed_kwargs__",
-            {
-                key: value
-                for key, value in validated_model.dict().items()
-                if key in input_kwargs
-            },
+            "kwargs",
+            kwargs_attr_dict,
         )
 
         orig_init(self, **init_kwargs)
 
+    def _repr_(self) -> str:
+        from gluonts.core.serde import dump_code
+
+        return dump_code(self)
+
     dc.__init__ = _init_
+    dc.__repr__ = _repr_
+
     return dc

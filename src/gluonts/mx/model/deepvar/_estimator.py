@@ -259,6 +259,12 @@ class DeepVAREstimator(GluonEstimator):
                 dim=self.target_dim, rank=self.rank
             )
 
+        self.lags_seq = (
+            self.lags_seq
+            if self.lags_seq is not None
+            else get_lags_for_frequency(freq_str=self.freq)
+        )
+
         if self.time_features is None:
             self.time_features = time_features_from_frequency_str(self.freq)
 

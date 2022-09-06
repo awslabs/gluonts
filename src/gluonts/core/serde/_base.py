@@ -203,11 +203,11 @@ def encode(v: Any) -> Any:
     if isinstance(v, type):
         return {"__kind__": Kind.Type, "class": fqname_for(v)}
 
-    if hasattr(v, "__init_passed_kwargs__"):
+    if hasattr(v, "__init_kwargs__"):
         return {
             "__kind__": Kind.Instance,
             "class": fqname_for(v.__class__),
-            "kwargs": encode(v.__init_passed_kwargs__),  # mypy: ignore
+            "kwargs": encode(v.__init_kwargs__),  # mypy: ignore
         }
 
     if hasattr(v, "__getnewargs_ex__"):

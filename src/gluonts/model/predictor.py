@@ -135,7 +135,7 @@ class Predictor:
         return cls.from_hyperparameters(**params)
 
 
-@serde.dataclass
+@serde.dataclass(eq=False)
 class RepresentablePredictor(Predictor):
     """
     An abstract predictor that can be subclassed by models that are not based

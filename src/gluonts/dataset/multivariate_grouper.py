@@ -223,7 +223,7 @@ class MultivariateGrouper:
             if FieldName.FEAT_DYNAMIC_REAL in data.keys():
                 data[FieldName.FEAT_DYNAMIC_REAL] = data[
                     FieldName.FEAT_DYNAMIC_REAL
-                ][-self.max_target_dimension :, :]
+                ][-self.max_target_dim :, :]
         return data
 
     @staticmethod

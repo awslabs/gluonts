@@ -23,7 +23,7 @@ from gluonts.exceptions import assert_data_error
 from gluonts.gluonts_tqdm import tqdm
 
 
-@serde.dataclass
+@serde.dataclass(eq=False)
 class ScaleHistogram:
     """
     Scale histogram of a timeseries dataset.

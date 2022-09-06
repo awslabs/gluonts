@@ -58,6 +58,8 @@ LOSS_SCALING_MAP = {
     ),
 }
 
+empty_list: List[Transformation] = []
+
 
 class DeepNPTSEstimator(Estimator):
     """
@@ -213,7 +215,8 @@ class DeepNPTSEstimator(Estimator):
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
+            empty_list
+            + [RemoveFields(field_names=remove_field_names)]
             + (
                 [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
                 if not self.use_feat_static_cat
