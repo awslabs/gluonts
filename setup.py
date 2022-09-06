@@ -222,7 +222,11 @@ setup_kwargs: dict = dict(
     ),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    url="https://github.com/awslabs/gluon-ts",
+    url="https://github.com/awslabs/gluonts/",
+    project_urls={
+        "Documentation": "https://ts.gluon.ai/stable/",
+        "Source Code": "https://github.com/awslabs/gluonts/",
+    },
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",

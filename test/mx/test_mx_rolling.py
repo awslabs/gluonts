@@ -68,7 +68,7 @@ def test_dynamic_integration(
 ):
     """
     Trains an estimator on a rolled dataset with dynamic features.
-    Tests https://github.com/awslabs/gluon-ts/issues/1390
+    Tests https://github.com/awslabs/gluonts/issues/1390
     """
     train_ds = create_dynamic_dataset(
         target_start, train_length, num_dynamic_feat
