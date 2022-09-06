@@ -2,11 +2,11 @@
 
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square)](https://pypi.org/project/gluonts/)
-[![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)](./LICENSE)
-[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=blue&style=flat-square)](https://ts.gluon.ai/)
-[![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=blue&style=flat-square)](https://ts.gluon.ai/dev/)
-[![PyPI Downloads](https://pepy.tech/badge/gluonts)](https://pypi.org/project/gluonts/)
+[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square&color=b75347)](https://pypi.org/project/gluonts/)
+[![GitHub](https://img.shields.io/github/license/awslabs/gluonts.svg?style=flat-square&color=df7e66)](./LICENSE)
+[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=edc775&style=flat-square)](https://ts.gluon.ai/)
+[![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=edc775&style=flat-square)](https://ts.gluon.ai/dev/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/gluonts?style=flat-square&color=94b594)](https://pypi.org/project/gluonts/)
 
 GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models.
 
@@ -69,7 +69,7 @@ centered around the median.
 ## Contributing
 
 If you wish to contribute to the project, please refer to our
-[contribution guidelines](https://github.com/awslabs/gluon-ts/tree/dev/CONTRIBUTING.md).
+[contribution guidelines](https://github.com/awslabs/gluonts/tree/dev/CONTRIBUTING.md).
 
 ## Citing
 
@@ -115,7 +115,7 @@ in addition to any model-specific references that are relevant for your work:
 
 * [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
 * [ArXiv Paper](https://arxiv.org/abs/1906.05264)
-* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/dev/REFERENCES.md): a bibliography.
+* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluonts/tree/dev/REFERENCES.md): a bibliography.
 
 ### Tutorials and Workshops
 

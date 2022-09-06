@@ -89,7 +89,7 @@ datasets_info = {
         name="wiki-rolling_nips",
         # That file lives on GitHub Large file storage (lfs). We need to use
         # the exact link, otherwise it will only open the lfs pointer file.
-        url="https://github.com/awslabs/gluon-ts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
+        url="https://github.com/awslabs/gluonts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
         num_series=9535,
         prediction_length=30,
         freq="D",
@@ -154,11 +154,11 @@ def get_data(dataset_path: Path, ds_info: GPCopulaDataset):
             "item_id": cat,
         }
         for cat, data_entry in enumerate(
-            FileDataset(dataset_path, freq=ds_info.freq)
+            FileDataset(dataset_path, freq=ds_info.freq, pattern="[!._]*")
         )
     ]
 
 
 def clean_up_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
     os.remove(dataset_path.parent / f"{ds_info.name}.tar.gz")
-    shutil.rmtree(dataset_path / "metadata")
+    shutil.rmtree(dataset_path / "metadata", ignore_errors=True)

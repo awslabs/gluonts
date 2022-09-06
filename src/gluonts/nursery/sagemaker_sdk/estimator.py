@@ -113,7 +113,7 @@ class GluonTSFramework(Framework):
     defined by the "entry_point" argument of the :meth:`GluonTSFramework.run`
     method. Technical documentation on preparing GluonTSFramework scripts for
     SageMaker training and using the GluonTsFramework Estimator is available on
-    the project home-page: https://github.com/awslabs/gluon-ts. See
+    the project home-page: https://github.com/awslabs/gluonts. See
     how_to_notebooks for examples of how to use this SDK.
 
     Parameters
