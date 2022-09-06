@@ -35,8 +35,8 @@ In order to use the code in this repository, you should first clone the GluonTS 
 go into the directory of this project:
 
 ```bash
-git clone git@github.com:awslabs/gluon-ts.git
-cd gluon-ts/src/gluonts/nursery/tsbench
+git clone git@github.com:awslabs/gluonts.git
+cd gluonts/src/gluonts/nursery/tsbench
 ```
 
 Then, in the root of the repository, you can install all dependencies via
