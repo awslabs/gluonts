@@ -189,7 +189,7 @@ class PyTorchLightningEstimator(Estimator):
                     training_network,
                     num_workers=num_workers,
                 )
-        
+
         training_network = self.create_lightning_module()
 
         if model_init is not None:
