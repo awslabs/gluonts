@@ -224,8 +224,7 @@ setup_kwargs: dict = dict(
     long_description_content_type="text/markdown",
     url="https://github.com/awslabs/gluonts/",
     project_urls={
-        "Stable Documentation": "https://ts.gluon.ai/stable/",
-        "Development Documentation": "https://ts.gluon.ai/dev/",
+        "Documentation": "https://ts.gluon.ai/stable/",
         "Source Code": "https://github.com/awslabs/gluonts/",
     },
     author="Amazon",
