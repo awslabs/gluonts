@@ -15,7 +15,6 @@ import inspect
 import pydoc
 from typing import Type, Union, cast
 
-import pkg_resources
 from toolz import keyfilter
 
 from gluonts.model.estimator import Estimator
