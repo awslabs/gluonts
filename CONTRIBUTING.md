@@ -8,13 +8,13 @@ information to effectively respond to your bug report or contribution.
 
 ## Questions and discussion topics
 
-Questions and discussion topics can be proposed using [discussions](https://github.com/awslabs/gluon-ts/discussions).
+Questions and discussion topics can be proposed using [discussions](https://github.com/awslabs/gluonts/discussions).
 
 ## Reporting Bugs/Feature Requests
 
-We welcome you to use the GitHub [issue tracker](https://github.com/awslabs/gluon-ts/issues/new/choose) to report bugs or suggest features.
+We welcome you to use the GitHub [issue tracker](https://github.com/awslabs/gluonts/issues/new/choose) to report bugs or suggest features.
 
-When filing an issue, please check [existing open](https://github.com/awslabs/gluon-ts/issues), or [recently closed](https://github.com/awslabs/gluon-ts/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already
+When filing an issue, please check [existing open](https://github.com/awslabs/gluonts/issues), or [recently closed](https://github.com/awslabs/gluonts/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already
 reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
 
 * A reproducible test case or series of steps
@@ -49,8 +49,8 @@ Please refer to the [documentation](https://ts.gluon.ai/dev/community/devsetup.h
 ## Finding contributions to work on
 
 Looking at the existing issues is a great way to find something to contribute on: issues labeled with
-['good first issue'](https://github.com/awslabs/gluon-ts/labels/good%20first%20issue) or
-['help wanted'](https://github.com/awslabs/gluon-ts/labels/help%20wanted)
+['good first issue'](https://github.com/awslabs/gluonts/labels/good%20first%20issue) or
+['help wanted'](https://github.com/awslabs/gluonts/labels/help%20wanted)
 are a great place to start.
 
 ## Code of Conduct
@@ -65,6 +65,6 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Licensing
 
-See the [LICENSE](https://github.com/awslabs/gluon-ts/blob/dev/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](https://github.com/awslabs/gluonts/blob/dev/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
 We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
