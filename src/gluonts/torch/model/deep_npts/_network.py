@@ -411,8 +411,8 @@ class DeepNPTSMultiStepPredictor(nn.Module):
             -1, self.num_parallel_samples, self.prediction_length
         )
 
-    # NOTE main idea is to have a method that outputs the kind of object to be used downstream
-    # TODO does this belong here?
+    # NOTE main idea is to have a method that outputs the kind of object to be
+    # used downstream: does this belong here?
     def forecast(self, batch: dict) -> SampleForecastBatch:
         outputs = self(
             batch["feat_static_cat"],

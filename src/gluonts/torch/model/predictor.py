@@ -53,7 +53,6 @@ class PyTorchPredictor(Predictor):
         batch_size: int,
         prediction_length: int,
         input_transform: Transformation,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
         device: Optional[torch.device] = torch.device("cpu"),
@@ -63,7 +62,6 @@ class PyTorchPredictor(Predictor):
         self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
 
@@ -128,7 +126,6 @@ class PyTorchPredictor(Predictor):
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 lead_time=self.lead_time,
-                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)
