@@ -170,6 +170,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
+            "patience": 10,
         }
         if trainer_kwargs is not None:
             default_trainer_kwargs.update(trainer_kwargs)
@@ -373,7 +374,11 @@ class DeepAREstimator(PyTorchLightningEstimator):
             num_parallel_samples=self.num_parallel_samples,
         )
 
-        return DeepARLightningModule(model=model, loss=self.loss)
+        return DeepARLightningModule(
+            model=model,
+            loss=self.loss,
+            patience=self.trainer_kwargs.get("patience", None)
+        )
 
     def create_predictor(
         self,

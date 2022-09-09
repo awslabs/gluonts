@@ -10,9 +10,11 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+from typing import Optional
 
 import pytorch_lightning as pl
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
@@ -47,6 +49,7 @@ class DeepARLightningModule(pl.LightningModule):
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
+        patience: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -54,6 +57,7 @@ class DeepARLightningModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
+        self.patience = patience
 
     def _compute_loss(self, batch):
         feat_static_cat = batch["feat_static_cat"]
@@ -125,8 +129,24 @@ class DeepARLightningModule(pl.LightningModule):
         """
         Returns the optimizer to use.
         """
-        return torch.optim.Adam(
+        optimizer = torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+
+        if not self.patience:
+            return optimizer
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": ReduceLROnPlateau(
+                    optimizer=optimizer,
+                    mode="min",
+                    factor=0.5,
+                    patience=self.patience,
+                ),
+                "monitor": "train_loss",
+            },
+        }
