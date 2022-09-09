@@ -163,7 +163,9 @@ class DeepAREstimator(GluonEstimator):
     freq: str
     prediction_length: int = Field(..., gt=0)
     trainer: Trainer = Trainer()
-    context_length: int = Field(None, gt=0)
+    context_length: int = Field(
+        serde.OrElse(lambda prediction_length: prediction_length), gt=0
+    )
     num_layers: int = Field(2, gt=0)
     num_cells: int = Field(40, gt=0)
     cell_type: str = "lstm"
@@ -176,12 +178,26 @@ class DeepAREstimator(GluonEstimator):
     embedding_dimension: List[int] = Field(None, gt=0)
     distr_output: DistributionOutput = StudentTOutput()
     scaling: bool = True
-    lags_seq: List[int] = Field(None)
+    lags_seq: List[int] = Field(
+        serde.OrElse(lambda freq: get_lags_for_frequency(freq_str=freq))
+    )
     time_features: List[TimeFeature] = Field(None)
     num_parallel_samples: int = Field(100, gt=0)
     imputation_method: MissingValueImputation = Field(None)
-    train_sampler: InstanceSampler = Field(None)
-    validation_sampler: InstanceSampler = Field(None)
+    train_sampler: InstanceSampler = Field(
+        serde.OrElse(
+            lambda prediction_length: ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=prediction_length
+            )
+        )
+    )
+    validation_sampler: InstanceSampler = Field(
+        serde.OrElse(
+            lambda prediction_length: ValidationSplitSampler(
+                min_future=prediction_length
+            )
+        )
+    )
     dtype: Type = np.float32
     alpha: float = Field(0.0, ge=0)
     beta: float = Field(0.0, ge=0)
@@ -205,9 +221,6 @@ class DeepAREstimator(GluonEstimator):
             self.dropoutcell_type in supported_dropoutcell_types
         ), f"`dropoutcell_type` should be one of {supported_dropoutcell_types}"
 
-        if self.context_length is None:
-            self.context_length = self.prediction_length
-
         self.cardinality = (
             self.cardinality
             if self.cardinality and self.use_feat_static_cat
@@ -217,12 +230,6 @@ class DeepAREstimator(GluonEstimator):
             self.embedding_dimension
             if self.embedding_dimension is not None
             else [min(50, (cat + 1) // 2) for cat in self.cardinality]
-        )
-
-        self.lags_seq = (
-            self.lags_seq
-            if self.lags_seq is not None
-            else get_lags_for_frequency(freq_str=self.freq)
         )
         self.time_features = (
             self.time_features
@@ -236,19 +243,6 @@ class DeepAREstimator(GluonEstimator):
             self.imputation_method
             if self.imputation_method is not None
             else DummyValueImputation(self.distr_output.value_in_support)
-        )
-
-        self.train_sampler = (
-            self.train_sampler
-            if self.train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=self.prediction_length
-            )
-        )
-        self.validation_sampler = (
-            self.validation_sampler
-            if self.validation_sampler is not None
-            else ValidationSplitSampler(min_future=self.prediction_length)
         )
 
         self.distr_output.dtype = self.dtype

@@ -226,8 +226,9 @@ def _dataclass(
         init_kwargs.update(kwargs)
 
         for orelse_name, orelse in orelse_order.items():
-            value = orelse._call(init_kwargs)
-            init_kwargs[orelse_name] = value
+            if orelse_name not in init_kwargs:
+                value = orelse._call(init_kwargs)
+                init_kwargs[orelse_name] = value
 
         """
         if eventual_fields:

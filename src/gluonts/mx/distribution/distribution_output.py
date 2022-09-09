@@ -75,7 +75,6 @@ class Output:
     r"""
     Class to connect a network to some output
     """
-    # TODO: Hongqing, change it later
     args_dim: Dict[str, int]
     _dtype: Type = np.float32
 
