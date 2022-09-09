@@ -10,7 +10,6 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-from typing import Optional
 
 import pytorch_lightning as pl
 import torch
@@ -41,6 +40,8 @@ class DeepARLightningModule(pl.LightningModule):
         Learning rate, default: ``1e-3``.
     weight_decay
         Weight decay regularization parameter, default: ``1e-8``.
+    patience
+        Patience parameter for learning rate scheduler.
     """
 
     def __init__(
@@ -49,7 +50,7 @@ class DeepARLightningModule(pl.LightningModule):
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
-        patience: Optional[int] = None,
+        patience: int = 10,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -134,9 +135,6 @@ class DeepARLightningModule(pl.LightningModule):
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
-
-        if not self.patience:
-            return optimizer
 
         return {
             "optimizer": optimizer,

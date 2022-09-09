@@ -97,6 +97,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         Number of RNN cells for each layer (default: 40).
     dropout_rate
         Dropout regularization parameter (default: 0.1).
+    patience
+        Patience parameter for learning rate scheduler.
     num_feat_dynamic_real
         Number of dynamic real features in the data (default: 0).
     num_feat_static_real
@@ -150,6 +152,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_layers: int = 2,
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
+        patience: int = 10,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
         num_feat_static_real: int = 0,
@@ -170,7 +173,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
         default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
-            "patience": 10,
         }
         if trainer_kwargs is not None:
             default_trainer_kwargs.update(trainer_kwargs)
@@ -181,6 +183,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.prediction_length = prediction_length
+        self.patience = patience
         self.distr_output = distr_output
         self.loss = loss
         self.num_layers = num_layers
@@ -377,7 +380,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         return DeepARLightningModule(
             model=model,
             loss=self.loss,
-            patience=self.trainer_kwargs.get("patience", None),
+            patience=self.patience,
         )
 
     def create_predictor(
