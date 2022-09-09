@@ -75,6 +75,10 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     hidden_dimensions
         Size of hidden layers in the feedforward network
         (default: ``[20, 20]``).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
@@ -103,6 +107,8 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         hidden_dimensions: Optional[List[int]] = None,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         batch_norm: bool = False,
@@ -125,6 +131,8 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         # TODO find way to enforce same defaults to network and estimator
         # somehow
         self.hidden_dimensions = hidden_dimensions or [20, 20]
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.distr_output = distr_output
         self.loss = loss
         self.batch_norm = batch_norm
@@ -160,7 +168,12 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
             distr_output=self.distr_output,
             batch_norm=self.batch_norm,
         )
-        return SimpleFeedForwardLightningModule(model=model, loss=self.loss)
+        return SimpleFeedForwardLightningModule(
+            model=model,
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
 
     def _create_instance_splitter(
         self, module: SimpleFeedForwardLightningModule, mode: str
