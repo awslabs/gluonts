@@ -23,7 +23,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model.estimator import Estimator
-from gluonts.nursery.utils import matching_parameters
+from gluonts.core.utils import matching_arguments
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -199,7 +199,7 @@ class PyTorchLightningEstimator(Estimator):
         callbacks = [checkpoint] + custom_callbacks
         trainer_kwargs = {**self.trainer_kwargs, "callbacks": callbacks}
 
-        trainer_kwargs = matching_parameters(pl.Trainer, trainer_kwargs)
+        trainer_kwargs = matching_arguments(pl.Trainer, trainer_kwargs)
         trainer = pl.Trainer(**trainer_kwargs)
 
         trainer.fit(

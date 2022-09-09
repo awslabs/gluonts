@@ -377,7 +377,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         return DeepARLightningModule(
             model=model,
             loss=self.loss,
-            patience=self.trainer_kwargs.get("patience", None)
+            patience=self.trainer_kwargs.get("patience", None),
         )
 
     def create_predictor(
