@@ -22,7 +22,7 @@ from torch.distributions import (
     Normal,
 )
 from gluonts.core.component import validated
-
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.torch.distributions.discrete_distribution import (
     DiscreteDistribution,
 )
@@ -409,4 +409,22 @@ class DeepNPTSMultiStepPredictor(nn.Module):
         # (batch_size, num_parallel_samples, prediction_length)
         return samples_out.reshape(
             -1, self.num_parallel_samples, self.prediction_length
+        )
+
+    # NOTE main idea is to have a method that outputs the kind of object to be used downstream
+    # TODO does this belong here?
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["feat_static_real"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["past_time_feat"],
+            batch["future_time_feat"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
         )

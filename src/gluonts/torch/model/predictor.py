@@ -24,8 +24,10 @@ from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
+    ForecastBatch,
     SampleForecastGenerator,
     predict_to_numpy,
+    to_numpy,
 )
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
@@ -36,6 +38,11 @@ from gluonts.transform import Transformation
 @predict_to_numpy.register(nn.Module)
 def _(prediction_net: nn.Module, args) -> np.ndarray:
     return prediction_net(*args).cpu().numpy()
+
+
+@to_numpy.register(torch.Tensor)
+def _(tensor: torch.Tensor) -> np.ndarray:
+    return tensor.cpu().numpy()
 
 
 class PyTorchPredictor(Predictor):
@@ -69,9 +76,11 @@ class PyTorchPredictor(Predictor):
     def network(self) -> nn.Module:
         return self.prediction_net
 
-    def predict(
-        self, dataset: Dataset, num_samples: Optional[int] = None
-    ) -> Iterator[Forecast]:
+    def predict(self, dataset: Dataset) -> Iterator[Forecast]:
+        for forecast_batch in self.predict_batches(dataset):
+            yield from forecast_batch
+
+    def predict_batches(self, dataset: Dataset) -> Iterator[ForecastBatch]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
@@ -82,13 +91,8 @@ class PyTorchPredictor(Predictor):
         self.prediction_net.eval()
 
         with torch.no_grad():
-            yield from self.forecast_generator(
-                inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
-                input_names=self.input_names,
-                output_transform=self.output_transform,
-                num_samples=num_samples,
-            )
+            for batch in inference_data_loader:
+                yield self.prediction_net.forecast(batch)
 
     def __eq__(self, that):
         if type(self) != type(that):
