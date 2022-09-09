@@ -15,13 +15,13 @@ from inspect import signature
 from typing import Callable, Dict, Any
 
 
-def matching_arguments(f: Callable, args: Dict[str, Any]) -> Dict[str, Any]:
+def matching_arguments(fn: Callable, args: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extract valid keyword arguments for a Callable from a dictionary.
 
     Parameters
     ----------
-    f
+    fn
         Callable for which matching arguments are required.
     args
         A dictionary containing keyword arguments.
@@ -32,4 +32,4 @@ def matching_arguments(f: Callable, args: Dict[str, Any]) -> Dict[str, Any]:
         A dictionary containing valid keyword arguments.
 
     """
-    return {p: args[p] for p in signature(f).parameters.keys() & args.keys()}
+    return {p: args[p] for p in signature(fn).parameters.keys() & args.keys()}
