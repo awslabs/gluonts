@@ -23,9 +23,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
-    ForecastGenerator,
     ForecastBatch,
-    SampleForecastGenerator,
     predict_to_numpy,
     to_numpy,
 )

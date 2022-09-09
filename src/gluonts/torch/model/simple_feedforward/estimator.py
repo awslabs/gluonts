@@ -21,7 +21,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
-from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
