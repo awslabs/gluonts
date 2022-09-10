@@ -55,7 +55,7 @@ class Dark(Style):
         Comment.Preproc: f"noitalic #ccc",
         Keyword: f"bold {colors.SALMON}",
         Keyword.Pseudo: "nobold",
-        Keyword.Type: "nobold #B00040",
+        Keyword.Type: f"nobold {colors.SALMON}",
         # Operator: "#666666",
         Operator: f"bold {colors.SALMON}",
         Operator.Word: f"bold {colors.SALMON}",
