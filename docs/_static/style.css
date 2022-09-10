@@ -2,7 +2,8 @@
     display: none;
 }
 
-
-.highlight {
-    border-left: 2px solid #ccc;
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .highlight {
+        border-left: 2px solid #94b594;
+    }
 }
