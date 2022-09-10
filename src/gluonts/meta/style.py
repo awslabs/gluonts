@@ -1,12 +1,9 @@
 from pygments.style import Style
 from pygments.token import (
-    Token,
     Comment,
     Keyword,
     Name,
     String,
-    Error,
-    Generic,
     Number,
     Operator,
     Whitespace,
@@ -51,8 +48,8 @@ class Dark(Style):
 
     styles = {
         Whitespace: "#bbbbbb",
-        Comment: f"italic #888",
-        Comment.Preproc: f"noitalic #ccc",
+        Comment: "italic #888",
+        Comment.Preproc: "noitalic #888",
         Keyword: f"bold {colors.SALMON}",
         Keyword.Pseudo: "nobold",
         Keyword.Type: f"nobold {colors.SALMON}",
