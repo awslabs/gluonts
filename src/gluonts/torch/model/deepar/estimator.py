@@ -95,6 +95,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         Number of RNN layers (default: 2).
     hidden_size
         Number of RNN cells for each layer (default: 40).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
     dropout_rate
         Dropout regularization parameter (default: 0.1).
     num_feat_dynamic_real
@@ -149,6 +153,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         dropout_rate: float = 0.1,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
@@ -184,6 +190,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.loss = loss
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.dropout_rate = dropout_rate
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_cat = num_feat_static_cat
@@ -373,7 +381,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
             num_parallel_samples=self.num_parallel_samples,
         )
 
-        return DeepARLightningModule(model=model, loss=self.loss)
+        return DeepARLightningModule(
+            model=model,
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
 
     def create_predictor(
         self,
