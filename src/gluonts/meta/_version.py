@@ -81,7 +81,7 @@ GIT_DESCRIBE = [
     "--match=v[0-9]*",
 ]
 
-SEARCH_PACKAGE_LEVELS = 2
+SEARCH_PACKAGE_LEVELS = 3
 
 
 def search_for(name: str, where: Path, levels: int = 0):
