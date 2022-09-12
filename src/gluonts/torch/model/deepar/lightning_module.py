@@ -41,7 +41,7 @@ class DeepARLightningModule(pl.LightningModule):
     weight_decay
         Weight decay regularization parameter, default: ``1e-8``.
     patience
-        Patience parameter for learning rate scheduler.
+        Patience parameter for learning rate scheduler, default: ``10``.
     """
 
     def __init__(
