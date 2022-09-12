@@ -254,6 +254,11 @@ setup_kwargs: dict = dict(
         "style_check": StyleCheckCommand,
         **version_cmdclass,
     },
+    entry_points={
+        "pygments.styles": [
+            "gluonts-dark=gluonts.meta.style:Dark",
+        ]
+    },
 )
 
 if HAS_SPHINX:
