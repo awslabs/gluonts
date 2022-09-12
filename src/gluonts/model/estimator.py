@@ -55,7 +55,7 @@ class Estimator:
         validation_data
             Dataset to validate the model on during training.
         from_predictor
-            (Experimental: this feature may be subject to changes in the future)
+            (Experimental: this feature may change in the future)
             A previously trained model, from which to initialize the estimator
             training.
 
