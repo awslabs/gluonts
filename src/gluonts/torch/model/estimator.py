@@ -193,7 +193,9 @@ class PyTorchLightningEstimator(Estimator):
         training_network = self.create_lightning_module()
 
         if from_predictor is not None:
-            training_network.load_state_dict(from_predictor.network.state_dict())
+            training_network.load_state_dict(
+                from_predictor.network.state_dict()
+            )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(

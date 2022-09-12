@@ -464,7 +464,9 @@ class NBEATSEnsembleEstimator(Estimator):
                 )
                 predictors.append(
                     estimator.train(
-                        training_data, validation_data, from_predictor=predictor
+                        training_data,
+                        validation_data,
+                        from_predictor=predictor,
                     )
                 )
 
