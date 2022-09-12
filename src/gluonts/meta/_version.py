@@ -81,7 +81,7 @@ GIT_DESCRIBE = [
     "--match=v[0-9]*",
 ]
 
-SEARCH_PACKAGE_LEVELS = 3
+SEARCH_PACKAGE_LEVELS = 4
 
 
 def search_for(name: str, where: Path, levels: int = 0):
@@ -90,8 +90,8 @@ def search_for(name: str, where: Path, levels: int = 0):
         if candidate.exists():
             return candidate
 
-        if levels == 0 or where == where.parent:
-            return None
+        if levels == 0 or where == where.parent or where is None:
+            raise RuntimeError(f"Can not find {name}.")
 
         levels -= 1
         where = where.parent
@@ -103,7 +103,7 @@ package_root = Path(__file__).resolve().parents[1]  # 2 levels up
 
 def dist_root():
     return search_for(
-        "setup.py", package_root, levels=SEARCH_PACKAGE_LEVELS
+        "setup.py", file_name.parent, levels=SEARCH_PACKAGE_LEVELS
     ).parent
 
 
