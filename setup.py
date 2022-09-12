@@ -204,14 +204,11 @@ shell_require = find_requirements("requirements-extras-shell.txt")
 mxnet_require = find_requirements("requirements-mxnet.txt")
 torch_require = find_requirements("requirements-pytorch.txt")
 
-setup_requires = find_requirements("requirements-setup.txt")
-
 dev_require = (
     arrow_require
     + docs_require
     + tests_require
     + shell_require
-    + setup_requires
     + sagemaker_api_require
 )
 
@@ -237,7 +234,6 @@ setup_kwargs: dict = dict(
     package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
-    setup_requires=setup_requires,
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
