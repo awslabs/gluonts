@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 from pygments.style import Style
 from pygments.token import (
     Comment,
@@ -12,48 +25,17 @@ from pygments.token import (
 from . import colors
 
 
-# class Light(Style):
-#     background_color = "rgba(0, 0, 0, 0.05)"
-
-#     styles = {
-#         Comment: f"italic #888",
-#         Comment.Preproc: f"noitalic {colors.GREEN}",
-#         Keyword: f"bold {colors.COPPER}",
-#         Keyword.Pseudo: "nobold",
-#         Keyword.Type: "nobold #B00040",
-#         # Operator: "#666666",
-#         Operator: f"bold {colors.COPPER}",
-#         Operator.Word: f"bold {colors.COPPER}",
-#         # Names
-#         Name.Builtin: colors.BLUE,
-#         Name.Function: f"{colors.BLUE}",
-#         Name.Class: f"bold {colors.BLUE}",
-#         Name.Namespace: f"bold {colors.BLUE}",  # f"bold {colors.BLUE}",
-#         # Name.Exception: "bold #CB3F38",
-#         Name.Variable: "#19177C",
-#         Name.Constant: colors.BLUE,
-#         # Name.Label: "#767600",
-#         # Name.Entity: "bold #717171",
-#         # Name.Attribute: "#687822",
-#         # Name.Tag: "bold #008000",
-#         # Name.Decorator: "#AA22FF",
-#         String: colors.BLUE,
-#         String.Doc: "italic",
-#         Number: colors.BLUE,
-#     }
-
-
 class Dark(Style):
+    # transparent
     background_color = "rgba(0, 0, 0, 0.0)"
 
     styles = {
-        Whitespace: "#bbbbbb",
         Comment: "italic #888",
         Comment.Preproc: "noitalic #888",
         Keyword: f"bold {colors.SALMON}",
         Keyword.Pseudo: "nobold",
         Keyword.Type: f"nobold {colors.SALMON}",
-        # Operator: "#666666",
+        Operator: colors.SALMON,
         Operator: f"bold {colors.SALMON}",
         Operator.Word: f"bold {colors.SALMON}",
         Name.Builtin: colors.YELLOW,

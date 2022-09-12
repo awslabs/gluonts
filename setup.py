@@ -256,7 +256,6 @@ setup_kwargs: dict = dict(
     },
     entry_points={
         "pygments.styles": [
-            # "gluonts-light=gluonts.meta.style:Light",
             "gluonts-dark=gluonts.meta.style:Dark",
         ]
     },
