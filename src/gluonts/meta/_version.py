@@ -231,7 +231,12 @@ def cmdclass():
     class build_py(setuptools.command.build_py.build_py):
         def run(self):
             super().run()
-            write_version(Path(self.build_lib) / package_root.name)
+
+            write_version(
+                Path(self.build_lib)
+                / package_root.name
+                / Path(__file__).parent.resolve().relative_to(package_root)
+            )
 
     class sdist(setuptools.command.sdist.sdist):
         def make_release_tree(self, base_dir, files):
