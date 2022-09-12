@@ -23,40 +23,76 @@ import numpy as np
 class Input:
     name: str
 
-    def apply(self, data):
+    def resolve_base_dependencies(self, data):
         assert self.name in data, f"Missing data for input '{self.name}'"
 
 
 @dataclass
-class Input:
+class BaseMetric:
     name: str
-
-    def apply(self, data):
-        assert self.name in data, f"Missing data for input '{self.name}'"
-
-
-@dataclass
-class Metric:
-    name: str
-    dependencies: tuple
     fn: Callable
+    dependencies: tuple
 
     def apply(self, data):
+        data[self.name] = self.fn(
+            **{
+                dependency.name: data[dependency.name]
+                for dependency in self.dependencies
+            },
+        )
+
+    def resolve_base_dependencies(self, data):
         if self.name not in data:
             for dependency in self.dependencies:
-                dependency.apply(data)
+                dependency.resolve_base_dependencies(data)
 
-            data[self.name] = self.fn(
-                **{
-                    dependency.name: data[dependency.name]
-                    for dependency in self.dependencies
-                }
-            )
+            # base metrics are calculated right away, we don't need to wait for anything else
+            self.apply(data)
+
+    def apply_aggregate(self, data, axis):
+        return
 
 
+@dataclass
+class AggregateMetric:
+    name: str
+    fn: Callable
+    dependencies: tuple
+
+    def resolve_base_dependencies(self, data):
+        for dependency in self.dependencies:
+            dependency.resolve_base_dependencies(data)
+
+        data[self.name] = self  # insert a placeholder for later use
+
+    def apply_aggregate(self, data, axis):
+        for d in self.dependencies:
+            d.apply_aggregate(data, axis)
+
+        data[self.name] = self.fn(
+            **{
+                dependency.name: data[dependency.name]
+                for dependency in self.dependencies
+            },
+            axis=axis,
+        )
+
+
+# these decorators only work for metrics without extra parameters
 def metric(*dependencies, name=None):
     def decorator(fn):
-        return Metric(
+        return BaseMetric(
+            name=name or fn.__name__,
+            dependencies=dependencies,
+            fn=fn,
+        )
+
+    return decorator
+
+
+def aggregate(*dependencies, name=None):
+    def decorator(fn):
+        return AggregateMetric(
             name=name or fn.__name__,
             dependencies=dependencies,
             fn=fn,
@@ -68,11 +104,26 @@ def metric(*dependencies, name=None):
 @dataclass
 class EvalResult(UserDict):
     data: dict
-    select: Collection
+    select: set
 
-    def get_all(self):
+    def get_base_metrics(self):
         return {
-            metric_name: self.data[metric_name] for metric_name in self.select
+            metric_name: self[metric_name]
+            for metric_name in self.select
+            if isinstance(self[metric_name], np.ndarray)
+        }
+
+    def get_aggregate_metrics(self, axis=None):
+        result = copy.deepcopy(self.data)
+
+        for metric_name in self.select:
+            if isinstance(self[metric_name], AggregateMetric):
+                self[metric_name].apply_aggregate(result, axis=axis)
+
+        return {
+            metric_name: result[metric_name]
+            for metric_name in self.select
+            if isinstance(self[metric_name], AggregateMetric)
         }
 
 
@@ -80,6 +131,7 @@ def evaluate(metrics, data: Dict[str, np.ndarray]):
     result = copy.deepcopy(data)
 
     for metric in metrics:
-        metric.apply(result)
+        # note that aggregated metrics are calculated separately later on
+        metric.resolve_base_dependencies(result)
 
-    return EvalResult(result, select=list(metric.name for metric in metrics))
+    return EvalResult(result, select=set(metric.name for metric in metrics))
