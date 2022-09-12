@@ -81,7 +81,7 @@ GIT_DESCRIBE = [
     "--match=v[0-9]*",
 ]
 
-SEARCH_PACKAGE_LEVELS = 2
+SEARCH_PACKAGE_LEVELS = 4
 
 
 def search_for(name: str, where: Path, levels: int = 0):
@@ -90,21 +90,21 @@ def search_for(name: str, where: Path, levels: int = 0):
         if candidate.exists():
             return candidate
 
-        if levels == 0 or where == where.parent:
-            return None
+        if levels == 0 or where == where.parent or where is None:
+            raise RuntimeError(f"Can not find {name}.")
 
         levels -= 1
         where = where.parent
 
 
 file_name = Path(__file__).name  # this files name
-package_root = Path(__file__).resolve().parent
+package_root = Path(__file__).resolve().parents[1]  # 2 levels up
 
 
 def dist_root():
     return search_for(
-        "setup.py", package_root, levels=SEARCH_PACKAGE_LEVELS
-    ).parent
+        "setup.py", Path(__file__).parent, levels=SEARCH_PACKAGE_LEVELS
+    ).parent.resolve()
 
 
 class GitRepo:
@@ -231,7 +231,12 @@ def cmdclass():
     class build_py(setuptools.command.build_py.build_py):
         def run(self):
             super().run()
-            write_version(Path(self.build_lib) / package_root.name)
+
+            write_version(
+                Path(self.build_lib)
+                / package_root.name
+                / Path(__file__).parent.resolve().relative_to(package_root)
+            )
 
     class sdist(setuptools.command.sdist.sdist):
         def make_release_tree(self, base_dir, files):
@@ -245,6 +250,3 @@ def cmdclass():
 
 
 __version__ = get_version(fallback="0.0.0")
-
-if __name__ == "__main__":
-    print(__version__)
