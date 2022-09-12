@@ -38,4 +38,3 @@
    :hidden:
 
    community/contribute
-   community/devsetup
