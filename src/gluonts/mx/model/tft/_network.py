@@ -17,6 +17,7 @@ import numpy as np
 from mxnet.gluon import HybridBlock, nn
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import QuantileForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder as BaseFeatureEmbedder
 from gluonts.mx.block.quantile_output import QuantileOutput
@@ -523,3 +524,22 @@ class TemporalFusionTransformerPredictionNetwork(
         preds = self._postprocess(F, preds, offset, scale)
         preds = F.swapaxes(preds, dim1=1, dim2=2)
         return preds
+
+    def forecast(self, batch: dict) -> QuantileForecastBatch:
+        outputs = self(
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["past_feat_dynamic_real"],
+            batch["past_feat_dynamic_cat"],
+            batch["feat_dynamic_real"],
+            batch["feat_dynamic_cat"],
+            batch["feat_static_real"],
+            batch["feat_static_cat"],
+        )
+        return QuantileForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            quantile_batch=to_numpy(outputs),
+            quantile_levels=self.output.quantile_strs,
+        )

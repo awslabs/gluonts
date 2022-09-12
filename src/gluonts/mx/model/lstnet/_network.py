@@ -17,6 +17,7 @@ import mxnet as mx
 from mxnet.gluon import loss, nn
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 
@@ -353,3 +354,15 @@ class LSTNetPredict(LSTNetBase):
         )
         ret = F.swapaxes(F.broadcast_mul(ret, scale), 1, 2)
         return ret.expand_dims(axis=1)  # add the "sample" axis
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["past_target"],
+            batch["past_observed_values"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
+        )

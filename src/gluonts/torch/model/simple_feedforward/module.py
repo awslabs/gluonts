@@ -101,8 +101,6 @@ class SimpleFeedForwardModel(nn.Module):
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale
 
-    # NOTE main idea is to have a method that outputs the kind of object to be
-    # used downstream: does this belong here?
     def forecast(self, batch: dict) -> DistributionForecastBatch:
         outputs = self(batch["past_target"])
         return DistributionForecastBatch(

@@ -25,7 +25,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
@@ -434,9 +433,4 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_generator=QuantileForecastGenerator(
-                quantiles=[
-                    str(q) for q in prediction_network.output.quantiles
-                ],
-            ),
         )

@@ -22,11 +22,7 @@ import numpy as np
 from gluonts.core.serde import load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import InferenceDataLoader
-from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import (
-    ForecastGenerator,
-    SampleForecastGenerator,
-)
+from gluonts.model.forecast_generator import ForecastBatch
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
@@ -72,7 +68,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         input_transform: Transformation,
         input_names: Optional[List[str]] = None,
         lead_time: int = 0,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = DeepRenewalProcessSampleOutputTransform(),
@@ -85,19 +80,13 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
-            forecast_generator=forecast_generator,
             output_transform=output_transform,
             dtype=dtype,
         )
         if input_names is not None:
             self.input_names = input_names
 
-    def predict(
-        self,
-        dataset: Dataset,
-        num_samples: Optional[int] = None,
-        **kwargs,
-    ) -> Iterator[Forecast]:
+    def predict_batches(self, dataset: Dataset) -> Iterator[ForecastBatch]:
         stack_fn = partial(
             batchify,
             ctx=self.ctx,
@@ -105,20 +94,17 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
             variable_length=True,
             is_right_pad=False,
         )
+
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=stack_fn,
         )
+
         with mx.Context(self.ctx):
-            yield from self.forecast_generator(
-                inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
-                input_names=self.input_names,
-                output_transform=self.output_transform,
-                num_samples=num_samples,
-            )
+            for batch in inference_data_loader:
+                yield self.prediction_net.forecast(batch)
 
     @classmethod
     def deserialize(

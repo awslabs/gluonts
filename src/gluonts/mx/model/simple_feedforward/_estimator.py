@@ -24,7 +24,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -313,9 +312,6 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 input_transform=transformation + prediction_splitter,
                 prediction_net=prediction_network,
                 batch_size=self.batch_size,
-                forecast_generator=DistributionForecastGenerator(
-                    self.distr_output
-                ),
                 prediction_length=self.prediction_length,
                 ctx=self.trainer.ctx,
             )

@@ -20,6 +20,7 @@ from mxnet.gluon.rnn import ZoneoutCell
 
 from gluonts.core.component import validated
 from gluonts.itertools import prod
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.dropout import RNNZoneoutCell, VariationalZoneoutCell
 from gluonts.mx.block.feature import FeatureEmbedder
@@ -1171,4 +1172,21 @@ class DeepARPredictionNetwork(DeepARNetwork):
             static_feat=static_feat,
             scale=scale,
             begin_states=state,
+        )
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["feat_static_real"],
+            batch["past_time_feat"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["future_time_feat"],
+            batch["past_is_pad"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
         )

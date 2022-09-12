@@ -15,6 +15,7 @@ from typing import Optional, Tuple
 
 import mxnet as mx
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
@@ -355,4 +356,16 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             interval_alpha_bias=interval_alpha_bias,
             size_alpha_bias=size_alpha_bias,
             time_remaining=time_remaining,
+        )
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["past_target"],
+            batch["time_remaining"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
         )

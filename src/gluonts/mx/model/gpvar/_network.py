@@ -16,6 +16,7 @@ from typing import List, Optional, Tuple
 import mxnet as mx
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx.model.deepvar._network import DeepVARNetwork
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import getF
@@ -353,4 +354,20 @@ class GPVARPredictionNetwork(GPVARNetwork):
             past_is_pad=past_is_pad,
             # (batch_size, prediction_length, num_features)
             future_time_feat=future_time_feat,
+        )
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["target_dimension_indicator"],
+            batch["past_time_feat"],
+            batch["past_target_cdf"],
+            batch["past_observed_values"],
+            batch["past_is_pad"],
+            batch["future_time_feat"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
         )

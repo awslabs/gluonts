@@ -17,6 +17,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.loss import Loss
 
 from gluonts.core.component import validated
+from gluonts.model.forecast import Quantile
 from gluonts.mx import Tensor
 
 
@@ -213,6 +214,9 @@ class QuantileOutput:
         self._quantiles = quantiles
         self.num_quantiles = len(self._quantiles)
         self.quantile_weights = quantile_weights
+        self.quantile_strs = [
+            Quantile.from_float(quantile).name for quantile in self._quantiles
+        ]
 
     @property
     def quantiles(self) -> List[float]:

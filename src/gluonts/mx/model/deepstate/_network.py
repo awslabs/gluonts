@@ -16,6 +16,7 @@ from typing import List, Optional
 import mxnet as mx
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
@@ -274,3 +275,20 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
             return samples.transpose(axes=(1, 0, 2, 3)).squeeze(axis=3)
         else:
             return samples.transpose(axes=(1, 0, 2, 3))
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["past_observed_values"],
+            batch["past_seasonal_indicators"],
+            batch["past_time_feat"],
+            batch["past_target"],
+            batch["future_seasonal_indicators"],
+            batch["future_time_feat"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
+        )

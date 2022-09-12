@@ -24,8 +24,7 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
-    ForecastGenerator,
-    SampleForecastGenerator,
+    ForecastBatch,
     predict_to_numpy,
     to_numpy,
 )
@@ -89,7 +88,6 @@ class GluonPredictor(Predictor):
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         dtype: Type = np.float32,
     ) -> None:
@@ -102,7 +100,6 @@ class GluonPredictor(Predictor):
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.ctx = ctx
         self.dtype = dtype
@@ -155,24 +152,21 @@ class GluonPredictor(Predictor):
         self,
         dataset: Dataset,
         num_samples: Optional[int] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        **kwargs,
     ) -> Iterator[Forecast]:
+        for forecast_batch in self.predict_batches(dataset):
+            yield from forecast_batch
+
+    def predict_batches(self, dataset: Dataset) -> Iterator[ForecastBatch]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
         )
+
         with mx.Context(self.ctx):
-            yield from self.forecast_generator(
-                inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
-                input_names=self.input_names,
-                output_transform=self.output_transform,
-                num_samples=num_samples,
-            )
+            for batch in inference_data_loader:
+                yield self.prediction_net.forecast(batch)
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -212,7 +206,6 @@ class GluonPredictor(Predictor):
                 lead_time=self.lead_time,
                 ctx=self.ctx,
                 dtype=self.dtype,
-                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)
@@ -300,7 +293,6 @@ class RepresentableBlockPredictor(GluonPredictor):
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[
             Callable[[DataEntry, np.ndarray], np.ndarray]
         ] = None,
@@ -314,7 +306,6 @@ class RepresentableBlockPredictor(GluonPredictor):
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
-            forecast_generator=forecast_generator,
             output_transform=output_transform,
             dtype=dtype,
         )

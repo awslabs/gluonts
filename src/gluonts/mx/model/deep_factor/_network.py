@@ -18,6 +18,7 @@ import math
 from mxnet.gluon import HybridBlock, nn
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
@@ -188,3 +189,17 @@ class DeepFactorPredictionNetwork(DeepFactorNetworkBase):
         )  # (batch_size, prediction_len, num_samples)
 
         return pred_samples.swapaxes(1, 2)
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["past_time_feat"],
+            batch["future_time_feat"],
+            batch["past_target"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
+        )

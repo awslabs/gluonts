@@ -25,10 +25,6 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import (
-    DistributionForecastGenerator,
-    QuantileForecastGenerator,
-)
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.block.decoder import Seq2SeqDecoder
@@ -554,9 +550,10 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_generator=(
-                QuantileForecastGenerator(quantile_strs)
-                if quantile_strs is not None
-                else DistributionForecastGenerator(self.distr_output)
-            ),
+            # TODO remove these
+            # forecast_generator=(
+            #     QuantileForecastGenerator(quantile_strs)
+            #     if quantile_strs is not None
+            #     else DistributionForecastGenerator(self.distr_output)
+            # ),
         )

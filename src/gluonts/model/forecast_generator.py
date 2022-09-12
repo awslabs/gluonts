@@ -11,10 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 from functools import singledispatch
-from typing import Callable, Iterator, List, Optional, Any, Union
+from typing import Callable, Iterator, List, Optional, Any, Union, Type
 
 import numpy as np
 
@@ -104,146 +104,6 @@ def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
     raise NotImplementedError
 
 
-class ForecastGenerator:
-    """
-    Classes used to bring the output of a network into a class.
-    """
-
-    def __call__(
-        self,
-        inference_data_loader: DataLoader,
-        prediction_net,
-        input_names: List[str],
-        output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
-    ) -> Iterator[Forecast]:
-        raise NotImplementedError()
-
-
-class QuantileForecastGenerator(ForecastGenerator):
-    @validated()
-    def __init__(self, quantiles: List[str]) -> None:
-        self.quantiles = quantiles
-
-    def __call__(
-        self,
-        inference_data_loader: DataLoader,
-        prediction_net,
-        input_names: List[str],
-        output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
-    ) -> Iterator[Forecast]:
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
-            outputs = predict_to_numpy(prediction_net, inputs)
-            if output_transform is not None:
-                outputs = output_transform(batch, outputs)
-
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
-
-            i = -1
-            for i, output in enumerate(outputs):
-                yield QuantileForecast(
-                    output,
-                    start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
-                    forecast_keys=self.quantiles,
-                )
-            assert i + 1 == len(batch[FieldName.FORECAST_START])
-
-
-class SampleForecastGenerator(ForecastGenerator):
-    @validated()
-    def __init__(self):
-        pass
-
-    def __call__(
-        self,
-        inference_data_loader: DataLoader,
-        prediction_net,
-        input_names: List[str],
-        output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
-    ) -> Iterator[Forecast]:
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
-            outputs = predict_to_numpy(prediction_net, inputs)
-            if output_transform is not None:
-                outputs = output_transform(batch, outputs)
-            if num_samples:
-                num_collected_samples = outputs[0].shape[0]
-                collected_samples = [outputs]
-                while num_collected_samples < num_samples:
-                    outputs = predict_to_numpy(prediction_net, inputs)
-                    if output_transform is not None:
-                        outputs = output_transform(batch, outputs)
-                    collected_samples.append(outputs)
-                    num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
-                assert len(outputs[0]) == num_samples
-            i = -1
-            for i, output in enumerate(outputs):
-                yield SampleForecast(
-                    output,
-                    start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
-                )
-            assert i + 1 == len(batch[FieldName.FORECAST_START])
-
-
-class DistributionForecastGenerator(ForecastGenerator):
-    @validated()
-    def __init__(self, distr_output) -> None:
-        self.distr_output = distr_output
-
-    def __call__(
-        self,
-        inference_data_loader: DataLoader,
-        prediction_net,
-        input_names: List[str],
-        output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
-    ) -> Iterator[Forecast]:
-        for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
-            outputs = prediction_net(*inputs)
-
-            if output_transform:
-                log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
-
-            distributions = [
-                self.distr_output.distribution(*u) for u in _unpack(outputs)
-            ]
-
-            i = -1
-            for i, distr in enumerate(distributions):
-                yield make_distribution_forecast(
-                    distr,
-                    start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
-                )
-            assert i + 1 == len(batch[FieldName.FORECAST_START])
-
-
 class ForecastBatch:
     @property
     def batch_size(self) -> int:
@@ -264,6 +124,7 @@ class DistributionForecastBatch(ForecastBatch):
     info: Optional[list]
     distr_output: Any  # TODO fix
     distr_args: list
+    distr: Type = field(init=False)
 
     def __post_init__(self):
         self.distr = self.distr_output.distribution(*self.distr_args)
@@ -344,7 +205,7 @@ class QuantileForecastBatch(ForecastBatch):
     quantile_batch: np.ndarray
     quantile_levels: List[str]
 
-    def __iter__(self) -> Iterator[SampleForecast]:
+    def __iter__(self) -> Iterator[QuantileForecast]:
         for i, output in enumerate(self.quantile_batch):
             yield QuantileForecast(
                 output,

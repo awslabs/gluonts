@@ -19,6 +19,7 @@ from mxnet import gluon
 from mxnet.gluon import nn
 
 from gluonts.core.component import validated
+from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 
@@ -615,3 +616,19 @@ class WaveNetSampler(WaveNet):
         samples = self.post_transform(samples)
         samples = F.broadcast_mul(scale.expand_dims(axis=1), samples)
         return samples
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["past_time_feat"],
+            batch["future_time_feat"],
+            batch["scale"],
+        )
+        return SampleForecastBatch(
+            start_date=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            sample_batch=to_numpy(outputs),
+        )

@@ -26,7 +26,6 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.block.decoder import OneShotDecoder
@@ -247,7 +246,6 @@ class Seq2SeqEstimator(GluonEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )
 
 
