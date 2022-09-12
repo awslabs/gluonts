@@ -103,7 +103,7 @@ package_root = Path(__file__).resolve().parents[1]  # 2 levels up
 
 def dist_root():
     return search_for(
-        "setup.py", file_name.parent, levels=SEARCH_PACKAGE_LEVELS
+        "setup.py", Path(__file__).parent, levels=SEARCH_PACKAGE_LEVELS
     ).parent
 
 
