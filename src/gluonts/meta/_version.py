@@ -98,7 +98,7 @@ def search_for(name: str, where: Path, levels: int = 0):
 
 
 file_name = Path(__file__).name  # this files name
-package_root = Path(__file__).resolve().parent
+package_root = Path(__file__).resolve().parents[1]  # 2 levels up
 
 
 def dist_root():
