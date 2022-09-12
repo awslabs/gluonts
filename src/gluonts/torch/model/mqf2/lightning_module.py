@@ -41,6 +41,8 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         Learning rate
     weight_decay
         Weight decay during training
+    patience
+        Patience parameter for learning rate scheduler, default: ``10``.
     """
 
     def __init__(
@@ -49,12 +51,14 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         loss: DistributionLoss = EnergyScore(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
+        patience: int = 10,
     ) -> None:
         super().__init__(
             model=model,
             loss=loss,
             lr=lr,
             weight_decay=weight_decay,
+            patience=patience,
         )
 
     def _compute_loss(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
