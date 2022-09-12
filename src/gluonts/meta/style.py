@@ -12,15 +12,7 @@
 # permissions and limitations under the License.
 
 from pygments.style import Style
-from pygments.token import (
-    Comment,
-    Keyword,
-    Name,
-    String,
-    Number,
-    Operator,
-    Whitespace,
-)
+from pygments.token import Comment, Keyword, Name, String, Number, Operator
 
 from . import colors
 
@@ -35,7 +27,6 @@ class Dark(Style):
         Keyword: f"bold {colors.SALMON}",
         Keyword.Pseudo: "nobold",
         Keyword.Type: f"nobold {colors.SALMON}",
-        Operator: colors.SALMON,
         Operator: f"bold {colors.SALMON}",
         Operator.Word: f"bold {colors.SALMON}",
         Name.Builtin: colors.YELLOW,
