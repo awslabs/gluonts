@@ -156,7 +156,7 @@ class MeanEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_dataset: Optional[Dataset] = None,
-        model_init: Optional[Predictor] = None,
+        from_predictor: Optional[Predictor] = None,
     ) -> ConstantPredictor:
         contexts = np.array(
             [

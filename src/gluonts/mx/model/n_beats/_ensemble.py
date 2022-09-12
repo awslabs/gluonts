@@ -442,11 +442,11 @@ class NBEATSEnsembleEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[Predictor] = None,
+        from_predictor: Optional[Predictor] = None,
     ) -> NBEATSEnsemblePredictor:
         predictors = []
 
-        if model_init is None:
+        if from_predictor is None:
             for index, estimator in enumerate(self.estimators):
                 logging.info(
                     f"Training estimator {index + 1}/{len(self.estimators)}."
@@ -455,16 +455,16 @@ class NBEATSEnsembleEstimator(Estimator):
                     estimator.train(training_data, validation_data)
                 )
         else:
-            assert isinstance(model_init, NBEATSEnsemblePredictor)
+            assert isinstance(from_predictor, NBEATSEnsemblePredictor)
             for index, (estimator, predictor) in enumerate(
-                zip(self.estimators, model_init.predictors)
+                zip(self.estimators, from_predictor.predictors)
             ):
                 logging.info(
                     f"Training estimator {index + 1}/{len(self.estimators)}."
                 )
                 predictors.append(
                     estimator.train(
-                        training_data, validation_data, model_init=predictor
+                        training_data, validation_data, from_predictor=predictor
                     )
                 )
 

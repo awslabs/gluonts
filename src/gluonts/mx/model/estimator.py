@@ -171,7 +171,7 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[GluonPredictor] = None,
+        from_predictor: Optional[GluonPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
     ) -> TrainOutput:
@@ -206,12 +206,12 @@ class GluonEstimator(Estimator):
 
         training_network = self.create_training_network()
 
-        if model_init is None:
+        if from_predictor is None:
             training_network.initialize(
                 ctx=self.trainer.ctx, init=self.trainer.init
             )
         else:
-            copy_parameters(model_init.network, training_network)
+            copy_parameters(from_predictor.network, training_network)
 
         self.trainer(
             net=training_network,
@@ -232,7 +232,7 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[GluonPredictor] = None,
+        from_predictor: Optional[GluonPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         **kwargs,
@@ -242,5 +242,5 @@ class GluonEstimator(Estimator):
             validation_data=validation_data,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
-            model_init=model_init,
+            from_predictor=from_predictor,
         ).predictor

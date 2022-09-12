@@ -29,4 +29,4 @@ def test_incremental_training_smoke_mx():
     ]
 
     predictor = estimator.train(dataset)
-    _ = estimator.train(dataset, model_init=predictor)
+    _ = estimator.train(dataset, from_predictor=predictor)

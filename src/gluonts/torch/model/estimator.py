@@ -147,7 +147,7 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[PyTorchPredictor] = None,
+        from_predictor: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
@@ -192,8 +192,8 @@ class PyTorchLightningEstimator(Estimator):
 
         training_network = self.create_lightning_module()
 
-        if model_init is not None:
-            training_network.load_state_dict(model_init.network.state_dict())
+        if from_predictor is not None:
+            training_network.load_state_dict(from_predictor.network.state_dict())
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
@@ -232,7 +232,7 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[PyTorchPredictor] = None,
+        from_predictor: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
@@ -242,7 +242,7 @@ class PyTorchLightningEstimator(Estimator):
         return self.train_model(
             training_data,
             validation_data,
-            model_init=model_init,
+            from_predictor=from_predictor,
             num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,

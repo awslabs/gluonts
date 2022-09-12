@@ -43,7 +43,7 @@ class Estimator:
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        model_init: Optional[Predictor] = None,
+        from_predictor: Optional[Predictor] = None,
     ) -> Predictor:
         """
         Train the estimator on the given data.
@@ -54,7 +54,8 @@ class Estimator:
             Dataset to train the model on.
         validation_data
             Dataset to validate the model on during training.
-        model_init
+        from_predictor
+            (Experimental: this feature may be subject to changes in the future)
             A previously trained model, from which to initialize the estimator
             training.
 

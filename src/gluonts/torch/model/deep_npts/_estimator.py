@@ -401,7 +401,7 @@ class DeepNPTSEstimator(Estimator):
         self,
         train_dataset: Dataset,
         validation_dataset: Optional[Dataset] = None,
-        model_init: Optional[Predictor] = None,
+        from_predictor: Optional[Predictor] = None,
         epochs: int = 100,
         lr: float = 1e-5,
         batch_size: int = 32,
