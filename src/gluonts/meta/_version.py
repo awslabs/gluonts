@@ -104,7 +104,7 @@ package_root = Path(__file__).resolve().parents[1]  # 2 levels up
 def dist_root():
     return search_for(
         "setup.py", Path(__file__).parent, levels=SEARCH_PACKAGE_LEVELS
-    ).parent
+    ).parent.resolve()
 
 
 class GitRepo:
@@ -245,6 +245,3 @@ def cmdclass():
 
 
 __version__ = get_version(fallback="0.0.0")
-
-if __name__ == "__main__":
-    print(__version__)
