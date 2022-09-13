@@ -236,7 +236,7 @@ class NBEATSEnsemblePredictor(Predictor):
         return True
 
 
-class NBEATSEnsembleEstimator(Estimator, IncrementallyTrainable):
+class NBEATSEnsembleEstimator(Estimator):
     """
     An ensemble N-BEATS Estimator (approximately) as described in the paper:
     https://arxiv.org/abs/1905.10437.
