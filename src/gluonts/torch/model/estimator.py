@@ -152,7 +152,6 @@ class PyTorchLightningEstimator(Estimator):
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
-        **kwargs,
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
@@ -234,22 +233,18 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        from_predictor: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
-        **kwargs,
     ) -> PyTorchPredictor:
         return self.train_model(
             training_data,
             validation_data,
-            from_predictor=from_predictor,
             num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
-            **kwargs,
         ).predictor
 
     def train_from(
@@ -261,7 +256,6 @@ class PyTorchLightningEstimator(Estimator):
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
-        **kwargs,
     ) -> PyTorchPredictor:
         return self.train_model(
             training_data,
@@ -271,5 +265,4 @@ class PyTorchLightningEstimator(Estimator):
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
-            **kwargs,
         ).predictor

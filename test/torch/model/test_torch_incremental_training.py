@@ -35,4 +35,4 @@ def test_incremental_training_smoke_torch():
     ]
 
     predictor = estimator.train(dataset)
-    _ = estimator.train(dataset, from_predictor=predictor)
+    _ = estimator.train_from(predictor, dataset)

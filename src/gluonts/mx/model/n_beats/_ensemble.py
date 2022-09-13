@@ -473,9 +473,7 @@ class NBEATSEnsembleEstimator(Estimator):
         return NBEATSEnsemblePredictor(self.prediction_length, predictors)
 
     def train(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
     ) -> NBEATSEnsemblePredictor:
         return self._train(
             training_data=training_data, validation_data=validation_data
