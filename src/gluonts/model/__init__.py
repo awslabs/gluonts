@@ -17,8 +17,8 @@ from pkgutil import extend_path
 
 __path__ = extend_path(__path__, __name__)  # type: ignore
 
-__all__ = ["Estimator", "Predictor", "Forecast"]
+__all__ = ["Estimator", "IncrementallyTrainable", "Predictor", "Forecast"]
 
-from .estimator import Estimator
+from .estimator import Estimator, IncrementallyTrainable
 from .predictor import Predictor
 from .forecast import Forecast
