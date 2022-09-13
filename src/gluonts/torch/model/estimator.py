@@ -22,7 +22,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -147,6 +147,7 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        from_predictor: Optional[PyTorchPredictor] = None,
         num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
@@ -188,6 +189,13 @@ class PyTorchLightningEstimator(Estimator):
                     training_network,
                     num_workers=num_workers,
                 )
+
+        training_network = self.create_lightning_module()
+
+        if from_predictor is not None:
+            training_network.load_state_dict(
+                from_predictor.network.state_dict()
+            )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
@@ -239,5 +247,25 @@ class PyTorchLightningEstimator(Estimator):
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
-            **kwargs,
+        ).predictor
+
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: int = 0,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
+    ) -> PyTorchPredictor:
+        assert isinstance(predictor, PyTorchPredictor)
+        return self.train_model(
+            training_data,
+            validation_data,
+            from_predictor=predictor,
+            num_workers=num_workers,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            ckpt_path=ckpt_path,
         ).predictor

@@ -25,9 +25,10 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
+from gluonts.model import Estimator, Predictor
+from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import copy_parameters
 from gluonts.transform import Transformation
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
@@ -169,6 +170,7 @@ class GluonEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
+        from_predictor: Optional[GluonPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
     ) -> TrainOutput:
@@ -203,6 +205,13 @@ class GluonEstimator(Estimator):
 
         training_network = self.create_training_network()
 
+        if from_predictor is None:
+            training_network.initialize(
+                ctx=self.trainer.ctx, init=self.trainer.init
+            )
+        else:
+            copy_parameters(from_predictor.network, training_network)
+
         self.trainer(
             net=training_network,
             train_iter=training_data_loader,
@@ -231,4 +240,20 @@ class GluonEstimator(Estimator):
             validation_data=validation_data,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
+        ).predictor
+
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+    ) -> Predictor:
+        return self.train_model(
+            training_data=training_data,
+            validation_data=validation_data,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            from_predictor=predictor,
         ).predictor

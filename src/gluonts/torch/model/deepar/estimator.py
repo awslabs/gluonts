@@ -403,7 +403,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module.model,
+            prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device=torch.device(
