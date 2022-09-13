@@ -251,3 +251,25 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
             **kwargs,
         ).predictor
+
+    def train_from(
+        self,
+        predictor: PyTorchPredictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        num_workers: int = 0,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
+        **kwargs,
+    ) -> PyTorchPredictor:
+        return self.train_model(
+            training_data,
+            validation_data,
+            from_predictor=predictor,
+            num_workers=num_workers,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            ckpt_path=ckpt_path,
+            **kwargs,
+        ).predictor

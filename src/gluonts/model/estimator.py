@@ -43,7 +43,6 @@ class Estimator:
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        from_predictor: Optional[Predictor] = None,
     ) -> Predictor:
         """
         Train the estimator on the given data.
@@ -54,10 +53,34 @@ class Estimator:
             Dataset to train the model on.
         validation_data
             Dataset to validate the model on during training.
-        from_predictor
-            (Experimental: this feature may change in the future)
+
+        Returns
+        -------
+        Predictor
+            The predictor containing the trained model.
+        """
+        raise NotImplementedError
+
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+    ) -> Predictor:
+        """
+        Experimental: this feature may change in future versions.
+        Train the estimator, starting from a previously trained
+        predictor, on the given data.
+
+        Parameters
+        ----------
+        predictor
             A previously trained model, from which to initialize the estimator
             training.
+        training_data
+            Dataset to train the model on.
+        validation_data
+            Dataset to validate the model on during training.
 
         Returns
         -------

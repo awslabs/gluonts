@@ -438,7 +438,7 @@ class NBEATSEnsembleEstimator(Estimator):
         except ValidationError as e:
             raise GluonTSHyperparametersError from e
 
-    def train(
+    def _train(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
@@ -471,3 +471,24 @@ class NBEATSEnsembleEstimator(Estimator):
                 )
 
         return NBEATSEnsemblePredictor(self.prediction_length, predictors)
+
+    def train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+    ) -> NBEATSEnsemblePredictor:
+        return self._train(
+            training_data=training_data, validation_data=validation_data
+        )
+
+    def train_from(
+        self,
+        predictor: NBEATSEnsemblePredictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+    ) -> NBEATSEnsemblePredictor:
+        return self._train(
+            training_data=training_data,
+            validation_data=validation_data,
+            from_predictor=predictor,
+        )

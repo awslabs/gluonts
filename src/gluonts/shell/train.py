@@ -101,11 +101,21 @@ def run_train(
         else None
     )
 
+    if from_predictor is not None:
+        return invoke_with(
+            forecaster.train_from,
+            from_predictor,
+            training_data=train_dataset,
+            validation_data=validation_dataset,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+        )
+
     return invoke_with(
         forecaster.train,
         training_data=train_dataset,
         validation_data=validation_dataset,
-        from_predictor=from_predictor,
         num_workers=num_workers,
         num_prefetch=num_prefetch,
         shuffle_buffer_length=shuffle_buffer_length,

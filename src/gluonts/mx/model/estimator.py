@@ -244,3 +244,20 @@ class GluonEstimator(Estimator):
             cache_data=cache_data,
             from_predictor=from_predictor,
         ).predictor
+
+    def train_from(
+        self,
+        predictor: GluonPredictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+        **kwargs,
+    ) -> Predictor:
+        return self.train_model(
+            training_data=training_data,
+            validation_data=validation_data,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            from_predictor=predictor,
+        ).predictor
