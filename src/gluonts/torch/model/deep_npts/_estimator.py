@@ -21,7 +21,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader, TrainDataLoader
 from gluonts.itertools import Cached
-from gluonts.model import Estimator, Predictor
+from gluonts.model import Estimator
 from gluonts.time_feature import time_features_from_frequency_str
 from gluonts.torch.batchify import batchify
 from gluonts.torch.model.predictor import PyTorchPredictor
