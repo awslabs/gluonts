@@ -22,7 +22,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -249,7 +249,7 @@ class PyTorchLightningEstimator(Estimator):
 
     def train_from(
         self,
-        predictor: PyTorchPredictor,
+        predictor: Predictor,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         num_workers: int = 0,
@@ -257,6 +257,7 @@ class PyTorchLightningEstimator(Estimator):
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
     ) -> PyTorchPredictor:
+        assert isinstance(predictor, PyTorchPredictor)
         return self.train_model(
             training_data,
             validation_data,

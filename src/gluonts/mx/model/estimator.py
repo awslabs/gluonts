@@ -25,8 +25,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
-from gluonts.model.predictor import Predictor
+from gluonts.model import Estimator, Predictor
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
@@ -244,7 +243,7 @@ class GluonEstimator(Estimator):
 
     def train_from(
         self,
-        predictor: GluonPredictor,
+        predictor: Predictor,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         shuffle_buffer_length: Optional[int] = None,

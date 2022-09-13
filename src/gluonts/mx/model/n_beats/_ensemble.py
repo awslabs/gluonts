@@ -29,9 +29,8 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.exceptions import GluonTSHyperparametersError
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
@@ -442,7 +441,7 @@ class NBEATSEnsembleEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        from_predictor: Optional[Predictor] = None,
+        from_predictor: Optional[NBEATSEnsemblePredictor] = None,
     ) -> NBEATSEnsemblePredictor:
         predictors = []
 
@@ -455,7 +454,6 @@ class NBEATSEnsembleEstimator(Estimator):
                     estimator.train(training_data, validation_data)
                 )
         else:
-            assert isinstance(from_predictor, NBEATSEnsemblePredictor)
             for index, (estimator, predictor) in enumerate(
                 zip(self.estimators, from_predictor.predictors)
             ):
@@ -481,10 +479,11 @@ class NBEATSEnsembleEstimator(Estimator):
 
     def train_from(
         self,
-        predictor: NBEATSEnsemblePredictor,
+        predictor: Predictor,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
     ) -> NBEATSEnsemblePredictor:
+        assert isinstance(predictor, NBEATSEnsemblePredictor)
         return self._train(
             training_data=training_data,
             validation_data=validation_data,
