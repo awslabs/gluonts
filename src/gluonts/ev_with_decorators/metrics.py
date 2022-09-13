@@ -10,7 +10,7 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-from typing import Callable, Union
+from typing import Optional
 
 import numpy as np
 
@@ -22,8 +22,10 @@ from gluonts.ev_with_decorators.api import (
     AggregateMetric,
 )
 
-
 # BASE METRICS (two-dimensional in univariate case)
+from gluonts.time_feature import get_seasonality
+
+
 @metric(Input("target"))
 def abs_target(target):
     return np.abs(target)
@@ -61,32 +63,38 @@ def squared_error_wrt_mean(error_wrt_mean):
 
 # AGGREGATIONS (have lower number of dimensions than inputs and base metrics)
 @aggregate(abs_target)
-def abs_target_sum(abs_target: np.ndarray, axis: int):
+def abs_target_sum(abs_target: np.ndarray, axis: Optional[int] = None):
     return np.sum(abs_target, axis=axis)
 
 
 @aggregate(abs_target)
-def abs_target_mean(abs_target: np.ndarray, axis: int):
+def abs_target_mean(abs_target: np.ndarray, axis: Optional[int] = None):
     return np.mean(abs_target, axis=axis)
 
 
 @aggregate(squared_error_wrt_mean)
-def mse(squared_error_wrt_mean: np.ndarray, axis: int):
+def mse(squared_error_wrt_mean: np.ndarray, axis: Optional[int] = None):
     return np.mean(squared_error_wrt_mean, axis=axis)
 
 
 @aggregate(mse)
-def rmse(mse: np.ndarray, axis: int):
+def rmse(mse: np.ndarray, axis: Optional[int] = None):
     return np.sqrt(mse)  # axis is already considered
 
 
 @aggregate(rmse, abs_target_mean)
-def nrmse(rmse: np.ndarray, abs_target_mean: np.ndarray, axis: int):
+def nrmse(
+    rmse: np.ndarray, abs_target_mean: np.ndarray, axis: Optional[int] = None
+):
     return rmse / abs_target_mean  # axis is already considered
 
 
 @aggregate(abs_error_wrt_median, abs_target)
-def mape(abs_error_wrt_median: np.ndarray, abs_target: np.ndarray, axis: int):
+def mape(
+    abs_error_wrt_median: np.ndarray,
+    abs_target: np.ndarray,
+    axis: Optional[int] = None,
+):
     return np.mean(abs_error_wrt_median / abs_target, axis=axis)
 
 
@@ -95,7 +103,7 @@ def smape(
     abs_error_wrt_median: np.ndarray,
     abs_target: np.ndarray,
     abs_prediction_median: np.ndarray,
-    axis: int,
+    axis: Optional[int] = None,
 ):
     return 2 * np.mean(
         abs_error_wrt_median / (abs_target + abs_prediction_median), axis=axis
@@ -124,9 +132,7 @@ class QuantileLoss(BaseMetric):
         self.name = f"quantile_loss[{q}]"
         self.dependencies = (
             Input("target"),
-            Input(
-                f"prediction_quantile[{q}]",
-            ),
+            Input(f"prediction_quantile[{q}]"),
         )
         self.q = q
 
@@ -147,7 +153,44 @@ class Coverage(BaseMetric):
 
 
 class SeasonalError(AggregateMetric):
-    pass  # TODO
+    def __init__(
+        self, freq: Optional[str] = None, seasonality: Optional[int] = None
+    ):
+        self.name = "seasonal_error"
+        self.dependencies = (Input("past_data"),)
+        self.freq = freq
+        self.seasonality = seasonality
+
+    def fn(self, past_data: np.ndarray, axis: Optional[int] = None):
+        if not self.seasonality:
+            assert (
+                self.freq is not None
+            ), "Either freq or seasonality must be provided"
+            self.seasonality = get_seasonality(self.freq)
+
+        if self.seasonality < len(past_data):
+            forecast_freq = self.seasonality
+        else:
+            # edge case: the seasonal freq is larger than the length of ts
+            forecast_freq = 1
+
+        # TODO: using a dynamic axis gets ugly here - what can we do?
+        if np.ndim(past_data) != 2:
+            raise ValueError(
+                "Seasonal error can't handle input data that is not 2-dimensional"
+            )
+        if axis == 0:
+            y_t = past_data[:-forecast_freq, :]
+            y_tm = past_data[forecast_freq:, :]
+        elif axis == 1:
+            y_t = past_data[:, :-forecast_freq]
+            y_tm = past_data[:, forecast_freq:]
+        else:
+            raise ValueError(
+                "Seasonal error can only handle 0 or 1 for axis argument"
+            )
+
+        return np.mean(np.abs(y_t - y_tm), axis=axis)
 
 
 class MASE(AggregateMetric):

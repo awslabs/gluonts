@@ -13,7 +13,7 @@
 
 import copy
 from collections import UserDict
-from typing import Callable, Dict, Collection
+from typing import Callable, Dict, Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -23,8 +23,11 @@ import numpy as np
 class Input:
     name: str
 
-    def resolve_base_dependencies(self, data):
+    def resolve_base_dependencies(self, data: dict):
         assert self.name in data, f"Missing data for input '{self.name}'"
+
+    def apply_aggregate(self, data: dict, axis: Optional[int] = None):
+        return
 
 
 @dataclass
@@ -33,7 +36,7 @@ class BaseMetric:
     fn: Callable
     dependencies: tuple
 
-    def apply(self, data):
+    def apply(self, data: dict):
         data[self.name] = self.fn(
             **{
                 dependency.name: data[dependency.name]
@@ -41,7 +44,7 @@ class BaseMetric:
             },
         )
 
-    def resolve_base_dependencies(self, data):
+    def resolve_base_dependencies(self, data: dict):
         if self.name not in data:
             for dependency in self.dependencies:
                 dependency.resolve_base_dependencies(data)
@@ -49,7 +52,7 @@ class BaseMetric:
             # base metrics are calculated right away, we don't need to wait for anything else
             self.apply(data)
 
-    def apply_aggregate(self, data, axis):
+    def apply_aggregate(self, data: dict, axis: Optional[int] = None):
         return
 
 
@@ -59,13 +62,13 @@ class AggregateMetric:
     fn: Callable
     dependencies: tuple
 
-    def resolve_base_dependencies(self, data):
+    def resolve_base_dependencies(self, data: dict):
         for dependency in self.dependencies:
             dependency.resolve_base_dependencies(data)
 
         data[self.name] = self  # insert a placeholder for later use
 
-    def apply_aggregate(self, data, axis):
+    def apply_aggregate(self, data: dict, axis: Optional[int] = None):
         for d in self.dependencies:
             d.apply_aggregate(data, axis)
 
@@ -80,7 +83,7 @@ class AggregateMetric:
 
 # these decorators only work for metrics without extra parameters
 def metric(*dependencies, name=None):
-    def decorator(fn):
+    def decorator(fn: Callable):
         return BaseMetric(
             name=name or fn.__name__,
             dependencies=dependencies,
@@ -91,7 +94,7 @@ def metric(*dependencies, name=None):
 
 
 def aggregate(*dependencies, name=None):
-    def decorator(fn):
+    def decorator(fn: Callable):
         return AggregateMetric(
             name=name or fn.__name__,
             dependencies=dependencies,

@@ -17,24 +17,28 @@ from toolz import take
 
 from gluonts.ev_with_decorators.api import evaluate
 from gluonts.ev_with_decorators.metrics import (
-    rmse,
     mse,
     QuantileLoss,
-    error_wrt_mean,
-    error_wrt_median,
     abs_error_wrt_median,
     nd,
+    SeasonalError,
 )
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
 # GET DATA
-npts = NPTSPredictor(prediction_length=12, freq="D")
+prediction_length = 12
+npts = NPTSPredictor(prediction_length=prediction_length, freq="D")
 electricity = get_dataset("electricity")
 test_data = list(take(10, electricity.test))
 
 # PREPARING DATA FOR EVALUATION
-target = np.stack([true_values["target"][-12:] for true_values in test_data])
+target = np.stack(
+    [true_values["target"][-prediction_length:] for true_values in test_data]
+)
+past_data = np.stack(
+    [true_values["target"][:-prediction_length] for true_values in test_data]
+)
 
 prediction_mean = []
 prediction_median = []
@@ -46,6 +50,7 @@ for prediction in npts.predict(test_data):
     prediction_median.append(prediction.median)
     for q in quantile_values:
         quantile_predictions[q].append(prediction.quantile(q))
+    freq = prediction.start_date.freqstr  # TODO: make less hacky
 
 quantile_predictions_np = dict()
 for key, value in quantile_predictions.items():
@@ -53,6 +58,7 @@ for key, value in quantile_predictions.items():
 
 input_data = {
     "target": target,
+    "past_data": past_data,
     "prediction_mean": np.stack(prediction_mean),
     "prediction_median": np.stack(prediction_median),
 }
@@ -64,6 +70,7 @@ metrics_to_evaluate = [
     mse,
     nd,
     *(QuantileLoss(q=q) for q in quantile_values),
+    SeasonalError(freq),
 ]
 
 # EVALUATION
