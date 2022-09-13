@@ -20,7 +20,7 @@ from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
-from gluonts.model.estimator import Estimator
+from gluonts.model.estimator import Estimator, IncrementallyTrainable
 from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor
 from gluonts.itertools import maybe_len
@@ -102,6 +102,10 @@ def run_train(
     )
 
     if from_predictor is not None:
+        assert isinstance(forecaster, IncrementallyTrainable), (
+            "The model provided does not implement the "
+            "IncrementallyTrainable protocol"
+        )
         return invoke_with(
             forecaster.train_from,
             from_predictor,

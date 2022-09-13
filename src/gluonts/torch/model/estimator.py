@@ -22,7 +22,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model import Estimator, IncrementallyTrainable, Predictor
+from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -36,7 +36,7 @@ class TrainOutput(NamedTuple):
     predictor: PyTorchPredictor
 
 
-class PyTorchLightningEstimator(Estimator, IncrementallyTrainable):
+class PyTorchLightningEstimator(Estimator):
     """
     An `Estimator` type with utilities for creating PyTorch-Lightning-based
     models.

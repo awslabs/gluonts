@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from typing import Optional
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 import gluonts
 from gluonts.core.component import from_hyperparameters, validated
@@ -78,6 +78,7 @@ class Estimator:
         return cls.from_hyperparameters(**params)
 
 
+@runtime_checkable
 class IncrementallyTrainable(Protocol):
     def train_from(
         self,

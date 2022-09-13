@@ -25,7 +25,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model import Estimator, IncrementallyTrainable, Predictor
+from gluonts.model import Estimator, Predictor
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
@@ -40,7 +40,7 @@ class TrainOutput(NamedTuple):
     predictor: Predictor
 
 
-class GluonEstimator(Estimator, IncrementallyTrainable):
+class GluonEstimator(Estimator):
     """
     An `Estimator` type with utilities for creating Gluon-based models.
 
