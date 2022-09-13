@@ -18,10 +18,7 @@ from typing import Callable, Iterator, List, Optional, Any, Union, Type
 
 import numpy as np
 
-from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import DataLoader
 from gluonts.model.forecast import (
     Forecast,
     QuantileForecast,

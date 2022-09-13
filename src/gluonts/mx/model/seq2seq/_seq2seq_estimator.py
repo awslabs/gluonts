@@ -222,11 +222,6 @@ class Seq2SeqEstimator(GluonEstimator):
         transformation: transform.Transformation,
         trained_network: Seq2SeqTrainingNetwork,
     ) -> Predictor:
-        # todo: this is specific to quantile output
-        quantile_strs = [
-            Quantile.from_float(quantile).name for quantile in self.quantiles
-        ]
-
         prediction_splitter = self._create_instance_splitter("test")
 
         prediction_network = Seq2SeqPredictionNetwork(

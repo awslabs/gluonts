@@ -350,6 +350,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
             batch["feat_static_cat"],
             batch["past_observed_values"],
         )
+        assert self.quantile_output is not None
         return QuantileForecastBatch(
             start_date=batch["forecast_start"],
             item_id=batch.get("item_id", None),
