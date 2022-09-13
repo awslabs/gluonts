@@ -29,7 +29,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.exceptions import GluonTSHyperparametersError
-from gluonts.model import Estimator, IncrementallyTrainable, Predictor
+from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
