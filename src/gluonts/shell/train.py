@@ -20,7 +20,7 @@ from gluonts.core import fqname_for
 from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
-from gluonts.model.estimator import Estimator
+from gluonts.model.estimator import Estimator, IncrementallyTrainable
 from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor
 from gluonts.itertools import maybe_len
@@ -69,6 +69,7 @@ def run_train_and_test(
             train_dataset=env.datasets["train"],
             validation_dataset=env.datasets.get("validation"),
             hyperparameters=env.hyperparameters,
+            from_predictor=env.datasets.get("model"),
         )
 
     predictor.serialize(env.path.model)
@@ -82,6 +83,7 @@ def run_train(
     train_dataset: Dataset,
     hyperparameters: dict,
     validation_dataset: Optional[Dataset],
+    from_predictor: Optional[Predictor],
 ) -> Predictor:
     num_workers = (
         int(hyperparameters["num_workers"])
@@ -98,6 +100,21 @@ def run_train(
         if "num_prefetch" in hyperparameters
         else None
     )
+
+    if from_predictor is not None:
+        assert isinstance(forecaster, IncrementallyTrainable), (
+            "The model provided does not implement the "
+            "IncrementallyTrainable protocol"
+        )
+        return invoke_with(
+            forecaster.train_from,
+            from_predictor,
+            training_data=train_dataset,
+            validation_data=validation_dataset,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+        )
 
     return invoke_with(
         forecaster.train,

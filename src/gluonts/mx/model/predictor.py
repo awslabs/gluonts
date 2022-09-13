@@ -101,6 +101,10 @@ class GluonPredictor(Predictor):
         self.ctx = ctx
         self.dtype = dtype
 
+    @property
+    def network(self) -> BlockType:
+        return self.prediction_net
+
     def hybridize(self, batch: DataBatch) -> None:
         """
         Hybridizes the underlying prediction network.

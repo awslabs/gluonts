@@ -15,6 +15,7 @@ from typing import Dict
 
 import torch
 
+from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
 from gluonts.torch.model.deepar.lightning_module import DeepARLightningModule
 from . import MQF2MultiHorizonModel
@@ -45,6 +46,7 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         Patience parameter for learning rate scheduler, default: ``10``.
     """
 
+    @validated()
     def __init__(
         self,
         model: MQF2MultiHorizonModel,
@@ -60,6 +62,9 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
             weight_decay=weight_decay,
             patience=patience,
         )
+
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
 
     def _compute_loss(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         """

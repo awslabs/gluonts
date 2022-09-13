@@ -65,6 +65,10 @@ class PyTorchPredictor(Predictor):
         self.device = device
         return self
 
+    @property
+    def network(self) -> nn.Module:
+        return self.prediction_net
+
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
