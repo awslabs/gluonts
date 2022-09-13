@@ -17,10 +17,10 @@ GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `
 
 ```bash
 # support for mxnet models, faster datasets
-pip install gluonts[mxnet,pro]  
+pip install "gluonts[mxnet,pro]"
 
 # support for torch models, faster datasets
-pip install gluonts[torch,pro]
+pip install "gluonts[torch,pro]"
 ```
 
 ## Simple Example
@@ -35,6 +35,7 @@ of data.
 
 
 ```py
+import matplotlib.pyplot as plt
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.repository.datasets import get_dataset
