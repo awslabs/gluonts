@@ -13,10 +13,28 @@
 
 import copy
 from collections import UserDict
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 from dataclasses import dataclass
 
 import numpy as np
+
+
+# mock ForecastBatch as described in PR #2286 with batch size = data_entry_count
+class ForecastBatch:
+    def __init__(self, prediction_length, batch_size):
+        self.prediction_length = prediction_length
+        self.batch_size = batch_size
+
+    def quantile(self, q: Union[float, str]) -> np.ndarray:
+        return np.random.rand(self.batch_size, self.prediction_length)
+
+    @property
+    def median(self):
+        return self.quantile(0.5)
+
+    @property
+    def mean(self) -> np.ndarray:
+        return np.random.rand(self.batch_size, self.prediction_length)
 
 
 @dataclass
@@ -49,7 +67,6 @@ class BaseMetric:
             for dependency in self.dependencies:
                 dependency.resolve_base_dependencies(data)
 
-            # base metrics are calculated right away, we don't need to wait for anything else
             self.apply(data)
 
     def apply_aggregate(self, data: dict, axis: Optional[int] = None):
@@ -113,7 +130,8 @@ class EvalResult(UserDict):
         return {
             metric_name: self[metric_name]
             for metric_name in self.select
-            if isinstance(self[metric_name], np.ndarray)
+            if isinstance(self[metric_name], BaseMetric)
+            or isinstance(self[metric_name], np.ndarray)
         }
 
     def get_aggregate_metrics(self, axis=None):
