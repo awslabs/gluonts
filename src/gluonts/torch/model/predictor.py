@@ -102,15 +102,20 @@ class PyTorchPredictor(Predictor):
             that.prediction_net.state_dict(),
         )
 
-    def serialize(self, path: Path) -> None:
+    def serialize(self, path: Path, use_torchscript=False) -> None:
         super().serialize(path)
 
         # serialize network
-        with (path / "prediction_net.json").open("w") as fp:
-            print(dump_json(self.prediction_net), file=fp)
-        torch.save(
-            self.prediction_net.state_dict(), path / "prediction_net_state"
-        )
+        if use_torchscript:
+            self.prediction_net.to_torchscript(
+                file_path=path / "prediction_net.pt", method="trace"
+            )
+        else:
+            with (path / "prediction_net.json").open("w") as fp:
+                print(dump_json(self.prediction_net), file=fp)
+            torch.save(
+                self.prediction_net.state_dict(), path / "prediction_net_state"
+            )
 
         # serialize transformation chain
         with (path / "input_transform.json").open("w") as fp:
@@ -142,11 +147,17 @@ class PyTorchPredictor(Predictor):
             transformation = load_json(fp.read())
 
         # deserialize network
-        with (path / "prediction_net.json").open("r") as fp:
-            prediction_net = load_json(fp.read())
-        prediction_net.load_state_dict(
-            torch.load(path / "prediction_net_state", map_location=device)
-        )
+        pt_path = path / "prediction_net.pt"
+        if pt_path.exists():
+            # load torchscript model
+            with pt_path.open("rb") as fp:
+                prediction_net = torch.jit.load(fp)
+        else:
+            with (path / "prediction_net.json").open("r") as fp:
+                prediction_net = load_json(fp.read())
+            prediction_net.load_state_dict(
+                torch.load(path / "prediction_net_state", map_location=device)
+            )
 
         parameters["device"] = device
 
