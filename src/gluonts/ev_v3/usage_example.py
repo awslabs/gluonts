@@ -14,7 +14,10 @@
 import numpy as np
 from toolz import take
 
-from gluonts.ev_v3.api import evaluate, ForecastBatch
+from gluonts.ev_v3.api import (
+    evaluate,
+    get_input_batches,
+)
 from gluonts.ev_v3.metrics import (
     AbsError,
     QuantileLoss,
@@ -22,58 +25,55 @@ from gluonts.ev_v3.metrics import (
     ND,
     SeasonalError,
 )
+from gluonts.evaluation import make_evaluation_predictions
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
-# GET DATA
 prediction_length = 12
-data_entry_count = 10
+data_entry_count = 50
+eval_batch_size = 8
 
+# GET DATA
 npts = NPTSPredictor(prediction_length=prediction_length, freq="D")
 electricity = get_dataset("electricity")
-
 test_data = list(take(data_entry_count, electricity.test))
 
 # PREPARING DATA FOR EVALUATION
-target = np.stack(
-    [true_values["target"][-prediction_length:] for true_values in test_data]
-)
-past_data = np.stack(
-    [true_values["target"][:-prediction_length] for true_values in test_data]
+forecast_it, _ = make_evaluation_predictions(
+    dataset=test_data, predictor=npts, num_samples=10
 )
 
-input_data = {
-    "target": target,
-    "past_data": past_data,
-    "forecast_batch": ForecastBatch(
-        prediction_length=prediction_length, batch_size=data_entry_count
-    ),
-}
-
-quantile_values = (0.1, 0.5, 0.9)
 metrics_to_evaluate = [
+    MSE(axis=0),
     AbsError(error_type="p90"),
     MSE(axis=1),
     ND(axis=1),
-    *(QuantileLoss(quantile=q) for q in quantile_values),
+    *(QuantileLoss(quantile=q) for q in (0.1, 0.5, 0.9)),
     SeasonalError(freq=electricity.metadata.freq, axis=1),
 ]
 
-# EVALUATION
-eval_result = evaluate(metrics=metrics_to_evaluate, data=input_data)
+input_batch_it = get_input_batches(
+    iter(test_data), forecast_it, batch_size=eval_batch_size
+)
 
-print("RESULT:\n")
-for key, value in eval_result.items():
-    print(f"metric '{key}' has shape {np.shape(value)}")
+result = evaluate(metrics_to_evaluate, input_batch_it)
+for metric_name, value in result.items():
+    print(metric_name, np.shape(value))
+
+print(f"\nentry_count is: {result['entry_count']}")
 
 """
 RESULT:
 
-metric 'abs_error[p90]' has shape (10, 12)
-metric 'mse[mean,axis=1]' has shape (10,)
-metric 'ND[median,axis=1]' has shape (10,)
-metric 'quantile_loss[0.1]' has shape (10, 12)
-metric 'quantile_loss[0.5]' has shape (10, 12)
-metric 'quantile_loss[0.9]' has shape (10, 12)
-metric 'season_error[seasonality=24,axis=1]' has shape (10,)
+mse[mean,axis=0] (12,)
+abs_error[p90] (50, 12)
+mse[mean,axis=1] (50,)
+ND[median,axis=1] (50,)
+QuantileLoss[0.1] (50, 12)
+QuantileLoss[0.5] (50, 12)
+QuantileLoss[0.9] (50, 12)
+season_error[seasonality=24,axis=1] (50,)
+entry_count ()
+
+entry_count is: 50
 """

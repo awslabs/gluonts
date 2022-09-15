@@ -67,9 +67,9 @@ class Prediction(Metric):
 
     def calculate(self, data):
         if self.use_mean:
-            return data["forecast_batch"].mean
+            return data["forecast"].mean
         else:
-            return data["forecast_batch"].quantile(self.quantile.value)
+            return data["forecast"].quantile(self.quantile.value)
 
 
 class AbsTarget(Metric):
