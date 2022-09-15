@@ -186,7 +186,11 @@ class Parser:
             dims.append(self.parse_number())
 
         self.stream.pop("PARAN_CLOSE", "]")
-        return GetItem(obj, tuple(dims))
+
+        if len(dims) == 1:
+            return GetItem(obj, dims[0])
+        else:
+            return GetItem(obj, tuple(dims))
 
     def parse_dot(self, obj):
         self.stream.pop("DOT")
