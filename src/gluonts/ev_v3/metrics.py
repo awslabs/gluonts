@@ -24,8 +24,7 @@ from gluonts.time_feature import get_seasonality
 # This class is here for consistency.
 # Other metrics can just call `Target()` instead of having to do `data["target"]`.
 class Target(Metric):
-    @property
-    def name(self):
+    def get_name(self):
         return "target"
 
     def calculate(self, data):
@@ -35,8 +34,7 @@ class Target(Metric):
 # This class is here for consistency.
 # Other metrics can just call `PastData()` instead of having to do `data["past_data"]`.
 class PastData(Metric):
-    @property
-    def name(self):
+    def get_name(self):
         return "past_data"
 
     def calculate(self, data):
@@ -60,8 +58,7 @@ class Prediction(Metric):
         if not use_mean:
             self.quantile = Quantile.parse(quantile)
 
-    @property
-    def name(self):
+    def get_name(self):
         if self.use_mean:
             return "Quantile[mean]"
         else:
@@ -75,8 +72,7 @@ class Prediction(Metric):
 
 
 class AbsTarget(Metric):
-    @property
-    def name(self):
+    def get_name(self):
         return "abs_target"
 
     def calculate(self, data):
@@ -103,8 +99,7 @@ class Error(Metric):
             "error_type must be 'mean', 'median' or a percentile (like 'p90')"
         )
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"error[{self.error_type}]"
 
     def calculate(self, data: dict):
@@ -122,8 +117,7 @@ class AbsError(Metric):
         super(AbsError, self).__init__()
         self.error_type = error_type
 
-    @property
-    def name(self):
+    def get_name(self):
         error_type = self.error_type
         return f"abs_error[{error_type}]"
 
@@ -137,8 +131,7 @@ class SquaredError(Metric):
         super(SquaredError, self).__init__()
         self.error_type = error_type
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"squared_error[{self.error_type}]"
 
     def calculate(self, data):
@@ -156,8 +149,7 @@ class MSE(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"mse[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -173,8 +165,7 @@ class RMSE(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"rmse[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -193,8 +184,7 @@ class NRMSE(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"nrmse[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -208,8 +198,7 @@ class QuantileLoss(Metric):
         super(QuantileLoss, self).__init__()
         self.quantile = Quantile.parse(quantile)
 
-    @property
-    def name(self):
+    def get_name(self):
         return self.quantile.loss_name
 
     def calculate(self, data):
@@ -228,8 +217,7 @@ class MAPE(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"mape[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -244,8 +232,7 @@ class SMAPE(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"smape[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -269,8 +256,7 @@ class ND(Metric):
         self.error_type = error_type
         self.axis = axis
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"ND[{self.error_type},axis={self.axis}]"
 
     def calculate(self, data):
@@ -289,6 +275,7 @@ class SeasonalError(Metric):
         seasonality: Optional[int] = None,
         axis: Optional[int] = None,
     ):
+        super(SeasonalError, self).__init__()
         self.axis = axis
         if seasonality:
             self.seasonality = seasonality
@@ -298,8 +285,7 @@ class SeasonalError(Metric):
             ), "Either freq or seasonality must be provided"
             self.seasonality = get_seasonality(freq)
 
-    @property
-    def name(self):
+    def get_name(self):
         return f"season_error[seasonality={self.seasonality},axis={self.axis}]"
 
     def calculate(self, data):

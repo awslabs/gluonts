@@ -21,21 +21,29 @@ from gluonts.model.forecast import Quantile
 
 
 class Metric(ABC):
+    def __init__(self):
+        self._name = None
+
     @property
-    @abstractmethod
     def name(self) -> str:
         # for parameters given in __init__ (if any), return a *unique* name
-        raise NotImplementedError
-
-    @abstractmethod
-    def calculate(self, data: dict) -> np.ndarray:
-        pass
+        if self._name is None:
+            self._name = self.get_name()
+        return self._name
 
     def get(self, data: Dict[str, np.ndarray]) -> np.ndarray:
         if self.name not in data:
             data[self.name] = self.calculate(data)
 
         return data[self.name]
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def calculate(self, data: dict) -> np.ndarray:
+        pass
 
 
 # mock ForecastBatch as described in PR #2286 with batch size = data_entry_count
