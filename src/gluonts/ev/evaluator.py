@@ -19,7 +19,7 @@ from typing import Dict, Collection, Iterator, List
 from toolz import keyfilter
 
 from .api import Metric, PointMetric
-from .metrics import MSE, Mape, AbsError, Error
+from .metrics import MSE, Mape, Error
 from ..dataset.split import TestDataset
 from ..model import Forecast
 

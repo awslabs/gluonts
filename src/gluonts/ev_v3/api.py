@@ -13,7 +13,7 @@
 
 import copy
 from abc import abstractmethod, ABC
-from typing import Dict, Union, Collection
+from typing import Dict, Collection
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class Metric(ABC):
         pass
 
 
-# mock ForecastBatch as described in PR #2286 with batch size = data_entry_count
+# mock ForecastBatch as described in PR #2286
 # TODO: return actual values
 class ForecastBatch:
     def __init__(self, prediction_length: int, batch_size: int):

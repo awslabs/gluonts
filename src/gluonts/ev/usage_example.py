@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 import numpy as np
 import pandas as pd
 
@@ -31,13 +44,14 @@ estimator = SimpleFeedForwardEstimator(
 
 predictor = estimator.train(training_dataset)
 forecast_it = predictor.predict(
-    dataset=test_pairs.input  # expected datatype is Dataset so this is not the best way to do it...
+    # expected datatype is Dataset so this is not the best way to do it...
+    dataset=test_pairs.input
 )
 
 
 # EVALUATION
 # let's get the MSE per entry as well as aggregated and also the mean MAPE
-# TODO: this might not work because metrics aren't properly sorted yet in Evaluator
+# TODO: this is broken because metrics aren't properly sorted
 
 # define a custom aggregation function
 def sum_of_last_ten(values: np.ndarray) -> float:
@@ -52,7 +66,8 @@ metrics = evaluator.apply(test_pairs, forecast_it)
 global_metrics = metrics.get_point_metrics()
 print(np.shape(global_metrics["error"]))  # 2 dimensional values
 
-# local metrics refer to metrics that consist of a single number per entry in test dataset
+# local metrics refer to metrics that consist
+# of a single number per entry in test dataset
 print(
     pd.DataFrame(metrics.get_local_metrics())
     .rename_axis("item_id")
@@ -65,7 +80,6 @@ print(metrics.get_global_metrics())
 """
 RESULT:
 
-100%|██████████| 100/100 [00:00<00:00, 182.18it/s, epoch=1/1, avg_epoch_loss=6.19]
 {'mse_mean': 11440645.357514339, 'mape_mean': 0.40203682122671086}
 (414, 48)
      item_id            mse

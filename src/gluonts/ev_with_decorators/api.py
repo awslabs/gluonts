@@ -19,7 +19,7 @@ from dataclasses import dataclass
 import numpy as np
 
 
-# mock ForecastBatch as described in PR #2286 with batch size = data_entry_count
+# mock ForecastBatch as described in PR #2286
 class ForecastBatch:
     def __init__(self, prediction_length, batch_size):
         self.prediction_length = prediction_length

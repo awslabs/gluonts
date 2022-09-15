@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 from abc import ABC
-from typing import Collection, Union, Tuple, Optional, Callable, Dict
+from typing import Collection, Union, Optional, Callable, Dict
 
 import numpy as np
 
@@ -40,7 +40,8 @@ class Metric(ABC):
         raise NotImplementedError
 
 
-# todo: the only reason for having this class currently is that it's clear what `get` returns - is there a better way?
+# todo: the only reason for having this class currently is
+#  that it's clear what `get` returns - is there a better way?
 class PointMetric(Metric, ABC):
     def get(
         self,

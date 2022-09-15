@@ -62,14 +62,12 @@ metrics_to_evaluate = [
 eval_result = evaluate(metrics=metrics_to_evaluate, data=input_data)
 
 print("RESULT")
-print(
-    "\nBASE METRICS (should have two-dimensional shape, like the inputs, OR BE AN OBJECT (TODO...))"
-)
+print("\nBASE METRICS")
 base_metrics = eval_result.get_base_metrics()
 for key, value in base_metrics.items():
     print(f"'{key}' has shape {np.shape(value)}")
 
-# TODO: how should parametric metrics be retrieved? This is currently the only way...
+# TODO: how should parametric metrics be retrieved?
 # print(base_metrics["abs_error"]["median"])
 
 
@@ -80,7 +78,7 @@ for key, value in eval_result.get_aggregate_metrics(axis=1).items():
 """
 RESULT
 
-BASE METRICS (should have two-dimensional shape, like the inputs, OR BE AN OBJECT (TODO...))
+BASE METRICS
 'abs_error' has shape ()
 'quantile_loss[0.1]' has shape (10, 12)
 'quantile_loss[0.9]' has shape (10, 12)
@@ -90,8 +88,8 @@ AGGREGATED METRICS:
 'mse': [6.47952803e+01 1.16923472e+04 5.49424643e+01 1.86574762e+05
  2.59215030e+04 5.30528699e+05 1.77747512e+02 1.06394626e+06
  3.87500220e+04 7.06908010e+04]]
-'seasonal_error': [ 5.874899   8.693754   3.8237948 53.10183   21.047922  89.41482
-  2.6516266 97.68416   36.1574    33.661602 ]]
+'seasonal_error': [ 5.874899   8.693754   3.8237948 53.10183   21.047922
+89.41482  2.6516266 97.68416   36.1574    33.661602 ]]
 'nd': [0.937218   0.99556889 0.95046573 0.99899208 0.99619891 0.99955995
  0.96810028 0.99956537 0.99716703 0.99801236]]
 """

@@ -22,7 +22,7 @@ from gluonts.time_feature import get_seasonality
 
 
 # This class is here for consistency.
-# Other metrics can just call `Target()` instead of having to do `data["target"]`.
+# Other metrics can just use `Target()` instead of `data["target"]`.
 class Target(Metric):
     def get_name(self):
         return "target"
@@ -32,7 +32,7 @@ class Target(Metric):
 
 
 # This class is here for consistency.
-# Other metrics can just call `PastData()` instead of having to do `data["past_data"]`.
+# Other metrics can just use `PastData()` instead of `data["past_data"]`.
 class PastData(Metric):
     def get_name(self):
         return "past_data"
@@ -50,7 +50,8 @@ class Prediction(Metric):
         super(Prediction, self).__init__()
         if (quantile is not None) == use_mean:
             raise GluonTSUserError(
-                "Either a provided quantile or use_mean=True was expected, not both"
+                "Either a provided quantile or use_mean=True"
+                " was expected, not both"
             )
 
         self.use_mean = use_mean
@@ -88,7 +89,8 @@ class Error(Metric):
     def _standardize_error_type(
         self, error_type: Union[float, str]
     ) -> Union[float, str]:
-        # this function returns either a float between 0 and 1 to be interpreted as a percentile or "mean"
+        # this function returns either a float between 0 and 1
+        # to be interpreted as a percentile or "mean"
         if error_type == "mean":
             return "mean"
         if error_type == "median":
@@ -300,7 +302,8 @@ class SeasonalError(Metric):
         # TODO: using a dynamic axis gets ugly here - what can we do?
         if np.ndim(past_data) != 2:
             raise ValueError(
-                "Seasonal error can't handle input data that is not 2-dimensional"
+                "Seasonal error can't handle input data"
+                " that is not 2-dimensional"
             )
         if self.axis == 0:
             y_t = past_data[:-forecast_freq, :]

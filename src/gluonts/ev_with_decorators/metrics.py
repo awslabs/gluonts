@@ -26,7 +26,7 @@ from gluonts.time_feature import get_seasonality
 
 
 def standardize_error_type(error_type: Union[float, str]) -> Union[float, str]:
-    # this function returns either a float to be interpreted as a quantile or "mean"
+    # this function returns either a quantile as a float or "mean"
     if error_type == "mean":
         return "mean"
     if error_type == "median":
@@ -47,7 +47,6 @@ class Error(BaseMetric):
         self.cache: Dict[Union[float, str], np.ndarray] = dict()
 
     def apply(self, data: dict):
-        # instead of writing hard data, we get the non-changing target for later use
         self.target = data["target"]
         self.forecast_batch = data["forecast_batch"]
 
@@ -166,13 +165,14 @@ def nd(
     )
 
 
-# for metrics with extra parameters, we declare classes directly instead of using decorators
+# for metrics with extra parameters,
+# we declare classes directly instead of using decorators
 class QuantileLoss(BaseMetric):
     def __init__(self, q):
         self.name = f"quantile_loss[{q}]"
         self.dependencies = (
             Input("target"),
-            Input(f"forecast_batch"),
+            Input("forecast_batch"),
         )
         self.q = q
 
@@ -212,7 +212,7 @@ class SeasonalError(AggregateMetric):
         # TODO: using a dynamic axis gets ugly here - what can we do?
         if np.ndim(past_data) != 2:
             raise ValueError(
-                "Seasonal error can't handle input data that is not 2-dimensional"
+                "Can't handle input data that is not 2-dimensional"
             )
         if axis == 0:
             y_t = past_data[:-forecast_freq, :]
