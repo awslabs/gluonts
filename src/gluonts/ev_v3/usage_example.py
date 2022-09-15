@@ -55,7 +55,7 @@ metrics_to_evaluate = [
     AbsError(error_type="p90"),
     MSE(axis=1),
     ND(axis=1),
-    *(QuantileLoss(q=q) for q in quantile_values),
+    *(QuantileLoss(quantile=q) for q in quantile_values),
     SeasonalError(freq=electricity.metadata.freq, axis=1),
 ]
 

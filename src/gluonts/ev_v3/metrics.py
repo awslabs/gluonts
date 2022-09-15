@@ -16,6 +16,8 @@ from typing import Optional, Union
 import numpy as np
 
 from gluonts.ev_v3.api import Metric
+from gluonts.exceptions import GluonTSUserError
+from gluonts.model.forecast import Quantile
 from gluonts.time_feature import get_seasonality
 
 
@@ -42,19 +44,34 @@ class PastData(Metric):
 
 
 class Prediction(Metric):
-    def __init__(self, error_type: Optional[str] = "median"):
+    def __init__(
+        self,
+        quantile: Optional[Union[Quantile, float, str]] = None,
+        use_mean: bool = False,
+    ):
         super(Prediction, self).__init__()
-        self.error_type = error_type
+        if (quantile is not None) == use_mean:
+            raise GluonTSUserError(
+                "Either a provided quantile or use_mean=True was expected, not both"
+            )
+
+        self.use_mean = use_mean
+
+        if not use_mean:
+            self.quantile = Quantile.parse(quantile)
 
     @property
     def name(self):
-        return f"prediction[{self.error_type}]"
+        if self.use_mean:
+            return "Quantile[mean]"
+        else:
+            return f"Quantile[{self.quantile.name}]"
 
     def calculate(self, data):
-        if self.error_type == "mean":
+        if self.use_mean:
             return data["forecast_batch"].mean
         else:
-            return data["forecast_batch"].quantile(self.error_type)
+            return data["forecast_batch"].quantile(self.quantile.value)
 
 
 class AbsTarget(Metric):
@@ -92,7 +109,10 @@ class Error(Metric):
 
     def calculate(self, data: dict):
         target = Target().get(data)
-        prediction = Prediction(self.error_type).get(data)
+        if self.error_type == "mean":
+            prediction = Prediction(use_mean=True).get(data)
+        else:
+            prediction = Prediction(quantile=self.error_type).get(data)
 
         return target - prediction
 
@@ -184,21 +204,21 @@ class NRMSE(Metric):
 
 
 class QuantileLoss(Metric):
-    def __init__(self, q: float):
+    def __init__(self, quantile: Union[Quantile, float, str]):
         super(QuantileLoss, self).__init__()
-        self.q = q
+        self.quantile = Quantile.parse(quantile)
 
     @property
     def name(self):
-        return f"quantile_loss[{self.q}]"
+        return self.quantile.loss_name
 
     def calculate(self, data):
-        percentile = f"p{self.q * 100}"
-        prediction = Prediction(percentile).get(data)
+        prediction = Prediction(quantile=self.quantile.value).get(data)
         target = Target().get(data)
 
         return np.abs(
-            (target - prediction) * ((prediction >= target) - self.q)
+            (target - prediction)
+            * ((prediction >= target) - self.quantile.value)
         )
 
 
@@ -231,7 +251,10 @@ class SMAPE(Metric):
     def calculate(self, data):
         abs_error = AbsError(error_type=self.error_type).get(data)
         abs_target = AbsTarget().get(data)
-        prediction = Prediction(error_type=self.error_type).get(data)
+        if self.error_type == "mean":
+            prediction = Prediction(use_mean=True).get(data)
+        else:
+            prediction = Prediction(quantile=self.error_type).get(data)
 
         return 2 * np.mean(
             abs_error / (abs_target + np.abs(prediction)), axis=self.axis

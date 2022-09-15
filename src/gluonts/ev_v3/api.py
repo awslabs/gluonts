@@ -17,6 +17,8 @@ from typing import Dict, Union, Collection
 
 import numpy as np
 
+from gluonts.model.forecast import Quantile
+
 
 class Metric(ABC):
     @property
@@ -43,12 +45,12 @@ class ForecastBatch:
         self.prediction_length = prediction_length
         self.batch_size = batch_size
 
-    def quantile(self, q: Union[float, str]) -> np.ndarray:
+    def quantile(self, q: Quantile) -> np.ndarray:
         return np.random.rand(self.batch_size, self.prediction_length)
 
     @property
     def median(self):
-        return self.quantile(0.5)
+        return self.quantile(Quantile.parse(0.5))
 
     @property
     def mean(self) -> np.ndarray:
