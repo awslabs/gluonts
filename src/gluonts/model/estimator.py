@@ -68,6 +68,9 @@ class Estimator:
     def derive_auto_fields(cls, train_iter):
         return {}
 
+    def get_schema(self):
+        raise NotImplementedError
+
     @classmethod
     def from_inputs(cls, train_iter, **params):
         # auto_params usually include `use_feat_dynamic_real`,
