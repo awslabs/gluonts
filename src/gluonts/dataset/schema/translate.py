@@ -160,11 +160,11 @@ class Parser:
     def parse_args(self):
         self.stream.pop("PARAN_OPEN", "(")
 
+        args = []
+
         # no args: `f()`
         if self.stream.peek("PARAN_CLOSE", ")"):
-            return
-
-        args = []
+            return args
 
         while True:
             args.append(self.parse_number())
