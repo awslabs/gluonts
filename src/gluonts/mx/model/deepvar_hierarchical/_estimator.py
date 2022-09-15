@@ -358,5 +358,4 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            output_transform=self.output_transform,
         )

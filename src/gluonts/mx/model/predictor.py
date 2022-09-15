@@ -69,8 +69,6 @@ class GluonPredictor(Predictor):
         Number of time steps to predict
     input_transform
         Input transformation pipeline
-    output_transform
-        Output transformation
     ctx
         MXNet context to use for computation
     forecast_generator
@@ -88,7 +86,6 @@ class GluonPredictor(Predictor):
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
-        output_transform: Optional[OutputTransform] = None,
         dtype: Type = np.float32,
     ) -> None:
         super().__init__(
@@ -100,7 +97,6 @@ class GluonPredictor(Predictor):
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.output_transform = output_transform
         self.ctx = ctx
         self.dtype = dtype
 
@@ -195,8 +191,6 @@ class GluonPredictor(Predictor):
         # serialize transformation chain
         with (path / "input_transform.json").open("w") as fp:
             print(dump_json(self.input_transform), file=fp)
-
-        # FIXME: also needs to serialize the output_transform
 
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
@@ -293,9 +287,6 @@ class RepresentableBlockPredictor(GluonPredictor):
         ctx: mx.Context,
         input_transform: Transformation,
         lead_time: int = 0,
-        output_transform: Optional[
-            Callable[[DataEntry, np.ndarray], np.ndarray]
-        ] = None,
         dtype: Type = np.float32,
     ) -> None:
         super().__init__(
@@ -306,7 +297,6 @@ class RepresentableBlockPredictor(GluonPredictor):
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
-            output_transform=output_transform,
             dtype=dtype,
         )
 
@@ -339,8 +329,6 @@ class RepresentableBlockPredictor(GluonPredictor):
             ctx=self.ctx,
             input_transform=self.input_transform,
             lead_time=self.lead_time,
-            forecast_generator=self.forecast_generator,
-            output_transform=self.output_transform,
             dtype=self.dtype,
         )
 

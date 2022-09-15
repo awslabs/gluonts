@@ -51,7 +51,6 @@ class PyTorchPredictor(Predictor):
         batch_size: int,
         prediction_length: int,
         input_transform: Transformation,
-        output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
         device: Optional[torch.device] = torch.device("cpu"),
     ) -> None:
@@ -60,7 +59,6 @@ class PyTorchPredictor(Predictor):
         self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.output_transform = output_transform
         self.device = device
 
     def to(self, device) -> "PyTorchPredictor":
@@ -115,8 +113,6 @@ class PyTorchPredictor(Predictor):
         # serialize transformation chain
         with (path / "input_transform.json").open("w") as fp:
             print(dump_json(self.input_transform), file=fp)
-
-        # FIXME: also needs to serialize the output_transform
 
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:

@@ -68,9 +68,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         input_transform: Transformation,
         input_names: Optional[List[str]] = None,
         lead_time: int = 0,
-        output_transform: Optional[
-            Callable[[DataEntry, np.ndarray], np.ndarray]
-        ] = DeepRenewalProcessSampleOutputTransform(),
         dtype: Type = np.float32,
     ) -> None:
         super().__init__(
@@ -80,7 +77,6 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
-            output_transform=output_transform,
             dtype=dtype,
         )
         if input_names is not None:

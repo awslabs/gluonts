@@ -55,33 +55,24 @@ class PointProcessGluonPredictor(GluonPredictor):
         input_names: List[str],
         prediction_net: mx.gluon.Block,
         batch_size: int,
-        prediction_interval_length: float,
-        freq: str,
+        prediction_length: int,
         ctx: mx.Context,
         input_transform: Transformation,
         dtype: Type = np.float32,
-        **kwargs,
     ) -> None:
         super().__init__(
             input_names=input_names,
             prediction_net=prediction_net,
             batch_size=batch_size,
-            prediction_length=np.ceil(
-                prediction_interval_length
-            ),  # for validation only
+            prediction_length=prediction_length,
             ctx=ctx,
             input_transform=input_transform,
-            output_transform=None,
             dtype=dtype,
             lead_time=0,
-            **kwargs,
         )
 
         # not used by TPP predictor
         self.prediction_length = cast(int, None)
-
-        self.prediction_interval_length = prediction_interval_length
-        self.freq = freq
 
     def hybridize(self, batch: DataBatch) -> None:
         raise NotImplementedError(

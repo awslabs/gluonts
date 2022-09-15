@@ -11,8 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import itertools
 from typing import Optional, Tuple
 
+import numpy as np
 import mxnet as mx
 from gluonts.core.component import validated
 from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
@@ -367,5 +369,22 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             start_date=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            sample_batch=to_numpy(outputs),
+            sample_batch=_expand_output(to_numpy(outputs)),
         )
+
+
+def _expand_output(output: np.ndarray) -> np.ndarray:
+    ia_times, sizes = output[:, :, 0], output[:, :, 1]
+    batch_size, num_samples, max_time = ia_times.shape
+    max_time = ia_times.shape[-1]
+    out = np.zeros_like(ia_times)
+
+    times = np.cumsum(ia_times, axis=-1) - 1
+
+    for i, j in itertools.product(range(batch_size), range(num_samples)):
+        t, s = times[i, j], sizes[i, j]
+        ix = t[t < max_time].astype(int).tolist()
+        if len(ix) > 0:
+            out[i, j, ix] = s[: len(ix)]
+
+    return out
