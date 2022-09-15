@@ -14,7 +14,7 @@
 import itertools
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Callable, Iterator, Type
+from typing import List, Optional, Iterator, Type
 
 import mxnet as mx
 import numpy as np

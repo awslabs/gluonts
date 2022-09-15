@@ -15,12 +15,12 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Type
+from typing import Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
 from gluonts.core.serde import dump_json, load_json
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
@@ -28,7 +28,7 @@ from gluonts.model.forecast_generator import (
     predict_to_numpy,
     to_numpy,
 )
-from gluonts.model.predictor import OutputTransform, Predictor
+from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.component import equals
 from gluonts.mx.context import get_mxnet_context

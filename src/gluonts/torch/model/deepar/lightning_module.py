@@ -159,3 +159,6 @@ class DeepARLightningModule(pl.LightningModule):
                 "monitor": "train_loss",
             },
         }
+
+    def forecast(self, *args, **kwargs):
+        return self.model.forecast(*args, **kwargs)
