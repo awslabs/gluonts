@@ -1,0 +1,249 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+import re
+from dataclasses import dataclass, InitVar
+from typing import Any, List, Union, ClassVar
+
+import numpy as np
+from toolz import valfilter, valmap
+
+
+class Op:
+    def apply(self, item):
+        raise NotImplementedError
+
+
+@dataclass
+class Get(Op):
+    name: str
+
+    def apply(self, item):
+        return item[self.name]
+
+
+@dataclass
+class Method(Op):
+    obj: Any
+    args: list
+
+    def apply(self, item):
+        self.obj.apply(item)(*self.args)
+
+
+@dataclass
+class GetAttr(Op):
+    obj: Any
+    name: str
+
+    def apply(self, item):
+        return getattr(
+            self.obj.apply(item),
+            self.name,
+        )
+
+
+@dataclass
+class GetItem(Op):
+    obj: Any
+    dims: List[int]
+
+    def apply(self, item):
+        return self.obj.apply(item).__getitem__(self.dims)
+
+
+@dataclass
+class Stack(Op):
+    objects: List[Any]
+
+    def apply(self, item):
+        return np.stack([obj.apply(item) for obj in self.objects])
+
+
+def one_of(s):
+    options = "|".join(map(re.escape, s))
+
+    return rf"[{options}]"
+
+
+@dataclass
+class Token:
+    name: str
+    value: str
+    match: Any
+
+
+@dataclass
+class TokenStream:
+    TOKENS: ClassVar[dict] = {
+        "DOT": re.escape("."),
+        "COMMA": re.escape(","),
+        "PARAN_OPEN": one_of("[("),
+        "PARAN_CLOSE": one_of("])"),
+        "NUMBER": r"\-?\d+",
+        "NAME": r"\w+",
+    }
+    RX: ClassVar[str] = "|".join(
+        f"(?P<{name}>{pattern})" for name, pattern in TOKENS.items()
+    )
+
+    tokens: List[Token]
+    idx: InitVar[int] = 0
+
+    @classmethod
+    def from_str(cls, s):
+        return cls(
+            [
+                Token(name, value, match)
+                for match in re.finditer(cls.RX, s)
+                for name, value in valfilter(bool, match.groupdict()).items()
+            ]
+        )
+
+    def pop(self, ty=None, val=None):
+        token = self.tokens[self.idx]
+
+        assert check_type(token, ty, val), f"Expected {ty}, got {token}."
+
+        self.idx += 1
+        return token
+
+    def pop_if(self, ty=None, val=None):
+        if self.peek(ty, val):
+            return self.pop()
+
+    def peek(self, ty=None, val=None):
+        if self:
+            token = self.tokens[self.idx]
+            if check_type(token, ty, val):
+                return token
+
+        return None
+
+    def __len__(self):
+        return len(self.tokens) - self.idx
+
+
+def check_type(token, ty, val):
+    def matches(tok: Token):
+        return tok.name == ty and (val is None or tok.value == val)
+
+    if ty is None:
+        return True
+
+    if isinstance(ty, str):
+        return matches(token)
+
+    if isinstance(ty, list):
+        return any(map(matches, token))
+
+    return False
+
+
+def is_boundary(stream):
+    return not stream or stream.peek("DOT") or stream.peek("PARAN_OPEN")
+
+
+@dataclass
+class Parser:
+    stream: TokenStream
+
+    def parse_number(self):
+        return int(self.stream.pop("NUMBER").value)
+
+    def parse_args(self):
+        self.stream.pop("PARAN_OPEN", "(")
+
+        # no args: `f()`
+        if self.stream.peek("PARAN_CLOSE", ")"):
+            return
+
+        args = []
+
+        while True:
+            args.append(self.parse_number())
+
+            if self.stream.pop_if("COMMA"):
+                continue
+
+            if self.stream.pop_if("PARAN_CLOSE", ")"):
+                return args
+
+            raise ValueError(f"Invalid token {self.stream.peak()}")
+
+    def parse_getitem(self, obj):
+        self.stream.pop("PARAN_OPEN", "[")
+
+        dims = [self.parse_number()]
+
+        while self.stream.pop_if("COMMA"):
+            dims.append(self.parse_number())
+
+        self.stream.pop("PARAN_CLOSE", "]")
+        return GetItem(obj, tuple(dims))
+
+    def parse_dot(self, obj):
+        self.stream.pop("DOT")
+
+        name = self.stream.pop("NAME").value
+
+        return GetAttr(obj, name)
+
+    def parse_invoke(self, obj):
+        self.stream.pop("PARAN_OPEN", "(")
+        args = self.parse_args()
+        self.stream.pop("PARAN_CLOSE", ")")
+
+        return Method(obj, args)
+
+    def parse_expr(self):
+        token = self.stream.pop("NAME")
+
+        obj = Get(token.value)
+
+        while self.stream:
+            if self.stream.peek("DOT"):
+                obj = self.parse_dot(obj)
+
+            if self.stream.peek("PARAN_OPEN", "("):
+                obj = self.stream.parse_invoke(obj)
+
+            if self.stream.peek("PARAN_OPEN", "["):
+                obj = self.parse_getitem(obj)
+
+        return obj
+
+
+def parse(x: Union[str, list]) -> Op:
+    if isinstance(x, list):
+        return Stack(list(map(parse, x)))
+    else:
+        ts = TokenStream.from_str(x)
+        return Parser(ts).parse_expr()
+
+
+@dataclass
+class Translator:
+    fields: dict
+
+    @classmethod
+    def new(cls, **fields):
+        return cls(valmap(parse, fields))
+
+    def __call__(self, item):
+        result = dict(item)
+        result.update(
+            {name: field.apply(item) for name, field in self.fields.items()}
+        )
+
+        return result
