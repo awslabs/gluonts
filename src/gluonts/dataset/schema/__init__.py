@@ -11,6 +11,49 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["Translator"]
+__all__ = [
+    # translate
+    "Translator",
+    # types
+    "Type",
+    "Default",
+    "Array",
+    "Period",
+    # this module
+    "Schema",
+]
+
+from dataclasses import dataclass, field
+from typing import Any, Dict
 
 from .translate import Translator
+from .types import Type, Default, Array, Period
+
+
+@dataclass
+class SchemaBuilder:
+    def add(self, field):
+        pass
+
+
+@dataclass
+class Schema:
+    fields: Dict[str, Type]
+    default_fields: Dict[str, Any] = field(init=False)
+
+    def __post_init__(self):
+        self.default_fields = {}
+
+        for name, ty in list(self.fields.items()):
+            if isinstance(ty, Default):
+                self.default_fields[name] = self.fields.pop(name).value
+
+    def apply(self, entry):
+        result = {
+            field_name: ty.apply(entry[field_name])
+            for field_name, ty in self.fields.items()
+        }
+
+        for name, default in self.default_fields.items():
+            result[name] = default
+        return result
