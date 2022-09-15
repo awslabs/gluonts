@@ -21,21 +21,15 @@ __all__ = [
     "Schema",
 ]
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, MISSING
 from typing import Any, Dict
 
 from .types import Type, Default, Array, Period
 
 
 @dataclass
-class SchemaBuilder:
-    def add(self, field):
-        pass
-
-
-@dataclass
 class Schema:
-    fields: Dict[str, Type]
+    fields: Dict[str, Type] = field(default_factory=dict)
     default_fields: Dict[str, Any] = field(init=False)
 
     def __post_init__(self):
@@ -54,3 +48,11 @@ class Schema:
         for name, default in self.default_fields.items():
             result[name] = default
         return result
+
+    def add(self, name: str, ty: Type, *, when=None, default=MISSING):
+        if when is None or when:
+            self.fields[name] = ty
+        elif default is not MISSING:
+            self.default_fields[name] = ty.apply(default)
+
+        return self

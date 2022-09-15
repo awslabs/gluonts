@@ -287,56 +287,36 @@ class DeepAREstimator(GluonEstimator):
         self.minimum_scale = minimum_scale
         self.impute_missing_values = impute_missing_values
 
-    def get_schema(self, schema):
-        schema.add(
-            "target",
-            schema.Array(
-                dtype=self.dtype,
-                ndim=1 + len(self.distr_output.event_shape),
-            ),
+    def get_schema(self):
+        Array_1D = schema.Array(dtype=self.dtype, ndim=1)
+        Array_2D = schema.Array(dtype=self.dtype, ndim=2)
+
+        return (
+            schema.Schema()
+            .add(
+                "target",
+                schema.Array(
+                    self.dtype,
+                    ndim=1 + len(self.distr_output.event_shape),
+                ),
+            )
+            .add("start", schema.Period())
+            .add(
+                "feat_dynamic_real", Array_2D, when=self.use_feat_dynamic_real
+            )
+            .add(
+                "feat_static_cat",
+                Array_1D,
+                when=self.use_feat_static_cat,
+                default=0.0,
+            )
+            .add(
+                "feat_static_real",
+                Array_1D,
+                when=self.use_feat_static_real,
+                default=0.0,
+            )
         )
-        schema.add("start", schema.Period())
-
-        schema.add("feat_dynamic_real", A2, when=self.use_feat_dynamic_real)
-
-        schema.add(
-            "feat_static_cat",
-            A1,
-            when=self.use_feat_static_cat,
-            default=[0.0],
-        )
-
-        schema.add(
-            "feat_static_real",
-            A1,
-            when=self.use_feat_static_real,
-            default=[0.0],
-        )
-
-        # fields = {
-        #     "target": schema.Array(
-        #         dtype=self.dtype, ndim=1 + len(self.distr_output.event_shape)
-        #     ),
-        #     "start": schema.Period(),
-        # }
-
-        # A1 = schema.Array(dtype=self.dtype, ndim=1)
-        # A2 = schema.Array(dtype=self.dtype, ndim=2)
-
-        # if self.use_feat_dynamic_real:
-        #     fields["feat_dynamic_real"] = A2
-
-        # if self.use_feat_static_cat:
-        #     fields["feat_static_cat"] = A1
-        # else:
-        #     fields["feat_static_cat"] = schema.Default([0.0], A1)
-
-        # if self.use_feat_static_real:
-        #     fields["feat_static_real"] = A1
-        # else:
-        #     fields["feat_static_real"] = schema.Default([0.0], A1)
-
-        # return schema.Schema(fields)
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
