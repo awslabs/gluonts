@@ -12,8 +12,6 @@
 # permissions and limitations under the License.
 
 __all__ = [
-    # translate
-    "Translator",
     # types
     "Type",
     "Default",
@@ -26,7 +24,6 @@ __all__ = [
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
-from .translate import Translator
 from .types import Type, Default, Array, Period
 
 
