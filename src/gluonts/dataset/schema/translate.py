@@ -150,10 +150,6 @@ def check_type(token, ty, val):
     return False
 
 
-def is_boundary(stream):
-    return not stream or stream.peek("DOT") or stream.peek("PARAN_OPEN")
-
-
 @dataclass
 class Parser:
     stream: TokenStream
