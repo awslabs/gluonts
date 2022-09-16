@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import copy
+import warnings
 from abc import abstractmethod, ABC
 from typing import Dict, Collection, Union, Iterator, Optional
 
@@ -43,6 +44,24 @@ class Metric(ABC):
     def calculate(self, data: dict) -> np.ndarray:
         pass
 
+    # TODO: actually use these methods
+    def aggr_batch(self, batch_1, batch_2):
+        # batch_1 always gets updated with values from batch_2
+        # TODO: allow user to have control over this
+        pass
+
+    def _aggr_batch_sum(self, batch_1, batch_2):
+        batch_1[self.name] = batch_1[self.name] + batch_2[self.name]
+
+    def _aggr_batch_mean(self, batch_1, batch_2):
+        c1 = batch_1["entry_count"]
+        c2 = batch_2["entry_count"]
+
+        weighted_1 = batch_1[self.name] * c1
+        weighted_2 = batch_2[self.name] * c2
+
+        batch_1[self.name] = (weighted_1 + weighted_2) / (c1 + c2)
+
 
 def evaluate(metrics: Collection[Metric], input_data: Dict[str, np.ndarray]):
     """
@@ -68,7 +87,11 @@ def evaluate(metrics: Collection[Metric], input_data: Dict[str, np.ndarray]):
 def aggregate_batches(total_result, batch_result, metrics):
     for metric in metrics:
         if hasattr(metric, "axis") and metric.axis == 0:
-            pass
+            warnings.warn(
+                "Batched calculation for metrics using axis=0"
+                f" isn't supported, skipping metric '{metric.name}'"
+            )
+            total_result.pop(metric.name, None)
         else:
             total_result[metric.name] = np.concatenate(
                 (total_result[metric.name], batch_result[metric.name])

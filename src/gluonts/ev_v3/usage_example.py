@@ -58,6 +58,7 @@ def scenario_1():
         dataset=test_data, predictor=npts, num_samples=10
     )
 
+    # user has full control over specifying the input data
     input_data = {
         "target": np.stack(target_batch),
         "past_data": np.stack(past_data_batch),
@@ -126,19 +127,20 @@ def scenario_2():
 
     # aggregating to "global" metrics has to be done by the user
     print("\nGLOBAL METRICS:")
-    print(f"Mean MSE: {np.mean(result['mse[mean,axis=0]'])}")
     print(f"Mean QuantileLoss[0.9]: {np.mean(result['QuantileLoss[0.9]'])}")
     print("and so on...")
 
 
-print("SCNEARIO #1 (entire dataset fits into a single np.ndarray):")
+print("SCENARIO #1 (entire dataset fits into a single np.ndarray):")
 scenario_1()
+
 print("\n" + "-" * 20)
-print("\nSCNEARIO #2 (evaluation in batches):")
+
+print("\nSCENARIO #2 (evaluation in batches):")
 scenario_2()
 
 """
-SCNEARIO #1 (entire dataset fits into a single np.ndarray):
+SCENARIO #1 (entire dataset fits into a single np.ndarray):
 SHAPES OF METRICS:
 mse[mean,axis=0] has shape (12,)
 abs_error[p90] has shape (50, 12)
@@ -151,15 +153,17 @@ season_error[seasonality=24,axis=1] has shape (50,)
 entry_count has shape ()
 
 GLOBAL METRICS:
-Mean MSE: 23.819333333333333
-Mean QuantileLoss[0.9]: 20.984999999999996
+Mean MSE: 29.800166666666666
+Mean QuantileLoss[0.9]: 18.461499999999997
 and so on...
 
 --------------------
 
-SCNEARIO #2 (evaluation in batches):
+SCENARIO #2 (evaluation in batches):
+...api.py:90: UserWarning: Batched calculation for metrics
+  using axis=0 isn't supported, skipping metric 'mse[mean,axis=0]'
+  warnings.warn(
 SHAPES OF METRICS:
-mse[mean,axis=0] has shape (12,)
 abs_error[p90] has shape (50, 12)
 mse[mean,axis=1] has shape (50,)
 ND[median,axis=1] has shape (50,)
@@ -170,7 +174,6 @@ season_error[seasonality=24,axis=1] has shape (50,)
 entry_count has shape ()
 
 GLOBAL METRICS:
-Mean MSE: 35.6125
-Mean QuantileLoss[0.9]: 20.040166666666664
+Mean QuantileLoss[0.9]: 23.98366666666666
 and so on...
 """
