@@ -111,7 +111,7 @@ def truncate_features(timeseries: dict, max_len: int) -> dict:
     ):
         if key not in timeseries:
             continue
-        timeseries[key] = [feature[:max_len] for feature in timeseries[key]]
+        timeseries[key] = timeseries[key][:, :max_len]
 
     return timeseries
 

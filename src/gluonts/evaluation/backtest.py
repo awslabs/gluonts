@@ -45,7 +45,7 @@ def _to_dataframe(input_label: Tuple[DataEntry, DataEntry]) -> pd.DataFrame:
         periods=target.shape[-1],
         freq=input_label[0][FieldName.START].freq,
     )
-    return pd.DataFrame(target, index=index)
+    return pd.DataFrame(target.transpose(), index=index)
 
 
 def make_evaluation_predictions(
