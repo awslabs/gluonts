@@ -27,6 +27,7 @@ from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
 )
+from gluonts.dataset.util import period_index
 from gluonts.evaluation import Evaluator
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
@@ -38,14 +39,13 @@ def _to_dataframe(input_label: Tuple[DataEntry, DataEntry]) -> pd.DataFrame:
     """
     Turn a pair of consecutive (in time) data entries into a dataframe.
     """
-    targets = tuple(entry[FieldName.TARGET] for entry in input_label)
-    target = np.concatenate(targets, axis=-1)
-    index = pd.period_range(
-        start=input_label[0][FieldName.START],
-        periods=target.shape[-1],
-        freq=input_label[0][FieldName.START].freq,
+    start = input_label[0][FieldName.START]
+    targets = [entry[FieldName.TARGET] for entry in input_label]
+    full_target = np.concatenate(targets, axis=-1)
+    index = period_index(
+        {FieldName.START: start, FieldName.TARGET: full_target}
     )
-    return pd.DataFrame(target.transpose(), index=index)
+    return pd.DataFrame(full_target.transpose(), index=index)
 
 
 def make_evaluation_predictions(
