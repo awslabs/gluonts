@@ -22,7 +22,7 @@ import gluonts  # noqa
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.split import split, InputDataset
+from gluonts.dataset.split import split
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
