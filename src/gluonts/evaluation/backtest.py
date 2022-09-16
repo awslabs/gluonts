@@ -78,8 +78,9 @@ def make_evaluation_predictions(
         second one yielding the corresponding ground truth series.
     """
 
-    _, test_template = split(dataset, offset=-predictor.prediction_length)
-    test_data = test_template.generate_instances(predictor.prediction_length)
+    window_length = predictor.prediction_length + predictor.lead_time
+    _, test_template = split(dataset, offset=-window_length)
+    test_data = test_template.generate_instances(window_length)
 
     return (
         predictor.predict(test_data.input, num_samples=num_samples),
