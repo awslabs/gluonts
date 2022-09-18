@@ -12,168 +12,67 @@
 # permissions and limitations under the License.
 
 import numpy as np
-from toolz import take
 
-from gluonts.ev_v3.api import evaluate, evaluate_batches
-from gluonts.ev_v3.helpers import get_input_batches, PrimitiveForecastBatch
-from gluonts.ev_v3.metrics import (
-    AbsError,
-    QuantileLoss,
-    MSE,
-    ND,
-    SeasonalError,
-)
-from gluonts.evaluation import make_evaluation_predictions
+from gluonts.dataset.split import TestTemplate, OffsetSplitter
+from gluonts.ev_v3.evaluator import NewEvaluator
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
+# DATASET
+dataset = get_dataset("electricity")
 
-# SCENARIO 1: Entire dataset fits into a single np.ndarray
-def scenario_1():
-    prediction_length = 12
-    data_entry_count = 50
+prediction_length = dataset.metadata.prediction_length
+freq = dataset.metadata.freq
 
-    npts = NPTSPredictor(prediction_length=prediction_length, freq="D")
-    electricity = get_dataset("electricity")
-    test_data = list(take(data_entry_count, electricity.test))
+test_template = TestTemplate(
+    dataset=dataset.test, splitter=OffsetSplitter(offset=prediction_length)
+)
+test_dataset = test_template.generate_instances(
+    prediction_length=prediction_length
+)
 
-    # PREPARE FOR EVALUATION
-    metrics_to_evaluate = [
-        MSE(axis=0),
-        AbsError(error_type="p90"),
-        MSE(axis=1),
-        ND(axis=1),
-        *(QuantileLoss(quantile=q) for q in (0.1, 0.5, 0.9)),
-        SeasonalError(freq=electricity.metadata.freq, axis=1),
-    ]
+predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 
-    target_batch = []
-    past_data_batch = []
-    for data_entry in test_data:
-        target_batch.append(data_entry["target"][-prediction_length:])
-        past_data_batch.append(data_entry["target"][:-prediction_length])
-
-    # TODO: not use make_evaluation_predictions to get forecasts
-    forecast_it, _ = make_evaluation_predictions(
-        dataset=test_data, predictor=npts, num_samples=10
-    )
-
-    # user has full control over specifying the input data
-    input_data = {
-        "target": np.stack(target_batch),
-        "past_data": np.stack(past_data_batch),
-        "forecast": PrimitiveForecastBatch(list(forecast_it)),
-    }
-
-    # EVALUATE
-    result = evaluate(
-        metrics_to_evaluate, input_data
-    )  # everything is done in one batch
-
-    print("SHAPES OF METRICS:")
-    for metric_name, value in result.items():
-        print(f"{metric_name} has shape {np.shape(value)}")
-
-    # aggregating to "global" metrics has to be done by the user
-    print("\nGLOBAL METRICS:")
-    print(f"Mean MSE: {np.mean(result['mse[mean,axis=0]'])}")
-    print(f"Mean QuantileLoss[0.9]: {np.mean(result['QuantileLoss[0.9]'])}")
-    print("and so on...")
+forecast_it = predictor.predict(dataset=test_dataset.input)
 
 
-# SCENARIO 2: The model works with some batch size. Evaluation should also
-# happen in batches of that size. At the end, the partial results need to
-# be combined.
-def scenario_2():
-    prediction_length = 12
-    data_entry_count = 50
-    eval_batch_size = 16
-
-    npts = NPTSPredictor(prediction_length=prediction_length, freq="D")
-    electricity = get_dataset("electricity")
-    test_data = list(take(data_entry_count, electricity.test))
-
-    # PREPARE FOR EVALUATION
-    metrics_to_evaluate = [
-        MSE(axis=0),
-        AbsError(error_type="p90"),
-        MSE(axis=1),
-        ND(axis=1),
-        *(QuantileLoss(quantile=q) for q in (0.1, 0.5, 0.9)),
-        SeasonalError(freq=electricity.metadata.freq, axis=1),
-    ]
-
-    target_batch = []
-    past_data_batch = []
-    for data_entry in test_data:
-        target_batch.append(data_entry["target"][-prediction_length:])
-        past_data_batch.append(data_entry["target"][:-prediction_length])
-
-    # TODO: not use make_evaluation_predictions to get forecasts
-    forecast_it, _ = make_evaluation_predictions(
-        dataset=test_data, predictor=npts, num_samples=10
-    )
-
-    input_batch_it = get_input_batches(
-        iter(test_data), forecast_it, batch_size=eval_batch_size
-    )
-
-    # EVALUATE
-    result = evaluate_batches(metrics_to_evaluate, input_batch_it)
-
-    print("SHAPES OF METRICS:")
-    for metric_name, value in result.items():
-        print(f"{metric_name} has shape {np.shape(value)}")
-
-    # aggregating to "global" metrics has to be done by the user
-    print("\nGLOBAL METRICS:")
-    print(f"Mean QuantileLoss[0.9]: {np.mean(result['QuantileLoss[0.9]'])}")
-    print("and so on...")
+# EVALUATOR
+# custom metric functions have to be of this signature
+# TODO: is this flexible enough?
+def error_plus_two(
+    input_data: np.ndarray, prediction_target: np.ndarray, forecast: np.ndarray
+) -> np.ndarray:
+    error = prediction_target - forecast.mean
+    return error + 2
 
 
-print("SCENARIO #1 (entire dataset fits into a single np.ndarray):")
-scenario_1()
+evaluator = NewEvaluator()
 
-print("\n" + "-" * 20)
+eval_result = evaluator(
+    dataset=test_dataset,
+    forecasts=forecast_it,
+    freq=freq,  # TODO: make metadata part of TestDataset
+    custom_metrics=[error_plus_two],
+)
 
-print("\nSCENARIO #2 (evaluation in batches):")
-scenario_2()
+print("EVALUATION RESULT:")
 
-"""
-SCENARIO #1 (entire dataset fits into a single np.ndarray):
-SHAPES OF METRICS:
-mse[mean,axis=0] has shape (12,)
-abs_error[p90] has shape (50, 12)
-mse[mean,axis=1] has shape (50,)
-ND[median,axis=1] has shape (50,)
-QuantileLoss[0.1] has shape (50, 12)
-QuantileLoss[0.5] has shape (50, 12)
-QuantileLoss[0.9] has shape (50, 12)
-season_error[seasonality=24,axis=1] has shape (50,)
-entry_count has shape ()
+print("\nBASE METRICS:")
+for metric_name, value in eval_result.base_metrics.items():
+    print(f"'{metric_name}' has shape {np.shape(value)}")
 
-GLOBAL METRICS:
-Mean MSE: 29.800166666666666
-Mean QuantileLoss[0.9]: 18.461499999999997
-and so on...
+print("\nMETRICS PER ENTRY:")
+for metric_name, value in eval_result.metrics_per_entry.items():
+    print(f"'{metric_name}' has shape {np.shape(value)}")
 
---------------------
+print("\nMETRICS PER TIMESTAMP:")
+for metric_name, value in eval_result.metric_per_timestamp.items():
+    print(f"'{metric_name}' has shape {np.shape(value)}")
 
-SCENARIO #2 (evaluation in batches):
-...api.py:90: UserWarning: Batched calculation for metrics
-  using axis=0 isn't supported, skipping metric 'mse[mean,axis=0]'
-  warnings.warn(
-SHAPES OF METRICS:
-abs_error[p90] has shape (50, 12)
-mse[mean,axis=1] has shape (50,)
-ND[median,axis=1] has shape (50,)
-QuantileLoss[0.1] has shape (50, 12)
-QuantileLoss[0.5] has shape (50, 12)
-QuantileLoss[0.9] has shape (50, 12)
-season_error[seasonality=24,axis=1] has shape (50,)
-entry_count has shape ()
+print("\nGLOBAL METRICS:")
+for metric_name, value in eval_result.global_metrics.items():
+    print(f"'{metric_name}': {value}")
 
-GLOBAL METRICS:
-Mean QuantileLoss[0.9]: 23.98366666666666
-and so on...
-"""
+print("\nCUSTOM METRICS:")
+for metric_name, value in eval_result.custom_metrics.items():
+    print(f"'{metric_name}' has shape {np.shape(value)}")
