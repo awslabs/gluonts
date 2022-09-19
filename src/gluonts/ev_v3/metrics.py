@@ -22,7 +22,7 @@ from gluonts.time_feature import get_seasonality
 
 # --- INPUTS & BASE METRICS (same dimensionality as inputs) ---
 
-# This class allows using `PredictionTarget()` instead of `data["PredictionTarget"]`
+# allows using `PredictionTarget()` instead of `data["PredictionTarget"]`
 class PredictionTarget(BaseMetric):
     def get_name(self):
         return "PredictionTarget"
@@ -41,7 +41,7 @@ class AbsPredictionTarget(BaseMetric):
         return np.abs(prediction_target)
 
 
-# This class allows using `InputData()` instead of `data["InputData"]`
+# allows using `InputData()` instead of `data["InputData"]`
 class InputData(BaseMetric):
     def get_name(self):
         return "InputData"
@@ -63,7 +63,7 @@ class Prediction(BaseMetric):
         return f"Prediction[{self.prediction_type}]"
 
     def calculate(self, data):
-        assert "Forecast" in data, f"Missing input 'Forecast' in data"
+        assert "Forecast" in data, "Missing input 'Forecast' in data"
 
         if self.prediction_type == "mean":
             return data["Forecast"].mean
@@ -296,7 +296,7 @@ class SeasonalError(AggregateMetric):
     def calculate(self, data, axis):
         input_data = InputData().get(data)
 
-        if self.seasonality < len(input_data):
+        if self.seasonality < np.shape(input_data)[axis]:
             forecast_freq = self.seasonality
         else:
             # edge case: the seasonal freq is larger than the length of ts
