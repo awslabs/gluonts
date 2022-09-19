@@ -16,6 +16,7 @@ from more_itertools import take
 
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.ev_v3.evaluator import NewEvaluator
+from gluonts.ev_v3.metrics import RMSE
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
@@ -55,6 +56,7 @@ eval_result = evaluator(
     dataset=test_dataset,
     forecasts=forecast_it,
     freq=freq,  # TODO: make metadata part of TestDataset
+    metrics_per_timestamp=(RMSE(),),
     custom_metrics=[error_plus_two],
 )
 
@@ -79,3 +81,55 @@ for metric_name, value in eval_result.global_metrics.items():
 print("\nCUSTOM METRICS:")
 for metric_name, value in eval_result.custom_metrics.items():
     print(f"'{metric_name}' has shape {np.shape(value)}")
+
+"""
+EVALUATION RESULT:
+
+BASE METRICS:
+'Coverage[0.8]' has shape (100, 24)
+'Coverage[0.2]' has shape (100, 24)
+'Coverage[0.5]' has shape (100, 24)
+'Coverage[0.9]' has shape (100, 24)
+'Coverage[0.4]' has shape (100, 24)
+'QuantileLoss[0.6]' has shape (100, 24)
+'Coverage[0.6]' has shape (100, 24)
+'QuantileLoss[0.2]' has shape (100, 24)
+'QuantileLoss[0.8]' has shape (100, 24)
+'QuantileLoss[0.4]' has shape (100, 24)
+'QuantileLoss[0.5]' has shape (100, 24)
+'QuantileLoss[0.1]' has shape (100, 24)
+'AbsPredictionTarget' has shape (100, 24)
+'Coverage[0.7]' has shape (100, 24)
+'QuantileLoss[0.9]' has shape (100, 24)
+'Coverage[0.1]' has shape (100, 24)
+'QuantileLoss[0.3]' has shape (100, 24)
+'QuantileLoss[0.7]' has shape (100, 24)
+'Coverage[0.3]' has shape (100, 24)
+'Error[mean]' has shape (100, 24)
+
+METRICS PER ENTRY:
+'MSIS[alpha=0.05],freq=1H,seasonality=None]' has shape (100,)
+'SeasonalError[seasonality=24]' has shape (100,)
+'MAPE[0.5]' has shape (100,)
+'ND[0.5]' has shape (100,)
+'RMSE[mean]' has shape (100,)
+'sMAPE[0.5]' has shape (100,)
+'MASE[0.5,freq=1H,seasonality=None]' has shape (100,)
+'MSE[mean]' has shape (100,)
+
+METRICS PER TIMESTAMP:
+'RMSE[mean]' has shape (24,)
+
+GLOBAL METRICS:
+'mean_of_MSIS[alpha=0.05],freq=1H,seasonality=None]': 4.685227692506365
+'mean_of_SeasonalError[seasonality=24]': 74.21931457519531
+'mean_of_MAPE[0.5]': nan
+'mean_of_ND[0.5]': 0.11427785798107187
+'mean_of_RMSE[mean]': 89.51677569891281
+'mean_of_sMAPE[0.5]': nan
+'mean_of_MASE[0.5,freq=1H,seasonality=None]': 0.6866300017750376
+'mean_of_MSE[mean]': 31706.2758755
+
+CUSTOM METRICS:
+'error_plus_two' has shape (100, 24)
+"""

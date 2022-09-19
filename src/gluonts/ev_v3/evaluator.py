@@ -52,8 +52,6 @@ class NewEvaluator:
         *(Coverage(quantile=q) for q in _default_quantiles),
     )
 
-    _default_timestamp_metrics = (MSE(),)
-
     def __init__(self, batch_size=2048):
         self.batch_size = batch_size
 
@@ -108,11 +106,15 @@ class NewEvaluator:
         freq: str,
         base_metrics: Collection[BaseMetric] = _default_base_metrics,
         metrics_per_entry: Optional[Collection[AggregateMetric]] = None,
-        metrics_per_timestamp: Collection[
-            AggregateMetric
-        ] = _default_timestamp_metrics,
+        metrics_per_timestamp: Collection[AggregateMetric] = (),
         custom_metrics: Optional[Collection[Union[Callable, Metric]]] = None,
     ):
+        if len(metrics_per_timestamp) > 0:
+            assert self.batch_size >= len(dataset.dataset), (
+                "To calculate metrics per timestamp,"
+                " batch_size must be as large as the number of data entries"
+            )
+
         if metrics_per_entry is None:
             metrics_per_entry = (
                 MSE(),
