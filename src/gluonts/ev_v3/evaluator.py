@@ -128,7 +128,6 @@ class NewEvaluator:
         base_metrics_batches = []
         metrics_per_entry_batches = []
         metrics_per_timestamp_batches = []
-        global_metrics_batches = []  # TODO
         custom_metrics_batches = []
 
         for data in self._get_input_batches(dataset, forecasts):
@@ -147,10 +146,11 @@ class NewEvaluator:
                 }
             )
 
-            data = data_before_aggregates  # axis is not part of metric names -> reset
+            # axis is not part of metric names, so we reset data here
+            data = data_before_aggregates
             metrics_per_timestamp_batches.append(
                 {
-                    metric.name: metric.get(data, 1)
+                    metric.name: metric.get(data, 0)
                     for metric in metrics_per_timestamp
                 }
             )
@@ -180,15 +180,29 @@ class NewEvaluator:
 
             custom_metrics_batches.append(custom_metrics_batch)
 
-        return EvalResult(
-            *(
-                self._aggregate_batches(metrics_batches)
-                for metrics_batches in (
-                    base_metrics_batches,
-                    metrics_per_entry_batches,
-                    metrics_per_timestamp_batches,
-                    global_metrics_batches,
-                    custom_metrics_batches,
-                )
+        (
+            base_metrics_result,
+            metrics_per_entry_result,
+            metrics_per_timestamp_result,
+            custom_metrics_result,
+        ) = (
+            self._aggregate_batches(metrics_batches)
+            for metrics_batches in (
+                base_metrics_batches,
+                metrics_per_entry_batches,
+                metrics_per_timestamp_batches,
+                custom_metrics_batches,
             )
+        )
+
+        global_metrics = dict()
+        for metric_name, value in metrics_per_entry_result.items():
+            global_metrics[f"mean_of_{metric_name}"] = np.mean(value)
+
+        return EvalResult(
+            base_metrics=base_metrics_result,
+            metrics_per_entry=metrics_per_entry_result,
+            metric_per_timestamp=metrics_per_timestamp_result,
+            custom_metrics=custom_metrics_result,
+            global_metrics=global_metrics,
         )
