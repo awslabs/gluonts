@@ -255,7 +255,7 @@ class Evaluator:
             {
                 col: np.float64
                 for col in metrics_per_ts.columns
-                if col != "item_id"
+                if col not in ["item_id", "forecast_start"]
             }
         )
 
@@ -347,6 +347,7 @@ class Evaluator:
 
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
+            "forecast_start": forecast.start_date,
             "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
