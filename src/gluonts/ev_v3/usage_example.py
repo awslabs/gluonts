@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import numpy as np
+from more_itertools import take
 
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.ev_v3.evaluator import NewEvaluator
@@ -24,9 +25,11 @@ dataset = get_dataset("electricity")
 prediction_length = dataset.metadata.prediction_length
 freq = dataset.metadata.freq
 
+dataset_test = list(take(100, dataset.test))
 test_template = TestTemplate(
-    dataset=dataset.test, splitter=OffsetSplitter(offset=prediction_length)
+    dataset=dataset_test, splitter=OffsetSplitter(offset=-prediction_length)
 )
+
 test_dataset = test_template.generate_instances(
     prediction_length=prediction_length
 )
