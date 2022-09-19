@@ -1,14 +1,10 @@
 # Quick Start Tutorial
 
-The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection.
-
-The toolkit is not intended as a forecasting solution for businesses or end users but it rather targets scientists and engineers who want to tweak algorithms or build and experiment with their own models.  
-
 GluonTS contains:
 
+* A number of pre-built models
 * Components for building new models (likelihoods, feature processing pipelines, calendar features etc.)
 * Data loading and processing
-* A number of pre-built models
 * Plotting and evaluation facilities
 * Artificial and real datasets (only external datasets with blessed license)
 
