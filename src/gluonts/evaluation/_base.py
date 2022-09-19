@@ -265,29 +265,9 @@ class Evaluator:
     def extract_pred_target(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> np.ndarray:
-        """
-
-        Parameters
-        ----------
-        time_series
-        forecast
-
-        Returns
-        -------
-        np.ndarray
-            time series cut in the Forecast object dates
-        """
-        assert forecast.index.intersection(time_series.index).equals(
-            forecast.index
-        ), (
-            "Cannot extract prediction target since the index of forecast is"
-            " outside the index of target\nIndex of forecast:"
-            f" {forecast.index}\n Index of target: {time_series.index}"
-        )
-
         # cut the time series using the dates of the forecast object
         return np.atleast_1d(
-            np.squeeze(time_series.loc[forecast.index].transpose())
+            np.squeeze(time_series.loc[forecast.datetime_index].transpose())
         )
 
     # This method is needed for the owa calculation. It extracts the training
@@ -296,38 +276,32 @@ class Evaluator:
     def extract_past_data(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> np.ndarray:
-        """
-
-        Parameters
-        ----------
-        time_series
-        forecast
-
-        Returns
-        -------
-        np.ndarray
-            time series without the forecast dates
-        """
-
-        assert forecast.index.intersection(time_series.index).equals(
-            forecast.index
-        ), (
-            "Index of forecast is outside the index of target\nIndex of"
-            f" forecast: {forecast.index}\n Index of target:"
-            f" {time_series.index}"
-        )
-
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = forecast.index[0] - forecast.freq
+        date_before_forecast = (
+            forecast.index[0] - forecast.freq
+        ).to_timestamp()
         return np.atleast_1d(
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
+        )
+
+    @staticmethod
+    def validate_indices(
+        time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
+    ):
+        assert forecast.datetime_index.intersection(time_series.index).equals(
+            forecast.datetime_index
+        ), (
+            "The index of the forecast is outside the target index\n"
+            f"Index of forecast: {forecast.datetime_index}\n"
+            f"Index of target: {time_series.index}"
         )
 
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
+        self.validate_indices(time_series, forecast)
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
