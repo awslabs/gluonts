@@ -16,15 +16,7 @@ import logging
 import shutil
 from pathlib import Path
 from types import ModuleType
-from typing import (
-    Callable,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Callable, List, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -35,6 +27,7 @@ import pydantic
 from gluonts import json
 from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.schema import Translator
 from gluonts.exceptions import GluonTSDataError
 
 
@@ -158,6 +151,7 @@ def FileDataset(
     ignore=False,
     pattern="*",
     levels=1,
+    translate=None,
 ) -> Dataset:
     path = Path(path)
 
@@ -198,34 +192,41 @@ def FileDataset(
     else:
         loader = loader_class(path)
 
-    return _FileDataset(loader, freq, one_dim_target, cache, use_timestamp)
+    return _FileDataset(
+        loader, freq, one_dim_target, cache, use_timestamp, translate
+    )
 
 
 def _FileDataset(
-    loader,
+    dataset: Dataset,
     freq: str,
     one_dim_target: bool = True,
     cache: bool = False,
     use_timestamp: bool = False,
+    translate: Optional[dict] = None,
 ) -> Dataset:
     process = ProcessDataEntry(
         freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
     )
 
-    dataset: Dataset = Map(process, loader)
+    if translate is not None:
+        dataset = cast(Dataset, Map(Translator.parse(translate), dataset))
+
+    dataset = cast(Dataset, Map(process, dataset))
 
     if cache:
-        dataset = Cached(dataset)
+        dataset = cast(Dataset, Cached(dataset))
 
     return dataset
 
 
 def ListDataset(
-    data_iter: Iterable[DataEntry],
+    data_iter: Dataset,
     freq: str,
     one_dim_target: bool = True,
     use_timestamp: bool = False,
-) -> Dataset:
+    translate: Optional[dict] = None,
+) -> List[DataEntry]:
     """
     Dataset backed directly by a list of dictionaries.
 
@@ -241,9 +242,15 @@ def ListDataset(
     one_dim_target
         Whether to accept only univariate target time series.
     """
-    return Map(
-        ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
-        list(data_iter),
+
+    if translate is not None:
+        data_iter = Map(Translator.parse(translate), data_iter)
+
+    return list(
+        Map(
+            ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
+            data_iter,
+        )
     )
 
 
