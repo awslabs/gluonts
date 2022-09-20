@@ -218,7 +218,7 @@ def _FileDataset(
     )
 
     if translate is not None:
-        dataset = Map(Translator.new(translate), dataset)
+        dataset = Map(Translator.parse(translate), dataset)
 
     dataset: Dataset = Map(process, dataset)
 
@@ -252,7 +252,7 @@ def ListDataset(
     """
 
     if translate is not None:
-        data_iter = Map(Translator.new(translate), data_iter)
+        data_iter = Map(Translator.parse(translate), data_iter)
 
     return Map(
         ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),

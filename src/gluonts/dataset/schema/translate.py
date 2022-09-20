@@ -11,9 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
+"""
+
+``gluonts.dataset.schema.translate``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This module provides a ``Translator`` class, which can be used to translate
+dictionaries. It is intended to be used with GluonTS datasets, to allow for
+more flexibility in the input data::
+
+    tl = Translator.parse(target="demand", feat_dynamic_real="[price]")
+
+"""
+
 import re
 from dataclasses import dataclass, InitVar
-from typing import Any, List, Union, Optional, ClassVar
+from typing import Any, Dict, List, Union, Optional, ClassVar
 
 import numpy as np
 from toolz import valfilter, valmap
@@ -26,6 +40,8 @@ class Op:
 
 @dataclass
 class Get(Op):
+    """Extracts the field ``name`` from the input."""
+
     name: str
 
     def __call__(self, item):
@@ -38,12 +54,14 @@ class Method(Op):
     args: list
 
     def __call__(self, item):
-        self.obj(item)(*self.args)
+        return self.obj(item)(*self.args)
 
 
 @dataclass
 class GetAttr(Op):
-    obj: Any
+    """Invokes ``obj.name``"""
+
+    obj: Op
     name: str
 
     def __call__(self, item):
@@ -55,7 +73,7 @@ class GetAttr(Op):
 
 @dataclass
 class GetItem(Op):
-    obj: Any
+    obj: Op
     dims: List[int]
 
     def __call__(self, item):
@@ -64,7 +82,7 @@ class GetItem(Op):
 
 @dataclass
 class Stack(Op):
-    objects: List[Any]
+    objects: List[Op]
 
     def __call__(self, item):
         return np.stack([obj(item) for obj in self.objects])
@@ -173,8 +191,6 @@ class Parser:
         return int(self.stream.pop("NUMBER").value)
 
     def parse_args(self):
-        self.stream.pop("PARAN_OPEN", "(")
-
         args = []
 
         # no args: `f()`
@@ -241,7 +257,7 @@ class Parser:
                 obj = self.parse_dot(obj)
 
             elif self.stream.peek("PARAN_OPEN", "("):
-                obj = self.stream.parse_invoke(obj)
+                obj = self.parse_invoke(obj)
 
             elif self.stream.peek("PARAN_OPEN", "["):
                 obj = self.parse_getitem(obj)
@@ -263,17 +279,44 @@ def parse(x: Union[str, list]) -> Op:
 
 @dataclass
 class Translator:
-    fields: dict
+    """Simple translation for GluonTS Datasets.
 
-    @classmethod
-    def new(cls, fields: Optional[dict] = None, **kwargs_fields):
+    A given translator transforms an input dictionary (data-entry) into an
+    output dictionary.
+
+    Basic usage::
+
+        >>> tl = Translator.parse(x="a[0]")
+        >>> data = {"a": [1, 2, 3]}
+        >>> assert tl(data)["x"] == 1
+
+    A translator first copies all input fields into a new dictionary, before
+    applying the translations. Thus, an empty `Translator` acts like the
+    identity function for dictionaries:
+
+        >>> identity = Translator()
+        >>> data = {"a": 1, "b": 2, "c": 3}
+        >>> assert identity(data) == data
+
+    Using ``Translator.parse(...)```, one can define expressions to be applied
+    to the input data. For example, ``Translator.parse(x="y")`` will write the
+    the value of `y` to the `x` column in the output.
+
+    These right-hand expressions support indexing (e.g. ``y[1]``), attribute
+    access (e.g. ``x.T``) and method invocation (e.g. ``y.transpose(1, 0)``).
+    """
+
+    fields: Dict[str, Op]
+
+    @staticmethod
+    def parse(fields: Optional[dict] = None, **kwargs_fields) -> "Translator":
         fields_ = {}
         if fields is not None:
             fields_.update(fields)
 
         fields_.update(kwargs_fields)
 
-        return cls(valmap(parse, fields_))
+        return Translator(valmap(parse, fields_))
 
     def __call__(self, item):
         result = dict(item)

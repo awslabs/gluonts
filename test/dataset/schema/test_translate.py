@@ -21,7 +21,7 @@ from gluonts.dataset.schema import Translator
 def test_translate():
     input_data = {"a": np.arange(100).reshape(20, 5)}
 
-    t = Translator.new(b="a.T[0]")
+    t = Translator.parse(b="a.T[0]")
     b = t(input_data)["b"]
 
     assert np.array_equal(b, np.arange(0, 100, 5))
@@ -41,7 +41,7 @@ def test_dataset_translate():
         translate={
             "target": "sales",
             "feat_dynamic_real": "[price, temperature]",
-            "feat_dynamic_real_T": "[price, temperature].T",
+            "feat_dynamic_real_T": "[price, temperature].transpose()",
         },
     ):
         assert entry["target"].shape == (100,)
