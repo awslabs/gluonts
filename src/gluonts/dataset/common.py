@@ -220,7 +220,7 @@ def _FileDataset(
     if translate is not None:
         dataset = Map(Translator.parse(translate), dataset)
 
-    dataset: Dataset = Map(process, dataset)
+    dataset = Map(process, dataset)
 
     if cache:
         dataset = Cached(dataset)
@@ -229,7 +229,7 @@ def _FileDataset(
 
 
 def ListDataset(
-    data_iter: Iterable[DataEntry],
+    data_iter: Dataset,
     freq: str,
     one_dim_target: bool = True,
     use_timestamp: bool = False,
@@ -251,15 +251,13 @@ def ListDataset(
         Whether to accept only univariate target time series.
     """
 
-    data = list(data_iter)
-
     if translate is not None:
-        data = Map(Translator.parse(translate), data)
+        data_iter = Map(Translator.parse(translate), data_iter)
 
     return list(
         Map(
             ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
-            data,
+            data_iter,
         )
     )
 
