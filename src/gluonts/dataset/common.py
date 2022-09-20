@@ -234,7 +234,7 @@ def ListDataset(
     one_dim_target: bool = True,
     use_timestamp: bool = False,
     translate: Optional[dict] = None,
-) -> Dataset:
+) -> List[DataEntry]:
     """
     Dataset backed directly by a list of dictionaries.
 
@@ -251,12 +251,16 @@ def ListDataset(
         Whether to accept only univariate target time series.
     """
 
-    if translate is not None:
-        data_iter = Map(Translator.parse(translate), data_iter)
+    data = list(data_iter)
 
-    return Map(
-        ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
-        list(data_iter),
+    if translate is not None:
+        data = Map(Translator.parse(translate), data)
+
+    return list(
+        Map(
+            ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
+            data,
+        )
     )
 
 
