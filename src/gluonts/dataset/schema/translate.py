@@ -106,7 +106,7 @@ class TokenStream:
     TOKENS: ClassVar[dict] = {
         "DOT": re.escape("."),
         "COMMA": re.escape(","),
-        "PARAN_OPEN": one_of("[("),
+        "PAREN_OPEN": one_of("[("),
         "PARAN_CLOSE": one_of("])"),
         "NUMBER": r"\-?\d+",
         "NAME": r"\w+",
@@ -209,7 +209,7 @@ class Parser:
             raise ValueError(f"Invalid token {self.stream.peak()}")
 
     def parse_getitem(self, obj):
-        self.stream.pop("PARAN_OPEN", "[")
+        self.stream.pop("PAREN_OPEN", "[")
 
         dims = [self.parse_number()]
 
@@ -231,14 +231,14 @@ class Parser:
         return GetAttr(obj, name)
 
     def parse_invoke(self, obj):
-        self.stream.pop("PARAN_OPEN", "(")
+        self.stream.pop("PAREN_OPEN", "(")
         args = self.parse_args()
         self.stream.pop("PARAN_CLOSE", ")")
 
         return Method(obj, args)
 
     def parse_expr(self):
-        if self.stream.peek("PARAN_OPEN", "["):
+        if self.stream.peek("PAREN_OPEN", "["):
             self.stream.pop()
             expr = [self.parse_expr()]
 
@@ -256,10 +256,10 @@ class Parser:
             if self.stream.peek("DOT"):
                 obj = self.parse_dot(obj)
 
-            elif self.stream.peek("PARAN_OPEN", "("):
+            elif self.stream.peek("PAREN_OPEN", "("):
                 obj = self.parse_invoke(obj)
 
-            elif self.stream.peek("PARAN_OPEN", "["):
+            elif self.stream.peek("PAREN_OPEN", "["):
                 obj = self.parse_getitem(obj)
 
             else:
