@@ -396,8 +396,8 @@ class InputDataset:
         return len(self.test_data)
 
     def __iter__(self):
-        for input_, label in self.test_data:
-            yield input_
+        for input, _label in self.test_data:
+            yield input
 
 
 @dataclass
