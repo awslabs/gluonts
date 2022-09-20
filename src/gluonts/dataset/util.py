@@ -25,6 +25,7 @@ def forecast_start(entry, time_axis: int = -1):
 def period_index(entry: DataEntry, freq=None) -> pd.PeriodIndex:
     if freq is None:
         freq = entry[FieldName.START].freq
+
     return pd.period_range(
         start=entry[FieldName.START],
         periods=entry[FieldName.TARGET].shape[-1],
