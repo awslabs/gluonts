@@ -13,7 +13,7 @@
 
 import re
 from dataclasses import dataclass, InitVar
-from typing import Any, List, Union, ClassVar
+from typing import Any, List, Union, Optional, ClassVar
 
 import numpy as np
 from toolz import valfilter, valmap
@@ -92,6 +92,8 @@ class TokenStream:
         "PARAN_CLOSE": one_of("])"),
         "NUMBER": r"\-?\d+",
         "NAME": r"\w+",
+        "WHITESPACE": r"\s+",
+        "INVALID": r".+",
     }
     RX: ClassVar[str] = "|".join(
         f"(?P<{name}>{pattern})" for name, pattern in TOKENS.items()
@@ -102,13 +104,20 @@ class TokenStream:
 
     @classmethod
     def from_str(cls, s):
-        return cls(
+        stream = cls(
             [
                 Token(name, value, match)
                 for match in re.finditer(cls.RX, s)
                 for name, value in valfilter(bool, match.groupdict()).items()
+                if name != "WHITESPACE"
             ]
         )
+
+        for token in stream:
+            if token.name == "INVALID":
+                raise ValueError(f"Invalid token: {token}")
+
+        return stream
 
     def pop(self, ty=None, val=None):
         token = self.tokens[self.idx]
@@ -135,6 +144,9 @@ class TokenStream:
 
     def __repr__(self):
         return "".join(token.value for token in self.tokens[self.idx :])
+
+    def __iter__(self):
+        yield from self.tokens[self.idx :]
 
 
 def check_type(token, ty, val):
@@ -219,11 +231,10 @@ class Parser:
 
             self.stream.pop("PARAN_CLOSE", "]")
 
-            return Stack(expr)
-
-        token = self.stream.pop("NAME")
-
-        obj = Get(token.value)
+            obj = Stack(expr)
+        else:
+            token = self.stream.pop("NAME")
+            obj = Get(token.value)
 
         while self.stream:
             if self.stream.peek("DOT"):
@@ -255,8 +266,14 @@ class Translator:
     fields: dict
 
     @classmethod
-    def new(cls, **fields):
-        return cls(valmap(parse, fields))
+    def new(cls, fields: Optional[dict] = None, **kwargs_fields):
+        fields_ = {}
+        if fields is not None:
+            fields_.update(fields)
+
+        fields_.update(kwargs_fields)
+
+        return cls(valmap(parse, fields_))
 
     def __call__(self, item):
         result = dict(item)

@@ -35,6 +35,7 @@ import pydantic
 from gluonts import json
 from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.schema import Translator
 from gluonts.exceptions import GluonTSDataError
 
 
@@ -158,6 +159,7 @@ def FileDataset(
     ignore=False,
     pattern="*",
     levels=1,
+    translate=None,
 ) -> Dataset:
     path = Path(path)
 
@@ -198,21 +200,27 @@ def FileDataset(
     else:
         loader = loader_class(path)
 
-    return _FileDataset(loader, freq, one_dim_target, cache, use_timestamp)
+    return _FileDataset(
+        loader, freq, one_dim_target, cache, use_timestamp, translate
+    )
 
 
 def _FileDataset(
-    loader,
+    dataset,
     freq: str,
     one_dim_target: bool = True,
     cache: bool = False,
     use_timestamp: bool = False,
+    translate: Optional[dict] = None,
 ) -> Dataset:
     process = ProcessDataEntry(
         freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
     )
 
-    dataset: Dataset = Map(process, loader)
+    if translate is not None:
+        dataset = Map(Translator.new(translate), dataset)
+
+    dataset: Dataset = Map(process, dataset)
 
     if cache:
         dataset = Cached(dataset)
@@ -225,6 +233,7 @@ def ListDataset(
     freq: str,
     one_dim_target: bool = True,
     use_timestamp: bool = False,
+    translate: Optional[dict] = None,
 ) -> Dataset:
     """
     Dataset backed directly by a list of dictionaries.
@@ -241,6 +250,10 @@ def ListDataset(
     one_dim_target
         Whether to accept only univariate target time series.
     """
+
+    if translate is not None:
+        data_iter = Map(Translator.new(translate), data_iter)
+
     return Map(
         ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
         list(data_iter),

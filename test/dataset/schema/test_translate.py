@@ -14,6 +14,7 @@
 import numpy as np
 
 
+from gluonts.dataset.common import ListDataset
 from gluonts.dataset.schema import Translator
 
 
@@ -24,3 +25,25 @@ def test_translate():
     b = t(input_data)["b"]
 
     assert np.array_equal(b, np.arange(0, 100, 5))
+
+
+def test_dataset_translate():
+    input_data = {
+        "sales": np.random.random(100),
+        "start": "2020",
+        "price": np.full(100, 1.5),
+        "temperature": np.full(100, 23),
+    }
+
+    for entry in ListDataset(
+        [input_data],
+        freq="D",
+        translate={
+            "target": "sales",
+            "feat_dynamic_real": "[price, temperature]",
+            "feat_dynamic_real_T": "[price, temperature].T",
+        },
+    ):
+        assert entry["target"].shape == (100,)
+        assert entry["feat_dynamic_real"].shape == (2, 100)
+        assert entry["feat_dynamic_real_T"].shape == (100, 2)
