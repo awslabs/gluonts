@@ -210,12 +210,12 @@ def _FileDataset(
     )
 
     if translate is not None:
-        dataset: Dataset = Map(Translator.parse(translate), dataset)
+        dataset = cast(Dataset, Map(Translator.parse(translate), dataset))
 
-    dataset: Dataset = Map(process, dataset)
+    dataset = cast(Dataset, Map(process, dataset))
 
     if cache:
-        dataset: Dataset = Cached(dataset)
+        dataset = cast(Dataset, Cached(dataset))
 
     return dataset
 
