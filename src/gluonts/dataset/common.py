@@ -206,7 +206,7 @@ def FileDataset(
 
 
 def _FileDataset(
-    dataset,
+    dataset: Dataset,
     freq: str,
     one_dim_target: bool = True,
     cache: bool = False,
