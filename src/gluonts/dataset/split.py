@@ -137,7 +137,7 @@ def slice_data_entry(
 ) -> DataEntry:
     slice_ = to_positive_slice(
         to_integer_slice(slice_, entry[FieldName.START]),
-        len(entry[FieldName.TARGET]),
+        entry[FieldName.TARGET].shape[-1],
     )
 
     if slice_.stop is not None:
@@ -152,10 +152,16 @@ def slice_data_entry(
     if slice_.start is not None:
         offset = slice_.start
         if offset < 0:
-            offset += entry["target"].shape[0]
+            offset += entry["target"].shape[-1]
         sliced_entry[FieldName.START] += offset
 
-    sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slice_]
+    # TODO fix
+    if len(sliced_entry[FieldName.TARGET].shape) == 1:
+        sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slice_]
+    else:
+        sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][
+            :, slice_
+        ]
 
     if FieldName.FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_REAL] = sliced_entry[
