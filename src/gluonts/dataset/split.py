@@ -253,11 +253,9 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
-                    input = TimeSeriesSlice(test[0])[-max_history:]
+                    yield TimeSeriesSlice(test[0])[-max_history:], test[1]
                 else:
-                    input = test[0]
-
-                yield input, test[1]
+                    yield test[0], test[1]
 
 
 @dataclass
@@ -398,8 +396,8 @@ class InputDataset:
         return len(self.test_data)
 
     def __iter__(self):
-        for input, _ in self.test_data:
-            yield input
+        for input_, label in self.test_data:
+            yield input_
 
 
 @dataclass
@@ -410,7 +408,7 @@ class LabelDataset:
         return len(self.test_data)
 
     def __iter__(self):
-        for _, label in self.test_data:
+        for input_, label in self.test_data:
             yield label
 
 
