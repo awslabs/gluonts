@@ -18,6 +18,7 @@ import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
+from gluonts.dataset import schema
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -42,14 +43,11 @@ from gluonts.transform import (
     AddAgeFeature,
     AddObservedValuesIndicator,
     AddTimeFeatures,
-    AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
     InstanceSampler,
     InstanceSplitter,
-    RemoveFields,
     SelectFields,
-    SetField,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -286,6 +284,37 @@ class DeepAREstimator(GluonEstimator):
         self.minimum_scale = minimum_scale
         self.impute_missing_values = impute_missing_values
 
+    def get_schema(self):
+        Array_1D = schema.Array(dtype=self.dtype, ndim=1)
+        Array_2D = schema.Array(dtype=self.dtype, ndim=2)
+
+        return (
+            schema.Schema()
+            .add(
+                "target",
+                schema.Array(
+                    self.dtype,
+                    ndim=1 + len(self.distr_output.event_shape),
+                ),
+            )
+            .add("start", schema.Period())
+            .add(
+                "feat_dynamic_real", Array_2D, when=self.use_feat_dynamic_real
+            )
+            .add(
+                "feat_static_cat",
+                Array_1D,
+                when=self.use_feat_static_cat,
+                default=0.0,
+            )
+            .add(
+                "feat_static_real",
+                Array_1D,
+                when=self.use_feat_static_real,
+                default=0.0,
+            )
+        )
+
     @classmethod
     def derive_auto_fields(cls, train_iter):
         stats = calculate_dataset_statistics(train_iter)
@@ -297,45 +326,8 @@ class DeepAREstimator(GluonEstimator):
         }
 
     def create_transformation(self) -> Transformation:
-        remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
-        if not self.use_feat_static_real:
-            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
-        if not self.use_feat_dynamic_real:
-            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-
         return Chain(
-            [RemoveFields(field_names=remove_field_names)]
-            + (
-                [SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0.0])]
-                if not self.use_feat_static_cat
-                else []
-            )
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.use_feat_static_real
-                else []
-            )
-            + [
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                    dtype=self.dtype,
-                ),
-                AsNumpyArray(
-                    field=FieldName.TARGET,
-                    # in the following line, we add 1 for the time dimension
-                    expected_ndim=1 + len(self.distr_output.event_shape),
-                    dtype=self.dtype,
-                ),
+            [
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
@@ -358,12 +350,12 @@ class DeepAREstimator(GluonEstimator):
                 ),
                 VstackFeatures(
                     output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
-                    + (
-                        [FieldName.FEAT_DYNAMIC_REAL]
-                        if self.use_feat_dynamic_real
-                        else []
-                    ),
+                    input_fields=[
+                        FieldName.FEAT_TIME,
+                        FieldName.FEAT_AGE,
+                        *[FieldName.FEAT_DYNAMIC_REAL]
+                        * self.use_feat_dynamic_real,
+                    ],
                 ),
             ]
         )
