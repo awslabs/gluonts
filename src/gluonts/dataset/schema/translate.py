@@ -20,7 +20,7 @@ from toolz import valfilter, valmap
 
 
 class Op:
-    def apply(self, item):
+    def __call__(self, item):
         raise NotImplementedError
 
 
@@ -28,17 +28,17 @@ class Op:
 class Get(Op):
     name: str
 
-    def apply(self, item):
+    def __call__(self, item):
         return item[self.name]
 
 
 @dataclass
 class Method(Op):
-    obj: Any
+    obj: Op
     args: list
 
-    def apply(self, item):
-        self.obj.apply(item)(*self.args)
+    def __call__(self, item):
+        self.obj(item)(*self.args)
 
 
 @dataclass
@@ -46,9 +46,9 @@ class GetAttr(Op):
     obj: Any
     name: str
 
-    def apply(self, item):
+    def __call__(self, item):
         return getattr(
-            self.obj.apply(item),
+            self.obj(item),
             self.name,
         )
 
@@ -58,16 +58,16 @@ class GetItem(Op):
     obj: Any
     dims: List[int]
 
-    def apply(self, item):
-        return self.obj.apply(item).__getitem__(self.dims)
+    def __call__(self, item):
+        return self.obj(item).__getitem__(self.dims)
 
 
 @dataclass
 class Stack(Op):
     objects: List[Any]
 
-    def apply(self, item):
-        return np.stack([obj.apply(item) for obj in self.objects])
+    def __call__(self, item):
+        return np.stack([obj(item) for obj in self.objects])
 
 
 def one_of(s):
@@ -132,6 +132,9 @@ class TokenStream:
 
     def __len__(self):
         return len(self.tokens) - self.idx
+
+    def __repr__(self):
+        return "".join(token.value for token in self.tokens[self.idx :])
 
 
 def check_type(token, ty, val):
@@ -207,6 +210,17 @@ class Parser:
         return Method(obj, args)
 
     def parse_expr(self):
+        if self.stream.peek("PARAN_OPEN", "["):
+            self.stream.pop()
+            expr = [self.parse_expr()]
+
+            while self.stream.pop_if("COMMA"):
+                expr.append(self.parse_expr())
+
+            self.stream.pop("PARAN_CLOSE", "]")
+
+            return Stack(expr)
+
         token = self.stream.pop("NAME")
 
         obj = Get(token.value)
@@ -215,11 +229,15 @@ class Parser:
             if self.stream.peek("DOT"):
                 obj = self.parse_dot(obj)
 
-            if self.stream.peek("PARAN_OPEN", "("):
+            elif self.stream.peek("PARAN_OPEN", "("):
                 obj = self.stream.parse_invoke(obj)
 
-            if self.stream.peek("PARAN_OPEN", "["):
+            elif self.stream.peek("PARAN_OPEN", "["):
                 obj = self.parse_getitem(obj)
+
+            else:
+                break
+                # raise ValueError(f"Invalid token {self.stream.peek()}")
 
         return obj
 
@@ -243,7 +261,7 @@ class Translator:
     def __call__(self, item):
         result = dict(item)
         result.update(
-            {name: field.apply(item) for name, field in self.fields.items()}
+            {name: field(item) for name, field in self.fields.items()}
         )
 
         return result
