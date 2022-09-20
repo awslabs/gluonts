@@ -16,15 +16,7 @@ import logging
 import shutil
 from pathlib import Path
 from types import ModuleType
-from typing import (
-    Callable,
-    Iterable,
-    List,
-    NamedTuple,
-    Optional,
-    Union,
-    cast,
-)
+from typing import Callable, List, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
