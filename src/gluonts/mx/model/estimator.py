@@ -33,6 +33,8 @@ from gluonts.transform import Transformation
 from mxnet.gluon import HybridBlock
 from pydantic import ValidationError
 
+from gluonts.dataset.schema import with_schema
+
 
 class TrainOutput(NamedTuple):
     transformation: Transformation
@@ -227,19 +229,20 @@ class GluonEstimator(Estimator):
             predictor=predictor,
         )
 
+    @with_schema(method="get_schema")
     def train(
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        shuffle_buffer_length: Optional[int] = None,
-        cache_data: bool = False,
-        **kwargs,
+        # shuffle_buffer_length: Optional[int] = None,
+        # cache_data: bool = False,
+        # **kwargs,
     ) -> Predictor:
         return self.train_model(
             training_data=training_data,
             validation_data=validation_data,
-            shuffle_buffer_length=shuffle_buffer_length,
-            cache_data=cache_data,
+            # shuffle_buffer_length=shuffle_buffer_length,
+            # cache_data=cache_data,
         ).predictor
 
     def train_from(

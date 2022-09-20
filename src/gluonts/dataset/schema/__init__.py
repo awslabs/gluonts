@@ -21,9 +21,12 @@ __all__ = [
     "Schema",
 ]
 
+import functools
 from dataclasses import dataclass, field, MISSING
+from operator import attrgetter, methodcaller
 from typing import Any, Dict
 
+from gluonts.itertools import Map
 from .types import Type, Default, Array, Period
 
 
@@ -56,3 +59,40 @@ class Schema:
             self.default_fields[name] = ty.apply(default)
 
         return self
+
+
+def with_schema(*, method=None, schema=None, attribute=None):
+    num_chosen = (
+        (method is not None) + (schema is not None) + (attribute is not None)
+    )
+
+    if num_chosen != 1:
+        raise ValueError(
+            "Exactly one of `method`, `schema`, or `attribute` has to be specified."
+        )
+
+    if attribute:
+        get_schema = attrgetter(attribute)
+    elif method:
+        get_schema = methodcaller(method)
+    else:
+        get_schema = lambda self: schema
+
+    def decorator(train):
+        @functools.wraps(train)
+        def wrapper(
+            self,
+            training_data,
+            validation_data=None,
+        ):
+            schema = get_schema(self)
+
+            training_data = Map(schema.apply, training_data)
+            if validation_data is not None:
+                validation_data = Map(schema.apply, validation_data)
+
+            return train(self, training_data, validation_data)
+
+        return wrapper
+
+    return decorator
