@@ -408,7 +408,7 @@ class LabelDataset:
         return len(self.test_data)
 
     def __iter__(self):
-        for input_, label in self.test_data:
+        for _input, label in self.test_data:
             yield label
 
 
