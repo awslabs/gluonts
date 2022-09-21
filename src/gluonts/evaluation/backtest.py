@@ -15,22 +15,37 @@ import logging
 import re
 from typing import Dict, Iterator, NamedTuple, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 
 import gluonts  # noqa
 from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.split import split
 from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
 )
+from gluonts.dataset.util import period_index
 from gluonts.evaluation import Evaluator
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.itertools import maybe_len
-from gluonts.transform import AdhocTransform
+
+
+def _to_dataframe(input_label: Tuple[DataEntry, DataEntry]) -> pd.DataFrame:
+    """
+    Turn a pair of consecutive (in time) data entries into a dataframe.
+    """
+    start = input_label[0][FieldName.START]
+    targets = [entry[FieldName.TARGET] for entry in input_label]
+    full_target = np.concatenate(targets, axis=-1)
+    index = period_index(
+        {FieldName.START: start, FieldName.TARGET: full_target}
+    )
+    return pd.DataFrame(full_target.transpose(), index=index)
 
 
 def make_evaluation_predictions(
@@ -63,46 +78,13 @@ def make_evaluation_predictions(
         second one yielding the corresponding ground truth series.
     """
 
-    prediction_length = predictor.prediction_length
-    lead_time = predictor.lead_time
-
-    def add_ts_dataframe(
-        data_iterator: Iterator[DataEntry],
-    ) -> Iterator[DataEntry]:
-        for data_entry in data_iterator:
-            data = data_entry.copy()
-            index = pd.period_range(
-                start=data[FieldName.START],
-                periods=data[FieldName.TARGET].shape[-1],
-                freq=data[FieldName.START].freq,
-            )
-            data["ts"] = pd.DataFrame(
-                index=index, data=data[FieldName.TARGET].transpose()
-            )
-            yield data
-
-    def ts_iter(dataset: Dataset) -> pd.DataFrame:
-        for data_entry in add_ts_dataframe(iter(dataset)):
-            yield data_entry["ts"]
-
-    def truncate_target(data):
-        data = data.copy()
-        target = data[FieldName.TARGET]
-        assert (
-            target.shape[-1] >= prediction_length
-        )  # handles multivariate case (target_dim, history_length)
-        data[FieldName.TARGET] = target[..., : -prediction_length - lead_time]
-        return data
-
-    # TODO filter out time series with target shorter than prediction length
-    # TODO or fix the evaluator so it supports missing values instead (all
-    # TODO the test set may be gone otherwise with such a filtering)
-
-    dataset_trunc = AdhocTransform(truncate_target).apply(dataset)
+    window_length = predictor.prediction_length + predictor.lead_time
+    _, test_template = split(dataset, offset=-window_length)
+    test_data = test_template.generate_instances(window_length)
 
     return (
-        predictor.predict(dataset_trunc, num_samples=num_samples),
-        ts_iter(dataset),
+        predictor.predict(test_data.input, num_samples=num_samples),
+        map(_to_dataframe, test_data),
     )
 
 
