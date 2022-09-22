@@ -182,9 +182,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         assert dilation_seq is None or all(
             d > 0 for d in dilation_seq
         ), "Elements of `dilation_seq` should be > 0"
-        # TODO: add support for kernel size=1
         assert kernel_size_seq is None or all(
-            d > 1 for d in kernel_size_seq
+            d > 0 for d in kernel_size_seq
         ), "Elements of `kernel_size_seq` should be > 0"
         assert quantiles is None or all(
             0 <= d <= 1 for d in quantiles
