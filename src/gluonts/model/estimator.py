@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from typing import Optional
+from typing_extensions import Protocol, runtime_checkable
 
 import gluonts
 from gluonts.core.component import from_hyperparameters, validated
@@ -75,6 +76,37 @@ class Estimator:
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
         return cls.from_hyperparameters(**params)
+
+
+@runtime_checkable
+class IncrementallyTrainable(Protocol):
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+    ) -> Predictor:
+        """
+        Experimental: this feature may change in future versions.
+        Train the estimator, starting from a previously trained
+        predictor, on the given data.
+
+        Parameters
+        ----------
+        predictor
+            A previously trained model, from which to initialize the estimator
+            training.
+        training_data
+            Dataset to train the model on.
+        validation_data
+            Dataset to validate the model on during training.
+
+        Returns
+        -------
+        Predictor
+            The predictor containing the trained model.
+        """
+        raise NotImplementedError
 
 
 class DummyEstimator(Estimator):

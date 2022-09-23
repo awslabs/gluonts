@@ -29,9 +29,8 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataBatch
 from gluonts.exceptions import GluonTSHyperparametersError
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.predictor import Predictor
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
 
@@ -438,15 +437,55 @@ class NBEATSEnsembleEstimator(Estimator):
         except ValidationError as e:
             raise GluonTSHyperparametersError from e
 
-    def train(
-        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    def _train(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        from_predictor: Optional[NBEATSEnsemblePredictor] = None,
     ) -> NBEATSEnsemblePredictor:
         predictors = []
 
-        for index, estimator in enumerate(self.estimators):
-            logging.info(
-                f"Training estimator {index + 1}/{len(self.estimators)}."
-            )
-            predictors.append(estimator.train(training_data, validation_data))
+        if from_predictor is None:
+            for index, estimator in enumerate(self.estimators):
+                logging.info(
+                    f"Training estimator {index + 1}/{len(self.estimators)}."
+                )
+                predictors.append(
+                    estimator.train(training_data, validation_data)
+                )
+        else:
+            for index, (estimator, predictor) in enumerate(
+                zip(self.estimators, from_predictor.predictors)
+            ):
+                logging.info(
+                    f"Training estimator {index + 1}/{len(self.estimators)}."
+                )
+                predictors.append(
+                    estimator.train(
+                        training_data,
+                        validation_data,
+                        from_predictor=predictor,
+                    )
+                )
 
         return NBEATSEnsemblePredictor(self.prediction_length, predictors)
+
+    def train(
+        self, training_data: Dataset, validation_data: Optional[Dataset] = None
+    ) -> NBEATSEnsemblePredictor:
+        return self._train(
+            training_data=training_data, validation_data=validation_data
+        )
+
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+    ) -> NBEATSEnsemblePredictor:
+        assert isinstance(predictor, NBEATSEnsemblePredictor)
+        return self._train(
+            training_data=training_data,
+            validation_data=validation_data,
+            from_predictor=predictor,
+        )

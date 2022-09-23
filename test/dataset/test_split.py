@@ -121,36 +121,77 @@ def check_training_validation(
     assert original_entry[FieldName.ITEM_ID] == train_entry[FieldName.ITEM_ID]
     assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
     if max_history is not None:
-        assert valid_pair[0][FieldName.TARGET].shape[0] == max_history
-    assert valid_pair[1][FieldName.TARGET].shape[0] == prediction_length
+        assert valid_pair[0][FieldName.TARGET].shape[-1] == max_history
+    assert valid_pair[1][FieldName.TARGET].shape[-1] == prediction_length
     train_end = (
         train_entry[FieldName.START]
-        + train_entry[FieldName.TARGET].shape[0]
+        + train_entry[FieldName.TARGET].shape[-1]
         * train_entry[FieldName.START].freq
     )
     if date is not None:
         assert train_end == date + train_entry[FieldName.START].freq
     if offset is not None:
         if offset > 0:
-            assert train_entry[FieldName.TARGET].shape[0] == offset
+            assert train_entry[FieldName.TARGET].shape[-1] == offset
         else:
-            assert train_entry[FieldName.TARGET].shape[0] - offset == len(
-                original_entry[FieldName.TARGET]
+            assert (
+                train_entry[FieldName.TARGET].shape[-1] - offset
+                == original_entry[FieldName.TARGET].shape[-1]
             )
     assert train_end <= valid_pair[1][FieldName.START]
     valid_end = (
         valid_pair[0][FieldName.START]
-        + valid_pair[0][FieldName.TARGET].shape[0]
+        + valid_pair[0][FieldName.TARGET].shape[-1]
         * valid_pair[0][FieldName.START].freq
     )
     assert valid_end == valid_pair[1][FieldName.START]
     if FieldName.FEAT_DYNAMIC_REAL in valid_pair[0]:
         assert (
             valid_pair[0][FieldName.FEAT_DYNAMIC_REAL].shape[-1]
-            == valid_pair[0][FieldName.TARGET].shape[0] + prediction_length
+            == valid_pair[0][FieldName.TARGET].shape[-1] + prediction_length
         )
 
 
+@pytest.mark.parametrize(
+    "dataset",
+    [
+        ListDataset(
+            [
+                {
+                    "item_id": 0,
+                    "start": "2021-03-04",
+                    "target": [1.0] * 365,
+                    "feat_dynamic_real": [[2.0] * 365],
+                },
+                {
+                    "item_id": 1,
+                    "start": "2021-03-04",
+                    "target": [2.0] * 265,
+                    "feat_dynamic_real": [[3.0] * 265],
+                },
+            ],
+            freq="D",
+        ),
+        ListDataset(
+            [
+                {
+                    "item_id": 0,
+                    "start": "2021-03-04",
+                    "target": [[1.0] * 365, [10.0] * 365],
+                    "feat_dynamic_real": [[2.0] * 365],
+                },
+                {
+                    "item_id": 1,
+                    "start": "2021-03-04",
+                    "target": [[2.0] * 265, [20.0] * 265],
+                    "feat_dynamic_real": [[3.0] * 265],
+                },
+            ],
+            one_dim_target=False,
+            freq="D",
+        ),
+    ],
+)
 @pytest.mark.parametrize(
     "date, offset, windows, distance, max_history",
     [
@@ -163,26 +204,8 @@ def check_training_validation(
         (None, -48, 1, None, None),
     ],
 )
-def test_split(date, offset, windows, distance, max_history):
+def test_split(dataset, date, offset, windows, distance, max_history):
     assert (offset is None) != (date is None)
-
-    dataset = ListDataset(
-        [
-            {
-                "item_id": 0,
-                "start": "2021-03-04",
-                "target": [1.0] * 365,
-                "feat_dynamic_real": [[2.0] * 365],
-            },
-            {
-                "item_id": 1,
-                "start": "2021-03-04",
-                "target": [2.0] * 265,
-                "feat_dynamic_real": [[3.0] * 265],
-            },
-        ],
-        freq="D",
-    )
 
     prediction_length = 7
 

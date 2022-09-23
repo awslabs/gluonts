@@ -15,6 +15,7 @@ import pytorch_lightning as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
 
@@ -44,6 +45,7 @@ class DeepARLightningModule(pl.LightningModule):
         Patience parameter for learning rate scheduler, default: ``10``.
     """
 
+    @validated()
     def __init__(
         self,
         model: DeepARModel,
@@ -59,6 +61,15 @@ class DeepARLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
+        self.example_input_array = tuple(
+            [
+                torch.zeros(shape, dtype=self.model.input_types()[name])
+                for (name, shape) in self.model.input_shapes().items()
+            ]
+        )
+
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
 
     def _compute_loss(self, batch):
         feat_static_cat = batch["feat_static_cat"]

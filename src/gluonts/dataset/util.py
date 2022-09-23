@@ -14,6 +14,7 @@ from typing import Optional
 
 import pandas as pd
 
+from .common import DataEntry
 from .field_names import FieldName
 
 
@@ -21,14 +22,25 @@ def forecast_start(entry, time_axis: int = -1):
     return entry[FieldName.START] + entry[FieldName.TARGET].shape[time_axis]
 
 
-def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
+def period_index(entry: DataEntry, freq=None) -> pd.PeriodIndex:
+    if freq is None:
+        freq = entry[FieldName.START].freq
+
+    return pd.period_range(
+        start=entry[FieldName.START],
+        periods=entry[FieldName.TARGET].shape[-1],
+        freq=freq,
+    )
+
+
+def to_pandas(entry: DataEntry, freq: Optional[str] = None) -> pd.Series:
     """
     Transform a dictionary into a pandas.Series object, using its "start" and
     "target" fields.
 
     Parameters
     ----------
-    instance
+    entry
         Dictionary containing the time series data.
     freq
         Frequency to use in the pandas.Series index.
@@ -38,12 +50,7 @@ def to_pandas(instance: dict, freq: Optional[str] = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    target = instance[FieldName.TARGET]
-    start = instance[FieldName.START]
-    if not freq:
-        freq = start.freqstr
-
     return pd.Series(
-        target,
-        index=pd.period_range(start=start, periods=len(target), freq=freq),
+        entry[FieldName.TARGET],
+        index=period_index(entry, freq=freq),
     )
