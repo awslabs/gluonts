@@ -14,7 +14,7 @@
 from toolz import take
 
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
-from gluonts.ev_v4.api import gather_inputs, MetricSpec, evaluate
+from gluonts.ev_v4.api import MetricSpec, evaluate
 from gluonts.ev_v4.metrics import mse, msis, mae_coverage
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
@@ -53,7 +53,7 @@ metric_specs = (
     MetricSpec(  # default parameters like 'forecast_type' can be changed
         name="MSE_with_p90_error",
         fn=mse,
-        parameters={"forecast_type": "0.9", "axis": 0},
+        parameters={"forecast_type": "0.9", "axis": 1},
     ),
     MetricSpec(
         name="sMAPE",
@@ -65,40 +65,37 @@ metric_specs = (
         fn=msis,
         parameters={"freq": freq, "axis": 1},
     ),
-    MetricSpec(name="MAE_covergae", fn=mae_coverage, parameters={}),
+    MetricSpec(name="MAE_coverage", fn=mae_coverage, parameters={}),
 )
 
-data = gather_inputs(
-    test_data=test_data, forecast_it=forecast_it, metric_specs=metric_specs
-)
-
-# only NumPy arrays needed for evaluation
-eval_result = evaluate(data, metric_specs)
+eval_result = evaluate(test_data, forecast_it, metric_specs, batch_size=4)
 for metric_name, value in eval_result.items():
     print(f"\n{metric_name}: {value}")
 
 """
 RESULT:
 
-MSE: [1.38124313e+02 8.15331000e+01 2.72841667e-01 1.20578845e+03
- 3.15274296e+02 2.95207122e+03 2.82054167e+00 5.15698071e+03
- 2.06749965e+03 4.38588479e+03]
+MSE: [1.36719646e+02 7.64413667e+01 2.64516667e-01 1.20087124e+03
+ 2.88310425e+02 2.47937929e+03 2.83414583e+00 4.11440285e+03
+ 2.05571107e+03 5.10434000e+03]
 
-MSE_per_timestamp: [1509.1703  1109.15853  812.68517  273.12755  537.64231  288.20633
-  365.86701 2389.41772 1390.56152  383.41257  629.6229   456.37039
-  199.04059 1198.95448 4100.5623  2583.99104  696.75354 4063.59549
- 2787.21606 2893.4757  2358.2764  1642.75257  908.37037 5556.76893]
+MSE_per_timestamp: [1045.43335  981.91202  734.87873  251.49417  504.90605  330.36425
+  367.72504 2628.43587 1487.34742  384.64904  563.69332  424.30361
+  309.43651 1263.89806 3871.2717  2458.93248  521.8133  3773.91546
+ 3093.96546 2719.18772 2215.11494 1206.21988  789.50867 5173.85185]
 
-MSE_with_p90_error: [143095.6 145683.4 150937.7 107801.   71526.9  54480.7  43231.3  42721.8
-  68347.7  52429.4  30570.9  64439.9  81950.5  86576.3  99728.4 118101.3
- 143323.8 130970.1 119324.  109725.3 112578.6 111907.9 111123.4 151992.4]
+MSE_with_p90_error: [2.84029167e+03 2.34791667e+02 2.16666667e+00 7.40220833e+03
+ 6.99208333e+02 1.00526250e+04 1.42500000e+01 1.46287083e+04
+ 1.26820833e+03 6.58812500e+03]
 
-sMAPE: [ 68800.66666667  31213.58333333  69074.04166667  49509.70833333
-  15537.25       179240.70833333  65602.33333333 477296.70833333
-  18102.5          5859.29166667]
+sMAPE: [1.36719646e+02 7.64413667e+01 2.64516667e-01 1.20087124e+03
+ 2.88310425e+02 2.47937929e+03 2.83414583e+00 4.11440285e+03
+ 2.05571107e+03 5.10434000e+03]
 
-MSIS: [ 628.39211049  168.85651712  590.5826892   135.03444642    9.4747331
-  191.17413774 1008.02789318  289.66750153   12.39590371    3.26292149]
+MSIS: [9.33260746 4.59426162 0.27383605 4.03763773 3.65069411 3.75857656
+ 1.84820732 4.20151052 9.57894201 3.10243782]
 
-MAE_covergae: 0.17685185185185187
+MAE_coverage: 0.07787037037037038
+
+batch_size: 10
 """
