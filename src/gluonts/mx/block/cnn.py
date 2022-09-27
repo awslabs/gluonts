@@ -97,7 +97,8 @@ class CausalConv1D(gluon.HybridBlock):
         """
         ct = self.conv1d(data)
         if self.kernel_size > 0:
-            ct = F.slice_axis(ct, axis=2, begin=0, end=-self.padding)
+            end_ = -self.padding if self.padding != 0 else None
+            ct = F.slice_axis(ct, axis=2, begin=0, end=end_)
         return ct
 
 
