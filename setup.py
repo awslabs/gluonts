@@ -249,8 +249,8 @@ setup_kwargs: dict = dict(
         "shell": shell_require,
         "torch": torch_require,
     },
-    entry_points=dict(
-        gluonts_forecasters=[
+    entry_points={
+        "gluonts_forecasters": [
             "deepar=gluonts.model.deepar:DeepAREstimator",
             "DeepAR=gluonts.model.deepar:DeepAREstimator",
             "DeepFactor=gluonts.model.deep_factor:DeepFactorEstimator",
@@ -281,17 +281,15 @@ setup_kwargs: dict = dict(
             "WaveNet=gluonts.model.wavenet:WaveNetEstimator",
             # "r=gluonts.model.r_forecast:RForecastPredictor [R]",
             # "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
+        ],
+        "pygments.styles": [
+            "gluonts-dark=gluonts.meta.style:Dark",
         ]
-    ),
+    },
     cmdclass={
         "type_check": TypeCheckCommand,
         "style_check": StyleCheckCommand,
         **version_cmdclass,
-    },
-    entry_points={
-        "pygments.styles": [
-            "gluonts-dark=gluonts.meta.style:Dark",
-        ]
     },
 )
 
