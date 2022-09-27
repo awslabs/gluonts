@@ -14,18 +14,9 @@
 from typing import Iterator
 
 import mxnet as mx
-from gluonts.model.forecast_generator import (
-    make_distribution_forecast,
-    recursively_zip_arrays,
-)
+from gluonts.model.forecast_generator import make_distribution_forecast
 from gluonts.mx.distribution import Distribution
 from gluonts.mx.model.forecast import DistributionForecast
-
-
-@recursively_zip_arrays.register(mx.nd.NDArray)
-def _(x: mx.nd.NDArray) -> Iterator[mx.nd.NDArray]:
-    for i in range(x.shape[0]):
-        yield x[i]
 
 
 @make_distribution_forecast.register(Distribution)

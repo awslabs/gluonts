@@ -52,49 +52,26 @@ def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
-@singledispatch
-def recursively_zip_arrays(x) -> Iterator:
+def unbatch(x) -> Iterator:
     """
     Helper function to recursively zip nested collections of arrays.
 
-    This defines the fallback implementation, which one can specialized for
-    specific types using by doing ``@recursively_zip_arrays.register`` on the
-    type. Implementations for lists, tuples, and NumPy arrays are provided.
-
     For an array `a` (e.g. a numpy array)
 
-        _extract_instances(a) -> [a[0], a[1], ...]
+        unbatch(a) -> [a[0], a[1], ...]
 
     For (nested) tuples of arrays `(a, (b, c))`
 
-        _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b
+        unbatch((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b
          [1], c[1])), ...]
     """
-    raise NotImplementedError
 
+    if isinstance(x, (list, tuple)):
+        T = x.__class__
 
-@recursively_zip_arrays.register(np.ndarray)
-def _(x: np.ndarray) -> Iterator[list]:
-    for i in range(x.shape[0]):
-        yield x[i]
+        return map(T, zip(*map(unbatch, x)))
 
-
-@recursively_zip_arrays.register(tuple)
-def _(x: tuple) -> Iterator[tuple]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield tuple(r for r in m)
-
-
-@recursively_zip_arrays.register(list)
-def _(x: list) -> Iterator[list]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield [r for r in m]
-
-
-@recursively_zip_arrays.register(type(None))
-def _(x: type(None)) -> Iterator[type(None)]:
-    while True:
-        yield None
+    return x
 
 
 @singledispatch
@@ -226,8 +203,7 @@ class DistributionForecastGenerator(ForecastGenerator):
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
-                self.distr_output.distribution(*u)
-                for u in recursively_zip_arrays(outputs)
+                self.distr_output.distribution(*u) for u in unbatch(outputs)
             ]
 
             i = -1
