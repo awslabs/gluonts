@@ -52,49 +52,29 @@ def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
-@singledispatch
-def recursively_zip_arrays(x) -> Iterator:
+def _unpack(batched) -> Iterator:
     """
-    Helper function to recursively zip nested collections of arrays.
+    Unpack batches.
 
-    This defines the fallback implementation, which one can specialized for
-    specific types using by doing ``@recursively_zip_arrays.register`` on the
-    type. Implementations for lists, tuples, and NumPy arrays are provided.
+    This assumes that arrays are wrapped in a  nested structure of lists and
+    tuples, and each array has the same shape::
 
-    For an array `a` (e.g. a numpy array)
-
-        _extract_instances(a) -> [a[0], a[1], ...]
-
-    For (nested) tuples of arrays `(a, (b, c))`
-
-        _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b
-         [1], c[1])), ...]
+        >>> a = np.arange(5)
+        >>> batched = [a, (a, [a, a, a])]
+        >>> list(_unpack(batched))
+        [[0, (0, [0, 0, 0])],
+         [1, (1, [1, 1, 1])],
+         [2, (2, [2, 2, 2])],
+         [3, (3, [3, 3, 3])],
+         [4, (4, [4, 4, 4])]]
     """
-    raise NotImplementedError
 
+    if isinstance(batched, (list, tuple)):
+        T = type(batched)
 
-@recursively_zip_arrays.register(np.ndarray)
-def _(x: np.ndarray) -> Iterator[list]:
-    for i in range(x.shape[0]):
-        yield x[i]
+        return map(T, zip(*map(_unpack, batched)))
 
-
-@recursively_zip_arrays.register(tuple)
-def _(x: tuple) -> Iterator[tuple]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield tuple(r for r in m)
-
-
-@recursively_zip_arrays.register(list)
-def _(x: list) -> Iterator[list]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield [r for r in m]
-
-
-@recursively_zip_arrays.register(type(None))
-def _(x: type(None)) -> Iterator[type(None)]:
-    while True:
-        yield None
+    return batched
 
 
 @singledispatch
@@ -226,8 +206,7 @@ class DistributionForecastGenerator(ForecastGenerator):
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
-                self.distr_output.distribution(*u)
-                for u in recursively_zip_arrays(outputs)
+                self.distr_output.distribution(*u) for u in _unpack(outputs)
             ]
 
             i = -1
