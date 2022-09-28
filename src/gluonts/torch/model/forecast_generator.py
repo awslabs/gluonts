@@ -11,21 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator
-
 import torch
 
-from gluonts.model.forecast_generator import (
-    recursively_zip_arrays,
-    make_distribution_forecast,
-)
+from gluonts.model.forecast_generator import make_distribution_forecast
 from gluonts.torch.model.forecast import DistributionForecast
-
-
-@recursively_zip_arrays.register(torch.Tensor)
-def _(x: torch.Tensor) -> Iterator[torch.Tensor]:
-    for i in range(x.shape[0]):
-        yield x[i]
 
 
 @make_distribution_forecast.register(torch.distributions.Distribution)
