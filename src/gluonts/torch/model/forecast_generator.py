@@ -11,8 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator
-
 import torch
 
 from gluonts.model.forecast_generator import make_distribution_forecast

@@ -69,10 +69,10 @@ def _unpack(batched) -> Iterator:
          [4, (4, [4, 4, 4])]]
     """
 
-    if isinstance(x, (list, tuple)):
-        T = x.__class__
+    if isinstance(batched, (list, tuple)):
+        T = type(batched)
 
-        return map(T, zip(*map(batched, x)))
+        return map(T, zip(*map(_unpack, batched)))
 
     return batched
 
