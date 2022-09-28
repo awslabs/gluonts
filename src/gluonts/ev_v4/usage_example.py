@@ -11,10 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+
 from toolz import take
 
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
-from gluonts.ev_v4.api import MetricSpec, evaluate
+from gluonts.ev_v4.api import evaluate, MetricSpec
 from gluonts.ev_v4.metrics import mse, msis, mae_coverage
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
@@ -40,12 +41,11 @@ forecast_it = predictor.predict(dataset=test_data.input, num_samples=100)
 # EVALUATION
 
 metric_specs = (
-    MetricSpec(
-        name="MSE",
+    MetricSpec(  # metric name is fn.__name__ if not specified otherwise
         fn=mse,
         parameters={"axis": 1},
     ),
-    MetricSpec(  # we can do metrics per timestep
+    MetricSpec(  # metrics per timestep are possible, using axis=0
         name="MSE_per_timestamp",
         fn=mse,
         parameters={"axis": 0},
@@ -55,47 +55,37 @@ metric_specs = (
         fn=mse,
         parameters={"forecast_type": "0.9", "axis": 1},
     ),
+    MetricSpec(fn=mae_coverage),  # fn is the only required argument
     MetricSpec(
-        name="sMAPE",
-        fn=mse,
-        parameters={"axis": 1},
-    ),
-    MetricSpec(
-        name="MSIS",
         fn=msis,
         parameters={"freq": freq, "axis": 1},
     ),
-    MetricSpec(name="MAE_coverage", fn=mae_coverage, parameters={}),
 )
 
-eval_result = evaluate(test_data, forecast_it, metric_specs, batch_size=4)
+eval_result = evaluate(test_data, forecast_it, metric_specs)
 for metric_name, value in eval_result.items():
     print(f"\n{metric_name}: {value}")
 
 """
 RESULT:
 
-MSE: [1.36719646e+02 7.64413667e+01 2.64516667e-01 1.20087124e+03
- 2.88310425e+02 2.47937929e+03 2.83414583e+00 4.11440285e+03
- 2.05571107e+03 5.10434000e+03]
+mse: [1.70037725e+02 7.53495375e+01 2.81950000e-01 1.26936799e+03
+ 3.13162196e+02 2.91519228e+03 2.86863750e+00 4.53727826e+03
+ 2.04621995e+03 4.28342866e+03]
 
-MSE_per_timestamp: [1045.43335  981.91202  734.87873  251.49417  504.90605  330.36425
-  367.72504 2628.43587 1487.34742  384.64904  563.69332  424.30361
-  309.43651 1263.89806 3871.2717  2458.93248  521.8133  3773.91546
- 3093.96546 2719.18772 2215.11494 1206.21988  789.50867 5173.85185]
+MSE_per_timestamp: [1423.07741 1176.70875  628.24209  248.08788  558.27488  336.70914
+  343.80869 2367.45884 1195.56328  435.59824  638.73553  572.21965
+  184.32789 1088.52898 4057.31885 2491.17487  686.56598 3162.31304
+ 2633.25986 2052.32446 2695.25204 1759.17983 1171.43795 5565.48113]
 
-MSE_with_p90_error: [2.84029167e+03 2.34791667e+02 2.16666667e+00 7.40220833e+03
- 6.99208333e+02 1.00526250e+04 1.42500000e+01 1.46287083e+04
- 1.26820833e+03 6.58812500e+03]
+MSE_with_p90_error: [2.99645833e+03 2.03916667e+02 3.41666667e+00 7.24620833e+03
+ 8.09458333e+02 1.00476667e+04 1.37083333e+01 1.42806667e+04
+ 1.20904167e+03 6.22516667e+03]
 
-sMAPE: [1.36719646e+02 7.64413667e+01 2.64516667e-01 1.20087124e+03
- 2.88310425e+02 2.47937929e+03 2.83414583e+00 4.11440285e+03
- 2.05571107e+03 5.10434000e+03]
+mae_coverage: 0.06851851851851852
 
-MSIS: [9.33260746 4.59426162 0.27383605 4.03763773 3.65069411 3.75857656
- 1.84820732 4.20151052 9.57894201 3.10243782]
-
-MAE_coverage: 0.07787037037037038
+msis: [8.98503397 5.77328141 0.27383605 3.71135528 3.59816614 3.44007136
+ 1.86556138 4.06861266 9.66269812 3.07285557]
 
 batch_size: 10
 """

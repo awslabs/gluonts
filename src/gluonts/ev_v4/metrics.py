@@ -15,6 +15,7 @@ from typing import Optional, Collection
 
 import numpy as np
 
+from gluonts.exceptions import GluonTSUserError
 from gluonts.time_feature import get_seasonality
 
 
@@ -59,6 +60,10 @@ def nd(data: dict, forecast_type: str = "0.5"):
 # AGGREGATED METRICS
 
 
+def abs_label_mean(data: dict, axis: Optional[int] = None):
+    return np.mean(abs_label(data), axis=axis)
+
+
 def mse(data: dict, forecast_type: str = "mean", axis: Optional[int] = None):
     return np.mean(squared_error(data, forecast_type), axis=axis)
 
@@ -99,7 +104,11 @@ def seasonal_error(
         )
 
     if not seasonality:
-        assert freq is not None, "Either freq or seasonality must be provided"
+        if freq is None:
+            raise GluonTSUserError(
+                "To calculate the seasonal error, either "
+                "`freq` or `seasonality` must be provided"
+            )
         seasonality = get_seasonality(freq)
 
     if seasonality < np.shape(past_data)[axis]:
