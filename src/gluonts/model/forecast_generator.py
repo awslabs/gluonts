@@ -52,26 +52,29 @@ def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
-def unbatch(x) -> Iterator:
+def _unpack(batched) -> Iterator:
     """
-    Helper function to recursively zip nested collections of arrays.
+    Unpack batches.
 
-    For an array `a` (e.g. a numpy array)
+    This assumes that arrays are wrapped in a  nested structure of lists and
+    tuples, and each array has the same shape::
 
-        unbatch(a) -> [a[0], a[1], ...]
-
-    For (nested) tuples of arrays `(a, (b, c))`
-
-        unbatch((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b
-         [1], c[1])), ...]
+        >>> a = np.arange(5)
+        >>> batched = [a, (a, [a, a, a])]
+        >>> list(_unpack(batched))
+        [[0, (0, [0, 0, 0])],
+         [1, (1, [1, 1, 1])],
+         [2, (2, [2, 2, 2])],
+         [3, (3, [3, 3, 3])],
+         [4, (4, [4, 4, 4])]]
     """
 
     if isinstance(x, (list, tuple)):
         T = x.__class__
 
-        return map(T, zip(*map(unbatch, x)))
+        return map(T, zip(*map(batched, x)))
 
-    return x
+    return batched
 
 
 @singledispatch
@@ -203,7 +206,7 @@ class DistributionForecastGenerator(ForecastGenerator):
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
-                self.distr_output.distribution(*u) for u in unbatch(outputs)
+                self.distr_output.distribution(*u) for u in _unpack(outputs)
             ]
 
             i = -1
