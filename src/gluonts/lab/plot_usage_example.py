@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from matplotlib import pyplot as plt
-from gluonts.model.forecast import Quantile
+from matplotlib.dates import DateFormatter
 from gluonts.mx import SimpleFeedForwardEstimator, Trainer
-from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.lab.plot import plot
 from gluonts.evaluation import make_evaluation_predictions
@@ -33,9 +31,9 @@ estimator = SimpleFeedForwardEstimator(
 predictor = estimator.train(dataset.train)
 
 forecast_it, ts_it = make_evaluation_predictions(
-    dataset=dataset.test,  # test dataset
-    predictor=predictor,  # predictor
-    num_samples=100,  # number of sample paths we want for evaluation
+    dataset=dataset.test,
+    predictor=predictor,
+    num_samples=100,
 )
 
 forecasts = list(forecast_it)
@@ -44,9 +42,18 @@ tss = list(ts_it)
 ts_entry = tss[0]
 forecast_entry = forecasts[0]
 
-plot(
+fig, ax = plot(
     forecast=forecast_entry,
     timeseries=ts_entry[-100 : -dataset.metadata.prediction_length + 1],
-    date_format="%d-%m-%Y %H:%M",
-    train_test_separator=forecast_entry.index[0].to_timestamp()
+    label_prefix="first entry",
+    show_mean=True,
+    train_test_separator=forecast_entry.index[0].to_timestamp(),
+    show_plot=False,
 )
+
+# do more custom things before showing the plot
+ax.tick_params(axis="x", labelrotation=45)
+ax.xaxis.set_major_formatter(DateFormatter("%d-%m-%Y %H:%M"))
+ax.legend(loc="upper left")
+
+fig.show()

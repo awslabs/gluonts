@@ -11,18 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Collection, Tuple
-
+from os import PathLike
+from typing import Optional, Collection, Tuple, Union
 import numpy as np
 import pandas as pd
-from matplotlib.dates import DateFormatter
-
-from gluonts.model.forecast import SampleForecast
-
-from gluonts.exceptions import GluonTSUserError
+from matplotlib import pyplot as plt
 
 from gluonts.model import Forecast
-from matplotlib import pyplot as plt
+from gluonts.model.forecast import SampleForecast
+from gluonts.exceptions import GluonTSUserError
 
 
 def get_percentiles(prediction_intervals):
@@ -40,7 +37,7 @@ def _plot_forecast(
     ax: plt.axis,
     show_mean: bool,
     color: str,
-    prefix: str,
+    label_prefix: str,
     *args,
     **kwargs,
 ):
@@ -62,7 +59,7 @@ def _plot_forecast(
             mean_data,
             color=color,
             ls=":",
-            label=f"{prefix}mean prediction",
+            label=f"{label_prefix}mean prediction",
             *args,
             **kwargs,
         )
@@ -70,14 +67,16 @@ def _plot_forecast(
     # median prediction
     p50_data = predictions[interval_count]
     p50_series = pd.Series(data=p50_data, index=forecast.index.to_timestamp())
-    p50_series.plot(color=color, ls="-", label=f"{prefix}median prediction")
+    ax.plot(p50_series, color=color, label=f"{label_prefix}median prediction")
 
     # percentile prediction intervals
     alphas_lower_half = [(p / 100.0) ** 0.3 for p in percentiles]
     alphas = alphas_lower_half + alphas_lower_half[::-1]
     for i in range(interval_count):
         # plot lower and upper half of median individually to keep colors true
-        label = f"{prefix}{100 - percentiles[i] * 2}% prediction interval"
+        label = (
+            f"{label_prefix}{100 - percentiles[i] * 2}% prediction interval"
+        )
         area_info = [
             {"label": label, "idx": i},  # give label only once
             {"label": None, "idx": interval_count * 2 - i - 1},
@@ -97,20 +96,19 @@ def _plot_forecast(
 
 
 def plot(
-    forecast: Optional[Forecast],
+    forecast: Forecast,
     timeseries: Optional[pd.Series] = None,
     prediction_intervals: Collection[float] = (50.0, 90.0),
     show_mean: bool = False,
     color: str = "g",
-    label: Optional[str] = None,
-    xlabel: Optional[str] = None,
-    ylabel: Optional[str] = None,
-    output_file: Optional[str] = None,
+    xlabel: str = "time",
+    ylabel: str = "value",
     show_plot: bool = True,
     show_grid: bool = True,
     figsize: Tuple[int] = (10, 10),
     legend_location: str = "upper left",
-    date_format: Optional[str] = None,
+    label_prefix: Optional[str] = None,
+    output_file: Optional[Union[str, bytes, PathLike]] = None,
     train_test_separator=None,
     *args,
     **kwargs,
@@ -121,7 +119,7 @@ def plot(
                 f"Prediction interval {c} is not between 0 and 100"
             )
 
-    prefix = "" if label is None else label + "-"
+    label_prefix = "" if label_prefix is None else label_prefix + " - "
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
@@ -129,7 +127,7 @@ def plot(
         ax.plot(
             timeseries.to_timestamp().index,
             timeseries.values,
-            label=f"{prefix}target",
+            label=f"{label_prefix}target",
         )
 
     if forecast is not None:
@@ -139,7 +137,7 @@ def plot(
             ax=ax,
             show_mean=show_mean,
             color=color,
-            prefix=prefix,
+            label_prefix=label_prefix,
             *args,
             **kwargs,
         )
@@ -148,18 +146,16 @@ def plot(
         ax.axvline(train_test_separator, color="r")
 
     ax.legend(loc=legend_location)
-    if xlabel is not None:
-        ax.xlabel(xlabel)
-    if ylabel is not None:
-        ax.ylabel(ylabel)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     if show_grid:
         ax.grid(which="both")
-    if date_format is not None:
-        ax.xaxis.set_major_formatter(DateFormatter(date_format))
 
     if output_file:
         fig.savefig(output_file)
 
     if show_plot:
         fig.show()
+
+    return fig, ax
