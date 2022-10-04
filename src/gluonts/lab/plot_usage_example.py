@@ -48,5 +48,5 @@ plot(
     forecast=forecast_entry,
     timeseries=ts_entry[-100 : -dataset.metadata.prediction_length + 1],
     date_format="%d-%m-%Y %H:%M",
-    train_test_seperator=forecast_entry.index[0].to_timestamp()
+    train_test_separator=forecast_entry.index[0].to_timestamp()
 )

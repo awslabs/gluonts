@@ -57,7 +57,6 @@ def _plot_forecast(
             )
 
         mean_data = np.mean(forecast.samples, axis=0)
-        aaa = pd.Series(data=mean_data, index=forecast.index.to_timestamp())
         ax.plot(
             forecast.index.to_timestamp(),
             mean_data,
@@ -112,7 +111,7 @@ def plot(
     figsize: Tuple[int] = (10, 10),
     legend_location: str = "upper left",
     date_format: Optional[str] = None,
-    train_test_seperator=None,
+    train_test_separator=None,
     *args,
     **kwargs,
 ):
@@ -145,8 +144,8 @@ def plot(
             **kwargs,
         )
 
-    if train_test_seperator is not None:
-        ax.axvline(train_test_seperator, color="r")
+    if train_test_separator is not None:
+        ax.axvline(train_test_separator, color="r")
 
     ax.legend(loc=legend_location)
     if xlabel is not None:
