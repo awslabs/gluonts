@@ -95,8 +95,14 @@ class DeepAREstimator(PyTorchLightningEstimator):
         Number of RNN layers (default: 2).
     hidden_size
         Number of RNN cells for each layer (default: 40).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
     dropout_rate
         Dropout regularization parameter (default: 0.1).
+    patience
+        Patience parameter for learning rate scheduler.
     num_feat_dynamic_real
         Number of dynamic real features in the data (default: 0).
     num_feat_static_real
@@ -149,7 +155,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         dropout_rate: float = 0.1,
+        patience: int = 10,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
         num_feat_static_real: int = 0,
@@ -180,10 +189,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.prediction_length = prediction_length
+        self.patience = patience
         self.distr_output = distr_output
         self.loss = loss
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.dropout_rate = dropout_rate
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_cat = num_feat_static_cat
@@ -373,7 +385,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
             num_parallel_samples=self.num_parallel_samples,
         )
 
-        return DeepARLightningModule(model=model, loss=self.loss)
+        return DeepARLightningModule(
+            model=model,
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+            patience=self.patience,
+        )
 
     def create_predictor(
         self,
@@ -385,7 +403,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module.model,
+            prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device=torch.device(

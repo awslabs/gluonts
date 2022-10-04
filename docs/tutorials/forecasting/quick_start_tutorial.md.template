@@ -1,14 +1,10 @@
 # Quick Start Tutorial
 
-The GluonTS toolkit contains components and tools for building time series models using MXNet. The models that are currently included are forecasting models but the components also support other time series use cases, such as classification or anomaly detection.
-
-The toolkit is not intended as a forecasting solution for businesses or end users but it rather targets scientists and engineers who want to tweak algorithms or build and experiment with their own models.  
-
 GluonTS contains:
 
+* A number of pre-built models
 * Components for building new models (likelihoods, feature processing pipelines, calendar features etc.)
 * Data loading and processing
-* A number of pre-built models
 * Plotting and evaluation facilities
 * Artificial and real datasets (only external datasets with blessed license)
 
@@ -49,7 +45,7 @@ dataset = get_dataset("m4_hourly")
 
 In general, the datasets provided by GluonTS are objects that consists of three main members:
 
-- `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series
+- `dataset.train` is an iterable collection of data entries used for training. Each entry corresponds to one time series.
 - `dataset.test` is an iterable collection of data entries used for inference. The test dataset is an extended version of the train dataset that contains a window in the end of each time series that was not seen during training. This window has length equal to the recommended prediction length.
 - `dataset.metadata` contains metadata of the dataset such as the frequency of the time series, a recommended prediction horizon, associated features, etc.
 
@@ -122,7 +118,7 @@ GluonTS comes with a number of pre-built models. All the user needs to do is con
 
 We will begin with GluonTS's pre-built feedforward neural network estimator, a simple but powerful forecasting model. We will use this model to demonstrate the process of training a model, producing forecasts, and evaluating the results.
 
-GluonTS's built-in feedforward neural network (`SimpleFeedForwardEstimator`) accepts an input window of length `context_length` and predicts the distribution of the values of the subsequent `prediction_length` values. In GluonTS parlance, the feedforward neural network model is an example of `Estimator`. In GluonTS, `Estimator` objects represent a forecasting model as well as details such as its coefficients, weights, etc.
+GluonTS's built-in feedforward neural network (`SimpleFeedForwardEstimator`) accepts an input window of length `context_length` and predicts the distribution of the values of the subsequent `prediction_length` values. In GluonTS parlance, the feedforward neural network model is an example of an `Estimator`. In GluonTS, `Estimator` objects represent a forecasting model as well as details such as its coefficients, weights, etc.
 
 In general, each estimator (pre-built or custom) is configured by a number of hyperparameters that can be either common (but not binding) among all estimators (e.g., the `prediction_length`) or specific for the particular estimator (e.g., number of layers for a neural network or the stride in a CNN).
 
@@ -213,7 +209,7 @@ dataset_test_entry = next(iter(dataset.test))
 dataset_test_entry['target'][:5]
 ```
 
-The entries in the `forecast` list are a bit more complex. They are objects that contain all the sample paths in the form of `numpy.ndarray` with dimension `(num_samples, prediction_length)`, the start date of the forecast, the frequency of the time series, etc. We can access all these information by simply invoking the corresponding attribute of the forecast object.
+The entries in the `forecast` list are a bit more complex. They are objects that contain all the sample paths in the form of `numpy.ndarray` with dimension `(num_samples, prediction_length)`, the start date of the forecast, the frequency of the time series, etc. We can access all this information by simply invoking the corresponding attribute of the forecast object.
 
 
 ```python
@@ -229,7 +225,7 @@ print(f"Start date of the forecast window: {forecast_entry.start_date}")
 print(f"Frequency of the time series: {forecast_entry.freq}")
 ```
 
-We can also do calculations to summarize the sample paths, such computing the mean or a quantile for each of the 48 time steps in the forecast window.
+We can also do calculations to summarize the sample paths, such as computing the mean or a quantile for each of the 48 time steps in the forecast window.
 
 
 ```python
@@ -272,7 +268,7 @@ evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
 agg_metrics, item_metrics = evaluator(tss, forecasts)
 ```
 
-Aggregate metrics aggregate both across time-steps and across time series.
+The aggregate metrics, `agg_metrics`, aggregate both across time-steps and across time series.
 
 
 ```python

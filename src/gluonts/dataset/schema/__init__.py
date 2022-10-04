@@ -11,9 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pkg_resources
+__all__ = ["Translator"]
 
-
-# def test_forecaster_entrypoints():
-#     for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
-#         entry_point.load()
+from .translate import Translator

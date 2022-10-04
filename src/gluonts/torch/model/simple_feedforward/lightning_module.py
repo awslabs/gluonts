@@ -14,6 +14,7 @@
 import pytorch_lightning as pl
 import torch
 
+from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 from .module import SimpleFeedForwardModel
@@ -40,6 +41,7 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         Weight decay regularization parameter, default: ``1e-8``.
     """
 
+    @validated()
     def __init__(
         self,
         model: SimpleFeedForwardModel,
@@ -53,6 +55,9 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
+
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
 
     def _compute_loss(self, batch):
         context = batch["past_target"]

@@ -208,7 +208,6 @@ class Trainer:
         is_validation_available = validation_iter is not None
 
         logger.info("Start model training")
-        net.initialize(ctx=self.ctx, init=self.init)
 
         with tempfile.TemporaryDirectory(
             prefix="gluonts-trainer-temp-"

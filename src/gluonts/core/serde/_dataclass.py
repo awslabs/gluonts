@@ -31,7 +31,16 @@ T = TypeVar("T")
 
 
 class _EventualType:
-    __init_kwargs__: dict = {}
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = object.__new__(cls)
+
+        return cls._instance
+
+    def __repr__(self):
+        return "EVENTUAL"
 
 
 EVENTUAL = cast(Any, _EventualType())

@@ -137,7 +137,7 @@ def slice_data_entry(
 ) -> DataEntry:
     slice_ = to_positive_slice(
         to_integer_slice(slice_, entry[FieldName.START]),
-        len(entry[FieldName.TARGET]),
+        entry[FieldName.TARGET].shape[-1],
     )
 
     if slice_.stop is not None:
@@ -152,10 +152,16 @@ def slice_data_entry(
     if slice_.start is not None:
         offset = slice_.start
         if offset < 0:
-            offset += entry["target"].shape[0]
+            offset += entry["target"].shape[-1]
         sliced_entry[FieldName.START] += offset
 
-    sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slice_]
+    # TODO fix
+    if len(sliced_entry[FieldName.TARGET].shape) == 1:
+        sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][slice_]
+    else:
+        sliced_entry[FieldName.TARGET] = sliced_entry[FieldName.TARGET][
+            :, slice_
+        ]
 
     if FieldName.FEAT_DYNAMIC_REAL in sliced_entry:
         sliced_entry[FieldName.FEAT_DYNAMIC_REAL] = sliced_entry[
@@ -247,11 +253,9 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
-                    input = TimeSeriesSlice(test[0])[-max_history:]
+                    yield TimeSeriesSlice(test[0])[-max_history:], test[1]
                 else:
-                    input = test[0]
-
-                yield input, test[1]
+                    yield test[0], test[1]
 
 
 @dataclass
@@ -328,11 +332,11 @@ class DateSplitter(AbstractBaseSplitter):
 
 
 @dataclass
-class TestDataset:
+class TestData:
     """
     An iterable type used for wrapping test data.
 
-    Elements of a ``TestDataset`` are pairs ``(input, label)``, where
+    Elements of a ``TestData`` object are pairs ``(input, label)``, where
     ``input`` is input data for models, while ``label`` is the future
     ground truth that models are supposed to predict.
 
@@ -372,20 +376,39 @@ class TestDataset:
             max_history=self.max_history,
         )
 
-    @property
-    def input(self) -> Generator[DataEntry, None, None]:
-        """
-        Iterable over the ``input`` portion of the test data.
-        """
-        for input, _ in self:
-            yield input
+    def __len__(self):
+        return len(self.dataset) * self.windows
 
     @property
-    def label(self) -> Generator[DataEntry, None, None]:
-        """
-        Iterable over the ``label`` portion of the test data.
-        """
-        for _, label in self:
+    def input(self) -> "InputDataset":
+        return InputDataset(self)
+
+    @property
+    def label(self) -> "LabelDataset":
+        return LabelDataset(self)
+
+
+@dataclass
+class InputDataset:
+    test_data: TestData
+
+    def __len__(self):
+        return len(self.test_data)
+
+    def __iter__(self):
+        for input, _label in self.test_data:
+            yield input
+
+
+@dataclass
+class LabelDataset:
+    test_data: TestData
+
+    def __len__(self):
+        return len(self.test_data)
+
+    def __iter__(self):
+        for _input, label in self.test_data:
             yield label
 
 
@@ -406,14 +429,39 @@ class TestTemplate:
     dataset: Dataset
     splitter: AbstractBaseSplitter
 
-    def generate_instances(self, **kwargs) -> TestDataset:
+    def generate_instances(
+        self,
+        prediction_length: int,
+        windows: int = 1,
+        distance: Optional[int] = None,
+        max_history: Optional[int] = None,
+    ) -> TestData:
         """
         Generate an iterator of test dataset, which includes input part and
         label part.
 
-        Keyword arguments are the same as for :class:`TestDataset`.
+        Parameters
+        ----------
+        prediction_length
+            Length of the prediction interval in test data.
+        windows
+            Indicates how many test windows to generate for each original
+            dataset entry.
+        distance
+            This is rather the difference between the start of each test
+            window generated, for each of the original dataset entries.
+        max_history
+            If given, all entries in the *test*-set have a max-length of
+            `max_history`. This can be used to produce smaller file-sizes.
         """
-        return TestDataset(self.dataset, self.splitter, **kwargs)
+        return TestData(
+            self.dataset,
+            self.splitter,
+            prediction_length,
+            windows,
+            distance,
+            max_history,
+        )
 
 
 @dataclass

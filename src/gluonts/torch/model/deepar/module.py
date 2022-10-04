@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -142,6 +142,34 @@ class DeepARModel(nn.Module):
     @property
     def _past_length(self) -> int:
         return self.context_length + max(self.lags_seq)
+
+    def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
+        return {
+            "feat_static_cat": (batch_size, self.num_feat_static_cat),
+            "feat_static_real": (batch_size, self.num_feat_static_real),
+            "past_time_feat": (
+                batch_size,
+                self._past_length,
+                self.num_feat_dynamic_real,
+            ),
+            "past_target": (batch_size, self._past_length) + self.target_shape,
+            "past_observed_values": (batch_size, self._past_length),
+            "future_time_feat": (
+                batch_size,
+                self.prediction_length,
+                self.num_feat_dynamic_real,
+            ),
+        }
+
+    def input_types(self) -> Dict[str, torch.dtype]:
+        return {
+            "feat_static_cat": torch.long,
+            "feat_static_real": torch.float,
+            "past_time_feat": torch.float,
+            "past_target": torch.float,
+            "past_observed_values": torch.float,
+            "future_time_feat": torch.float,
+        }
 
     def unroll_lagged_rnn(
         self,

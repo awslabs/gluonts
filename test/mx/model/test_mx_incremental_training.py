@@ -11,13 +11,22 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+import pandas as pd
+import numpy as np
+
+from gluonts.mx import SimpleFeedForwardEstimator, Trainer
 
 
-from pkgutil import extend_path
+def test_incremental_training_smoke_mx():
+    estimator = SimpleFeedForwardEstimator(
+        prediction_length=6,
+        trainer=Trainer(epochs=2),
+    )
 
-from .meta._version import __version__
+    dataset = [
+        {"start": pd.Period("2022-03-04 00", "1H"), "target": np.ones((100,))},
+        {"start": pd.Period("2022-04-05 00", "1H"), "target": np.ones((100,))},
+    ]
 
-__all__ = ["__version__", "__path__"]
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
+    predictor = estimator.train(dataset)
+    _ = estimator.train_from(predictor, dataset)
