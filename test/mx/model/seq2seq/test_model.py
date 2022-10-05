@@ -144,8 +144,8 @@ def test_feat_static_cat_smoke_test(use_feat_static_cat, cardinality):
         "freq": "D",
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],
-        "epochs": 3,
-        "num_batches_per_epoch": 3,
+        "epochs": 1,
+        "num_batches_per_epoch": 1,
         "use_feat_static_cat": use_feat_static_cat,
     }
 
@@ -171,8 +171,8 @@ def test_mqcnn_scaling_smoke_test(scaling, scaling_decoder_dynamic_feature):
         "freq": "D",
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],
-        "epochs": 3,
-        "num_batches_per_epoch": 3,
+        "epochs": 1,
+        "num_batches_per_epoch": 1,
         "scaling": scaling,
         "scaling_decoder_dynamic_feature": scaling_decoder_dynamic_feature,
     }
@@ -201,8 +201,8 @@ def test_inference_quantile_prediction(quantiles, inference_quantiles):
         "freq": "D",
         "prediction_length": 3,
         "quantiles": quantiles,
-        "epochs": 3,
-        "num_batches_per_epoch": 3,
+        "epochs": 1,
+        "num_batches_per_epoch": 1,
         "is_iqf": True,
     }
 
@@ -244,8 +244,8 @@ def test_is_iqf(is_iqf):
         "freq": "D",
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],
-        "epochs": 3,
-        "num_batches_per_epoch": 3,
+        "epochs": 1,
+        "num_batches_per_epoch": 1,
         "is_iqf": is_iqf,
     }
 
@@ -282,8 +282,8 @@ def test_backwards_compatibility():
         "num_forking": 4,
         "prediction_length": 3,
         "quantiles": [0.5, 0.1],
-        "epochs": 3,
-        "num_batches_per_epoch": 3,
+        "epochs": 1,
+        "num_batches_per_epoch": 1,
         "use_feat_dynamic_real": True,
         "use_past_feat_dynamic_real": True,
         "enable_encoder_dynamic_feature": True,
