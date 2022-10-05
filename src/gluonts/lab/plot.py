@@ -35,14 +35,32 @@ def dim_suffix(dim: int):
     return f" (dim {dim})"
 
 
-def _plot_forecast(
+def read_input(value: Union[str, List[str]], dim_count: int, entity_name: str):
+    """normalize input for 'maker' or 'color' into list of length dim_count"""
+    result = value
+    if isinstance(result, str):
+        result = [result]
+    if len(result) == 0:
+        raise GluonTSUserError(f"'{entity_name}' can't be empty list")
+
+    # repeat if necesarry to match dim_count
+    result_idx = 0
+    while len(result) < dim_count:
+        result.append(result[result_idx])
+        result_idx += 1
+
+    return result
+
+
+def plot_forecast(
+    ax: plt.axis,
     forecast: Forecast,
     prediction_intervals: Collection[float],
-    ax: plt.axis,
-    show_mean: bool,
-    color: str,
+    plot_mean: bool,
     label_prefix: str,
+    color: str,
     dim: Optional[int] = None,
+    marker: Optional[str] = None,
     *args,
     **kwargs,
 ):
@@ -51,7 +69,7 @@ def _plot_forecast(
     percentiles = get_percentiles(prediction_intervals)
     predictions = [forecast.quantile(p / 100.0) for p in percentiles]
 
-    if show_mean:
+    if plot_mean:
         if not isinstance(forecast, SampleForecast):
             raise GluonTSUserError(
                 "Plotting the mean only works only with SampleForecast, "
@@ -69,6 +87,7 @@ def _plot_forecast(
             color=color,
             ls=":",
             label=label,
+            marker=marker,
             *args,
             **kwargs,
         )
@@ -79,7 +98,9 @@ def _plot_forecast(
     label = f"{label_prefix}median prediction"
     if dim is not None:
         label += dim_suffix(dim)
-    ax.plot(p50_series, color=color, linestyle="--", label=label)
+    ax.plot(
+        p50_series, label=label, linestyle="--", color=color, marker=marker
+    )
 
     # percentile prediction intervals
     alphas_lower_half = [(p / 100.0) ** 0.3 for p in percentiles]
@@ -114,18 +135,20 @@ def plot(
     forecast: Forecast,
     timeseries: Optional[pd.Series] = None,
     prediction_intervals: Collection[float] = (50.0, 90.0),
-    show_mean: bool = False,
-    color: Union[str, List[str]] = "g",
+    variates_to_plot: Optional[List[int]] = None,
+    plot_mean: bool = False,
+    train_test_separator: Optional[pd.Timestamp] = None,
+    figsize: Tuple[int] = (10, 10),
     xlabel: str = "time",
     ylabel: str = "value",
-    show_plot: bool = True,
-    show_grid: bool = True,
-    figsize: Tuple[int] = (10, 10),
-    legend_location: str = "upper left",
     label_prefix: Optional[str] = None,
-    output_file: Optional[Union[str, bytes, PathLike]] = None,
-    train_test_separator=None,
-    variates_to_plot: Optional[List[int]] = None,
+    legend_location: str = "upper left",
+    plot_grid: bool = True,
+    color: Union[str, List[str]] = "g",
+    marker: Union[str, List[str]] = "o",
+    plot_markers: bool = True,
+    show_plot: bool = True,
+    save_path: Optional[Union[str, bytes, PathLike]] = None,
     *args,
     **kwargs,
 ):
@@ -140,25 +163,19 @@ def plot(
         variates_to_plot = list(range(dim_count))
     variates_to_plot = sorted(set(variates_to_plot))
 
-    if isinstance(color, str):
-        color = [color]
-    if len(color) != dim_count:
-        raise GluonTSUserError(
-            f"Forecast has dimensionality of {dim_count} but "
-            f"{len(color)} color(s) were provided"
-        )
-
     if not all(0 <= dim < dim_count for dim in variates_to_plot):
         raise GluonTSUserError(
             "Each dim in variates_to_plot must be in range "
             "0 <= dim < forecast.dim()"
         )
 
+    color = read_input(color, dim_count, "color")
+    marker = read_input(marker, dim_count, "marker")
+
     label_prefix = "" if label_prefix is None else label_prefix + " - "
+    use_dim_in_legend = len(variates_to_plot) > 1
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
-
-    use_dim_in_legend = len(variates_to_plot) > 1
 
     if timeseries is not None:
         for dim in variates_to_plot:
@@ -171,18 +188,20 @@ def plot(
                 timeseries.values[:, dim],
                 label=label,
                 color=color[dim],
+                marker=marker[dim] if plot_markers else None,
             )
 
     if forecast is not None:
         for dim in variates_to_plot:
-            _plot_forecast(
+            plot_forecast(
                 forecast=forecast.copy_dim(dim),
                 prediction_intervals=prediction_intervals,
                 ax=ax,
-                show_mean=show_mean,
+                plot_mean=plot_mean,
                 color=color[dim],
                 label_prefix=label_prefix,
                 dim=dim if use_dim_in_legend else None,
+                marker=marker[dim] if plot_markers else None,
                 *args,
                 **kwargs,
             )
@@ -194,11 +213,11 @@ def plot(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
-    if show_grid:
+    if plot_grid:
         ax.grid(which="both")
 
-    if output_file:
-        fig.savefig(output_file)
+    if save_path:
+        fig.savefig(save_path)
 
     if show_plot:
         fig.show()

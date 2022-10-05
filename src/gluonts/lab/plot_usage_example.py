@@ -52,9 +52,9 @@ def univariate_example():
     fig, ax = plot(
         forecast=forecast_entry,
         timeseries=ts_entry[-100 : -dataset.metadata.prediction_length + 1],
-        label_prefix="first entry",
-        show_mean=True,
+        plot_mean=True,
         train_test_separator=forecast_entry.index[0].to_timestamp(),
+        label_prefix="first entry",
         show_plot=False,
     )
 
@@ -104,8 +104,9 @@ def multivariate_example():
     fig, ax = plot(
         forecast=forecast_entry,
         timeseries=list(tss)[0],
-        color=["g", "r"] + ["_"] * 8,
-        variates_to_plot=[0, 1],
+        variates_to_plot=[0, 1, 2, 3, 4],
+        color=["g", "r", "b"],
+        marker=["^", "v"],
         show_plot=False,
     )
 
