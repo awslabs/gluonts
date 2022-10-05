@@ -62,8 +62,7 @@ class ImplicitQuantileModule(nn.Module):
             in_features, cos_embedding_dim=cos_embedding_dim
         )
         self.output_layer = nn.Sequential(
-            nn.Linear(in_features, in_features),
-            nn.PReLU(),
+            nn.Linear(in_features, in_features), nn.PReLU()
         )
 
         self.proj = nn.ModuleList(
@@ -96,8 +95,7 @@ class ImplicitQuantile(Distribution):
         self.outputs = outputs
 
         super().__init__(
-            batch_shape=outputs.shape,
-            validate_args=validate_args,
+            batch_shape=outputs.shape, validate_args=validate_args
         )
 
     @torch.no_grad()
@@ -151,15 +149,9 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
         (outputs, taus) = distr_args
 
         if scale is None:
-            return self.distr_cls(
-                outputs=outputs,
-                taus=taus,
-            )
+            return self.distr_cls(outputs=outputs, taus=taus)
         else:
-            return self.distr_cls(
-                outputs=loc + outputs * scale,
-                taus=taus,
-            )
+            return self.distr_cls(outputs=loc + outputs * scale, taus=taus)
 
     @property
     def event_shape(self):
