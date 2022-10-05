@@ -13,6 +13,7 @@
 
 from .affine_transformed import AffineTransformed
 from .binned_uniforms import BinnedUniforms, BinnedUniformsOutput
+from .discrete_distribution import DiscreteDistribution
 from .distribution_output import (
     BetaOutput,
     DistributionOutput,
@@ -40,6 +41,7 @@ __all__ = [
     "BetaOutput",
     "BinnedUniforms",
     "BinnedUniformsOutput",
+    "DiscreteDistribution",
     "DistributionOutput",
     "GammaOutput",
     "GeneralizedPareto",
