@@ -16,7 +16,7 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Distribution
+from torch.distributions import Distribution, Beta
 
 from gluonts.core.component import validated
 from gluonts.torch.distributions import DistributionOutput
@@ -46,12 +46,17 @@ class ImplicitQuantileModule(nn.Module):
         in_features,
         args_dim,
         domain_map,
+        concentration1=1.0,
+        concentration0=1.0,
         output_domain_map=None,
         cos_embedding_dim=64,
     ):
         super().__init__()
         self.output_domain_map = output_domain_map
         self.domain_map = domain_map
+        self.beta = Beta(
+            concentration1=concentration1, concentration0=concentration0
+        )
 
         self.quantile_layer = QuantileLayer(
             in_features, cos_embedding_dim=cos_embedding_dim
@@ -66,7 +71,12 @@ class ImplicitQuantileModule(nn.Module):
         )
 
     def forward(self, inputs):
-        taus = torch.rand(size=inputs.shape[:-1], device=inputs.device)
+        if self.training:
+            taus = self.beta.sample(sample_shape=inputs.shape[:-1]).to(
+                inputs.device
+            )
+        else:
+            taus = torch.rand(size=inputs.shape[:-1], device=inputs.device)
 
         emb_taus = self.quantile_layer(taus)
         emb_inputs = inputs * (1.0 + emb_taus)
@@ -106,8 +116,13 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     args_dim = {"quantile_function": 1}
 
     @validated()
-    def __init__(self, output_domain: str = None) -> None:
+    def __init__(
+        self, output_domain: str = None, concentration1=1.0, concentration0=1.0
+    ) -> None:
         super().__init__()
+
+        self.concentration1 = concentration1
+        self.concentration0 = concentration0
 
         if output_domain in ["Positive", "Unit"]:
             output_domain_map_func = {
@@ -124,6 +139,8 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
             args_dim=self.args_dim,
             output_domain_map=self.output_domain_map,
             domain_map=LambdaLayer(self.domain_map),
+            concentration1=self.concentration1,
+            concentration0=self.concentration0,
         )
 
     @classmethod
