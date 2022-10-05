@@ -6,20 +6,20 @@ This article may be extended or reworked in the future.
 
 # Background
 
-## What is Time-Series Forecasting?
+## What is Time Series Forecasting?
 
 Generally speaking, forecasting just means making predictions about events in
-the feature. Trivially, in time-series forecasting we want to predict the
-future values of a given time-series.
+the feature. Trivially, in time series forecasting we want to predict the
+future values of a given time series.
 
 For example, in electricy production it is very important that demand and
 supply are in balance. Thus, producers anticipate consumer demand for
 electricity and plan production capacity accordingly. In other words, producers
-rely on accurate time-series forecasting of consumer demand for electricity to
+rely on accurate time series forecasting of consumer demand for electricity to
 generate just enough supply.
 
 In forecasting, there is the implicit assumption that observable behaviours of
-the past that impact time-series values continue into the future. To stay
+the past that impact time series values continue into the future. To stay
 with the electricity example: people will generally consume less energy in the
 night than during the day, will watch TV mostly during the evenings and use
 air conditioners when it's hot during summer.
@@ -36,7 +36,7 @@ restrictions due to the Covid-pandemic when trying to forecacst travel demand
 for 2020.
 
 Thus, forecasting operates on the caveat that the underlying factors that
-generate the time-series values don't fundamentally change in the future. It is
+generate the time series values don't fundamentally change in the future. It is
 a tool to predict the ordinary and not the surprising.
 
 To look at this another way: Models are actually trained to predict the past
@@ -45,7 +45,7 @@ and it is only us that uses models to forecast into the future.
 
 ## Target And Features
 
-We call the time-series that we want to predict the `target` time-series. The
+We call the time series that we want to predict the `target` time series. The
 past target values are the most important information a model can use to make
 accurate predictions.
 
@@ -56,7 +56,7 @@ features.
 A dynamic feature can be different for every time-point. For example, this
 could be the price of a product, but also more general information such as
 outside air temperature. Internally, we generate dynamic features for things
-like the age of the time-series or what day of the week it is.
+like the age of the time series or what day of the week it is.
 
 ```{important}
 
@@ -65,9 +65,9 @@ when making predictions.
 
 ```
 
-In contrast, static features describe a time-series independently of time. If
+In contrast, static features describe a time series independently of time. If
 we were to predict different products across different stores, we can use
-static features to label each time-series to include store and product
+static features to label each time series to include store and product
 indentifiers.
 
 We further differentiate between categorical and continous (real) features. The
@@ -90,8 +90,8 @@ and there is notion of having "higher store".
 One core idea in GluonTS is that we don't produce simple values as forecasts,
 but actually predict distributions.
 
-An intuitive way to look at this is to imagine predicting a time-series 100
-times, which returns 100 different time-series samples, which form a
+An intuitive way to look at this is to imagine predicting a time series 100
+times, which returns 100 different time series samples, which form a
 distribution around them. Except that we can directly emit these distributions
 and then draw samples from them.
 
@@ -119,9 +119,9 @@ his is the guess of the model where this line is.
 
 In GluonTS we use the concepts of local and global models.
 
-A local model is fit for a single-time series and used to make predictions for
-that time-series, whilst a global model is trained across many time-series and
-a single global model is used to make predictions for all time-series of a
+A local model is fit for a single time series and used to make predictions for
+that time series, whilst a global model is trained across many time series and
+a single global model is used to make predictions for all time series of a
 dataset.
 
 Training a global model can take a lot of time: up to hours, but sometimes even

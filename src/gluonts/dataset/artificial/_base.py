@@ -407,11 +407,11 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                test set
         :param prediction_length:
         :param freq_str:
-        :param length_low: minimum length of a time-series, must be larger than
+        :param length_low: minimum length of a time series, must be larger than
                prediction_length
-        :param length_high: maximum length of a time-series
-        :param min_val: min value of a time-series
-        :param max_val: max value of a time-series
+        :param length_high: maximum length of a time series
+        :param min_val: min value of a time series
+        :param max_val: max value of a time series
         :param is_integer: whether the dataset has integers or not
         :param proportion_missing_values:
         :param is_noise: whether to add noise
