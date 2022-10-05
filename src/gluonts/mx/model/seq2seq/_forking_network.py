@@ -352,7 +352,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         )
         assert self.quantile_output is not None
         return QuantileForecastBatch(
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
             quantile_batch=to_numpy(outputs),
@@ -418,7 +418,7 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
             batch["past_observed_values"],
         )
         return DistributionForecastBatch(
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
             distr_output=self.distr_output,

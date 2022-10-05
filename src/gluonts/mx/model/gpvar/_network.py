@@ -366,8 +366,8 @@ class GPVARPredictionNetwork(GPVARNetwork):
             batch["future_time_feat"],
         )
         return SampleForecastBatch(
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            sample_batch=to_numpy(outputs),
+            samples=to_numpy(outputs),
         )

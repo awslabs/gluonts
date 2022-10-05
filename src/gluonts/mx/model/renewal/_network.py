@@ -366,10 +366,10 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             batch["time_remaining"],
         )
         return SampleForecastBatch(
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            sample_batch=_expand_output(to_numpy(outputs)),
+            samples=_expand_output(to_numpy(outputs)),
         )
 
 

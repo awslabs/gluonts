@@ -537,7 +537,7 @@ class TemporalFusionTransformerPredictionNetwork(
             batch["feat_static_cat"],
         )
         return QuantileForecastBatch(
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
             quantile_batch=to_numpy(outputs),

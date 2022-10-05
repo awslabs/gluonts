@@ -116,15 +116,19 @@ class ForecastBatch:
 
 @dataclass
 class DistributionForecastBatch(ForecastBatch):
-    start_date: list
-    item_id: Optional[list]
-    info: Optional[list]
-    distr_output: Any  # TODO fix
     distr_args: list
+    distr_output: Any  # TODO fix
+    start: list
+    item_id: Optional[list] = None
+    info: Optional[list] = None
     distr: Type = field(init=False)
 
     def __post_init__(self):
         self.distr = self.distr_output.distribution(*self.distr_args)
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
 
     def __iter__(self) -> Iterator[Forecast]:  # TODO fix
         distributions = [
@@ -132,12 +136,14 @@ class DistributionForecastBatch(ForecastBatch):
             for u in _unpack(self.distr_args)
         ]
 
-        for i, distr in enumerate(distributions):
+        for distr, start, item_id, info in zip(
+            distributions, self.start, self.item_id, self.info
+        ):
             yield make_distribution_forecast(
                 distr,
-                start_date=self.start_date[i],
-                item_id=self.item_id[i] if self.item_id is not None else None,
-                info=self.info[i] if self.info is not None else None,
+                start_date=start,
+                item_id=item_id,
+                info=info,
             )
 
     @property
@@ -150,36 +156,42 @@ class DistributionForecastBatch(ForecastBatch):
 
 @dataclass
 class SampleForecastBatch(ForecastBatch):
-    start_date: list
-    item_id: Optional[list]
-    info: Optional[list]
-    sample_batch: np.ndarray
+    samples: np.ndarray
+    start: list
+    item_id: Optional[list] = None
+    info: Optional[list] = None
 
     def __post_init__(self):
         self._sorted_samples_value = None
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
 
     @property
     def _sorted_samples(self) -> np.ndarray:
         if self._sorted_samples_value is None:
-            self._sorted_samples_value = np.sort(self.sample_batch, axis=1)
+            self._sorted_samples_value = np.sort(self.samples, axis=1)
         return self._sorted_samples_value
 
     def __iter__(self) -> Iterator[SampleForecast]:
-        for i, sample in enumerate(self.sample_batch):
+        for sample, start, item_id, info in zip(
+            self.samples, self.start, self.item_id, self.info
+        ):
             yield SampleForecast(
                 sample,
-                start_date=self.start_date[i],
-                item_id=self.item_id[i] if self.item_id is not None else None,
-                info=self.info[i] if self.info is not None else None,
+                start_date=start,
+                item_id=item_id,
+                info=info,
             )
 
     @property
     def batch_size(self) -> int:
-        return self.sample_batch.shape[0]
+        return self.samples.shape[0]
 
     @property
     def num_samples(self) -> int:
-        return self.sample_batch.shape[1]
+        return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
@@ -196,18 +208,26 @@ class SampleForecastBatch(ForecastBatch):
 
 @dataclass
 class QuantileForecastBatch(ForecastBatch):
-    start_date: list
-    item_id: Optional[list]
-    info: Optional[list]
     quantile_batch: np.ndarray
     quantile_levels: List[str]
+    start: list
+    item_id: Optional[list] = None
+    info: Optional[list] = None
+
+    def __post_init__(self):
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
 
     def __iter__(self) -> Iterator[QuantileForecast]:
-        for i, output in enumerate(self.quantile_batch):
+        for quantiles, start, item_id, info in zip(
+            self.quantile_batch, self.start, self.item_id, self.info
+        ):
             yield QuantileForecast(
-                output,
-                start_date=self.start_date[i],
-                item_id=self.item_id[i] if self.item_id is not None else None,
-                info=self.info[i] if self.info is not None else None,
+                quantiles,
+                start_date=start,
+                item_id=item_id,
+                info=info,
                 forecast_keys=self.quantile_levels,
             )

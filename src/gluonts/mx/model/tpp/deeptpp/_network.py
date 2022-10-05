@@ -411,9 +411,9 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
             batch["future_time_feat"],
         )
         return PointProcessSampleForecastBatch(
-            sample_batch=to_numpy(sample_batch),
+            samples=to_numpy(sample_batch),
             valid_length_batch=to_numpy(valid_length_batch),
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             # TODO fix
             # freq=freq,
             # prediction_interval_length=prediction_interval_length,
