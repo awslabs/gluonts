@@ -218,12 +218,14 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
     @validated()
     def __init__(
         self,
+        freq,
         prediction_interval_length: float,
         num_parallel_samples: int = 100,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
+        self.freq = freq
         self.num_parallel_samples = num_parallel_samples
         self.prediction_interval_length = prediction_interval_length
 
@@ -414,9 +416,8 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
             samples=to_numpy(sample_batch),
             valid_length_batch=to_numpy(valid_length_batch),
             start=batch["forecast_start"],
-            # TODO fix
-            # freq=freq,
-            # prediction_interval_length=prediction_interval_length,
+            freq=self.freq,
+            prediction_interval_length=self.prediction_interval_length,
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
         )

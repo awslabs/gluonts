@@ -168,21 +168,28 @@ class PointProcessSampleForecast(Forecast):
 
 @dataclass
 class PointProcessSampleForecastBatch(ForecastBatch):
-    sample_batch: np.ndarray
+    samples: np.ndarray
     valid_length_batch: np.ndarray
-    start_date: pd.Timestamp
+    start: pd.Timestamp
     freq: str
     prediction_interval_length: float
     item_id: Optional[str] = None
     info: Optional[Dict] = None
 
+    def __post_init__(self):
+        self._sorted_samples_value = None
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
+
     def __iter__(self):
-        batch_size = self.sample_batch.shape[1]
+        batch_size = self.samples.shape[1]
         for i in range(batch_size):
             yield PointProcessSampleForecast(
-                self.sample_batch[:, i],
+                self.samples[:, i],
                 valid_length=self.valid_length_batch[:, i],
-                start_date=self.start_date[i],
+                start_date=self.start[i],
                 freq=self.freq,
                 prediction_interval_length=self.prediction_interval_length,
                 item_id=self.item_id[i] if self.item_id is not None else None,

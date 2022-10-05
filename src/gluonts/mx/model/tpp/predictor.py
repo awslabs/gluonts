@@ -102,7 +102,7 @@ class PointProcessGluonPredictor(GluonPredictor):
 
         with mx.Context(self.ctx):
             for batch in inference_data_loader:
-                yield self.prediction_net.forecast(batch)
+                yield self.prediction_net.forecast(batch)  # type: ignore
 
     def serialize_prediction_net(self, path: Path) -> None:
         raise NotImplementedError()

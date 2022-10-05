@@ -821,7 +821,7 @@ def cdf_to_gaussian_forward_transform(
         outputs[:, sample_index, :, :] = _empirical_cdf_inverse_transform(
             tensor_to_numpy(input_batch["past_target_sorted"]),
             CDFtoGaussianTransform.standard_gaussian_cdf(
-                outputs[:, sample_index, :, :]
+                tensor_to_numpy(outputs[:, sample_index, :, :])
             ),
             tensor_to_numpy(input_batch["slopes"]),
             tensor_to_numpy(input_batch["intercepts"]),

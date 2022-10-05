@@ -837,9 +837,12 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
 
 class DeepVARPredictionNetwork(DeepVARNetwork):
     @validated()
-    def __init__(self, num_parallel_samples: int, **kwargs) -> None:
+    def __init__(
+        self, num_parallel_samples: int, output_transform=None, **kwargs
+    ) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
+        self.output_transform = output_transform
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to
@@ -898,7 +901,7 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         )
 
     def forecast(self, batch: dict) -> SampleForecastBatch:
-        outputs = self(
+        samples = self(
             batch["target_dimension_indicator"],
             batch["past_time_feat"],
             batch["past_target_cdf"],
@@ -906,9 +909,11 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             batch["past_is_pad"],
             batch["future_time_feat"],
         )
+        if self.output_transform is not None:
+            samples = self.output_transform(batch, samples)
         return SampleForecastBatch(
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(outputs),
+            samples=to_numpy(samples),
         )

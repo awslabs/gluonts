@@ -75,14 +75,14 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
         return pred_target, pred_valid_length
 
     def forecast(self, batch: dict) -> PointProcessSampleForecastBatch:
-        sample_batch, valid_length_batch = self(
+        samples, valid_length_batch = self(
             batch["past_target"],
             batch["past_valid_length"],
         )
         return PointProcessSampleForecastBatch(
-            sample_batch=to_numpy(sample_batch),
+            samples=to_numpy(samples),
             valid_length_batch=to_numpy(valid_length_batch),
-            start_date=batch["forecast_start"],
+            start=batch["forecast_start"],
             freq=self.freq,
             prediction_interval_length=self.prediction_interval_length,
             item_id=batch.get("item_id", None),

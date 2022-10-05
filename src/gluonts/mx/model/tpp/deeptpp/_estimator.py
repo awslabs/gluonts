@@ -248,6 +248,7 @@ class DeepTPPEstimator(GluonEstimator):
             time_distr_output=trained_network.time_distr_output,
             params=trained_network.collect_params(),
             num_parallel_samples=self.num_parallel_samples,
+            freq=self.freq,
         )
 
         return PointProcessGluonPredictor(
