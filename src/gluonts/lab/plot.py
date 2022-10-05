@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from os import PathLike
-from typing import Optional, Collection, Tuple, Union
+from typing import List, Optional, Collection, Tuple, Union
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -31,6 +31,10 @@ def get_percentiles(prediction_intervals):
     return sorted(set(percentiles_list))
 
 
+def dim_suffix(dim: int):
+    return f" (dim {dim})"
+
+
 def _plot_forecast(
     forecast: Forecast,
     prediction_intervals: Collection[float],
@@ -38,6 +42,7 @@ def _plot_forecast(
     show_mean: bool,
     color: str,
     label_prefix: str,
+    dim: Optional[int] = None,
     *args,
     **kwargs,
 ):
@@ -53,13 +58,17 @@ def _plot_forecast(
                 f"got {type(forecast)} instead"
             )
 
+        label = f"{label_prefix}mean prediction"
+        if dim is not None:
+            label += dim_suffix(dim)
+
         mean_data = np.mean(forecast.samples, axis=0)
         ax.plot(
             forecast.index.to_timestamp(),
             mean_data,
             color=color,
             ls=":",
-            label=f"{label_prefix}mean prediction",
+            label=label,
             *args,
             **kwargs,
         )
@@ -67,7 +76,10 @@ def _plot_forecast(
     # median prediction
     p50_data = predictions[interval_count]
     p50_series = pd.Series(data=p50_data, index=forecast.index.to_timestamp())
-    ax.plot(p50_series, color=color, label=f"{label_prefix}median prediction")
+    label = f"{label_prefix}median prediction"
+    if dim is not None:
+        label += dim_suffix(dim)
+    ax.plot(p50_series, color=color, linestyle="--", label=label)
 
     # percentile prediction intervals
     alphas_lower_half = [(p / 100.0) ** 0.3 for p in percentiles]
@@ -77,6 +89,9 @@ def _plot_forecast(
         label = (
             f"{label_prefix}{100 - percentiles[i] * 2}% prediction interval"
         )
+        if dim is not None:
+            label += dim_suffix(dim)
+
         area_info = [
             {"label": label, "idx": i},  # give label only once
             {"label": None, "idx": interval_count * 2 - i - 1},
@@ -100,7 +115,7 @@ def plot(
     timeseries: Optional[pd.Series] = None,
     prediction_intervals: Collection[float] = (50.0, 90.0),
     show_mean: bool = False,
-    color: str = "g",
+    color: Union[str, List[str]] = "g",
     xlabel: str = "time",
     ylabel: str = "value",
     show_plot: bool = True,
@@ -110,6 +125,7 @@ def plot(
     label_prefix: Optional[str] = None,
     output_file: Optional[Union[str, bytes, PathLike]] = None,
     train_test_separator=None,
+    variates_to_plot: Optional[List[int]] = None,
     *args,
     **kwargs,
 ):
@@ -119,28 +135,57 @@ def plot(
                 f"Prediction interval {c} is not between 0 and 100"
             )
 
+    dim_count = forecast.dim()
+    if variates_to_plot is None:
+        variates_to_plot = list(range(dim_count))
+    variates_to_plot = sorted(set(variates_to_plot))
+
+    if isinstance(color, str):
+        color = [color]
+    if len(color) != dim_count:
+        raise GluonTSUserError(
+            f"Forecast has dimensionality of {dim_count} but "
+            f"{len(color)} color(s) were provided"
+        )
+
+    if not all(0 <= dim < dim_count for dim in variates_to_plot):
+        raise GluonTSUserError(
+            "Each dim in variates_to_plot must be in range "
+            "0 <= dim < forecast.dim()"
+        )
+
     label_prefix = "" if label_prefix is None else label_prefix + " - "
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
+    use_dim_in_legend = len(variates_to_plot) > 1
+
     if timeseries is not None:
-        ax.plot(
-            timeseries.to_timestamp().index,
-            timeseries.values,
-            label=f"{label_prefix}target",
-        )
+        for dim in variates_to_plot:
+            label = f"{label_prefix}target"
+            if use_dim_in_legend:
+                label += dim_suffix(dim)
+
+            ax.plot(
+                timeseries.to_timestamp().index,
+                timeseries.values[:, dim],
+                label=label,
+                color=color[dim],
+            )
 
     if forecast is not None:
-        _plot_forecast(
-            forecast=forecast,
-            prediction_intervals=prediction_intervals,
-            ax=ax,
-            show_mean=show_mean,
-            color=color,
-            label_prefix=label_prefix,
-            *args,
-            **kwargs,
-        )
+        for dim in variates_to_plot:
+            _plot_forecast(
+                forecast=forecast.copy_dim(dim),
+                prediction_intervals=prediction_intervals,
+                ax=ax,
+                show_mean=show_mean,
+                color=color[dim],
+                label_prefix=label_prefix,
+                dim=dim if use_dim_in_legend else None,
+                *args,
+                **kwargs,
+            )
 
     if train_test_separator is not None:
         ax.axvline(train_test_separator, color="r")
