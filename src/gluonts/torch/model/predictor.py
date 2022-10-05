@@ -14,7 +14,6 @@
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-import numpy as np
 import torch
 import torch.nn as nn
 
