@@ -13,8 +13,8 @@
 
 from mxnet.gluon import HybridBlock
 
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler
@@ -193,5 +193,5 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(outputs),
+            samples=tensor_to_numpy(outputs),
         )

@@ -20,10 +20,10 @@ from pandas.tseries.frequencies import to_offset
 import pytest
 from mxnet import nd
 
+from gluonts.core.component import tensor_to_numpy
 from gluonts.mx import PointProcessGluonPredictor, PointProcessSampleForecast
 from gluonts.mx import Tensor
 from gluonts.mx.model.tpp.forecast import PointProcessSampleForecastBatch
-from gluonts.model.forecast_generator import to_numpy
 from gluonts.transform import (
     ContinuousTimeInstanceSplitter,
     ContinuousTimePredictionSampler,
@@ -80,8 +80,8 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
             batch["past_valid_length"],
         )
         return PointProcessSampleForecastBatch(
-            samples=to_numpy(samples),
-            valid_length_batch=to_numpy(valid_length_batch),
+            samples=tensor_to_numpy(samples),
+            valid_length_batch=tensor_to_numpy(valid_length_batch),
             start=batch["forecast_start"],
             freq=self.freq,
             prediction_interval_length=self.prediction_interval_length,

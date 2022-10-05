@@ -15,11 +15,10 @@ from typing import List, Tuple
 
 import mxnet as mx
 
-from gluonts.core.component import validated
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.model.forecast_generator import (
     DistributionForecastBatch,
     SampleForecastBatch,
-    to_numpy,
 )
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
@@ -221,7 +220,7 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(outputs),
+            samples=tensor_to_numpy(outputs),
         )
 
 

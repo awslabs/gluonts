@@ -17,8 +17,7 @@ import mxnet as mx
 import numpy as np
 from mxnet import nd
 
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.mx.model.tpp import distribution
 from gluonts.mx.model.tpp.distribution.base import TPPDistributionOutput
 from gluonts.mx.model.tpp.forecast import PointProcessSampleForecastBatch
@@ -413,8 +412,8 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
             batch["future_time_feat"],
         )
         return PointProcessSampleForecastBatch(
-            samples=to_numpy(sample_batch),
-            valid_length_batch=to_numpy(valid_length_batch),
+            samples=tensor_to_numpy(sample_batch),
+            valid_length_batch=tensor_to_numpy(valid_length_batch),
             start=batch["forecast_start"],
             freq=self.freq,
             prediction_interval_length=self.prediction_interval_length,

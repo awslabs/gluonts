@@ -23,11 +23,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import (
-    ForecastBatch,
-    predict_to_numpy,
-    to_numpy,
-)
+from gluonts.model.forecast_generator import ForecastBatch
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.component import equals
@@ -41,16 +37,6 @@ from gluonts.mx.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
-
-
-@predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, args) -> np.ndarray:
-    return prediction_net(*args).asnumpy()
-
-
-@to_numpy.register(mx.nd.NDArray)
-def _(tensor: mx.nd.NDArray) -> np.ndarray:
-    return tensor.asnumpy()
 
 
 class GluonPredictor(Predictor):

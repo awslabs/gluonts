@@ -18,6 +18,7 @@ from typing import Callable, Iterator, List, Optional, Any, Union, Type
 
 import numpy as np
 
+from gluonts.core.component import tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.model.forecast import (
     Forecast,
@@ -47,30 +48,6 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
-# different deep learning frameworks generate predictions and the tensor to
-# numpy conversion differently, use a dispatching function to prevent needing
-# a ForecastGenerators for each framework
-@singledispatch
-def predict_to_numpy(prediction_net, args) -> np.ndarray:
-    raise NotImplementedError
-
-
-@singledispatch
-def to_numpy(object):
-    raise NotImplementedError
-
-
-@to_numpy.register(tuple)
-def _(t: tuple):
-    return tuple(to_numpy(el) for el in t)
-
-
-@to_numpy.register(list)
-def _(t: list):
-    return [to_numpy(el) for el in t]
-
-
-@singledispatch
 def _unpack(batched) -> Iterator:
     """
     Unpack batches.
@@ -148,10 +125,10 @@ class DistributionForecastBatch(ForecastBatch):
 
     @property
     def mean(self) -> np.ndarray:
-        return to_numpy(self.distr.mean())
+        return tensor_to_numpy(self.distr.mean())
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
-        return to_numpy(self.distr.quantile(q))
+        return tensor_to_numpy(self.distr.quantile(q))
 
 
 @dataclass

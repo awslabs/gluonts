@@ -16,8 +16,8 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.time_feature import get_lags_for_frequency
 from gluonts.torch.distributions import (
     DistributionOutput,
@@ -414,5 +414,5 @@ class DeepARModel(nn.Module):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(outputs),
+            samples=tensor_to_numpy(outputs),
         )

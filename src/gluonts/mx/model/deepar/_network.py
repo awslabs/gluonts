@@ -18,9 +18,9 @@ import numpy as np
 from mxnet.gluon.contrib.rnn import VariationalDropoutCell
 from mxnet.gluon.rnn import ZoneoutCell
 
-from gluonts.core.component import validated
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.itertools import prod
-from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx import Tensor
 from gluonts.mx.block.dropout import RNNZoneoutCell, VariationalZoneoutCell
 from gluonts.mx.block.feature import FeatureEmbedder
@@ -1188,5 +1188,5 @@ class DeepARPredictionNetwork(DeepARNetwork):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(outputs),
+            samples=tensor_to_numpy(outputs),
         )

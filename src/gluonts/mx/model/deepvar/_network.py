@@ -15,8 +15,8 @@ from typing import List, Optional, Tuple
 
 import mxnet as mx
 
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
@@ -915,5 +915,5 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=to_numpy(samples),
+            samples=tensor_to_numpy(samples),
         )

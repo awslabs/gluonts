@@ -16,8 +16,8 @@ from typing import Optional, Tuple
 
 import numpy as np
 import mxnet as mx
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import SampleForecastBatch, to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import Distribution, DistributionOutput
 from gluonts.mx.distribution.distribution import getF
@@ -369,7 +369,7 @@ class DeepRenewalPredictionNetwork(DeepRenewalNetwork):
             start=batch["forecast_start"],
             item_id=batch.get("item_id", None),
             info=batch.get("info", None),
-            samples=_expand_output(to_numpy(outputs)),
+            samples=_expand_output(tensor_to_numpy(outputs)),
         )
 
 
