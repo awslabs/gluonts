@@ -11,4 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .plot import plot
+from .viz import plot
+
+__all__ = [
+    "plot"
+]
