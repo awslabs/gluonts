@@ -30,7 +30,7 @@ class QuantileLayer(nn.Module):
     (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
     """
 
-    def __init__(self, num_output, cos_embedding_dim=128):
+    def __init__(self, num_output: int, cos_embedding_dim: int = 128):
         super().__init__()
 
         self.output_layer = nn.Sequential(
@@ -108,7 +108,8 @@ class ImplicitQuantileNetwork(Distribution):
     outputs
         Outputs from the Implicit Quantile Network.
     taus
-        Tensor random numbers from the Beta or Uniform distribution.
+        Tensor random numbers from the Beta or Uniform distribution for the
+        corresponding outputs.
     """
 
     arg_constraints = {}
