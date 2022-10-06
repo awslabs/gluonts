@@ -100,6 +100,12 @@ open docs/_build/html/index.html # open the generated docs in a browser
 
 Ensure that there are no syntax errors and warnings before committing a PR.
 
+Using [just][just], you can
+- build the entire documentation with `just docs` or
+- only translate the templates (like the tutorials) to `.md` files, using `just compile_notebooks skip`.
+
+[just]: https://github.com/casey/just
+
 If you are directly editing ``*.rst`` files within the ``docs`` folder, you
 can use a ``sphinx-autobuild`` autobuild session that starts a web server and
 a watchdog that automatically rebuilds the documentation when you change an
