@@ -133,7 +133,7 @@ def plot_forecast(
 
 def plot(
     forecast: Forecast,
-    timeseries: Optional[pd.Series] = None,
+    timeseries: Optional[Union[pd.DataFrame, pd.Series]] = None,
     prediction_intervals: Collection[float] = (50.0, 90.0),
     variates_to_plot: Optional[List[int]] = None,
     plot_mean: bool = False,
@@ -178,6 +178,9 @@ def plot(
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     if timeseries is not None:
+        if isinstance(timeseries, pd.Series):
+            timeseries = timeseries.to_frame()
+
         for dim in variates_to_plot:
             label = f"{label_prefix}target"
             if use_dim_in_legend:
