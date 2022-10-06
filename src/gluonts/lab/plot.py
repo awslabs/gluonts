@@ -146,7 +146,7 @@ def plot(
     plot_grid: bool = True,
     color: Union[str, List[str]] = "g",
     marker: Union[str, List[str]] = "o",
-    plot_markers: bool = True,
+    plot_markers: bool = False,
     show_plot: bool = True,
     save_path: Optional[Union[str, bytes, PathLike]] = None,
     *args,
@@ -173,7 +173,7 @@ def plot(
     marker = read_input(marker, dim_count, "marker")
 
     label_prefix = "" if label_prefix is None else label_prefix + " - "
-    use_dim_in_legend = len(variates_to_plot) > 1
+    plot_multiple_variates = len(variates_to_plot) > 1
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
@@ -183,14 +183,14 @@ def plot(
 
         for dim in variates_to_plot:
             label = f"{label_prefix}target"
-            if use_dim_in_legend:
+            if plot_multiple_variates:
                 label += dim_suffix(dim)
 
             ax.plot(
                 timeseries.to_timestamp().index,
                 timeseries.values[:, dim],
                 label=label,
-                color=color[dim],
+                color=color[dim] if plot_multiple_variates else "black",
                 marker=marker[dim] if plot_markers else None,
             )
 
@@ -203,7 +203,7 @@ def plot(
                 plot_mean=plot_mean,
                 color=color[dim],
                 label_prefix=label_prefix,
-                dim=dim if use_dim_in_legend else None,
+                dim=dim if plot_multiple_variates else None,
                 marker=marker[dim] if plot_markers else None,
                 *args,
                 **kwargs,
