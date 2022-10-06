@@ -46,7 +46,7 @@ __all__ = [
     "GammaOutput",
     "GeneralizedPareto",
     "GeneralizedParetoOutput",
-    "ImplicitQuantile",
+    "ImplicitQuantileNetwork",
     "ImplicitQuantileNetworkOutput",
     "ISQF",
     "ISQFOutput",

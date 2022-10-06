@@ -26,8 +26,9 @@ from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 class QuantileLayer(nn.Module):
     """
-    Implicit Quantile Layer from the paper ``IQN for Distributional Reinforcement Learning``
-    (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
+    Implicit Quantile Layer from the paper ``IQN for Distributional
+    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
+    Dabney et al. 2018.
     """
 
     def __init__(self, num_output: int, cos_embedding_dim: int = 128):
@@ -48,8 +49,9 @@ class QuantileLayer(nn.Module):
 
 class ImplicitQuantileModule(nn.Module):
     """
-    Implicit Quantile Network from the paper ``IQN for Distributional Reinforcement Learning``
-    (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
+    Implicit Quantile Network from the paper ``IQN for Distributional
+     Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
+     Dabney et al. 2018.
     """
 
     def __init__(
@@ -142,13 +144,17 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     Parameters
     ----------
     output_domain
-        Optional domain mapping of the output. Can be "Positive", "Unit" or None.
+        Optional domain mapping of the output. Can be "Positive", "Unit"
+        or None.
     concentration1
-        Alpha parameter of the Beta distribution when sampling the taus during training.
+        Alpha parameter of the Beta distribution when sampling the taus
+        during training.
     concentration0
-        Beta parameter of the Beta distribution when sampling the taus during training.
+        Beta parameter of the Beta distribution when sampling the taus
+        during training.
     cos_embedding_dim
-        The embedding dimension for the taus embedding layer of IQN. Default is 64.
+        The embedding dimension for the taus embedding layer of IQN.
+        Default is 64.
     """
 
     distr_cls = ImplicitQuantileNetwork
