@@ -557,10 +557,9 @@ class SampleForecast(Forecast):
         """
         Forecast mean.
         """
-        if self._mean is not None:
-            return self._mean
-        else:
-            return np.mean(self.samples, axis=0)
+        if self._mean is None:
+            self._mean = np.mean(self.samples, axis=0)
+        return self._mean
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -606,17 +605,16 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
+        if self._dim is None:
             if len(self.samples.shape) == 2:
                 # univariate target
                 # shape: (num_samples, prediction_length)
-                return 1
+                self._dim = 1
             else:
                 # multivariate target
                 # shape: (num_samples, prediction_length, target_dim)
-                return self.samples.shape[2]
+                self._dim = self.samples.shape[2]
+        return self._dim
 
     def as_json_dict(self, config: "Config") -> dict:
         result = super().as_json_dict(config)
@@ -747,17 +745,16 @@ class QuantileForecast(Forecast):
         return self.quantile("p50")
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
-            if (
-                len(self.forecast_array.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
-                return 1
+        if self._dim is None:
+            if len(self.forecast_array.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
+                self._dim = 1
             else:
-                # 2D target. shape: (num_samples, target_dim,
-                # prediction_length)
-                return self.forecast_array.shape[1]
+                # multivariate target
+                # shape: (num_samples, target_dim, prediction_length)
+                self._dim = self.forecast_array.shape[1]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
