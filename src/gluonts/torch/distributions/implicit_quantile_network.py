@@ -146,6 +146,8 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
         Alpha parameter of the Beta distribution when sampling the taus during training.
     concentration0
         Beta parameter of the Beta distribution when sampling the taus during training.
+    cos_embedding_dim
+        The embedding dimension for the taus embedding layer of IQN. Default is 64.
     """
 
     distr_cls = ImplicitQuantileNetwork
@@ -157,11 +159,13 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
         output_domain: Optional[str] = None,
         concentration1: float = 1.0,
         concentration0: float = 1.0,
+        cos_embedding_dim: int = 64,
     ) -> None:
         super().__init__()
 
         self.concentration1 = concentration1
         self.concentration0 = concentration0
+        self.cos_embedding_dim = cos_embedding_dim
 
         if output_domain in ["Positive", "Unit"]:
             output_domain_map_func = {
@@ -180,6 +184,7 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
             domain_map=LambdaLayer(self.domain_map),
             concentration1=self.concentration1,
             concentration0=self.concentration0,
+            cos_embedding_dim=self.cos_embedding_dim,
         )
 
     @classmethod
