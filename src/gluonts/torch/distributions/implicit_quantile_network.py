@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
+from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -24,6 +25,11 @@ from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
 class QuantileLayer(nn.Module):
+    """
+    Implicit Quantile Layer from the paper IQN for Distributional Reinforcement Learning
+    (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
+    """
+
     def __init__(self, num_output, cos_embedding_dim=128):
         super().__init__()
 
@@ -41,15 +47,20 @@ class QuantileLayer(nn.Module):
 
 
 class ImplicitQuantileModule(nn.Module):
+    """
+    Implicit Quantile Network from the paper IQN for Distributional Reinforcement Learning
+    (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
+    """
+
     def __init__(
         self,
-        in_features,
-        args_dim,
+        in_features: int,
+        args_dim: Dict[str, int],
         domain_map,
-        concentration1=1.0,
-        concentration0=1.0,
+        concentration1: float = 1.0,
+        concentration0: float = 1.0,
         output_domain_map=None,
-        cos_embedding_dim=64,
+        cos_embedding_dim: int = 64,
     ):
         super().__init__()
         self.output_domain_map = output_domain_map
@@ -87,7 +98,19 @@ class ImplicitQuantileModule(nn.Module):
         return (*self.domain_map(*outputs), taus)
 
 
-class ImplicitQuantile(Distribution):
+class ImplicitQuantileNetwork(Distribution):
+    r"""
+    Distribution class for the Implicit Quantile from which
+    we can sample or calculate the quantile loss.
+
+    Parameters
+    ----------
+    outputs
+        Outputs from the Implicit Quantile Network.
+    taus
+        Tensor random numbers from the Beta or Uniform distribution.
+    """
+
     arg_constraints = {}
 
     def __init__(self, outputs, taus, validate_args=None):
@@ -102,7 +125,7 @@ class ImplicitQuantile(Distribution):
     def sample(self, sample_shape=torch.Size()):
         return self.outputs
 
-    def quantile_loss(self, value):
+    def quantile_loss(self, value) -> torch.Tensor:
         return torch.abs(
             (self.outputs - value)
             * ((value <= self.outputs).float() - self.taus)
@@ -110,12 +133,27 @@ class ImplicitQuantile(Distribution):
 
 
 class ImplicitQuantileNetworkOutput(DistributionOutput):
-    distr_cls = ImplicitQuantile
+    r"""
+    DistributionOutput class for the IQN
+    Parameters
+    ----------
+    output_domain
+        Optional domain mapping of the output. Can be "Positive", "Unit" or None.
+    concentration1
+        Alpha parameter of the Beta distribution when sampling the taus during training.
+    concentration0
+        Beta parameter of the Beta distribution when sampling the taus during training.
+    """
+
+    distr_cls = ImplicitQuantileNetwork
     args_dim = {"quantile_function": 1}
 
     @validated()
     def __init__(
-        self, output_domain: str = None, concentration1=1.0, concentration0=1.0
+        self,
+        output_domain: Optional[str] = None,
+        concentration1: float = 1.0,
+        concentration0: float = 1.0,
     ) -> None:
         super().__init__()
 

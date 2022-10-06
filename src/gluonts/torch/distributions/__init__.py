@@ -25,7 +25,7 @@ from .distribution_output import (
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
 from .implicit_quantile_network import (
-    ImplicitQuantile,
+    ImplicitQuantileNetwork,
     ImplicitQuantileNetworkOutput,
 )
 from .isqf import ISQF, ISQFOutput
