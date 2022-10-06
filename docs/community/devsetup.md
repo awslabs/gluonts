@@ -16,7 +16,7 @@ pip install -e ".[dev]"
 This will install all required packages with pip and setup a Git hook that does
 automated type and style checks when you try to create a new Git commit.
 
-When you create commits on a branch, you can disable these checks for a
+When you create commits on a branch, you can disable these checks temporarily
 with the ``--no-verify`` Git commit option.
 
 [pyenv]: https://github.com/pyenv/pyenv
