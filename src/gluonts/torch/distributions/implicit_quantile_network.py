@@ -26,7 +26,7 @@ from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 class QuantileLayer(nn.Module):
     """
-    Implicit Quantile Layer from the paper IQN for Distributional Reinforcement Learning
+    Implicit Quantile Layer from the paper ``IQN for Distributional Reinforcement Learning``
     (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
     """
 
@@ -48,7 +48,7 @@ class QuantileLayer(nn.Module):
 
 class ImplicitQuantileModule(nn.Module):
     """
-    Implicit Quantile Network from the paper IQN for Distributional Reinforcement Learning
+    Implicit Quantile Network from the paper ``IQN for Distributional Reinforcement Learning``
     (https://arxiv.org/abs/1806.06923) by Dabney et al. 2018.
     """
 
@@ -134,7 +134,10 @@ class ImplicitQuantileNetwork(Distribution):
 
 class ImplicitQuantileNetworkOutput(DistributionOutput):
     r"""
-    DistributionOutput class for the IQN
+    DistributionOutput class for the IQN from the paper
+    ``Probabilistic Time Series Forecasting with Implicit Quantile Networks``
+    (https://arxiv.org/abs/2107.03743) by Gouttes et al. 2021.
+
     Parameters
     ----------
     output_domain
