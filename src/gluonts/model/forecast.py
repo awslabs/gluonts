@@ -734,6 +734,25 @@ class QuantileForecast(Forecast):
         else:
             return linear_interpolation(inference_quantile)
 
+    def copy_dim(self, dim: int) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        else:
+            target_dim = self.forecast_array.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            forecast_array = self.forecast_array[:, :, dim]
+
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
     @property
     def mean(self) -> np.ndarray:
         """
