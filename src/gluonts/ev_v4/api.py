@@ -29,10 +29,11 @@ class MetricSpec:
         name: Optional[str] = None,
         parameters: Optional[dict] = None,
     ):
-        """
-        @param fn: metric function, for example from metrics.py
-        @param name: custom metric name; fn.__name__will be used as default
-        @param parameters: all required parameters for fn except `data`
+        """`MetricSpec` objects specify how to use GluonTS metric functions.
+
+        :param fn: metric function, for example from metrics.py
+        :param name: custom metric name; defaults to fn.__name__
+        :param parameters: all required parameters for fn except `data`
         """
         super().__init__()
         self.fn = fn
@@ -41,12 +42,19 @@ class MetricSpec:
 
 
 class DataProbe:
-    # mission: gather all required quantile forecasts for metric calculation
+    """ A DataProbe gathers all quantile forecasts required for an evaluation.
+
+    This has the benefit that metric definitions can work independently of
+    `Forecast` objects as all values in 'data' will be NumPy arrays.
+
+    :raises ValueError: if a metric requests a key that can't be converted to
+        float and isn't equal to "batch_size", "input", "label" or "mean"
+    """
     def __init__(self, test_data: TestData):
         input_sample, label_sample = next(iter(test_data))
         # use batch_size 1
         self.input_shape = (1,) + np.shape(input_sample["target"])
-        self.label_shape = (1,) + np.shape(label_sample["target"])
+        self.prediction_target_shape = (1,) + np.shape(label_sample["target"])
 
         self.required_quantile_forecasts = set()
 
@@ -56,11 +64,11 @@ class DataProbe:
         if key == "input":
             return np.random.rand(*self.input_shape)
         if key in ["label", "mean"]:
-            return np.random.rand(*self.label_shape)
+            return np.random.rand(*self.prediction_target_shape)
 
         try:
             self.required_quantile_forecasts.add(float(key))
-            return np.random.rand(*self.label_shape)
+            return np.random.rand(*self.prediction_target_shape)
         except ValueError:
             raise ValueError(f"Unexpected input: {key}")
 
@@ -72,14 +80,14 @@ def gather_inputs(
     quantile_levels: Collection[float],
     batch_size: int,
 ):
+    """Collect relevant data as NumPy arrays to evaluate the next batch."""
     input_data, label_data = [], []
-
     forecast_data = {
         "mean": [],
         **{str(q): [] for q in quantile_levels},
     }
 
-    actual_batch_size = 0  # is less than batch_size if there's no more data
+    actual_batch_size = 0  # less than batch_size if iterators are used up
     for _ in range(batch_size):
         try:
             forecast_entry = next(forecast_it)
@@ -120,7 +128,7 @@ def evaluate_batch(
     data: Union[dict, DataProbe],
     metric_specs: Collection[MetricSpec],
 ) -> dict:
-    # only NumPy arrays needed for actual evaluation
+    """Use `MetricSpec` objects to evaluate a single batch."""
     batch_result = {
         metric.name: metric.fn(data=data, **metric.parameters)
         for metric in metric_specs
@@ -131,7 +139,7 @@ def evaluate_batch(
 
 
 def aggregate_batches(batch_1, batch_2, metric_specs: Collection[MetricSpec]):
-    # assumption: keys in batches are the same
+    """ assumption: keys in batches are the same"""
     result = {"batch_size": batch_1["batch_size"] + batch_2["batch_size"]}
 
     for metric_spec in metric_specs:
@@ -157,6 +165,14 @@ def evaluate(
     metric_specs: Collection[MetricSpec] = default_metric_specs,
     batch_size: int = 64,
 ):
+    """Evaluate metrics.
+
+    :param test_data: time series to evaluate on
+    :param forecast_it: Forecast objects corresponding to `test_data` entries
+    :param metric_specs: GluonTS metrics to be evaluated
+    :param batch_size: should be set small enough for data to fit into memory
+    :raises GluonTSUserError: if metric names are used multiple times
+    """
     # check for duplicate metric names
     names = set()
     for metric_spec in metric_specs:
