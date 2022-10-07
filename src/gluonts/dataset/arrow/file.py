@@ -31,9 +31,9 @@ class File:
     @staticmethod
     def infer(
         path: Path,
-    ) -> Union["ArrowFile", "ParquetFile", "ArrowStreamFile"]:
-        """Return either `ArrowFile` or `ArrowStreamFile` by inspecting
-        provided path.
+    ) -> Union["ArrowFile", "ArrowStreamFile", "ParquetFile"]:
+        """Return `ArrowFile`, `ArrowStreamFile` or `ParquetFile` by
+        inspecting provided path.
 
         Arrow's `random-access` format starts with `ARROW1`, so we peek the
         provided file for it.

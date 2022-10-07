@@ -27,7 +27,7 @@ pip install "gluonts[torch,pro]"
 
 To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
 using the simple "airpassengers" dataset. The dataset consists of a single
-time-series, containing monthly international passengers between the years
+time series, containing monthly international passengers between the years
 1949 and 1960, a total of 144 values (12 years * 12 months). We split the
 dataset into train and test parts, by removing the last three years (36 month)
 from the train data. Thus, we will train a model on just the first nine years

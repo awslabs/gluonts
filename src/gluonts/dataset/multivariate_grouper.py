@@ -126,7 +126,7 @@ class MultivariateGrouper:
         return grouped_dataset
 
     def _prepare_train_data(self, dataset: Dataset) -> Dataset:
-        logging.info("group training time-series to datasets")
+        logging.info("group training time series to datasets")
 
         grouped_data = self._transform_target(self._align_data_entry, dataset)
         for data in dataset:
@@ -147,7 +147,7 @@ class MultivariateGrouper:
     def _prepare_test_data(self, dataset: Dataset) -> Dataset:
         assert self.num_test_dates is not None
 
-        logging.info("group test time-series to datasets")
+        logging.info("group test time series to datasets")
 
         grouped_data = self._transform_target(self._left_pad_data, dataset)
         # splits test dataset with rolling date into N R^d time series where
