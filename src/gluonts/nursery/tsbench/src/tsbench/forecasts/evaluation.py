@@ -38,7 +38,7 @@ def evaluate_forecasts(
     averaged over all time series.
 
     Args:
-        forecasts: The per time-series forecasts. The forecasts *must* align with the time series
+        forecasts: The per time series forecasts. The forecasts *must* align with the time series
             of the given dataset. Otherwise, behavior is undefined.
         dataset: The dataset for which to evaluate the metrics.
 
@@ -74,7 +74,7 @@ def evaluate_forecasts(
 @dataclass
 class Evaluation:
     """
-    An evaluation instance provides per time-series metrics as well as overall
+    An evaluation instance provides metrics per time series as well as overall
     metrics.
     """
 
