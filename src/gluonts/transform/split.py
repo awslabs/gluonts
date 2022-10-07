@@ -57,7 +57,7 @@ class InstanceSplitter(FlatMapTransformation):
     forecast_start_field
         output field that will contain the time point where the forecast starts
     instance_sampler
-        instance sampler that provides sampling indices given a time-series
+        instance sampler that provides sampling indices given a time series
     past_length
         length of the target seen before making prediction
     future_length
@@ -68,7 +68,7 @@ class InstanceSplitter(FlatMapTransformation):
         whether to have time series output in (time, dimension) or in
         (dimension, time) layout (default: True)
     time_series_fields
-        fields that contains time-series, they are split in the same interval
+        fields that contains time series, they are split in the same interval
         as the target (default: None)
     dummy_value
         Value to use for padding. (default: 0.0)
@@ -191,7 +191,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     Parameters
     ----------
     target_field
-        fields that contains time-series
+        fields that contains time series
     is_pad_field
         output field indicating whether padding happened
     start_field
@@ -199,14 +199,14 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
     forecast_start_field
         field containing the forecast start date
     instance_sampler
-        instance sampler that provides sampling indices given a time-series
+        instance sampler that provides sampling indices given a time series
     instance_length
         length of the target seen before making prediction
     output_NTC
         whether to have time series output in (time, dimension) or in
         (dimension, time) layout
     time_series_fields
-        fields that contains time-series, they are split in the same interval
+        fields that contains time series, they are split in the same interval
         as the target
     allow_target_padding
         flag to allow padding
@@ -360,7 +360,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     future_interval_length
         length of the interval that must be predicted
     train_sampler
-        instance sampler that provides sampling indices given a time-series
+        instance sampler that provides sampling indices given a time series
     target_field
         field containing the target
     start_field
