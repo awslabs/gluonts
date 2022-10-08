@@ -16,7 +16,7 @@ pip install -e ".[dev]"
 This will install all required packages with pip and setup a Git hook that does
 automated type and style checks when you try to create a new Git commit.
 
-When you create commits on a branch, you can disable these checks for a
+When you create commits on a branch, you can disable these checks temporarily
 with the ``--no-verify`` Git commit option.
 
 [pyenv]: https://github.com/pyenv/pyenv
@@ -99,6 +99,12 @@ open docs/_build/html/index.html # open the generated docs in a browser
 ```
 
 Ensure that there are no syntax errors and warnings before committing a PR.
+
+Using [just][just], you can
+- build the entire documentation with `just docs` or
+- only translate the templates (like the tutorials) to `.md` files, using `just compile_notebooks skip`.
+
+[just]: https://github.com/casey/just
 
 If you are directly editing ``*.rst`` files within the ``docs`` folder, you
 can use a ``sphinx-autobuild`` autobuild session that starts a web server and

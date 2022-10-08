@@ -26,7 +26,7 @@ from gluonts.time_feature import get_seasonality
 
 def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     """
-    Test the time-series for seasonal patterns by performing a 90% auto-
+    Test the time series for seasonal patterns by performing a 90% auto-
     correlation test:
 
     As described here:

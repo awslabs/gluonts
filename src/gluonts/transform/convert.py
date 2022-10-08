@@ -854,7 +854,7 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         If True, the first element in the converted dense series will be
         dropped, replacing the target with a (2, M-1) tet instead. This can be
         used when the first 'inter-demand' time is not well-defined. e.g.,
-        when the true starting index of the time-series is not known.
+        when the true starting index of the time series is not known.
     """
 
     @validated()
