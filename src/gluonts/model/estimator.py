@@ -15,7 +15,7 @@ from typing import Optional
 from typing_extensions import Protocol, runtime_checkable
 
 import gluonts
-from gluonts.core.component import from_hyperparameters, validated
+from gluonts.core.component import from_hyperparameters
 from gluonts.dataset.common import Dataset
 from gluonts.model.predictor import Predictor
 
