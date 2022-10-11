@@ -20,7 +20,6 @@ import pytest
 from gluonts.core.serde import dump_json, load_json
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import NPArrayLike
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Categorical,
@@ -36,7 +35,7 @@ from gluonts.mx.distribution.distribution import Distribution
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
-def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
+def diff(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
 
