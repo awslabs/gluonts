@@ -16,8 +16,8 @@ import pytest
 from gluonts.core import serde
 from gluonts.dataset.util import forecast_start
 from gluonts.evaluation import MultivariateEvaluator, backtest_metrics
-from gluonts.model.forecast import SampleForecast
-from gluonts.model.r_forecast import (
+from gluonts.ext.forecast import SampleForecast
+from gluonts.ext.r_forecast import (
     RHierarchicalForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
