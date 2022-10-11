@@ -35,7 +35,6 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
 from scipy.special import softmax
 
-from gluonts.model.common import NPArrayLike
 from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
@@ -60,12 +59,12 @@ np.random.seed(1)
 torch.manual_seed(1)
 
 
-def inv_softplus(y: NPArrayLike) -> np.ndarray:
+def inv_softplus(y: np.ndarray) -> np.ndarray:
     # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
     return np.log(np.exp(y) - 1)
 
 
-def inv_softmax(y: NPArrayLike) -> np.ndarray:
+def inv_softmax(y: np.ndarray) -> np.ndarray:
     """
     Inverse of the scipy.special.softmax
     """

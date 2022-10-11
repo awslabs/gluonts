@@ -18,7 +18,6 @@ import pytest
 from gluonts.core.serde import dump_json, load_json
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import NPArrayLike
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Gamma,
@@ -52,12 +51,12 @@ def plot_samples(s: Tensor, bins: int = 100) -> None:
 BINS = np.linspace(-5, 5, 100)
 
 
-def histogram(samples: NPArrayLike) -> np.ndarray:
+def histogram(samples: np.ndarray) -> np.ndarray:
     h, _ = np.histogram(samples, bins=BINS, density=True)
     return h
 
 
-def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
+def diff(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
 
