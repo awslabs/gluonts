@@ -71,8 +71,8 @@ NPTS                                                         | Local        | Un
 [GPVAR]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/gpvar/_estimator.py
 [LSTNet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/lstnet/_estimator.py
 [DeepTPP]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/tpp/deeptpp/_estimator.py
-[RForecast]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/r_forecast/_predictor.py
-[Prophet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/prophet/_predictor.py
+[RForecast]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/r_forecast/_predictor.py
+[Prophet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/prophet/_predictor.py
 [NaiveSeasonal]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/seasonal_naive/_predictor.py
-[Naive2]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/naive_2/_predictor.py
+[Naive2]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/naive_2/_predictor.py
 [NPTS]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/npts/_predictor.py
