@@ -319,7 +319,7 @@ def serialize_test(dsinfo):
         if isinstance(forecaster, Predictor):
             predictor_act = forecaster
         else:
-            predictor_act = estimator.train(dsinfo.train_ds)
+            predictor_act = forecaster.train(dsinfo.train_ds)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             predictor_act.serialize(Path(temp_dir))
