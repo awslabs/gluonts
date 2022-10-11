@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Dict, List, Optional
+
 import numpy as np
 
 from statsforecast.models import (
@@ -31,6 +33,30 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
 
 
+# NOTE currently it's tricky to get quantiles out of
+# NOTE statsforecast predictions
+# NOTE see https://github.com/Nixtla/statsforecast/issues/256
+# NOTE therefore we need the following function
+
+
+def quantiles_to_intervals(quantile_levels: Optional[List[float]] = None):
+    if quantile_levels is None:
+        return None, dict()
+
+    keys = dict()
+    intervals = set()
+
+    for quantile_level in quantile_levels:
+        interval = round(
+            200 * (max(quantile_level, 1 - quantile_level) - 0.5), 1
+        )
+        hilo = "hi" if quantile_level > 0.5 else "lo"
+        keys[str(quantile_level)] = f"{hilo}-{interval}"
+        intervals.add(interval)
+
+    return list(intervals), keys
+
+
 class StatsForecastPredictor(RepresentablePredictor):
     """
     A predictor type that wraps models from the `statsforecast`_ package.
@@ -49,8 +75,8 @@ class StatsForecastPredictor(RepresentablePredictor):
     prediction_length
         Prediction length for the model to use.
     quantile_levels
-        List of quantile levels that we want predictions for. By default this
-        is empty, in which case only the mean predition is returned.
+        Optional list of quantile levels that we want predictions for.
+        By default this is ``None``, giving only the mean predition.
     """
 
     @validated()
@@ -59,37 +85,35 @@ class StatsForecastPredictor(RepresentablePredictor):
         model_constructor,
         kwargs: dict,
         prediction_length: int,
-        quantile_levels: list = [],
+        quantile_levels: Optional[List[float]] = None,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
         self.model = model_constructor(**kwargs)
-        self.quantile_levels = quantile_levels
-
-    def quantile_key(self, quantile_level) -> str:
-        """
-        Turn a given quantile level into the key to extract the quantile
-        from ``statsforecast`` predictions.
-        """
-        # NOTE currently it's tricky to get quantiles out of
-        # NOTE statsforecast predictions
-        # NOTE see https://github.com/Nixtla/statsforecast/issues/256
-        raise NotImplementedError()
+        self.intervals, self.keys = quantiles_to_intervals(quantile_levels)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         # TODO use also exogenous features
-        pred = self.model.forecast(
-            y=entry["target"],
-            h=self.prediction_length,
-        )
+        if self.intervals:
+            pred = self.model.forecast(
+                y=entry["target"],
+                h=self.prediction_length,
+                level=self.intervals,
+            )
+        else:
+            pred = self.model.forecast(
+                y=entry["target"],
+                h=self.prediction_length,
+            )
 
-        to_stack = [pred["mean"]]
-        for quantile_level in self.quantile_levels:
-            key = self.quantile_key(quantile_level)
-            to_stack.append(pred[key].values)
+        forecast_keys = ["mean"]
+        forecast_arrays = [pred["mean"]]
+        for quantile_level in self.keys:
+            forecast_keys.append(quantile_level)
+            forecast_arrays.append(pred[self.keys[quantile_level]].values)
 
         return QuantileForecast(
-            forecast_arrays=np.stack(to_stack, axis=0),
-            forecast_keys=["mean"] + self.quantile_levels,
+            forecast_arrays=np.stack(forecast_arrays, axis=0),
+            forecast_keys=forecast_keys,
             start_date=entry["start"] + len(entry["target"]),
             item_id=entry.get("item_id"),
         )
