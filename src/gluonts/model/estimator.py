@@ -15,7 +15,7 @@ from typing import Optional
 from typing_extensions import Protocol, runtime_checkable
 
 import gluonts
-from gluonts.core.component import from_hyperparameters, validated
+from gluonts.core.component import from_hyperparameters
 from gluonts.dataset.common import Dataset
 from gluonts.model.predictor import Predictor
 
@@ -107,29 +107,3 @@ class IncrementallyTrainable(Protocol):
             The predictor containing the trained model.
         """
         raise NotImplementedError
-
-
-class DummyEstimator(Estimator):
-    """
-    An `Estimator` that, upon training, simply returns a pre-constructed
-    `Predictor`.
-
-    Parameters
-    ----------
-    predictor_cls
-        `Predictor` class to instantiate.
-    **kwargs
-        Keyword arguments to pass to the predictor constructor.
-    """
-
-    @validated()
-    def __init__(self, predictor_cls: type, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.predictor = predictor_cls(**kwargs)
-
-    def train(
-        self,
-        training_data: Dataset,
-        validation_data: Optional[Dataset] = None,
-    ) -> Predictor:
-        return self.predictor

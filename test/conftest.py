@@ -25,6 +25,7 @@ import sys
 import tempfile
 import warnings
 
+from gluonts.model import Predictor
 from gluonts.dataset.common import ListDataset
 
 try:
@@ -269,8 +270,8 @@ def dsinfo(request):
         )
 
 
-def from_hyperparameters(Estimator, hyperparameters, dsinfo):
-    return Estimator.from_hyperparameters(
+def from_hyperparameters(Forecaster, hyperparameters, dsinfo):
+    return Forecaster.from_hyperparameters(
         freq=dsinfo.freq,
         **{
             "prediction_length": dsinfo.prediction_length,
@@ -284,9 +285,14 @@ def from_hyperparameters(Estimator, hyperparameters, dsinfo):
 def accuracy_test(dsinfo):
     from gluonts.evaluation import backtest_metrics, Evaluator
 
-    def test_accuracy(Estimator, hyperparameters, accuracy):
-        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
-        predictor = estimator.train(training_data=dsinfo.train_ds)
+    def test_accuracy(Forecaster, hyperparameters, accuracy):
+        forecaster = from_hyperparameters(Forecaster, hyperparameters, dsinfo)
+
+        if isinstance(forecaster, Predictor):
+            predictor = forecaster
+        else:
+            predictor = forecaster.train(training_data=dsinfo.train_ds)
+
         agg_metrics, item_metrics = backtest_metrics(
             test_dataset=dsinfo.test_ds,
             predictor=predictor,
@@ -307,11 +313,15 @@ def accuracy_test(dsinfo):
 def serialize_test(dsinfo):
     from gluonts.model.predictor import Predictor
 
-    def test_serialize(Estimator, hyperparameters):
-        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
+    def test_serialize(Forecaster, hyperparameters):
+        forecaster = from_hyperparameters(Forecaster, hyperparameters, dsinfo)
+
+        if isinstance(forecaster, Predictor):
+            predictor_act = forecaster
+        else:
+            predictor_act = forecaster.train(dsinfo.train_ds)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            predictor_act = estimator.train(dsinfo.train_ds)
             predictor_act.serialize(Path(temp_dir))
             predictor_exp = Predictor.deserialize(Path(temp_dir))
             # TODO: DeepFactorEstimator does not pass this assert

@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._estimator import NPTSEstimator
 from ._predictor import KernelType, NPTSPredictor
 
-__all__ = ["KernelType", "NPTSEstimator", "NPTSPredictor"]
+__all__ = ["KernelType", "NPTSPredictor"]
