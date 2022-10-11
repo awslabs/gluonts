@@ -8,7 +8,8 @@
 [![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=edc775&style=flat-square)](https://ts.gluon.ai/dev/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/gluonts?style=flat-square&color=94b594)](https://pepy.tech/project/gluonts)
 
-GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models, based on PyTorch and MXNet.
+GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models,
+based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
 
 ## Installation
@@ -39,8 +40,7 @@ import matplotlib.pyplot as plt
 from gluonts.dataset.util import to_pandas
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.mx.model.deepar import DeepAREstimator
-from gluonts.mx import Trainer
+from gluonts.mx import DeepAREstimator, Trainer
 
 dataset = get_dataset("airpassengers")
 
