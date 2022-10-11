@@ -64,7 +64,7 @@ class StatsForecastPredictor(RepresentablePredictor):
         super().__init__(prediction_length=prediction_length)
         self.model = model_constructor(**kwargs)
         self.quantile_levels = quantile_levels
-    
+
     def quantile_key(self, quantile_level) -> str:
         """
         Turn a given quantile level into the key to extract the quantile
@@ -95,7 +95,9 @@ class StatsForecastPredictor(RepresentablePredictor):
         )
 
 
-def ADIDAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def ADIDAPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``ADIDA`` model from `statsforecast`_.
 
@@ -114,7 +116,9 @@ def ADIDAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> Stat
     )
 
 
-def AutoARIMAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def AutoARIMAPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoARIMA`` model from `statsforecast`_.
 
@@ -133,7 +137,9 @@ def AutoARIMAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> 
     )
 
 
-def AutoCESPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def AutoCESPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoCES`` model from `statsforecast`_.
 
@@ -152,7 +158,9 @@ def AutoCESPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> St
     )
 
 
-def CrostonClassicPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def CrostonClassicPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonClassic`` model from `statsforecast`_.
 
@@ -172,7 +180,9 @@ def CrostonClassicPredictor(prediction_length: int, quantile_levels=[], **kwargs
     )
 
 
-def CrostonOptimizedPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def CrostonOptimizedPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonOptimized`` model from `statsforecast`_.
 
@@ -192,7 +202,9 @@ def CrostonOptimizedPredictor(prediction_length: int, quantile_levels=[], **kwar
     )
 
 
-def CrostonSBAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def CrostonSBAPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonSBA`` model from `statsforecast`_.
 
@@ -211,7 +223,9 @@ def CrostonSBAPredictor(prediction_length: int, quantile_levels=[], **kwargs) ->
     )
 
 
-def ETSPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def ETSPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``ETS`` model from `statsforecast`_.
 
@@ -230,7 +244,9 @@ def ETSPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsF
     )
 
 
-def IMAPAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def IMAPAPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``IMAPA`` model from `statsforecast`_.
 
@@ -249,7 +265,9 @@ def IMAPAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> Stat
     )
 
 
-def TSBPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
+def TSBPredictor(
+    prediction_length: int, quantile_levels=[], **kwargs
+) -> StatsForecastPredictor:
     """
     A predictor based on the ``TSB`` model from `statsforecast`_.
 
