@@ -28,7 +28,7 @@ from statsforecast.models import (
 from gluonts.core.component import validated
 from gluonts.dataset import DataEntry
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.model.forecast import SampleForecast
+from gluonts.model.forecast import QuantileForecast
 
 
 class StatsForecastPredictor(RepresentablePredictor):
@@ -42,39 +42,60 @@ class StatsForecastPredictor(RepresentablePredictor):
 
     Parameters
     ----------
-    prediction_length
-        Prediction length for the model to use.
-    constructor
+    model_constructor
         Model constructor (e.g. ``statsforecast.models.AutoARIMA``).
     kwargs
         Dictionary of keyword arguments to be passed for model construction.
+    prediction_length
+        Prediction length for the model to use.
+    quantile_levels
+        List of quantile levels that we want predictions for. By default this
+        is empty, in which case only the mean predition is returned.
     """
 
     @validated()
     def __init__(
-        self, prediction_length: int, constructor, kwargs: dict
+        self,
+        model_constructor,
+        kwargs: dict,
+        prediction_length: int,
+        quantile_levels: list = [],
     ) -> None:
         super().__init__(prediction_length=prediction_length)
-        self.model = constructor(**kwargs)
+        self.model = model_constructor(**kwargs)
+        self.quantile_levels = quantile_levels
+    
+    def quantile_key(self, quantile_level) -> str:
+        """
+        Turn a given quantile level into the key to extract the quantile
+        from ``statsforecast`` predictions.
+        """
+        # NOTE currently it's tricky to get quantiles out of
+        # NOTE statsforecast predictions
+        # NOTE see https://github.com/Nixtla/statsforecast/issues/256
+        raise NotImplementedError()
 
-    def predict_item(self, entry: DataEntry) -> SampleForecast:
+    def predict_item(self, entry: DataEntry) -> QuantileForecast:
         # TODO use also exogenous features
         pred = self.model.forecast(
             y=entry["target"],
             h=self.prediction_length,
         )
-        # TODO return QuantileForecast instead
-        # NOTE currently it's tricky to get quantiles out of
-        # NOTE statsforecast predictions
-        # NOTE see https://github.com/Nixtla/statsforecast/issues/256
-        return SampleForecast(
-            samples=np.expand_dims(pred["mean"], axis=0),
+
+        to_stack = [pred["mean"]]
+        for quantile_level in self.quantile_levels:
+            key = self.quantile_key(quantile_level)
+            to_stack.append(pred[key].values)
+
+        return QuantileForecast(
+            forecast_arrays=np.stack(to_stack, axis=0),
+            forecast_keys=["mean"] + self.quantile_levels,
             start_date=entry["start"] + len(entry["target"]),
             item_id=entry.get("item_id"),
         )
 
 
-class ADIDAPredictor(StatsForecastPredictor):
+def ADIDAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``ADIDA`` model from `statsforecast`_.
 
@@ -85,16 +106,15 @@ class ADIDAPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=ADIDA,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=ADIDA,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class AutoARIMAPredictor(StatsForecastPredictor):
+def AutoARIMAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoARIMA`` model from `statsforecast`_.
 
@@ -105,16 +125,15 @@ class AutoARIMAPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=AutoARIMA,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=AutoARIMA,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class AutoCESPredictor(StatsForecastPredictor):
+def AutoCESPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoCES`` model from `statsforecast`_.
 
@@ -125,16 +144,15 @@ class AutoCESPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=AutoCES,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=AutoCES,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class CrostonClassicPredictor(StatsForecastPredictor):
+def CrostonClassicPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonClassic`` model from `statsforecast`_.
 
@@ -146,16 +164,15 @@ class CrostonClassicPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=CrostonClassic,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=CrostonClassic,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class CrostonOptimizedPredictor(StatsForecastPredictor):
+def CrostonOptimizedPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonOptimized`` model from `statsforecast`_.
 
@@ -167,16 +184,15 @@ class CrostonOptimizedPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=CrostonOptimized,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=CrostonOptimized,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class CrostonSBAPredictor(StatsForecastPredictor):
+def CrostonSBAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonSBA`` model from `statsforecast`_.
 
@@ -187,16 +203,15 @@ class CrostonSBAPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=CrostonSBA,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=CrostonSBA,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class ETSPredictor(StatsForecastPredictor):
+def ETSPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``ETS`` model from `statsforecast`_.
 
@@ -207,14 +222,15 @@ class ETSPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length, constructor=ETS, kwargs=kwargs
-        )
+    return StatsForecastPredictor(
+        model_constructor=ETS,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class IMAPAPredictor(StatsForecastPredictor):
+def IMAPAPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``IMAPA`` model from `statsforecast`_.
 
@@ -225,16 +241,15 @@ class IMAPAPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length,
-            constructor=IMAPA,
-            kwargs=kwargs,
-        )
+    return StatsForecastPredictor(
+        model_constructor=IMAPA,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
 
-class TSBPredictor(StatsForecastPredictor):
+def TSBPredictor(prediction_length: int, quantile_levels=[], **kwargs) -> StatsForecastPredictor:
     """
     A predictor based on the ``TSB`` model from `statsforecast`_.
 
@@ -245,8 +260,9 @@ class TSBPredictor(StatsForecastPredictor):
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(self, prediction_length: int, **kwargs) -> None:
-        super().__init__(
-            prediction_length=prediction_length, constructor=TSB, kwargs=kwargs
-        )
+    return StatsForecastPredictor(
+        model_constructor=TSB,
+        kwargs=kwargs,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
