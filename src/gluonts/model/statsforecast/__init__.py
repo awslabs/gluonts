@@ -12,3 +12,5 @@
 # permissions and limitations under the License.
 
 from .predictor import StatsForecastPredictor
+
+__all__ = ["StatsForecastPredictor"]
