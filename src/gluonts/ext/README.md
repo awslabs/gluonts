@@ -1,5 +1,3 @@
-
-
 # `gluonts.ext`
 
 This module includes wrappers for models implemented by others. Each model
