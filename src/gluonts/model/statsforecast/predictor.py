@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -33,12 +33,9 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
 
 
-# NOTE currently it's tricky to get quantiles out of
-# NOTE statsforecast predictions
-# NOTE see https://github.com/Nixtla/statsforecast/issues/256
-# NOTE therefore we need the following function
-
-
+# currently it's tricky to get quantiles out of statsforecast
+# see https://github.com/Nixtla/statsforecast/issues/256
+# therefore we need the following function
 def quantiles_to_intervals(quantile_levels: Optional[List[float]] = None):
     if quantile_levels is None:
         return None, dict()
@@ -46,13 +43,11 @@ def quantiles_to_intervals(quantile_levels: Optional[List[float]] = None):
     intervals = set()
     keys = dict()
 
-    for quantile_level in quantile_levels:
-        interval = round(
-            200 * (max(quantile_level, 1 - quantile_level) - 0.5), 1
-        )
+    for ql in quantile_levels:
+        interval = round(200 * (max(ql, 1 - ql) - 0.5))
         intervals.add(interval)
-        hilo = "hi" if quantile_level > 0.5 else "lo"
-        keys[str(quantile_level)] = f"{hilo}-{interval}"
+        side = "hi" if ql > 0.5 else "lo"
+        keys[str(ql)] = f"{side}-{interval}"
 
     return list(intervals), keys
 
@@ -97,7 +92,7 @@ class StatsForecastPredictor(RepresentablePredictor):
         # TODO use also exogenous features
         kwargs = dict()
         if self.intervals is not None:
-            kwargs = dict(level=self.intervals)
+            kwargs["level"] = self.intervals
 
         pred = self.model.forecast(
             y=entry["target"],
