@@ -239,6 +239,7 @@ def default_prediction_length_from_frequency(freq: str) -> int:
         "H": 48,
         "D": 30,
         "W-SUN": 8,
+        "W":8,
         "M": 12,
         "Y": 4,
     }
