@@ -43,16 +43,16 @@ def quantiles_to_intervals(quantile_levels: Optional[List[float]] = None):
     if quantile_levels is None:
         return None, dict()
 
-    keys = dict()
     intervals = set()
+    keys = dict()
 
     for quantile_level in quantile_levels:
         interval = round(
             200 * (max(quantile_level, 1 - quantile_level) - 0.5), 1
         )
+        intervals.add(interval)
         hilo = "hi" if quantile_level > 0.5 else "lo"
         keys[str(quantile_level)] = f"{hilo}-{interval}"
-        intervals.add(interval)
 
     return list(intervals), keys
 
@@ -90,37 +90,33 @@ class StatsForecastPredictor(RepresentablePredictor):
         super().__init__(prediction_length=prediction_length)
         self.model = model_constructor(**kwargs)
         self.intervals, self.keys = quantiles_to_intervals(quantile_levels)
+        self.statsforecast_keys = ["mean"] + list(self.keys.values())
+        self.forecast_keys = ["mean"] + list(self.keys.keys())
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         # TODO use also exogenous features
-        if self.intervals:
-            pred = self.model.forecast(
-                y=entry["target"],
-                h=self.prediction_length,
-                level=self.intervals,
-            )
-        else:
-            pred = self.model.forecast(
-                y=entry["target"],
-                h=self.prediction_length,
-            )
+        kwargs = dict()
+        if self.intervals is not None:
+            kwargs = dict(level=self.intervals)
 
-        forecast_keys = ["mean"]
-        forecast_arrays = [pred["mean"]]
-        for quantile_level in self.keys:
-            forecast_keys.append(quantile_level)
-            forecast_arrays.append(pred[self.keys[quantile_level]].values)
+        pred = self.model.forecast(
+            y=entry["target"],
+            h=self.prediction_length,
+            **kwargs,
+        )
+
+        arrays = [pred[k] for k in self.statsforecast_keys]
 
         return QuantileForecast(
-            forecast_arrays=np.stack(forecast_arrays, axis=0),
-            forecast_keys=forecast_keys,
+            forecast_arrays=np.stack(arrays, axis=0),
+            forecast_keys=self.forecast_keys,
             start_date=entry["start"] + len(entry["target"]),
             item_id=entry.get("item_id"),
         )
 
 
 def ADIDAPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``ADIDA`` model from `statsforecast`_.
@@ -141,7 +137,7 @@ def ADIDAPredictor(
 
 
 def AutoARIMAPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoARIMA`` model from `statsforecast`_.
@@ -162,7 +158,7 @@ def AutoARIMAPredictor(
 
 
 def AutoCESPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``AutoCES`` model from `statsforecast`_.
@@ -183,7 +179,7 @@ def AutoCESPredictor(
 
 
 def CrostonClassicPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonClassic`` model from `statsforecast`_.
@@ -205,7 +201,7 @@ def CrostonClassicPredictor(
 
 
 def CrostonOptimizedPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonOptimized`` model from `statsforecast`_.
@@ -227,7 +223,7 @@ def CrostonOptimizedPredictor(
 
 
 def CrostonSBAPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``CrostonSBA`` model from `statsforecast`_.
@@ -248,7 +244,7 @@ def CrostonSBAPredictor(
 
 
 def ETSPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``ETS`` model from `statsforecast`_.
@@ -269,7 +265,7 @@ def ETSPredictor(
 
 
 def IMAPAPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``IMAPA`` model from `statsforecast`_.
@@ -290,7 +286,7 @@ def IMAPAPredictor(
 
 
 def TSBPredictor(
-    prediction_length: int, quantile_levels=[], **kwargs
+    prediction_length: int, quantile_levels=None, **kwargs
 ) -> StatsForecastPredictor:
     """
     A predictor based on the ``TSB`` model from `statsforecast`_.
