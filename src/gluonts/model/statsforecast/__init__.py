@@ -11,6 +11,26 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .predictor import StatsForecastPredictor
+from .predictor import (
+    ADIDAPredictor,
+    AutoARIMAPredictor,
+    AutoCESPredictor,
+    CrostonClassicPredictor,
+    CrostonOptimizedPredictor,
+    CrostonSBAPredictor,
+    ETSPredictor,
+    IMAPAPredictor,
+    TSBPredictor,
+)
 
-__all__ = ["StatsForecastPredictor"]
+__all__ = [
+    "ADIDAPredictor",
+    "AutoARIMAPredictor",
+    "AutoCESPredictor",
+    "CrostonClassicPredictor",
+    "CrostonOptimizedPredictor",
+    "CrostonSBAPredictor",
+    "ETSPredictor",
+    "IMAPAPredictor",
+    "TSBPredictor",
+]

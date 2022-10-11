@@ -13,6 +13,18 @@
 
 import numpy as np
 
+from statsforecast.models import (
+    ADIDA,
+    AutoARIMA,
+    AutoCES,
+    CrostonClassic,
+    CrostonOptimized,
+    CrostonSBA,
+    ETS,
+    IMAPA,
+    TSB,
+)
+
 from gluonts.core.component import validated
 from gluonts.dataset import DataEntry
 from gluonts.model.predictor import RepresentablePredictor
@@ -39,7 +51,9 @@ class StatsForecastPredictor(RepresentablePredictor):
     """
 
     @validated()
-    def __init__(self, prediction_length: int, constructor, kwargs: dict):
+    def __init__(
+        self, prediction_length: int, constructor, kwargs: dict
+    ) -> None:
         super().__init__(prediction_length=prediction_length)
         self.model = constructor(**kwargs)
 
@@ -57,4 +71,182 @@ class StatsForecastPredictor(RepresentablePredictor):
             samples=np.expand_dims(pred["mean"], axis=0),
             start_date=entry["start"] + len(entry["target"]),
             item_id=entry.get("item_id"),
+        )
+
+
+class ADIDAPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``ADIDA`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``ADIDA``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=ADIDA,
+            kwargs=kwargs,
+        )
+
+
+class AutoARIMAPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``AutoARIMA`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``AutoARIMA``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=AutoARIMA,
+            kwargs=kwargs,
+        )
+
+
+class AutoCESPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``AutoCES`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``AutoCES``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=AutoCES,
+            kwargs=kwargs,
+        )
+
+
+class CrostonClassicPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``CrostonClassic`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``CrostonClassic``: please refer
+    to the documentation of `statsforecast`_ to know more about its
+    parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=CrostonClassic,
+            kwargs=kwargs,
+        )
+
+
+class CrostonOptimizedPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``CrostonOptimized`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``CrostonOptimized``: please refer
+    to the documentation of `statsforecast`_ to know more about its
+    parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=CrostonOptimized,
+            kwargs=kwargs,
+        )
+
+
+class CrostonSBAPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``CrostonSBA`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``CrostonSBA``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=CrostonSBA,
+            kwargs=kwargs,
+        )
+
+
+class ETSPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``ETS`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``ETS``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length, constructor=ETS, kwargs=kwargs
+        )
+
+
+class IMAPAPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``IMAPA`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``IMAPA``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length,
+            constructor=IMAPA,
+            kwargs=kwargs,
+        )
+
+
+class TSBPredictor(StatsForecastPredictor):
+    """
+    A predictor based on the ``TSB`` model from `statsforecast`_.
+
+    The predictor is constructed with a ``prediction_length`` parameters,
+    plus all additional arguments needed by ``TSB``: please refer to
+    the documentation of `statsforecast`_ to know more about its parameters.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    @validated()
+    def __init__(self, prediction_length: int, **kwargs) -> None:
+        super().__init__(
+            prediction_length=prediction_length, constructor=TSB, kwargs=kwargs
         )
