@@ -125,7 +125,9 @@ class DeepARModel(nn.Module):
             self.scaler = MeanScaler(dim=1, keepdim=True)
         else:
             self.scaler = NOPScaler(dim=1, keepdim=True)
-        self.rnn_input_size = len(self.lags_seq) + self._number_of_features
+        self.rnn_input_size = (
+            self.target_dim * len(self.lags_seq) + self._number_of_features
+        )
         self.rnn = nn.LSTM(
             input_size=self.rnn_input_size,
             hidden_size=hidden_size,
@@ -157,7 +159,8 @@ class DeepARModel(nn.Module):
                 self.num_feat_dynamic_real,
             ),
             "past_target": (batch_size, self._past_length) + self.target_shape,
-            "past_observed_values": (batch_size, self._past_length),
+            "past_observed_values": (batch_size, self._past_length)
+            + self.target_shape,
             "future_time_feat": (
                 batch_size,
                 self.prediction_length,
@@ -210,7 +213,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, *target_shape)``.
         past_observed_values
             Tensor of observed values indicators,
-            shape: ``(batch_size, past_length)``.
+            shape: ``(batch_size, past_length, *target_shape)``.
         future_time_feat
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
@@ -246,7 +249,7 @@ class DeepARModel(nn.Module):
                 feat_static_real,
                 scale.log()
                 if self.target_dim == 1
-                else scale.squeeze(-1).log(),
+                else scale.squeeze(1).log(),
             ),
             dim=1,
         )
@@ -331,7 +334,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, *target_shape)``.
         past_observed_values
             Tensor of observed values indicators,
-            shape: ``(batch_size, past_length)``.
+            shape: ``(batch_size, past_length, *target_shape)``.
         future_time_feat
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.

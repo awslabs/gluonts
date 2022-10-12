@@ -145,7 +145,7 @@ class DistributionOutput(Output):
             return distr
         else:
             return AffineTransformed(
-                distr, loc=loc, scale=scale, event_dims=self.event_dim
+                distr, loc=loc, scale=scale, event_dim=self.event_dim
             )
 
     @property
