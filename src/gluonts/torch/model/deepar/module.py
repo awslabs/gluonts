@@ -342,10 +342,6 @@ class DeepARModel(nn.Module):
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
-        import pdb
-
-        pdb.set_trace()
-
         params, scale, _, static_feat, state = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
