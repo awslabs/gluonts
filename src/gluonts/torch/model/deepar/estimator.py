@@ -91,6 +91,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
     context_length
         Number of steps to unroll the RNN for before computing predictions
         (default: None, in which case context_length = prediction_length).
+    target_dim
+        Dimensionality of the input dataset (default: 1).
     num_layers
         Number of RNN layers (default: 2).
     hidden_size
@@ -152,6 +154,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self,
         freq: str,
         prediction_length: int,
+        target_dim: int = 1,
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
@@ -164,7 +167,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_feat_static_real: int = 0,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Optional[DistributionOutput] = None,
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
         lags_seq: Optional[List[int]] = None,
@@ -184,13 +187,18 @@ class DeepAREstimator(PyTorchLightningEstimator):
             default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
 
+        self.target_dim = target_dim
         self.freq = freq
         self.context_length = (
             context_length if context_length is not None else prediction_length
         )
         self.prediction_length = prediction_length
         self.patience = patience
-        self.distr_output = distr_output
+        self.distr_output = (
+            distr_output
+            if distr_output is not None
+            else StudentTOutput(dim=target_dim)
+        )
         self.loss = loss
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -366,6 +374,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> DeepARLightningModule:
         model = DeepARModel(
+            target_dim=self.target_dim,
             freq=self.freq,
             context_length=self.context_length,
             prediction_length=self.prediction_length,

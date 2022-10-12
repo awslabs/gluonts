@@ -50,6 +50,8 @@ class DeepARModel(nn.Module):
     num_feat_static_cat
         Number of static categorical features that will be provided to
         ``forward``.
+    target_dim
+        Dimension of the target.
     cardinality
         List of cardinalities, one for each static categorical feature.
     embedding_dimension
@@ -86,6 +88,7 @@ class DeepARModel(nn.Module):
         num_feat_static_real: int,
         num_feat_static_cat: int,
         cardinality: List[int],
+        target_dim: int = 1,
         embedding_dimension: Optional[List[int]] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
@@ -97,6 +100,7 @@ class DeepARModel(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.target_dim = target_dim
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output
@@ -136,7 +140,7 @@ class DeepARModel(nn.Module):
             sum(self.embedding_dimension)
             + self.num_feat_dynamic_real
             + self.num_feat_static_real
-            + 1  # the log(scale)
+            + self.target_dim  # the log(scale)
         )
 
     @property
@@ -237,7 +241,13 @@ class DeepARModel(nn.Module):
 
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
-            (embedded_cat, feat_static_real, scale.log()),
+            (
+                embedded_cat,
+                feat_static_real,
+                scale.log()
+                if self.target_dim == 1
+                else scale.squeeze(-1).log(),
+            ),
             dim=1,
         )
         expanded_static_feat = static_feat.unsqueeze(1).expand(
@@ -326,11 +336,15 @@ class DeepARModel(nn.Module):
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         num_parallel_samples
-            How many future sampels to produce.
+            How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
+
+        import pdb
+
+        pdb.set_trace()
 
         params, scale, _, static_feat, state = self.unroll_lagged_rnn(
             feat_static_cat,

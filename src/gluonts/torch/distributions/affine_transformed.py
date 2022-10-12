@@ -35,13 +35,20 @@ class AffineTransformed(TransformedDistribution):
         Scaling parameter of the affine transformation.
     """
 
-    def __init__(self, base_distribution: Distribution, loc=None, scale=None):
+    def __init__(
+        self,
+        base_distribution: Distribution,
+        loc=None,
+        scale=None,
+        event_dim: int = 0,
+    ):
 
         self.scale = 1.0 if scale is None else scale
         self.loc = 0.0 if loc is None else loc
 
         super().__init__(
-            base_distribution, [AffineTransform(self.loc, self.scale)]
+            base_distribution,
+            [AffineTransform(self.loc, self.scale, event_dim=event_dim)],
         )
 
     @property

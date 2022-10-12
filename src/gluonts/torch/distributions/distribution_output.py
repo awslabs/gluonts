@@ -21,6 +21,7 @@ from torch.distributions import (
     Beta,
     Distribution,
     Gamma,
+    Independent,
     NegativeBinomial,
     Normal,
     Poisson,
@@ -108,11 +109,15 @@ class DistributionOutput(Output):
     distr_cls: type
 
     @validated()
-    def __init__(self) -> None:
-        pass
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        return self.distr_cls(*distr_args)
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     def distribution(
         self,
@@ -139,7 +144,9 @@ class DistributionOutput(Output):
         if loc is None and scale is None:
             return distr
         else:
-            return AffineTransformed(distr, loc=loc, scale=scale)
+            return AffineTransformed(
+                distr, loc=loc, scale=scale, event_dims=self.event_dim
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -147,7 +154,7 @@ class DistributionOutput(Output):
         Shape of each individual event contemplated by the distributions
         that this object constructs.
         """
-        raise NotImplementedError()
+        return () if self.dim == 1 else (self.dim,)
 
     @property
     def event_dim(self) -> int:
@@ -185,10 +192,6 @@ class NormalOutput(DistributionOutput):
         scale = F.softplus(scale)
         return loc.squeeze(-1), scale.squeeze(-1)
 
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
 
 class StudentTOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
@@ -201,10 +204,6 @@ class StudentTOutput(DistributionOutput):
         scale = F.softplus(scale)
         df = 2.0 + F.softplus(df)
         return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
 
 
 class BetaOutput(DistributionOutput):
@@ -219,10 +218,6 @@ class BetaOutput(DistributionOutput):
         concentration1 = F.softplus(concentration1) + epsilon
         concentration0 = F.softplus(concentration0) + epsilon
         return concentration1.squeeze(dim=-1), concentration0.squeeze(dim=-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
 
     @property
     def value_in_support(self) -> float:
@@ -241,10 +236,6 @@ class GammaOutput(DistributionOutput):
         return concentration.squeeze(dim=-1), rate.squeeze(dim=-1)
 
     @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-    @property
     def value_in_support(self) -> float:
         return 0.5
 
@@ -258,10 +249,6 @@ class PoissonOutput(DistributionOutput):
         rate_pos = F.softplus(rate).clone()
         return (rate_pos.squeeze(-1),)
 
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
 
 class NegativeBinomialOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
@@ -274,7 +261,12 @@ class NegativeBinomialOutput(DistributionOutput):
 
     def _base_distribution(self, distr_args) -> Distribution:
         total_count, logits = distr_args
-        return self.distr_cls(total_count=total_count, logits=logits)
+        if self.dim == 1:
+            return self.distr_cls(total_count=total_count, logits=logits)
+        else:
+            return Independent(
+                self.distr_cls(total_count=total_count, logits=logits), 1
+            )
 
     # Overwrites the parent class method. We cannot scale using the affine
     # transformation since negative binomial should return integers. Instead
@@ -290,8 +282,4 @@ class NegativeBinomialOutput(DistributionOutput):
         if scale is not None:
             logits += scale.log()
 
-        return NegativeBinomial(total_count=total_count, logits=logits)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
+        return self._base_distribution((total_count, logits))
