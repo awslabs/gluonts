@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 
@@ -67,34 +67,36 @@ class StatsForecastPredictor(RepresentablePredictor):
     """
     A predictor type that wraps models from the `statsforecast`_ package.
 
-    Objects of this class are constructed with a type (for example,
-    ``statsforecast.models.AutoARIMA``) and a dictionary of parameters.
+    This class is used via subclassing and setting the ``ModelType`` class
+    attribute to specify the ``statsforecast`` model type to use.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
 
     Parameters
     ----------
-    model_constructor
-        Model constructor (e.g. ``statsforecast.models.AutoARIMA``).
-    kwargs
-        Dictionary of keyword arguments to be passed for model construction.
     prediction_length
         Prediction length for the model to use.
     quantile_levels
         Optional list of quantile levels that we want predictions for.
         By default this is ``None``, giving only the mean predition.
+    **kwargs
+        Keyword arguments to be passed to the model type for construction.
+        The specific arguments accepted or required depend on the
+        ``ModelType``; please refer to the documentation of ``statsforecast``
+        for details.
     """
+
+    ModelType: Type
 
     @validated()
     def __init__(
         self,
-        model_constructor,
-        kwargs: dict,
         prediction_length: int,
         quantile_levels: Optional[List[float]] = None,
+        **kwargs,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
-        self.model = model_constructor(**kwargs)
+        self.model = self.ModelType(**kwargs)
         self.config = ModelConfig(quantile_levels=quantile_levels)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
@@ -103,13 +105,15 @@ class StatsForecastPredictor(RepresentablePredictor):
         if self.config.intervals is not None:
             kwargs["level"] = self.config.intervals
 
-        pred = self.model.forecast(
+        prediction = self.model.forecast(
             y=entry["target"],
             h=self.prediction_length,
             **kwargs,
         )
 
-        forecast_arrays = [pred[k] for k in self.config.statsforecast_keys]
+        forecast_arrays = [
+            prediction[k] for k in self.config.statsforecast_keys
+        ]
 
         return QuantileForecast(
             forecast_arrays=np.stack(forecast_arrays, axis=0),
@@ -124,206 +128,105 @@ class ADIDAPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``ADIDA`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``ADIDA``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=ADIDA,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = ADIDA
 
 
 class AutoARIMAPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``AutoARIMA`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``AutoARIMA``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=AutoARIMA,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = AutoARIMA
 
 
 class AutoCESPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``AutoCES`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``AutoCES``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=AutoCES,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = AutoCES
 
 
 class CrostonClassicPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``CrostonClassic`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``CrostonClassic``: please refer
-    to the documentation of `statsforecast`_ to know more about its
-    parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=CrostonClassic,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = CrostonClassic
 
 
 class CrostonOptimizedPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``CrostonOptimized`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``CrostonOptimized``: please refer
-    to the documentation of `statsforecast`_ to know more about its
-    parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=CrostonOptimized,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = CrostonOptimized
 
 
 class CrostonSBAPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``CrostonSBA`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``CrostonSBA``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=CrostonSBA,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = CrostonSBA
 
 
 class ETSPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``ETS`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``ETS``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=ETS,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = ETS
 
 
 class IMAPAPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``IMAPA`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``IMAPA``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=IMAPA,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = IMAPA
 
 
 class TSBPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``TSB`` model from `statsforecast`_.
 
-    The predictor is constructed with a ``prediction_length`` parameters,
-    plus all additional arguments needed by ``TSB``: please refer to
-    the documentation of `statsforecast`_ to know more about its parameters.
+    See :class:`StatsForecastPredictor` for the list of arguments.
 
     .. _statsforecast: https://github.com/Nixtla/statsforecast
     """
 
-    @validated()
-    def __init__(
-        self, prediction_length: int, quantile_levels=None, **kwargs
-    ) -> None:
-        super().__init__(
-            model_constructor=TSB,
-            kwargs=kwargs,
-            prediction_length=prediction_length,
-            quantile_levels=quantile_levels,
-        )
+    ModelType = TSB

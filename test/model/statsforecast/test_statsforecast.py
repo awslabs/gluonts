@@ -91,6 +91,7 @@ def test_predictor_working(
         predictor_copy = Predictor.deserialize(Path(temp_dir))
 
     assert predictor_copy == predictor
+    assert isinstance(predictor_copy.model, predictor_copy.ModelType)
 
     for forecast in predictor_copy.predict(dataset):
         assert isinstance(forecast, QuantileForecast)
