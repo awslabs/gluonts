@@ -21,9 +21,14 @@ mean = label + np.random.random()
 
 batches = [{"label": label, "mean": mean}, {"label": label, "mean": mean + 1}]
 
-abs_label = evaluate(batches=iter(batches), metric=AbsLabel())  # non-aggregated metric
-mse = evaluate(batches=iter(batches), metric=MSE(axis=1))  # aggregated metric
-nrmse = evaluate(batches=iter(batches), metric=NRMSE(axis=None))  # derived metric
+# non-aggregated metric
+abs_label = evaluate(batches=iter(batches), metric=AbsLabel())
+
+# aggregated metric
+mse = evaluate(batches=iter(batches), metric=MSE(axis=1))
+
+# derived metric
+nrmse = evaluate(batches=iter(batches), metric=NRMSE())
 
 print(abs_label)
 print(mse)

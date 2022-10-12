@@ -173,7 +173,6 @@ class SMAPE(SimpleMetric):
         self.aggregate = Mean(axis=axis)
 
 
-
 # DERIVED METRICS
 
 
