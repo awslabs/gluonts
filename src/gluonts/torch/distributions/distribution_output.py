@@ -107,14 +107,10 @@ class DistributionOutput(Output):
     """
 
     distr_cls: type
-    dim: int = 1
 
     @validated()
     def __init__(self) -> None:
-        if self.args_dim is not None:
-            self.args_dim = {
-                k: self.dim * self.args_dim[k] for k in self.args_dim
-            }
+        pass
 
     def _base_distribution(self, distr_args):
         if self.dim == 1:
@@ -157,7 +153,7 @@ class DistributionOutput(Output):
         Shape of each individual event contemplated by the distributions
         that this object constructs.
         """
-        return () if self.dim == 1 else (self.dim,)
+        raise NotImplementedError()
 
     @property
     def event_dim(self) -> int:
@@ -190,15 +186,29 @@ class NormalOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
     distr_cls: type = Normal
 
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
     @classmethod
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
         return loc.squeeze(-1), scale.squeeze(-1)
 
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
+
 
 class StudentTOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
     distr_cls: type = StudentT
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(
@@ -208,10 +218,19 @@ class StudentTOutput(DistributionOutput):
         df = 2.0 + F.softplus(df)
         return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
+
 
 class BetaOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"concentration1": 1, "concentration0": 1}
     distr_cls: type = Beta
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(
@@ -226,10 +245,19 @@ class BetaOutput(DistributionOutput):
     def value_in_support(self) -> float:
         return 0.5
 
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
+
 
 class GammaOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"concentration": 1, "rate": 1}
     distr_cls: type = Gamma
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(cls, concentration: torch.Tensor, rate: torch.Tensor):
@@ -242,20 +270,38 @@ class GammaOutput(DistributionOutput):
     def value_in_support(self) -> float:
         return 0.5
 
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
+
 
 class PoissonOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"rate": 1}
     distr_cls: type = Poisson
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(cls, rate: torch.Tensor):
         rate_pos = F.softplus(rate).clone()
         return (rate_pos.squeeze(-1),)
 
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
+
 
 class NegativeBinomialOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
     distr_cls: type = NegativeBinomial
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
@@ -286,3 +332,7 @@ class NegativeBinomialOutput(DistributionOutput):
             logits += scale.log()
 
         return self._base_distribution((total_count, logits))
+
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
