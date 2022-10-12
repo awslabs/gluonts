@@ -19,7 +19,7 @@ import pandas as pd
 from gluonts.core.component import validated
 from gluonts.model.forecast import SampleForecast
 
-from . RBasePredictor
+from . import RBasePredictor
 
 
 R_FILE_PREFIX = "hierarchical"
