@@ -12,11 +12,13 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Callable, Iterator, Optional
+from typing import Callable, Dict, Iterator, Optional
 import numpy as np
 
-# BATCH STRATEGIES (Concat, Sum, Mean)
 
+BatchData = Dict[str, np.ndarray]
+
+# BATCH AGGREGATION STRATEGIES (Concat, Sum, Mean)
 
 @dataclass
 class Concat:
@@ -25,7 +27,7 @@ class Concat:
     def step(self, values):
         self.results.append(values)
 
-    def aggregate(self):
+    def get(self):
         return np.concatenate(self.results)
 
 
@@ -37,7 +39,7 @@ class Sum:
     def step(self, values):
         self.results.append(np.sum(values, axis=self.axis))
 
-    def aggregate(self):
+    def get(self):
         if self.axis is None or self.axis == 0:
             return np.sum(self.results, axis=self.axis)
 
@@ -58,33 +60,40 @@ class Mean:
         else:
             self.n += values.shape[self.axis]
 
-    def aggregate(self):
+    def get(self):
         if self.axis is None or self.axis == 0:
             return np.sum(self.results, axis=self.axis) / self.n
 
         return np.concatenate(self.results) / self.n
 
 
-# "simple metrics" includes all metrics which are not derived metrics
-class SimpleMetric:
+
+class Metric():
+    def step(self, data: BatchData):
+        raise NotImplementedError
+
+    def get(self):
+        raise NotImplementedError
+
+# "simple metrics" are all metrics which can be computed 
+class SimpleMetric(Metric):
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
 
         # the following will be set by concrete subclass
-        self.super_aggregate = None
+        self.aggregate = None  # Concat, Sum or Mean
         self.metric_fn = None
 
     def step(self, data):
         func_res = self.metric_fn(data, **self.kwargs)
-        self.super_aggregate.step(func_res)
+        self.aggregate.step(func_res)
 
     def get(self):
-        return self.super_aggregate.aggregate()
-
+        return self.aggregate.get()
 
 def evaluate(
-    batches: Iterator,
-    metric: SimpleMetric,
+    batches: Iterator[BatchData],
+    metric: Metric,
 ):
     for batch in batches:
         metric.step(batch)

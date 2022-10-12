@@ -13,7 +13,7 @@
 
 from typing import Optional
 import numpy as np
-from gluonts.ev_v5.api import Concat, Mean, SimpleMetric, Sum
+from gluonts.ev_v5.api import Concat, Mean, Metric, SimpleMetric, Sum
 
 from gluonts.time_feature import get_seasonality
 
@@ -52,60 +52,61 @@ def coverage(data: dict, q: float):
 
 
 # METRICS USED IN EVALUATION
+
 class AbsLabel(SimpleMetric):
     def __init__(self) -> None:
         super().__init__()
         self.metric_fn = abs_label
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class Error(SimpleMetric):
     def __init__(self, forecast_type: str = "mean") -> None:
         super().__init__(forecast_type=forecast_type)
         self.metric_fn = error
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class AbsError(SimpleMetric):
     def __init__(self, forecast_type: str = "mean") -> None:
         super().__init__(forecast_type=forecast_type)
         self.metric_fn = abs_error
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class SquaredError(SimpleMetric):
     def __init__(self, forecast_type: str = "mean") -> None:
         super().__init__(forecast_type=forecast_type)
         self.metric_fn = squared_error
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class QuantileLoss(SimpleMetric):
     def __init__(self, q: float = 0.5) -> None:
         super().__init__(q=q)
         self.metric_fn = squared_error
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class Coverage(SimpleMetric):
     def __init__(self, q: float = 0.5) -> None:
         super().__init__(q=q)
         self.metric_fn = coverage
-        self.super_aggregate = Concat()
+        self.aggregate = Concat()
 
 
 class AbsLabelMean(SimpleMetric):
     def __init__(self, axis: Optional[int] = None) -> None:
         super().__init__()
         self.metric_fn = abs_label
-        self.super_aggregate = Mean(axis=axis)
+        self.aggregate = Mean(axis=axis)
 
 
 class AbsLabelSum(SimpleMetric):
     def __init__(self, axis: Optional[int] = None) -> None:
         super().__init__()
         self.metric_fn = abs_label
-        self.super_aggregate = Sum(axis=axis)
+        self.aggregate = Sum(axis=axis)
 
 
 class AbsErrorSum(SimpleMetric):
@@ -114,7 +115,7 @@ class AbsErrorSum(SimpleMetric):
     ) -> None:
         super().__init__(forecast_type=forecast_type)
         self.metric_fn = abs_error
-        self.super_aggregate = Sum(axis=axis)
+        self.aggregate = Sum(axis=axis)
 
 
 class MSE(SimpleMetric):
@@ -123,20 +124,19 @@ class MSE(SimpleMetric):
     ) -> None:
         super().__init__(forecast_type=forecast_type)
         self.metric_fn = squared_error
-        self.super_aggregate = Mean(axis=axis)
+        self.aggregate = Mean(axis=axis)
 
 
 class QuantileLossSum(SimpleMetric):
     def __init__(self, axis: Optional[int] = None, q: float = 0.5) -> None:
         super().__init__(q=q)
         self.metric_fn = quantile_loss
-        self.super_aggregate = Sum(axis=axis)
+        self.aggregate = Sum(axis=axis)
 
 
 # DERIVED METRICS
 
-
-class RMSE:
+class RMSE(Metric):
     def __init__(
         self, axis: Optional[int] = None, forecast_type: str = "mean"
     ) -> None:
@@ -149,7 +149,7 @@ class RMSE:
         return np.sqrt(self.mse.get())
 
 
-class NRMSE:
+class NRMSE(Metric):
     def __init__(
         self, axis: Optional[int] = None, forecast_type: str = "mean"
     ) -> None:
