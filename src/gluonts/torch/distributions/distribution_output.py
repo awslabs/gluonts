@@ -107,6 +107,7 @@ class DistributionOutput(Output):
     """
 
     distr_cls: type
+    dim: int = 1
 
     @validated()
     def __init__(self) -> None:
