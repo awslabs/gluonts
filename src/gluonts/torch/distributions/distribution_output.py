@@ -79,7 +79,7 @@ class Output:
     """
 
     in_features: int
-    args_dim: Dict[str, int]
+    args_dim: Optional[Dict[str, int]] = None
     _dtype: Type = np.float32
 
     @property
@@ -111,7 +111,10 @@ class DistributionOutput(Output):
 
     @validated()
     def __init__(self) -> None:
-        self.args_dim = {k: self.dim * self.args_dim[k] for k in self.args_dim}
+        if self.args_dim is not None:
+            self.args_dim = {
+                k: self.dim * self.args_dim[k] for k in self.args_dim
+            }
 
     def _base_distribution(self, distr_args):
         if self.dim == 1:
