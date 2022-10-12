@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -40,7 +40,7 @@ class ModelConfig:
     quantile_levels: Optional[List[float]] = None
     forecast_keys: List[str] = field(init=False)
     statsforecast_keys: List[str] = field(init=False)
-    intervals: List[int] = field(init=False)
+    intervals: Optional[List[int]] = field(init=False)
 
     def __post_init__(self):
         self.forecast_keys = ["mean"]
