@@ -24,7 +24,7 @@ jobs:
         python -m pip install -U pip
         pip install .
         pip install -r requirements/requirements-test.txt
-        pip install statsforecast
+        pip install -r requirements/requirements-extras-statsforecast.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules test/model/statsforecast

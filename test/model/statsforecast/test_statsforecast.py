@@ -16,9 +16,10 @@ import pytest
 import numpy as np
 
 from gluonts.dataset import Dataset
-from gluonts.model import Predictor
-from gluonts.model.forecast import QuantileForecast
+from gluonts.model import QuantileForecast
 from gluonts.model.statsforecast import (
+    ModelConfig,
+    StatsForecastPredictor,
     ADIDAPredictor,
     AutoARIMAPredictor,
     AutoCESPredictor,
@@ -29,6 +30,26 @@ from gluonts.model.statsforecast import (
     IMAPAPredictor,
     TSBPredictor,
 )
+
+
+@pytest.mark.parametrize(
+    "quantile_levels, intervals, forecast_keys, statsforecast_keys",
+    [
+        (
+            [0.5, 0.2, 0.6, 0.9, 0.8, 0.1],
+            [0, 20, 60, 80],
+            ["mean", "0.5", "0.2", "0.6", "0.9", "0.8", "0.1"],
+            ["mean", "lo-0", "lo-60", "hi-20", "hi-80", "hi-60", "lo-80"],
+        ),
+    ],
+)
+def test_model_config(
+    quantile_levels, intervals, forecast_keys, statsforecast_keys
+):
+    config = ModelConfig(quantile_levels=quantile_levels)
+    assert config.intervals == intervals
+    assert config.forecast_keys == forecast_keys
+    assert config.statsforecast_keys == statsforecast_keys
 
 
 @pytest.mark.parametrize(
@@ -59,7 +80,10 @@ from gluonts.model.statsforecast import (
         ]
     ],
 )
-def test_predictor_working(predictor: Predictor, dataset: Dataset):
+def test_predictor_working(
+    predictor: StatsForecastPredictor, dataset: Dataset
+):
     for forecast in predictor.predict(dataset):
         assert isinstance(forecast, QuantileForecast)
         assert len(forecast.mean) == predictor.prediction_length
+        assert predictor.config.forecast_keys == forecast.forecast_keys
