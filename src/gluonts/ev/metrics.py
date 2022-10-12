@@ -13,9 +13,7 @@
 
 from typing import Optional
 import numpy as np
-from gluonts.ev_v5.api import Concat, Mean, Metric, SimpleMetric, Sum
-
-from gluonts.time_feature import get_seasonality
+from gluonts.ev.api import Concat, Mean, Metric, SimpleMetric, Sum
 
 
 # METRIC FUNCTIONS (these are non-aggregating and to be applied batch-wise)

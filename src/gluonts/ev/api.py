@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional
 import numpy as np
 
 

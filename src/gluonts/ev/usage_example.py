@@ -13,8 +13,8 @@
 
 import numpy as np
 
-from gluonts.ev_v5.api import evaluate
-from gluonts.ev_v5.metrics import MSE, NRMSE, AbsLabel
+from gluonts.ev.api import evaluate
+from gluonts.ev.metrics import MSE, NRMSE, AbsLabel
 
 label = np.arange(100).reshape(5, 20)
 mean = label + np.random.random()
