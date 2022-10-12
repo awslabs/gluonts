@@ -11,12 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 import pandas as pd
 import pytest
 import numpy as np
 
 from gluonts.dataset import Dataset
-from gluonts.model import QuantileForecast
+from gluonts.model import Predictor, QuantileForecast
 from gluonts.model.statsforecast import (
     ModelConfig,
     StatsForecastPredictor,
@@ -83,7 +86,13 @@ def test_model_config(
 def test_predictor_working(
     predictor: StatsForecastPredictor, dataset: Dataset
 ):
-    for forecast in predictor.predict(dataset):
+    with TemporaryDirectory() as temp_dir:
+        predictor.serialize(Path(temp_dir))
+        predictor_copy = Predictor.deserialize(Path(temp_dir))
+
+    assert predictor_copy == predictor
+
+    for forecast in predictor_copy.predict(dataset):
         assert isinstance(forecast, QuantileForecast)
-        assert len(forecast.mean) == predictor.prediction_length
-        assert predictor.config.forecast_keys == forecast.forecast_keys
+        assert len(forecast.mean) == predictor_copy.prediction_length
+        assert predictor_copy.config.forecast_keys == forecast.forecast_keys
