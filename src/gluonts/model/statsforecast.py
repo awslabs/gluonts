@@ -60,7 +60,7 @@ class ModelConfig:
             self.forecast_keys.append(str(quantile_level))
             self.statsforecast_keys.append(f"{side}-{interval}")
 
-        self.intervals = sorted(list(intervals))
+        self.intervals = sorted(intervals)
 
 
 class StatsForecastPredictor(RepresentablePredictor):
