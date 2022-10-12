@@ -20,6 +20,7 @@ BatchData = Dict[str, np.ndarray]
 
 # BATCH AGGREGATION STRATEGIES (Concat, Sum, Mean)
 
+
 @dataclass
 class Concat:
     results: list = field(default_factory=list)
@@ -67,15 +68,15 @@ class Mean:
         return np.concatenate(self.results) / self.n
 
 
-
-class Metric():
+class Metric:
     def step(self, data: BatchData):
         raise NotImplementedError
 
     def get(self):
         raise NotImplementedError
 
-# "simple metrics" are all metrics which can be computed 
+
+# "simple metrics" are all metrics which can be computed
 class SimpleMetric(Metric):
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
@@ -90,6 +91,7 @@ class SimpleMetric(Metric):
 
     def get(self):
         return self.aggregate.get()
+
 
 def evaluate(
     batches: Iterator[BatchData],

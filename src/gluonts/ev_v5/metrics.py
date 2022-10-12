@@ -51,7 +51,20 @@ def coverage(data: dict, q: float):
     return data["label"] < data[forecast_type]
 
 
+def absolute_percentage_error(data: dict, forecast_type: str = "0.5"):
+    return abs_error(data, forecast_type) / abs_label(data)
+
+
+def symmetric_absolute_percentage_error(
+    data: dict, forecast_type: str = "0.5"
+):
+    return abs_error(data, forecast_type) / (
+        abs_label(data) + np.abs(data[forecast_type])
+    )
+
+
 # METRICS USED IN EVALUATION
+
 
 class AbsLabel(SimpleMetric):
     def __init__(self) -> None:
@@ -134,7 +147,35 @@ class QuantileLossSum(SimpleMetric):
         self.aggregate = Sum(axis=axis)
 
 
+# TODO: maybe just call this coverage?
+class CoverageMean(SimpleMetric):
+    def __init__(self, axis: Optional[int] = None, q: float = 0.5) -> None:
+        super().__init__(q=q)
+        self.metric_fn = coverage
+        self.aggregate = Mean(axis=axis)
+
+
+class MAPE(SimpleMetric):
+    def __init__(
+        self, axis: Optional[int] = None, forecast_type: str = "0.5"
+    ) -> None:
+        super().__init__(forecast_type=forecast_type)
+        self.metric_fn = absolute_percentage_error
+        self.aggregate = Mean(axis=axis)
+
+
+class SMAPE(SimpleMetric):
+    def __init__(
+        self, axis: Optional[int] = None, forecast_type: str = "0.5"
+    ) -> None:
+        super().__init__(forecast_type=forecast_type)
+        self.metric_fn = symmetric_absolute_percentage_error
+        self.aggregate = Mean(axis=axis)
+
+
+
 # DERIVED METRICS
+
 
 class RMSE(Metric):
     def __init__(
