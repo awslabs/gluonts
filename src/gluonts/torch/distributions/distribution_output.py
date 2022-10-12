@@ -107,11 +107,11 @@ class DistributionOutput(Output):
     """
 
     distr_cls: type
+    dim: int = 1
 
     @validated()
-    def __init__(self, dim: int = 1) -> None:
-        self.dim = dim
-        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+    def __init__(self) -> None:
+        self.args_dim = {k: self.dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
         if self.dim == 1:
