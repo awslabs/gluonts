@@ -31,6 +31,8 @@ pip install wandb
 pip install gluonts
 ```
 
+In addition, we provide the file `duru.yml` for a complete list of dependencies and versions of our conda environment.
+
 In `setup/wandb.yml`, you need to provide your wandb login credentials. 
 Other loggers can likewise be used, if desired.
 

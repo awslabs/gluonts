@@ -10,15 +10,11 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-import torch as T
+import torch
 import torch.nn as nn
 
 
 class HVAE(nn.Module):
-    def __init__(self):
-        super().__init__()
-        pass
-
     def forward(self, x_input, x_target):
         return NotImplementedError
 
@@ -33,9 +29,6 @@ class HVAE(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self):
-        super().__init__()
-
     def forward(self, *args):
         return NotImplementedError
 
@@ -69,18 +62,18 @@ class HVAE_dummy(HVAE):
         # return elbo, distortion, rate, kl_list
         return (
             elbo,
-            T.Tensor([1.0]),
-            T.Tensor([1.0]),
-            [T.Tensor([1.0]) for i in range(9)],
-            [T.Tensor([1.0]) for i in range(9)],
-            [T.Tensor([1.0]) for i in range(9)],
+            torch.Tensor([1.0]),
+            torch.Tensor([1.0]),
+            [torch.Tensor([1.0]) for i in range(9)],
+            [torch.Tensor([1.0]) for i in range(9)],
+            [torch.Tensor([1.0]) for i in range(9)],
         )
 
     def sample_p(self, n_samples, temp, set_z_sample=None):
         """
         set_z_samples enables to partly conditionally sample by setting some of the latent samples.
         """
-        return T.zeros(
+        return torch.zeros(
             (
                 n_samples,
                 self.H.n_meas,
@@ -89,7 +82,7 @@ class HVAE_dummy(HVAE):
         )
 
     def get_recon(self, x):
-        return T.zeros(
+        return torch.zeros(
             (
                 x.shape[0],
                 self.H.n_meas,
@@ -99,7 +92,7 @@ class HVAE_dummy(HVAE):
 
     def get_cond_latent_samples(self, x):
         return [
-            T.zeros(
+            torch.zeros(
                 (
                     x.shape[0],
                     self.H.z_channels,
