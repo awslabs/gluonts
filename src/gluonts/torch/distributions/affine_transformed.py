@@ -33,6 +33,9 @@ class AffineTransformed(TransformedDistribution):
         Translation parameter of the affine transformation.
     scale
         Scaling parameter of the affine transformation.
+    event_dim (int)
+        Optional size of event_shape. This should be zero for univariate random
+        variables or 1 for distributions over multivariate vectors.
     """
 
     def __init__(
