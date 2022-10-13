@@ -31,6 +31,9 @@ class Concat:
     def get(self):
         return np.concatenate(self.results)
 
+    def reset(self):
+        self.results = []
+
 
 @dataclass
 class Sum:
@@ -45,6 +48,9 @@ class Sum:
             return np.sum(self.results, axis=self.axis)
 
         return np.concatenate(self.results)
+
+    def reset(self):
+        self.results = []
 
 
 @dataclass
@@ -67,12 +73,32 @@ class Mean:
 
         return np.concatenate(self.results) / self.n
 
+    def reset(self):
+        self.results = []
+        self.n = 0
+
 
 class Metric:
+    def evaluate(self, data):
+        self.reset()
+
+        self.step(data)
+        return self.get()
+
+    def evaluate_batches(self, batches: Iterator[BatchData]):
+        self.reset()
+
+        for batch in batches:
+            self.step(batch)
+        return self.get()
+
     def step(self, data: BatchData):
         raise NotImplementedError
 
     def get(self):
+        raise NotImplementedError
+
+    def reset(self):
         raise NotImplementedError
 
 
@@ -86,18 +112,11 @@ class SimpleMetric(Metric):
         self.metric_fn = None
 
     def step(self, data):
-        func_res = self.metric_fn(data, **self.kwargs)
-        self.aggregate.step(func_res)
+        fn_res = self.metric_fn(data, **self.kwargs)
+        self.aggregate.step(fn_res)
 
     def get(self):
         return self.aggregate.get()
 
-
-def evaluate(
-    batches: Iterator[BatchData],
-    metric: Metric,
-):
-    for batch in batches:
-        metric.step(batch)
-
-    return metric.get()
+    def reset(self):
+        self.aggregate.reset()

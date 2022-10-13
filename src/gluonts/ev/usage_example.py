@@ -13,7 +13,6 @@
 
 import numpy as np
 
-from gluonts.ev.api import evaluate
 from gluonts.ev.metrics import MSE, NRMSE, AbsLabel
 
 label = np.arange(100).reshape(5, 20)
@@ -22,13 +21,14 @@ mean = label + np.random.random()
 batches = [{"label": label, "mean": mean}, {"label": label, "mean": mean + 1}]
 
 # non-aggregated metric
-abs_label = evaluate(batches=iter(batches), metric=AbsLabel())
+abs_label = AbsLabel().evaluate_batches(batches=iter(batches))
+
 
 # aggregated metric
-mse = evaluate(batches=iter(batches), metric=MSE(axis=1))
+mse = MSE(axis=1).evaluate_batches(batches=iter(batches))
 
 # derived metric
-nrmse = evaluate(batches=iter(batches), metric=NRMSE())
+nrmse = NRMSE().evaluate_batches(batches=iter(batches))
 
 print(abs_label)
 print(mse)

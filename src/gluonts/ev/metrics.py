@@ -186,6 +186,9 @@ class RMSE(Metric):
     def get(self):
         return np.sqrt(self.mse.get())
 
+    def reset(self):
+        self.mse.reset()
+
 
 class NRMSE(Metric):
     def __init__(
@@ -200,3 +203,7 @@ class NRMSE(Metric):
 
     def get(self):
         return self.rmse.get() / self.abs_label_mean.get()
+
+    def reset(self):
+        self.rmse.reset()
+        self.abs_label_mean.reset()
