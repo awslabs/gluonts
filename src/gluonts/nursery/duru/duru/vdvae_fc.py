@@ -843,9 +843,9 @@ class Decoder(nn.Module):
                 res_enc_forecast
             ]
             if self.H.conditional:
-                bottom_up_activation_context = res_to_bottom_up_activations_context[
-                    res_enc_context
-                ]
+                bottom_up_activation_context = (
+                    res_to_bottom_up_activations_context[res_enc_context]
+                )
             else:
                 bottom_up_activation_context = None
 
@@ -920,9 +920,9 @@ class Decoder(nn.Module):
             else:
                 # TODO slighlty inconsistent: j index is over blocks, while k index is over non-up blocks --> just do j index, but requires adjustemtnof set_z_sample passed
                 if self.H.conditional:
-                    bottom_up_activations_context = res_to_bottom_up_activations_context[
-                        res_enc_context
-                    ]
+                    bottom_up_activations_context = (
+                        res_to_bottom_up_activations_context[res_enc_context]
+                    )
                     bottom_up_activations_context = torch.repeat_interleave(
                         bottom_up_activations_context, repeats=n_samples, dim=0
                     )

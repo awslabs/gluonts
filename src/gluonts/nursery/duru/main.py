@@ -323,7 +323,8 @@ def train(
     # print("begin train()...")
     # setting up masking and instance (=chunk) transformers
     train_mask_unobserved = AddObservedValuesIndicator(
-        target_field=FieldName.TARGET, output_field=FieldName.OBSERVED_VALUES,
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
     )
     n_ts_train = len(dataset_train)
     train_splitter = InstanceSplitter(
@@ -372,7 +373,7 @@ def train(
     ]
 
     # initialised before training
-    early_iterations = set([1] + [2 ** exp for exp in range(2, 13)])
+    early_iterations = set([1] + [2**exp for exp in range(2, 13)])
     (
         elbo_has_nan_count,
         distortion_has_nan_count,
@@ -703,7 +704,8 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
     t0_eval = time.time()
 
     eval_mask_unobserved = AddObservedValuesIndicator(
-        target_field=FieldName.TARGET, output_field=FieldName.OBSERVED_VALUES,
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
     )
 
     if H.test_id is None:
@@ -1165,9 +1167,11 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                 if H.vis_eval_state_norm_enc_context and H.conditional:
                     # TODO consider adding input of 0th block (s.t. starts at 0)
                     # TODO consider implementing the same plot for training
-                    state_norm_enc_context_list_list = state_norm_enc_context_list_list[
-                        : H.state_norm_n_batches
-                    ]
+                    state_norm_enc_context_list_list = (
+                        state_norm_enc_context_list_list[
+                            : H.state_norm_n_batches
+                        ]
+                    )
                     state_norm_enc_context = [
                         torch.stack(state_norm_list, dim=1)
                         for state_norm_list in state_norm_enc_context_list_list

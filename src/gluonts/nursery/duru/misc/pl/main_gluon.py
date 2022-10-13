@@ -309,7 +309,7 @@ def train(
     i,
 ):
     # initialised before training
-    hvae.early_iterations = set([1] + [2 ** exp for exp in range(2, 13)])
+    hvae.early_iterations = set([1] + [2**exp for exp in range(2, 13)])
     (
         hvae.elbo_has_nan_count,
         hvae.distortion_has_nan_count,
@@ -323,7 +323,8 @@ def train(
 
     # TODO understand what each of these do
     mask_unobserved = AddObservedValuesIndicator(
-        target_field=FieldName.TARGET, output_field=FieldName.OBSERVED_VALUES,
+        target_field=FieldName.TARGET,
+        output_field=FieldName.OBSERVED_VALUES,
     )
     training_splitter = InstanceSplitter(
         target_field=FieldName.TARGET,
@@ -331,7 +332,8 @@ def train(
         start_field=FieldName.START,
         forecast_start_field=FieldName.FORECAST_START,
         instance_sampler=ExpectedNumInstanceSampler(
-            num_instances=1, min_future=H.forecast_length,
+            num_instances=1,
+            min_future=H.forecast_length,
         ),
         past_length=H.context_length,
         future_length=H.forecast_length,
