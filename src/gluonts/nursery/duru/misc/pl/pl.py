@@ -45,7 +45,10 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
 
         try:
             if self.H.conditinoal:
-                x_context, x_forecast = batch["past_target"], batch["future_target"]
+                x_context, x_forecast = (
+                    batch["past_target"],
+                    batch["future_target"],
+                )
                 (
                     elbo,
                     distortion,
@@ -67,7 +70,9 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
 
             # TODO ------------------
             # TODO before calling forward!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            x = preprocess_fn(x)  # TODO handle as part of the transformers of gluonts?
+            x = preprocess_fn(
+                x
+            )  # TODO handle as part of the transformers of gluonts?
             # TODO -------------
 
             if "cuda" in self.H.device and torch.cuda.device_count() > 1:
@@ -89,7 +94,9 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
             #     grad_clip_count += 1
             # else:
             #     # just compute the gradient norm
-            grad_norm_before_clipping = compute_gradient_norm(self.parameters())
+            grad_norm_before_clipping = compute_gradient_norm(
+                self.parameters()
+            )
 
         except ValueError as e:
             print(e)  # print out exception as if it was thrown
@@ -187,7 +194,9 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                     kl_cum_sum = torch.cumsum(
                         input=torch.stack(kl_list, dim=1), dim=1
                     ).cpu()  # this uses the KLs of one mini-batch, could instead accumulate a couple of batches; cpu (and later numpy) conversion required for plotting
-                    fig = plot_kl_cum_sum(kl_cum_sum=kl_cum_sum, dataset=self.H.dataset)
+                    fig = plot_kl_cum_sum(
+                        kl_cum_sum=kl_cum_sum, dataset=self.H.dataset
+                    )
                     log_key = "train_vis" + "/Cumulative, batch-averaged KLs"
                     wandb.log({log_key: wandb.Image(plt)}, step=self.i)
                     plt.close(fig=fig)  # close the figure
@@ -209,7 +218,8 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                     else:
                         type = "val_vis"
                     wandb.log(
-                        {type + "/unconditional samples": wandb.Image(plt)}, step=self.i
+                        {type + "/unconditional samples": wandb.Image(plt)},
+                        step=self.i,
                     )
                     plt.close(fig=fig)  # close the figure
 
@@ -221,7 +231,8 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
         ):  # -1 means not saving model
             prefix = "iter-%d-" % (self.i)
             torch.save(
-                self.state_dict(), os.path.join(wandb.run.dir, prefix + "model.th")
+                self.state_dict(),
+                os.path.join(wandb.run.dir, prefix + "model.th"),
             )
             torch.save(
                 self.hvae_eval.state_dict(),
@@ -357,8 +368,12 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                     kl_cum_sum = torch.cumsum(
                         input=torch.stack(kl_list, dim=1), dim=1
                     ).cpu()  # this uses the KLs of one mini-batch, could instead accumulate a couple of batches; cpu (and later numpy) conversion required for plotting
-                    fig = plot_kl_cum_sum(kl_cum_sum=kl_cum_sum, dataset=self.H.dataset)
-                    eval_type = "test_vis" if self.H.test_id is not None else "val_vis"
+                    fig = plot_kl_cum_sum(
+                        kl_cum_sum=kl_cum_sum, dataset=self.H.dataset
+                    )
+                    eval_type = (
+                        "test_vis" if self.H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/Cumulative, batch-averaged KLs"
                     wandb.log({log_key: wandb.Image(plt)}, step=self.i)
                     plt.close(fig=fig)  # close the figure
@@ -379,7 +394,8 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                     res_to_n_layers = compute_blocks_per_res(
                         spec=self.H.enc_spec,
                         enc_or_dec="enc",
-                        input_resolution=self.H.context_length + self.H.forecast_length,
+                        input_resolution=self.H.context_length
+                        + self.H.forecast_length,
                         count_up_down=True,
                     )
 
@@ -388,7 +404,9 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                         enc_or_dec="enc",
                         res_to_n_layers=res_to_n_layers,
                     )
-                    eval_type = "test_vis" if self.H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if self.H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/State L2-norm (Encoder)"
                     wandb.log({log_key: wandb.Image(plt)}, step=self.i)
                     plt.close(fig=fig)  # close the figure
@@ -409,7 +427,8 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                     res_to_n_layers = compute_blocks_per_res(
                         spec=self.H.dec_spec,
                         enc_or_dec="dec",
-                        input_resolution=self.H.context_length + self.H.forecast_length,
+                        input_resolution=self.H.context_length
+                        + self.H.forecast_length,
                         count_up_down=True,
                     )
 
@@ -418,7 +437,9 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                         enc_or_dec="dec",
                         res_to_n_layers=res_to_n_layers,
                     )
-                    eval_type = "test_vis" if self.H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if self.H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/State L2-norm (Decoder)"
                     wandb.log({log_key: wandb.Image(plt)}, step=self.i)
                     plt.close(fig=fig)  # close the figure
@@ -440,7 +461,8 @@ class VDVAEConvPL(VDVAEConv, pl.LightningModule):
                 eval_type + "elbo_filtered": elbo_filtered,
                 eval_type + "distortion_filtered": distortion_filtered,
                 eval_type + "rate_filtered": rate_filtered,
-                eval_type + "total_eval_time_seconds": time_in_sec_training_step,
+                eval_type
+                + "total_eval_time_seconds": time_in_sec_training_step,
             }
 
             self.log_dict(log_dict, on_epoch=True)

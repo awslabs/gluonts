@@ -103,12 +103,16 @@ def main():
             "last_save_iter.th",
         ]  # 'last_save_iter.th' is just storing an int
         run_id = H.train_id if H.train_id is not None else H.test_id
-        download_some_wandb_files(files_to_restore=files_to_restore, run_id=run_id)
+        download_some_wandb_files(
+            files_to_restore=files_to_restore, run_id=run_id
+        )
         # Note: loads another H dictionary in the case of restoring which overwrites the new one above
         H = torch.load(
             os.path.join(wandb.run.dir, files_to_restore[0])
         )  # overwrites H parsed above
-        last_save_iter = torch.load(os.path.join(wandb.run.dir, files_to_restore[1]))
+        last_save_iter = torch.load(
+            os.path.join(wandb.run.dir, files_to_restore[1])
+        )
         # In the restored H, we overwrite train or test restore information which we need below
         if training:
             H.train_id = run_id
@@ -410,7 +414,10 @@ def train(
             t0_train = time.time()
 
             batch = next(gen_train)
-            x_context, x_forecast = batch["past_target"], batch["future_target"]
+            x_context, x_forecast = (
+                batch["past_target"],
+                batch["future_target"],
+            )
             x_item_id = batch["item_id"]
             # TODO can make nicer: wrap into transform
 
@@ -447,7 +454,9 @@ def train(
                         state_norm_enc_context_list,
                         state_norm_dec_list,
                         p_x_z,
-                    ) = hvae.forward_regular(x_context=x_context, x_forecast=x_forecast)
+                    ) = hvae.forward_regular(
+                        x_context=x_context, x_forecast=x_forecast
+                    )
                 else:
                     (
                         elbo,
@@ -484,7 +493,9 @@ def train(
                 #     grad_clip_count += 1
                 # else:
                 #     # just compute the gradient norm
-                grad_norm_before_clipping = compute_gradient_norm(hvae.parameters())
+                grad_norm_before_clipping = compute_gradient_norm(
+                    hvae.parameters()
+                )
 
             except ValueError as e:
                 print(e)  # print out exception as if it was thrown
@@ -557,8 +568,15 @@ def train(
                 if H.vis_train and i % H.iters_per_vis == 0:
 
                     if H.vis_train_recon:
-                        x_context = vis_train_x_context_input if H.conditional else None
-                        if torch.cuda.device_count() > 1 and "cuda" in H.device:
+                        x_context = (
+                            vis_train_x_context_input
+                            if H.conditional
+                            else None
+                        )
+                        if (
+                            torch.cuda.device_count() > 1
+                            and "cuda" in H.device
+                        ):
                             recon_x_hat, recon_p_x_z = hvae.module.get_recon(
                                 x_forecast=vis_train_x_forecast_input,
                                 x_context=x_context,
@@ -617,7 +635,9 @@ def train(
                         wandb.log(
                             {
                                 "train_vis"
-                                + "/inputs_and_reconstructions": wandb.Image(plt)
+                                + "/inputs_and_reconstructions": wandb.Image(
+                                    plt
+                                )
                             },
                             step=i,
                         )
@@ -626,8 +646,12 @@ def train(
                         kl_cum_sum = torch.cumsum(
                             input=torch.stack(kl_list, dim=1), dim=1
                         ).cpu()  # this uses the KLs of one mini-batch, could instead accumulate a couple of batches; cpu (and later numpy) conversion required for plotting
-                        fig = plot_kl_cum_sum(kl_cum_sum=kl_cum_sum, dataset=H.dataset)
-                        log_key = "train_vis" + "/Cumulative, batch-averaged KLs"
+                        fig = plot_kl_cum_sum(
+                            kl_cum_sum=kl_cum_sum, dataset=H.dataset
+                        )
+                        log_key = (
+                            "train_vis" + "/Cumulative, batch-averaged KLs"
+                        )
                         wandb.log({log_key: wandb.Image(plt)}, step=i)
                         plt.close(fig=fig)  # close the figure
 
@@ -645,11 +669,13 @@ def train(
 
             # Models, optimizer and scheduler saving 'checkpoint'
             if (
-                i % H.iters_per_model_save == 0 and not H.iters_per_model_save == -1
+                i % H.iters_per_model_save == 0
+                and not H.iters_per_model_save == -1
             ):  # -1 means not saving model
                 prefix = "iter-%d-" % (i)
                 torch.save(
-                    hvae.state_dict(), os.path.join(wandb.run.dir, prefix + "model.th")
+                    hvae.state_dict(),
+                    os.path.join(wandb.run.dir, prefix + "model.th"),
                 )
                 torch.save(
                     hvae_eval.state_dict(),
@@ -709,7 +735,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
         # set up validation data loader. take only subset because otherwise too many samples
         if H.dataset == "dummy":
             subset_indices = np.random.choice(
-                np.arange(dataset_eval.__len__()), size=H.n_eval_samples, replace=False
+                np.arange(dataset_eval.__len__()),
+                size=H.n_eval_samples,
+                replace=False,
             )
             loader_eval = torch.utils.data.DataLoader(
                 torch.utils.data.Subset(dataset_eval, indices=subset_indices),
@@ -757,7 +785,10 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                 break
             # print("while - after")
 
-            x_context, x_forecast = batch["past_target"], batch["future_target"]
+            x_context, x_forecast = (
+                batch["past_target"],
+                batch["future_target"],
+            )
             x_item_id = batch["item_id"]
             # TODO can make nicer: wrap into transform
 
@@ -819,7 +850,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             # reshape so to get batch dimension back
             # do not use reshape!!!
             pred = pred.unsqueeze(0)
-            pred = torch.split(pred, split_size_or_sections=H.p_sample_n_samples, dim=1)
+            pred = torch.split(
+                pred, split_size_or_sections=H.p_sample_n_samples, dim=1
+            )
             pred = torch.cat(pred, dim=0)
             # take median as the prediction
             pred = torch.quantile(pred, dim=1, q=0.5, keepdim=False)
@@ -834,7 +867,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             mse = torch.nn.functional.mse_loss(
                 pred, x_forecast[:, :, H.pad_forecast :]
             )  # slice out the padding of x_forecast, already done in likelihood for p_x_z_mean
-            mae = torch.nn.functional.l1_loss(pred, x_forecast[:, :, H.pad_forecast :])
+            mae = torch.nn.functional.l1_loss(
+                pred, x_forecast[:, :, H.pad_forecast :]
+            )
             rmse = torch.sqrt(mse)
 
             # Note: might have to average across machines when using DataParallel --> see main.py, ll. 98
@@ -845,7 +880,10 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                 (rate, rate_list),
                 (kl_list, kl_list_list),
                 (state_norm_enc_list, state_norm_enc_list_list),
-                (state_norm_enc_context_list, state_norm_enc_context_list_list),
+                (
+                    state_norm_enc_context_list,
+                    state_norm_enc_context_list_list,
+                ),
                 (state_norm_dec_list, state_norm_dec_list_list),
                 (mse, mse_list),
                 (mae, mae_list),
@@ -856,7 +894,14 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             # print("eval j: %d"%(j))
 
         # compute filtered metrics for elbo, distortion, rate (might contain infinite or nan values)
-        elbo_list, distortion_list, rate_list, mse_list, mae_list, rmse_list = (
+        (
+            elbo_list,
+            distortion_list,
+            rate_list,
+            mse_list,
+            mae_list,
+            rmse_list,
+        ) = (
             [elbo.cpu().numpy() for elbo in elbo_list],
             [distortion.cpu().numpy() for distortion in distortion_list],
             [rate.cpu().numpy() for rate in rate_list],
@@ -864,9 +909,11 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             [mae.cpu().numpy() for mae in mae_list],
             [rmse.cpu().numpy() for rmse in rmse_list],
         )  # convert ot numpy
-        elbo_filtered_list, distortion_filtered_list, rate_filtered_list = finites_only(
-            elbo_list, distortion_list, rate_list
-        )
+        (
+            elbo_filtered_list,
+            distortion_filtered_list,
+            rate_filtered_list,
+        ) = finites_only(elbo_list, distortion_list, rate_list)
         # compute means
         (
             elbo_mean,
@@ -909,7 +956,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             vis_eval_x_forecast_input,
             vis_eval_x_item_id,
         ) = get_sample_for_visualization(
-            generator=dummy_gen_eval, normalize_fn=normalize_fn, device=H.device
+            generator=dummy_gen_eval,
+            normalize_fn=normalize_fn,
+            device=H.device,
         )
         vis_eval_x_context_orig_list = [
             vis_eval_x_context_orig[i].cpu().detach()
@@ -924,14 +973,18 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
             if H.vis_eval and i % H.iters_per_vis == 0:
 
                 if H.vis_eval_recon:
-                    x_context = vis_eval_x_context_input if H.conditional else None
+                    x_context = (
+                        vis_eval_x_context_input if H.conditional else None
+                    )
                     if torch.cuda.device_count() > 1 and "cuda" in H.device:
                         recon_x_hat, recon_p_x_z = hvae_eval.module.get_recon(
-                            x_forecast=vis_eval_x_forecast_input, x_context=x_context
+                            x_forecast=vis_eval_x_forecast_input,
+                            x_context=x_context,
                         )
                     else:
                         recon_x_hat, recon_p_x_z = hvae_eval.get_recon(
-                            x_forecast=vis_eval_x_forecast_input, x_context=x_context
+                            x_forecast=vis_eval_x_forecast_input,
+                            x_context=x_context,
                         )
                     recon_x_hat = unnormalize_fn(
                         recon_x_hat, ids=vis_eval_x_item_id
@@ -954,9 +1007,14 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                         recon_n_rows=H.recon_n_rows,
                         recon_n_cols=H.recon_n_cols,
                     )
-                    eval_type = "test_vis" if H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if H.test_id is not None else "val_vis"
+                    )
                     wandb.log(
-                        {eval_type + "/inputs_and_reconstructions": wandb.Image(plt)},
+                        {
+                            eval_type
+                            + "/inputs_and_reconstructions": wandb.Image(plt)
+                        },
                         step=i,
                     )
                     plt.close(fig=fig)  # close the figure
@@ -990,7 +1048,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
 
                         # reshape so to get batch dimension back
                         # do not do reshape!!!
-                        p_samples = p_samples.unsqueeze(0)  # new batch dimension
+                        p_samples = p_samples.unsqueeze(
+                            0
+                        )  # new batch dimension
                         p_samples = torch.split(
                             p_samples,
                             split_size_or_sections=H.p_sample_n_samples,
@@ -1060,8 +1120,12 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                     kl_cum_sum = torch.cumsum(
                         input=torch.stack(kl_list, dim=1), dim=1
                     ).cpu()  # this uses the KLs of one mini-batch, could instead accumulate a couple of batches; cpu (and later numpy) conversion required for plotting
-                    fig = plot_kl_cum_sum(kl_cum_sum=kl_cum_sum, dataset=H.dataset)
-                    eval_type = "test_vis" if H.test_id is not None else "val_vis"
+                    fig = plot_kl_cum_sum(
+                        kl_cum_sum=kl_cum_sum, dataset=H.dataset
+                    )
+                    eval_type = (
+                        "test_vis" if H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/Cumulative, batch-averaged KLs"
                     wandb.log({log_key: wandb.Image(plt)}, step=i)
                     plt.close(fig=fig)  # close the figure
@@ -1091,7 +1155,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                         enc_or_dec="enc",
                         res_to_n_layers=res_to_n_layers,
                     )
-                    eval_type = "test_vis" if H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/State L2-norm (Encoder)"
                     wandb.log({log_key: wandb.Image(plt)}, step=i)
                     plt.close(fig=fig)  # close the figure
@@ -1106,7 +1172,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                         torch.stack(state_norm_list, dim=1)
                         for state_norm_list in state_norm_enc_context_list_list
                     ]
-                    state_norm_enc_context = torch.cat(state_norm_enc_context, dim=0)
+                    state_norm_enc_context = torch.cat(
+                        state_norm_enc_context, dim=0
+                    )
                     state_norm_enc_context = (
                         state_norm_enc_context.detach().cpu().numpy()
                     )
@@ -1123,7 +1191,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                         enc_or_dec="enc",
                         res_to_n_layers=res_to_n_layers,
                     )
-                    eval_type = "test_vis" if H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/State L2-norm (Encoder context)"
                     wandb.log({log_key: wandb.Image(plt)}, step=i)
                     plt.close(fig=fig)  # close the figure
@@ -1153,7 +1223,9 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                         enc_or_dec="dec",
                         res_to_n_layers=res_to_n_layers,
                     )
-                    eval_type = "test_vis" if H.test_id is not None else "val_vis"
+                    eval_type = (
+                        "test_vis" if H.test_id is not None else "val_vis"
+                    )
                     log_key = eval_type + "/State L2-norm (Decoder)"
                     wandb.log({log_key: wandb.Image(plt)}, step=i)
                     plt.close(fig=fig)  # close the figure
@@ -1178,7 +1250,8 @@ def evaluate(H, dataset_eval, normalize_fn, unnormalize_fn, hvae_eval, i):
                 eval_type + "elbo_filtered": elbo_filtered_mean,
                 eval_type + "distortion_filtered": distortion_filtered_mean,
                 eval_type + "rate_filtered": rate_filtered_mean,
-                eval_type + "total_eval_time_seconds": time_in_sec_training_step,
+                eval_type
+                + "total_eval_time_seconds": time_in_sec_training_step,
             }
 
             wandb.log(

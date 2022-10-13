@@ -16,7 +16,11 @@ import os
 import numpy as np
 
 from hyperparams import args_parser
-from utils import load_dict_from_yaml, check_hyperparams, download_some_wandb_files
+from utils import (
+    load_dict_from_yaml,
+    check_hyperparams,
+    download_some_wandb_files,
+)
 from data import set_up_data
 
 # from plotting import plot_inputs_and_recons_torch_grid, plot_uncond_samples  # TODO import
@@ -82,12 +86,16 @@ def main():
             "last_save_iter.th",
         ]  # 'last_save_iter.th' is just storing an int
         run_id = H.train_id if H.train_id is not None else H.test_id
-        download_some_wandb_files(files_to_restore=files_to_restore, run_id=run_id)
+        download_some_wandb_files(
+            files_to_restore=files_to_restore, run_id=run_id
+        )
         # Note: loads another H dictionary in the case of restoring which overwrites the new one above
         H = torch.load(
             os.path.join(wandb.run.dir, files_to_restore[0])
         )  # overwrites H parsed above
-        last_save_iter = torch.load(os.path.join(wandb.run.dir, files_to_restore[1]))
+        last_save_iter = torch.load(
+            os.path.join(wandb.run.dir, files_to_restore[1])
+        )
         # In the restored H, we overwrite train or test restore information which we need below
         if training:
             H.train_id = run_id
@@ -291,7 +299,14 @@ def main():
 
 
 def train(
-    H, dataset_train, dataset_val, preprocess_fn, hvae, hvae_eval, wandb_logger, i
+    H,
+    dataset_train,
+    dataset_val,
+    preprocess_fn,
+    hvae,
+    hvae_eval,
+    wandb_logger,
+    i,
 ):
     # initialised before training
     hvae.early_iterations = set([1] + [2 ** exp for exp in range(2, 13)])
@@ -325,7 +340,9 @@ def train(
 
     # set up train data loader. take only subset because otherwise too many samples
     subset_indices = np.random.choice(
-        np.arange(dataset_train.__len__()), size=H.n_train_samples, replace=False
+        np.arange(dataset_train.__len__()),
+        size=H.n_train_samples,
+        replace=False,
     )
     loader_train = TrainDataLoader(
         Cached(torch.utils.data.Subset(dataset_train, indices=subset_indices)),
@@ -362,7 +379,8 @@ def test(H, dataset_test, preprocess_fn, hvae_eval, wandb_logger, i):
     )
 
     trainer = pl.Trainer(
-        logger=wandb_logger, accelerator="gpu" if torch.cuda.is_available() else "cpu"
+        logger=wandb_logger,
+        accelerator="gpu" if torch.cuda.is_available() else "cpu",
     )
     trainer.test(hvae_eval, dataloaders=loader_test)
 

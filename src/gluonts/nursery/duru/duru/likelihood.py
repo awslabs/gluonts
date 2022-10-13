@@ -28,7 +28,8 @@ class GaussianLikelihoodSigmaHyperparam:
 
         p_x_z = D.Independent(
             D.Normal(
-                loc=p_x_z_mean, scale=torch.ones_like(p_x_z_mean) * self.H.sigma_p_x_z
+                loc=p_x_z_mean,
+                scale=torch.ones_like(p_x_z_mean) * self.H.sigma_p_x_z,
             ),
             reinterpreted_batch_ndims=2,
         )  # TODO check reinterpreted_batch_ndims argument
@@ -52,7 +53,8 @@ class GaussianLikelihoodSigmaHyperparam:
 
         p_x_z = D.Independent(
             D.Normal(
-                loc=p_x_z_mean, scale=torch.ones_like(p_x_z_mean) * self.H.sigma_p_x_z
+                loc=p_x_z_mean,
+                scale=torch.ones_like(p_x_z_mean) * self.H.sigma_p_x_z,
             ),
             reinterpreted_batch_ndims=2,
         )  # TODO check reinterpreted_batch_ndims argument
@@ -68,7 +70,9 @@ class GaussianLikelihoodSigmaEstimated:
         # if padding is used: exclude from loss computation
         if self.H.pad_forecast > 0:
             # padding was added on the left, in the second channel
-            x = x[:, :, self.H.pad_forecast :]  # TODO assumes just one measurement
+            x = x[
+                :, :, self.H.pad_forecast :
+            ]  # TODO assumes just one measurement
             p_x_z_mean = p_x_z_mean[:, :, self.H.pad_forecast :]
             p_x_z_log_std = p_x_z_log_std[:, :, self.H.pad_forecast :]
 

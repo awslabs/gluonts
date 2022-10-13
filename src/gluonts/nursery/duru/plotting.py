@@ -31,9 +31,15 @@ def plot_kl_cum_sum(kl_cum_sum, dataset):
     ax = fig.add_subplot(1, 1, 1)
 
     # implicitly converts to numpy
-    ax.plot(layer_indices, kl_cum_sum_mean, color="black", linewidth=2)  # line plot
-    ax.plot(layer_indices, kl_cum_sum_lower, color="black", linewidth=0.5)  # line plot
-    ax.plot(layer_indices, kl_cum_sum_upper, color="black", linewidth=0.5)  # line plot
+    ax.plot(
+        layer_indices, kl_cum_sum_mean, color="black", linewidth=2
+    )  # line plot
+    ax.plot(
+        layer_indices, kl_cum_sum_lower, color="black", linewidth=0.5
+    )  # line plot
+    ax.plot(
+        layer_indices, kl_cum_sum_upper, color="black", linewidth=0.5
+    )  # line plot
 
     ax.set_xlabel("Layer index")
     ylabel = "Cumulative, batch-averaged KLs"
@@ -99,7 +105,9 @@ def plot_state_norm(state_norm, enc_or_dec, res_to_n_layers):
         y_label_insert = "backward"
     plt.xlabel(x_label)
     plt.ylabel(
-        "$\|\| y_i \|\|_2$ ($y_i$ is output of " + y_label_insert + " block $i$)"
+        "$\|\| y_i \|\|_2$ ($y_i$ is output of "
+        + y_label_insert
+        + " block $i$)"
     )
     plt.xlim(0, np.max(layer_idxs))
     plt.ylim(0, np.max(upper))
@@ -170,9 +178,15 @@ def plot_inputs_and_recons(
         for c in range(recon_n_cols):
             # TODO flatten assumes 1d time series --> later extend to multivariate
             if do_samples:
-                x_hat_q50 = torch.quantile(x_hat_list[ind], dim=0, q=0.5).flatten()
-                x_hat_q05 = torch.quantile(x_hat_list[ind], dim=0, q=0.05).flatten()
-                x_hat_q95 = torch.quantile(x_hat_list[ind], dim=0, q=0.95).flatten()
+                x_hat_q50 = torch.quantile(
+                    x_hat_list[ind], dim=0, q=0.5
+                ).flatten()
+                x_hat_q05 = torch.quantile(
+                    x_hat_list[ind], dim=0, q=0.05
+                ).flatten()
+                x_hat_q95 = torch.quantile(
+                    x_hat_list[ind], dim=0, q=0.95
+                ).flatten()
                 axes[r, c].plot(
                     forecast_indices,
                     x_hat_q50,
@@ -242,7 +256,9 @@ def plot_inputs_and_recons(
 
     # add shared legend (taking the one from the first element)
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3 if conditional else 2)
+    fig.legend(
+        handles, labels, loc="lower center", ncol=3 if conditional else 2
+    )
 
     # for ax in axes.flat:
     #     ax.label_outer()
@@ -260,7 +276,9 @@ def plot_inputs_and_recons(
     return fig
 
 
-def plot_p_sample(ts_list, p_sample_n_rows, p_sample_n_cols, x_context_list=None):
+def plot_p_sample(
+    ts_list, p_sample_n_rows, p_sample_n_cols, x_context_list=None
+):
     # find dimensions of one input
     # ts_dims = ts_list[0].size()
 
@@ -319,6 +337,8 @@ def plot_p_sample(ts_list, p_sample_n_rows, p_sample_n_cols, x_context_list=None
 
     # add shared legend (taking the one from the first element)
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3 if conditional else 2)
+    fig.legend(
+        handles, labels, loc="lower center", ncol=3 if conditional else 2
+    )
 
     return fig

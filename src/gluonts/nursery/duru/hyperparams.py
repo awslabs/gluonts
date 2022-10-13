@@ -64,7 +64,10 @@ def args_parser():
         help="mode of wandb run tracking, either no tracking ('disabled') or with tracking ('online')",
     )
     parser.add_argument(
-        "--model", type=str, default="vdvae_conv", help="one in {vdvae_conv,vdvae_fc}"
+        "--model",
+        type=str,
+        default="vdvae_conv",
+        help="one in {vdvae_conv,vdvae_fc}",
     )
     parser.add_argument(
         "--dataset",
@@ -323,7 +326,9 @@ def args_parser():
         default=16,
         help="Number of items in one mini-batch during training",
     )
-    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate.")
+    parser.add_argument(
+        "--lr", type=float, default=0.001, help="Learning rate."
+    )
     parser.add_argument(
         "--warmup_iters",
         type=float,
@@ -358,10 +363,16 @@ def args_parser():
         help="Weight decay of Adam optimizer.",
     )
     parser.add_argument(
-        "--adam_beta_1", type=float, default=0.9, help="beta_1 parameter in Adam"
+        "--adam_beta_1",
+        type=float,
+        default=0.9,
+        help="beta_1 parameter in Adam",
     )
     parser.add_argument(
-        "--adam_beta_2", type=float, default=0.9, help="beta_2 parameter in Adam"
+        "--adam_beta_2",
+        type=float,
+        default=0.9,
+        help="beta_2 parameter in Adam",
     )
     # Other training/eval configs
     parser.add_argument(
@@ -571,7 +582,10 @@ def args_parser():
         help="The iteration of which a model state was restored from for continued training or testing purposes.",
     )
     parser.add_argument(
-        "--n_params", type=str, default=None, help="Number of model parameters."
+        "--n_params",
+        type=str,
+        default=None,
+        help="Number of model parameters.",
     )
     parser.add_argument(
         "--conditional",

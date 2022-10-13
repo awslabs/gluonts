@@ -45,7 +45,10 @@ def set_up_data(H):
         )  # Conv1D expects (N,C_in,L_in), where C_in=number of channels=measurement dimension, L_in=length of signal sequence
         Y_train = torch.empty(n_samples_train_val).bernoulli_().float().numpy()
         X_test = (
-            torch.empty(n_samples_test, H.n_meas, n_steps).normal_().float().numpy()
+            torch.empty(n_samples_test, H.n_meas, n_steps)
+            .normal_()
+            .float()
+            .numpy()
         )  # Conv1D expects (N,C_in,L_in), where C_in=number of channels=measurement dimension, L_in=length of signal sequence
         Y_test = torch.empty(n_samples_test).bernoulli_().float().numpy()
         # Version 2): all ones
@@ -76,7 +79,8 @@ def set_up_data(H):
             split_offset=-(
                 (H.forecast_length + H.context_length) * H.val_windows_per_item
             ),
-            max_history=(H.forecast_length + H.context_length) * H.val_windows_per_item,
+            max_history=(H.forecast_length + H.context_length)
+            * H.val_windows_per_item,
         )
         if H.single_item:
             data_train = [
@@ -251,7 +255,9 @@ def set_up_data(H):
                             mean = -1.0
                         else:
                             mean = 1.0
-                        noise = np.random.normal(loc=mean, scale=0.3, size=(1000))
+                        noise = np.random.normal(
+                            loc=mean, scale=0.3, size=(1000)
+                        )
                         noise = noise.astype(np.float32)
 
                         item = {}
@@ -287,11 +293,16 @@ def set_up_data(H):
             )
 
     # for normalizing the data, computed per measurements (over all time series and steps)
-    if H.dataset in list(dataset_recipes.keys()) or H.dataset in ["sine", "2gauss"]:
+    if H.dataset in list(dataset_recipes.keys()) or H.dataset in [
+        "sine",
+        "2gauss",
+    ]:
         if H.dataset in list(dataset_recipes.keys()):
             entries = list(dataset_train)
         elif H.dataset in ["sine", "2gauss"]:
-            entries = [dataset_train.data[t] for t in range(dataset_train.n_items)]
+            entries = [
+                dataset_train.data[t] for t in range(dataset_train.n_items)
+            ]
         X_list = [
             entry["target"] for entry in entries
         ]  # list of time series, each of differnt length (hence, cannot convert to numpy array)
@@ -313,8 +324,12 @@ def set_up_data(H):
     if H.normalize == "per_ts_standardize":
         id_to_norm_mean, id_to_norm_std = {}, {}
         for (x, id) in zip(X_list, item_id_list):
-            norm_mean = torch.from_numpy((-np.mean(x, axis=1)).reshape((-1, 1)))
-            norm_std = torch.from_numpy((1.0 / np.std(x, axis=1)).reshape((-1, 1)))
+            norm_mean = torch.from_numpy(
+                (-np.mean(x, axis=1)).reshape((-1, 1))
+            )
+            norm_std = torch.from_numpy(
+                (1.0 / np.std(x, axis=1)).reshape((-1, 1))
+            )
             if "cuda" in H.device:
                 norm_mean = norm_mean.cuda()
                 norm_std = norm_std.cuda()
@@ -358,7 +373,9 @@ def set_up_data(H):
 
         # add padding, if necessary. pads to the next power of two in the first dimension
         pad = (
-            H.pad_forecast if x.shape[2] == H.forecast_length else H.pad_context
+            H.pad_forecast
+            if x.shape[2] == H.forecast_length
+            else H.pad_context
         )  # if H.forecast_length == H.context_length: both will be padded with the same anyway
         if pad > 0:
             x = torch.nn.functional.pad(
@@ -396,7 +413,13 @@ def set_up_data(H):
         dataset_val = TimeSeriesDataset(H, X_val)
         dataset_test = TimeSeriesDataset(H, X_test)
 
-    return dataset_train, dataset_val, dataset_test, normalize_fn, unnormalize_fn
+    return (
+        dataset_train,
+        dataset_val,
+        dataset_test,
+        normalize_fn,
+        unnormalize_fn,
+    )
 
 
 class TimeSeriesDataset(torch.utils.data.Dataset):

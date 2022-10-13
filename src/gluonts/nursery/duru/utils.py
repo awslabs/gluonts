@@ -54,7 +54,13 @@ def download_some_wandb_files(files_to_restore, run_id):
 
     api = wandb.Api()
     wandb_args = load_dict_from_yaml("setup/wandb.yml")
-    run_path = wandb_args["team_name"] + "/" + wandb_args["project_name"] + "/" + run_id
+    run_path = (
+        wandb_args["team_name"]
+        + "/"
+        + wandb_args["project_name"]
+        + "/"
+        + run_id
+    )
     run = api.run(run_path)
     download_dir = wandb.run.dir
 
@@ -153,7 +159,9 @@ def check_hyperparams(H):
 
 def parse_dec_spec_list(enc_spec, dec_spec, input_resolution):
     res = int(
-        compute_bottleneck_res(data_resolution=input_resolution, enc_spec=enc_spec)
+        compute_bottleneck_res(
+            data_resolution=input_resolution, enc_spec=enc_spec
+        )
     )
     dec_spec_split = dec_spec.split(",")
     block_label_list = []
@@ -190,11 +198,16 @@ def compute_gradient_norm(parameters, norm_type=2.0):
     device = parameters[0].grad.device
     if norm_type == torch._six.inf:
         norms = [p.grad.detach().abs().max().to(device) for p in parameters]
-        total_norm = norms[0] if len(norms) == 1 else torch.max(torch.stack(norms))
+        total_norm = (
+            norms[0] if len(norms) == 1 else torch.max(torch.stack(norms))
+        )
     else:
         total_norm = torch.norm(
             torch.stack(
-                [torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]
+                [
+                    torch.norm(p.grad.detach(), norm_type).to(device)
+                    for p in parameters
+                ]
             ),
             norm_type,
         )
@@ -220,7 +233,13 @@ def get_sample_for_visualization(generator, normalize_fn, device):
     x_context_input = normalize_fn(x_context, ids=x_item_id)
     x_forecast_input = normalize_fn(x_forecast, ids=x_item_id)
 
-    return x_context_orig, x_forecast_orig, x_context_input, x_forecast_input, x_item_id
+    return (
+        x_context_orig,
+        x_forecast_orig,
+        x_context_input,
+        x_forecast_input,
+        x_item_id,
+    )
 
 
 def compute_stochastic_depth(dec_spec):
@@ -258,7 +277,9 @@ def compute_bottleneck_res(data_resolution, enc_spec=None, dec_spec=None):
     return res
 
 
-def compute_blocks_per_res(spec, enc_or_dec, input_resolution, count_up_down=False):
+def compute_blocks_per_res(
+    spec, enc_or_dec, input_resolution, count_up_down=False
+):
     res_to_n_layers = {}
     spec_split = spec.split(",")
 
@@ -369,7 +390,9 @@ def gaussian_analytical_kl(mu1, mu2, log_sigma1, log_sigma2):
     log_var_ratio = 2 * (log_sigma1 - log_sigma2)
     t1 = (mu1 - mu2) ** 2 / (2 * log_sigma2).exp()
     sum_dims = list(range(len(mu1.size())))[1:]  # all except batch dimension
-    return (0.5 * (log_var_ratio.exp() + t1 - 1 - log_var_ratio)).sum(dim=sum_dims)
+    return (0.5 * (log_var_ratio.exp() + t1 - 1 - log_var_ratio)).sum(
+        dim=sum_dims
+    )
 
 
 if __name__ == "__main__":

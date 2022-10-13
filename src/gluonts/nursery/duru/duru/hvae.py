@@ -53,8 +53,12 @@ class HVAE_dummy(HVAE):
     def __init__(self, H):
         super().__init__()
         self.H = H
-        self.encoder = nn.Conv1d(H.n_meas, 10, kernel_size=1, stride=1, bias=False)
-        self.decoder = nn.Conv1d(10, H.n_meas, kernel_size=1, stride=1, bias=False)
+        self.encoder = nn.Conv1d(
+            H.n_meas, 10, kernel_size=1, stride=1, bias=False
+        )
+        self.decoder = nn.Conv1d(
+            10, H.n_meas, kernel_size=1, stride=1, bias=False
+        )
 
     def forward(self, *args):
         x_t = self.encoder(args[0])
@@ -77,12 +81,20 @@ class HVAE_dummy(HVAE):
         set_z_samples enables to partly conditionally sample by setting some of the latent samples.
         """
         return T.zeros(
-            (n_samples, self.H.n_meas, self.H.context_length + self.H.forecast_length)
+            (
+                n_samples,
+                self.H.n_meas,
+                self.H.context_length + self.H.forecast_length,
+            )
         )
 
     def get_recon(self, x):
         return T.zeros(
-            (x.shape[0], self.H.n_meas, self.H.context_length + self.H.forecast_length)
+            (
+                x.shape[0],
+                self.H.n_meas,
+                self.H.context_length + self.H.forecast_length,
+            )
         )
 
     def get_cond_latent_samples(self, x):

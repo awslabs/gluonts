@@ -70,9 +70,10 @@ class VDVAEfc(hvae.HVAE):
             x_context = self.input_flatten(x_context)
 
         # print("VDVAE forward inputs: ", x_forecast.shape, x_context.shape)
-        res_to_bottom_up_activations, state_norm_enc_list = self.encoder_forecast(
-            x_forecast
-        )
+        (
+            res_to_bottom_up_activations,
+            state_norm_enc_list,
+        ) = self.encoder_forecast(x_forecast)
         if self.H.conditional:
             (
                 res_to_bottom_up_activations_context,
@@ -103,14 +104,16 @@ class VDVAEfc(hvae.HVAE):
             x_forecast = x_forecast.unsqueeze(
                 1
             )  # convert back to 3 dimensions for likelihood computation (for consistency with VDVAE_conv)
-            p_x_z_mean = state[:, : self.H.n_meas * padded_forecast_length].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
-            p_x_z_log_std = state[:, self.H.n_meas * padded_forecast_length :].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
+            p_x_z_mean = state[
+                :, : self.H.n_meas * padded_forecast_length
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
+            p_x_z_log_std = state[
+                :, self.H.n_meas * padded_forecast_length :
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
             distortion, p_x_z = self.likelihood_model.compute_distortion(
-                p_x_z_mean=p_x_z_mean, p_x_z_log_std=p_x_z_log_std, x=x_forecast
+                p_x_z_mean=p_x_z_mean,
+                p_x_z_log_std=p_x_z_log_std,
+                x=x_forecast,
             )
         # compute rate
         rate = torch.zeros_like(distortion)
@@ -170,7 +173,9 @@ class VDVAEfc(hvae.HVAE):
             x_context = self.input_flatten(x_context)
 
         if self.H.conditional:
-            res_to_bottom_up_activations_context, _ = self.encoder_context(x_context)
+            res_to_bottom_up_activations_context, _ = self.encoder_context(
+                x_context
+            )
         else:
             res_to_bottom_up_activations_context = None
         state, _ = self.decoder.sample_p(
@@ -189,12 +194,12 @@ class VDVAEfc(hvae.HVAE):
                 self.H.pad_context + self.H.context_length,
                 self.H.pad_forecast + self.H.forecast_length,
             )
-            p_x_z_mean = state[:, : self.H.n_meas * padded_forecast_length].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
-            p_x_z_log_std = state[:, self.H.n_meas * padded_forecast_length :].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
+            p_x_z_mean = state[
+                :, : self.H.n_meas * padded_forecast_length
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
+            p_x_z_log_std = state[
+                :, self.H.n_meas * padded_forecast_length :
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
             x_sample = self.likelihood_model.get_mean(p_x_z_mean=p_x_z_mean)
 
         return x_sample
@@ -207,7 +212,9 @@ class VDVAEfc(hvae.HVAE):
 
         res_to_bottom_up_activations, _ = self.encoder_forecast(x_forecast)
         if self.H.conditional:
-            res_to_bottom_up_activations_context, _ = self.encoder_context(x_context)
+            res_to_bottom_up_activations_context, _ = self.encoder_context(
+                x_context
+            )
         else:
             res_to_bottom_up_activations_context = None
         state = self.decoder.get_recon(
@@ -228,15 +235,16 @@ class VDVAEfc(hvae.HVAE):
                 self.H.pad_context + self.H.context_length,
                 self.H.pad_forecast + self.H.forecast_length,
             )
-            p_x_z_mean = state[:, : self.H.n_meas * padded_forecast_length].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
-            p_x_z_log_std = state[:, self.H.n_meas * padded_forecast_length :].reshape(
-                state.shape[0], self.H.n_meas, padded_forecast_length
-            )
+            p_x_z_mean = state[
+                :, : self.H.n_meas * padded_forecast_length
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
+            p_x_z_log_std = state[
+                :, self.H.n_meas * padded_forecast_length :
+            ].reshape(state.shape[0], self.H.n_meas, padded_forecast_length)
             x_hat = self.likelihood_model.get_mean(p_x_z_mean=p_x_z_mean)
             p_x_z = self.likelihood_model.get_p_x_z(
-                p_x_z_mean=p_x_z_mean.clone(), p_x_z_log_std=p_x_z_log_std.clone()
+                p_x_z_mean=p_x_z_mean.clone(),
+                p_x_z_log_std=p_x_z_log_std.clone(),
             )  # clone, since sometimes doing in-place operations of the x_hat --> p_x_z shall remain unaffected
 
         return x_hat, p_x_z
@@ -248,7 +256,9 @@ class VDVAEfc(hvae.HVAE):
             x_context = self.input_flatten(x_context)
 
         if self.H.conditional:
-            res_to_bottom_up_activations_context, _ = self.encoder_context(x_context)
+            res_to_bottom_up_activations_context, _ = self.encoder_context(
+                x_context
+            )
         else:
             res_to_bottom_up_activations_context = None
         res_to_bottom_up_activations, _ = self.encoder_forecast(x_forecast)
@@ -332,7 +342,9 @@ class BlockFCWithBottleneck(nn.Module):
         super().__init__()
         self.a1 = torch.nn.ELU()
         self.fc1 = nn.Linear(in_dim, bottleneck_dim)
-        self.a2_list = torch.nn.ModuleList([torch.nn.ELU() for _ in range(n_fc)])
+        self.a2_list = torch.nn.ModuleList(
+            [torch.nn.ELU() for _ in range(n_fc)]
+        )
         self.fc2_list = torch.nn.ModuleList(
             [nn.Linear(bottleneck_dim, bottleneck_dim) for _ in range(n_fc)]
         )
@@ -401,7 +413,9 @@ class Encoder(nn.Module):
                     self.blocks.append(
                         BlockFCWithBottleneck(
                             in_dim=res,
-                            bottleneck_dim=int(res * self.H.enc_bottleneck_dim_factor),
+                            bottleneck_dim=int(
+                                res * self.H.enc_bottleneck_dim_factor
+                            ),
                             out_dim=res,
                             n_fc=self.H.enc_n_fc_bottleneck,
                             residual=True,
@@ -420,7 +434,9 @@ class Encoder(nn.Module):
                     self.blocks.append(
                         BlockFCWithBottleneck(
                             in_dim=res,
-                            bottleneck_dim=int(res * self.H.enc_bottleneck_dim_factor),
+                            bottleneck_dim=int(
+                                res * self.H.enc_bottleneck_dim_factor
+                            ),
                             out_dim=res,
                             n_fc=self.H.enc_n_fc_bottleneck,
                             residual=True,
@@ -446,7 +462,9 @@ class Encoder(nn.Module):
             res_to_bottom_up_activations[res] = x
             # print("Encoder", self.conditional, j, res)
 
-            state_norm = torch.linalg.norm(torch.flatten(x, start_dim=1), dim=1)
+            state_norm = torch.linalg.norm(
+                torch.flatten(x, start_dim=1), dim=1
+            )
             state_norm_list.append(state_norm)
 
             # TODO magnitude constant
@@ -457,7 +475,9 @@ class Encoder(nn.Module):
 
 
 class DecoderBlock(hvae.DecoderBlock):
-    def __init__(self, H, dec_state_dim, enc_forecast_state_dim, enc_context_state_dim):
+    def __init__(
+        self, H, dec_state_dim, enc_forecast_state_dim, enc_context_state_dim
+    ):
         super().__init__()
         self.H = H
 
@@ -482,7 +502,9 @@ class DecoderBlock(hvae.DecoderBlock):
                 zero_init_weights_last=False,
             )
             self.q_z_block = BlockFCWithBottleneck(
-                in_dim=enc_forecast_state_dim + enc_context_state_dim + dec_state_dim,
+                in_dim=enc_forecast_state_dim
+                + enc_context_state_dim
+                + dec_state_dim,
                 bottleneck_dim=bottleneck_dim,
                 out_dim=self.z_dim * 2,
                 n_fc=self.H.dec_n_fc_bottleneck,
@@ -526,14 +548,21 @@ class DecoderBlock(hvae.DecoderBlock):
             torch.tensor(1 / dec_stochastic_depth)
         )
 
-    def forward(self, state, bottom_up_activation, bottom_up_activation_context=None):
+    def forward(
+        self, state, bottom_up_activation, bottom_up_activation_context=None
+    ):
         # q(z_l | z_>l, x)
         # Note: difference ot original VDVAE code: we here estimate log sigma square, not sigma square or sigma
         if self.H.conditional:
             # TODO output of q_z_block is 1d tensor, not 2d
             mu_q_z, log_sigma_q_z = self.q_z_block(
                 torch.cat(
-                    [state, bottom_up_activation, bottom_up_activation_context], dim=1
+                    [
+                        state,
+                        bottom_up_activation,
+                        bottom_up_activation_context,
+                    ],
+                    dim=1,
                 )
             ).chunk(2, dim=1)
         else:
@@ -572,12 +601,18 @@ class DecoderBlock(hvae.DecoderBlock):
         # Version 1:
         # kl = D.kl_divergence(q_z, p_z)  # for good introduction on shapes in torch distributions, see https://bochang.me/blog/posts/pytorch-distributions/#:~:text=Batch%20shape%20describes%20independent%2C%20not,modeled%20by%20its%20own%20distribution.
         # Version 2:
-        kl = gaussian_analytical_kl(mu_q_z, mu_p_z, log_sigma_q_z, log_sigma_p_z)
+        kl = gaussian_analytical_kl(
+            mu_q_z, mu_p_z, log_sigma_q_z, log_sigma_p_z
+        )
 
         return state, z_sample_cond, kl
 
     def sample_p(
-        self, state, temp, bottom_up_activations_context=None, set_z_sample=None
+        self,
+        state,
+        temp,
+        bottom_up_activations_context=None,
+        set_z_sample=None,
     ):
         # p(z_l | z_>l)
         if self.H.conditional:
@@ -601,7 +636,9 @@ class DecoderBlock(hvae.DecoderBlock):
         if set_z_sample is not None and not self.H.conditional:
             z_sample_uncond = set_z_sample
         elif set_z_sample is None and not self.H.conditional:
-            z_sample_uncond = p_z.rsample()  # properly taking a sample, not the mean
+            z_sample_uncond = (
+                p_z.rsample()
+            )  # properly taking a sample, not the mean
         elif set_z_sample is None and self.H.conditional:
             z_sample_uncond = p_z.rsample(
                 torch.Size([])
@@ -659,12 +696,15 @@ class Decoder(nn.Module):
             {}
         )  # mapping from  layer index to resolution of the output of that layer (in "context dimensions") - encoder context
         self.resolutions_dec = []  # unique set of all resolutions
-        self.up_layer_indices = []  # layer indices which contain up-scaling operation
+        self.up_layer_indices = (
+            []
+        )  # layer indices which contain up-scaling operation
 
         # input_resolution is state dim here, since increased to that in first layer regardless of input size
         res_dec = int(
             compute_bottleneck_res(
-                data_resolution=self.H.dec_state_dim_input, dec_spec=self.H.dec_spec
+                data_resolution=self.H.dec_state_dim_input,
+                dec_spec=self.H.dec_spec,
             )
         )
         res_enc_forecast = int(
@@ -711,16 +751,24 @@ class Decoder(nn.Module):
                         )
                     )
                     self.layer_index_to_out_res_dec[j] = res_dec
-                    self.layer_index_to_out_res_enc_forecast[j] = res_enc_forecast
-                    self.layer_index_to_out_res_enc_context[j] = res_enc_context
+                    self.layer_index_to_out_res_enc_forecast[
+                        j
+                    ] = res_enc_forecast
+                    self.layer_index_to_out_res_enc_context[
+                        j
+                    ] = res_enc_context
                     j += 1
                     for _ in range(
                         n_reps_per_block - 1
                     ):  # already applied once, since layer itself added
                         self.blocks.append(self.blocks[-1])
                         self.layer_index_to_out_res_dec[j] = res_dec
-                        self.layer_index_to_out_res_enc_forecast[j] = res_enc_forecast
-                        self.layer_index_to_out_res_enc_context[j] = res_enc_context
+                        self.layer_index_to_out_res_enc_forecast[
+                            j
+                        ] = res_enc_forecast
+                        self.layer_index_to_out_res_enc_context[
+                            j
+                        ] = res_enc_context
                         j += 1
             else:  # just an integer ('x')
                 for _ in range(int(s)):
@@ -733,8 +781,12 @@ class Decoder(nn.Module):
                         )
                     )
                     self.layer_index_to_out_res_dec[j] = res_dec
-                    self.layer_index_to_out_res_enc_forecast[j] = res_enc_forecast
-                    self.layer_index_to_out_res_enc_context[j] = res_enc_context
+                    self.layer_index_to_out_res_enc_forecast[
+                        j
+                    ] = res_enc_forecast
+                    self.layer_index_to_out_res_enc_context[
+                        j
+                    ] = res_enc_context
                     j += 1
 
         self.resolutions_dec = sorted(
@@ -749,17 +801,23 @@ class Decoder(nn.Module):
         for i, res_dec in enumerate(self.resolutions_dec):
             param_name = "p" + str(res_dec)
             setattr(
-                self.res_bias_object, param_name, nn.Parameter(torch.zeros(1, res_dec))
+                self.res_bias_object,
+                param_name,
+                nn.Parameter(torch.zeros(1, res_dec)),
             )  # string conversion required for passing dict to nn.ParameterDict
             self.res_bias_object.param_names.append(param_name)
 
-        self.new_res_layer_indices = [0] + [int(i + 1) for i in self.up_layer_indices]
+        self.new_res_layer_indices = [0] + [
+            int(i + 1) for i in self.up_layer_indices
+        ]
 
         self.last_scale = nn.Parameter(torch.ones(1, H.dec_state_dim_input))
         self.last_shift = nn.Parameter(torch.zeros(1, H.dec_state_dim_input))
 
     def forward(
-        self, res_to_bottom_up_activations, res_to_bottom_up_activations_context=None
+        self,
+        res_to_bottom_up_activations,
+        res_to_bottom_up_activations_context=None,
     ):
         _, padded_forecast_length = (
             self.H.pad_context + self.H.context_length,
@@ -767,9 +825,9 @@ class Decoder(nn.Module):
         )
         state = torch.zeros(
             (
-                res_to_bottom_up_activations[self.H.enc_forecast_state_dim_input].shape[
-                    0
-                ],
+                res_to_bottom_up_activations[
+                    self.H.enc_forecast_state_dim_input
+                ].shape[0],
                 self.resolutions_dec[0],
             )
         ).to(
@@ -781,7 +839,9 @@ class Decoder(nn.Module):
             res_enc_forecast = int(self.layer_index_to_out_res_enc_forecast[j])
             res_enc_context = int(self.layer_index_to_out_res_enc_context[j])
             # print("Decoder: ", j, res_enc_forecast, res_enc_context)
-            bottom_up_activation = res_to_bottom_up_activations[res_enc_forecast]
+            bottom_up_activation = res_to_bottom_up_activations[
+                res_enc_forecast
+            ]
             if self.H.conditional:
                 bottom_up_activation_context = res_to_bottom_up_activations_context[
                     res_enc_context
@@ -805,7 +865,9 @@ class Decoder(nn.Module):
                 z_sample_cond_list.append(z_sample_cond)
                 kl_list.append(kl)
 
-            state_norm = torch.linalg.norm(torch.flatten(state, start_dim=1), dim=1)
+            state_norm = torch.linalg.norm(
+                torch.flatten(state, start_dim=1), dim=1
+            )
             state_norm_list.append(state_norm)
 
         state = state * self.last_scale + self.last_shift
@@ -832,7 +894,11 @@ class Decoder(nn.Module):
             ).to("cuda" if "cuda" in self.H.device else "cpu")
         else:
             state = torch.zeros(
-                (n_samples, self.H.dec_state_dim_input, self.resolutions_dec[0])
+                (
+                    n_samples,
+                    self.H.dec_state_dim_input,
+                    self.resolutions_dec[0],
+                )
             ).to("cuda" if "cuda" in self.H.device else "cpu")
         z_sample_uncond_list = []
         if set_z_sample is None:
@@ -845,7 +911,9 @@ class Decoder(nn.Module):
             res_enc_context = self.layer_index_to_out_res_enc_context[j]
 
             if j in self.new_res_layer_indices:
-                state = state + getattr(self.res_bias_object, "p" + str(res_dec))
+                state = state + getattr(
+                    self.res_bias_object, "p" + str(res_dec)
+                )
 
             if j in self.up_layer_indices:
                 state = block(state[:])
@@ -880,7 +948,9 @@ class Decoder(nn.Module):
         return state, z_sample_uncond_list
 
     def get_recon(
-        self, res_to_bottom_up_activations, res_to_bottom_up_activations_context=None
+        self,
+        res_to_bottom_up_activations,
+        res_to_bottom_up_activations_context=None,
     ):
         state, _, _, _ = self.forward(
             res_to_bottom_up_activations,
@@ -890,7 +960,9 @@ class Decoder(nn.Module):
         return state
 
     def cond_latent_sample(
-        self, res_to_bottom_up_activations, res_to_bottom_up_activations_context=None
+        self,
+        res_to_bottom_up_activations,
+        res_to_bottom_up_activations_context=None,
     ):
         # TODO one could implement this with less operations than used in forward
         _, z_sample_cond_list, _, _ = self.forward(
