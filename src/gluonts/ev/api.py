@@ -12,15 +12,18 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterator, Optional
+from typing import Iterator, Optional
 import numpy as np
+from torch import quantile
+from gluonts.ev.helpers import (
+    DataProbe,
+    EvalData,
+    axis_is_zero_or_none,
+    gather_inputs,
+)
 
-
-EvalData = Dict[str, np.ndarray]
-
-
-def axis_is_zero_or_none(axis: Optional[int]) -> bool:
-    return axis == 0 or axis is None
+from gluonts.model.forecast import Forecast
+from gluonts.dataset.split import TestData
 
 
 @dataclass
@@ -98,6 +101,23 @@ class Metric:
             self.step(batch)
         return self.get()
 
+    def _required_quantile_levels(self, test_data: TestData):
+        data_probe = DataProbe(test_data)
+        self.evaluate(data_probe)
+        return data_probe.required_quantile_forecasts
+
+    def evaluate_dataset(
+        self, test_data: TestData, forecasts: Iterator[Forecast]
+    ) -> np.ndarray:
+        batches = gather_inputs(
+            test_data=test_data,
+            forecasts=forecasts,
+            quantile_levels=self._required_quantile_levels(test_data),
+        )
+
+        # only NumPy arrays used from here on - yay!
+        return self.evaluate_batches(batches)
+
     def step(self, data: EvalData) -> None:
         raise NotImplementedError
 
@@ -110,7 +130,8 @@ class Metric:
 
 class SimpleMetric(Metric):
     """A `SimpleMetric` can be computed using only one `metric_fn`
-        and aggregation strategy"""
+    and aggregation strategy"""
+
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
 
