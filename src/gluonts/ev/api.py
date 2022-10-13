@@ -16,50 +16,56 @@ from typing import Dict, Iterator, Optional
 import numpy as np
 
 
-BatchData = Dict[str, np.ndarray]
+EvalData = Dict[str, np.ndarray]
 
-# BATCH AGGREGATION STRATEGIES (Concat, Sum, Mean)
+
+def axis_is_zero_or_none(axis: Optional[int]) -> bool:
+    return axis == 0 or axis is None
 
 
 @dataclass
-class Concat:
+class BatchAggregation:
     results: list = field(default_factory=list)
 
-    def step(self, values):
-        self.results.append(values)
+    def step(self) -> None:
+        raise NotImplementedError
 
-    def get(self):
-        return np.concatenate(self.results)
+    def get(self) -> np.ndarray:
+        raise NotImplementedError
 
-    def reset(self):
+    def reset(self) -> None:
         self.results = []
 
 
 @dataclass
-class Sum:
-    axis: Optional[int]
-    results: list = field(default_factory=list)
+class Concat(BatchAggregation):
+    def step(self, values) -> None:
+        self.results.append(values)
 
-    def step(self, values):
+    def get(self) -> np.ndarray:
+        return np.concatenate(self.results)
+
+
+@dataclass
+class Sum(BatchAggregation):
+    axis: Optional[int] = None
+
+    def step(self, values) -> None:
         self.results.append(np.sum(values, axis=self.axis))
 
-    def get(self):
-        if self.axis is None or self.axis == 0:
+    def get(self) -> np.ndarray:
+        if axis_is_zero_or_none(self.axis):
             return np.sum(self.results, axis=self.axis)
 
         return np.concatenate(self.results)
 
-    def reset(self):
-        self.results = []
-
 
 @dataclass
-class Mean:
-    axis: Optional[int]
-    results: list = field(default_factory=list)
+class Mean(BatchAggregation):
+    axis: Optional[int] = None
     n: int = 0
 
-    def step(self, values):
+    def step(self, values) -> None:
         self.results.append(np.sum(values, axis=self.axis))
 
         if self.axis is None:
@@ -67,43 +73,44 @@ class Mean:
         else:
             self.n += values.shape[self.axis]
 
-    def get(self):
-        if self.axis is None or self.axis == 0:
+    def get(self) -> np.ndarray:
+        if axis_is_zero_or_none(self.axis):
             return np.sum(self.results, axis=self.axis) / self.n
 
         return np.concatenate(self.results) / self.n
 
-    def reset(self):
-        self.results = []
+    def reset(self) -> None:
+        super().reset()
         self.n = 0
 
 
 class Metric:
-    def evaluate(self, data):
+    def evaluate(self, data: EvalData) -> np.ndarray:
         self.reset()
 
         self.step(data)
         return self.get()
 
-    def evaluate_batches(self, batches: Iterator[BatchData]):
+    def evaluate_batches(self, batches: Iterator[EvalData]) -> np.ndarray:
         self.reset()
 
         for batch in batches:
             self.step(batch)
         return self.get()
 
-    def step(self, data: BatchData):
+    def step(self, data: EvalData) -> None:
         raise NotImplementedError
 
-    def get(self):
+    def get(self) -> np.ndarray:
         raise NotImplementedError
 
-    def reset(self):
+    def reset(self) -> None:
         raise NotImplementedError
 
 
-# "simple metrics" are all metrics which can be computed
 class SimpleMetric(Metric):
+    """A `SimpleMetric` can be computed using only one `metric_fn`
+        and aggregation strategy"""
     def __init__(self, **kwargs) -> None:
         self.kwargs = kwargs
 
@@ -111,12 +118,12 @@ class SimpleMetric(Metric):
         self.aggregate = None  # Concat, Sum or Mean
         self.metric_fn = None
 
-    def step(self, data):
+    def step(self, data: EvalData) -> None:
         fn_res = self.metric_fn(data, **self.kwargs)
         self.aggregate.step(fn_res)
 
-    def get(self):
+    def get(self) -> np.ndarray:
         return self.aggregate.get()
 
-    def reset(self):
+    def reset(self) -> None:
         self.aggregate.reset()
