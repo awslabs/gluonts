@@ -108,17 +108,13 @@ class DistributionOutput(Output):
     """
 
     distr_cls: type
-    dim: int = 1
 
     @validated()
     def __init__(self) -> None:
         pass
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
-            return self.distr_cls(*distr_args)
-        else:
-            return Independent(self.distr_cls(*distr_args), 1)
+        return self.distr_cls(*distr_args)
 
     def distribution(
         self,
@@ -193,6 +189,12 @@ class NormalOutput(DistributionOutput):
         self.dim = dim
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
+    def _base_distribution(self, distr_args):
+        if self.dim == 1 or self.event_dim > 0:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
+
     @classmethod
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
@@ -211,6 +213,12 @@ class StudentTOutput(DistributionOutput):
     def __init__(self, dim: int = 1) -> None:
         self.dim = dim
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1 or self.event_dim > 0:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(
@@ -233,6 +241,12 @@ class BetaOutput(DistributionOutput):
     def __init__(self, dim: int = 1) -> None:
         self.dim = dim
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1 or self.event_dim > 0:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(
@@ -261,6 +275,12 @@ class GammaOutput(DistributionOutput):
         self.dim = dim
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
+    def _base_distribution(self, distr_args):
+        if self.dim == 1 or self.event_dim > 0:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
+
     @classmethod
     def domain_map(cls, concentration: torch.Tensor, rate: torch.Tensor):
         epsilon = np.finfo(cls._dtype).eps  # machine epsilon
@@ -285,6 +305,12 @@ class PoissonOutput(DistributionOutput):
     def __init__(self, dim: int = 1) -> None:
         self.dim = dim
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1 or self.event_dim > 0:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(cls, rate: torch.Tensor):
