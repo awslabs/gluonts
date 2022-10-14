@@ -22,6 +22,7 @@ from torch.distributions import (
     Distribution,
     Gamma,
     Independent,
+    LowRankMultivariateNormal,
     NegativeBinomial,
     Normal,
     Poisson,
@@ -337,3 +338,105 @@ class NegativeBinomialOutput(DistributionOutput):
     @property
     def event_shape(self) -> Tuple:
         return () if self.dim == 1 else (self.dim,)
+
+
+class LowRankMultivariateNormalOutput(DistributionOutput):
+    distr_cls: type = LowRankMultivariateNormal
+
+    @validated()
+    def __init__(
+        self,
+        dim: int,
+        rank: int,
+        sigma_init: float = 1.0,
+        sigma_minimum: float = 1e-4,
+    ) -> None:
+        super().__init__(self)
+
+        assert (
+            isinstance(rank, int) and rank >= 0
+        ), "rank should be a nonnegative integer"
+
+        assert (
+            sigma_init >= 0
+        ), "sigma_init should be greater than or equal to 0"
+
+        assert sigma_minimum > 0, "sigma_minimum should be greater than 0"
+
+        self.dim = dim
+        self.rank = rank
+        if rank == 0:
+            self.args_dim = {"mu": dim, "D": dim}
+        else:
+            self.args_dim = {
+                "mu": dim,
+                "D": dim,
+                "W": dim * rank,
+            }
+        self.sigma_init = sigma_init
+        self.sigma_minimum = sigma_minimum
+
+    def domain_map(
+        self,
+        mu_vector: torch.Tensor,
+        D_vector: torch.Tensor,
+        W_vector: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
+        r"""
+        Parameters
+        ----------
+        F
+        mu_vector
+            Tensor of shape (*batch_shape, dim)
+        D_vector
+            Tensor of shape (*batch_shape, dim)
+        W_vector
+            Tensor of shape (*batch_shape, dim * rank)
+        Returns
+        -------
+        Tuple
+            A tuple containing tensors mu, D, and W, with shapes
+            (*batch_shape, dim), (*batch_shape, dim),
+            and (*batch_shape, dim, rank), respectively.
+        """
+
+        # Compute softplus^{-1}(sigma_init)
+        D_bias = (
+            self._inv_softplus(self.sigma_init) if self.sigma_init > 0 else 0
+        )
+
+        D_diag = F.softplus(D_vector + D_bias) + self.sigma_minimum
+
+        if self.rank == 0:
+            # Torch's built-in LowRankMultivariateNormal
+            # doesn't support rank=0. So we pass a zero vector.
+            W_matrix = torch.zeros(
+                (*mu_vector[:-1], self.dim, 1),
+                dtype=mu_vector.dtype,
+                device=mu_vector.device,
+                layout=mu_vector.layout,
+            )
+        else:
+            assert (
+                W_vector is not None
+            ), "W_vector cannot be None if rank is not zero!"
+            # reshape from vector form
+            # (*batch_shape, dim * rank) to
+            # matrix form (*batch_shape, dim, rank)
+            W_matrix = W_vector.reshape(
+                *W_vector.shape[:-1], self.dim, self.rank
+            )
+
+        return mu_vector, W_matrix, D_diag
+
+    def _inv_softplus(self, y):
+        if y < 20.0:
+            # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
+            return np.log(np.exp(y) - 1)
+        else:
+            return y
+
+    @property
+    def event_shape(self) -> Tuple:
+        return (self.dim,)
