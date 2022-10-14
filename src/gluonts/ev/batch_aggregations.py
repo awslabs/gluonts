@@ -31,6 +31,7 @@ class BatchAggregation:
     def reset(self) -> None:
         self.results = []
 
+
 @dataclass
 class Sum(BatchAggregation):
     axis: Optional[int] = None
