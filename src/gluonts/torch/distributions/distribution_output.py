@@ -190,7 +190,7 @@ class NormalOutput(DistributionOutput):
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
+        if self.dim == 1:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
@@ -215,7 +215,7 @@ class StudentTOutput(DistributionOutput):
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
+        if self.dim == 1:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
@@ -243,7 +243,7 @@ class BetaOutput(DistributionOutput):
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
+        if self.dim == 1:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
@@ -276,7 +276,7 @@ class GammaOutput(DistributionOutput):
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
+        if self.dim == 1:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
@@ -307,7 +307,7 @@ class PoissonOutput(DistributionOutput):
         self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1 or self.event_dim > 0:
+        if self.dim == 1:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
