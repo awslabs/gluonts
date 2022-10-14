@@ -45,38 +45,15 @@ estimator = DeepAREstimator
 
 
 @pytest.mark.parametrize(
-    "distr_output, num_batches_per_epoch, Estimator",
+    "distr_output, Estimator",
     [
-        (
-            LowRankMultivariateNormalOutput(dim=target_dim, rank=2),
-            10,
-            estimator,
-        ),
-        (
-            LowRankMultivariateNormalOutput(dim=target_dim, rank=4),
-            10,
-            estimator,
-        ),
-        (
-            LowRankMultivariateNormalOutput(dim=target_dim, rank=6),
-            10,
-            estimator,
-        ),
-        (
-            NormalOutput(dim=target_dim),
-            10,
-            estimator,
-        ),
-        (
-            None,
-            10,
-            estimator,
-        ),
+        (LowRankMultivariateNormalOutput(dim=target_dim, rank=4), estimator),
+        (NormalOutput(dim=target_dim), estimator),
+        (None, estimator),
     ],
 )
 def test_deepvar(
     distr_output,
-    num_batches_per_epoch,
     Estimator,
 ):
 
@@ -88,7 +65,7 @@ def test_deepvar(
         freq=metadata.freq,
         distr_output=distr_output,
         scaling=False,
-        num_batches_per_epoch=num_batches_per_epoch,
+        num_batches_per_epoch=10,
         trainer_kwargs={"max_epochs": 1},
     )
 
