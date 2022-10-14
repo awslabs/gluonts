@@ -13,7 +13,8 @@
 
 from typing import Optional
 import numpy as np
-from gluonts.ev.api import Concat, Mean, Metric, SimpleMetric, Sum
+from gluonts.ev.api import Metric, SimpleMetric
+from gluonts.ev.batch_aggregations import Concat, Mean, Sum
 
 
 # METRIC FUNCTIONS (these are non-aggregating and to be applied batch-wise)

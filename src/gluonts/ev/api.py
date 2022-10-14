@@ -12,79 +12,87 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Iterator, Optional
+from typing import Dict, Iterator, Optional, Collection
 import numpy as np
-from torch import quantile
-from gluonts.ev.helpers import (
-    DataProbe,
-    EvalData,
-    axis_is_zero_or_none,
-    gather_inputs,
-)
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
+from gluonts.ev.helpers import EvalData, axis_is_zero_or_none, create_eval_data
 
 
-@dataclass
-class BatchAggregation:
-    results: list = field(default_factory=list)
+def gather_inputs(
+    test_data: TestData,
+    forecasts: Iterator[Forecast],
+    quantile_levels: Collection[float],
+    batch_size: int = 64,
+) -> Iterator[EvalData]:
+    """Collect relevant data as NumPy arrays to evaluate the next batch.
 
-    def step(self) -> None:
-        raise NotImplementedError
+    The number of entries in `test_data` and `forecasts` must be equal.
+    """
+    inputs = iter(test_data.input)
+    labels = iter(test_data.label)
 
-    def get(self) -> np.ndarray:
-        raise NotImplementedError
+    input_data = []
+    label_data = []
+    forecast_data = {
+        "mean": [],
+        **{str(q): [] for q in quantile_levels},
+    }
 
-    def reset(self) -> None:
-        self.results = []
+    entry_counter = 0
+    for _ in range(len(test_data)):
+        forecast_entry = next(forecasts)
+        forecast_data["mean"].append(forecast_entry.mean)
+        for q in quantile_levels:
+            forecast_data[str(q)].append(forecast_entry.quantile(q))
+
+        input_data.append(next(inputs))
+        label_data.append(next(labels))
+
+        entry_counter += 1
+        if entry_counter % batch_size == 0:
+            yield create_eval_data(input_data, label_data, forecast_data)
+
+            input_data.clear()
+            label_data.clear()
+            for key in forecast_data:
+                forecast_data[key].clear()
+
+    if entry_counter % batch_size != 0:
+        yield create_eval_data(input_data, label_data, forecast_data)
 
 
-@dataclass
-class Concat(BatchAggregation):
-    def step(self, values) -> None:
-        self.results.append(values)
+class DataProbe:
+    """A DataProbe gathers all quantile forecasts required for an evaluation.
 
-    def get(self) -> np.ndarray:
-        return np.concatenate(self.results)
+    This has the benefit that metric definitions can work independently of
+    `Forecast` objects as all values in 'data' will be NumPy arrays.
+    :raises ValueError: if a metric requests a key that can't be converted to
+        float and isn't equal to "batch_size", "input", "label" or "mean"
+    """
 
+    def __init__(self, test_data: TestData):
+        input_sample, label_sample = next(iter(test_data))
+        # use batch_size 1
+        self.input_shape = (1,) + np.shape(input_sample["target"])
+        self.prediction_target_shape = (1,) + np.shape(label_sample["target"])
 
-@dataclass
-class Sum(BatchAggregation):
-    axis: Optional[int] = None
+        self.required_quantile_forecasts = set()
 
-    def step(self, values) -> None:
-        self.results.append(np.sum(values, axis=self.axis))
+    def __getitem__(self, key: str):
+        if key == "batch_size":
+            return 1
+        if key == "input":
+            return np.random.rand(*self.input_shape)
+        if key in ["label", "mean"]:
+            return np.random.rand(*self.prediction_target_shape)
 
-    def get(self) -> np.ndarray:
-        if axis_is_zero_or_none(self.axis):
-            return np.sum(self.results, axis=self.axis)
-
-        return np.concatenate(self.results)
-
-
-@dataclass
-class Mean(BatchAggregation):
-    axis: Optional[int] = None
-    n: int = 0
-
-    def step(self, values) -> None:
-        self.results.append(np.sum(values, axis=self.axis))
-
-        if self.axis is None:
-            self.n += values.size
-        else:
-            self.n += values.shape[self.axis]
-
-    def get(self) -> np.ndarray:
-        if axis_is_zero_or_none(self.axis):
-            return np.sum(self.results, axis=self.axis) / self.n
-
-        return np.concatenate(self.results) / self.n
-
-    def reset(self) -> None:
-        super().reset()
-        self.n = 0
+        try:
+            self.required_quantile_forecasts.add(float(key))
+            return np.random.rand(*self.prediction_target_shape)
+        except ValueError:
+            raise ValueError(f"Unexpected input: {key}")
 
 
 class Metric:
@@ -100,23 +108,6 @@ class Metric:
         for batch in batches:
             self.step(batch)
         return self.get()
-
-    def _required_quantile_levels(self, test_data: TestData):
-        data_probe = DataProbe(test_data)
-        self.evaluate(data_probe)
-        return data_probe.required_quantile_forecasts
-
-    def evaluate_dataset(
-        self, test_data: TestData, forecasts: Iterator[Forecast]
-    ) -> np.ndarray:
-        batches = gather_inputs(
-            test_data=test_data,
-            forecasts=forecasts,
-            quantile_levels=self._required_quantile_levels(test_data),
-        )
-
-        # only NumPy arrays used from here on - yay!
-        return self.evaluate_batches(batches)
 
     def step(self, data: EvalData) -> None:
         raise NotImplementedError
@@ -148,3 +139,36 @@ class SimpleMetric(Metric):
 
     def reset(self) -> None:
         self.aggregate.reset()
+
+
+def get_required_quantile_levels(
+    metrics: Collection[Metric], test_data: TestData
+):
+    data_probe = DataProbe(test_data)
+    for metric in metrics:
+        metric.evaluate(data_probe)
+    return data_probe.required_quantile_forecasts
+
+
+def evaluate(
+    test_data: TestData,
+    forecasts: Iterator[Forecast],
+    metrics: Dict[str, Metric],
+) -> EvalData:
+    quantile_levels = get_required_quantile_levels(metrics.values(), test_data)
+
+    batches = gather_inputs(
+        test_data=test_data,
+        forecasts=forecasts,
+        quantile_levels=quantile_levels,
+    )
+
+    # only NumPy arrays are used from here on
+    for data in batches:
+        for metric in metrics.values():
+            metric.step(data)
+
+    result = dict()
+    for metric_name, metric in metrics.items():
+        result[metric_name] = metric.get()
+    return result
