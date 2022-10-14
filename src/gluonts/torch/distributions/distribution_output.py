@@ -114,7 +114,7 @@ class DistributionOutput(Output):
         pass
 
     def _base_distribution(self, distr_args):
-        if self.dim == 1:
+        if self.dim == 1 or self.event_dim > 0:
             return self.distr_cls(*distr_args)
         else:
             return Independent(self.distr_cls(*distr_args), 1)
