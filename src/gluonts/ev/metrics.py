@@ -14,7 +14,7 @@
 from typing import Optional
 import numpy as np
 from gluonts.ev.api import Metric, SimpleMetric
-from gluonts.ev.batch_aggregations import Concat, Mean, Sum
+from gluonts.ev.batch_aggregations import Mean, Sum
 
 
 # METRIC FUNCTIONS (these are non-aggregating and to be applied batch-wise)
@@ -63,48 +63,6 @@ def symmetric_absolute_percentage_error(
 
 
 # METRICS USED IN EVALUATION
-
-
-class AbsLabel(SimpleMetric):
-    def __init__(self) -> None:
-        super().__init__()
-        self.metric_fn = abs_label
-        self.aggregate = Concat()
-
-
-class Error(SimpleMetric):
-    def __init__(self, forecast_type: str = "mean") -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = error
-        self.aggregate = Concat()
-
-
-class AbsError(SimpleMetric):
-    def __init__(self, forecast_type: str = "mean") -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = abs_error
-        self.aggregate = Concat()
-
-
-class SquaredError(SimpleMetric):
-    def __init__(self, forecast_type: str = "mean") -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = squared_error
-        self.aggregate = Concat()
-
-
-class QuantileLoss(SimpleMetric):
-    def __init__(self, q: float = 0.5) -> None:
-        super().__init__(q=q)
-        self.metric_fn = squared_error
-        self.aggregate = Concat()
-
-
-class Coverage(SimpleMetric):
-    def __init__(self, q: float = 0.5) -> None:
-        super().__init__(q=q)
-        self.metric_fn = coverage
-        self.aggregate = Concat()
 
 
 class AbsLabelMean(SimpleMetric):

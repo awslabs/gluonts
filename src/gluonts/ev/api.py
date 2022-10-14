@@ -127,7 +127,7 @@ class SimpleMetric(Metric):
         self.kwargs = kwargs
 
         # the following will be set by concrete subclass
-        self.aggregate = None  # Concat, Sum or Mean
+        self.aggregate = None  # Sum or Mean
         self.metric_fn = None
 
     def step(self, data: EvalData) -> None:

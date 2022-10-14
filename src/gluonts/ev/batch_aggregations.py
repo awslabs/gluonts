@@ -31,16 +31,6 @@ class BatchAggregation:
     def reset(self) -> None:
         self.results = []
 
-
-@dataclass
-class Concat(BatchAggregation):
-    def step(self, values) -> None:
-        self.results.append(values)
-
-    def get(self) -> np.ndarray:
-        return np.concatenate(self.results)
-
-
 @dataclass
 class Sum(BatchAggregation):
     axis: Optional[int] = None
