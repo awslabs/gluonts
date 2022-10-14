@@ -21,7 +21,7 @@ from gluonts.torch.model.deepar.estimator import DeepAREstimator
 
 from gluonts.torch.distributions import (
     LowRankMultivariateNormalOutput,
-    StudentTOutput,
+    NormalOutput,
 )
 
 
@@ -63,7 +63,12 @@ estimator = DeepAREstimator
             estimator,
         ),
         (
-            StudentTOutput(dim=target_dim),
+            NormalOutput(dim=target_dim),
+            10,
+            estimator,
+        ),
+        (
+            None,
             10,
             estimator,
         ),
