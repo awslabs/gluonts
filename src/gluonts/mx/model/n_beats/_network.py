@@ -304,7 +304,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 class NBEATSTrendBlock(NBEATSBlock):
     """
-    " The NBEATS Block as described in the paper:
+    The NBEATS Block as described in the paper:
     https://arxiv.org/abs/1905.10437. This is the Trend block variant.
 
     Parameters
