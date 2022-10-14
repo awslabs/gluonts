@@ -412,7 +412,6 @@ class LowRankMultivariateNormalOutput(DistributionOutput):
         r"""
         Parameters
         ----------
-        F
         mu_vector
             Tensor of shape (*batch_shape, dim)
         D_vector
