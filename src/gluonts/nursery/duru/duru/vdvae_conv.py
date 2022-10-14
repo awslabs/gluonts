@@ -703,19 +703,13 @@ class Decoder(nn.Module):
             )
 
         # mapping from layer index to resolution of the output of that layer
-        self.layer_index_to_out_res = (
-            {}
-        )
+        self.layer_index_to_out_res = {}
         # mapping from  layer index to resolution of the output of that layer (in "context dimensions")
-        self.layer_index_to_out_res_context = (
-            {}
-        )
+        self.layer_index_to_out_res_context = {}
         # unique set of all resolutions
         self.resolutions = []
         # layer indices which contain up-scaling operation
-        self.up_layer_indices = (
-            []
-        )
+        self.up_layer_indices = []
 
         res = int(
             compute_bottleneck_res(
