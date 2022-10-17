@@ -11,17 +11,40 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
+from toolz import take
 
+from gluonts.ev.api import evaluate
+from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.ev.metrics import MSE, NRMSE
+from gluonts.model.npts import NPTSPredictor
+from gluonts.dataset.repository.datasets import get_dataset
 
-label = np.arange(100).reshape(5, 20)
-mean = label + np.random.random()
+dataset = get_dataset("electricity")
 
-batches = [{"label": label, "mean": mean}, {"label": label, "mean": mean + 1}]
+prediction_length = dataset.metadata.prediction_length
+freq = dataset.metadata.freq
 
-mse = MSE(axis=1).evaluate_batches(batches=iter(batches))
-nrmse = NRMSE().evaluate_batches(batches=iter(batches))
+dataset_test = list(take(10, dataset.test))
 
-print(mse)
-print(nrmse)
+test_template = TestTemplate(
+    dataset=dataset_test, splitter=OffsetSplitter(offset=-prediction_length)
+)
+
+test_data = test_template.generate_instances(
+    prediction_length=prediction_length
+)
+
+predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
+forecast_it = predictor.predict(dataset=test_data.input, num_samples=100)
+
+# --- EVALUATION STARTS HERE ---
+
+metric_evaluators = {
+    "mse_per_ts": MSE()(axis=1),
+    "total_nrmse": NRMSE()(),
+}
+
+res = evaluate(test_data, forecast_it, metric_evaluators)
+
+for name, value in res.items():
+    print(f"{name}: {value}")
