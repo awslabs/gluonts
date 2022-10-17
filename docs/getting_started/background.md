@@ -104,7 +104,7 @@ that there is probably a demand of say 50 dishes, but unlikely more than 60.
 ```{figure} ../_static/forecast-distributions.png
 ---
 ---
-Predicting 24 hours, showing `p50`, `p90`, `p95`, `p98` confidence intervals.
+Predicting 24 hours, showing `p50`, `p90`, `p95`, `p98` prediction intervals.
 ```
 
 ```{note}
