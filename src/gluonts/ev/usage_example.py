@@ -15,7 +15,7 @@ from toolz import take
 
 from gluonts.ev.api import evaluate
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
-from gluonts.ev.metrics import MSE, NRMSE
+from gluonts.ev.metrics import MSE, MSIS, NRMSE
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
@@ -42,6 +42,7 @@ forecast_it = predictor.predict(dataset=test_data.input, num_samples=100)
 metric_evaluators = {
     "mse_per_ts": MSE()(axis=1),
     "total_nrmse": NRMSE()(),
+    "msis": MSIS()(axis=1),
 }
 
 res = evaluate(test_data, forecast_it, metric_evaluators)

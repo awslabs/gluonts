@@ -46,7 +46,9 @@ def coverage(data: EvalData, q: float) -> np.ndarray:
     return data["label"] < data[forecast_type]
 
 
-def absolute_percentage_error(data: EvalData, forecast_type: str) -> np.ndarray:
+def absolute_percentage_error(
+    data: EvalData, forecast_type: str
+) -> np.ndarray:
     return abs_error(data, forecast_type) / abs_label(data)
 
 
