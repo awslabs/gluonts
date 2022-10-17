@@ -12,15 +12,19 @@
 # permissions and limitations under the License.
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
+from functools import lru_cache, partial
+from operator import methodcaller
 from typing import Any, cast, Dict, Iterator, List, Optional, Union
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from toolz import valmap
+from toolz import valmap, second
 
-from gluonts.dataset.common import DataEntry, ProcessDataEntry
-from gluonts.dataset.field_names import FieldName
+from gluonts.itertools import Map
+from .common import DataEntry, ProcessDataEntry
+from .field_names import FieldName
+from .schema import Translator
 
 
 @dataclass
@@ -307,3 +311,71 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     """
     other = pd.period_range(index[0], periods=len(index), freq=index.freq)
     return (other == index).all()
+
+
+def column_as_start(dct, column, freq):
+    idx = pd.PeriodIndex(dct.pop(column), freq=freq)
+    assert is_uniform(idx)
+
+    dct["start"] = idx[0]
+    return dct
+
+
+@dataclass
+class LongDataset:
+    df: pd.DataFrame
+    item_id: Union[str, List[str]]
+    timestamp: Optional[str] = None
+    freq: Optional[str] = None
+
+    assume_sorted: bool = False
+    translate: InitVar[Optional[dict]] = None
+    translator: Optional[Translator] = field(default=None, init=False)
+
+    def __post_init__(self, translate):
+        if (self.timestamp is None) != (self.freq is None):
+            raise ValueError(
+                "Either both `timestamp` and `freq` have to be provided or neither."
+            )
+
+        if translate is not None:
+            self.translator = Translator.parse(translate, drop=True)
+        else:
+            self.translator = None
+
+    def _pop_item_id(self, dct):
+        if isinstance(self.item_id, list):
+            dct["item_id"] = ", ".join(
+                dct.pop(column)[0] for column in self.item_id
+            )
+        else:
+            dct["item_id"] = dct.pop(self.item_id)[0]
+
+        return dct
+
+    def __iter__(self):
+        groups = self.df.groupby(self.item_id)
+        # groups is tuples of (item_id, df), but we only want df
+        dataset = Map(second, groups)
+
+        if not self.assume_sorted:
+            sort_by = [self.item_id]
+            if self.timestamp is not None:
+                sort_by.append(self.timestamp)
+                dataset = Map(methodcaller("sort_values", by=sort_by), dataset)
+
+        dataset = Map(methodcaller("to_dict", orient="list"), dataset)
+        dataset = Map(self._pop_item_id, dataset)
+
+        if self.translator is not None:
+            dataset = Map(self.translator, dataset)
+
+        if self.timestamp is not None:
+            dataset = Map(
+                partial(
+                    column_as_start, column=self.timestamp, freq=self.freq
+                ),
+                dataset,
+            )
+
+        yield from dataset
