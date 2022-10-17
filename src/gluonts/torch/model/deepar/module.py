@@ -243,15 +243,11 @@ class DeepARModel(nn.Module):
         )
 
         embedded_cat = self.embedder(feat_static_cat)
+        log_scale = (
+            scale.log() if self.target_dim == 1 else scale.squeeze(1).log()
+        )
         static_feat = torch.cat(
-            (
-                embedded_cat,
-                feat_static_real,
-                scale.log()
-                if self.target_dim == 1
-                else scale.squeeze(1).log(),
-            ),
-            dim=1,
+            (embedded_cat, feat_static_real, log_scale), dim=1
         )
         expanded_static_feat = static_feat.unsqueeze(1).expand(
             -1, input.shape[1], -1
