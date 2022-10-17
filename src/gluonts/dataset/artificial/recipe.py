@@ -803,7 +803,7 @@ class SmoothSeasonality(Lifted):
         period = resolve(self.period, x, length, *args, **kwargs)
         phase = resolve(self.phase, x, length, *args, **kwargs)
         return (
-            np.sin(2.0 / period * np.pi * (np.arange(length) + phase)) + 1
+            np.sin(2.0 * np.pi * (1 / period) * np.arange(length) + phase) + 1
         ) / 2.0
 
 
