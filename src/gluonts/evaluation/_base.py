@@ -117,7 +117,7 @@ class Evaluator:
         for the given series frequency as returned by `get_seasonality`
     alpha
         Parameter of the MSIS metric from the M4 competition that
-        defines the confidence interval.
+        defines the prediction interval.
         For alpha=0.05 (default) the 95% considered is considered in the
         metric, see
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
