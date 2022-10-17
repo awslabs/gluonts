@@ -12,8 +12,9 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterator, Optional, Collection
+from typing import Callable, Dict, Iterator, Optional, Collection
 import numpy as np
+from .batch_aggregations import BatchAggregation
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
@@ -119,6 +120,50 @@ class Metric:
         raise NotImplementedError
 
 
+class MetricEvaluator:
+    def update(self, data: EvalData) -> None:
+        pass
+
+    def get(self) -> np.ndarray:
+        pass
+
+    def evaluate(self, data: EvalData) -> np.ndarray:
+        self.update(data)
+        return self.get()
+
+    def evaluate_batches(self, batches: Iterator[EvalData]) -> np.ndarray:
+        for batch in batches:
+            self.update(batch)
+        return self.get()
+
+
+@dataclass
+class DerivedMetric(MetricEvaluator):
+    metrics: Dict[str, MetricEvaluator]
+    post_process: Callable
+
+    def update(self, data):
+        for metric in self.metrics.values():
+            metric.update(data)
+
+    def get(self):
+        return self.post_process(
+            **{name: metric.get() for name, metric in self.metrics.items()}
+        )
+
+
+@dataclass
+class SimpleMetricEvaluator(MetricEvaluator):
+    map: Callable
+    aggregate: BatchAggregation
+
+    def update(self, data):
+        self.aggregate.step(self.map(data))
+
+    def get(self):
+        return self.aggregate.get()
+
+
 class SimpleMetric(Metric):
     """A `SimpleMetric` can be computed using only one `metric_fn`
     and aggregation strategy"""
@@ -142,7 +187,7 @@ class SimpleMetric(Metric):
 
 
 def get_required_quantile_levels(
-    metrics: Collection[Metric], test_data: TestData
+    metrics: Collection[MetricEvaluator], test_data: TestData
 ):
     data_probe = DataProbe(test_data)
     for metric in metrics:
@@ -153,7 +198,7 @@ def get_required_quantile_levels(
 def evaluate(
     test_data: TestData,
     forecasts: Iterator[Forecast],
-    metrics: Dict[str, Metric],
+    metrics: Dict[str, MetricEvaluator],
 ) -> EvalData:
     quantile_levels = get_required_quantile_levels(metrics.values(), test_data)
 
@@ -166,7 +211,7 @@ def evaluate(
     # only NumPy arrays are used from here on
     for data in batches:
         for metric in metrics.values():
-            metric.step(data)
+            metric.update(data)
 
     result = dict()
     for metric_name, metric in metrics.items():

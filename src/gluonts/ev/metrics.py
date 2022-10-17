@@ -11,110 +11,143 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import dataclass
+from functools import partial
 from typing import Optional
+
+from torch import absolute
 import numpy as np
-from gluonts.ev.api import Metric, SimpleMetric
+from gluonts.ev.api import DerivedMetric, Metric, MetricEvaluator, SimpleMetric, SimpleMetricEvaluator
 from gluonts.ev.batch_aggregations import Mean, Sum
+from gluonts.ev.metric_functions import (
+    abs_error,
+    abs_label,
+    absolute_percentage_error,
+    coverage,
+    quantile_loss,
+    squared_error,
+    symmetric_absolute_percentage_error,
+)
 
 
-class AbsLabelMean(SimpleMetric):
-    def __init__(self, axis: Optional[int] = None) -> None:
-        super().__init__()
-        self.metric_fn = abs_label
-        self.aggregate = Mean(axis=axis)
+class Metric:
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        raise NotImplementedError
 
 
-class AbsLabelSum(SimpleMetric):
-    def __init__(self, axis: Optional[int] = None) -> None:
-        super().__init__()
-        self.metric_fn = abs_label
-        self.aggregate = Sum(axis=axis)
+@dataclass
+class AbsLabelMean(Metric):
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=abs_label,
+            aggregate=Mean(axis=axis),
+        )
 
 
-class AbsErrorSum(SimpleMetric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "0.5"
-    ) -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = abs_error
-        self.aggregate = Sum(axis=axis)
+@dataclass
+class AbsLabelSum(Metric):
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=abs_label,
+            aggregate=Sum(axis=axis),
+        )
 
 
-class MSE(SimpleMetric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "mean"
-    ) -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = squared_error
-        self.aggregate = Mean(axis=axis)
+@dataclass
+class AbsErrorSum(Metric):
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(abs_error, forecast_type=self.forecast_type),
+            aggregate=Sum(axis=axis),
+        )
 
 
-class QuantileLossSum(SimpleMetric):
-    def __init__(self, axis: Optional[int] = None, q: float = 0.5) -> None:
-        super().__init__(q=q)
-        self.metric_fn = quantile_loss
-        self.aggregate = Sum(axis=axis)
+@dataclass
+class MSE(Metric):
+    forecast_type: str = "mean"
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(squared_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis),
+        )
 
 
-# TODO: maybe just call this coverage?
-class CoverageMean(SimpleMetric):
-    def __init__(self, axis: Optional[int] = None, q: float = 0.5) -> None:
-        super().__init__(q=q)
-        self.metric_fn = coverage
-        self.aggregate = Mean(axis=axis)
+@dataclass
+class QuantileLossSum(Metric):
+    q: float = 0.5
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(quantile_loss, q=self.q),
+            aggregate=Sum(axis=axis),
+        )
 
 
-class MAPE(SimpleMetric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "0.5"
-    ) -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = absolute_percentage_error
-        self.aggregate = Mean(axis=axis)
+# TODO: maybe just call this Coverage?
+@dataclass
+class CoverageMean(Metric):
+    q: float = 0.5
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(coverage, q=self.q),
+            aggregate=Mean(axis=axis),
+        )
 
 
-class SMAPE(SimpleMetric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "0.5"
-    ) -> None:
-        super().__init__(forecast_type=forecast_type)
-        self.metric_fn = symmetric_absolute_percentage_error
-        self.aggregate = Mean(axis=axis)
+@dataclass
+class MAPE(Metric):
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(absolute_percentage_error, q=self.q),
+            aggregate=Mean(axis=axis),
+        )
 
 
-# DERIVED METRICS
+@dataclass
+class MAPE(Metric):
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        return SimpleMetricEvaluator(
+            map=partial(symmetric_absolute_percentage_error, q=self.q),
+            aggregate=Mean(axis=axis),
+        )
 
 
+@dataclass
 class RMSE(Metric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "mean"
-    ) -> None:
-        self.mse = MSE(axis=axis, forecast_type=forecast_type)
+    forecast_type: str = "mean"
 
-    def step(self, data):
-        self.mse.step(data)
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        def post_process(mse: np.ndarray) -> np.ndarray:
+            return np.sqrt(mse)
 
-    def get(self):
-        return np.sqrt(self.mse.get())
-
-    def reset(self):
-        self.mse.reset()
+        return DerivedMetric(
+            metrics={"mse": MSE(forecast_type=self.forecast_type)(axis=axis)},
+            post_process=post_process,
+        )
 
 
+@dataclass
 class NRMSE(Metric):
-    def __init__(
-        self, axis: Optional[int] = None, forecast_type: str = "mean"
-    ) -> None:
-        self.rmse = RMSE(axis=axis, forecast_type=forecast_type)
-        self.abs_label_mean = AbsLabelMean(axis=axis)
+    forecast_type: str = "mean"
 
-    def step(self, data):
-        self.rmse.step(data)
-        self.abs_label_mean.step(data)
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        def post_process(
+            rmse: np.ndarray, abs_label_mean: np.ndarray
+        ) -> np.ndarray:
+            return rmse / abs_label_mean
 
-    def get(self):
-        return self.rmse.get() / self.abs_label_mean.get()
-
-    def reset(self):
-        self.rmse.reset()
-        self.abs_label_mean.reset()
+        return DerivedMetric(
+            metrics={
+                "rmse": RMSE()(axis=axis),
+                "abs_label_mean": AbsLabelMean()(axis=axis),
+            },
+            post_process=post_process,
+        )

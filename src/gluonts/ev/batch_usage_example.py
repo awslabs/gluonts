@@ -39,12 +39,12 @@ forecast_it = predictor.predict(dataset=test_data.input, num_samples=100)
 
 # --- EVALUATION STARTS HERE ---
 
-metrics = {
-    "mse_p90": MSE(axis=1, forecast_type="0.4123"),
-    "total_nrmse": NRMSE(),
+metric_evaluators = {
+    "mse_per_ts": MSE()(axis=1),
+    "total_nrmse": NRMSE()(),
 }
 
-res = evaluate(test_data, forecast_it, metrics)
+res = evaluate(test_data, forecast_it, metric_evaluators)
 
-for name, val in res.items():
-    print(name, val)
+for name, value in res.items():
+    print(f"{name}: {value}")
