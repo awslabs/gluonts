@@ -11,14 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass, field
-from typing import Callable, Dict, Iterator, Optional, Collection
+from dataclasses import dataclass
+from typing import Callable, Dict, Iterator, Collection
 import numpy as np
 from .batch_aggregations import BatchAggregation
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
-from gluonts.ev.helpers import EvalData, axis_is_zero_or_none, create_eval_data
+from gluonts.ev.helpers import EvalData, create_eval_data
 
 
 def gather_inputs(
@@ -96,94 +96,49 @@ class DataProbe:
             raise ValueError(f"Unexpected input: {key}")
 
 
-class Metric:
-    def evaluate(self, data: EvalData) -> np.ndarray:
-        self.reset()
-
-        self.step(data)
-        return self.get()
-
-    def evaluate_batches(self, batches: Iterator[EvalData]) -> np.ndarray:
-        self.reset()
-
-        for batch in batches:
-            self.step(batch)
-        return self.get()
-
-    def step(self, data: EvalData) -> None:
-        raise NotImplementedError
-
-    def get(self) -> np.ndarray:
-        raise NotImplementedError
-
-    def reset(self) -> None:
-        raise NotImplementedError
-
-
 class MetricEvaluator:
-    def update(self, data: EvalData) -> None:
-        pass
-
-    def get(self) -> np.ndarray:
-        pass
-
-    def evaluate(self, data: EvalData) -> np.ndarray:
-        self.update(data)
-        return self.get()
-
     def evaluate_batches(self, batches: Iterator[EvalData]) -> np.ndarray:
         for batch in batches:
             self.update(batch)
         return self.get()
 
+    def evaluate(self, data: EvalData) -> np.ndarray:
+        return self.evaluate_batches([data])
 
-@dataclass
-class DerivedMetric(MetricEvaluator):
-    metrics: Dict[str, MetricEvaluator]
-    post_process: Callable
+    def update(self, data: EvalData) -> None:
+        raise NotImplementedError
 
-    def update(self, data):
-        for metric in self.metrics.values():
-            metric.update(data)
-
-    def get(self):
-        return self.post_process(
-            **{name: metric.get() for name, metric in self.metrics.items()}
-        )
+    def get(self) -> np.ndarray:
+        raise NotImplementedError
 
 
 @dataclass
-class SimpleMetricEvaluator(MetricEvaluator):
+class StandardMetricEvaluator(MetricEvaluator):
+    """A "standard metric" consists of a metric function and aggregation strategy."""
     map: Callable
     aggregate: BatchAggregation
 
-    def update(self, data):
+    def update(self, data: EvalData) -> None:
         self.aggregate.step(self.map(data))
-
-    def get(self):
-        return self.aggregate.get()
-
-
-class SimpleMetric(Metric):
-    """A `SimpleMetric` can be computed using only one `metric_fn`
-    and aggregation strategy"""
-
-    def __init__(self, **kwargs) -> None:
-        self.kwargs = kwargs
-
-        # the following will be set by concrete subclass
-        self.aggregate = None  # Sum or Mean
-        self.metric_fn = None
-
-    def step(self, data: EvalData) -> None:
-        fn_res = self.metric_fn(data, **self.kwargs)
-        self.aggregate.step(fn_res)
 
     def get(self) -> np.ndarray:
         return self.aggregate.get()
 
-    def reset(self) -> None:
-        self.aggregate.reset()
+
+@dataclass
+class DerivedMetricEvaluator(MetricEvaluator):
+    """A "derived metric" depends on the prior calculation of "standard metrics"."""
+    metrics: Dict[str, StandardMetricEvaluator]
+    post_process: Callable
+
+    def update(self, data: EvalData) -> None:
+        for metric in self.metrics.values():
+            metric.update(data)
+
+    def get(self) -> np.ndarray:
+        return self.post_process(
+            **{name: metric.get() for name, metric in self.metrics.items()}
+        )
 
 
 def get_required_quantile_levels(
