@@ -341,14 +341,14 @@ class Forecast:
         **kwargs,
     ):
         """
-        Plots the median of the forecast as well as confidence bounds.
+        Plots the median of the forecast as well as prediction interval bounds
         (requires matplotlib and pandas).
 
         Parameters
         ----------
         prediction_intervals : float or list of floats in [0, 100]
-            Confidence interval size(s). If a list, it will stack the error
-            plots for each confidence interval. Only relevant for error styles
+            Prediction interval size(s). If a list, it will stack the error
+            plots for each prediction interval. Only relevant for error styles
             with "ci" in the name.
         show_mean : boolean
             Whether to also show the mean of the forecast.
