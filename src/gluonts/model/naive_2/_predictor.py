@@ -34,7 +34,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
-    critical_z_score = 1.645  # corresponds to 90% confidence interval
+    critical_z_score = 1.645  # corresponds to 90% prediction interval
     if len(past_ts_data) < 3 * season_length:
         return False
     else:
