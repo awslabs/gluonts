@@ -335,6 +335,7 @@ class LongDataset:
 
     assume_sorted: bool = False
     translate: InitVar[Optional[dict]] = None
+    unchecked: bool = False
     translator: Optional[Translator] = field(default=None, init=False)
 
     def __post_init__(self, translate):
@@ -379,9 +380,13 @@ class LongDataset:
         if self.timestamp is not None:
             dataset = Map(
                 partial(
-                    column_as_start, column=self.timestamp, freq=self.freq
+                    column_as_start,
+                    column=self.timestamp,
+                    freq=self.freq,
+                    unchecked=self.unchecked,
                 ),
                 dataset,
             )
 
         yield from dataset
+        self.unchecked = True
