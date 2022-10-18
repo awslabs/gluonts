@@ -43,8 +43,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     Forecaster, proposed in [WTN+17]_.
 
     Note that MQCNN uses ValidationSplitSampler as its default
-    train_sampler. If context_length is less than the length of the input 
-    time series, only one example will be used for training. 
+    train_sampler. If context_length is less than the length of the input
+    time series, only one example will be used for training.
 
     Parameters
     ----------
@@ -142,7 +142,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The size of the batches to be used training and prediction.
     train_sampler
         Controls the sampling of windows during training.
-        
+
     """
 
     @validated()
@@ -353,8 +353,8 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
     Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
 
     Note that MQRNN uses ValidationSplitSampler as its default
-    train_sampler. If context_length is less than the length of the input 
-    time series, only one example will be used for training. 
+    train_sampler. If context_length is less than the length of the input
+    time series, only one example will be used for training.
     """
 
     @validated()
