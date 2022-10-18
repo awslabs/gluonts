@@ -696,7 +696,7 @@ class QuantileForecast(Forecast):
             f"The forecast_array (shape={shape} should have the same "
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
-        self.prediction_length = shape[-1]
+        self.prediction_length = shape[1]
         self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
@@ -771,8 +771,8 @@ class QuantileForecast(Forecast):
                 self._dim = 1
             else:
                 # multivariate target
-                # shape: (num_samples, target_dim, prediction_length)
-                self._dim = self.forecast_array.shape[1]
+                # shape: (num_samples, prediction_length, target_dim)
+                self._dim = self.forecast_array.shape[2]
         return self._dim
 
     def __repr__(self):
