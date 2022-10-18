@@ -19,11 +19,11 @@ import numpy as np
 from gluonts.exceptions import GluonTSUserError
 from gluonts.ev.api import (
     DerivedMetricEvaluator,
+    Metric,
     MetricEvaluator,
     StandardMetricEvaluator,
 )
 from gluonts.ev.aggregations import Mean, Sum
-from gluonts.ev.helpers import EvalData
 from gluonts.ev.metric_helpers import (
     abs_error,
     abs_label,
@@ -35,11 +35,6 @@ from gluonts.ev.metric_helpers import (
     squared_error,
     symmetric_absolute_percentage_error,
 )
-
-
-class Metric:
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        raise NotImplementedError
 
 
 @dataclass
@@ -170,7 +165,7 @@ class MSIS(Metric):
 
         return DerivedMetricEvaluator(
             metrics={
-                "msis_numerator": MSISNumerator(self.alpha)(axis=axis),
+                "numerator": MSISNumerator(self.alpha)(axis=axis),
                 "seasonal_error": SeasonalError(seasonality=self.seasonality)(
                     axis=axis
                 ),

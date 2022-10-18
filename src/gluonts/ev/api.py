@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Collection
+from typing import Callable, Dict, Iterator, Collection, List, Optional
 import numpy as np
 
 from gluonts.model.forecast import Forecast
@@ -96,19 +96,19 @@ class DataProbe:
             raise ValueError(f"Unexpected input: {key}")
 
 
+class Metric:
+    def __call__(self, axis: Optional[int] = None) -> "MetricEvaluator":
+        raise NotImplementedError
+
+
 class MetricEvaluator:
-    def evaluate_batches(self, batches: Iterator[EvalData]) -> np.ndarray:
-        for batch in batches:
-            self.update(batch)
-        return self.get()
-
-    def evaluate(self, data: EvalData) -> np.ndarray:
-        return self.evaluate_batches([data])
-
     def update(self, data: EvalData) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
+        raise NotImplementedError
+
+    def reset() -> None:
         raise NotImplementedError
 
 
@@ -124,6 +124,9 @@ class StandardMetricEvaluator(MetricEvaluator):
 
     def get(self) -> np.ndarray:
         return self.aggregate.get()
+
+    def reset(self) -> None:
+        self.aggregate.reset()
 
 
 @dataclass
@@ -142,35 +145,56 @@ class DerivedMetricEvaluator(MetricEvaluator):
             **{name: metric.get() for name, metric in self.metrics.items()}
         )
 
-
-def get_required_quantile_levels(
-    metrics: Collection[MetricEvaluator], test_data: TestData
-):
-    data_probe = DataProbe(test_data)
-    for metric in metrics:
-        metric.evaluate(data_probe)
-    return data_probe.required_quantile_forecasts
+    def reset(self) -> None:
+        for metric_evaluator in self.metrics.values():
+            metric_evaluator.reset()
 
 
-def evaluate(
-    test_data: TestData,
-    forecasts: Iterator[Forecast],
-    metrics: Dict[str, MetricEvaluator],
-) -> EvalData:
-    quantile_levels = get_required_quantile_levels(metrics.values(), test_data)
+class Evaluator:
+    def __init__(self) -> None:
+        # TODO: better naming!
+        self.metric_evaluators: dict[str, MetricEvaluator] = dict()
 
-    batches = gather_inputs(
-        test_data=test_data,
-        forecasts=forecasts,
-        quantile_levels=quantile_levels,
-    )
+    def add_metric(self, metrics: Metric, axis: Optional[int] = None) -> None:
+        self.add_metrics([metrics], axis)
 
-    # only NumPy arrays are used from here on
-    for data in batches:
-        for metric in metrics.values():
-            metric.update(data)
+    def add_metrics(
+        self, metrics: Collection[Metric], axis: Optional[int] = None
+    ) -> None:
+        for metric in metrics:
+            metric_evaluator = metric(axis=axis)
+            metric_name = f"{metric.__class__.__name__}[axis={axis}]"
+            self.metric_evaluators[metric_name] = metric_evaluator
 
-    result = dict()
-    for metric_name, metric in metrics.items():
-        result[metric_name] = metric.get()
-    return result
+    def get_required_quantile_levels(self, test_data: TestData):
+        data_probe = DataProbe(test_data)
+        for metric_evaluator in self.metric_evaluators.values():
+            metric_evaluator.reset()
+            metric_evaluator.update(data_probe)
+            metric_evaluator.get()
+        return data_probe.required_quantile_forecasts
+
+    def evaluate(
+        self, test_data: TestData, forecasts: Iterator[Forecast]
+    ) -> EvalData:
+        quantile_levels = self.get_required_quantile_levels(test_data)
+
+        batches = gather_inputs(
+            test_data=test_data,
+            forecasts=forecasts,
+            quantile_levels=quantile_levels,
+        )
+
+        # only NumPy arrays are used from here on
+
+        for metric_evaluator in self.metric_evaluators.values():
+            metric_evaluator.reset()
+
+        for data in batches:
+            for metric_evaluator in self.metric_evaluators.values():
+                metric_evaluator.update(data)
+
+        result = dict()
+        for metric_name, metric_evaluator in self.metric_evaluators.items():
+            result[metric_name] = metric_evaluator.get()
+        return result
