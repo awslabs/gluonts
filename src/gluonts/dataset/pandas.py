@@ -13,7 +13,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field, InitVar
-from functools import lru_cache, partial
+from functools import partial
 from operator import methodcaller
 from typing import Any, cast, Dict, Iterator, List, Optional, Union
 
@@ -22,7 +22,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import valmap, second
 
 from gluonts.itertools import Map
-from .common import DataEntry, ProcessDataEntry
+from .common import DataEntry, ProcessDataEntry, _as_period
 from .field_names import FieldName
 from .schema import Translator
 
@@ -313,11 +313,16 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     return (other == index).all()
 
 
-def column_as_start(dct, column, freq):
-    idx = pd.PeriodIndex(dct.pop(column), freq=freq)
-    assert is_uniform(idx)
+def column_as_start(dct, column, freq, unchecked=False):
+    ts = dct.pop(column)
 
-    dct["start"] = idx[0]
+    if unchecked:
+        dct["start"] = _as_period(ts[0], freq=freq)
+    else:
+        idx = pd.PeriodIndex(ts, freq=freq)
+        assert is_uniform(idx)
+        dct["start"] = idx[0]
+
     return dct
 
 
@@ -335,7 +340,8 @@ class LongDataset:
     def __post_init__(self, translate):
         if (self.timestamp is None) != (self.freq is None):
             raise ValueError(
-                "Either both `timestamp` and `freq` have to be provided or neither."
+                "Either both `timestamp` and `freq` have to be provided "
+                "or neither."
             )
 
         if translate is not None:

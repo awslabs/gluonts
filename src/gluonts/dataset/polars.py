@@ -35,6 +35,9 @@ class LongDataset:
     translate: InitVar[Optional[dict]] = None
     translator: Optional[Translator] = field(default=None, init=False)
 
+    use_partition: bool = False
+    unchecked: bool = False
+
     def __post_init__(self, translate):
         if (self.timestamp is None) != (self.freq is None):
             raise ValueError(
@@ -58,7 +61,10 @@ class LongDataset:
         return dct
 
     def __iter__(self):
-        dataset = self.df.groupby(self.item_id)
+        if self.use_partition:
+            dataset = self.df.partition_by(self.item_id)
+        else:
+            dataset = self.df.groupby(self.item_id)
 
         if not self.assume_sorted:
             sort_by = [self.item_id]
@@ -66,7 +72,7 @@ class LongDataset:
                 sort_by.append(self.timestamp)
                 dataset = Map(methodcaller("sort", by=sort_by), dataset)
 
-        dataset = Map(methodcaller("to_dict", as_series=False), dataset)
+        dataset = Map(methodcaller("to_dict", as_series=True), dataset)
         dataset = Map(self._pop_item_id, dataset)
 
         if self.translator is not None:
@@ -75,9 +81,19 @@ class LongDataset:
         if self.timestamp is not None:
             dataset = Map(
                 partial(
-                    column_as_start, column=self.timestamp, freq=self.freq
+                    column_as_start,
+                    column=self.timestamp,
+                    freq=self.freq,
+                    unchecked=self.unchecked,
                 ),
                 dataset,
             )
 
         yield from dataset
+
+        # we were successful to iterate once over the dataset
+        # so no more need to check more
+        self.unchecked = True
+
+    def __len__(self):
+        return len(self.df.groupby(self.item_id).count())
