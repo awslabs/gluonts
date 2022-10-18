@@ -14,16 +14,17 @@
 from dataclasses import dataclass
 from functools import partial
 from typing import Optional
-from gluonts.ev.helpers import EvalData
-
 import numpy as np
+
+from gluonts.exceptions import GluonTSUserError
 from gluonts.ev.api import (
     DerivedMetricEvaluator,
     MetricEvaluator,
     StandardMetricEvaluator,
 )
 from gluonts.ev.aggregations import Mean, Sum
-from gluonts.ev.metric_functions import (
+from gluonts.ev.helpers import EvalData
+from gluonts.ev.metric_helpers import (
     abs_error,
     abs_label,
     absolute_percentage_error,
@@ -34,7 +35,6 @@ from gluonts.ev.metric_functions import (
     squared_error,
     symmetric_absolute_percentage_error,
 )
-from gluonts.exceptions import GluonTSUserError
 
 
 class Metric:
