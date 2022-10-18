@@ -11,48 +11,67 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
+from typing import List, Optional, Union
 import numpy as np
 
 from gluonts.ev.helpers import axis_is_zero_or_none
 
 
 @dataclass
-class BatchAggregation:
-    results: list = field(default_factory=list)
-
+class Aggregation:
     def step(self) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
         raise NotImplementedError
 
-    def reset(self) -> None:
-        self.results = []
-
 
 @dataclass
-class Sum(BatchAggregation):
+class Sum(Aggregation):
     axis: Optional[int] = None
+    partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values) -> None:
-        self.results.append(np.sum(values, axis=self.axis))
+        summed_values = np.sum(values, axis=self.axis)
+
+        if self.partial_result is None:
+            if axis_is_zero_or_none(self.axis):
+                self.partial_result = np.zeros(shape=np.shape(summed_values))
+            else:
+                self.partial_result = []
+
+        if axis_is_zero_or_none(self.axis):
+            self.partial_result += summed_values
+        else:
+            self.partial_result.append(summed_values)
 
     def get(self) -> np.ndarray:
         if axis_is_zero_or_none(self.axis):
-            return np.sum(self.results, axis=self.axis)
+            return self.partial_result
 
-        return np.concatenate(self.results)
+        return np.concatenate(self.partial_result)
 
 
 @dataclass
-class Mean(BatchAggregation):
+class Mean(Aggregation):
     axis: Optional[int] = None
     n: int = 0
+    partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values) -> None:
-        self.results.append(np.sum(values, axis=self.axis))
+        summed_values = np.sum(values, axis=self.axis)
+
+        if self.partial_result is None:
+            if axis_is_zero_or_none(self.axis):
+                self.partial_result = np.zeros(shape=np.shape(summed_values))
+            else:
+                self.partial_result = []
+
+        if axis_is_zero_or_none(self.axis):
+            self.partial_result += summed_values
+        else:
+            self.partial_result.append(summed_values)
 
         if self.axis is None:
             self.n += values.size
@@ -61,10 +80,6 @@ class Mean(BatchAggregation):
 
     def get(self) -> np.ndarray:
         if axis_is_zero_or_none(self.axis):
-            return np.sum(self.results, axis=self.axis) / self.n
+            return self.partial_result / self.n
 
-        return np.concatenate(self.results) / self.n
-
-    def reset(self) -> None:
-        super().reset()
-        self.n = 0
+        return np.concatenate(self.partial_result) / self.n
