@@ -28,7 +28,9 @@ from gluonts.ev.metric_functions import (
     abs_label,
     absolute_percentage_error,
     coverage,
+    msis_numerator,
     quantile_loss,
+    seasonal_error_without_mean,
     squared_error,
     symmetric_absolute_percentage_error,
 )
@@ -136,23 +138,6 @@ class SeasonalError(Metric):
                 "Choose axis 1 or None."
             )
 
-        def seasonal_error_without_mean(
-            data: dict,
-            seasonality: int,
-        ):
-            past_data = data["input"]
-
-            if seasonality < np.shape(past_data)[1]:
-                forecast_freq = seasonality
-            else:
-                # edge case: the seasonal freq is larger than the length of ts
-                forecast_freq = 1
-
-            y_t = past_data[:, :-forecast_freq]
-            y_tm = past_data[:, forecast_freq:]
-
-            return np.abs(y_t - y_tm)
-
         return StandardMetricEvaluator(
             map=partial(
                 seasonal_error_without_mean, seasonality=self.seasonality
@@ -166,29 +151,6 @@ class MSISNumerator(Metric):
     alpha: str = "0.05"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def msis_numerator(
-            data: EvalData,
-            alpha: float,
-        ) -> np.ndarray:
-            lower_quantile = data[str(alpha / 2)]
-            upper_quantile = data[str(1.0 - alpha / 2)]
-            label = data["label"]
-
-            numerator = (
-                upper_quantile
-                - lower_quantile
-                + 2.0
-                / alpha
-                * (lower_quantile - label)
-                * (label < lower_quantile)
-                + 2.0
-                / alpha
-                * (label - upper_quantile)
-                * (label > upper_quantile)
-            )
-
-            return numerator
-
         return StandardMetricEvaluator(
             map=partial(msis_numerator, alpha=self.alpha),
             aggregate=Mean(axis=axis),
@@ -202,9 +164,9 @@ class MSIS(Metric):
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         def post_process(
-            msis_numerator: np.ndarray, seasonal_error: np.ndarray
+            numerator: np.ndarray, seasonal_error: np.ndarray
         ) -> np.ndarray:
-            return msis_numerator / seasonal_error
+            return numerator / seasonal_error
 
         return DerivedMetricEvaluator(
             metrics={

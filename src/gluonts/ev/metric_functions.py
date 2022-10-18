@@ -14,6 +14,7 @@
 import numpy as np
 
 from gluonts.ev.helpers import EvalData
+from gluonts.exceptions import GluonTSUserError
 
 
 def abs_label(data: EvalData) -> np.ndarray:
@@ -58,3 +59,58 @@ def symmetric_absolute_percentage_error(
     return abs_error(data, forecast_type) / (
         abs_label(data) + np.abs(data[forecast_type])
     )
+
+
+def seasonal_error_without_mean(
+    data: dict,
+    seasonality: int,
+):
+    """Calculates the seasonal error without applying the mean at the end.
+
+    Further calculation to get the true metric value happens in
+    `SeasonalError`.
+    """
+    past_data = data["input"]
+
+    if seasonality < np.shape(past_data)[1]:
+        forecast_freq = seasonality
+    else:
+        # edge case: the seasonal freq is larger than the length of ts
+        forecast_freq = 1
+
+    ndim = np.ndim(past_data)
+    if ndim == 2:
+        y_t = past_data[:, :-forecast_freq]
+        y_tm = past_data[:, forecast_freq:]
+    elif ndim:
+        y_t = past_data[:, :-forecast_freq, :]
+        y_tm = past_data[:, forecast_freq:, :]
+    else:
+        raise GluonTSUserError(
+            "Input data is {ndim}-dimensional but must be two-dimensional "
+            "(univariate case) or three-dimensional (multivariate case)"
+        )
+
+    return np.abs(y_t - y_tm)
+
+
+def msis_numerator(
+    data: EvalData,
+    alpha: float,
+) -> np.ndarray:
+    """Calculates the numerator of the Mean Scaled Interval Score.
+
+    Further calculation to get the true metric value happens in `MSIS`.
+    """
+    lower_quantile = data[str(alpha / 2)]
+    upper_quantile = data[str(1.0 - alpha / 2)]
+    label = data["label"]
+
+    numerator = (
+        upper_quantile
+        - lower_quantile
+        + 2.0 / alpha * (lower_quantile - label) * (label < lower_quantile)
+        + 2.0 / alpha * (label - upper_quantile) * (label > upper_quantile)
+    )
+
+    return numerator
