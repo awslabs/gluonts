@@ -22,7 +22,7 @@ from gluonts.ev.api import (
     MetricEvaluator,
     StandardMetricEvaluator,
 )
-from gluonts.ev.batch_aggregations import Mean, Sum
+from gluonts.ev.aggregations import Mean, Sum
 from gluonts.ev.metric_functions import (
     abs_error,
     abs_label,
@@ -32,9 +32,7 @@ from gluonts.ev.metric_functions import (
     squared_error,
     symmetric_absolute_percentage_error,
 )
-from ..exceptions import GluonTSUserError
-from ..model.forecast import Forecast
-from gluonts.time_feature import seasonality
+from gluonts.exceptions import GluonTSUserError
 
 
 class Metric:
@@ -132,9 +130,10 @@ class SeasonalError(Metric):
     seasonality: int = 1
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        if axis != 1:
+        if axis not in [None, 1]:
             raise GluonTSUserError(
-                "Seasonal error only works per data entry (axis 1)"
+                "Seasonal error only works per data entry. "
+                "Choose axis 1 or None."
             )
 
         def seasonal_error_without_mean(

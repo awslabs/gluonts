@@ -14,11 +14,11 @@
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterator, Collection
 import numpy as np
-from .batch_aggregations import BatchAggregation
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
 from gluonts.ev.helpers import EvalData, create_eval_data
+from gluonts.ev.aggregations import Aggregation
 
 
 def gather_inputs(
@@ -117,7 +117,7 @@ class StandardMetricEvaluator(MetricEvaluator):
     """A "standard metric" consists of a metric function and aggregation strategy."""
 
     map: Callable
-    aggregate: BatchAggregation
+    aggregate: Aggregation
 
     def update(self, data: EvalData) -> None:
         self.aggregate.step(self.map(data))
