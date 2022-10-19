@@ -15,7 +15,13 @@ from toolz import take
 
 from gluonts.ev.api import Evaluator
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
-from gluonts.ev.metrics import MSE, MSIS, NRMSE, QuantileLossSum
+from gluonts.ev.metrics import (
+    MSE,
+    MSIS,
+    NRMSE,
+    QuantileLoss,
+    WeightedQuantileLoss,
+)
 from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
 
@@ -40,9 +46,9 @@ forecast_it = predictor.predict(dataset=test_data.input, num_samples=100)
 # --- EVALUATION STARTS HERE ---
 
 evaluator = Evaluator()
-evaluator.add_metrics([MSE(), MSIS()], axis=1)
+evaluator.add_metrics([MSE(), MSIS(), WeightedQuantileLoss()], axis=1)
 evaluator.add_metric(NRMSE())
-evaluator.add_metric(QuantileLossSum(q=0.9), axis=0)
+evaluator.add_metric(QuantileLoss(q=0.9), axis=0)
 
 res = evaluator.evaluate(test_data, forecast_it)
 

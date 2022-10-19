@@ -78,7 +78,7 @@ class MSE(Metric):
 
 
 @dataclass
-class QuantileLossSum(Metric):
+class QuantileLoss(Metric):
     q: float = 0.5
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -88,9 +88,8 @@ class QuantileLossSum(Metric):
         )
 
 
-# TODO: maybe just call this Coverage?
 @dataclass
-class CoverageMean(Metric):
+class Coverage(Metric):
     q: float = 0.5
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -247,6 +246,24 @@ class NRMSE(Metric):
             metrics={
                 "rmse": RMSE()(axis=axis),
                 "abs_label_mean": AbsLabelMean()(axis=axis),
+            },
+            post_process=post_process,
+        )
+
+
+class WeightedQuantileLoss:
+    q: float = 0.5
+
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        def post_process(
+            quantile_loss: np.ndarray, abs_label_sum: np.ndarray
+        ) -> np.ndarray:
+            return quantile_loss / abs_label_sum
+
+        return DerivedMetricEvaluator(
+            metrics={
+                "quantile_loss": QuantileLoss()(axis=axis),
+                "abs_label_sum": AbsLabelSum()(axis=axis),
             },
             post_process=post_process,
         )
