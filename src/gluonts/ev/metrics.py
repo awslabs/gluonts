@@ -17,14 +17,14 @@ from typing import Optional
 import numpy as np
 
 from gluonts.exceptions import GluonTSUserError
-from gluonts.ev.api import (
+from .api import (
     DerivedMetricEvaluator,
     Metric,
     MetricEvaluator,
     StandardMetricEvaluator,
 )
-from gluonts.ev.aggregations import Mean, Sum
-from gluonts.ev.metric_helpers import (
+from .aggregations import Mean, Sum
+from .metric_helpers import (
     abs_error,
     abs_label,
     absolute_percentage_error,

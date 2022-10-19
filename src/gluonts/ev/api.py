@@ -17,7 +17,7 @@ import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
-from gluonts.ev.aggregations import Aggregation
+from .aggregations import Aggregation
 
 
 def gather_inputs(

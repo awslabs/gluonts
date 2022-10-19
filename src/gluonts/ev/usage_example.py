@@ -13,10 +13,11 @@
 
 
 from toolz import take
-from gluonts.ev.evaluator import Evaluator
+
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
-from gluonts.model.npts import NPTSPredictor
 from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.model.npts import NPTSPredictor
+from .evaluator import Evaluator
 
 dataset = get_dataset("electricity")
 

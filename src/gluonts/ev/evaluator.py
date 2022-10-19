@@ -4,8 +4,8 @@ import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
-from gluonts.ev.api import DataProbe, Metric, MetricEvaluator, gather_inputs
-from gluonts.ev.metrics import (
+from .api import DataProbe, Metric, MetricEvaluator, gather_inputs
+from .metrics import (
     MAPE,
     MASE,
     MSE,
