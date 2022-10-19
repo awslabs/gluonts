@@ -11,29 +11,31 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Dict
 import numpy as np
 
-from gluonts.ev.helpers import EvalData
 from gluonts.exceptions import GluonTSUserError
 
 
-def abs_label(data: EvalData) -> np.ndarray:
+def abs_label(data: Dict[str, np.ndarray]) -> np.ndarray:
     return np.abs(data["label"])
 
 
-def error(data: EvalData, forecast_type: str) -> np.ndarray:
+def error(data: Dict[str, np.ndarray], forecast_type: str) -> np.ndarray:
     return data["label"] - data[forecast_type]
 
 
-def abs_error(data: EvalData, forecast_type: str) -> np.ndarray:
+def abs_error(data: Dict[str, np.ndarray], forecast_type: str) -> np.ndarray:
     return np.abs(error(data, forecast_type))
 
 
-def squared_error(data: EvalData, forecast_type: str) -> np.ndarray:
+def squared_error(
+    data: Dict[str, np.ndarray], forecast_type: str
+) -> np.ndarray:
     return np.square(error(data, forecast_type))
 
 
-def quantile_loss(data: EvalData, q: float) -> np.ndarray:
+def quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
     forecast_type = str(q)
     prediction = data[forecast_type]
 
@@ -42,19 +44,19 @@ def quantile_loss(data: EvalData, q: float) -> np.ndarray:
     )
 
 
-def coverage(data: EvalData, q: float) -> np.ndarray:
+def coverage(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
     forecast_type = str(q)
     return data["label"] < data[forecast_type]
 
 
 def absolute_percentage_error(
-    data: EvalData, forecast_type: str
+    data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
     return abs_error(data, forecast_type) / abs_label(data)
 
 
 def symmetric_absolute_percentage_error(
-    data: EvalData, forecast_type: str
+    data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
     return abs_error(data, forecast_type) / (
         abs_label(data) + np.abs(data[forecast_type])
@@ -95,7 +97,7 @@ def seasonal_error_without_mean(
 
 
 def msis_numerator(
-    data: EvalData,
+    data: Dict[str, np.ndarray],
     alpha: float,
 ) -> np.ndarray:
     """Calculates the numerator of the Mean Scaled Interval Score.

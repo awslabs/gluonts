@@ -1,9 +1,10 @@
-from typing import Collection, Iterator, Optional
+from typing import Collection, Dict, Iterator, Optional
+
+import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
 from gluonts.ev.api import DataProbe, Metric, MetricEvaluator, gather_inputs
-from gluonts.ev.helpers import EvalData
 from gluonts.ev.metrics import (
     MAPE,
     MASE,
@@ -26,7 +27,7 @@ from gluonts.ev.metrics import (
 class Evaluator:
     def __init__(self) -> None:
         # TODO: better naming!
-        self.metric_evaluators: dict[str, MetricEvaluator] = dict()
+        self.metric_evaluators: Dict[str, MetricEvaluator] = dict()
 
     def add_metric(self, metrics: Metric, axis: Optional[int] = None) -> None:
         self.add_metrics([metrics], axis)
@@ -85,7 +86,7 @@ class Evaluator:
 
     def evaluate(
         self, test_data: TestData, forecasts: Iterator[Forecast]
-    ) -> EvalData:
+    ) -> Dict[str, np.ndarray]:
         quantile_levels = self.get_required_quantile_levels(test_data)
 
         batches = gather_inputs(

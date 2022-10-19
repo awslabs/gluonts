@@ -12,12 +12,11 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Collection, List, Optional
+from typing import Callable, Dict, Iterator, Collection, Optional
 import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
-from gluonts.ev.helpers import EvalData, create_eval_data
 from gluonts.ev.aggregations import Aggregation
 
 
@@ -26,11 +25,21 @@ def gather_inputs(
     forecasts: Iterator[Forecast],
     quantile_levels: Collection[float],
     batch_size: int = 64,
-) -> Iterator[EvalData]:
+) -> Iterator[Dict[str, np.ndarray]]:
     """Collect relevant data as NumPy arrays to evaluate the next batch.
 
     The number of entries in `test_data` and `forecasts` must be equal.
     """
+
+    def create_eval_data(
+        inputs: np.ndarray, labels: np.ndarray, forecasts: dict[np.ndarray]
+    ):
+        return {
+            "input": np.stack([entry["target"] for entry in inputs]),
+            "label": np.stack([entry["target"] for entry in labels]),
+            **{name: np.stack(value) for name, value in forecasts.items()},
+        }
+
     inputs = iter(test_data.input)
     labels = iter(test_data.label)
 
@@ -102,7 +111,7 @@ class Metric:
 
 
 class MetricEvaluator:
-    def update(self, data: EvalData) -> None:
+    def update(self, data: Dict[str, np.ndarray]) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
@@ -119,7 +128,7 @@ class StandardMetricEvaluator(MetricEvaluator):
     map: Callable
     aggregate: Aggregation
 
-    def update(self, data: EvalData) -> None:
+    def update(self, data: Dict[str, np.ndarray]) -> None:
         self.aggregate.step(self.map(data))
 
     def get(self) -> np.ndarray:
@@ -136,7 +145,7 @@ class DerivedMetricEvaluator(MetricEvaluator):
     metrics: Dict[str, StandardMetricEvaluator]
     post_process: Callable
 
-    def update(self, data: EvalData) -> None:
+    def update(self, data: Dict[str, np.ndarray]) -> None:
         for metric in self.metrics.values():
             metric.update(data)
 

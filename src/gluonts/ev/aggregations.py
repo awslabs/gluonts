@@ -15,8 +15,6 @@ from dataclasses import dataclass
 from typing import List, Optional, Union
 import numpy as np
 
-from gluonts.ev.helpers import axis_is_zero_or_none
-
 
 @dataclass
 class Aggregation:
@@ -39,18 +37,18 @@ class Sum(Aggregation):
         summed_values = np.sum(values, axis=self.axis)
 
         if self.partial_result is None:
-            if axis_is_zero_or_none(self.axis):
+            if self.axis is None or self.axis == 0:
                 self.partial_result = np.zeros(shape=np.shape(summed_values))
             else:
                 self.partial_result = []
 
-        if axis_is_zero_or_none(self.axis):
+        if self.axis is None or self.axis == 0:
             self.partial_result += summed_values
         else:
             self.partial_result.append(summed_values)
 
     def get(self) -> np.ndarray:
-        if axis_is_zero_or_none(self.axis):
+        if self.axis is None or self.axis == 0:
             return self.partial_result
 
         return np.concatenate(self.partial_result)
@@ -69,12 +67,12 @@ class Mean(Aggregation):
         summed_values = np.sum(values, axis=self.axis)
 
         if self.partial_result is None:
-            if axis_is_zero_or_none(self.axis):
+            if self.axis is None or self.axis == 0:
                 self.partial_result = np.zeros(shape=np.shape(summed_values))
             else:
                 self.partial_result = []
 
-        if axis_is_zero_or_none(self.axis):
+        if self.axis is None or self.axis == 0:
             self.partial_result += summed_values
         else:
             self.partial_result.append(summed_values)
@@ -85,7 +83,7 @@ class Mean(Aggregation):
             self.n += values.shape[self.axis]
 
     def get(self) -> np.ndarray:
-        if axis_is_zero_or_none(self.axis):
+        if self.axis is None or self.axis == 0:
             return self.partial_result / self.n
 
         return np.concatenate(self.partial_result) / self.n
