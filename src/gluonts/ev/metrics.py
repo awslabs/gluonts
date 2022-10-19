@@ -105,7 +105,9 @@ class MAPE(Metric):
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=partial(absolute_percentage_error, q=self.q),
+            map=partial(
+                absolute_percentage_error, forecast_type=self.forecast_type
+            ),
             aggregate=Mean(axis=axis),
         )
 
@@ -116,7 +118,10 @@ class SMAPE(Metric):
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=partial(symmetric_absolute_percentage_error, q=self.q),
+            map=partial(
+                symmetric_absolute_percentage_error,
+                forecast_type=self.forecast_type,
+            ),
             aggregate=Mean(axis=axis),
         )
 
@@ -210,9 +215,7 @@ class ND(Metric):
                 "abs_error_sum": AbsErrorSum(forecast_type=self.forecast_type)(
                     axis=axis
                 ),
-                "abs_label_sum": AbsLabelSum(forecast_type=self.forecast_type)(
-                    axis=axis
-                ),
+                "abs_label_sum": AbsLabelSum()(axis=axis),
             },
             post_process=post_process,
         )
@@ -251,6 +254,7 @@ class NRMSE(Metric):
         )
 
 
+@dataclass
 class WeightedQuantileLoss:
     q: float = 0.5
 
