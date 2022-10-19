@@ -142,7 +142,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         The size of the batches to be used training and prediction.
     train_sampler
         Controls the sampling of windows during training.
-
+    validation_sampler
+        Controls the sampling of windows during validation.
     """
 
     @validated()
@@ -176,6 +177,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         is_iqf: bool = True,
         batch_size: int = 32,
         train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -279,6 +281,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             num_forking=num_forking,
             max_ts_len=max_ts_len,
             train_sampler=train_sampler,
+            validation_sampler=validation_sampler,
             batch_size=batch_size,
         )
 
@@ -373,6 +376,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         is_iqf: bool = True,
         batch_size: int = 32,
         train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
 
         assert (
@@ -434,5 +438,6 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
             train_sampler=train_sampler,
+            validation_sampler=validation_sampler,
             batch_size=batch_size,
         )

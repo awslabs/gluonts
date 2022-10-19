@@ -370,10 +370,16 @@ class Trainer:
                 it.close()
 
                 if not any_batches:
+                    if is_training:
+                        error_data_type = 'training'
+                    else:
+                        error_data_type = 'validation'
                     raise GluonTSDataError(
-                        "No training data batch could be constructed; "
-                        "this usually indicates that the training dataset "
+                        "No " + error_data_type + " data batch could be constructed; "
+                        "this usually indicates that the " + error_data_type + " dataset "
                         "is empty, or consists of too short series."
+                        " If using a random data sampler, this might "
+                        "be caused by not taking enough samples."
                     )
 
                 # mark epoch end time and log time cost of current epoch
