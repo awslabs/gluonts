@@ -12,8 +12,11 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Collection, Optional
+from typing import Callable, Dict, Iterator, Collection, List, Optional
 import numpy as np
+
+from ..time_feature.seasonality import get_seasonality
+from .metric_helpers import seasonal_error
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
@@ -32,18 +35,19 @@ def gather_inputs(
     """
 
     def create_eval_data(
-        inputs: np.ndarray, labels: np.ndarray, forecasts: dict[np.ndarray]
+        seasonal_errors: np.ndarray, labels: List[np.ndarray], forecasts: Dict[str, np.ndarray]
     ):
         return {
-            "input": np.stack([entry["target"] for entry in inputs]),
+            "seasonal_error": np.stack(seasonal_errors),
             "label": np.stack([entry["target"] for entry in labels]),
             **{name: np.stack(value) for name, value in forecasts.items()},
         }
 
+    seasonality = 1  # TODO
     inputs = iter(test_data.input)
     labels = iter(test_data.label)
 
-    input_data = []
+    seasonal_errors = []
     label_data = []
     forecast_data = {
         "mean": [],
@@ -57,20 +61,21 @@ def gather_inputs(
         for q in quantile_levels:
             forecast_data[str(q)].append(forecast_entry.quantile(q))
 
-        input_data.append(next(inputs))
+        seasonal_error_value = seasonal_error(next(inputs)["target"], seasonality)
+        seasonal_errors.append(seasonal_error_value)
         label_data.append(next(labels))
 
         entry_counter += 1
         if entry_counter % batch_size == 0:
-            yield create_eval_data(input_data, label_data, forecast_data)
+            yield create_eval_data(seasonal_errors, label_data, forecast_data)
 
-            input_data.clear()
+            seasonal_errors.clear()
             label_data.clear()
             for key in forecast_data:
                 forecast_data[key].clear()
 
     if entry_counter % batch_size != 0:
-        yield create_eval_data(input_data, label_data, forecast_data)
+        yield create_eval_data(seasonal_errors, label_data, forecast_data)
 
 
 class DataProbe:
@@ -85,7 +90,7 @@ class DataProbe:
     def __init__(self, test_data: TestData):
         input_sample, label_sample = next(iter(test_data))
         # use batch_size 1
-        self.input_shape = (1,) + np.shape(input_sample["target"])
+        self.input_shape = (1,)
         self.prediction_target_shape = (1,) + np.shape(label_sample["target"])
 
         self.required_quantile_forecasts = set()
@@ -93,7 +98,7 @@ class DataProbe:
     def __getitem__(self, key: str):
         if key == "batch_size":
             return 1
-        if key == "input":
+        if key == "seasonal_error":
             return np.random.rand(*self.input_shape)
         if key in ["label", "mean"]:
             return np.random.rand(*self.prediction_target_shape)

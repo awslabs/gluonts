@@ -14,7 +14,9 @@
 from dataclasses import dataclass
 from functools import partial
 from typing import Optional
+
 import numpy as np
+from ..evaluation.metrics import msis
 
 from gluonts.exceptions import GluonTSUserError
 from .api import (
@@ -28,10 +30,10 @@ from .metric_helpers import (
     abs_error,
     abs_label,
     absolute_percentage_error,
+    absolute_scaled_error,
     coverage,
-    msis_numerator,
     quantile_loss,
-    seasonal_error_without_mean,
+    scaled_interval_score,
     squared_error,
     symmetric_absolute_percentage_error,
 )
@@ -126,77 +128,31 @@ class SMAPE(Metric):
         )
 
 
-@dataclass
-class SeasonalError(Metric):
-    seasonality: int = 1
-
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        if axis not in [None, 1]:
-            raise GluonTSUserError(
-                "Seasonal error only works per data entry. "
-                "Choose axis 1 or None."
-            )
-
-        return StandardMetricEvaluator(
-            map=partial(
-                seasonal_error_without_mean, seasonality=self.seasonality
-            ),
-            aggregate=Mean(axis=axis),
-        )
-
-
-@dataclass
-class MSISNumerator(Metric):
-    alpha: str = "0.05"
-
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        return StandardMetricEvaluator(
-            map=partial(msis_numerator, alpha=self.alpha),
-            aggregate=Mean(axis=axis),
-        )
-
 
 @dataclass
 class MSIS(Metric):
     alpha: float = 0.05
-    seasonality: int = 1
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(
-            numerator: np.ndarray, seasonal_error: np.ndarray
-        ) -> np.ndarray:
-            return numerator / seasonal_error
-
-        return DerivedMetricEvaluator(
-            metrics={
-                "numerator": MSISNumerator(self.alpha)(axis=axis),
-                "seasonal_error": SeasonalError(seasonality=self.seasonality)(
-                    axis=axis
-                ),
-            },
-            post_process=post_process,
+        return StandardMetricEvaluator(
+            map=partial(scaled_interval_score, alpha=self.alpha),
+            aggregate=Mean(axis=axis),
         )
 
 
 @dataclass
 class MASE(Metric):
     forecast_type: str = "0.5"
-    seasonality: int = 1
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(
-            abs_error_sum: np.ndarray, seasonal_error: np.ndarray
-        ) -> np.ndarray:
-            return abs_error_sum / seasonal_error
+        if axis not in [None, 1]:
+            raise GluonTSUserError(
+                f"MASE requires 'axis' to be None or 1 (not {axis})"
+            )
 
-        return DerivedMetricEvaluator(
-            metrics={
-                "abs_error_sum": AbsErrorSum(forecast_type=self.forecast_type)(
-                    axis=axis
-                ),
-                "seasonal_error": SeasonalError()(axis=axis),
-            },
-            post_process=post_process,
+        return StandardMetricEvaluator(
+            map=partial(absolute_scaled_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis)
         )
 
 

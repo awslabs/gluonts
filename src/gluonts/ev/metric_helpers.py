@@ -12,9 +12,38 @@
 # permissions and limitations under the License.
 
 from typing import Dict
+
 import numpy as np
 
-from gluonts.exceptions import GluonTSUserError
+
+def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
+    if seasonality < np.size(time_series):
+        forecast_freq = seasonality
+    else:
+        # edge case: the seasonal freq is larger than the length of ts
+        forecast_freq = 1
+
+    y_t = time_series[:-forecast_freq]
+    y_tm = time_series[forecast_freq:]
+
+    return np.mean(np.abs(y_t - y_tm))
+
+
+# TODO: make this simpler if possible
+def expand_seaonal_error(
+    seasonal_error_values: np.ndarray, target_shape: int
+) -> np.ndarray:
+    # add prediction_length axis to match dimension of forecasts
+
+    if np.ndim(seasonal_error_values) == 1:
+        # univariate case: (num_samples, prediction_length)
+        values_with_added_dim = seasonal_error_values.reshape(-1, 1)
+    elif np.ndim(seasonal_error_values) == 2:
+        # multivariate case: (num_samples, prediction_length, target_dim)
+        x, _, z = target_shape
+        values_with_added_dim = seasonal_error_values.reshape(x, 1, z)
+
+    return np.broadcast_to(values_with_added_dim, target_shape)
 
 
 def abs_label(data: Dict[str, np.ndarray]) -> np.ndarray:
@@ -63,47 +92,10 @@ def symmetric_absolute_percentage_error(
     )
 
 
-def seasonal_error_without_mean(
-    data: dict,
-    seasonality: int,
-):
-    """Calculates the seasonal error without applying the mean at the end.
-
-    Further calculation to get the true metric value happens in
-    `SeasonalError`.
-    """
-    past_data = data["input"]
-
-    if seasonality < np.shape(past_data)[1]:
-        forecast_freq = seasonality
-    else:
-        # edge case: the seasonal freq is larger than the length of ts
-        forecast_freq = 1
-
-    ndim = np.ndim(past_data)
-    if ndim == 2:
-        y_t = past_data[:, :-forecast_freq]
-        y_tm = past_data[:, forecast_freq:]
-    elif ndim:
-        y_t = past_data[:, :-forecast_freq, :]
-        y_tm = past_data[:, forecast_freq:, :]
-    else:
-        raise GluonTSUserError(
-            "Input data is {ndim}-dimensional but must be two-dimensional "
-            "(univariate case) or three-dimensional (multivariate case)"
-        )
-
-    return np.abs(y_t - y_tm)
-
-
-def msis_numerator(
+def scaled_interval_score(
     data: Dict[str, np.ndarray],
     alpha: float,
 ) -> np.ndarray:
-    """Calculates the numerator of the Mean Scaled Interval Score.
-
-    Further calculation to get the true metric value happens in `MSIS`.
-    """
     lower_quantile = data[str(alpha / 2)]
     upper_quantile = data[str(1.0 - alpha / 2)]
     label = data["label"]
@@ -115,4 +107,12 @@ def msis_numerator(
         + 2.0 / alpha * (label - upper_quantile) * (label > upper_quantile)
     )
 
-    return numerator
+    return numerator / expand_seaonal_error(
+        data["seasonal_error"], data["label"].shape
+    )
+
+
+def absolute_scaled_error(data: Dict[str, np.ndarray], forecast_type: str):
+    return abs_error(data, forecast_type) / expand_seaonal_error(
+        data["seasonal_error"], data["label"].shape
+    )

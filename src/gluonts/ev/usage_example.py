@@ -11,13 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
 from toolz import take
 
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from .evaluator import Evaluator
+from gluonts.ev.evaluator import Evaluator
 
 dataset = get_dataset("electricity")
 
