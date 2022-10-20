@@ -20,7 +20,6 @@ import numpy as np
 from gluonts.exceptions import GluonTSUserError
 from .api import (
     DerivedMetricEvaluator,
-    Metric,
     MetricEvaluator,
     StandardMetricEvaluator,
 )
@@ -36,6 +35,13 @@ from .stats import (
     squared_error,
     symmetric_absolute_percentage_error,
 )
+
+
+def assert_axis_is_None_or_one(axis: Optional[int], metric_name: str) -> None:
+    if axis not in [None, 1]:
+        raise GluonTSUserError(
+            f"'{metric_name}' requires 'axis' to be None or 1 (not {axis})"
+        )
 
 
 @dataclass
@@ -132,6 +138,8 @@ class MeanScaledIntervalScore:
     alpha: float = 0.05
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+        assert_axis_is_None_or_one(axis, self.__class__.__name__)
+
         return StandardMetricEvaluator(
             map=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
@@ -143,10 +151,7 @@ class MeanAbsoluteScaledError:
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        if axis not in [None, 1]:
-            raise GluonTSUserError(
-                f"MASE requires 'axis' to be None or 1 (not {axis})"
-            )
+        assert_axis_is_None_or_one(axis, self.__class__.__name__)
 
         return StandardMetricEvaluator(
             map=partial(

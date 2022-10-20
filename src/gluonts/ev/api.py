@@ -28,6 +28,7 @@ import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
+from gluonts.time_feature.seasonality import get_seasonality
 from .stats import seasonal_error
 from .aggregations import Aggregation
 
@@ -152,8 +153,6 @@ def get_evaluation_data_batches(
     test_data: Union[TestData, TestDataBatch],
     forecasts: Iterator[Union[Forecast, ForecastBatch]],
 ):
-    seasonality = 1  # TODO: use actual seasonality
-
     for input, label, forecast in zip(
         test_data.input, test_data.label, forecasts
     ):
@@ -162,7 +161,8 @@ def get_evaluation_data_batches(
         non_forecast_data = {
             "label": label["target"],
             "seasonal_error": seasonal_error(
-                input["target"], seasonality=seasonality
+                input["target"],
+                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
             ),
         }
         joint_data = ChainMap(non_forecast_data, forecast)

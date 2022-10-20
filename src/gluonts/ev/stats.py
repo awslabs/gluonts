@@ -17,33 +17,42 @@ import numpy as np
 
 
 def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
-    if np.ndim(time_series) == 1:
-        if seasonality < np.size(time_series):
-            forecast_freq = seasonality
-        else:
-            # edge case: the seasonal freq is larger than the length of ts
-            forecast_freq = 1
+    """The seasonal error is a the mean absolute difference of a given time
+    series, shifted by its seasonality.
 
+    Some metrics use the seasonal error for normalization."""
+
+    if seasonality < time_series.shape[-1]:
+        forecast_freq = seasonality
+    else:
+        # edge case: the seasonal freq is larger than the length of ts
+        forecast_freq = 1
+
+    if np.ndim(time_series) == 1:
         y_t = time_series[:-forecast_freq]
         y_tm = time_series[forecast_freq:]
 
         return np.mean(np.abs(y_t - y_tm))
     else:
-        pass  # TODO: consider multivariate case
+        # multivariate case:
+        # time_series is has shape (# of time stamps, # of variates)
+        y_t = time_series[:-forecast_freq, :]
+        y_tm = time_series[forecast_freq:, :]
+
+        return np.mean(np.abs(y_t - y_tm), axis=1)
 
 
 # TODO: make this simpler if possible
 def expand_seaonal_error(
     seasonal_error_values: np.ndarray, target_shape: Tuple[int]
 ) -> np.ndarray:
-    # add prediction_length axis to match dimension of forecasts
+    # broadcast along prediction_length axis to match dimension of forecasts
 
     if np.ndim(seasonal_error_values) == 1:
-        # univariate case: (num_samples, prediction_length)
+        # univariate case: (# of samples, prediction length)
         values_with_added_dim = seasonal_error_values.reshape(-1, 1)
     elif np.ndim(seasonal_error_values) == 2:
-        # multivariate case: (num_samples, prediction_length, target_dim)
-        print(target_shape, seasonal_error_values.shape)
+        # multivariate case: (# of samples, prediction length, # of variates)
         x, _, z = target_shape
         values_with_added_dim = seasonal_error_values.reshape(x, 1, z)
 
