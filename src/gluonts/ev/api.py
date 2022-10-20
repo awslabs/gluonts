@@ -13,14 +13,13 @@
 
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterator, Collection, List, Optional
-import numpy as np
 
-from ..time_feature.seasonality import get_seasonality
-from .metric_helpers import seasonal_error
+import numpy as np
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
 from .aggregations import Aggregation
+from .stats import seasonal_error
 
 
 def gather_inputs(

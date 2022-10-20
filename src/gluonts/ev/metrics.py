@@ -16,7 +16,6 @@ from functools import partial
 from typing import Optional
 
 import numpy as np
-from ..evaluation.metrics import msis
 
 from gluonts.exceptions import GluonTSUserError
 from .api import (
@@ -26,7 +25,7 @@ from .api import (
     StandardMetricEvaluator,
 )
 from .aggregations import Mean, Sum
-from .metric_helpers import (
+from .stats import (
     abs_error,
     abs_label,
     absolute_percentage_error,
