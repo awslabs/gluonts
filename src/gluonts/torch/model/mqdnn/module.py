@@ -15,6 +15,7 @@ from typing import List, Optional
 
 import torch
 import torch.nn as nn
+from torch.nn.functional import softplus
 
 from gluonts.itertools import prod
 from gluonts.torch.modules.scaler import MeanScaler
@@ -35,6 +36,7 @@ class MQDNNModel(nn.Module):
         global_activation: nn.Module = nn.ReLU(),
         local_activation: nn.Module = nn.ReLU(),
         scaling: nn.Module = MeanScaler(dim=1, keepdim=True),
+        is_iqf: bool = False,
     ) -> None:
         super().__init__()
         self.prediction_length = prediction_length
@@ -53,6 +55,7 @@ class MQDNNModel(nn.Module):
         self.local_decoder = self._make_local_decoder()
 
         self.scaling = scaling
+        self.is_iqf = is_iqf
 
     def _make_global_decoder(self):
         input_length = self.encoder_output_length + (
@@ -89,6 +92,7 @@ class MQDNNModel(nn.Module):
         modules.append(
             nn.Linear(dimensions[-1], self.num_output_quantiles),
         )
+        modules.append(Transpose(1, 2))
 
         return nn.Sequential(*modules)
 
@@ -109,8 +113,7 @@ class MQDNNModel(nn.Module):
             past_target, past_observed_values
         )
 
-        # TODO add static features as well
-        # TODO add scale to model input
+        # TODO add static categorical features as well
 
         past_time_length = past_observed_values.shape[1]
 
@@ -147,10 +150,22 @@ class MQDNNModel(nn.Module):
         if future_feat_dynamic is not None:
             local_decoder_inputs.append(future_feat_dynamic)
 
-        local_decoder_output = self.local_decoder(torch.concat(local_decoder_inputs, dim=2))
-        local_decoder_output[:,:,1:] = local_decoder_output[:,:,1:].relu()
+        local_decoder_output = self.local_decoder(
+            torch.concat(local_decoder_inputs, dim=2)
+        )
 
-        return local_decoder_output.cumsum(dim=-1).swapaxes(1, 2)
+        if self.is_iqf:
+            quantiles = torch.concat(
+                (
+                    local_decoder_output[:, 0:1, :],
+                    softplus(local_decoder_output[:, 1:, :]),
+                ),
+                dim=1,
+            ).cumsum(dim=1) * scale.unsqueeze(-1)
+        else:
+            quantiles = local_decoder_output * scale.unsqueeze(-1)
+
+        return quantiles
 
 
 class Transpose(torch.nn.Module):
@@ -205,11 +220,14 @@ class MQCNNModel(MQDNNModel):
             )
         ]
 
-        encoder = torch.nn.Sequential(
-            Transpose(1, 2),
-            *conv_layers,
-            Transpose(1, 2),
-        )
+        encoder_layers = [Transpose(1, 2)]
+        for conv_layer in conv_layers[:-1]:
+            encoder_layers.append(conv_layer)
+            encoder_layers.append(torch.nn.ReLU())
+        encoder_layers.append(conv_layers[-1])
+        encoder_layers.append(Transpose(1, 2))
+
+        encoder = torch.nn.Sequential(*encoder_layers)
 
         super().__init__(
             num_feat_dynamic_real=num_feat_dynamic_real,

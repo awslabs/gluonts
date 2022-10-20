@@ -69,7 +69,7 @@ class MQDNNEstimator(PyTorchLightningEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         quantiles: Optional[List[float]] = None,
-        scaling: bool = True,
+        is_iqf: bool = False,
         num_past_feat_dynamic_real: int = 0,
         num_feat_dynamic_real: int = 0,
         num_feat_static_real: int = 0,
@@ -110,7 +110,7 @@ class MQDNNEstimator(PyTorchLightningEstimator):
             if quantiles is not None
             else [0.025, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.975]
         )
-        self.scaling = scaling
+        self.is_iqf = is_iqf
         self.num_past_feat_dynamic_real = num_past_feat_dynamic_real
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_real = num_feat_static_real
@@ -331,7 +331,9 @@ class MQDNNEstimator(PyTorchLightningEstimator):
             prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            forecast_generator=QuantileForecastGenerator(quantiles=self.quantiles),
+            forecast_generator=QuantileForecastGenerator(
+                quantiles=self.quantiles
+            ),
             device=torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu"
             ),
@@ -365,6 +367,7 @@ class MQCNNEstimator(MQDNNEstimator):
             global_activation=self.global_activation,
             local_hidden_sizes=self.local_hidden_sizes,
             local_activation=self.local_activation,
+            is_iqf=self.is_iqf,
         )
 
         return MQDNNLightningModule(

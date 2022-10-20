@@ -54,11 +54,11 @@ class MQDNNLightningModule(pl.LightningModule):
 
         error = future_target.unsqueeze(1) - output
         pos_error = (error > 0) * error
-        neg_error = torch.logical_not(error <= 0) * error
+        neg_error = (error <= 0) * error
 
         q = self.quantiles.unsqueeze(0).unsqueeze(2)
 
-        loss_values = ((1 - q) * pos_error + q * neg_error).sum(axis=1)
+        loss_values = (q * pos_error + (q - 1) * neg_error).mean(axis=1)
         return weighted_average(loss_values, weights=observed_values)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
