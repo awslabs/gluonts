@@ -11,27 +11,30 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 
 
 def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
-    if seasonality < np.size(time_series):
-        forecast_freq = seasonality
+    if np.ndim(time_series) == 1:
+        if seasonality < np.size(time_series):
+            forecast_freq = seasonality
+        else:
+            # edge case: the seasonal freq is larger than the length of ts
+            forecast_freq = 1
+
+        y_t = time_series[:-forecast_freq]
+        y_tm = time_series[forecast_freq:]
+
+        return np.mean(np.abs(y_t - y_tm))
     else:
-        # edge case: the seasonal freq is larger than the length of ts
-        forecast_freq = 1
-
-    y_t = time_series[:-forecast_freq]
-    y_tm = time_series[forecast_freq:]
-
-    return np.mean(np.abs(y_t - y_tm))
+        pass  # TODO: consider multivariate case
 
 
 # TODO: make this simpler if possible
 def expand_seaonal_error(
-    seasonal_error_values: np.ndarray, target_shape: int
+    seasonal_error_values: np.ndarray, target_shape: Tuple[int]
 ) -> np.ndarray:
     # add prediction_length axis to match dimension of forecasts
 
@@ -40,6 +43,7 @@ def expand_seaonal_error(
         values_with_added_dim = seasonal_error_values.reshape(-1, 1)
     elif np.ndim(seasonal_error_values) == 2:
         # multivariate case: (num_samples, prediction_length, target_dim)
+        print(target_shape, seasonal_error_values.shape)
         x, _, z = target_shape
         values_with_added_dim = seasonal_error_values.reshape(x, 1, z)
 

@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import ChainMap
 from typing import Collection, Dict, Iterator, Optional
-
 import numpy as np
+from .stats import seasonal_error
 
 from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
-from .api import DataProbe, Metric, MetricEvaluator, gather_inputs
+from .api import Metric, MetricEvaluator
 from .metrics import (
     MeanAbsolutePercentageError,
     MeanAbsoluteScaledError,
@@ -34,6 +35,16 @@ from .metrics import (
     QuantileLoss,
     WeightedQuantileLoss,
 )
+
+
+class DataBatch:
+    """Used to add batch dimension"""
+
+    def __init__(self, values) -> None:
+        self.values = values
+
+    def __getitem__(self, name):
+        return np.array([self.values[name]])
 
 
 class Evaluator:
@@ -86,36 +97,42 @@ class Evaluator:
         self.add_metrics(metrics_per_entry, axis=1)
         self.add_metrics(global_metrics, axis=None)
 
-    def get_required_quantile_levels(self, test_data: TestData):
-        data_probe = DataProbe(test_data)
-        for metric_evaluator in self.metric_evaluators.values():
-            metric_evaluator.reset()
-            metric_evaluator.update(data_probe)
-            metric_evaluator.get()
-        return data_probe.required_quantile_forecasts
+    def get_batches(self, test_data: TestData, forecasts: Iterator[Forecast]):
+        seasonality = 1  # TODO: use actual seasonality
+
+        for test_entry, forecast in zip(test_data, forecasts):
+            batching_used = not isinstance(
+                forecast, Forecast
+            )  # as opposed to ForecastBatch
+
+            input, label = test_entry
+
+            non_forecast_data = {
+                "label": label["target"],
+                "seasonal_error": seasonal_error(
+                    input["target"], seasonality=seasonality
+                ),
+            }
+
+            batch_data = ChainMap(non_forecast_data, forecast)
+
+            if batching_used:
+                yield batch_data
+            else:
+                yield DataBatch(batch_data)
 
     def evaluate(
         self, test_data: TestData, forecasts: Iterator[Forecast]
     ) -> Dict[str, np.ndarray]:
-        quantile_levels = self.get_required_quantile_levels(test_data)
-
-        batches = gather_inputs(
+        batches = self.get_batches(
             test_data=test_data,
             forecasts=forecasts,
-            quantile_levels=quantile_levels,
         )
-
-        # only NumPy arrays are used from here on
 
         for metric_evaluator in self.metric_evaluators.values():
             metric_evaluator.reset()
 
-        b = 0
         for data in batches:
-            if b == 4:
-                print("UH")
-            print(f"batch {b}")
-            b += 1
             for metric_evaluator in self.metric_evaluators.values():
                 metric_evaluator.update(data)
 

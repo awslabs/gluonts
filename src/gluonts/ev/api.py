@@ -12,105 +12,11 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, Collection, List, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 
-from gluonts.model.forecast import Forecast
-from gluonts.dataset.split import TestData
 from .aggregations import Aggregation
-from .stats import seasonal_error
-
-
-def gather_inputs(
-    test_data: TestData,
-    forecasts: Iterator[Forecast],
-    quantile_levels: Collection[float],
-    batch_size: int = 64,
-) -> Iterator[Dict[str, np.ndarray]]:
-    """Collect relevant data as NumPy arrays to evaluate the next batch.
-
-    The number of entries in `test_data` and `forecasts` must be equal.
-    """
-
-    def create_eval_data(
-        seasonal_errors: np.ndarray,
-        labels: List[np.ndarray],
-        forecasts: Dict[str, np.ndarray],
-    ):
-        return {
-            "seasonal_error": np.stack(seasonal_errors),
-            "label": np.stack([entry["target"] for entry in labels]),
-            **{name: np.stack(value) for name, value in forecasts.items()},
-        }
-
-    seasonality = 1  # TODO
-    inputs = iter(test_data.input)
-    labels = iter(test_data.label)
-
-    seasonal_errors = []
-    label_data = []
-    forecast_data = {
-        "mean": [],
-        **{str(q): [] for q in quantile_levels},
-    }
-
-    entry_counter = 0
-    for _ in range(len(test_data)):
-        forecast_entry = next(forecasts)
-        forecast_data["mean"].append(forecast_entry.mean)
-        for q in quantile_levels:
-            forecast_data[str(q)].append(forecast_entry.quantile(q))
-
-        seasonal_error_value = seasonal_error(
-            next(inputs)["target"], seasonality
-        )
-        seasonal_errors.append(seasonal_error_value)
-        label_data.append(next(labels))
-
-        entry_counter += 1
-        if entry_counter % batch_size == 0:
-            yield create_eval_data(seasonal_errors, label_data, forecast_data)
-
-            seasonal_errors.clear()
-            label_data.clear()
-            for key in forecast_data:
-                forecast_data[key].clear()
-
-    if entry_counter % batch_size != 0:
-        yield create_eval_data(seasonal_errors, label_data, forecast_data)
-
-
-class DataProbe:
-    """A DataProbe gathers all quantile forecasts required for an evaluation.
-
-    This has the benefit that metric definitions can work independently of
-    `Forecast` objects as all values in 'data' will be NumPy arrays.
-    :raises ValueError: if a metric requests a key that can't be converted to
-        float and isn't equal to "batch_size", "input", "label" or "mean"
-    """
-
-    def __init__(self, test_data: TestData):
-        input_sample, label_sample = next(iter(test_data))
-        # use batch_size 1
-        self.input_shape = (1,)
-        self.prediction_target_shape = (1,) + np.shape(label_sample["target"])
-
-        self.required_quantile_forecasts = set()
-
-    def __getitem__(self, key: str):
-        if key == "batch_size":
-            return 1
-        if key == "seasonal_error":
-            return np.random.rand(*self.input_shape)
-        if key in ["label", "mean"]:
-            return np.random.rand(*self.prediction_target_shape)
-
-        try:
-            self.required_quantile_forecasts.add(float(key))
-            return np.random.rand(*self.prediction_target_shape)
-        except ValueError:
-            raise ValueError(f"Unexpected input: {key}")
 
 
 class Metric:
