@@ -303,15 +303,6 @@ class Forecast:
     mean: np.ndarray
     _index = None
 
-    # __getitem__ as proposed in #2384
-    def __getitem__(self, name):
-        if name == "mean":
-            return self.mean
-        elif name == "median":
-            return self.median
-
-        return self.quantile(name)
-
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
         Computes a quantile from the predicted distribution.
