@@ -26,7 +26,7 @@ from gluonts.time_feature import get_seasonality
 
 def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     """
-    Test the time-series for seasonal patterns by performing a 90% auto-
+    Test the time series for seasonal patterns by performing a 90% auto-
     correlation test:
 
     As described here:
@@ -34,7 +34,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
-    critical_z_score = 1.645  # corresponds to 90% confidence interval
+    critical_z_score = 1.645  # corresponds to 90% prediction interval
     if len(past_ts_data) < 3 * season_length:
         return False
     else:

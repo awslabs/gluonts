@@ -117,7 +117,7 @@ class Evaluator:
         for the given series frequency as returned by `get_seasonality`
     alpha
         Parameter of the MSIS metric from the M4 competition that
-        defines the confidence interval.
+        defines the prediction interval.
         For alpha=0.05 (default) the 95% considered is considered in the
         metric, see
         https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
@@ -134,7 +134,7 @@ class Evaluator:
         First, a callable which takes as input target and forecast and
         returns the evaluation metric.
         Second, a string specifying the aggregation metric across all
-        time-series, f.e. "mean", "sum".
+        time series, f.e. "mean", "sum".
         Third, either "mean" or "median" to specify whether mean or median
         forecast should be passed to the custom evaluation function.
         E.g. {"RMSE": [rmse, "mean", "median"]}
@@ -203,7 +203,7 @@ class Evaluator:
         dict
             Dictionary of aggregated metrics
         pd.DataFrame
-            DataFrame containing per-time-series metrics
+            DataFrame containing metrics per time series
         """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)

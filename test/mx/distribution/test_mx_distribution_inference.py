@@ -24,7 +24,6 @@ import numpy as np
 import pytest
 from pydantic import PositiveFloat, PositiveInt
 
-from gluonts.model.common import NPArrayLike
 from gluonts.mx.model.tpp.distribution import (
     Loglogistic,
     LoglogisticOutput,
@@ -96,7 +95,7 @@ np.random.seed(1)
 mx.random.seed(1)
 
 
-def inv_softplus(y: NPArrayLike) -> np.ndarray:
+def inv_softplus(y: np.ndarray) -> np.ndarray:
     # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
     return np.log(np.exp(y) - 1)
 
