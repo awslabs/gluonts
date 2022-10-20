@@ -26,8 +26,8 @@ from .api import (
 )
 from .aggregations import Mean, Sum
 from .stats import (
-    abs_error,
-    abs_label,
+    absolute_error,
+    absolute_label,
     absolute_percentage_error,
     absolute_scaled_error,
     coverage,
@@ -39,36 +39,36 @@ from .stats import (
 
 
 @dataclass
-class AbsLabelMean(Metric):
+class AbsoluteLabelMean(Metric):
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=abs_label,
+            map=absolute_label,
             aggregate=Mean(axis=axis),
         )
 
 
 @dataclass
-class AbsLabelSum(Metric):
+class AbsoluteLabelSum(Metric):
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=abs_label,
+            map=absolute_label,
             aggregate=Sum(axis=axis),
         )
 
 
 @dataclass
-class AbsErrorSum(Metric):
+class AbsoluteErrorSum(Metric):
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=partial(abs_error, forecast_type=self.forecast_type),
+            map=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
 
 
 @dataclass
-class MSE(Metric):
+class MeanSquaredError(Metric):
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -101,7 +101,7 @@ class Coverage(Metric):
 
 
 @dataclass
-class MAPE(Metric):
+class MeanAbsolutePercentageError(Metric):
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -114,7 +114,7 @@ class MAPE(Metric):
 
 
 @dataclass
-class SMAPE(Metric):
+class SymmetricMeanAbsolutePercentageError(Metric):
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -127,9 +127,8 @@ class SMAPE(Metric):
         )
 
 
-
 @dataclass
-class MSIS(Metric):
+class MeanScaledIntervalScore(Metric):
     alpha: float = 0.05
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -140,7 +139,7 @@ class MSIS(Metric):
 
 
 @dataclass
-class MASE(Metric):
+class MeanAbsoluteScaledError(Metric):
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -150,13 +149,15 @@ class MASE(Metric):
             )
 
         return StandardMetricEvaluator(
-            map=partial(absolute_scaled_error, forecast_type=self.forecast_type),
-            aggregate=Mean(axis=axis)
+            map=partial(
+                absolute_scaled_error, forecast_type=self.forecast_type
+            ),
+            aggregate=Mean(axis=axis),
         )
 
 
 @dataclass
-class ND(Metric):
+class NormalizedDeviation(Metric):
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -167,17 +168,17 @@ class ND(Metric):
 
         return DerivedMetricEvaluator(
             metrics={
-                "abs_error_sum": AbsErrorSum(forecast_type=self.forecast_type)(
-                    axis=axis
-                ),
-                "abs_label_sum": AbsLabelSum()(axis=axis),
+                "abs_error_sum": AbsoluteErrorSum(
+                    forecast_type=self.forecast_type
+                )(axis=axis),
+                "abs_label_sum": AbsoluteLabelSum()(axis=axis),
             },
             post_process=post_process,
         )
 
 
 @dataclass
-class RMSE(Metric):
+class RootMeanSquaredError(Metric):
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -185,13 +186,17 @@ class RMSE(Metric):
             return np.sqrt(mse)
 
         return DerivedMetricEvaluator(
-            metrics={"mse": MSE(forecast_type=self.forecast_type)(axis=axis)},
+            metrics={
+                "mse": MeanSquaredError(forecast_type=self.forecast_type)(
+                    axis=axis
+                )
+            },
             post_process=post_process,
         )
 
 
 @dataclass
-class NRMSE(Metric):
+class NormalizedRootMeanSquaredError(Metric):
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -202,8 +207,8 @@ class NRMSE(Metric):
 
         return DerivedMetricEvaluator(
             metrics={
-                "rmse": RMSE()(axis=axis),
-                "abs_label_mean": AbsLabelMean()(axis=axis),
+                "rmse": RootMeanSquaredError()(axis=axis),
+                "abs_label_mean": AbsoluteLabelMean()(axis=axis),
             },
             post_process=post_process,
         )
@@ -222,7 +227,7 @@ class WeightedQuantileLoss:
         return DerivedMetricEvaluator(
             metrics={
                 "quantile_loss": QuantileLoss()(axis=axis),
-                "abs_label_sum": AbsLabelSum()(axis=axis),
+                "abs_label_sum": AbsoluteLabelSum()(axis=axis),
             },
             post_process=post_process,
         )

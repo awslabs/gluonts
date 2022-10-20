@@ -34,7 +34,9 @@ def gather_inputs(
     """
 
     def create_eval_data(
-        seasonal_errors: np.ndarray, labels: List[np.ndarray], forecasts: Dict[str, np.ndarray]
+        seasonal_errors: np.ndarray,
+        labels: List[np.ndarray],
+        forecasts: Dict[str, np.ndarray],
     ):
         return {
             "seasonal_error": np.stack(seasonal_errors),
@@ -60,7 +62,9 @@ def gather_inputs(
         for q in quantile_levels:
             forecast_data[str(q)].append(forecast_entry.quantile(q))
 
-        seasonal_error_value = seasonal_error(next(inputs)["target"], seasonality)
+        seasonal_error_value = seasonal_error(
+            next(inputs)["target"], seasonality
+        )
         seasonal_errors.append(seasonal_error_value)
         label_data.append(next(labels))
 

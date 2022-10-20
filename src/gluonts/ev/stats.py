@@ -46,7 +46,7 @@ def expand_seaonal_error(
     return np.broadcast_to(values_with_added_dim, target_shape)
 
 
-def abs_label(data: Dict[str, np.ndarray]) -> np.ndarray:
+def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
     return np.abs(data["label"])
 
 
@@ -54,7 +54,9 @@ def error(data: Dict[str, np.ndarray], forecast_type: str) -> np.ndarray:
     return data["label"] - data[forecast_type]
 
 
-def abs_error(data: Dict[str, np.ndarray], forecast_type: str) -> np.ndarray:
+def absolute_error(
+    data: Dict[str, np.ndarray], forecast_type: str
+) -> np.ndarray:
     return np.abs(error(data, forecast_type))
 
 
@@ -81,14 +83,14 @@ def coverage(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
 def absolute_percentage_error(
     data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
-    return abs_error(data, forecast_type) / abs_label(data)
+    return absolute_error(data, forecast_type) / absolute_label(data)
 
 
 def symmetric_absolute_percentage_error(
     data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
-    return abs_error(data, forecast_type) / (
-        abs_label(data) + np.abs(data[forecast_type])
+    return absolute_error(data, forecast_type) / (
+        absolute_label(data) + np.abs(data[forecast_type])
     )
 
 
@@ -113,6 +115,6 @@ def scaled_interval_score(
 
 
 def absolute_scaled_error(data: Dict[str, np.ndarray], forecast_type: str):
-    return abs_error(data, forecast_type) / expand_seaonal_error(
+    return absolute_error(data, forecast_type) / expand_seaonal_error(
         data["seasonal_error"], data["label"].shape
     )
