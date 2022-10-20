@@ -13,20 +13,27 @@
 
 from collections import ChainMap
 from dataclasses import dataclass, field
-from typing import Callable, Collection, Dict, Iterator, Optional, Union
+from typing import (
+    Callable,
+    Collection,
+    Dict,
+    Iterator,
+    Optional,
+    Union,
+    Protocol,
+    runtime_checkable,
+)
 
 import numpy as np
 
+from gluonts.model.forecast import Forecast
+from gluonts.dataset.split import TestData
 from .stats import seasonal_error
-
-from ..model.forecast import Forecast
-
-from ..dataset.split import TestData
-
 from .aggregations import Aggregation
 
 
-class Metric:
+@runtime_checkable
+class Metric(Protocol):
     def __call__(self, axis: Optional[int] = None) -> "MetricEvaluator":
         raise NotImplementedError
 
@@ -124,7 +131,7 @@ class MultiMetricEvaluator(MetricEvaluator):
 
 class EvaluationDataBatch:
     """Used to add batch dimension
-    Should be replaced by a ForecastBatch eventually"""
+    Should be replaced by a `ForecastBatch` eventually"""
 
     def __init__(self, values) -> None:
         self.values = values

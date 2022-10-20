@@ -39,7 +39,7 @@ from .stats import (
 
 
 @dataclass
-class AbsoluteLabelMean(Metric):
+class AbsoluteLabelMean:
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
             map=absolute_label,
@@ -48,7 +48,7 @@ class AbsoluteLabelMean(Metric):
 
 
 @dataclass
-class AbsoluteLabelSum(Metric):
+class AbsoluteLabelSum:
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
             map=absolute_label,
@@ -57,7 +57,7 @@ class AbsoluteLabelSum(Metric):
 
 
 @dataclass
-class AbsoluteErrorSum(Metric):
+class AbsoluteErrorSum:
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -68,7 +68,7 @@ class AbsoluteErrorSum(Metric):
 
 
 @dataclass
-class MeanSquaredError(Metric):
+class MeanSquaredError:
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -79,7 +79,7 @@ class MeanSquaredError(Metric):
 
 
 @dataclass
-class QuantileLoss(Metric):
+class QuantileLoss:
     q: float = 0.5
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -90,7 +90,7 @@ class QuantileLoss(Metric):
 
 
 @dataclass
-class Coverage(Metric):
+class Coverage:
     q: float = 0.5
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -101,7 +101,7 @@ class Coverage(Metric):
 
 
 @dataclass
-class MeanAbsolutePercentageError(Metric):
+class MeanAbsolutePercentageError:
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -114,7 +114,7 @@ class MeanAbsolutePercentageError(Metric):
 
 
 @dataclass
-class SymmetricMeanAbsolutePercentageError(Metric):
+class SymmetricMeanAbsolutePercentageError:
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -128,7 +128,7 @@ class SymmetricMeanAbsolutePercentageError(Metric):
 
 
 @dataclass
-class MeanScaledIntervalScore(Metric):
+class MeanScaledIntervalScore:
     alpha: float = 0.05
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -139,7 +139,7 @@ class MeanScaledIntervalScore(Metric):
 
 
 @dataclass
-class MeanAbsoluteScaledError(Metric):
+class MeanAbsoluteScaledError:
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -157,7 +157,7 @@ class MeanAbsoluteScaledError(Metric):
 
 
 @dataclass
-class NormalizedDeviation(Metric):
+class NormalizedDeviation:
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -178,7 +178,7 @@ class NormalizedDeviation(Metric):
 
 
 @dataclass
-class RootMeanSquaredError(Metric):
+class RootMeanSquaredError:
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
@@ -196,7 +196,7 @@ class RootMeanSquaredError(Metric):
 
 
 @dataclass
-class NormalizedRootMeanSquaredError(Metric):
+class NormalizedRootMeanSquaredError:
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
