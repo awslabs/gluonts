@@ -165,12 +165,13 @@ class MeanAbsoluteScaledError:
 class NormalizedDeviation:
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(
-            abs_error_sum: np.ndarray, abs_label_sum: np.ndarray
-        ) -> np.ndarray:
-            return abs_error_sum / abs_label_sum
+    @staticmethod
+    def normalized_deviation(
+        abs_error_sum: np.ndarray, abs_label_sum: np.ndarray
+    ) -> np.ndarray:
+        return abs_error_sum / abs_label_sum
 
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "abs_error_sum": AbsoluteErrorSum(
@@ -178,7 +179,7 @@ class NormalizedDeviation:
                 )(axis=axis),
                 "abs_label_sum": AbsoluteLabelSum()(axis=axis),
             },
-            post_process=post_process,
+            post_process=self.normalized_deviation,
         )
 
 
@@ -186,17 +187,18 @@ class NormalizedDeviation:
 class RootMeanSquaredError:
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(mse: np.ndarray) -> np.ndarray:
-            return np.sqrt(mse)
+    @staticmethod
+    def root_mean_squared_error(mse: np.ndarray) -> np.ndarray:
+        return np.sqrt(mse)
 
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "mse": MeanSquaredError(forecast_type=self.forecast_type)(
                     axis=axis
                 )
             },
-            post_process=post_process,
+            post_process=self.root_mean_squared_error,
         )
 
 
@@ -204,18 +206,19 @@ class RootMeanSquaredError:
 class NormalizedRootMeanSquaredError:
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(
-            rmse: np.ndarray, abs_label_mean: np.ndarray
-        ) -> np.ndarray:
-            return rmse / abs_label_mean
+    @staticmethod
+    def normalized_root_mean_squared_error(
+        rmse: np.ndarray, abs_label_mean: np.ndarray
+    ) -> np.ndarray:
+        return rmse / abs_label_mean
 
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "rmse": RootMeanSquaredError()(axis=axis),
                 "abs_label_mean": AbsoluteLabelMean()(axis=axis),
             },
-            post_process=post_process,
+            post_process=self.normalized_root_mean_squared_error,
         )
 
 
@@ -223,16 +226,17 @@ class NormalizedRootMeanSquaredError:
 class WeightedQuantileLoss:
     q: float = 0.5
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        def post_process(
-            quantile_loss: np.ndarray, abs_label_sum: np.ndarray
-        ) -> np.ndarray:
-            return quantile_loss / abs_label_sum
+    @staticmethod
+    def weighted_quantile_loss(
+        quantile_loss: np.ndarray, abs_label_sum: np.ndarray
+    ) -> np.ndarray:
+        return quantile_loss / abs_label_sum
 
+    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "quantile_loss": QuantileLoss()(axis=axis),
                 "abs_label_sum": AbsoluteLabelSum()(axis=axis),
             },
-            post_process=post_process,
+            post_process=self.weighted_quantile_loss,
         )
