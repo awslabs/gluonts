@@ -330,6 +330,14 @@ class Forecast:
     def freq(self):
         return self.start_date.freq
 
+    def __getitem__(self, name):
+        if name == "mean":
+            return self.mean
+        elif name == "median":
+            return self.median
+
+        return self.quantile(name)
+
     def plot(
         self,
         prediction_intervals=(50.0, 90.0),
