@@ -19,16 +19,15 @@ from typing import (
     Dict,
     Iterator,
     Optional,
-    Union,
     Protocol,
     runtime_checkable,
 )
 
 import numpy as np
 
-from gluonts.model.forecast import Forecast
 from gluonts.dataset.split import TestData
 from gluonts.time_feature.seasonality import get_seasonality
+from ..model.predictor import Predictor
 from .stats import seasonal_error
 from .aggregations import Aggregation
 
@@ -39,11 +38,53 @@ class Metric(Protocol):
         raise NotImplementedError
 
 
+class EvaluationDataBatch:
+    """Used to add batch dimension
+    Should be replaced by a `ForecastBatch` eventually"""
+
+    def __init__(self, values) -> None:
+        self.values = values
+
+    def __getitem__(self, name):
+        return np.array([self.values[name]])
+
+
 class MetricEvaluator:
+    def construct_data(
+        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
+    ) -> Iterator[Dict[str, np.ndarray]]:
+        forecasts = predictor.predict(
+            dataset=test_data.input, **predictor_kwargs
+        )
+
+        for input, label, forecast in zip(
+            test_data.input, test_data.label, forecasts
+        ):
+            batching_used = False  # isinstance(forecast, ForecastBatch)
+
+            non_forecast_data = {
+                "label": label["target"],
+                "seasonal_error": seasonal_error(
+                    input["target"],
+                    seasonality=get_seasonality(
+                        freq=forecast.start_date.freqstr
+                    ),
+                ),
+            }
+            joint_data = ChainMap(non_forecast_data, forecast)
+
+            yield joint_data if batching_used else EvaluationDataBatch(
+                joint_data
+            )
+
     def evaluate(
-        self, batches: Iterator[Dict[str, np.ndarray]]
+        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
     ) -> Dict[str, np.ndarray]:
-        for data in batches:
+        data_batches = self.construct_data(
+            test_data, predictor, **predictor_kwargs
+        )
+
+        for data in data_batches:
             self.update(data)
 
         return self.get()
@@ -112,43 +153,3 @@ class MultiMetricEvaluator(MetricEvaluator):
         for metric_name, metric_evaluator in self.metric_evaluators.items():
             result[metric_name] = metric_evaluator.get()
         return result
-
-
-class EvaluationDataBatch:
-    """Used to add batch dimension
-    Should be replaced by a `ForecastBatch` eventually"""
-
-    def __init__(self, values) -> None:
-        self.values = values
-
-    def __getitem__(self, name):
-        return np.array([self.values[name]])
-
-
-class ForecastBatch:
-    pass  # see PR #2286
-
-
-class TestDataBatch:
-    pass  # TODO
-
-
-def get_evaluation_data_batches(
-    test_data: Union[TestData, TestDataBatch],
-    forecasts: Iterator[Union[Forecast, ForecastBatch]],
-):
-    for input, label, forecast in zip(
-        test_data.input, test_data.label, forecasts
-    ):
-        batching_used = isinstance(forecast, ForecastBatch)
-
-        non_forecast_data = {
-            "label": label["target"],
-            "seasonal_error": seasonal_error(
-                input["target"],
-                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
-            ),
-        }
-        joint_data = ChainMap(non_forecast_data, forecast)
-
-        yield joint_data if batching_used else EvaluationDataBatch(joint_data)
