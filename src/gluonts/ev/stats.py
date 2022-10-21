@@ -28,18 +28,18 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
         # edge case: the seasonal freq is larger than the length of ts
         forecast_freq = 1
 
-    if np.ndim(time_series) == 1:
+    if time_series.ndim == 1:
         y_t = time_series[:-forecast_freq]
         y_tm = time_series[forecast_freq:]
 
-        return np.mean(np.abs(y_t - y_tm))
+        return np.abs(y_t - y_tm).mean()
     else:
         # multivariate case:
         # time_series is has shape (# of time stamps, # of variates)
         y_t = time_series[:-forecast_freq, :]
         y_tm = time_series[forecast_freq:, :]
 
-        return np.mean(np.abs(y_t - y_tm), axis=1)
+        return np.abs(y_t - y_tm).mean(axis=1)
 
 
 # TODO: make this simpler if possible
@@ -48,10 +48,10 @@ def expand_seaonal_error(
 ) -> np.ndarray:
     # broadcast along prediction_length axis to match dimension of forecasts
 
-    if np.ndim(seasonal_error_values) == 1:
+    if seasonal_error_values.ndim == 1:
         # univariate case: (# of samples, prediction length)
         values_with_added_dim = seasonal_error_values.reshape(-1, 1)
-    elif np.ndim(seasonal_error_values) == 2:
+    elif seasonal_error_values.ndim == 2:
         # multivariate case: (# of samples, prediction length, # of variates)
         x, _, z = target_shape
         values_with_added_dim = seasonal_error_values.reshape(x, 1, z)

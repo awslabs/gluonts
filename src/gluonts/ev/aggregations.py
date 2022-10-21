@@ -32,8 +32,8 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     initial_step: bool = True
 
-    def step(self, values) -> None:
-        summed_values = np.sum(values, axis=self.axis)
+    def step(self, values: np.ndarray) -> None:
+        summed_values = values.sum(axis=self.axis)
 
         if self.initial_step:
             if self.axis is None or self.axis == 0:
@@ -62,8 +62,8 @@ class Mean(Aggregation):
     n: int = 0
     initial_step: bool = True
 
-    def step(self, values) -> None:
-        summed_values = np.sum(values, axis=self.axis)
+    def step(self, values: np.ndarray) -> None:
+        summed_values = values.sum(axis=self.axis)
 
         if self.initial_step:
             if self.axis is None or self.axis == 0:
