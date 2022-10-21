@@ -60,14 +60,16 @@ def long_dataframe():
 
 @pytest.fixture
 def long_dataset(long_dataframe):  # initialized with dict
-    return pandas.PandasDataset.from_long_dataframe(
-        dataframe=long_dataframe,
-        target="target",
+    return pandas.LongDataset(
+        long_dataframe,
         timestamp="time",
         item_id="item",
         freq="1H",
-        feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
+        translate=dict(
+            target="target",
+            feat_dynamic_real=["dyn_real_1"],
+            feat_static_cat=["stat_cat_1"],
+        ),
     )
 
 
@@ -221,21 +223,10 @@ def test_long_csv_3M():
     )
 
     with io.StringIO(data) as fp:
-        ds = pandas.PandasDataset.from_long_dataframe(
+        ds = pandas.LongDataset(
             pd.read_csv(fp),
-            target="target",
             item_id="item_id",
             timestamp="timestamp",
-            freq="3M",
-        )
-        for entry in ds:
-            assert entry["start"].freqstr == "3M"
-
-    with io.StringIO(data) as fp:
-        ds = pandas.PandasDataset.from_long_dataframe(
-            pd.read_csv(fp, index_col="timestamp"),
-            target="target",
-            item_id="item_id",
             freq="3M",
         )
         for entry in ds:

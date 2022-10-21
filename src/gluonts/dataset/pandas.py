@@ -156,35 +156,6 @@ class PandasDataset:
     def __len__(self) -> int:
         return len(self._dataframes)
 
-    @classmethod
-    def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
-    ) -> "PandasDataset":
-        """
-        Construct ``PandasDataset`` out of a long dataframe.
-        A long dataframe uses the long format for each variable. Target time
-        series values, for example, are stacked on top of each other rather
-        than side-by-side. The same is true for other dynamic or categorical
-        features.
-
-        Parameters
-        ----------
-        dataframe
-            pandas.DataFrame containing at least ``timestamp``, ``target`` and
-            ``item_id`` columns.
-        item_id
-            Name of the column that, when grouped by, gives the different time
-            series.
-        **kwargs
-            Additional arguments. Same as of PandasDataset class.
-
-        Returns
-        -------
-        PandasDataset
-            Gluonts dataset based on ``pandas.DataFrame``s.
-        """
-        return cls(dataframes=dict(list(dataframe.groupby(item_id))), **kwargs)
-
 
 def series_to_dataframe(
     series: Union[pd.Series, List[pd.Series], Dict[str, pd.Series]]
@@ -350,7 +321,8 @@ class LongDataset:
         else:
             self.translator = None
 
-    def _pop_item_id(self, dct):
+    def _handle_item_id(self, dct):
+        """Ensure field "item_id" is a single value."""
         if isinstance(self.item_id, list):
             dct["item_id"] = ", ".join(
                 dct.pop(column)[0] for column in self.item_id
@@ -372,7 +344,7 @@ class LongDataset:
                 dataset = Map(methodcaller("sort_values", by=sort_by), dataset)
 
         dataset = Map(methodcaller("to_dict", orient="list"), dataset)
-        dataset = Map(self._pop_item_id, dataset)
+        dataset = Map(self._handle_item_id, dataset)
 
         if self.translator is not None:
             dataset = Map(self.translator, dataset)
@@ -390,3 +362,6 @@ class LongDataset:
 
         yield from dataset
         self.unchecked = True
+
+    def __len__(self):
+        return len(self.df.groupby(self.item_id))
