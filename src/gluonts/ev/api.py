@@ -43,8 +43,6 @@ class MetricEvaluator:
     def evaluate(
         self, batches: Iterator[Dict[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        self.reset()
-
         for data in batches:
             self.update(data)
 
@@ -54,9 +52,6 @@ class MetricEvaluator:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
-        raise NotImplementedError
-
-    def reset(self) -> None:
         raise NotImplementedError
 
 
@@ -72,9 +67,6 @@ class StandardMetricEvaluator(MetricEvaluator):
 
     def get(self) -> np.ndarray:
         return self.aggregate.get()
-
-    def reset(self) -> None:
-        self.aggregate.reset()
 
 
 @dataclass
@@ -92,10 +84,6 @@ class DerivedMetricEvaluator(MetricEvaluator):
         return self.post_process(
             **{name: metric.get() for name, metric in self.metrics.items()}
         )
-
-    def reset(self) -> None:
-        for metric_evaluator in self.metrics.values():
-            metric_evaluator.reset()
 
 
 @dataclass
@@ -124,10 +112,6 @@ class MultiMetricEvaluator(MetricEvaluator):
         for metric_name, metric_evaluator in self.metric_evaluators.items():
             result[metric_name] = metric_evaluator.get()
         return result
-
-    def reset(self) -> None:
-        for metric_evaluator in self.metric_evaluators.values():
-            metric_evaluator.reset()
 
 
 class EvaluationDataBatch:

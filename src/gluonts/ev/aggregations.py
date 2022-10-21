@@ -25,9 +25,6 @@ class Aggregation:
     def get(self) -> np.ndarray:
         raise NotImplementedError
 
-    def reset(self) -> None:
-        raise NotImplementedError
-
 
 @dataclass
 class Sum(Aggregation):
@@ -56,10 +53,6 @@ class Sum(Aggregation):
             return self.partial_result
 
         return np.concatenate(self.partial_result)
-
-    def reset(self) -> None:
-        self.partial_result = None
-        self.initial_step = True
 
 
 @dataclass
@@ -95,8 +88,3 @@ class Mean(Aggregation):
             return self.partial_result / self.n
 
         return np.concatenate(self.partial_result) / self.n
-
-    def reset(self) -> None:
-        self.partial_result = None
-        self.n = 0
-        self.initial_step = True
