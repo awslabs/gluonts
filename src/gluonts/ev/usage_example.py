@@ -11,12 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from matplotlib import test
 from toolz import take
 
-from gluonts.dataset.split import TestTemplate, OffsetSplitter
+from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import Coverage, MeanSquaredError, SumQuantileLoss
+from gluonts.ev.metrics import (
+    Coverage,
+    MeanScaledIntervalScore,
+    MeanSquaredError,
+    SumQuantileLoss,
+)
 from gluonts.ev.api import MultiMetricEvaluator
 
 dataset = get_dataset("electricity")
@@ -43,8 +49,12 @@ mse = mse_evaluator.evaluate(test_data, predictor, num_samples=100)
 print(mse)
 """
 
+"""
 # OPTION 2
-metrics_per_entry = [MeanSquaredError(), SumQuantileLoss()]
+metrics_per_entry = [
+    MeanSquaredError(),
+    SumQuantileLoss(),
+]
 
 multi_metric = MultiMetricEvaluator()
 multi_metric.add_metrics(metrics_per_entry, axis=1)
@@ -53,3 +63,10 @@ multi_metric.add_metric(Coverage(), axis=None)
 result = multi_metric.evaluate(test_data, predictor, num_samples=100)
 for name, value in result.items():
     print(f"\n{name}: {value}")
+"""
+
+# this works
+msis = MeanScaledIntervalScore()(axis=1).evaluate(test_data, predictor)
+
+# the following doesn't work because np.expand_dims(axis=None) isn't possible
+# msis = MeanScaledIntervalScore()(axis=None).evaluate(test_data, predictor)

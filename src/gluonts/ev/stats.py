@@ -39,24 +39,7 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
         y_t = time_series[:-forecast_freq, :]
         y_tm = time_series[forecast_freq:, :]
 
-        return np.abs(y_t - y_tm).mean(axis=1)
-
-
-# TODO: make this simpler if possible
-def expand_seaonal_error(
-    seasonal_error_values: np.ndarray, target_shape: Tuple[int]
-) -> np.ndarray:
-    # broadcast along prediction_length axis to match dimension of forecasts
-
-    if seasonal_error_values.ndim == 1:
-        # univariate case: (# of samples, prediction length)
-        values_with_added_dim = seasonal_error_values.reshape(-1, 1)
-    elif seasonal_error_values.ndim == 2:
-        # multivariate case: (# of samples, prediction length, # of variates)
-        x, _, z = target_shape
-        values_with_added_dim = seasonal_error_values.reshape(x, 1, z)
-
-    return np.broadcast_to(values_with_added_dim, target_shape)
+        return np.abs(y_t - y_tm).mean(axis=0)
 
 
 def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
@@ -108,8 +91,7 @@ def symmetric_absolute_percentage_error(
 
 
 def scaled_interval_score(
-    data: Dict[str, np.ndarray],
-    alpha: float,
+    data: Dict[str, np.ndarray], alpha: float, axis: int
 ) -> np.ndarray:
     lower_quantile = data[str(alpha / 2)]
     upper_quantile = data[str(1.0 - alpha / 2)]
@@ -122,12 +104,12 @@ def scaled_interval_score(
         + 2.0 / alpha * (label - upper_quantile) * (label > upper_quantile)
     )
 
-    return numerator / expand_seaonal_error(
-        data["seasonal_error"], data["label"].shape
-    )
+    return numerator / np.expand_dims(data["seasonal_error"], axis=axis)
 
 
-def absolute_scaled_error(data: Dict[str, np.ndarray], forecast_type: str):
-    return absolute_error(data, forecast_type) / expand_seaonal_error(
-        data["seasonal_error"], data["label"].shape
+def absolute_scaled_error(
+    data: Dict[str, np.ndarray], forecast_type: str, axis: int
+):
+    return absolute_error(data, forecast_type) / np.expand_dims(
+        data["seasonal_error"], axis=axis
     )

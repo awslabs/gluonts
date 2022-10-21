@@ -131,7 +131,7 @@ class MeanScaledIntervalScore:
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
-            map=partial(scaled_interval_score, alpha=self.alpha),
+            map=partial(scaled_interval_score, alpha=self.alpha, axis=axis),
             aggregate=Mean(axis=axis),
         )
 
@@ -143,7 +143,9 @@ class MeanAbsoluteScaledError:
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(
-                absolute_scaled_error, forecast_type=self.forecast_type
+                absolute_scaled_error,
+                forecast_type=self.forecast_type,
+                axis=axis,
             ),
             aggregate=Mean(axis=axis),
         )

@@ -91,7 +91,8 @@ class MetricEvaluator:
 
 @dataclass
 class StandardMetricEvaluator(MetricEvaluator):
-    """A "standard metric" consists of a metric function and aggregation strategy."""
+    """A "standard metric" consists of a metric function and aggregation
+    strategy."""
 
     map: Callable
     aggregate: Aggregation
@@ -105,7 +106,8 @@ class StandardMetricEvaluator(MetricEvaluator):
 
 @dataclass
 class DerivedMetricEvaluator(MetricEvaluator):
-    """A "derived metric" depends on the prior calculation of "standard metrics"."""
+    """A "derived metric" depends on the prior calculation of "standard
+    metrics"."""
 
     metrics: Dict[str, StandardMetricEvaluator]
     post_process: Callable
