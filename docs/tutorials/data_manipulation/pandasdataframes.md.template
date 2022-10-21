@@ -74,12 +74,12 @@ df.head()
 ```
 
 After reading the data into a `pandas.DataFrame` we can easily convert
-it to `gluonts.dataset.pandas.PandasDataset` and train an estimator an get forecasts.
+it into a `Dataset` and train an estimator an get forecasts.
 
 ```python
-from gluonts.dataset.pandas import PandasDataset
+from gluonts.dataset.pandas import LongDataset
 
-ds = PandasDataset.from_long_dataframe(df, target="target", item_id="item_id")
+ds = LongDataset(df, item_id="item_id")
 ```
 
 ```python

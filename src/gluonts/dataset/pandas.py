@@ -256,10 +256,12 @@ def prepare_prediction_data(
     Remove ``ignore_last_n_targets`` values from ``target`` and
     ``past_feat_dynamic_real``.  Works in univariate and multivariate case.
 
-    >>> prepare_prediction_data(
-    >>>    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
-    >>> )
-    {'target': array([1., 2.])}
+        >>> import numpy as np
+        >>> prepare_prediction_data(
+        ...    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
+        ... )
+        {'target': array([1., 2.])}
+
     """
     entry = deepcopy(dataentry)
     for fname in [FieldName.TARGET, FieldName.PAST_FEAT_DYNAMIC_REAL]:
@@ -273,18 +275,19 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     Check if ``index`` contains monotonically increasing periods, evenly spaced
     with frequency ``index.freq``.
 
-    >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
-    True
-    >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
-    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
-    False
+        >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        True
+        >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        False
+
     """
     other = pd.period_range(index[0], periods=len(index), freq=index.freq)
     return (other == index).all()
 
 
-def column_as_start(dct, column, freq, unchecked=False):
+def _column_as_start(dct: dict, column: str, freq, unchecked=False) -> dict:
     ts = dct.pop(column)
 
     if unchecked:
@@ -297,8 +300,34 @@ def column_as_start(dct, column, freq, unchecked=False):
     return dct
 
 
+def _drop_index(df, name):
+    index = df.index
+    df = df.reset_index(drop=True)
+    df[name] = index
+    return df
+
+
 @dataclass
 class LongDataset:
+    """Wrapper for ``pandas.DataFrame`` in long format.
+
+    Given a dataframe and an item identifier, this will yield a ``DataEntry``
+    for each item, by first calling ``dataframe.groupby(item_id)``.
+
+    A time-column is optional, but if `timestamp` is provided, `freq` needs to
+    be provided as well.
+
+    ``translate`` can be set to rename and stack columns on the fly.
+
+    Since the result of the ``groupby`` operation is not guaranteed to be in
+    right order, each group is sorted by default. If ``assume_sorted`` is set
+    to ``True``, sorting is skipped which improves performance. Note however,
+    that if the dataframe is unordered, this will lead to incorrect behaviour.
+
+    To improve performance further, ``unchecked`` can be set to ``True`` to
+    indicate that the timestamp column is uniform (see ``is_uniform``).
+    """
+
     df: pd.DataFrame
     item_id: Union[str, List[str]]
     timestamp: Optional[str] = None
@@ -308,12 +337,23 @@ class LongDataset:
     translate: InitVar[Optional[dict]] = None
     unchecked: bool = False
     translator: Optional[Translator] = field(default=None, init=False)
+    use_index: bool = field(init=False)
 
     def __post_init__(self, translate):
-        if (self.timestamp is None) != (self.freq is None):
+        self.use_index = False
+
+        if self.timestamp is None:
+            if isinstance(self.df.index, DatetimeIndexOpsMixin):
+                if self.freq is None:
+                    assert self.df.index.freq is not None
+                    self.freq = self.df.index.freq
+
+                self.use_index = True
+                self.timestamp = "__timestamp_index__"
+
+        elif self.freq is None:
             raise ValueError(
-                "Either both `timestamp` and `freq` have to be provided "
-                "or neither."
+                "When providing `timestamp`, `freq` needs to be provided too."
             )
 
         if translate is not None:
@@ -322,7 +362,7 @@ class LongDataset:
             self.translator = None
 
     def _handle_item_id(self, dct):
-        """Ensure field "item_id" is a single value."""
+        """Ensure field "item_id" is a single string."""
         if isinstance(self.item_id, list):
             dct["item_id"] = ", ".join(
                 dct.pop(column)[0] for column in self.item_id
@@ -334,14 +374,19 @@ class LongDataset:
 
     def __iter__(self):
         groups = self.df.groupby(self.item_id)
-        # groups is tuples of (item_id, df), but we only want df
+        # groups contains tuples of (item_id, df), but we only want df
         dataset = Map(second, groups)
 
-        if not self.assume_sorted:
-            sort_by = [self.item_id]
-            if self.timestamp is not None:
-                sort_by.append(self.timestamp)
-                dataset = Map(methodcaller("sort_values", by=sort_by), dataset)
+        if self.use_index:
+            dataset = Map(
+                partial(_drop_index, name=self.timestamp),
+                dataset,
+            )
+
+        if not self.assume_sorted and self.timestamp is not None:
+            dataset = Map(
+                methodcaller("sort_values", by=self.timestamp), dataset
+            )
 
         dataset = Map(methodcaller("to_dict", orient="list"), dataset)
         dataset = Map(self._handle_item_id, dataset)
@@ -349,10 +394,11 @@ class LongDataset:
         if self.translator is not None:
             dataset = Map(self.translator, dataset)
 
+        # handle start field
         if self.timestamp is not None:
             dataset = Map(
                 partial(
-                    column_as_start,
+                    _column_as_start,
                     column=self.timestamp,
                     freq=self.freq,
                     unchecked=self.unchecked,

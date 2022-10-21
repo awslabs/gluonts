@@ -231,3 +231,12 @@ def test_long_csv_3M():
         )
         for entry in ds:
             assert entry["start"].freqstr == "3M"
+
+    with io.StringIO(data) as fp:
+        ds = pandas.LongDataset(
+            pd.read_csv(fp, index_col="timestamp", parse_dates=True),
+            item_id="item_id",
+            freq="3M",
+        )
+        for entry in ds:
+            assert entry["start"].freqstr == "3M"
