@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 from .metrics import (
-    MeanAbsoluteLabel,
-    SumAbsoluteLabel,
+    mean_absolute_label,
+    sum_absolute_label,
     SumAbsoluteError,
     MeanSquaredError,
     SumQuantileLoss,
@@ -40,8 +40,8 @@ from .stats import seasonal_error
 
 
 __all__ = [
-    MeanAbsoluteLabel,
-    SumAbsoluteLabel,
+    mean_absolute_label,
+    sum_absolute_label,
     SumAbsoluteError,
     MeanSquaredError,
     SumQuantileLoss,

@@ -36,22 +36,18 @@ from .stats import (
 )
 
 
-@dataclass
-class MeanAbsoluteLabel:
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        return StandardMetricEvaluator(
-            map=absolute_label,
-            aggregate=Mean(axis=axis),
-        )
+def mean_absolute_label(axis: Optional[int] = None) -> MetricEvaluator:
+    return StandardMetricEvaluator(
+        map=absolute_label,
+        aggregate=Mean(axis=axis),
+    )
 
 
-@dataclass
-class SumAbsoluteLabel:
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
-        return StandardMetricEvaluator(
-            map=absolute_label,
-            aggregate=Sum(axis=axis),
-        )
+def sum_absolute_label(axis: Optional[int] = None) -> MetricEvaluator:
+    return StandardMetricEvaluator(
+        map=absolute_label,
+        aggregate=Sum(axis=axis),
+    )
 
 
 @dataclass
@@ -78,7 +74,7 @@ class MeanSquaredError:
 
 @dataclass
 class SumQuantileLoss:
-    q: float = 0.5
+    q: float
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
@@ -89,7 +85,7 @@ class SumQuantileLoss:
 
 @dataclass
 class Coverage:
-    q: float = 0.5
+    q: float
 
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return StandardMetricEvaluator(
@@ -167,7 +163,7 @@ class NormalizedDeviation:
                 "sum_absolute_error": SumAbsoluteError(
                     forecast_type=self.forecast_type
                 )(axis=axis),
-                "sum_absolute_label": SumAbsoluteLabel()(axis=axis),
+                "sum_absolute_label": sum_absolute_label(axis=axis),
             },
             post_process=self.normalized_deviation,
         )
@@ -205,8 +201,10 @@ class NormalizedRootMeanSquaredError:
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
-                "root_mean_squared_error": RootMeanSquaredError()(axis=axis),
-                "mean_absolute_label": MeanAbsoluteLabel()(axis=axis),
+                "root_mean_squared_error": RootMeanSquaredError(
+                    forecast_type=self.forecast_type
+                )(axis=axis),
+                "mean_absolute_label": mean_absolute_label(axis=axis),
             },
             post_process=self.normalize_root_mean_squared_error,
         )
@@ -226,7 +224,7 @@ class WeightedSumQuantileLoss:
         return DerivedMetricEvaluator(
             metrics={
                 "sum_quantile_loss": SumQuantileLoss(q=self.q)(axis=axis),
-                "sum_absolute_label": SumAbsoluteLabel()(axis=axis),
+                "sum_absolute_label": sum_absolute_label(axis=axis),
             },
             post_process=self.weight_sum_quantile_loss,
         )

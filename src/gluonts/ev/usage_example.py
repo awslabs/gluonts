@@ -11,19 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from matplotlib import test
 from toolz import take
 
-from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
+from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
 from gluonts.ev.metrics import (
-    Coverage,
     MeanScaledIntervalScore,
-    MeanSquaredError,
-    SumQuantileLoss,
+    mean_absolute_label,
 )
-from gluonts.ev.api import MultiMetricEvaluator
 
 dataset = get_dataset("electricity")
 
