@@ -27,7 +27,7 @@ import numpy as np
 
 from gluonts.dataset.split import TestData
 from gluonts.time_feature.seasonality import get_seasonality
-from ..model.predictor import Predictor
+from gluonts.model.predictor import Predictor
 from .stats import seasonal_error
 from .aggregations import Aggregation
 
@@ -49,40 +49,33 @@ class EvaluationDataBatch:
         return np.array([self.values[name]])
 
 
+def construct_data(
+    test_data: TestData, predictor: Predictor, **predictor_kwargs
+) -> Iterator[Dict[str, np.ndarray]]:
+    forecasts = predictor.predict(dataset=test_data.input, **predictor_kwargs)
+
+    for input, label, forecast in zip(
+        test_data.input, test_data.label, forecasts
+    ):
+        batching_used = False  # isinstance(forecast, ForecastBatch)
+
+        non_forecast_data = {
+            "label": label["target"],
+            "seasonal_error": seasonal_error(
+                input["target"],
+                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
+            ),
+        }
+        joint_data = ChainMap(non_forecast_data, forecast)
+
+        yield joint_data if batching_used else EvaluationDataBatch(joint_data)
+
+
 class MetricEvaluator:
-    def construct_data(
-        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
-    ) -> Iterator[Dict[str, np.ndarray]]:
-        forecasts = predictor.predict(
-            dataset=test_data.input, **predictor_kwargs
-        )
-
-        for input, label, forecast in zip(
-            test_data.input, test_data.label, forecasts
-        ):
-            batching_used = False  # isinstance(forecast, ForecastBatch)
-
-            non_forecast_data = {
-                "label": label["target"],
-                "seasonal_error": seasonal_error(
-                    input["target"],
-                    seasonality=get_seasonality(
-                        freq=forecast.start_date.freqstr
-                    ),
-                ),
-            }
-            joint_data = ChainMap(non_forecast_data, forecast)
-
-            yield joint_data if batching_used else EvaluationDataBatch(
-                joint_data
-            )
-
     def evaluate(
         self, test_data: TestData, predictor: Predictor, **predictor_kwargs
-    ) -> Dict[str, np.ndarray]:
-        data_batches = self.construct_data(
-            test_data, predictor, **predictor_kwargs
-        )
+    ) -> np.ndarray:
+        data_batches = construct_data(test_data, predictor, **predictor_kwargs)
 
         for data in data_batches:
             self.update(data)
@@ -128,7 +121,7 @@ class DerivedMetricEvaluator(MetricEvaluator):
 
 
 @dataclass
-class MultiMetricEvaluator(MetricEvaluator):
+class MultiMetricEvaluator:
     """Allows feeding in data once and calculating multiple metrics"""
 
     metric_evaluators: Dict[str, MetricEvaluator] = field(default_factory=dict)
@@ -144,12 +137,17 @@ class MultiMetricEvaluator(MetricEvaluator):
             metric_name = f"{metric.__class__.__name__}[axis={axis}]"
             self.metric_evaluators[metric_name] = metric_evaluator
 
-    def update(self, data: Dict[str, np.ndarray]) -> None:
-        for metric_evaluator in self.metric_evaluators.values():
-            metric_evaluator.update(data)
+    def evaluate(
+        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
+    ) -> Dict[str, np.ndarray]:
+        data_batches = construct_data(test_data, predictor, **predictor_kwargs)
 
-    def get(self) -> np.ndarray:
-        result = dict()
-        for metric_name, metric_evaluator in self.metric_evaluators.items():
-            result[metric_name] = metric_evaluator.get()
+        for data in data_batches:
+            for metric_evaluator in self.metric_evaluators.values():
+                metric_evaluator.update(data)
+
+        result = {
+            metric_name: metric_evaluator.get()
+            for metric_name, metric_evaluator in self.metric_evaluators.items()
+        }
         return result

@@ -16,7 +16,8 @@ from toolz import take
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import MeanSquaredError
+from gluonts.ev.metrics import Coverage, MeanSquaredError, QuantileLoss
+from gluonts.ev.api import MultiMetricEvaluator
 
 dataset = get_dataset("electricity")
 
@@ -35,6 +36,20 @@ test_data = test_template.generate_instances(
 
 predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 
+# OPTION 1
+"""
 mse_evaluator = MeanSquaredError()(axis=1)
 mse = mse_evaluator.evaluate(test_data, predictor, num_samples=100)
 print(mse)
+"""
+
+# OPTION 2
+metrics_per_entry = [MeanSquaredError(), QuantileLoss()]
+
+multi_metric = MultiMetricEvaluator()
+multi_metric.add_metrics(metrics_per_entry, axis=1)
+multi_metric.add_metric(Coverage(), axis=None)
+
+result = multi_metric.evaluate(test_data, predictor, num_samples=100)
+for name, value in result.items():
+    print(f"\n{name}: {value}")
