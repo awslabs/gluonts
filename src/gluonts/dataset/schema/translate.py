@@ -27,6 +27,7 @@ more flexibility in the input data::
 
 import re
 from dataclasses import dataclass, InitVar
+from itertools import chain
 from typing import Any, Dict, List, Union, Optional, ClassVar
 
 import numpy as np
@@ -35,6 +36,9 @@ from toolz import valfilter, valmap
 
 class Op:
     def __call__(self, item):
+        raise NotImplementedError
+
+    def fields(self):
         raise NotImplementedError
 
 
@@ -47,6 +51,9 @@ class Get(Op):
     def __call__(self, item):
         return item[self.name]
 
+    def fields(self):
+        return [self.name]
+
 
 @dataclass
 class Method(Op):
@@ -55,6 +62,9 @@ class Method(Op):
 
     def __call__(self, item):
         return self.obj(item)(*self.args)
+
+    def fields(self):
+        return self.op.fields()
 
 
 @dataclass
@@ -70,6 +80,9 @@ class GetAttr(Op):
             self.name,
         )
 
+    def fields(self):
+        return self.op.fields()
+
 
 @dataclass
 class GetItem(Op):
@@ -79,6 +92,9 @@ class GetItem(Op):
     def __call__(self, item):
         return self.obj(item).__getitem__(self.dims)
 
+    def fields(self):
+        return self.op.fields()
+
 
 @dataclass
 class Stack(Op):
@@ -86,6 +102,9 @@ class Stack(Op):
 
     def __call__(self, item):
         return np.stack([obj(item) for obj in self.objects])
+
+    def fields(self):
+        return chain.from_iterable(op.fields() for op in self.objects)
 
 
 def one_of(s):
@@ -307,21 +326,32 @@ class Translator:
     """
 
     fields: Dict[str, Op]
+    drop: bool = False
 
     @staticmethod
-    def parse(fields: Optional[dict] = None, **kwargs_fields) -> "Translator":
+    def parse(
+        fields: Optional[dict] = None, drop: bool = False, **kwargs_fields
+    ) -> "Translator":
         fields_ = {}
         if fields is not None:
             fields_.update(fields)
 
         fields_.update(kwargs_fields)
 
-        return Translator(valmap(parse, fields_))
+        return Translator(valmap(parse, fields_), drop)
 
     def __call__(self, item):
-        result = dict(item)
+        if self.drop:
+            keys = item.keys() - self.get_fields()
+            result = {key: item[key] for key in keys}
+        else:
+            result = dict(item)
+
         result.update(
             {name: field(item) for name, field in self.fields.items()}
         )
 
         return result
+
+    def get_fields(self):
+        return chain.from_iterable(op.fields() for op in self.fields.values())
