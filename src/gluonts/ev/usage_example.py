@@ -16,7 +16,7 @@ from toolz import take
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import Coverage, MeanSquaredError, QuantileLoss
+from gluonts.ev.metrics import Coverage, MeanSquaredError, SumQuantileLoss
 from gluonts.ev.api import MultiMetricEvaluator
 
 dataset = get_dataset("electricity")
@@ -44,7 +44,7 @@ print(mse)
 """
 
 # OPTION 2
-metrics_per_entry = [MeanSquaredError(), QuantileLoss()]
+metrics_per_entry = [MeanSquaredError(), SumQuantileLoss()]
 
 multi_metric = MultiMetricEvaluator()
 multi_metric.add_metrics(metrics_per_entry, axis=1)

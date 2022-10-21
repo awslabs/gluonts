@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 from .metrics import (
-    AbsoluteLabelMean,
-    AbsoluteLabelSum,
-    AbsoluteErrorSum,
+    MeanAbsoluteLabel,
+    SumAbsoluteLabel,
+    SumAbsoluteError,
     MeanSquaredError,
-    QuantileLoss,
+    SumQuantileLoss,
     Coverage,
     MeanAbsolutePercentageError,
     SymmetricMeanAbsolutePercentageError,
@@ -25,7 +25,7 @@ from .metrics import (
     NormalizedDeviation,
     RootMeanSquaredError,
     NormalizedRootMeanSquaredError,
-    WeightedQuantileLoss,
+    WeightedSumQuantileLoss,
 )
 from .aggregations import Aggregation, Sum, Mean
 from .api import (
@@ -40,11 +40,11 @@ from .stats import seasonal_error
 
 
 __all__ = [
-    AbsoluteLabelMean,
-    AbsoluteLabelSum,
-    AbsoluteErrorSum,
+    MeanAbsoluteLabel,
+    SumAbsoluteLabel,
+    SumAbsoluteError,
     MeanSquaredError,
-    QuantileLoss,
+    SumQuantileLoss,
     Coverage,
     MeanAbsolutePercentageError,
     SymmetricMeanAbsolutePercentageError,
@@ -53,7 +53,7 @@ __all__ = [
     NormalizedDeviation,
     RootMeanSquaredError,
     NormalizedRootMeanSquaredError,
-    WeightedQuantileLoss,
+    WeightedSumQuantileLoss,
     Aggregation,
     Sum,
     Mean,
