@@ -235,7 +235,7 @@ class WeightedQuantileLoss:
     def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
-                "quantile_loss": QuantileLoss()(axis=axis),
+                "quantile_loss": QuantileLoss(q=self.q)(axis=axis),
                 "abs_label_sum": AbsoluteLabelSum()(axis=axis),
             },
             post_process=self.weighted_quantile_loss,
