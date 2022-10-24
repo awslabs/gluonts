@@ -36,14 +36,14 @@ from .stats import (
 )
 
 
-def mean_absolute_label(axis: Optional[int] = None) -> MetricEvaluator:
+def mean_absolute_label(axis: Optional[int] = None) -> StandardMetricEvaluator:
     return StandardMetricEvaluator(
         map=absolute_label,
         aggregate=Mean(axis=axis),
     )
 
 
-def sum_absolute_label(axis: Optional[int] = None) -> MetricEvaluator:
+def sum_absolute_label(axis: Optional[int] = None) -> StandardMetricEvaluator:
     return StandardMetricEvaluator(
         map=absolute_label,
         aggregate=Sum(axis=axis),
@@ -54,7 +54,7 @@ def sum_absolute_label(axis: Optional[int] = None) -> MetricEvaluator:
 class SumAbsoluteError:
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
@@ -65,7 +65,7 @@ class SumAbsoluteError:
 class MeanSquaredError:
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
@@ -76,7 +76,7 @@ class MeanSquaredError:
 class SumQuantileLoss:
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(quantile_loss, q=self.q),
             aggregate=Sum(axis=axis),
@@ -87,7 +87,7 @@ class SumQuantileLoss:
 class Coverage:
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(coverage, q=self.q),
             aggregate=Mean(axis=axis),
@@ -98,7 +98,7 @@ class Coverage:
 class MeanAbsolutePercentageError:
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
@@ -111,7 +111,7 @@ class MeanAbsolutePercentageError:
 class SymmetricMeanAbsolutePercentageError:
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(
                 symmetric_absolute_percentage_error,
@@ -125,7 +125,7 @@ class SymmetricMeanAbsolutePercentageError:
 class MeanScaledIntervalScore:
     alpha: float = 0.05
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
@@ -136,11 +136,10 @@ class MeanScaledIntervalScore:
 class MeanAbsoluteScaledError:
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
         return StandardMetricEvaluator(
             map=partial(
-                absolute_scaled_error,
-                forecast_type=self.forecast_type
+                absolute_scaled_error, forecast_type=self.forecast_type
             ),
             aggregate=Mean(axis=axis),
         )
@@ -156,7 +155,7 @@ class NormalizedDeviation:
     ) -> np.ndarray:
         return sum_absolute_error / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "sum_absolute_error": SumAbsoluteError(
@@ -176,7 +175,7 @@ class RootMeanSquaredError:
     def root_mean_squared_error(mean_squared_error: np.ndarray) -> np.ndarray:
         return np.sqrt(mean_squared_error)
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "mean_squared_error": MeanSquaredError(
@@ -197,7 +196,7 @@ class NormalizedRootMeanSquaredError:
     ) -> np.ndarray:
         return root_mean_squared_error / mean_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "root_mean_squared_error": RootMeanSquaredError(
@@ -219,7 +218,7 @@ class WeightedSumQuantileLoss:
     ) -> np.ndarray:
         return sum_quantile_loss / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> MetricEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
                 "sum_quantile_loss": SumQuantileLoss(q=self.q)(axis=axis),

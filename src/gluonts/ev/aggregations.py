@@ -19,7 +19,7 @@ import numpy as np
 
 @dataclass
 class Aggregation:
-    def step(self) -> None:
+    def step(self, values: np.ndarray) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
