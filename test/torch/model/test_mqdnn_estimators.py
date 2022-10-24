@@ -11,16 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pathlib import Path
-
 import pytest
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model.predictor import Predictor
 from gluonts.torch.model.mqdnn.estimator import (
     MQCNNEstimator,
-    # MQRNNEstimator,
+    MQRNNEstimator,
 )
 
 
@@ -35,7 +32,15 @@ from gluonts.torch.model.mqdnn.estimator import (
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
-            scaling=False,
+        ),
+        lambda dataset: MQRNNEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            context_length=50,
+            quantiles=[0.1, 0.5, 0.9],
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
         ),
     ],
 )
@@ -69,7 +74,17 @@ def test_estimator_constant_dataset(estimator_constructor):
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
-            scaling=False,
+        ),
+        lambda freq, pred_len, num_fsr, num_fdr: MQRNNEstimator(
+            freq=freq,
+            prediction_length=pred_len,
+            context_length=50,
+            quantiles=[0.1, 0.5, 0.9],
+            num_feat_static_real=num_fsr,
+            num_feat_dynamic_real=num_fdr,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
         ),
     ],
 )

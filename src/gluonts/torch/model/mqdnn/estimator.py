@@ -45,7 +45,7 @@ from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 
 from .lightning_module import MQDNNLightningModule
-from .module import MQCNNModel
+from .module import MQCNNModel, MQRNNModel
 
 PREDICTION_INPUT_NAMES = [
     "past_target",
@@ -378,35 +378,36 @@ class MQCNNEstimator(MQDNNEstimator):
         )
 
 
-# class MQRNNEstimator(MQDNNEstimator):
-#     def __init__(
-#         self,
-#         num_layers: int=1,
-#         encoder_hidden_size: int=50,
-#         **kwargs,
-#     ) -> None:
-#         super().__init__(**kwargs)
-#         self.num_layers = num_layers
-#         self.encoder_hidden_size = encoder_hidden_size
+class MQRNNEstimator(MQDNNEstimator):
+    def __init__(
+        self,
+        num_layers: int=1,
+        encoder_hidden_size: int=50,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.num_layers = num_layers
+        self.encoder_hidden_size = encoder_hidden_size
 
-#     def create_lightning_module(self) -> MQDNNLightningModule:
-#         model = MQRNNModel(
-#             prediction_length=self.prediction_length,
-#             num_output_quantiles=len(self.quantiles),
-#             num_feat_dynamic_real=self.num_feat_dynamic_real,
-#             num_feat_static_real=self.num_feat_static_real,
-#             num_layers=self.num_layers,
-#             encoder_hidden_size=self.encoder_hidden_size,
-#             decoder_latent_length=,
-#             global_hidden_sizes=,
-#             global_activation=,
-#             local_hidden_sizes=,
-#             local_activation=,
-#         )
+    def create_lightning_module(self) -> MQDNNLightningModule:
+        model = MQRNNModel(
+            prediction_length=self.prediction_length,
+            num_output_quantiles=len(self.quantiles),
+            num_feat_dynamic_real=self._num_feat_dynamic_real(),
+            num_feat_static_real=self._num_feat_static_real(),
+            num_layers=self.num_layers,
+            encoder_hidden_size=self.encoder_hidden_size,
+            decoder_latent_length=self.prediction_length,
+            global_hidden_sizes=self.global_hidden_sizes,
+            global_activation=self.global_activation,
+            local_hidden_sizes=self.local_hidden_sizes,
+            local_activation=self.local_activation,
+            is_iqf=self.is_iqf,
+        )
 
-#         return MQDNNLightningModule(
-#             model=model,
-#             quantiles=self.quantiles,
-#             lr=self.lr,
-#             weight_decay=self.weight_decay,
-#         )
+        return MQDNNLightningModule(
+            model=model,
+            quantiles=self.quantiles,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
