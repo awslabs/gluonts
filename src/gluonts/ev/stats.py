@@ -16,32 +16,6 @@ from typing import Dict
 import numpy as np
 
 
-def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
-    """The seasonal error is a the mean absolute difference of a given time
-    series, shifted by its seasonality.
-
-    Some metrics use the seasonal error for normalization."""
-
-    if seasonality < time_series.shape[-1]:
-        forecast_freq = seasonality
-    else:
-        # edge case: the seasonal freq is larger than the length of ts
-        forecast_freq = 1
-
-    if time_series.ndim == 1:
-        y_t = time_series[:-forecast_freq]
-        y_tm = time_series[forecast_freq:]
-
-        return np.abs(y_t - y_tm).mean()
-    else:
-        # multivariate case:
-        # time_series is has shape (# of time stamps, # of variates)
-        y_t = time_series[:-forecast_freq, :]
-        y_tm = time_series[forecast_freq:, :]
-
-        return np.abs(y_t - y_tm).mean(axis=0, keep_dims=True)
-
-
 def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
     return np.abs(data["label"])
 

@@ -23,9 +23,9 @@ from typing import (
 import numpy as np
 
 from gluonts.dataset.split import TestData
+from ..ev_data_preparation.data_construction import construct_data
 from gluonts.model.predictor import Predictor
 from .aggregations import Aggregation
-from .data_preparation import construct_data
 
 
 @runtime_checkable
