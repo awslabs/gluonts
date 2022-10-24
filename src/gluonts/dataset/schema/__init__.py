@@ -12,11 +12,8 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field, MISSING
-from operator import attrgetter, methodcaller
 from typing import Any, Dict
 from typing_extensions import Self
-
-from gluonts.itertools import Map
 
 from .translate import Translator
 from .types import Type, Default, Array, Period

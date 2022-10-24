@@ -46,7 +46,7 @@ class Array(GenericType[T]):
     """
 
     ndim: int
-    dtype: Optional[typing.Type[T]] = None
+    dtype: typing.Optional[typing.Type[T]] = None
     time_dim: typing.Optional[int] = None
 
     def apply(self, data):
