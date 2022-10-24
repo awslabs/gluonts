@@ -16,7 +16,7 @@ from typing import Any, Dict
 from typing_extensions import Self
 
 from .translate import Translator
-from .types import Type, Array, Period
+from .types import Type, Array, Default, Period
 
 __all__ = [
     # this module
@@ -24,6 +24,7 @@ __all__ = [
     # types
     "Type",
     "Array",
+    "Default",
     "Period",
     # translate
     "Translator",

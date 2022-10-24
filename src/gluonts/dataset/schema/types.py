@@ -31,6 +31,19 @@ class GenericType(Type, typing.Generic[T]):
 
 
 @dataclass
+class Default(GenericType[T]):
+    value: T
+    base: Type = None
+
+    def __post_init__(self):
+        if self.base is not None:
+            self.value = self.base.apply(self.value)
+
+    def apply(self, data):
+        return self.value
+
+
+@dataclass
 class Array(GenericType[T]):
     """Array type with fixed number of dimensions, but optional dtype and time
     dimension.
