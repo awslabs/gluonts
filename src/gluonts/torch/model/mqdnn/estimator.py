@@ -360,7 +360,9 @@ class MQCNNEstimator(MQDNNEstimator):
             num_feat_dynamic_real=self._num_feat_dynamic_real(),
             num_feat_static_real=self._num_feat_static_real(),
             cardinalities=self.cardinalities or [1],
-            embedding_dimensions=self.embedding_dimensions if self.cardinalities else [1],
+            embedding_dimensions=self.embedding_dimensions
+            if self.cardinalities
+            else [1],
             encoder_channels=self.encoder_channels,
             encoder_dilations=self.encoder_dilations,
             encoder_kernel_sizes=self.encoder_kernel_sizes,
@@ -383,8 +385,8 @@ class MQCNNEstimator(MQDNNEstimator):
 class MQRNNEstimator(MQDNNEstimator):
     def __init__(
         self,
-        num_layers: int=1,
-        encoder_hidden_size: int=50,
+        num_layers: int = 1,
+        encoder_hidden_size: int = 50,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -398,7 +400,9 @@ class MQRNNEstimator(MQDNNEstimator):
             num_feat_dynamic_real=self._num_feat_dynamic_real(),
             num_feat_static_real=self._num_feat_static_real(),
             cardinalities=self.cardinalities or [1],
-            embedding_dimensions=self.embedding_dimensions if self.cardinalities else [1],
+            embedding_dimensions=self.embedding_dimensions
+            if self.cardinalities
+            else [1],
             num_layers=self.num_layers,
             encoder_hidden_size=self.encoder_hidden_size,
             decoder_latent_length=self.prediction_length,

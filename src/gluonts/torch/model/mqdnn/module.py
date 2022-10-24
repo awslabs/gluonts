@@ -232,7 +232,10 @@ class MQCNNModel(MQDNNModel):
 
         target_features = 3
         input_channels = (
-            target_features + num_feat_dynamic_real + num_feat_static_real + sum(embedding_dimensions)
+            target_features
+            + num_feat_dynamic_real
+            + num_feat_static_real
+            + sum(embedding_dimensions)
         )
         channels = [input_channels] + encoder_channels
         in_out_channels = zip(channels[:-1], channels[1:])
@@ -282,7 +285,10 @@ class MQRNNModel(MQDNNModel):
     ) -> None:
         target_features = 3
         input_size = (
-            target_features + num_feat_dynamic_real + num_feat_static_real + sum(embedding_dimensions)
+            target_features
+            + num_feat_dynamic_real
+            + num_feat_static_real
+            + sum(embedding_dimensions)
         )
         encoder = torch.nn.Sequential(
             torch.nn.LSTM(
