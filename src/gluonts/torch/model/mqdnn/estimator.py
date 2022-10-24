@@ -73,8 +73,8 @@ class MQDNNEstimator(PyTorchLightningEstimator):
         num_past_feat_dynamic_real: int = 0,
         num_feat_dynamic_real: int = 0,
         num_feat_static_real: int = 0,
-        num_feat_static_cat: int = 0,
-        embedding_dimension: Optional[List[int]] = None,
+        cardinalities: Optional[List[int]] = None,
+        embedding_dimensions: Optional[List[int]] = None,
         add_time_feature: bool = True,
         add_age_feature: bool = False,
         global_hidden_sizes: List[int] = [30, 30],
@@ -114,8 +114,8 @@ class MQDNNEstimator(PyTorchLightningEstimator):
         self.num_past_feat_dynamic_real = num_past_feat_dynamic_real
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_real = num_feat_static_real
-        self.num_feat_static_cat = num_feat_static_cat
-        self.embedding_dimension = embedding_dimension
+        self.cardinalities = cardinalities
+        self.embedding_dimensions = embedding_dimensions
         self.add_time_feature = add_time_feature
         self.time_features = time_features_from_frequency_str(self.freq)
         self.add_age_feature = add_age_feature
@@ -148,7 +148,7 @@ class MQDNNEstimator(PyTorchLightningEstimator):
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
         if self.num_feat_static_real == 0:
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
-        if self.num_feat_static_cat == 0:
+        if self.cardinalities is None:
             remove_field_names.append(FieldName.FEAT_STATIC_CAT)
 
         chain.extend(
@@ -217,7 +217,7 @@ class MQDNNEstimator(PyTorchLightningEstimator):
                 RenameFields({dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC})
             )
 
-        if self.num_feat_static_cat == 0:
+        if self.cardinalities is None:
             chain.append(
                 SetField(
                     output_field=FieldName.FEAT_STATIC_CAT,
@@ -359,6 +359,8 @@ class MQCNNEstimator(MQDNNEstimator):
             num_output_quantiles=len(self.quantiles),
             num_feat_dynamic_real=self._num_feat_dynamic_real(),
             num_feat_static_real=self._num_feat_static_real(),
+            cardinalities=self.cardinalities or [1],
+            embedding_dimensions=self.embedding_dimensions if self.cardinalities else [1],
             encoder_channels=self.encoder_channels,
             encoder_dilations=self.encoder_dilations,
             encoder_kernel_sizes=self.encoder_kernel_sizes,
@@ -395,6 +397,8 @@ class MQRNNEstimator(MQDNNEstimator):
             num_output_quantiles=len(self.quantiles),
             num_feat_dynamic_real=self._num_feat_dynamic_real(),
             num_feat_static_real=self._num_feat_static_real(),
+            cardinalities=self.cardinalities or [1],
+            embedding_dimensions=self.embedding_dimensions if self.cardinalities else [1],
             num_layers=self.num_layers,
             encoder_hidden_size=self.encoder_hidden_size,
             decoder_latent_length=self.prediction_length,

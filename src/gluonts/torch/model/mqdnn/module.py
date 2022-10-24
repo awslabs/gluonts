@@ -28,6 +28,8 @@ class MQDNNModel(nn.Module):
         num_output_quantiles: int,
         num_feat_dynamic_real: int,
         num_feat_static_real: int,
+        cardinalities: List[int],
+        embedding_dimensions: List[int],
         encoder: nn.Module,
         encoder_output_length: int,
         decoder_latent_length: int,
@@ -43,6 +45,8 @@ class MQDNNModel(nn.Module):
         self.num_output_quantiles = num_output_quantiles
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_real = num_feat_static_real
+        self.cardinalities = cardinalities
+        self.embedding_dimensions = embedding_dimensions
         self.encoder = encoder
         self.encoder_output_length = encoder_output_length
         self.decoder_latent_length = decoder_latent_length
@@ -51,6 +55,13 @@ class MQDNNModel(nn.Module):
         self.global_activation = global_activation
         self.local_activation = local_activation
 
+        embeddings = [
+            nn.Embedding(cardinality, embedding_dim)
+            for cardinality, embedding_dim in zip(
+                self.cardinalities, self.embedding_dimensions
+            )
+        ]
+        self.embedding = Stacked(embeddings)
         self.global_decoder = self._make_global_decoder()
         self.local_decoder = self._make_local_decoder()
 
@@ -113,8 +124,6 @@ class MQDNNModel(nn.Module):
             past_target, past_observed_values
         )
 
-        # TODO add static categorical features as well
-
         past_time_length = past_observed_values.shape[1]
 
         encoder_inputs = [
@@ -127,6 +136,11 @@ class MQDNNModel(nn.Module):
         if feat_static_real is not None:
             encoder_inputs.append(
                 feat_static_real.unsqueeze(1).repeat(1, past_time_length, 1)
+            )
+        if feat_static_cat is not None:
+            embedded = self.embedding(feat_static_cat)
+            encoder_inputs.append(
+                embedded.unsqueeze(1).repeat(1, past_time_length, 1)
             )
 
         encoder_output = self.encoder(torch.concat(encoder_inputs, dim=-1))
@@ -187,11 +201,26 @@ class Select(torch.nn.Module):
         return x[self.idx]
 
 
+class Stacked(torch.nn.Module):
+    def __init__(self, layers):
+        super().__init__()
+        self.layers = layers
+
+    def forward(self, x):
+        chunks = torch.split(x, 1, dim=-1)
+        outputs = []
+        for layer, chunk in zip(self.layers, chunks):
+            outputs.append(layer(chunk.squeeze(dim=-1)))
+        return torch.concat(outputs, dim=-1)
+
+
 class MQCNNModel(MQDNNModel):
     def __init__(
         self,
         num_feat_dynamic_real: int,
         num_feat_static_real: int,
+        cardinalities: List[int],
+        embedding_dimensions: List[int],
         encoder_channels: List[int] = [30, 30, 30],
         encoder_dilations: List[int] = [1, 3, 9],
         encoder_kernel_sizes: List[int] = [7, 3, 3],
@@ -203,7 +232,7 @@ class MQCNNModel(MQDNNModel):
 
         target_features = 3
         input_channels = (
-            num_feat_dynamic_real + num_feat_static_real + target_features
+            target_features + num_feat_dynamic_real + num_feat_static_real + sum(embedding_dimensions)
         )
         channels = [input_channels] + encoder_channels
         in_out_channels = zip(channels[:-1], channels[1:])
@@ -232,6 +261,8 @@ class MQCNNModel(MQDNNModel):
         super().__init__(
             num_feat_dynamic_real=num_feat_dynamic_real,
             num_feat_static_real=num_feat_static_real,
+            cardinalities=cardinalities,
+            embedding_dimensions=embedding_dimensions,
             encoder=encoder,
             encoder_output_length=channels[-1],
             **kwargs,
@@ -243,13 +274,15 @@ class MQRNNModel(MQDNNModel):
         self,
         num_feat_dynamic_real: int,
         num_feat_static_real: int,
+        cardinalities: List[int],
+        embedding_dimensions: List[int],
         num_layers: int = 1,
         encoder_hidden_size: int = 50,
         **kwargs,
     ) -> None:
         target_features = 3
         input_size = (
-            num_feat_dynamic_real + num_feat_static_real + target_features
+            target_features + num_feat_dynamic_real + num_feat_static_real + sum(embedding_dimensions)
         )
         encoder = torch.nn.Sequential(
             torch.nn.LSTM(
@@ -264,6 +297,8 @@ class MQRNNModel(MQDNNModel):
         super().__init__(
             num_feat_dynamic_real=num_feat_dynamic_real,
             num_feat_static_real=num_feat_static_real,
+            cardinalities=cardinalities,
+            embedding_dimensions=embedding_dimensions,
             encoder=encoder,
             encoder_output_length=encoder_hidden_size,
             **kwargs,
