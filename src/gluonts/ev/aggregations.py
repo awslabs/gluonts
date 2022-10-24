@@ -30,22 +30,17 @@ class Aggregation:
 class Sum(Aggregation):
     axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
-    initial_step: bool = True
 
     def step(self, values: np.ndarray) -> None:
         summed_values = values.sum(axis=self.axis)
 
-        if self.initial_step:
-            if self.axis is None or self.axis == 0:
-                self.partial_result = np.zeros(summed_values.shape)
-            else:
-                self.partial_result = []
-
-            self.initial_step = False
-
         if self.axis is None or self.axis == 0:
+            if self.partial_result is None:
+                self.partial_result = np.zeros(summed_values.shape)
             self.partial_result += summed_values
         else:
+            if self.partial_result is None:
+                self.partial_result = []
             self.partial_result.append(summed_values)
 
     def get(self) -> np.ndarray:
@@ -60,22 +55,17 @@ class Mean(Aggregation):
     axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: int = 0
-    initial_step: bool = True
 
     def step(self, values: np.ndarray) -> None:
         summed_values = values.sum(axis=self.axis)
 
-        if self.initial_step:
-            if self.axis is None or self.axis == 0:
-                self.partial_result = np.zeros(summed_values.shape)
-            else:
-                self.partial_result = []
-
-            self.initial_step = False
-
         if self.axis is None or self.axis == 0:
+            if self.partial_result is None:
+                self.partial_result = np.zeros(summed_values.shape)
             self.partial_result += summed_values
         else:
+            if self.partial_result is None:
+                self.partial_result = []
             self.partial_result.append(summed_values)
 
         if self.axis is None:
