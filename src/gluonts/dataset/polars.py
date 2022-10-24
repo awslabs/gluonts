@@ -20,7 +20,7 @@ from typing import Union, List, Optional
 import polars as pl
 
 from gluonts.itertools import Map
-from .pandas import column_as_start
+from .pandas import _column_as_start
 from .schema import Translator
 
 
@@ -81,7 +81,7 @@ class LongDataset:
         if self.timestamp is not None:
             dataset = Map(
                 partial(
-                    column_as_start,
+                    _column_as_start,
                     column=self.timestamp,
                     freq=self.freq,
                     unchecked=self.unchecked,
