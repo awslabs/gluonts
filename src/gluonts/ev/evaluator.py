@@ -14,7 +14,6 @@
 from dataclasses import dataclass, field
 from typing import (
     Callable,
-    Collection,
     Dict,
     Optional,
     Protocol,
@@ -24,9 +23,9 @@ from typing import (
 import numpy as np
 
 from gluonts.dataset.split import TestData
-from .data_preparation import construct_data
 from gluonts.model.predictor import Predictor
 from .aggregations import Aggregation
+from .data_preparation import construct_data
 
 
 @runtime_checkable
@@ -73,7 +72,7 @@ class DerivedMetricEvaluator(MetricEvaluator):
     """A "derived metric" depends on the prior calculation of "standard
     metrics"."""
 
-    metrics: Dict[str, StandardMetricEvaluator]
+    metrics: Dict[str, MetricEvaluator]
     post_process: Callable
 
     def update(self, data: Dict[str, np.ndarray]) -> None:
@@ -92,15 +91,20 @@ class MultiMetricEvaluator:
 
     metric_evaluators: Dict[str, MetricEvaluator] = field(default_factory=dict)
 
-    def add_metric(self, metrics: Metric, axis: Optional[int] = None) -> None:
-        self.add_metrics([metrics], axis)
+    def add_metric(
+        self, metric_name: str, metric: Metric, axis: Optional[int] = None
+    ) -> None:
+        self.add_metrics({metric_name: metric}, axis)
 
     def add_metrics(
-        self, metrics: Collection[Metric], axis: Optional[int] = None
+        self, metrics: Dict[str, Metric], axis: Optional[int] = None
     ) -> None:
-        for metric in metrics:
+        for metric_name, metric in metrics.items():
+            assert (
+                metric_name not in self.metric_evaluators
+            ), f"Metric name '{metric_name}' is not unique"
+
             metric_evaluator = metric(axis=axis)
-            metric_name = f"{metric.__class__.__name__}[axis={axis}]"
             self.metric_evaluators[metric_name] = metric_evaluator
 
     def evaluate(
