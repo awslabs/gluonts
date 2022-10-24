@@ -16,14 +16,13 @@ from typing import Any, Dict
 from typing_extensions import Self
 
 from .translate import Translator
-from .types import Type, Default, Array, Period
+from .types import Type, Array, Period
 
 __all__ = [
     # this module
     "Schema",
     # types
     "Type",
-    "Default",
     "Array",
     "Period",
     # translate
