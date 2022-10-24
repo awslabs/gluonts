@@ -39,7 +39,7 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
         y_t = time_series[:-forecast_freq, :]
         y_tm = time_series[forecast_freq:, :]
 
-        return np.abs(y_t - y_tm).mean(axis=0)
+        return np.abs(y_t - y_tm).mean(axis=0, keep_dims=True)
 
 
 def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
@@ -91,7 +91,7 @@ def symmetric_absolute_percentage_error(
 
 
 def scaled_interval_score(
-    data: Dict[str, np.ndarray], alpha: float, axis: int
+    data: Dict[str, np.ndarray], alpha: float
 ) -> np.ndarray:
     lower_quantile = data[str(alpha / 2)]
     upper_quantile = data[str(1.0 - alpha / 2)]
@@ -104,12 +104,8 @@ def scaled_interval_score(
         + 2.0 / alpha * (label - upper_quantile) * (label > upper_quantile)
     )
 
-    return numerator / np.expand_dims(data["seasonal_error"], axis=axis)
+    return numerator / data["seasonal_error"]
 
 
-def absolute_scaled_error(
-    data: Dict[str, np.ndarray], forecast_type: str, axis: int
-):
-    return absolute_error(data, forecast_type) / np.expand_dims(
-        data["seasonal_error"], axis=axis
-    )
+def absolute_scaled_error(data: Dict[str, np.ndarray], forecast_type: str):
+    return absolute_error(data, forecast_type) / data["seasonal_error"]
