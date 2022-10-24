@@ -30,11 +30,11 @@ from .data_preparation import construct_data
 
 @runtime_checkable
 class Metric(Protocol):
-    def __call__(self, axis: Optional[int] = None) -> "MetricEvaluator":
+    def __call__(self, axis: Optional[int] = None) -> "Evaluator":
         raise NotImplementedError
 
 
-class MetricEvaluator:
+class Evaluator:
     def evaluate(
         self, test_data: TestData, predictor: Predictor, **predictor_kwargs
     ) -> np.ndarray:
@@ -53,9 +53,8 @@ class MetricEvaluator:
 
 
 @dataclass
-class StandardMetricEvaluator(MetricEvaluator):
-    """A "standard metric" consists of a metric function and aggregation
-    strategy."""
+class DirectEvaluator(Evaluator):
+    """An Evaluator which uses a single function and aggregation strategy."""
 
     map: Callable
     aggregate: Aggregation
@@ -68,28 +67,30 @@ class StandardMetricEvaluator(MetricEvaluator):
 
 
 @dataclass
-class DerivedMetricEvaluator(MetricEvaluator):
-    """A "derived metric" depends on the prior calculation of "standard
-    metrics"."""
+class DerivedEvaluator(Evaluator):
+    """An Evaluator for metrics that are derived by other metrics.
 
-    metrics: Dict[str, MetricEvaluator]
+    A derived metric updates multiple, simpler metrics independently and in
+    the end combines their results as defined in `post_process`."""
+
+    evaluators: Dict[str, Evaluator]
     post_process: Callable
 
     def update(self, data: Dict[str, np.ndarray]) -> None:
-        for metric in self.metrics.values():
+        for metric in self.evaluators.values():
             metric.update(data)
 
     def get(self) -> np.ndarray:
         return self.post_process(
-            **{name: metric.get() for name, metric in self.metrics.items()}
+            **{name: metric.get() for name, metric in self.evaluators.items()}
         )
 
 
 @dataclass
-class MultiMetricEvaluator:
+class MetricGroup:
     """Allows feeding in data once and calculating multiple metrics"""
 
-    metric_evaluators: Dict[str, MetricEvaluator] = field(default_factory=dict)
+    metric_evaluators: Dict[str, Evaluator] = field(default_factory=dict)
 
     def add_metric(
         self, metric_name: str, metric: Metric, axis: Optional[int] = None

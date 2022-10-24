@@ -22,7 +22,7 @@ from gluonts.ev.metrics import (
     MSE,
     SumQuantileLoss,
 )
-from gluonts.ev.evaluator import MultiMetricEvaluator
+from gluonts.ev.evaluator import MetricGroup
 
 dataset = get_dataset("electricity")
 
@@ -55,10 +55,10 @@ metrics_per_entry = {
     "msis_per_entry": MSIS(),
 }
 
-multi_metric = MultiMetricEvaluator()
-multi_metric.add_metrics(metrics_per_entry, axis=1)
-multi_metric.add_metric("mean_coverage", Coverage(q=0.9))
+metric_group = MetricGroup()
+metric_group.add_metrics(metrics_per_entry, axis=1)
+metric_group.add_metric("mean_coverage", Coverage(q=0.9))
 
-result = multi_metric.evaluate(test_data, predictor, num_samples=100)
+result = metric_group.evaluate(test_data, predictor, num_samples=100)
 for name, value in result.items():
     print(f"\n{name}: {value}")

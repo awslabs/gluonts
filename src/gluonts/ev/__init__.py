@@ -30,10 +30,10 @@ from .metrics import (
 from .aggregations import Aggregation, Sum, Mean
 from .evaluator import (
     Metric,
-    MetricEvaluator,
-    MultiMetricEvaluator,
-    DerivedMetricEvaluator,
-    StandardMetricEvaluator,
+    Evaluator,
+    DirectEvaluator,
+    DerivedEvaluator,
+    MetricGroup,
 )
 from .stats import seasonal_error
 from .data_preparation import construct_data
@@ -57,10 +57,10 @@ __all__ = [
     "Sum",
     "Mean",
     "Metric",
-    "MetricEvaluator",
-    "MultiMetricEvaluator",
-    "DerivedMetricEvaluator",
-    "StandardMetricEvaluator",
+    "Evaluator",
+    "DirectEvaluator",
+    "DerivedEvaluator",
+    "MetricGroup",
     "construct_data",
     "seasonal_error",
 ]
