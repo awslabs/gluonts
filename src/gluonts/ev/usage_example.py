@@ -22,7 +22,7 @@ from gluonts.ev.metrics import (
     MSE,
     SumQuantileLoss,
 )
-from gluonts.ev.api import MultiMetricEvaluator
+from gluonts.ev.evaluator import MultiMetricEvaluator
 
 dataset = get_dataset("electricity")
 

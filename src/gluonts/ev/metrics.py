@@ -17,7 +17,7 @@ from typing import Optional
 
 import numpy as np
 
-from .api import (
+from .evaluator import (
     DerivedMetricEvaluator,
     StandardMetricEvaluator,
 )

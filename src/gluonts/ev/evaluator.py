@@ -11,13 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from collections import ChainMap
 from dataclasses import dataclass, field
 from typing import (
     Callable,
     Collection,
     Dict,
-    Iterator,
     Optional,
     Protocol,
     runtime_checkable,
@@ -26,9 +24,8 @@ from typing import (
 import numpy as np
 
 from gluonts.dataset.split import TestData
-from gluonts.time_feature.seasonality import get_seasonality
+from .data_preparation import construct_data
 from gluonts.model.predictor import Predictor
-from .stats import seasonal_error
 from .aggregations import Aggregation
 
 
@@ -36,39 +33,6 @@ from .aggregations import Aggregation
 class Metric(Protocol):
     def __call__(self, axis: Optional[int] = None) -> "MetricEvaluator":
         raise NotImplementedError
-
-
-class EvaluationDataBatch:
-    """Used to add batch dimension
-    Should be replaced by a `ForecastBatch` eventually"""
-
-    def __init__(self, values) -> None:
-        self.values = values
-
-    def __getitem__(self, name):
-        return np.array([self.values[name]])
-
-
-def construct_data(
-    test_data: TestData, predictor: Predictor, **predictor_kwargs
-) -> Iterator[Dict[str, np.ndarray]]:
-    forecasts = predictor.predict(dataset=test_data.input, **predictor_kwargs)
-
-    for input, label, forecast in zip(
-        test_data.input, test_data.label, forecasts
-    ):
-        batching_used = False  # isinstance(forecast, ForecastBatch)
-
-        non_forecast_data = {
-            "label": label["target"],
-            "seasonal_error": seasonal_error(
-                input["target"],
-                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
-            ),
-        }
-        joint_data = ChainMap(non_forecast_data, forecast)
-
-        yield joint_data if batching_used else EvaluationDataBatch(joint_data)
 
 
 class MetricEvaluator:
