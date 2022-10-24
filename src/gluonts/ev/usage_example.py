@@ -18,8 +18,8 @@ from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
 from gluonts.ev.metrics import (
     Coverage,
-    MeanScaledIntervalScore,
-    MeanSquaredError,
+    MSIS,
+    MSE,
     SumQuantileLoss,
 )
 from gluonts.ev.api import MultiMetricEvaluator
@@ -50,9 +50,9 @@ print(mse)
 
 # OPTION 2
 metrics_per_entry = [
-    MeanSquaredError(),
+    MSE(),
     SumQuantileLoss(q=0.9),
-    MeanScaledIntervalScore(),
+    MSIS(),
 ]
 
 multi_metric = MultiMetricEvaluator()

@@ -19,7 +19,6 @@ import numpy as np
 
 from .api import (
     DerivedMetricEvaluator,
-    MetricEvaluator,
     StandardMetricEvaluator,
 )
 from .aggregations import Mean, Sum
@@ -62,7 +61,9 @@ class SumAbsoluteError:
 
 
 @dataclass
-class MeanSquaredError:
+class MSE:
+    """Mean Squared Error"""
+
     forecast_type: str = "mean"
 
     def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
@@ -95,7 +96,9 @@ class Coverage:
 
 
 @dataclass
-class MeanAbsolutePercentageError:
+class MAPE:
+    """Mean Absolute Percentage Error"""
+
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
@@ -108,7 +111,9 @@ class MeanAbsolutePercentageError:
 
 
 @dataclass
-class SymmetricMeanAbsolutePercentageError:
+class SMAPE:
+    """Symmetric Mean Absolute Percentage Error"""
+
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
@@ -122,7 +127,9 @@ class SymmetricMeanAbsolutePercentageError:
 
 
 @dataclass
-class MeanScaledIntervalScore:
+class MSIS:
+    """Mean Scaled Interval Score"""
+
     alpha: float = 0.05
 
     def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
@@ -133,7 +140,9 @@ class MeanScaledIntervalScore:
 
 
 @dataclass
-class MeanAbsoluteScaledError:
+class MASE:
+    """Mean Absolute Scaled Error"""
+
     forecast_type: str = "0.5"
 
     def __call__(self, axis: Optional[int] = None) -> StandardMetricEvaluator:
@@ -146,7 +155,9 @@ class MeanAbsoluteScaledError:
 
 
 @dataclass
-class NormalizedDeviation:
+class ND:
+    """Normalized Deviation"""
+
     forecast_type: str = "mean"
 
     @staticmethod
@@ -168,7 +179,9 @@ class NormalizedDeviation:
 
 
 @dataclass
-class RootMeanSquaredError:
+class RMSE:
+    """Root Mean Squared Error"""
+
     forecast_type: str = "mean"
 
     @staticmethod
@@ -178,16 +191,18 @@ class RootMeanSquaredError:
     def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
-                "mean_squared_error": MeanSquaredError(
-                    forecast_type=self.forecast_type
-                )(axis=axis)
+                "mean_squared_error": MSE(forecast_type=self.forecast_type)(
+                    axis=axis
+                )
             },
             post_process=self.root_mean_squared_error,
         )
 
 
 @dataclass
-class NormalizedRootMeanSquaredError:
+class NRMSE:
+    """Normalized Root Mean Squared Error"""
+
     forecast_type: str = "mean"
 
     @staticmethod
@@ -199,7 +214,7 @@ class NormalizedRootMeanSquaredError:
     def __call__(self, axis: Optional[int] = None) -> DerivedMetricEvaluator:
         return DerivedMetricEvaluator(
             metrics={
-                "root_mean_squared_error": RootMeanSquaredError(
+                "root_mean_squared_error": RMSE(
                     forecast_type=self.forecast_type
                 )(axis=axis),
                 "mean_absolute_label": mean_absolute_label(axis=axis),
