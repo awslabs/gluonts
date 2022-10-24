@@ -285,34 +285,11 @@ class DeepAREstimator(GluonEstimator):
         self.impute_missing_values = impute_missing_values
 
     def get_schema(self):
-        Array_1D = schema.Array(dtype=self.dtype, ndim=1)
-        Array_2D = schema.Array(dtype=self.dtype, ndim=2)
-
-        return (
-            schema.Schema()
-            .add(
-                "target",
-                schema.Array(
-                    self.dtype,
-                    ndim=1 + len(self.distr_output.event_shape),
-                ),
-            )
-            .add("start", schema.Period())
-            .add(
-                "feat_dynamic_real", Array_2D, when=self.use_feat_dynamic_real
-            )
-            .add(
-                "feat_static_cat",
-                Array_1D,
-                when=self.use_feat_static_cat,
-                default=0.0,
-            )
-            .add(
-                "feat_static_real",
-                Array_1D,
-                when=self.use_feat_static_real,
-                default=0.0,
-            )
+        return schema.Schema.common(
+            dtype=self.dtype,
+            feat_static_cat=schema.IfSet(self.use_feat_static_cat, 0.0),
+            feat_static_real=schema.IfSet(self.use_feat_static_real, 0.0),
+            feat_dynamic_real=schema.IfSet(self.use_feat_dynamic_real),
         )
 
     @classmethod

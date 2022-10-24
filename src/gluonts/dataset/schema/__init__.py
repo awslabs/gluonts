@@ -31,9 +31,53 @@ from .types import Type, Default, Array, Period
 
 
 @dataclass
+class IfSet:
+    condition: bool
+    default: Any = MISSING
+
+    def apply(self, schema, name, ty):
+        return schema.add_if(self.condition, name, ty, default=self.default)
+
+
+ignore = IfSet(False)
+
+
+@dataclass
 class Schema:
     fields: Dict[str, Type] = field(default_factory=dict)
     default_fields: Dict[str, Any] = field(init=False)
+
+    @classmethod
+    def common(
+        cls,
+        *,
+        dtype,
+        multivariate=False,
+        feat_dynamic_real: IfSet = ignore,
+        feat_static_cat: IfSet = ignore,
+        feat_static_real: IfSet = ignore,
+    ):
+        schema = cls()
+
+        if multivariate:
+            ndim = 2
+        else:
+            ndim = 1
+
+        schema.add("target", Array(dtype, ndim=ndim, time_dim=ndim - 1))
+        schema.add("start", Period())
+
+        feat_dynamic_real.apply(
+            schema, "feat_dynamic_real", Array(dtype, ndim=2, time_dim=1)
+        )
+        feat_static_cat.apply(
+            schema, "feat_static_cat", Array(dtype=dtype, ndim=1)
+        )
+        feat_static_real.apply(
+            schema, "feat_static_real", Array(dtype=dtype, ndim=1)
+        )
+
+        return schema
 
     def __post_init__(self):
         self.default_fields = {}
@@ -52,13 +96,21 @@ class Schema:
             result[name] = default
         return result
 
-    def add(self, name: str, ty: Type, *, when=None, default=MISSING):
+    def add(self, name: str, ty: Type):
         if when is None or when:
             self.fields[name] = ty
         elif default is not MISSING:
             self.default_fields[name] = ty.apply(default)
 
         return self
+
+    def add_if(self, condition: bool, name: str, ty: Type, default=MISSING):
+        if not condition:
+            if default is not MISSING:
+                self.default_fields[name] = ty.apply(default)
+            return self
+
+        return self.add(name, ty)
 
 
 def with_schema(*, method=None, schema=None, attribute=None):
