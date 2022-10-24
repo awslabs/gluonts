@@ -33,13 +33,13 @@ class GenericType(Type, typing.Generic[T]):
 @dataclass
 class Default(GenericType[T]):
     value: T
-    base: Type = None
+    base: typing.Optional[Type] = None
 
     def __post_init__(self):
         if self.base is not None:
             self.value = self.base.apply(self.value)
 
-    def apply(self, data):
+    def apply(self, data) -> T:
         return self.value
 
 
@@ -77,7 +77,7 @@ class Array(GenericType[T]):
 
 @dataclass
 class Period:
-    freq: str = None
+    freq: typing.Optional[str] = None
 
     def apply(self, data):
         return pd.Period(data, freq=self.freq)

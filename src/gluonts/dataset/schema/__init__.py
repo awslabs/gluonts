@@ -53,14 +53,12 @@ class Schema:
             result[name] = default
         return result
 
-    def add(self, name: str, ty: Type) -> Self:
+    def add(self, name: str, ty: Type):
         self.fields[name] = ty
 
         return self
 
-    def add_if(
-        self, condition: bool, name: str, ty: Type, default=MISSING
-    ) -> Self:
+    def add_if(self, condition: bool, name: str, ty: Type, default=MISSING):
         if not condition:
             if default is not MISSING:
                 self.default_fields[name] = ty.apply(default)
