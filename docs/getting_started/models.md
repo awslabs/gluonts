@@ -59,7 +59,7 @@ NPTS                                                         | Local        | Un
 [GP]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/gp_forecaster/_estimator.py
 [MQDNN]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/seq2seq/_mq_dnn_estimator.py
 [NBeats]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/n_beats/_estimator.py
-[Rotbaum]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/rotbaum/_estimator.py
+[Rotbaum]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/rotbaum/_estimator.py
 [SAN]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/san/_estimator.py
 [TFT]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/tft/_estimator.py
 [Transformer]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/transformer/_estimator.py
@@ -75,4 +75,4 @@ NPTS                                                         | Local        | Un
 [Prophet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/prophet/_predictor.py
 [NaiveSeasonal]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/seasonal_naive/_predictor.py
 [Naive2]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/naive_2/_predictor.py
-[NPTS]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/npts/_predictor.py
+[NPTS]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/npts/_predictor.py
