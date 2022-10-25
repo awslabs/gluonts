@@ -129,7 +129,8 @@ class ImplicitQuantileNetwork(Distribution):
         return self.outputs
 
     def quantile_loss(self, value) -> torch.Tensor:
-        # penalize by tau for over-predicting, and by 1-tau for under-predicting
+        # penalize by tau for over-predicting
+        # and by 1-tau for under-predicting
         return (self.taus - (self.outputs < value)) * (self.outputs - value)
 
 
