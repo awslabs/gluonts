@@ -21,7 +21,7 @@ f32_2d = ty.Array(dtype=np.float32, ndim=2)
 
 def test_array():
     assert np.array_equal(
-        f32_2d.apply([0, 1, 2]), np.arange(3, dtype=np.float32).reshape(1, 3)
+        f32_2d.apply([[0, 1, 2]]), np.arange(3, dtype=np.float32).reshape(1, 3)
     )
 
 
