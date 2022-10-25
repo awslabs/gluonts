@@ -80,7 +80,7 @@ def test_Sum(value_stream, res_axis_none, res_axis_0, res_axis_1):
         for values in value_stream:
             sum.step(values)
 
-        assert np.array_equal(sum.get(), expected_result, equal_nan=True)
+        np.testing.assert_almost_equal(sum.get(), expected_result)
 
 
 @pytest.mark.parametrize(
@@ -95,7 +95,7 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
         for values in value_stream:
             mean.step(values)
 
-        assert np.array_equal(mean.get(), expected_result, equal_nan=True)
+        np.testing.assert_almost_equal(mean.get(), expected_result)
 
 
 def test_high_dim():
@@ -112,7 +112,7 @@ def test_high_dim():
 
         actual_sum = sum.get()
         expected_sum = all_values.sum(axis=axis)
-        assert np.allclose(actual_sum, expected_sum)
+        np.testing.assert_almost_equal(actual_sum, expected_sum)
 
         mean = Mean(axis=axis)
         for values in value_stream:
@@ -120,4 +120,4 @@ def test_high_dim():
 
         actual_mean = mean.get()
         expected_mean = all_values.mean(axis=axis)
-        assert np.allclose(actual_mean, expected_mean)
+        np.testing.assert_almost_equal(actual_mean, expected_mean)
