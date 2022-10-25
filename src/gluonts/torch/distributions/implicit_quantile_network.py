@@ -50,8 +50,8 @@ class QuantileLayer(nn.Module):
 class ImplicitQuantileModule(nn.Module):
     r"""
     Implicit Quantile Network from the paper ``IQN for Distributional
-     Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
-     Dabney et al. 2018.
+    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
+    Dabney et al. 2018.
     """
 
     def __init__(
@@ -129,10 +129,8 @@ class ImplicitQuantileNetwork(Distribution):
         return self.outputs
 
     def quantile_loss(self, value) -> torch.Tensor:
-        return torch.abs(
-            (self.outputs - value)
-            * ((value <= self.outputs).float() - self.taus)
-        )
+        # penalize by tau for over-predicting, and by 1-tau for under-predicting
+        return (self.taus - (self.outputs < value)) * (self.outputs - value)
 
 
 class ImplicitQuantileNetworkOutput(DistributionOutput):
@@ -144,7 +142,7 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     Parameters
     ----------
     output_domain
-        Optional domain mapping of the output. Can be "Positive", "Unit"
+        Optional domain mapping of the output. Can be "positive", "unit"
         or None.
     concentration1
         Alpha parameter of the Beta distribution when sampling the taus
@@ -174,10 +172,10 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
         self.concentration0 = concentration0
         self.cos_embedding_dim = cos_embedding_dim
 
-        if output_domain in ["Positive", "Unit"]:
+        if output_domain in ["positive", "unit"]:
             output_domain_map_func = {
-                "Positive": F.softplus,
-                "Unit": partial(F.softmax, dim=-1),
+                "positive": F.softplus,
+                "unit": partial(F.softmax, dim=-1),
             }
             self.output_domain_map = output_domain_map_func[output_domain]
         else:
