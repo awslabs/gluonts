@@ -60,7 +60,7 @@ class IterationAveragingStrategy:
         self.averaging_started = False
 
     def update_average_trigger(
-        self, metric: Any = None, epoch: int = 0, **kwargs
+        self, metric: Any = None, epoch: int = 1, **kwargs
     ):
         r"""
         Parameters
@@ -214,7 +214,7 @@ class NTA(IterationAveragingStrategy):
         self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(
-        self, metric: Any = None, epoch: int = 0, **kwargs
+        self, metric: Any = None, epoch: int = 1, **kwargs
     ):
         r"""
         Parameters
@@ -286,7 +286,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
         self.alpha_suffix = epochs * (1.0 - alpha)
 
     def update_average_trigger(
-        self, metric: Any = None, epoch: int = 0, **kwargs
+        self, metric: Any = None, epoch: int = 1, **kwargs
     ):
         r"""
         Parameters
