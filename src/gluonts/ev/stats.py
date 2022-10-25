@@ -40,7 +40,7 @@ def quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
     forecast_type = str(q)
     prediction = data[forecast_type]
 
-    return np.abs(
+    return 2 * np.abs(
         error(data, forecast_type) * ((prediction >= data["label"]) - q)
     )
 
@@ -59,8 +59,10 @@ def absolute_percentage_error(
 def symmetric_absolute_percentage_error(
     data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
-    return absolute_error(data, forecast_type) / (
-        absolute_label(data) + np.abs(data[forecast_type])
+    return (
+        2
+        * absolute_error(data, forecast_type)
+        / (absolute_label(data) + np.abs(data[forecast_type]))
     )
 
 
