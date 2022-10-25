@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Callable
 
 import torch
 import torch.nn as nn
@@ -42,7 +42,7 @@ class QuantileLayer(nn.Module):
 
         self.register_buffer("integers", torch.arange(0, cos_embedding_dim))
 
-    def forward(self, tau):  # tau: [B, T]
+    def forward(self, tau: torch.Tensor) -> torch.Tensor:  # tau: [B, T]
         cos_emb_tau = torch.cos(tau.unsqueeze(-1) * self.integers * torch.pi)
         return self.output_layer(cos_emb_tau)
 
@@ -58,7 +58,7 @@ class ImplicitQuantileModule(nn.Module):
         self,
         in_features: int,
         args_dim: Dict[str, int],
-        domain_map,
+        domain_map: Callable[..., Tuple[torch.Tensor]],
         concentration1: float = 1.0,
         concentration0: float = 1.0,
         output_domain_map=None,
@@ -82,7 +82,7 @@ class ImplicitQuantileModule(nn.Module):
             [nn.Linear(in_features, dim) for dim in args_dim.values()]
         )
 
-    def forward(self, inputs):
+    def forward(self, inputs: torch.Tensor):
         if self.training:
             taus = self.beta.sample(sample_shape=inputs.shape[:-1]).to(
                 inputs.device
@@ -116,7 +116,9 @@ class ImplicitQuantileNetwork(Distribution):
 
     arg_constraints = {}
 
-    def __init__(self, outputs, taus, validate_args=None):
+    def __init__(
+        self, outputs: torch.Tensor, taus: torch.Tensor, validate_args=None
+    ):
         self.taus = taus
         self.outputs = outputs
 
@@ -125,10 +127,10 @@ class ImplicitQuantileNetwork(Distribution):
         )
 
     @torch.no_grad()
-    def sample(self, sample_shape=torch.Size()):
+    def sample(self, sample_shape=torch.Size()) -> torch.Tensor:
         return self.outputs
 
-    def quantile_loss(self, value) -> torch.Tensor:
+    def quantile_loss(self, value: torch.Tensor) -> torch.Tensor:
         # penalize by tau for over-predicting
         # and by 1-tau for under-predicting
         return torch.where(
@@ -201,7 +203,7 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     def domain_map(cls, *args):
         return args
 
-    def distribution(self, distr_args, loc=0, scale=None):
+    def distribution(self, distr_args, loc=0, scale=None) -> Distribution:
         (outputs, taus) = distr_args
 
         if scale is None:
