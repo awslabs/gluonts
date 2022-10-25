@@ -49,13 +49,10 @@ class Array(GenericType[T]):
     dimension.
 
     This class ensures that the handled output data, will have `ndim` number of
-    dimensions, expanding the input if necessary.
-
-    If specified, `dtype` will be applied to the input to force a consistent
-    type, e.g. ``np.float32``.
-
-    `time_dim` is just a marker, indicating which axis notes the time-axis,
-    useful for splitting. If `time_dim` is none, the array is time invariant.
+    dimensions. If specified, `dtype` will be applied to the input to force a
+    consistent type, e.g. ``np.float32``. `time_dim` is just a marker,
+    indicating which axis notes the time-axis, useful for splitting. If
+    `time_dim` is none, the array is time invariant.
     """
 
     ndim: int
@@ -65,12 +62,8 @@ class Array(GenericType[T]):
     def apply(self, data):
         arr = np.asarray(data, dtype=self.dtype)
 
-        if arr.ndim < self.ndim:
-            to_expand = self.ndim - arr.ndim
-            new_shape = (1,) * to_expand + arr.shape
-            arr = arr.reshape(new_shape)
-        elif arr.ndim > self.ndim:
-            raise ValueError("Too many dimensions.")
+        if arr.ndim != self.ndim:
+            raise ValueError("Dimensions do not match.")
 
         return arr
 
