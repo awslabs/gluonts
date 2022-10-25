@@ -19,6 +19,8 @@ import numpy as np
 
 @dataclass
 class Aggregation:
+    axis: Optional[int] = None
+
     def step(self, values: np.ndarray) -> None:
         raise NotImplementedError
 
@@ -41,7 +43,6 @@ class Sum(Aggregation):
         concatenated to a np.ndarray.
     """
 
-    axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
@@ -80,7 +81,6 @@ class Mean(Aggregation):
         using np.nanmean, `n` is not used.
     """
 
-    axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: int = 0
 
