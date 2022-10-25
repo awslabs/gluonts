@@ -59,7 +59,7 @@ class Sum(Aggregation):
 
     def get(self) -> np.ndarray:
         if self.axis is None or self.axis == 0:
-            return self.partial_result
+            return np.copy(self.partial_result)
 
         return np.concatenate(self.partial_result)
 
