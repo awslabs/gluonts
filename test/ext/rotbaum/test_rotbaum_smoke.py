@@ -13,7 +13,7 @@
 
 import pytest
 
-from gluonts.model.rotbaum import TreeEstimator
+from gluonts.ext.rotbaum import TreeEstimator
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 

@@ -18,7 +18,8 @@ import pandas as pd
 
 from gluonts.core.component import validated
 from gluonts.model.forecast import SampleForecast, QuantileForecast
-from gluonts.model.r_forecast import RBasePredictor
+
+from . import RBasePredictor
 
 
 R_FILE_PREFIX = "univariate"
