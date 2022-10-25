@@ -11,15 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.core.component import validated
-from gluonts.model.estimator import DummyEstimator
+import numpy as np
+import pandas as pd
 
-from ._predictor import SeasonalNaivePredictor
+from gluonts.dataset.schema import types as ty
+
+f32_2d = ty.Array(dtype=np.float32, ndim=2)
 
 
-class SeasonalNaiveEstimator(DummyEstimator):
-    @validated(
-        getattr(SeasonalNaivePredictor.__init__, "Model")
-    )  # Reuse the model Predictor model
-    def __init__(self, **kwargs) -> None:
-        super().__init__(predictor_cls=SeasonalNaivePredictor, **kwargs)
+def test_array():
+    assert np.array_equal(
+        f32_2d.apply([[0, 1, 2]]), np.arange(3, dtype=np.float32).reshape(1, 3)
+    )
+
+
+def test_period():
+    assert pd.Period("2020", freq="M") == ty.Period(freq="M").apply("2020")
