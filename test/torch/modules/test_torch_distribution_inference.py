@@ -22,6 +22,7 @@ import pytest
 import torch
 import torch.nn as nn
 from pydantic import PositiveFloat, PositiveInt
+from scipy.special import softmax
 from torch.distributions import (
     Beta,
     Gamma,
@@ -33,7 +34,6 @@ from torch.distributions import (
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
-from scipy.special import softmax
 
 from gluonts.torch.distributions import (
     BetaOutput,
@@ -42,13 +42,11 @@ from gluonts.torch.distributions import (
     NegativeBinomialOutput,
     NormalOutput,
     PoissonOutput,
-    StudentTOutput,
-)
-from gluonts.torch.distributions import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
+    StudentTOutput,
 )
-
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
@@ -77,6 +75,7 @@ def maximum_likelihood_estimate_sgd(
     init_biases: List[np.ndarray] = None,
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
+    loss: DistributionLoss = NegativeLogLikelihood(),
 ):
     arg_proj = distr_output.get_args_proj(in_features=1)
     if init_biases is not None:
@@ -136,13 +135,14 @@ def maximum_likelihood_estimate_sgd_2(
             optimizer.zero_grad()
             distr_args = arg_proj(data)
             distr = distr_output.distribution(distr_args)
-            loss = -distr.log_prob(sample_label).mean()
-            loss.backward()
+            loss_values = loss(distr, sample_label)
+            loss_values = loss_values.mean()
+            loss_values.backward()
             clip_grad_norm_(arg_proj.parameters(), 10.0)
             optimizer.step()
 
             num_batches += 1
-            cumulative_loss += loss.item()
+            cumulative_loss += loss_values.item()
 
     if len(distr_args[0].shape) == 1:
         return [
