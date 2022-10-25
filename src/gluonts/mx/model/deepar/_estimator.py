@@ -19,6 +19,7 @@ from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.dataset import schema
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
     DataLoader,
@@ -285,6 +286,7 @@ class DeepAREstimator(GluonEstimator):
         self.default_scale = default_scale
         self.minimum_scale = minimum_scale
         self.impute_missing_values = impute_missing_values
+        self.freq = freq
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -295,6 +297,20 @@ class DeepAREstimator(GluonEstimator):
             "use_feat_static_cat": bool(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
+
+    def get_schema(self):
+        return schema.common(
+            dtype=self.dtype,
+            freq=self.freq,
+            multivariate=len(self.distr_output.event_shape) > 0,
+            feat_static_cat=schema.RequiredIf(
+                self.use_feat_static_cat, default=[0.0]
+            ),
+            feat_static_real=schema.RequiredIf(
+                self.use_feat_static_real, default=[0.0]
+            ),
+            feat_dynamic_real=schema.RequiredIf(self.use_feat_dynamic_real),
+        )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]

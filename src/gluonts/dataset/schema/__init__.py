@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field, MISSING
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .translate import Translator
 from .types import Type, Array, Default, Period
@@ -57,10 +57,50 @@ class Schema:
 
         return self
 
-    def add_if(self, condition: bool, name: str, ty: Type, default=MISSING):
+    def add_if(self, condition: bool, name: str, ty: Type, default=None):
         if not condition:
-            if default is not MISSING:
+            if default is not None:
                 self.default_fields[name] = ty.apply(default)
             return self
 
         return self.add(name, ty)
+
+
+@dataclass
+class RequiredIf:
+    condition: bool
+    default: Optional[Any] = None
+
+    def apply(self, schema, name, ty):
+        return schema.add_if(self.condition, name, ty, default=self.default)
+
+
+def common(
+    *,
+    dtype,
+    freq=None,
+    multivariate=False,
+    feat_dynamic_real=RequiredIf(False),
+    feat_static_cat=RequiredIf(False),
+    feat_static_real=RequiredIf(False),
+):
+    if multivariate:
+        ndim = 2
+    else:
+        ndim = 1
+
+    schema = Schema()
+    schema.add("target", Array(dtype=dtype, ndim=ndim, time_dim=ndim - 1))
+    schema.add("start", Period(freq=freq))
+
+    feat_dynamic_real.apply(
+        schema, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_dim=1)
+    )
+    feat_static_cat.apply(
+        schema, "feat_static_cat", Array(dtype=dtype, ndim=1)
+    )
+    feat_static_real.apply(
+        schema, "feat_static_real", Array(dtype=dtype, ndim=1)
+    )
+
+    return schema
