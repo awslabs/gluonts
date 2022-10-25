@@ -78,8 +78,10 @@ class StatsForecastPredictor(RepresentablePredictor):
         Prediction length for the model to use.
     quantile_levels
         Optional list of quantile levels that we want predictions for.
-        By default this is ``None``, giving only the mean predition.
-    **kwargs
+        Note: this is only supported by specific types of models, such as
+        ``AutoARIMA``. By default this is ``None``, giving only the mean
+        prediction.
+    **model_params
         Keyword arguments to be passed to the model type for construction.
         The specific arguments accepted or required depend on the
         ``ModelType``; please refer to the documentation of ``statsforecast``
@@ -93,10 +95,10 @@ class StatsForecastPredictor(RepresentablePredictor):
         self,
         prediction_length: int,
         quantile_levels: Optional[List[float]] = None,
-        **kwargs,
+        **model_params,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
-        self.model = self.ModelType(**kwargs)
+        self.model = self.ModelType(**model_params)
         self.config = ModelConfig(quantile_levels=quantile_levels)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
