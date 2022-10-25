@@ -68,7 +68,7 @@ class DirectEvaluator(Evaluator):
 
 @dataclass
 class DerivedEvaluator(Evaluator):
-    """An Evaluator for metrics that are derived by other metrics.
+    """An Evaluator for metrics that are derived from other metrics.
 
     A derived metric updates multiple, simpler metrics independently and in
     the end combines their results as defined in `post_process`."""
