@@ -28,6 +28,19 @@ class Aggregation:
 
 @dataclass
 class Sum(Aggregation):
+    """Map-Reduce way of calculating the sum of a stream of values.
+
+    Nans are treated as 0.
+
+    `partial_result` represents one of two things, depending on the axis:
+    Case 1 - axis 0 is aggregated (axis is None or 0):
+        In each `step`, sum is being calculated and added to `partial_result`.
+
+    Case 2 - axis 0 is not being aggregated:
+        In this case, `partial_result` is a list that in the end gets
+        concatenated to a np.ndarray.
+    """
+
     axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
@@ -52,29 +65,47 @@ class Sum(Aggregation):
 
 @dataclass
 class Mean(Aggregation):
+    """Map-Reduce way of calculating the mean of a stream of values.
+
+    Nans are skipped.
+
+    `partial_result` represents one of two things, depending on the axis:
+    Case 1 - axis 0 is aggregated (axis is None or 0):
+        First sum values acoording to axis and keep track of number of entries
+        summed over (`n`) to divide by in the end.
+
+    Case 2 - axis 0 is not being aggregated:
+        In this case, `partial_result` is a list of means that in the end gets
+        concatenated to a np.ndarray. As this directly calculates the mean
+        using np.nanmean, `n` is not used.
+    """
+
     axis: Optional[int] = None
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: int = 0
 
     def step(self, values: np.ndarray) -> None:
-        summed_values = np.nansum(values, axis=self.axis)
-
         if self.axis is None or self.axis == 0:
+            summed_values = np.nansum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
+
             self.partial_result += summed_values
+
+            nan_count = np.count_nonzero(np.isnan(values), axis=self.axis)
+            if self.axis is None:
+                self.n += values.size - nan_count
+            else:
+                self.n += values.shape[0] - nan_count
         else:
             if self.partial_result is None:
                 self.partial_result = []
-            self.partial_result.append(summed_values)
 
-        if self.axis is None:
-            self.n += values.size
-        else:
-            self.n += values.shape[self.axis]
+            mean_values = np.nanmean(values, axis=self.axis)
+            self.partial_result.append(mean_values)
 
     def get(self) -> np.ndarray:
         if self.axis is None or self.axis == 0:
             return self.partial_result / self.n
 
-        return np.concatenate(self.partial_result) / self.n
+        return np.concatenate(self.partial_result)
