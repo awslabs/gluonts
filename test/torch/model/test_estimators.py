@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dis import dis
 import tempfile
 from itertools import islice
 from pathlib import Path
@@ -24,7 +25,8 @@ from gluonts.torch.model.deepar import DeepAREstimator
 from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.torch.modules.loss import NegativeLogLikelihood
+from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
+from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
 
 @pytest.mark.parametrize(
@@ -91,6 +93,19 @@ def test_estimator_constant_dataset(estimator_constructor):
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
             loss=NegativeLogLikelihood(beta=0.1),
+        ),
+        lambda freq, prediction_length: DeepAREstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+            loss=QuantileLoss(),
+            distr_output=ImplicitQuantileNetworkOutput(),
         ),
         lambda freq, prediction_length: MQF2MultiHorizonEstimator(
             freq=freq,
