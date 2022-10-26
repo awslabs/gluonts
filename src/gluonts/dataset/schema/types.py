@@ -95,16 +95,16 @@ class ArrayWithType(np.ndarray):
     def time_length(self):
         return self.shape[self.type.time_axis]
 
-    def split_time(self, idx, future_length: int = 0):
+    def split_time(self, start, stop=None):
         if self.type.time_axis is None:
             return self
 
         sl = [slice(None, None)] * self.ndim
 
-        sl[self.type.time_axis] = slice(None, idx)
+        sl[self.type.time_axis] = slice(None, start)
         left = self[tuple(sl)]
 
-        sl[self.type.time_axis] = slice(idx, None)
+        sl[self.type.time_axis] = slice(start, stop)
         right = self[tuple(sl)]
 
         return left, right

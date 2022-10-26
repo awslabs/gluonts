@@ -69,16 +69,20 @@ class Schema:
 
     def __post_init__(self):
         for name, ty in self.fields.items():
-            if isinstance(ty, Array) and ty.time_axis is not None:
-                if ty.past_only:
-                    self.past_only_arrays.append(name)
-                else:
-                    self.past_future_arrays.append(name)
+            self.classify_field(name, ty)
+
+    def classify_field(self, name, ty):
+        if isinstance(ty, Array) and ty.time_axis is not None:
+            if ty.past_only:
+                self.past_only_arrays.append(name)
             else:
-                self.static_values.append(name)
+                self.past_future_arrays.append(name)
+        else:
+            self.static_values.append(name)
 
     def add(self, name: str, ty: Type):
         self.fields[name] = ty
+        self.classify_field(name, ty)
 
         return self
 
@@ -179,8 +183,19 @@ class TimeSeries:
     length: int
     future_length: int = 0
 
+    def extend(self, name, ty, value):
+        schema = schema.clone()
+        schema.add(name, ty)
+        self.schema[name] = schema
+
+        value = value.apply(ty)
+        self.data[name] = value
+
     def __len__(self):
         return self.length
+
+    def __getitem__(self, key):
+        return self.data[key]
 
     @property
     def past(self):
@@ -216,6 +231,11 @@ class TimeSeries:
     def split(self, idx, limit=None):
         assert self.future_length == 0
 
+        if limit is None:
+            stop = None
+        else:
+            stop = idx + limit
+
         result = {}
         for field_name in self.schema.static_values:
             result[field_name] = self.data[field_name]
@@ -223,8 +243,7 @@ class TimeSeries:
         for field_name in chain(
             self.schema.past_only_arrays, self.schema.past_future_arrays
         ):
-            past, future = self.data[field_name].split_time(idx)
-            future = future[:limit]
+            past, future = self.data[field_name].split_time(idx, stop)
 
             result["past_" + field_name] = past
             result["future_" + field_name] = future
