@@ -12,9 +12,9 @@
 # permissions and limitations under the License.
 
 from torch.distributions import (
-    TransformedDistribution,
     AffineTransform,
     Distribution,
+    TransformedDistribution,
 )
 
 

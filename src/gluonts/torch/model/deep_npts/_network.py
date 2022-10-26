@@ -21,11 +21,10 @@ from torch.distributions import (
     MixtureSameFamily,
     Normal,
 )
-from gluonts.core.component import validated
 
-from gluonts.torch.distributions.discrete_distribution import (
-    DiscreteDistribution,
-)
+from gluonts.core.component import validated
+from gluonts.torch.distributions import DiscreteDistribution
+
 from .scaling import (
     min_max_scaling,
     standard_normal_scaling,
