@@ -58,7 +58,9 @@ def set_up_data(H):
         # X_test = torch.ones(n_samples_test, H.n_meas, n_steps).float().numpy()  # Conv1D expects (N,C_in,L_in), where C_in=number of channels=measurement dimension, L_in=length of signal sequence
         # Y_test = torch.ones(n_samples_test).float().numpy()
 
-    elif H.dataset in dataset_recipes:  # all available datasets in gluonts: ['constant', 'exchange_rate', 'solar-energy', 'electricity', 'traffic', 'exchange_rate_nips', 'electricity_nips', 'traffic_nips', 'solar_nips', 'wiki-rolling_nips', 'taxi_30min', 'kaggle_web_traffic_with_missing', 'kaggle_web_traffic_without_missing', 'kaggle_web_traffic_weekly', 'm1_yearly', 'm1_quarterly', 'm1_monthly', 'nn5_daily_with_missing', 'nn5_daily_without_missing', 'nn5_weekly', 'tourism_monthly', 'tourism_quarterly', 'tourism_yearly', 'cif_2016', 'london_smart_meters_without_missing', 'wind_farms_without_missing', 'car_parts_without_missing', 'dominick', 'fred_md', 'pedestrian_counts', 'hospital', 'covid_deaths', 'kdd_cup_2018_without_missing', 'weather', 'm3_monthly', 'm3_quarterly', 'm3_yearly', 'm3_other', 'm4_hourly', 'm4_daily', 'm4_weekly', 'm4_monthly', 'm4_quarterly', 'm4_yearly', 'm5', 'uber_tlc_daily', 'uber_tlc_hourly', 'airpassengers']
+    elif (
+        H.dataset in dataset_recipes
+    ):  # all available datasets in gluonts: ['constant', 'exchange_rate', 'solar-energy', 'electricity', 'traffic', 'exchange_rate_nips', 'electricity_nips', 'traffic_nips', 'solar_nips', 'wiki-rolling_nips', 'taxi_30min', 'kaggle_web_traffic_with_missing', 'kaggle_web_traffic_without_missing', 'kaggle_web_traffic_weekly', 'm1_yearly', 'm1_quarterly', 'm1_monthly', 'nn5_daily_with_missing', 'nn5_daily_without_missing', 'nn5_weekly', 'tourism_monthly', 'tourism_quarterly', 'tourism_yearly', 'cif_2016', 'london_smart_meters_without_missing', 'wind_farms_without_missing', 'car_parts_without_missing', 'dominick', 'fred_md', 'pedestrian_counts', 'hospital', 'covid_deaths', 'kdd_cup_2018_without_missing', 'weather', 'm3_monthly', 'm3_quarterly', 'm3_yearly', 'm3_other', 'm4_hourly', 'm4_daily', 'm4_weekly', 'm4_monthly', 'm4_quarterly', 'm4_yearly', 'm5', 'uber_tlc_daily', 'uber_tlc_hourly', 'airpassengers']
         # structure of dataset:
         # - contains .train, .test, and .metadata attribute (details see https://ts.gluon.ai/dev/tutorials/forecasting/quick_start_tutorial.html)
         # - .train and .test are iterators, where each entry is a dictionary which contains a few keys:
@@ -229,9 +231,9 @@ def set_up_data(H):
                         noise = noise.astype(np.float32)
 
                         item = {
-                            'start': 0.0,  # dummy data
-                            'target': noise,
-                            'item_id': str(t)
+                            "start": 0.0,  # dummy data
+                            "target": noise,
+                            "item_id": str(t),
                         }
                         self.data.append(item)
 
