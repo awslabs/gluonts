@@ -30,7 +30,10 @@ class Aggregation:
 
 @dataclass
 class Sum(Aggregation):
-    """Map-Reduce way of calculating the sum of a stream of values.
+    """Map-reduce way of calculating the sum of a stream of values.
+
+    Invalid values (Inf and NaN) are NOT taken care of explicitly.
+    To ignore these values, provide masked values as input to `step`.
 
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
@@ -64,7 +67,10 @@ class Sum(Aggregation):
 
 @dataclass
 class Mean(Aggregation):
-    """Map-Reduce way of calculating the mean of a stream of values.
+    """Map-reduce way of calculating the mean of a stream of values.
+
+    Invalid values (Inf and NaN) are NOT taken care of explicitly.
+    To ignore these values, provide masked values as input to `step`.
 
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):

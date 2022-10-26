@@ -23,7 +23,7 @@ VALUE_STREAM = [
         np.full((3, 5), np.nan),
     ],
     [
-        np.array([[0, np.nan], [np.nan, 0]]),
+        np.array([[0, np.nan], [0, 0]]),
         np.array([[0, 5], [-5, np.nan]]),
     ],
     [
@@ -33,37 +33,37 @@ VALUE_STREAM = [
 ]
 
 SUM_RES_AXIS_NONE = [
-    0,
-    0,
+    np.nan,
+    np.nan,
     21,
 ]
 
 SUM_RES_AXIS_0 = [
-    np.zeros(5),
-    np.array([-5, 5]),
+    np.full(5, np.nan),
+    np.array([-5, np.nan]),
     np.array([7, 7, 7]),
 ]
 SUM_RES_AXIS_1 = [
-    np.zeros(9),
-    np.array([0, 0, 5, -5]),
+    np.full(9, np.nan),
+    np.array([np.nan, 0, 5, np.nan]),
     np.array([3, 3, 3, 12]),
 ]
 
 
 MEAN_RES_AXIS_NONE = [
     np.nan,
-    0,
+    np.nan,
     1.75,
 ]
 
 MEAN_RES_AXIS_0 = [
     np.full(5, np.nan),
-    np.array([-5 / 3, 5 / 2]),
+    np.array([-5 / 4, np.nan]),
     np.array([1.75, 1.75, 1.75]),
 ]
 MEAN_RES_AXIS_1 = [
     np.full(9, np.nan),
-    np.array([0, 0, 2.5, -5]),
+    np.array([np.nan, 0, 2.5, np.nan]),
     np.array([1, 1, 1, 4]),
 ]
 
