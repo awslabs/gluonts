@@ -20,7 +20,7 @@ from gluonts.torch.model.mqdnn.lightning_module import MQDNNLightningModule
 
 
 @pytest.mark.parametrize(
-    "model, inputs, prediction_length, num_quantiles",
+    "model, inputs, num_quantiles, prediction_length",
     [
         (
             MQCNNModel(
@@ -28,9 +28,12 @@ from gluonts.torch.model.mqdnn.lightning_module import MQDNNLightningModule
                 num_output_quantiles=5,
                 num_feat_dynamic_real=3,
                 num_feat_static_real=4,
+                cardinalities=[],
+                embedding_dimensions=[],
                 decoder_latent_length=6,
                 global_hidden_sizes=[10, 10],
                 local_hidden_sizes=[5, 5],
+                is_iqf=True,
             ),
             dict(
                 past_target=torch.rand((4, 50)),
@@ -38,8 +41,8 @@ from gluonts.torch.model.mqdnn.lightning_module import MQDNNLightningModule
                 future_feat_dynamic=torch.rand((4, 2, 3)),
                 feat_static_real=torch.rand((4, 4)),
             ),
-            2,
             5,
+            2,
         ),
         (
             MQRNNModel(
@@ -47,10 +50,13 @@ from gluonts.torch.model.mqdnn.lightning_module import MQDNNLightningModule
                 num_output_quantiles=5,
                 num_feat_dynamic_real=3,
                 num_feat_static_real=4,
+                cardinalities=[],
+                embedding_dimensions=[],
                 encoder_hidden_size=5,
                 decoder_latent_length=6,
                 global_hidden_sizes=[10, 10],
                 local_hidden_sizes=[5, 5],
+                is_iqf=True,
             ),
             dict(
                 past_target=torch.rand((4, 50)),
@@ -58,23 +64,23 @@ from gluonts.torch.model.mqdnn.lightning_module import MQDNNLightningModule
                 future_feat_dynamic=torch.rand((4, 2, 3)),
                 feat_static_real=torch.rand((4, 4)),
             ),
-            2,
             5,
+            2,
         ),
     ],
 )
 def test_mdqnn_model(
     model,
     inputs,
-    prediction_length,
     num_quantiles,
+    prediction_length,
 ):
     batch_size = inputs["past_target"].shape[0]
 
     quantiles = model(**inputs)
 
-    assert quantiles.shape == (batch_size, prediction_length, num_quantiles)
-    assert (quantiles.diff(dim=-1) >= 0).all()
+    assert quantiles.shape == (batch_size, num_quantiles, prediction_length)
+    assert (quantiles.diff(dim=-2) >= 0).all()
 
 
 @pytest.mark.parametrize(
@@ -87,6 +93,8 @@ def test_mdqnn_model(
                     num_output_quantiles=5,
                     num_feat_dynamic_real=3,
                     num_feat_static_real=4,
+                    cardinalities=[],
+                    embedding_dimensions=[],
                     encoder_channels=[5, 5],
                     encoder_dilations=[1, 5],
                     encoder_kernel_sizes=[3, 3],
@@ -112,6 +120,8 @@ def test_mdqnn_model(
                     num_output_quantiles=5,
                     num_feat_dynamic_real=3,
                     num_feat_static_real=4,
+                    cardinalities=[],
+                    embedding_dimensions=[],
                     encoder_hidden_size=5,
                     decoder_latent_length=6,
                     global_hidden_sizes=[10, 10],
