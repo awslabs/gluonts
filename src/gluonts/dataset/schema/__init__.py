@@ -14,6 +14,8 @@
 from dataclasses import dataclass, field, MISSING
 from typing import Any, Dict, Optional
 
+import numpy as np
+
 from .translate import Translator
 from .types import Type, Array, Default, Period
 
@@ -50,6 +52,7 @@ class Schema:
 
         for name, default in self.default_fields.items():
             result[name] = default
+
         return result
 
     def add(self, name: str, ty: Type):
@@ -90,11 +93,14 @@ def common(
         ndim = 1
 
     schema = Schema()
-    schema.add("target", Array(dtype=dtype, ndim=ndim, time_dim=ndim - 1))
+    schema.add(
+        "target",
+        Array(dtype=dtype, ndim=ndim, time_axis=ndim - 1, past_only=True),
+    )
     schema.add("start", Period(freq=freq))
 
     feat_dynamic_real.apply(
-        schema, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_dim=1)
+        schema, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_axis=1)
     )
     feat_static_cat.apply(
         schema, "feat_static_cat", Array(dtype=dtype, ndim=1)
@@ -104,3 +110,40 @@ def common(
     )
 
     return schema
+
+
+@dataclass
+class TimeSeries:
+    data: dict
+    schema: Schema
+    length: int
+    future_length: int = 0
+
+    @classmethod
+    def load(cls, schema, data: dict, future_length: int = 0):
+        data = schema.apply(data)
+
+        past_lengths = [
+            ty.time_dim(data[name]) + future_length
+            for name, ty in schema.fields.items()
+            if isinstance(ty, Array) and ty.past_only
+        ]
+        future_lengths = [
+            ty.time_dim(data[name])
+            for name, ty in schema.fields.items()
+            if isinstance(ty, Array) and not ty.past_only
+        ]
+
+        all_lengths = np.array(past_lengths + future_lengths)
+
+        assert np.all(all_lengths[0] == all_lengths)
+
+        return cls(
+            data=data,
+            schema=schema,
+            length=all_lengths[0],
+            future_length=future_length,
+        )
+
+    def __len__(self):
+        return self.length

@@ -31,6 +31,15 @@ class GenericType(Type, typing.Generic[T]):
 
 
 @dataclass
+class AnyType(GenericType[T]):
+    def apply(self, data) -> T:
+        return data
+
+
+Any = AnyType()
+
+
+@dataclass
 class Default(GenericType[T]):
     value: T
     base: typing.Optional[Type] = None
@@ -50,14 +59,15 @@ class Array(GenericType[T]):
 
     This class ensures that the handled output data, will have `ndim` number of
     dimensions. If specified, `dtype` will be applied to the input to force a
-    consistent type, e.g. ``np.float32``. `time_dim` is just a marker,
+    consistent type, e.g. ``np.float32``. `time_axis` is just a marker,
     indicating which axis notes the time-axis, useful for splitting. If
-    `time_dim` is none, the array is time invariant.
+    `time_axis` is none, the array is time invariant.
     """
 
     ndim: int
     dtype: typing.Optional[typing.Type[T]] = None
-    time_dim: typing.Optional[int] = None
+    time_axis: typing.Optional[int] = None
+    past_only: bool = False
 
     def apply(self, data):
         arr = np.asarray(data, dtype=self.dtype)
@@ -66,6 +76,26 @@ class Array(GenericType[T]):
             raise ValueError("Dimensions do not match.")
 
         return arr
+
+    def split(self, data, idx, future_length: int = 0):
+        if self.time_axis is None:
+            return data
+
+        # if self.past_only:
+        #     data = np.pad(data, (0, future_length), constant_values=np.nan)
+
+        sl = [None] * self.ndim
+
+        sl[self.time_axis] = slice(None, idx)
+        left = data[tuple(sl)]
+
+        sl[self.time_axis] = slice(idx, None)
+        right = data[tuple(sl)]
+
+        return left, right
+
+    def time_dim(self, data):
+        return data.shape[self.time_axis]
 
 
 @dataclass
