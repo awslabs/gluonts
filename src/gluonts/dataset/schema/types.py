@@ -77,25 +77,37 @@ class Array(GenericType[T]):
 
         return arr
 
-    def split(self, data, idx, future_length: int = 0):
-        if self.time_axis is None:
-            return data
+    def bind(self, data):
+        return ArrayWithType(data, type=self)
 
-        # if self.past_only:
-        #     data = np.pad(data, (0, future_length), constant_values=np.nan)
 
-        sl = [None] * self.ndim
+class ArrayWithType(np.ndarray):
+    def __new__(cls, input_array, type=None):
+        obj = np.asarray(input_array).view(cls)
+        obj.type = type
+        return obj
 
-        sl[self.time_axis] = slice(None, idx)
-        left = data[tuple(sl)]
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self.type = getattr(obj, "type", None)
 
-        sl[self.time_axis] = slice(idx, None)
-        right = data[tuple(sl)]
+    @property
+    def time_length(self):
+        return self.shape[self.type.time_axis]
+
+    def split_time(self, idx, future_length: int = 0):
+        if self.type.time_axis is None:
+            return self
+
+        sl = [slice(None, None)] * self.ndim
+
+        sl[self.type.time_axis] = slice(None, idx)
+        left = self[tuple(sl)]
+
+        sl[self.type.time_axis] = slice(idx, None)
+        right = self[tuple(sl)]
 
         return left, right
-
-    def time_dim(self, data):
-        return data.shape[self.time_axis]
 
 
 @dataclass
