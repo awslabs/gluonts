@@ -35,17 +35,19 @@ from .stats import (
 )
 
 
-def mean_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
+def mean_absolute_label(
+    axis: Optional[int] = None, name: str = "mean_absolute_label"
+) -> DirectEvaluator:
     return DirectEvaluator(
-        map=absolute_label,
-        aggregate=Mean(axis=axis),
+        map=absolute_label, aggregate=Mean(axis=axis), name=name
     )
 
 
-def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
+def sum_absolute_label(
+    axis: Optional[int] = None, name: str = "sum_absolute_label"
+) -> DirectEvaluator:
     return DirectEvaluator(
-        map=absolute_label,
-        aggregate=Sum(axis=axis),
+        name=name, map=absolute_label, aggregate=Sum(axis=axis)
     )
 
 
@@ -53,8 +55,11 @@ def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
 class SumAbsoluteError:
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "sum_absolute_error"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
@@ -66,8 +71,11 @@ class MSE:
 
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "MSE"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
@@ -77,8 +85,11 @@ class MSE:
 class SumQuantileLoss:
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "sum_quantile_loss"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(quantile_loss, q=self.q),
             aggregate=Sum(axis=axis),
         )
@@ -88,8 +99,11 @@ class SumQuantileLoss:
 class Coverage:
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "coverage"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(coverage, q=self.q),
             aggregate=Mean(axis=axis),
         )
@@ -101,8 +115,11 @@ class MAPE:
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "MAPE"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
             ),
@@ -116,8 +133,11 @@ class SMAPE:
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "sMAPE"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(
                 symmetric_absolute_percentage_error,
                 forecast_type=self.forecast_type,
@@ -132,8 +152,11 @@ class MSIS:
 
     alpha: float = 0.05
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "MSIS"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
         )
@@ -145,8 +168,11 @@ class MASE:
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "MASE"
+    ) -> DirectEvaluator:
         return DirectEvaluator(
+            name=name,
             map=partial(
                 absolute_scaled_error, forecast_type=self.forecast_type
             ),
@@ -166,8 +192,11 @@ class ND:
     ) -> np.ndarray:
         return sum_absolute_error / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name="ND"
+    ) -> DerivedEvaluator:
         return DerivedEvaluator(
+            name=name,
             evaluators={
                 "sum_absolute_error": SumAbsoluteError(
                     forecast_type=self.forecast_type
@@ -188,8 +217,11 @@ class RMSE:
     def root_mean_squared_error(mean_squared_error: np.ndarray) -> np.ndarray:
         return np.sqrt(mean_squared_error)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "RMSE"
+    ) -> DerivedEvaluator:
         return DerivedEvaluator(
+            name=name,
             evaluators={
                 "mean_squared_error": MSE(forecast_type=self.forecast_type)(
                     axis=axis
@@ -211,8 +243,11 @@ class NRMSE:
     ) -> np.ndarray:
         return root_mean_squared_error / mean_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+    def __call__(
+        self, axis: Optional[int] = None, name: str = "NRMSE"
+    ) -> DerivedEvaluator:
         return DerivedEvaluator(
+            name=name,
             evaluators={
                 "root_mean_squared_error": RMSE(
                     forecast_type=self.forecast_type
@@ -233,8 +268,13 @@ class WeightedSumQuantileLoss:
     ) -> np.ndarray:
         return sum_quantile_loss / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+    def __call__(
+        self,
+        axis: Optional[int] = None,
+        name: str = "weighted_sum_quantile_loss",
+    ) -> DerivedEvaluator:
         return DerivedEvaluator(
+            name=name,
             evaluators={
                 "sum_quantile_loss": SumQuantileLoss(q=self.q)(axis=axis),
                 "sum_absolute_label": sum_absolute_label(axis=axis),

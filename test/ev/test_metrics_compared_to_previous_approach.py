@@ -69,9 +69,9 @@ def get_new_metrics(test_data, predictor):
         },
     }
 
-    metric_group = MetricGroup()
-    metric_group.add_metrics(metrics_using_sum, axis=1)
-    metric_group.add_metrics(metrics_using_mean, axis=1)
+    metric_group = MetricGroup(axis=1)
+    metric_group.add_named_metrics(metrics_using_sum)
+    metric_group.add_named_metrics(metrics_using_mean)
 
     item_metrics = metric_group.evaluate(test_data, predictor)
 
@@ -147,6 +147,7 @@ def test_against_former_evaluator():
     ev_result = get_new_metrics(test_data, predictor)
 
     for metric_name in ev_result.keys():
+        print(metric_name)
         np.testing.assert_almost_equal(
             ev_result[metric_name], evaluation_result[metric_name]
         )

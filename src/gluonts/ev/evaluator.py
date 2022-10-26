@@ -14,7 +14,9 @@
 from dataclasses import dataclass, field
 from typing import (
     Callable,
+    Collection,
     Dict,
+    List,
     Optional,
     Protocol,
     runtime_checkable,
@@ -34,7 +36,10 @@ class Metric(Protocol):
         raise NotImplementedError
 
 
+@dataclass
 class Evaluator:
+    name: str
+
     def evaluate(
         self,
         test_data: TestData,
@@ -97,28 +102,28 @@ class DerivedEvaluator(Evaluator):
 
 @dataclass
 class MetricGroup:
-    """Allows feeding in data once and calculating multiple metrics"""
+    """Allows calculating multiple metrics while feeding in data only once"""
 
-    metric_evaluators: Dict[str, Evaluator] = field(default_factory=dict)
+    axis: Optional[int] = None
+    evaluators: Dict[str, Evaluator] = field(default_factory=dict)
 
-    def add_metric(
-        self,
-        metric_name: str,
-        metric: Metric,
-        axis: Optional[int] = None,
-    ) -> None:
-        self.add_metrics({metric_name: metric}, axis)
+    def add_metric(self, metric: Metric, name: Optional[str] = None) -> None:
+        if name is not None:
+            self.add_named_metrics({name: metric})
+        else:
+            self.add_metrics([metric])
 
-    def add_metrics(
-        self, metrics: Dict[str, Metric], axis: Optional[int] = None
-    ) -> None:
-        for metric_name, metric in metrics.items():
-            assert (
-                metric_name not in self.metric_evaluators
-            ), f"Metric name '{metric_name}' is not unique"
+    def add_metrics(self, metrics: Collection[Metric]) -> None:
+        for metric in metrics:
+            evaluator = metric(axis=self.axis)
+            self._validate_name(evaluator.name)
+            self.evaluators[evaluator.name] = evaluator
 
-            metric_evaluator = metric(axis=axis)
-            self.metric_evaluators[metric_name] = metric_evaluator
+    def add_named_metrics(self, metrics: Dict[str, Metric]) -> None:
+        for name, metric in metrics.items():
+            self._validate_name(name)
+            evaluator = metric(axis=self.axis, name=name)
+            self.evaluators[name] = evaluator
 
     def evaluate(
         self,
@@ -134,11 +139,16 @@ class MetricGroup:
             **predictor_kwargs,
         )
         for data in data_batches:
-            for metric_evaluator in self.metric_evaluators.values():
-                metric_evaluator.update(data)
+            for evaluator in self.evaluators.values():
+                evaluator.update(data)
 
         result = {
-            metric_name: metric_evaluator.get()
-            for metric_name, metric_evaluator in self.metric_evaluators.items()
+            metric_name: evaluator.get()
+            for metric_name, evaluator in self.evaluators.items()
         }
         return result
+
+    def _validate_name(self, name: str) -> None:
+        assert (
+            name not in self.evaluators
+        ), f"Evaluator name '{name}' is not unique"
