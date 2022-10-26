@@ -260,10 +260,11 @@ def set_up_data(H):
                         )
                         noise = noise.astype(np.float32)
 
-                        item = {}
-                        item["start"] = 0.0  # dummy data
-                        item["target"] = noise
-                        item["item_id"] = str(t)
+                        item = {
+                            'start': 0.0,  # dummy data
+                            'target': noise,
+                            'item_id': str(t)
+                        }
                         self.data.append(item)
 
             def __iter__(self):
