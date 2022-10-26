@@ -128,37 +128,6 @@ def set_up_data(H):
         # X_test = X_list[int((train_frac+val_frac)*len(X_list)):int((train_frac+val_frac+test_frac)*len(X_list))]
 
     elif H.dataset == "sine":
-
-        # OLD -----
-        # class SineWaveGluonTSDataset(gluonts.dataset.Dataset):
-        #     def __init__(self):
-        #         self.n_items = 5000
-        #         x = np.linspace(0, 20 * np.pi, 1000)
-        #         sin_x = np.sin(x)
-        #         # add noise
-        #         sin_x = sin_x + np.random.normal(loc=0., scale=0.3, size=sin_x.shape)
-        #         # convert to float32, s.t. later compatible with torch model which expects 32 precision
-        #         sin_x = sin_x.astype(np.float32)
-        #
-        #         self.data = []
-        #         # all items are ientical
-        #         for t in range(self.n_items):
-        #             item = {}
-        #             item['start'] = 0.  # dummy data
-        #             item['target'] = sin_x
-        #             item['item_id'] = str(t)
-        #             self.data.append(item)
-        #
-        #     def __iter__(self):
-        #         for t in range(self.n_items):
-        #             # print(t)
-        #             yield self.data[t]
-        #         # raise StopIteration
-        #
-        #     def __len__(self):
-        #         return self.n_items
-        # OLD -----
-
         # NEW 1: different noise, different starting point -----
         class SineWaveGluonTSDataset(gluonts.dataset.Dataset):
             def __init__(self):
