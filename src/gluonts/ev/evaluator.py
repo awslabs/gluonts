@@ -23,7 +23,7 @@ from typing import (
 import numpy as np
 
 from gluonts.dataset.split import TestData
-from ..ev_data_preparation.data_construction import construct_data
+from gluonts.ev_data_preparation.data_construction import construct_data
 from gluonts.model.predictor import Predictor
 from .aggregations import Aggregation
 
@@ -36,9 +36,18 @@ class Metric(Protocol):
 
 class Evaluator:
     def evaluate(
-        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
+        self,
+        test_data: TestData,
+        predictor: Predictor,
+        ignore_invalid_values: bool = True,
+        **predictor_kwargs,
     ) -> np.ndarray:
-        data_batches = construct_data(test_data, predictor, **predictor_kwargs)
+        data_batches = construct_data(
+            test_data,
+            predictor,
+            ignore_invalid_values=ignore_invalid_values,
+            **predictor_kwargs,
+        )
 
         for data in data_batches:
             self.update(data)
@@ -93,7 +102,10 @@ class MetricGroup:
     metric_evaluators: Dict[str, Evaluator] = field(default_factory=dict)
 
     def add_metric(
-        self, metric_name: str, metric: Metric, axis: Optional[int] = None
+        self,
+        metric_name: str,
+        metric: Metric,
+        axis: Optional[int] = None,
     ) -> None:
         self.add_metrics({metric_name: metric}, axis)
 
@@ -109,10 +121,18 @@ class MetricGroup:
             self.metric_evaluators[metric_name] = metric_evaluator
 
     def evaluate(
-        self, test_data: TestData, predictor: Predictor, **predictor_kwargs
-    ) -> Dict[str, np.ndarray]:
-        data_batches = construct_data(test_data, predictor, **predictor_kwargs)
-
+        self,
+        test_data: TestData,
+        predictor: Predictor,
+        ignore_invalid_values: bool = True,
+        **predictor_kwargs,
+    ) -> np.ndarray:
+        data_batches = construct_data(
+            test_data,
+            predictor,
+            ignore_invalid_values=ignore_invalid_values,
+            **predictor_kwargs,
+        )
         for data in data_batches:
             for metric_evaluator in self.metric_evaluators.values():
                 metric_evaluator.update(data)

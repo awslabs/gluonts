@@ -49,8 +49,17 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
 
 
 def construct_data(
-    test_data: TestData, predictor: Predictor, **predictor_kwargs
+    test_data: TestData,
+    predictor: Predictor,
+    ignore_invalid_values: bool = True,
+    **predictor_kwargs
 ) -> Iterator[Dict[str, np.ndarray]]:
+    """construct data for evaluation
+
+    ignore_invalid_values
+        Ignore `NaN` and `inf` values in the timeseries when calculating
+        metrics, defaults to True
+    """
     forecasts = predictor.predict(dataset=test_data.input, **predictor_kwargs)
 
     for input, label, forecast in zip(
@@ -58,10 +67,17 @@ def construct_data(
     ):
         batching_used = isinstance(forecast, ForecastBatch)
 
+        input_target = input["target"]
+        label_target = label["target"]
+
+        if ignore_invalid_values:
+            input_target = np.ma.masked_invalid(input_target)
+            label_target = np.ma.masked_invalid(label_target)
+
         non_forecast_data = {
-            "label": label["target"],
+            "label": label_target,
             "seasonal_error": seasonal_error(
-                input["target"],
+                input_target,
                 seasonality=get_seasonality(freq=forecast.start_date.freqstr),
             ),
         }
@@ -70,7 +86,7 @@ def construct_data(
             forecast_data = forecast
         else:
             non_forecast_data = {
-                key: np.array([value])
+                key: np.expand_dims(value, axis=0)
                 for key, value in non_forecast_data.items()
             }
 
