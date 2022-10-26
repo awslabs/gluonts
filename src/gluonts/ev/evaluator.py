@@ -12,15 +12,8 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import (
-    Callable,
-    Collection,
-    Dict,
-    List,
-    Optional,
-    Protocol,
-    runtime_checkable,
-)
+from typing import Callable, Collection, Dict, Optional
+from typing_extensions import Protocol, runtime_checkable
 
 import numpy as np
 
