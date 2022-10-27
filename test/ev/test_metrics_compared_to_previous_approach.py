@@ -48,40 +48,44 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
     """simulate former Evaluator class by first aggregating per time series
     and then aggregating once more"""
     quantiles = [Quantile.parse(q) for q in (0.1, 0.5, 0.9)]
-    metrics_using_sum = {
-        "abs_error": SumAbsoluteError(),
-        "abs_target_sum": sum_absolute_label,
-        **{
-            quantile.loss_name: SumQuantileLoss(q=quantile.value)
-            for quantile in quantiles
-        },
-    }
-    metrics_using_mean = {
-        "MSE": MSE(),
-        "abs_target_mean": mean_absolute_label,
-        "MASE": MASE(),
-        "MAPE": MAPE(),
-        "sMAPE": SMAPE(),
-        "MSIS": MSIS(),
-        **{
-            quantile.coverage_name: Coverage(q=quantile.value)
-            for quantile in quantiles
-        },
-    }
 
-    metrics_to_evaluate = {**metrics_using_sum, **metrics_using_mean}
+    metrics_to_evaluate = [
+        sum_absolute_label,
+        SumAbsoluteError(),
+        *(SumQuantileLoss(q=quantile.value) for quantile in quantiles),
+        mean_absolute_label,
+        MSE(),
+        MASE(),
+        MAPE(),
+        SMAPE(),
+        MSIS(),
+        *(Coverage(q=quantile.value) for quantile in quantiles),
+    ]
+
     item_metrics = predictor.backtest(
         test_data=test_data, metrics=metrics_to_evaluate, axis=1
     )
 
     aggregated_metrics = {
+        "abs_target_mean": np.nanmean(item_metrics["mean_absolute_label"]),
+        "MSE": np.nanmean(item_metrics["MSE"]),
+        "MASE": np.nanmean(item_metrics["MASE"]),
+        "MAPE": np.nanmean(item_metrics["MAPE"]),
+        "sMAPE": np.nanmean(item_metrics["sMAPE"]),
+        "MSIS": np.nanmean(item_metrics["MSIS"]),
         **{
-            metric_name: np.nansum(item_metrics[metric_name])
-            for metric_name in metrics_using_sum.keys()
+            quantile.coverage_name: np.nanmean(
+                item_metrics[f"coverage[{quantile.value}]"]
+            )
+            for quantile in quantiles
         },
+        "abs_error": np.nansum(item_metrics["sum_absolute_error"]),
+        "abs_target_sum": np.nansum(item_metrics["sum_absolute_label"]),
         **{
-            metric_name: np.nanmean(item_metrics[metric_name])
-            for metric_name in metrics_using_mean.keys()
+            quantile.loss_name: np.nansum(
+                item_metrics[f"sum_quantile_loss[{quantile.value}]"]
+            )
+            for quantile in quantiles
         },
     }
 

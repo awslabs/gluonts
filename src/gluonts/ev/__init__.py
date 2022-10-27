@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from .metrics import (
+    Metric,
     mean_absolute_label,
     sum_absolute_label,
     SumAbsoluteError,
@@ -28,7 +29,7 @@ from .metrics import (
     WeightedSumQuantileLoss,
 )
 from .aggregations import Aggregation, Sum, Mean
-from .evaluator import Metric, Evaluator, DirectEvaluator, DerivedEvaluator
+from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
 
 __all__ = [
     "mean_absolute_label",

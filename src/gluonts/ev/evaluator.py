@@ -12,18 +12,10 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional
-from typing_extensions import Protocol, runtime_checkable
-
+from typing import Callable, Dict
 import numpy as np
 
 from .aggregations import Aggregation
-
-
-@runtime_checkable
-class Metric(Protocol):
-    def __call__(self, axis: Optional[int] = None) -> "Evaluator":
-        raise NotImplementedError
 
 
 @dataclass
@@ -62,10 +54,13 @@ class DerivedEvaluator(Evaluator):
     post_process: Callable
 
     def update(self, data: Dict[str, np.ndarray]) -> None:
-        for metric in self.evaluators.values():
-            metric.update(data)
+        for evaluator in self.evaluators.values():
+            evaluator.update(data)
 
     def get(self) -> np.ndarray:
         return self.post_process(
-            **{name: metric.get() for name, metric in self.evaluators.items()}
+            **{
+                name: evaluator.get()
+                for name, evaluator in self.evaluators.items()
+            }
         )

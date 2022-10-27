@@ -14,13 +14,11 @@
 from dataclasses import dataclass
 from functools import partial
 from typing import Optional
+from typing_extensions import Protocol, runtime_checkable
 
 import numpy as np
 
-from .evaluator import (
-    DerivedEvaluator,
-    DirectEvaluator,
-)
+from .evaluator import DirectEvaluator, DerivedEvaluator, Evaluator
 from .aggregations import Mean, Sum
 from .stats import (
     absolute_error,
@@ -35,19 +33,23 @@ from .stats import (
 )
 
 
-def mean_absolute_label(
-    axis: Optional[int] = None, name: str = "mean_absolute_label"
-) -> DirectEvaluator:
+@runtime_checkable
+class Metric(Protocol):
+    def __call__(self, axis: Optional[int] = None) -> Evaluator:
+        raise NotImplementedError
+
+
+def mean_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
     return DirectEvaluator(
-        map=absolute_label, aggregate=Mean(axis=axis), name=name
+        name="mean_absolute_label",
+        map=absolute_label,
+        aggregate=Mean(axis=axis),
     )
 
 
-def sum_absolute_label(
-    axis: Optional[int] = None, name: str = "sum_absolute_label"
-) -> DirectEvaluator:
+def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
     return DirectEvaluator(
-        name=name, map=absolute_label, aggregate=Sum(axis=axis)
+        name="sum_absolute_label", map=absolute_label, aggregate=Sum(axis=axis)
     )
 
 
@@ -55,11 +57,9 @@ def sum_absolute_label(
 class SumAbsoluteError:
     forecast_type: str = "0.5"
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "sum_absolute_error"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="sum_absolute_error",
             map=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
@@ -71,11 +71,9 @@ class MSE:
 
     forecast_type: str = "mean"
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "MSE"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="MSE",
             map=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
@@ -85,11 +83,9 @@ class MSE:
 class SumQuantileLoss:
     q: float
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "sum_quantile_loss"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name=f"sum_quantile_loss[{self.q}]",
             map=partial(quantile_loss, q=self.q),
             aggregate=Sum(axis=axis),
         )
@@ -99,11 +95,9 @@ class SumQuantileLoss:
 class Coverage:
     q: float
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "coverage"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name=f"coverage[{self.q}]",
             map=partial(coverage, q=self.q),
             aggregate=Mean(axis=axis),
         )
@@ -115,11 +109,9 @@ class MAPE:
 
     forecast_type: str = "0.5"
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "MAPE"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="MAPE",
             map=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
             ),
@@ -133,11 +125,9 @@ class SMAPE:
 
     forecast_type: str = "0.5"
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "sMAPE"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="sMAPE",
             map=partial(
                 symmetric_absolute_percentage_error,
                 forecast_type=self.forecast_type,
@@ -152,11 +142,9 @@ class MSIS:
 
     alpha: float = 0.05
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "MSIS"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="MSIS",
             map=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
         )
@@ -168,11 +156,9 @@ class MASE:
 
     forecast_type: str = "0.5"
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "MASE"
-    ) -> DirectEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
-            name=name,
+            name="MASE",
             map=partial(
                 absolute_scaled_error, forecast_type=self.forecast_type
             ),
@@ -192,11 +178,9 @@ class ND:
     ) -> np.ndarray:
         return sum_absolute_error / sum_absolute_label
 
-    def __call__(
-        self, axis: Optional[int] = None, name="ND"
-    ) -> DerivedEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=name,
+            name="ND",
             evaluators={
                 "sum_absolute_error": SumAbsoluteError(
                     forecast_type=self.forecast_type
@@ -217,11 +201,9 @@ class RMSE:
     def root_mean_squared_error(mean_squared_error: np.ndarray) -> np.ndarray:
         return np.sqrt(mean_squared_error)
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "RMSE"
-    ) -> DerivedEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=name,
+            name="RMSE",
             evaluators={
                 "mean_squared_error": MSE(forecast_type=self.forecast_type)(
                     axis=axis
@@ -243,11 +225,9 @@ class NRMSE:
     ) -> np.ndarray:
         return root_mean_squared_error / mean_absolute_label
 
-    def __call__(
-        self, axis: Optional[int] = None, name: str = "NRMSE"
-    ) -> DerivedEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=name,
+            name="NRMSE",
             evaluators={
                 "root_mean_squared_error": RMSE(
                     forecast_type=self.forecast_type
@@ -268,13 +248,9 @@ class WeightedSumQuantileLoss:
     ) -> np.ndarray:
         return sum_quantile_loss / sum_absolute_label
 
-    def __call__(
-        self,
-        axis: Optional[int] = None,
-        name: str = "weighted_sum_quantile_loss",
-    ) -> DerivedEvaluator:
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=name,
+            name=f"weighted_sum_quantile_loss[{self.q}]",
             evaluators={
                 "sum_quantile_loss": SumQuantileLoss(q=self.q)(axis=axis),
                 "sum_absolute_label": sum_absolute_label(axis=axis),

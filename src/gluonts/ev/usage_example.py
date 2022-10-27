@@ -16,11 +16,7 @@ from toolz import take
 from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import (
-    MSIS,
-    MSE,
-    SumQuantileLoss,
-)
+from gluonts.ev.metrics import MSIS, MSE, SumQuantileLoss
 
 dataset = get_dataset("electricity")
 

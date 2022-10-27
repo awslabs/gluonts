@@ -41,7 +41,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
 from gluonts.ev_data_preparation.data_construction import construct_data
-from gluonts.ev.evaluator import Metric
+from gluonts.ev.metrics import Metric
 from gluonts.dataset.split import TestData
 from gluonts.model.forecast import Forecast
 
@@ -154,20 +154,15 @@ class Predictor:
         ignore_invalid_values: bool = True,
         **kwargs,
     ) -> np.ndarray:
-        evaluators = dict()
+        evaluators = {}
+        for metric in metrics:
+            evaluator = metric(axis=axis)
 
-        def add_evaluator(evaluator):
             assert (
-                    evaluator.name not in evaluators
-                ), f"Evaluator name '{evaluator.name}' is not unique"
-            evaluators[evaluator.name] = evaluator
+                evaluator.name not in evaluators
+            ), f"Evaluator name '{evaluator.name}' is not unique"
 
-        if isinstance(metrics, dict):
-            for name, metric in metrics.items():
-                add_evaluator(metric(name=name, axis=axis))
-        else:
-            for metric in metrics:
-                add_evaluator(metric(axis=axis))
+            evaluators[evaluator.name] = evaluator
 
         forecasts = self.predict(dataset=test_data.input, **kwargs)
         data_batches = construct_data(
