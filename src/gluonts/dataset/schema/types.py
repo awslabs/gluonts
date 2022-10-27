@@ -75,7 +75,7 @@ class Array(GenericType[T]):
         if arr.ndim != self.ndim:
             raise ValueError("Dimensions do not match.")
 
-        return arr
+        return self.bind(arr)
 
     def bind(self, data):
         return ArrayWithType(data, type=self)

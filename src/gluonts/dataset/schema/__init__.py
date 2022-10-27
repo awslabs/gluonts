@@ -34,31 +34,6 @@ __all__ = [
 
 
 @dataclass
-class SchemaBuilder:
-    fields: Dict[str, Type] = field(default_factory=dict)
-    default_fields: Dict[str, Type] = field(default_factory=dict)
-
-    def add(self, name: str, ty: Type):
-        if isinstance(ty, Default):
-            self.default_fields[name] = ty.value
-        else:
-            self.fields[name] = ty
-
-        return self
-
-    def add_if(self, condition: bool, name: str, ty: Type, default=None):
-        if not condition:
-            if default is not None:
-                self.default_fields[name] = ty.apply(default)
-            return self
-
-        return self.add(name, ty)
-
-    def build(self):
-        return Schema(self.fields, self.default_fields)
-
-
-@dataclass
 class Schema:
     fields: Dict[str, Type] = field(default_factory=dict)
     default_fields: Dict[str, Any] = field(default_factory=dict)
@@ -71,6 +46,9 @@ class Schema:
         for name, ty in self.fields.items():
             self.classify_field(name, ty)
 
+    def copy(self):
+        return Schema(self.fields.copy(), self.default_fields.copy())
+
     def classify_field(self, name, ty):
         if isinstance(ty, Array) and ty.time_axis is not None:
             if ty.past_only:
@@ -80,13 +58,27 @@ class Schema:
         else:
             self.static_values.append(name)
 
-    def add(self, name: str, ty: Type):
-        self.fields[name] = ty
-        self.classify_field(name, ty)
+    def set(self, name: str, ty: Type):
+        if isinstance(ty, Default):
+            self.default_fields[name] = ty.value
+        else:
+            self.fields[name] = ty
+            self.classify_field(name, ty)
 
         return self
 
-    def apply(self, entry, future_length: int = 0) -> dict:
+    def set_if(self, condition: bool, name: str, ty: Type, default=None):
+        if not condition:
+            if default is not None:
+                self.default_fields[name] = ty.apply(default)
+            return self
+
+        return self.set(name, ty)
+
+    def extend(self, name, ty):
+        return self.copy().set(name, ty)
+
+    def validate(self, entry: dict, future_length: int = 0) -> "TimeSeries":
         result = {
             field_name: ty.apply(entry[field_name])
             for field_name, ty in self.fields.items()
@@ -99,9 +91,6 @@ class Schema:
         for name in chain(self.past_only_arrays, self.past_future_arrays):
             ty = self.fields[name]
             array = result[name]
-            array = ty.bind(array)
-
-            result[name] = array
 
             if array.type.past_only:
                 lengths.append(array.time_length + future_length)
@@ -113,25 +102,6 @@ class Schema:
 
         return TimeSeries(result, self, length, future_length)
 
-    def get_time_length(self, data, future_length: int):
-        past_lengths = [
-            ty.time_dim(data[name]) + future_length
-            for name, ty in schema.fields.items()
-            if isinstance(ty, Array) and ty.past_only
-        ]
-        future_lengths = [
-            ty.time_dim(data[name])
-            for name, ty in schema.fields.items()
-            if isinstance(ty, Array) and not ty.past_only
-        ]
-
-        all_lengths = np.array(past_lengths + future_lengths)
-
-        assert np.all(all_lengths[0] == all_lengths)
-
-    def clone(self):
-        return Schema(self.fields.copy(), self.default_fields.copy())
-
 
 @dataclass
 class RequiredIf:
@@ -139,7 +109,7 @@ class RequiredIf:
     default: Optional[Any] = None
 
     def apply(self, schema, name, ty):
-        return schema.add_if(self.condition, name, ty, default=self.default)
+        return schema.set_if(self.condition, name, ty, default=self.default)
 
 
 def common(
@@ -156,12 +126,12 @@ def common(
     else:
         ndim = 1
 
-    builder = SchemaBuilder()
-    builder.add(
+    builder = Schema()
+    builder.set(
         "target",
         Array(dtype=dtype, ndim=ndim, time_axis=ndim - 1, past_only=True),
     )
-    builder.add("start", Period(freq=freq))
+    builder.set("start", Period(freq=freq))
 
     feat_dynamic_real.apply(
         builder, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_axis=1)
@@ -173,7 +143,7 @@ def common(
         builder, "feat_static_real", Array(dtype=dtype, ndim=1)
     )
 
-    return builder.build()
+    return schema
 
 
 @dataclass
@@ -184,11 +154,9 @@ class TimeSeries:
     future_length: int = 0
 
     def extend(self, name, ty, value):
-        schema = schema.clone()
-        schema.add(name, ty)
-        self.schema[name] = schema
+        self.schema = self.schema.extend(name, ty)
 
-        value = value.apply(ty)
+        value = ty.apply(value)
         self.data[name] = value
 
     def __len__(self):
@@ -198,7 +166,7 @@ class TimeSeries:
         return self.data[key]
 
     @property
-    def past(self):
+    def past(self) -> dict:
         result = {}
 
         for field_name in self.schema.static_values:
