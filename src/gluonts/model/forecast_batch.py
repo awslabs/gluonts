@@ -16,10 +16,9 @@ from typing import Iterator, Optional, Union
 
 import numpy as np
 
-from gluonts.model.forecast import Forecast, Quantile, SampleForecast
+from .forecast import Forecast, Quantile, SampleForecast
 
-# TODO: move these classes to model, next to Forecast definitions
-# they are just here for now to not mess to keep changes compact
+# TODO: replace this with code from PR #2286 when it's ready
 
 
 class ForecastBatch:
@@ -33,7 +32,6 @@ class ForecastBatch:
     # ...
 
 
-# code adapted from PR #2286
 @dataclass
 class SampleForecastBatch(ForecastBatch):
     samples: np.ndarray

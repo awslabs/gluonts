@@ -30,6 +30,7 @@ from typing import (
     Optional,
     Type,
     Union,
+    ChainMap,
 )
 
 import numpy as np
@@ -40,10 +41,13 @@ from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
-from gluonts.ev_data_preparation.data_construction import construct_data
-from gluonts.ev.metrics import Metric
 from gluonts.dataset.split import TestData
-from gluonts.model.forecast import Forecast
+from gluonts.model.forecast import Forecast, SampleForecast
+from gluonts.model.forecast_batch import ForecastBatch, SampleForecastBatch
+from gluonts.time_feature.seasonality import get_seasonality
+from gluonts.ev.metrics import Metric
+from gluonts.ev.ts_stats import seasonal_error
+
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
@@ -146,10 +150,50 @@ class Predictor:
         params = {**auto_params, **params}
         return cls.from_hyperparameters(**params)
 
+    def get_backtest_input(
+        self,
+        test_data: TestData,
+        forecasts: Iterator[Union[Forecast, ForecastBatch]],
+    ) -> Iterator[Dict[str, np.ndarray]]:
+        for input, label, forecast in zip(
+            test_data.input, test_data.label, forecasts
+        ):
+            batching_used = isinstance(forecast, ForecastBatch)
+
+            input_target = input["target"]
+            label_target = label["target"]
+
+            non_forecast_data = {
+                "label": label_target,
+                "seasonal_error": seasonal_error(
+                    input_target,
+                    seasonality=get_seasonality(
+                        freq=forecast.start_date.freqstr
+                    ),
+                ),
+            }
+
+            if batching_used:
+                forecast_data = forecast
+            else:
+                non_forecast_data = {
+                    key: np.expand_dims(value, axis=0)
+                    for key, value in non_forecast_data.items()
+                }
+
+                if isinstance(forecast, SampleForecast):
+                    forecast_data = SampleForecastBatch.from_forecast(forecast)
+                else:
+                    pass  # TODO
+
+            joint_data = ChainMap(non_forecast_data, forecast_data)
+
+            yield joint_data
+
     def backtest(
         self,
         test_data: TestData,
-        metrics: Union[Collection[Metric], Dict[str, Metric]],
+        metrics: Collection[Metric],
         axis: Optional[int] = None,
         **kwargs,
     ) -> np.ndarray:
@@ -164,7 +208,9 @@ class Predictor:
             evaluators[evaluator.name] = evaluator
 
         forecasts = self.predict(dataset=test_data.input, **kwargs)
-        data_batches = construct_data(test_data=test_data, forecasts=forecasts)
+        data_batches = self.get_backtest_input(
+            test_data=test_data, forecasts=forecasts
+        )
 
         for data in data_batches:
             for evaluator in evaluators.values():
