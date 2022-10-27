@@ -26,6 +26,10 @@ R_FILE_PREFIX = "hierarchical"
 
 HIERARCHICAL_POINT_FORECAST_METHODS = [
     "naive_bottom_up",
+    "top_down_w_average_historical_proportions",
+    "top_down_w_proportions_of_the_historical_averages",
+    "top_down_w_forecasts_proportions",
+    "middle_out_w_forecasts_proportions",
     # TODO: "mint",
     # TODO: "erm",
     # TODO: "ermParallel",
@@ -99,6 +103,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         period: int = None,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
+        level: Optional[int] = None,
     ) -> None:
 
         super().__init__(
@@ -129,6 +134,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
+            "level": level
         }
         if params is not None:
             self.params.update(params)
