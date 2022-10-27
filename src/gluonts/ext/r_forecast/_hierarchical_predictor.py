@@ -139,7 +139,6 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
-            "level": level
         }
 
         if level:
