@@ -29,6 +29,7 @@ from typing import (
     Iterator,
     Optional,
     Type,
+    Union,
 )
 
 import numpy as np
@@ -148,21 +149,25 @@ class Predictor:
     def backtest(
         self,
         test_data: TestData,
-        metrics: Collection[Metric],
+        metrics: Union[Collection[Metric], Dict[str, Metric]],
         axis: Optional[int] = None,
         ignore_invalid_values: bool = True,
         **kwargs,
     ) -> np.ndarray:
         evaluators = dict()
 
-        for metric in metrics:
-            evaluator = metric(axis=axis)
-
+        def add_evaluator(evaluator):
             assert (
-                evaluator.name not in evaluators
-            ), f"Evaluator name '{evaluator.name}' is not unique"
-
+                    evaluator.name not in evaluators
+                ), f"Evaluator name '{evaluator.name}' is not unique"
             evaluators[evaluator.name] = evaluator
+
+        if isinstance(metrics, dict):
+            for name, metric in metrics.items():
+                add_evaluator(metric(name=name, axis=axis))
+        else:
+            for metric in metrics:
+                add_evaluator(metric(axis=axis))
 
         forecasts = self.predict(dataset=test_data.input, **kwargs)
         data_batches = construct_data(
