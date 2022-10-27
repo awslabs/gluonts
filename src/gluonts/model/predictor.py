@@ -151,7 +151,6 @@ class Predictor:
         test_data: TestData,
         metrics: Union[Collection[Metric], Dict[str, Metric]],
         axis: Optional[int] = None,
-        ignore_invalid_values: bool = True,
         **kwargs,
     ) -> np.ndarray:
         evaluators = {}
@@ -165,11 +164,7 @@ class Predictor:
             evaluators[evaluator.name] = evaluator
 
         forecasts = self.predict(dataset=test_data.input, **kwargs)
-        data_batches = construct_data(
-            test_data=test_data,
-            forecasts=forecasts,
-            ignore_invalid_values=ignore_invalid_values,
-        )
+        data_batches = construct_data(test_data=test_data, forecasts=forecasts)
 
         for data in data_batches:
             for evaluator in evaluators.values():

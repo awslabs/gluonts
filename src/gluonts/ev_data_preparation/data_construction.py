@@ -48,9 +48,7 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
 
 
 def construct_data(
-    test_data: TestData,
-    forecasts: Iterator[Union[Forecast, ForecastBatch]],
-    ignore_invalid_values: bool = True,
+    test_data: TestData, forecasts: Iterator[Union[Forecast, ForecastBatch]]
 ) -> Iterator[Dict[str, np.ndarray]]:
     """construct data for evaluation
 
@@ -66,9 +64,9 @@ def construct_data(
         input_target = input["target"]
         label_target = label["target"]
 
-        if ignore_invalid_values:
-            input_target = np.ma.masked_invalid(input_target)
-            label_target = np.ma.masked_invalid(label_target)
+        # TODO: integrate in test
+        # input_target = np.ma.masked_invalid(input_target)
+        # label_target = np.ma.masked_invalid(label_target)
 
         non_forecast_data = {
             "label": label_target,

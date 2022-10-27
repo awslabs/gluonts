@@ -15,6 +15,9 @@ import numpy as np
 import pytest
 from gluonts.ev.aggregations import Mean, Sum
 
+# Some tests fail because keeping track of the  n to divide by in the `Mean`
+# aggregation is not as simple when we aggregate over an axis that is not None
+# TODO: Fix 0 / nan confusion by changing tests and/or implementation
 
 VALUE_STREAM = [
     [

@@ -32,8 +32,7 @@ class Aggregation:
 class Sum(Aggregation):
     """Map-reduce way of calculating the sum of a stream of values.
 
-    Invalid values (Inf and NaN) are NOT taken care of explicitly.
-    To ignore these values, provide masked values as input to `step`.
+    Invalid values (Inf and NaN) are ignored.
 
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
@@ -47,7 +46,8 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        summed_values = np.sum(values, axis=self.axis)
+        values = np.ma.masked_invalid(values)
+        summed_values = np.nansum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
             if self.partial_result is None:
@@ -69,8 +69,7 @@ class Sum(Aggregation):
 class Mean(Aggregation):
     """Map-reduce way of calculating the mean of a stream of values.
 
-    Invalid values (Inf and NaN) are NOT taken care of explicitly.
-    To ignore these values, provide masked values as input to `step`.
+    Invalid values (Inf and NaN) are ignored.
 
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
@@ -87,14 +86,16 @@ class Mean(Aggregation):
     n: int = 0
 
     def step(self, values: np.ndarray) -> None:
+        values = np.ma.masked_invalid(values)
+
         if self.axis is None or self.axis == 0:
-            summed_values = np.sum(values, axis=self.axis)
+            summed_values = np.nansum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
 
             self.partial_result += summed_values
 
-            invalid_value_count = np.ma.count_masked(values)
+            invalid_value_count = np.count_nonzero(np.isnan(values))
             if self.axis is None:
                 self.n += values.size - invalid_value_count
             else:
@@ -103,13 +104,7 @@ class Mean(Aggregation):
             if self.partial_result is None:
                 self.partial_result = []
 
-            mean_values = np.mean(values, axis=self.axis)
-
-            # TODO: find better solution for when all values are masked
-            invalid_value_count = np.ma.count_masked(mean_values)
-            if invalid_value_count == mean_values.size:
-                mean_values = np.full(mean_values.shape, np.nan)
-
+            mean_values = np.nanmean(values, axis=self.axis)
             self.partial_result.append(mean_values)
 
     def get(self) -> np.ndarray:

@@ -47,7 +47,7 @@ def quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
 
 def coverage(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
     forecast_type = str(q)
-    return data["label"] < data[forecast_type]
+    return (data["label"] < data[forecast_type]).astype(float)
 
 
 def absolute_percentage_error(
