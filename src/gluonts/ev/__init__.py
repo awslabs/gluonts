@@ -28,13 +28,7 @@ from .metrics import (
     WeightedSumQuantileLoss,
 )
 from .aggregations import Aggregation, Sum, Mean
-from .evaluator import (
-    Metric,
-    Evaluator,
-    DirectEvaluator,
-    DerivedEvaluator,
-    MetricGroup,
-)
+from .evaluator import Metric, Evaluator, DirectEvaluator, DerivedEvaluator
 
 __all__ = [
     "mean_absolute_label",
@@ -58,5 +52,4 @@ __all__ = [
     "Evaluator",
     "DirectEvaluator",
     "DerivedEvaluator",
-    "MetricGroup",
 ]

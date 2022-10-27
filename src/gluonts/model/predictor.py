@@ -21,7 +21,15 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Collection,
+    Dict,
+    Iterator,
+    Optional,
+    Type,
+)
 
 import numpy as np
 
@@ -31,6 +39,9 @@ from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
+from gluonts.ev_data_preparation.data_construction import construct_data
+from gluonts.ev.evaluator import Metric
+from gluonts.dataset.split import TestData
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
@@ -133,6 +144,42 @@ class Predictor:
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
         return cls.from_hyperparameters(**params)
+
+    def backtest(
+        self,
+        test_data: TestData,
+        metrics: Collection[Metric],
+        axis: Optional[int] = None,
+        ignore_invalid_values: bool = True,
+        **kwargs,
+    ) -> np.ndarray:
+        evaluators = dict()
+
+        for metric in metrics:
+            evaluator = metric(axis=axis)
+
+            assert (
+                evaluator.name not in evaluators
+            ), f"Evaluator name '{evaluator.name}' is not unique"
+
+            evaluators[evaluator.name] = evaluator
+
+        forecasts = self.predict(dataset=test_data.input, **kwargs)
+        data_batches = construct_data(
+            test_data=test_data,
+            forecasts=forecasts,
+            ignore_invalid_values=ignore_invalid_values,
+        )
+
+        for data in data_batches:
+            for evaluator in evaluators.values():
+                evaluator.update(data)
+
+        result = {
+            metric_name: evaluator.get()
+            for metric_name, evaluator in evaluators.items()
+        }
+        return result
 
 
 class RepresentablePredictor(Predictor):

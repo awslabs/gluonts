@@ -17,12 +17,10 @@ from gluonts.dataset.split import TestTemplate, OffsetSplitter
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
 from gluonts.ev.metrics import (
-    Coverage,
     MSIS,
     MSE,
     SumQuantileLoss,
 )
-from gluonts.ev.evaluator import MetricGroup
 
 dataset = get_dataset("electricity")
 
@@ -41,24 +39,9 @@ test_data = test_template.generate_instances(
 
 predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 
-# OPTION 1
-"""
-mse_evaluator = MSE()(axis=1)
-mse = mse_evaluator.evaluate(test_data, predictor, num_samples=100)
-print(mse)
-"""
-
-# OPTION 2
-metrics_per_entry = {
-    "mse_per_entry": MSE(),
-    "quantile_loss_per_entry": SumQuantileLoss(q=0.9),
-    "msis_per_entry": MSIS(),
-}
-
-metric_group = MetricGroup()
-metric_group.add_metrics(metrics_per_entry, axis=1)
-metric_group.add_metric("mean_coverage", Coverage(q=0.9))
-
-result = metric_group.evaluate(test_data, predictor, num_samples=100)
-for name, value in result.items():
+metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
+evaluation_result = predictor.backtest(
+    test_data, metrics_per_entry, axis=1, num_samples=100
+)
+for name, value in evaluation_result.items():
     print(f"\n{name}: {value}")

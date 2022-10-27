@@ -11,13 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import ChainMap, Dict, Iterator
+from typing import ChainMap, Dict, Iterator, Union
 
 import numpy as np
-from gluonts.model.forecast import SampleForecast
+from gluonts.model.forecast import Forecast, SampleForecast
 
 from gluonts.time_feature.seasonality import get_seasonality
-from gluonts.model.predictor import Predictor
 from gluonts.dataset.split import TestData
 from .forecast_batch import ForecastBatch, SampleForecastBatch
 
@@ -50,9 +49,8 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
 
 def construct_data(
     test_data: TestData,
-    predictor: Predictor,
+    forecasts: Iterator[Union[Forecast, ForecastBatch]],
     ignore_invalid_values: bool = True,
-    **predictor_kwargs
 ) -> Iterator[Dict[str, np.ndarray]]:
     """construct data for evaluation
 
@@ -60,8 +58,6 @@ def construct_data(
         Ignore `NaN` and `inf` values in the timeseries when calculating
         metrics, defaults to True
     """
-    forecasts = predictor.predict(dataset=test_data.input, **predictor_kwargs)
-
     for input, label, forecast in zip(
         test_data.input, test_data.label, forecasts
     ):
