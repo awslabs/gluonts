@@ -134,8 +134,11 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
-            "level": level
         }
+
+        if level:
+            self.params["level"] = level
+
         if params is not None:
             self.params.update(params)
         self.is_hts = is_hts
