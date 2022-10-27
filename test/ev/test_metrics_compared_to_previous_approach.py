@@ -15,14 +15,14 @@ import numpy as np
 
 from toolz import take
 
-from gluonts.dataset.split import TestTemplate, OffsetSplitter
+from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
 from gluonts.model.forecast import Quantile
+from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 
-from gluonts.ev.evaluator import MetricGroup
 from gluonts.ev.metrics import (
     MAPE,
     MASE,
@@ -44,7 +44,7 @@ def get_old_metrics(dataset, predictor):
     return agg_metrics
 
 
-def get_new_metrics(test_data, predictor):
+def get_new_metrics(test_data: TestData, predictor: Predictor):
     """simulate former Evaluator class by first aggregating per time series
     and then aggregating once more"""
     quantiles = [Quantile.parse(q) for q in (0.1, 0.5, 0.9)]
@@ -69,11 +69,10 @@ def get_new_metrics(test_data, predictor):
         },
     }
 
-    metric_group = MetricGroup(axis=1)
-    metric_group.add_named_metrics(metrics_using_sum)
-    metric_group.add_named_metrics(metrics_using_mean)
-
-    item_metrics = metric_group.evaluate(test_data, predictor)
+    metrics_to_evaluate = {**metrics_using_sum, **metrics_using_mean}
+    item_metrics = predictor.backtest(
+        test_data=test_data, metrics=metrics_to_evaluate, axis=1
+    )
 
     aggregated_metrics = {
         **{
