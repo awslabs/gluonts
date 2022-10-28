@@ -15,9 +15,7 @@ import pytest
 
 import torch
 
-from gluonts.torch.distributions.discrete_distribution import (
-    DiscreteDistribution,
-)
+from gluonts.torch.distributions import DiscreteDistribution
 
 
 @pytest.mark.parametrize(

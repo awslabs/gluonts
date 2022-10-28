@@ -80,6 +80,13 @@ class CRPS(DistributionLoss):
         return input.crps(target)
 
 
+class QuantileLoss(DistributionLoss):
+    def __call__(
+        self, input: torch.distributions.Distribution, target: torch.Tensor
+    ) -> torch.Tensor:
+        return input.quantile_loss(target)
+
+
 class EnergyScore(DistributionLoss):
     def __call__(self, input, target: torch.Tensor) -> torch.Tensor:
         return input.energy_score(target)
