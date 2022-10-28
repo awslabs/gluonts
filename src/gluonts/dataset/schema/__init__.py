@@ -11,6 +11,56 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = ["Translator"]
+from dataclasses import dataclass, field, MISSING
+from typing import Any, Dict
 
 from .translate import Translator
+from .types import Type, Array, Default, Period
+
+__all__ = [
+    # this module
+    "Schema",
+    # types
+    "Type",
+    "Array",
+    "Default",
+    "Period",
+    # translate
+    "Translator",
+]
+
+
+@dataclass
+class Schema:
+    fields: Dict[str, Type] = field(default_factory=dict)
+    default_fields: Dict[str, Any] = field(init=False)
+
+    def __post_init__(self):
+        self.default_fields = {}
+
+        for name, ty in list(self.fields.items()):
+            if isinstance(ty, Default):
+                self.default_fields[name] = self.fields.pop(name).value
+
+    def apply(self, entry) -> dict:
+        result = {
+            field_name: ty.apply(entry[field_name])
+            for field_name, ty in self.fields.items()
+        }
+
+        for name, default in self.default_fields.items():
+            result[name] = default
+        return result
+
+    def add(self, name: str, ty: Type):
+        self.fields[name] = ty
+
+        return self
+
+    def add_if(self, condition: bool, name: str, ty: Type, default=MISSING):
+        if not condition:
+            if default is not MISSING:
+                self.default_fields[name] = ty.apply(default)
+            return self
+
+        return self.add(name, ty)

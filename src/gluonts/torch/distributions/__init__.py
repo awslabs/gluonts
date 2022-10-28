@@ -13,6 +13,7 @@
 
 from .affine_transformed import AffineTransformed
 from .binned_uniforms import BinnedUniforms, BinnedUniformsOutput
+from .discrete_distribution import DiscreteDistribution
 from .distribution_output import (
     BetaOutput,
     DistributionOutput,
@@ -23,6 +24,10 @@ from .distribution_output import (
     StudentTOutput,
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
+from .implicit_quantile_network import (
+    ImplicitQuantileNetwork,
+    ImplicitQuantileNetworkOutput,
+)
 from .isqf import ISQF, ISQFOutput
 from .mqf2 import MQF2Distribution, MQF2DistributionOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
@@ -36,10 +41,13 @@ __all__ = [
     "BetaOutput",
     "BinnedUniforms",
     "BinnedUniformsOutput",
+    "DiscreteDistribution",
     "DistributionOutput",
     "GammaOutput",
     "GeneralizedPareto",
     "GeneralizedParetoOutput",
+    "ImplicitQuantileNetwork",
+    "ImplicitQuantileNetworkOutput",
     "ISQF",
     "ISQFOutput",
     "MQF2Distribution",
