@@ -85,7 +85,7 @@ def maximum_likelihood_estimate_sgd(
     dataset = TensorDataset(dummy_data, samples)
     train_data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
     optimizer = SGD(arg_proj.parameters(), lr=learning_rate)
-    for e in range(num_epochs):
+    for e in range(1, num_epochs + 1):
         cumulative_loss = 0
         num_batches = 0
         for i, (data, sample_label) in enumerate(train_data):
@@ -127,7 +127,7 @@ def maximum_likelihood_estimate_sgd_2(
 
     optimizer = SGD(arg_proj.parameters(), lr=learning_rate)
 
-    for e in range(num_epochs):
+    for e in range(1, num_epochs + 1):
         cumulative_loss = 0
         num_batches = 0
 
