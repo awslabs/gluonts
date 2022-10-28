@@ -21,6 +21,7 @@ import numpy as np
 from .evaluator import DirectEvaluator, DerivedEvaluator, Evaluator
 from .aggregations import Mean, Sum
 from .stats import (
+    error,
     absolute_error,
     absolute_label,
     absolute_percentage_error,
@@ -51,6 +52,18 @@ def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
     return DirectEvaluator(
         name="sum_absolute_label", map=absolute_label, aggregate=Sum(axis=axis)
     )
+
+
+@dataclass
+class SumError:
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+        return DirectEvaluator(
+            name="sum_error",
+            map=partial(error, forecast_type=self.forecast_type),
+            aggregate=Sum(axis=axis),
+        )
 
 
 @dataclass
