@@ -80,9 +80,16 @@ test_input = get_test_input(
 )
 
 
-@pytest.mark.parametrize("method_name, fmethod, level", test_input)
-def test_forecasts(sine7, method_name, fmethod, level):
-    train_datasets = sine7
+# @pytest.mark.parametrize("method_name, fmethod, level", test_input)
+# @pytest.mark.parametrize("fmethod", SUPPORTED_BASE_FORECAST_METHODS)
+@pytest.mark.parametrize("fmethod", ["ets"])
+@pytest.mark.parametrize("method_name", SUPPORTED_HIERARCHICAL_METHODS)
+@pytest.mark.parametrize("covariance", ["shr"])#, "sam"])
+@pytest.mark.parametrize("nonnegative", [True])
+@pytest.mark.parametrize("algorithm", ["cg"])
+# @pytest.mark.parametrize("algorithm", ["lu", "cg", "chol"])
+def test_forecasts(sine7, method_name, fmethod, covariance, nonnegative, algorithm):
+    train_datasets = sine7(nonnegative=nonnegative)
     prediction_length = 10
 
     (train_dataset, test_dataset, metadata) = (
@@ -107,8 +114,17 @@ def test_forecasts(sine7, method_name, fmethod, level):
         fmethod=fmethod,
     )
 
-    if level:
-        params["level"] = level
+    # if level:
+    #     params["level"] = level
+
+    if covariance:
+        params["covariance"] = covariance
+
+    if nonnegative:
+        params["nonnegative"] = nonnegative
+
+    if algorithm:
+        params["algorithm"] = algorithm
 
     predictor = RHierarchicalForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
