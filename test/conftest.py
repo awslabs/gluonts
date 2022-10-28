@@ -52,72 +52,75 @@ class HierarchicalTrainDatasets(NamedTuple):
 
 
 @pytest.fixture
-def sine7(seq_length: int = 100, prediction_length: int = 10, nonnegative: bool = False):
-    x = np.arange(0, seq_length)
+def sine7():
+    def _sine7(seq_length: int = 100, prediction_length: int = 10, nonnegative: bool = False):
+        x = np.arange(0, seq_length)
 
-    # Bottom layer (4 series)
-    amps = [0.8, 0.9, 1, 1.1]
-    freqs = [1 / 20, 1 / 30, 1 / 50, 1 / 100]
+        # Bottom layer (4 series)
+        amps = [0.8, 0.9, 1, 1.1]
+        freqs = [1 / 20, 1 / 30, 1 / 50, 1 / 100]
 
-    b = np.zeros((4, seq_length))
-    for i, f in enumerate(freqs):
-        omega = 0
-        if i == 3:
-            np.random.seed(0)
-            omega = np.random.uniform(0, np.pi)  # random phase shift
-        b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
+        b = np.zeros((4, seq_length))
+        for i, f in enumerate(freqs):
+            omega = 0
+            if i == 3:
+                np.random.seed(0)
+                omega = np.random.uniform(0, np.pi)  # random phase shift
+            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
 
-    if nonnegative:
-        b = abs(b)
+        if nonnegative:
+            b = abs(b)
 
-    # Aggregation matrix S
-    S = np.array(
-        [
-            [1, 1, 1, 1],
-            [1, 1, 0, 0],
-            [0, 0, 1, 1],
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-        ],
-    )
+        # Aggregation matrix S
+        S = np.array(
+            [
+                [1, 1, 1, 1],
+                [1, 1, 0, 0],
+                [0, 0, 1, 1],
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ],
+        )
 
-    Y = S @ b
+        Y = S @ b
 
-    # Indices and timestamps
-    index = pd.date_range(
-        start=pd.Timestamp("2020-01-01", freq="D"),
-        periods=Y.shape[1],
-        freq="D",
-    )
+        # Indices and timestamps
+        index = pd.date_range(
+            start=pd.Timestamp("2020-01-01", freq="D"),
+            periods=Y.shape[1],
+            freq="D",
+        )
 
-    metadata = HierarchicalMetaData(
-        S=S, freq=index.freqstr, nodes=[2, [2] * 2]
-    )
+        metadata = HierarchicalMetaData(
+            S=S, freq=index.freqstr, nodes=[2, [2] * 2]
+        )
 
-    train_dataset = ListDataset(
-        [
-            {
-                "start": index[0],
-                "item_id": "all_items",
-                "target": Y[:, :-prediction_length],
-            }
-        ],
-        freq=index.freqstr,
-        one_dim_target=False,
-    )
+        train_dataset = ListDataset(
+            [
+                {
+                    "start": index[0],
+                    "item_id": "all_items",
+                    "target": Y[:, :-prediction_length],
+                }
+            ],
+            freq=index.freqstr,
+            one_dim_target=False,
+        )
 
-    test_dataset = ListDataset(
-        [{"start": index[0], "item_id": "all_items", "target": Y}],
-        freq=index.freqstr,
-        one_dim_target=False,
-    )
+        test_dataset = ListDataset(
+            [{"start": index[0], "item_id": "all_items", "target": Y}],
+            freq=index.freqstr,
+            one_dim_target=False,
+        )
 
-    assert Y.shape[0] == S.shape[0]
-    return HierarchicalTrainDatasets(
-        train=train_dataset, test=test_dataset, metadata=metadata
-    )
+        assert Y.shape[0] == S.shape[0]
+        return HierarchicalTrainDatasets(
+            train=train_dataset, test=test_dataset, metadata=metadata
+        )
+
+    return _sine7
 
 
 @pytest.fixture(scope="function", autouse=True)
