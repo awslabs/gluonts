@@ -18,7 +18,7 @@ import tempfile
 import time
 import uuid
 import warnings
-from typing import cast, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 import mxnet as mx
 import mxnet.autograd as autograd
@@ -224,7 +224,7 @@ class Trainer:
                     f"{STATE_ARTIFACT_FILE_NAME}_{uuid.uuid4()}",
                 )
 
-            best_epoch_info = {
+            best_epoch_info: Dict[str, Any] = {
                 "params_path": "{}-{}.params".format(base_path(), "init"),
                 "epoch_no": None,
                 "score": np.Inf,
