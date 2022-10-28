@@ -33,11 +33,11 @@ class Evaluator:
 class DirectEvaluator(Evaluator):
     """An Evaluator which uses a single function and aggregation strategy."""
 
-    map: Callable
+    stat: Callable
     aggregate: Aggregation
 
     def update(self, data: ChainMap[str, np.ndarray]) -> None:
-        self.aggregate.step(self.map(data))
+        self.aggregate.step(self.stat(data))
 
     def get(self) -> np.ndarray:
         return self.aggregate.get()

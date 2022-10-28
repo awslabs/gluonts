@@ -43,14 +43,16 @@ class Metric(Protocol):
 def mean_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
     return DirectEvaluator(
         name="mean_absolute_label",
-        map=absolute_label,
+        stat=absolute_label,
         aggregate=Mean(axis=axis),
     )
 
 
 def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
     return DirectEvaluator(
-        name="sum_absolute_label", map=absolute_label, aggregate=Sum(axis=axis)
+        name="sum_absolute_label",
+        stat=absolute_label,
+        aggregate=Sum(axis=axis),
     )
 
 
@@ -61,7 +63,7 @@ class SumError:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="sum_error",
-            map=partial(error, forecast_type=self.forecast_type),
+            stat=partial(error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
 
@@ -73,7 +75,7 @@ class SumAbsoluteError:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="sum_absolute_error",
-            map=partial(absolute_error, forecast_type=self.forecast_type),
+            stat=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
 
@@ -87,7 +89,7 @@ class MSE:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="MSE",
-            map=partial(squared_error, forecast_type=self.forecast_type),
+            stat=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
 
@@ -99,7 +101,7 @@ class SumQuantileLoss:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name=f"sum_quantile_loss[{self.q}]",
-            map=partial(quantile_loss, q=self.q),
+            stat=partial(quantile_loss, q=self.q),
             aggregate=Sum(axis=axis),
         )
 
@@ -111,7 +113,7 @@ class Coverage:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name=f"coverage[{self.q}]",
-            map=partial(coverage, q=self.q),
+            stat=partial(coverage, q=self.q),
             aggregate=Mean(axis=axis),
         )
 
@@ -125,7 +127,7 @@ class MAPE:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="MAPE",
-            map=partial(
+            stat=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
             ),
             aggregate=Mean(axis=axis),
@@ -141,7 +143,7 @@ class SMAPE:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="sMAPE",
-            map=partial(
+            stat=partial(
                 symmetric_absolute_percentage_error,
                 forecast_type=self.forecast_type,
             ),
@@ -158,7 +160,7 @@ class MSIS:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="MSIS",
-            map=partial(scaled_interval_score, alpha=self.alpha),
+            stat=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
         )
 
@@ -172,7 +174,7 @@ class MASE:
     def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
         return DirectEvaluator(
             name="MASE",
-            map=partial(
+            stat=partial(
                 absolute_scaled_error, forecast_type=self.forecast_type
             ),
             aggregate=Mean(axis=axis),
