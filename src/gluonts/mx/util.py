@@ -188,7 +188,7 @@ def hybrid_block_to_symbol_block(
 
 # noinspection PyProtectedMember
 def export_symb_block(
-    hb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 0
+    hb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 1
 ) -> None:
     """
     Serializes a hybridized Gluon `HybridBlock`.
@@ -217,7 +217,7 @@ def export_symb_block(
 
 
 def import_symb_block(
-    num_inputs: int, model_dir: Path, model_name: str, epoch: int = 0
+    num_inputs: int, model_dir: Path, model_name: str, epoch: int = 1
 ) -> mx.gluon.SymbolBlock:
     """
     Deserializes a hybridized Gluon `HybridBlock` as a `SymbolBlock`.
@@ -275,7 +275,7 @@ def import_symb_block(
 
 
 def export_repr_block(
-    rb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 0
+    rb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 1
 ) -> None:
     """
     Serializes a representable Gluon block.
@@ -298,7 +298,7 @@ def export_repr_block(
 
 
 def import_repr_block(
-    model_dir: Path, model_name: str, epoch: int = 0
+    model_dir: Path, model_name: str, epoch: int = 1
 ) -> mx.gluon.HybridBlock:
     """
     Deserializes a representable Gluon block.
