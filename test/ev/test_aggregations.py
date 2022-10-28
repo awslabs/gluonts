@@ -36,37 +36,37 @@ VALUE_STREAM = [
 ]
 
 SUM_RES_AXIS_NONE = [
-    np.nan,
-    np.nan,
+    0,
+    0,
     21,
 ]
 
 SUM_RES_AXIS_0 = [
-    np.full(5, np.nan),
-    np.array([-5, np.nan]),
+    np.zeros(5),
+    np.array([-5, 5]),
     np.array([7, 7, 7]),
 ]
 SUM_RES_AXIS_1 = [
-    np.full(9, np.nan),
-    np.array([np.nan, 0, 5, np.nan]),
+    np.zeros(9),
+    np.array([0, 0, 5, -5]),
     np.array([3, 3, 3, 12]),
 ]
 
 
 MEAN_RES_AXIS_NONE = [
     np.nan,
-    np.nan,
+    0,
     1.75,
 ]
 
 MEAN_RES_AXIS_0 = [
     np.full(5, np.nan),
-    np.array([-5 / 4, np.nan]),
+    np.array([-1.25, 2.5]),
     np.array([1.75, 1.75, 1.75]),
 ]
 MEAN_RES_AXIS_1 = [
     np.full(9, np.nan),
-    np.array([np.nan, 0, 2.5, np.nan]),
+    np.array([0, 0, 2.5, -5]),
     np.array([1, 1, 1, 4]),
 ]
 
@@ -102,10 +102,13 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
 
 
 def test_high_dim():
-    shape = (4, 12, 5, 2)
-    step_count = 3
+    shape = (4, 9, 5, 2)
 
-    value_stream = [np.random.random(shape) for _ in range(step_count)]
+    value_stream = (
+        [np.random.random(shape)]
+        + [np.full(shape, np.nan)]
+        + [np.random.random(shape)]
+    )
     all_values = np.concatenate(value_stream)
 
     for axis in [None, 0, 1, 2, 3]:
@@ -114,7 +117,7 @@ def test_high_dim():
             sum.step(values)
 
         actual_sum = sum.get()
-        expected_sum = all_values.sum(axis=axis)
+        expected_sum = np.nansum(all_values, axis=axis)
         np.testing.assert_almost_equal(actual_sum, expected_sum)
 
         mean = Mean(axis=axis)
@@ -122,5 +125,5 @@ def test_high_dim():
             mean.step(values)
 
         actual_mean = mean.get()
-        expected_mean = all_values.mean(axis=axis)
+        expected_mean = np.nanmean(all_values, axis=axis)
         np.testing.assert_almost_equal(actual_mean, expected_mean)

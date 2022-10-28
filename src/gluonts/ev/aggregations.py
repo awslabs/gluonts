@@ -46,7 +46,6 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        values = np.ma.masked_invalid(values)
         summed_values = np.nansum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
@@ -83,23 +82,27 @@ class Mean(Aggregation):
     """
 
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
-    n: int = 0
+    n: Optional[Union[int, np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        values = np.ma.masked_invalid(values)
-
         if self.axis is None or self.axis == 0:
             summed_values = np.nansum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
+                if self.axis is None:
+                    self.n = 0
+                else:
+                    self.n = np.zeros(values.shape[1:])
 
             self.partial_result += summed_values
 
-            invalid_value_count = np.count_nonzero(np.isnan(values))
             if self.axis is None:
+                invalid_value_count = np.count_nonzero(np.isnan(values))
                 self.n += values.size - invalid_value_count
             else:
-                self.n += values.shape[0] - invalid_value_count
+                self.n += np.ones(shape=values.shape).sum(axis=0) - np.isnan(
+                    values
+                ).sum(axis=0)
         else:
             if self.partial_result is None:
                 self.partial_result = []
