@@ -43,7 +43,7 @@ AGGREGATION_METHODS = "median", "mean", "none"
 
 class NBEATSEnsemblePredictor(Predictor):
     """
-    " An ensemble predictor for N-BEATS. Calling '.predict' will result in::
+    An ensemble predictor for N-BEATS. Calling '.predict' will result in::
 
         |predictors|x|dataset|
 
