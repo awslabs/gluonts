@@ -26,6 +26,10 @@ R_FILE_PREFIX = "hierarchical"
 
 HIERARCHICAL_POINT_FORECAST_METHODS = [
     "naive_bottom_up",
+    "top_down_w_average_historical_proportions",
+    "top_down_w_proportions_of_the_historical_averages",
+    "top_down_w_forecasts_proportions",
+    "middle_out_w_forecasts_proportions",
     # TODO: "mint",
     # TODO: "erm",
     # TODO: "ermParallel",
@@ -69,7 +73,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         Is the target non-negative?
     method_name
         Hierarchical forecasting or reconciliation method to be used; mutst be one of:
-        "mint", "naive_bottom_up", "erm", "mint_ols", "depbu_mint", "ermParallel"
+        "naive_bottom_up", "middle_out_w_forecasts_proportions", "top_down_w_average_historical_proportions",
+        "top_down_w_proportions_of_the_historical_averages", "top_down_w_forecasts_proportions",
     fmethod
         The forecasting method to be used for generating base forecasts (i.e., un-reconciled forecasts).
     period
@@ -82,6 +87,10 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     params
         Parameters to be used when calling the forecast method default.
         Note that, as `output_type`, only 'samples' is supported currently.
+    level
+        Level of hierarchy to be used as reference for `middle out` reconciliation (i.e. level=1 means that the level
+        below the highest one will be used as reference to compute the forecasts of all the other levels). This value
+        is required only for `middle out`.
     """
 
     @validated()
@@ -99,6 +108,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         period: int = None,
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
+        level: Optional[int] = None,
     ) -> None:
 
         super().__init__(
@@ -130,6 +140,10 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "fmethod": fmethod,
             "nonnegative": nonnegative,
         }
+
+        if level:
+            self.params["level"] = level
+
         if params is not None:
             self.params.update(params)
         self.is_hts = is_hts

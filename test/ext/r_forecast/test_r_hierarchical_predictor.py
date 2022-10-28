@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import List, Tuple, Union
+import itertools
 import pytest
 
 from gluonts.core import serde
@@ -25,19 +27,61 @@ from gluonts.ext.r_forecast import (
 )
 
 
+def get_test_input(
+    supported_hierarchical_methods: List[int],
+    supported_base_forecast_methods: List[int],
+    levels: List[int],
+) -> List[Tuple[Union[str, int]]]:
+    """
+    We compute the combinations that we want for testing. For middle_out we need the *level* taken as reference,
+    whereas for top_down and bottom_up *level* is not required.
+    """
+
+    supported_hierarchical_methods_without_middle_out = []
+    supported_hierarchical_methods_with_middle_out = []
+
+    for e in supported_hierarchical_methods:
+        if "middle_out" in e:
+            supported_hierarchical_methods_with_middle_out.append(e)
+        else:
+            supported_hierarchical_methods_without_middle_out.append(e)
+
+    test_input = list(
+        itertools.product(
+            supported_hierarchical_methods_without_middle_out,
+            supported_base_forecast_methods,
+            [None],
+        )
+    )
+
+    test_input.extend(
+        list(
+            itertools.product(
+                supported_hierarchical_methods_with_middle_out,
+                supported_base_forecast_methods,
+                levels,
+            )
+        )
+    )
+
+    return test_input
+
+
 # conditionally skip these tests if `R` and `rpy2` are not installed
 if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
     skip_message = "Skipping test because `R` and `rpy2` are not installed!"
     pytest.skip(msg=skip_message, allow_module_level=True)
 
-
-TOLERANCE = 2.0
+TOLERANCE = 4.0
 SUPPORTED_BASE_FORECAST_METHODS = ["ets", "arima"]
+LEVELS = [1, 2]
+test_input = get_test_input(
+    SUPPORTED_HIERARCHICAL_METHODS, SUPPORTED_BASE_FORECAST_METHODS, LEVELS
+)
 
 
-@pytest.mark.parametrize("method_name", SUPPORTED_HIERARCHICAL_METHODS)
-@pytest.mark.parametrize("fmethod", SUPPORTED_BASE_FORECAST_METHODS)
-def test_forecasts(sine7, method_name, fmethod):
+@pytest.mark.parametrize("method_name, fmethod, level", test_input)
+def test_forecasts(sine7, method_name, fmethod, level):
     train_datasets = sine7
     prediction_length = 10
 
@@ -62,6 +106,9 @@ def test_forecasts(sine7, method_name, fmethod):
         method_name=method_name,
         fmethod=fmethod,
     )
+
+    if level:
+        params["level"] = level
 
     predictor = RHierarchicalForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
