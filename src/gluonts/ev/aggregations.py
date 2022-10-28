@@ -46,6 +46,7 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
+        values = values.astype("float64")
         summed_values = np.nansum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
@@ -85,6 +86,8 @@ class Mean(Aggregation):
     n: Optional[Union[int, np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
+        values = values.astype("float64")
+
         if self.axis is None or self.axis == 0:
             summed_values = np.nansum(values, axis=self.axis)
             if self.partial_result is None:
