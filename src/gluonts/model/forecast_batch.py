@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Iterator, Optional, Union
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
-from .forecast import Forecast, Quantile, SampleForecast
+from .forecast import Forecast, Quantile, QuantileForecast, SampleForecast
 
 # TODO: replace this with code from PR #2286 when it's ready
 
@@ -26,8 +26,16 @@ class ForecastBatch:
 
     @classmethod
     def from_forecast(cls, forecast: Forecast) -> "ForecastBatch":
-        """Returns a new ForecastBatch with batch dimension 1"""
+        """Returns a new `ForecastBatch` with batch dimension 1"""
         raise NotImplementedError
+
+    def __getitem__(self, name):
+        if name == "mean":
+            return self.mean
+        elif name == "median":
+            return self.median
+
+        return self.quantile(name)
 
     # ...
 
@@ -89,10 +97,41 @@ class SampleForecastBatch(ForecastBatch):
             info=[forecast.info],
         )
 
-    def __getitem__(self, name):
-        if name == "mean":
-            return self.mean
-        elif name == "median":
-            return self.median
 
-        return self.quantile(name)
+@dataclass
+class QuantileForecastBatch(ForecastBatch):
+    quantile_batch: np.ndarray
+    quantile_levels: List[str]
+    start: list
+    item_id: Optional[list] = None
+    info: Optional[list] = None
+
+    def __post_init__(self):
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
+
+    def __iter__(self) -> Iterator[QuantileForecast]:
+        for quantiles, start, item_id, info in zip(
+            self.quantile_batch, self.start, self.item_id, self.info
+        ):
+            yield QuantileForecast(
+                quantiles,
+                start_date=start,
+                item_id=item_id,
+                info=info,
+                forecast_keys=self.quantile_levels,
+            )
+
+    @classmethod
+    def from_forecast(
+        cls, forecast: QuantileForecast
+    ) -> "QuantileForecastBatch":
+        return QuantileForecastBatch(
+            forecast_arrays=np.array([forecast.forecast_arrays]),
+            forecast_keys=[forecast.forecast_keys],
+            start_date=[forecast.start_date],
+            item_id=[forecast.item_id],
+            info=[forecast.info],
+        )

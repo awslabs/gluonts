@@ -43,8 +43,12 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
 from gluonts.dataset.split import TestData
-from gluonts.model.forecast import Forecast, SampleForecast
-from gluonts.model.forecast_batch import ForecastBatch, SampleForecastBatch
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
+from gluonts.model.forecast_batch import (
+    ForecastBatch,
+    QuantileForecastBatch,
+    SampleForecastBatch,
+)
 from gluonts.time_feature.seasonality import get_seasonality
 from gluonts.ev.metrics import Metric
 from gluonts.ev.ts_stats import seasonal_error
@@ -159,8 +163,6 @@ class Predictor:
         for input, label, forecast in zip(
             test_data.input, test_data.label, forecasts
         ):
-            batching_used = isinstance(forecast, ForecastBatch)
-
             input_target = input["target"]
             label_target = label["target"]
 
@@ -174,6 +176,7 @@ class Predictor:
                 ),
             }
 
+            batching_used = isinstance(forecast, ForecastBatch)
             if batching_used:
                 forecast_data = forecast
             else:
@@ -184,8 +187,10 @@ class Predictor:
 
                 if isinstance(forecast, SampleForecast):
                     forecast_data = SampleForecastBatch.from_forecast(forecast)
-                else:
-                    pass  # TODO
+                elif isinstance(forecast, QuantileForecast):
+                    forecast_data = QuantileForecastBatch.from_forecast(
+                        forecast
+                    )
 
             joint_data = ChainMap(non_forecast_data, forecast_data)
 
