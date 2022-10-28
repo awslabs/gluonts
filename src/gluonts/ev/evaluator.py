@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Callable, Dict
+from typing import Callable, ChainMap, Dict
 import numpy as np
 
 from .aggregations import Aggregation
@@ -22,7 +22,7 @@ from .aggregations import Aggregation
 class Evaluator:
     name: str
 
-    def update(self, data: Dict[str, np.ndarray]) -> None:
+    def update(self, data: ChainMap[str, np.ndarray]) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
@@ -36,7 +36,7 @@ class DirectEvaluator(Evaluator):
     map: Callable
     aggregate: Aggregation
 
-    def update(self, data: Dict[str, np.ndarray]) -> None:
+    def update(self, data: ChainMap[str, np.ndarray]) -> None:
         self.aggregate.step(self.map(data))
 
     def get(self) -> np.ndarray:
@@ -53,7 +53,7 @@ class DerivedEvaluator(Evaluator):
     evaluators: Dict[str, Evaluator]
     post_process: Callable
 
-    def update(self, data: Dict[str, np.ndarray]) -> None:
+    def update(self, data: ChainMap[str, np.ndarray]) -> None:
         for evaluator in self.evaluators.values():
             evaluator.update(data)
 
