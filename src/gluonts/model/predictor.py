@@ -26,6 +26,7 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    Iterable,
     Iterator,
     Optional,
     Type,
@@ -153,7 +154,7 @@ class Predictor:
     def get_backtest_input(
         self,
         test_data: TestData,
-        forecasts: Iterator[Union[Forecast, ForecastBatch]],
+        forecasts: Iterable[Union[Forecast, ForecastBatch]],
     ) -> Iterator[Dict[str, np.ndarray]]:
         for input, label, forecast in zip(
             test_data.input, test_data.label, forecasts
