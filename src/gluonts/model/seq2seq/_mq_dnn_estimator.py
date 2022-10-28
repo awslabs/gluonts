@@ -86,7 +86,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         It makes sense to disable this, if you don't have ``feat_dynamic_real``
         for the prediction range.
     seed
-        Will set the specified int seed for numpy anc MXNet if specified.
+        Will set the specified int seed for numpy and MXNet if specified.
         (default: None)
     decoder_mlp_dim_seq
         The dimensionalities of the Multi Layer Perceptron layers of the
@@ -216,7 +216,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
 
-        if seed:
+        if seed is not None:
             np.random.seed(seed)
             mx.random.seed(seed, trainer.ctx)
 
