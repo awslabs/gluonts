@@ -59,6 +59,7 @@ class MetaData(pydantic.BaseModel):
     feat_static_cat: List[CategoricalFeatureInfo] = []
     feat_static_real: List[BasicFeatureInfo] = []
     feat_dynamic_real: List[BasicFeatureInfo] = []
+    past_feat_dynamic_real: List[BasicFeatureInfo] = []
     feat_dynamic_cat: List[CategoricalFeatureInfo] = []
 
     prediction_length: Optional[int] = None
