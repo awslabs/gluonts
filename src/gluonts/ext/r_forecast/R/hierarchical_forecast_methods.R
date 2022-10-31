@@ -59,7 +59,7 @@ middle_out_w_forecasts_proportions <- function(hts, params) {
     fcasts1.mo <- forecast(
       hts,
       h = h,
-      method="mo",
+      method = "mo",
       fmethod = fmethod,
       parallel = TRUE,
       level = level
