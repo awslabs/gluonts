@@ -230,7 +230,7 @@ class RMSE:
 
 @dataclass
 class NRMSE:
-    """Normalized Root Mean Squared Error"""
+    """RMSE, normalized by the mean absolute label"""
 
     forecast_type: str = "mean"
 

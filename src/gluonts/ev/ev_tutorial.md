@@ -170,3 +170,13 @@ Apart from that, using `axis=None` with the new implementation does not necessar
 
 ### Custom metrics
 To create a new metric, first check if the metric can be implemented in such a way that a `DirectEvaluator` or `DerivedEvaluator` is used. If they don't suffice, subclass `Evaluator` directly and overwrite both `udpate` and `get` to calculate the desired metric.
+
+## Open To Dos
+### Handling invalid values
+While calculating the metrics, `NaN` values are currently ignored in the aggregations. Two things should be improved here:
+- One should be able to choose if values should be ignored or not.
+- It should be possible to also ignore `Inf` values.
+
+For comparison, the old evaluation approach has an option to `ignore_invalid_values` (in which case, input values are masked and those masks propagate through all subsequent calculations) as well as three modes of aggregation: `aggregate_all`, `aggregate_no_nan` and `aggregate_valid`.
+
+So, the question is how to transparently deal with invalid values.
