@@ -14,7 +14,7 @@ This notebook explains how to use the `ev` module which is a new alternative to 
 
 - Deciding over what axis to aggregate is more flexible now. Before, the workflow was set in stone: first aggregate per time series, then aggregate those values once more, return both metrics per entry and the aggregated ones. Now that the predictions comes in the form of batches (in the univariate case, with the rows being dataset entries and the columns being timestamps), an axis to aggregate can be chosen (with `None` meaning aggregating everything into a single value). This means, assuming the timestamps are aligned, aggregating metrics per timestamp is now possible. 
 
-- Larger datasets can be handled. Before, the values for metrics per time series had to fit into a Pandas DataFrame before being aggregated overall. Now, the mean and sum aggregations are implemented in a map-reduce way so that there's no hard limit on how much data to evaluate on, when aggregating the batch axis.
+- Larger datasets can be handled. Before, the values for metrics per time series had to fit into a Pandas DataFrame before being aggregated overall. Now, the mean and sum aggregations are implemented in a map-reduce way so that there's no hard limit on how much data to evaluate on, when aggregating the batch axis. No Pandas is used during evaluation anymore; everything is NumPy based.
 
 Here is a closer look at how the new evaluation approach works:
 
@@ -122,6 +122,11 @@ The idea is that `data` contains all information required to calculate any metri
 
 Note that there are no assumptions made on what the data represents and how many dimensions it has.
 
+### [Time Series Stats](ts_stats.py)
+While "stats" take the forecasted values into account somehow, a "time series stat" does not. They act more like attributes of a time series than a comparison between time series and forecast.
+
+Currently, this only includes the seasonal error. Compared to the old approach, we "downgraded" the seasonal error from being a metric to being a time series property. Still, it is essential for some stats which are used by metrics like MASE and MSIS.
+
 ### [Metrics](metrics.py)
 In contrast to stats, metrics always aggregate the underlying data to produce some result. In general, any axis or all of them at once (`axis=None`) can be aggregated - choosing the axis is left up to the user.
 
@@ -148,7 +153,20 @@ Similar to the evaluators, aggregations have two methods: `update` and `get`. Th
 There are two kinds of aggregations provided: `Sum` and `Mean`. To keep track of what data is fed in, `partial_result` takes on one of two roles:
 - If axis 0 is aggregated (`axis=0` or `axis=None`), `partial_result` represents the sum so far. For `Sum`, this is directly the result when `get` is called while `Mean` also keeps track of the `n` to divide by in the end.
 - Else, `partial_result` is a list that stores the batch-wise aggregations. When `get` is called, `partial_result` is concatenated and returned as a single `np.ndarray`.
-  
+
+## Metric support
+### Backward compatibility
+A few metrics provided by the [old evaluation approach](../evaluation/_base.py) are **not** supported anymore as they don't fit well into the new philosophy. These are:
+- mean_absolute_QuantileLoss
+- mean_wQuantileLoss
+- MAE_Coverage
+- [OWA](https://www.sciencedirect.com/science/article/pii/S0169207019301128) (Overall Weighted Avergage)
+
+The reason for not including these metrics is that they are aggregations of aggregations. The new approach focuses on providing maximal flexibility on the **one** axis to aggregate over. Bringing a second axis into it would be more confusing than calculating the underlying metrics and combining them after the evaluation.
+
+Also, OWA uses a naive forecast as normalization which diminishes the meaning of passing a forecast to the evaluation. A more transparent way of getting the OWA would be to calculate sMAPE and MASE with both the forecast to evaluate and the [naive_2 model](../model/naive_2/_predictor.py) and combining the results at the end.
+
+Apart from that, using `axis=None` with the new implementation does not necessarily provide exactly the same results as the `totals` (first tuple entry when calling the `Evaluator` class). This is because the old approach first aggregated per time series and then aggregated these results overall. Especially when dealing with `NaN` values, this yields a different result than aggregating over the data (which is now in batched form) directly.
 
 ### Custom metrics
 To create a new metric, first check if the metric can be implemented in such a way that a `DirectEvaluator` or `DerivedEvaluator` is used. If they don't suffice, subclass `Evaluator` directly and overwrite both `udpate` and `get` to calculate the desired metric.
