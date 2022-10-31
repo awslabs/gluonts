@@ -25,13 +25,12 @@ from . import RBasePredictor
 R_FILE_PREFIX = "hierarchical"
 
 HIERARCHICAL_POINT_FORECAST_METHODS = [
-    # "naive_bottom_up",
-    # "top_down_w_average_historical_proportions",
-    # "top_down_w_proportions_of_the_historical_averages",
-    # "top_down_w_forecasts_proportions",
-    # "middle_out_w_forecasts_proportions",
+    "naive_bottom_up",
+    "top_down_w_average_historical_proportions",
+    "top_down_w_proportions_of_the_historical_averages",
+    "top_down_w_forecasts_proportions",
+    "middle_out_w_forecasts_proportions",
     "mint",
-    # TODO: "mint",
     # TODO: "erm",
     # TODO: "ermParallel",
 ]
@@ -103,15 +102,15 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         target_dim: int,
         num_bottom_ts: int,
         nodes: List,
-        nonnegative: bool,
         method_name: str,
         fmethod: str,
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
-        params: Optional[Dict] = None,
+        nonnegative: Optional[bool] = False,
         level: Optional[int] = None,
         algorithm: Optional[str] = "cg",
         covariance: Optional[str] = "shr",
+        params: Optional[Dict] = None,
     ) -> None:
 
         super().__init__(
