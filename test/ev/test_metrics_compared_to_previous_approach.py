@@ -22,8 +22,7 @@ from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-
-from gluonts.ev.metrics import (
+from gluonts.ev import (
     MAPE,
     MASE,
     MSE,
@@ -45,8 +44,7 @@ def get_old_metrics(dataset, predictor):
 
 
 def get_new_metrics(test_data: TestData, predictor: Predictor):
-    """simulate former Evaluator class by first aggregating per time series
-    and then aggregating once more"""
+    """Simulate former Evaluator by doing two-step aggregations."""
     quantiles = [Quantile.parse(q) for q in (0.1, 0.5, 0.9)]
 
     metrics_to_evaluate = [
@@ -89,19 +87,34 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
         },
     }
 
+    seasonal_errors = []
+    forecasts = predictor.predict(dataset=test_data.input)
+    for data in predictor.get_backtest_input(test_data, forecasts):
+        seasonal_errors.append(data["seasonal_error"])
+
+    aggregated_metrics["seasonal_error"] = np.nanmean(
+        np.stack(seasonal_errors)
+    )
+
+    # For RMSE, NRMSE, ND and Weighted Quantile Loss, the new implementations
+    # are **not** being used, because they don't follow the two-step approach.
     aggregated_metrics["RMSE"] = np.sqrt(aggregated_metrics["MSE"])
     aggregated_metrics["NRMSE"] = (
         aggregated_metrics["RMSE"] / aggregated_metrics["abs_target_mean"]
     )
+
     aggregated_metrics["ND"] = (
         aggregated_metrics["abs_error"] / aggregated_metrics["abs_target_sum"]
     )
+
     for quantile in quantiles:
         aggregated_metrics[quantile.weighted_loss_name] = (
             aggregated_metrics[quantile.loss_name]
             / aggregated_metrics["abs_target_sum"]
         )
 
+    # The following metrics are not supported by the new implementation
+    # because they are aggregations of aggregations.
     aggregated_metrics["mean_absolute_QuantileLoss"] = np.array(
         [aggregated_metrics[quantile.loss_name] for quantile in quantiles]
     ).mean()
