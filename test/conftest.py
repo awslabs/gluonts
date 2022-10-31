@@ -53,7 +53,11 @@ class HierarchicalTrainDatasets(NamedTuple):
 
 @pytest.fixture
 def sine7():
-    def _sine7(seq_length: int = 100, prediction_length: int = 10, nonnegative: bool = False):
+    def _sine7(
+        seq_length: int = 100,
+        prediction_length: int = 10,
+        nonnegative: bool = False,
+    ):
         x = np.arange(0, seq_length)
 
         # Bottom layer (4 series)
