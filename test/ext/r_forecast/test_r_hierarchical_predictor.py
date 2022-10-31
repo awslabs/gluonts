@@ -30,39 +30,46 @@ from gluonts.ext.r_forecast import (
 def get_test_input(
     supported_hierarchical_methods: List[int],
     supported_base_forecast_methods: List[int],
+    nonnegative_options: List[bool],
     levels: List[int],
+    covariance_options: List[str],
+    algorithm_options: List[str],
 ) -> List[Tuple[Union[str, int]]]:
     """
-    We compute the combinations that we want for testing. For middle_out we need the *level* taken as reference,
-    whereas for top_down and bottom_up *level* is not required.
+    We compute the combinations that we want for testing.
     """
 
-    supported_hierarchical_methods_without_middle_out = []
-    supported_hierarchical_methods_with_middle_out = []
-
-    for e in supported_hierarchical_methods:
-        if "middle_out" in e:
-            supported_hierarchical_methods_with_middle_out.append(e)
+    test_input = []
+    test_input_constant = {
+        "supported_base_forecast_methods": supported_base_forecast_methods,
+        "nonnegative_options": nonnegative_options,
+    }
+    for hierarchical_method in supported_hierarchical_methods:
+        if "mint" in hierarchical_method:
+            test_input_method_dependant = {
+                "levels": [None],
+                "covariance_options": covariance_options,
+                "algorithm_options": algorithm_options,
+            }
+        elif "middle_out" in hierarchical_method:
+            test_input_method_dependant = {
+                "levels": levels,
+                "covariance_options": [None],
+                "algorithm_options": [None],
+            }
         else:
-            supported_hierarchical_methods_without_middle_out.append(e)
+            test_input_method_dependant = {
+                "levels": [None],
+                "covariance_options": [None],
+                "algorithm_options": [None],
+            }
 
-    test_input = list(
-        itertools.product(
-            supported_hierarchical_methods_without_middle_out,
-            supported_base_forecast_methods,
-            [None],
-        )
-    )
-
-    test_input.extend(
-        list(
-            itertools.product(
-                supported_hierarchical_methods_with_middle_out,
-                supported_base_forecast_methods,
-                levels,
-            )
-        )
-    )
+        test_input_params = {
+            "hierarchical_method": [hierarchical_method],
+            **test_input_constant,
+            **test_input_method_dependant,
+        }
+        test_input.extend(list(itertools.product(*test_input_params.values())))
 
     return test_input
 
@@ -75,20 +82,27 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
 TOLERANCE = 4.0
 SUPPORTED_BASE_FORECAST_METHODS = ["ets", "arima"]
 LEVELS = [1, 2]
+NONNEGATIVE = [True, False]
+COVARIANCE = ["shr", "sam"]
+ALGORITHM = ["lu", "cg"]
+
 test_input = get_test_input(
-    SUPPORTED_HIERARCHICAL_METHODS, SUPPORTED_BASE_FORECAST_METHODS, LEVELS
+    SUPPORTED_HIERARCHICAL_METHODS,
+    SUPPORTED_BASE_FORECAST_METHODS,
+    NONNEGATIVE,
+    LEVELS,
+    COVARIANCE,
+    ALGORITHM,
 )
 
 
-# @pytest.mark.parametrize("method_name, fmethod, level", test_input)
-# @pytest.mark.parametrize("fmethod", SUPPORTED_BASE_FORECAST_METHODS)
-@pytest.mark.parametrize("fmethod", ["ets"])
-@pytest.mark.parametrize("method_name", SUPPORTED_HIERARCHICAL_METHODS)
-@pytest.mark.parametrize("covariance", ["shr"])#, "sam"])
-@pytest.mark.parametrize("nonnegative", [True])
-@pytest.mark.parametrize("algorithm", ["cg"])
-# @pytest.mark.parametrize("algorithm", ["lu", "cg", "chol"])
-def test_forecasts(sine7, method_name, fmethod, covariance, nonnegative, algorithm):
+@pytest.mark.parametrize(
+    "method_name, fmethod, nonnegative, level, covariance, algorithm",
+    test_input,
+)
+def test_forecasts(
+    sine7, method_name, fmethod, nonnegative, level, covariance, algorithm
+):
     train_datasets = sine7(nonnegative=nonnegative)
     prediction_length = 10
 
@@ -109,19 +123,16 @@ def test_forecasts(sine7, method_name, fmethod, covariance, nonnegative, algorit
         target_dim=target_dim,
         num_bottom_ts=num_bottom_ts,
         nodes=nodes,
-        nonnegative=False,
         method_name=method_name,
         fmethod=fmethod,
+        nonnegative=nonnegative,
     )
 
-    # if level:
-    #     params["level"] = level
+    if level:
+        params["level"] = level
 
     if covariance:
         params["covariance"] = covariance
-
-    if nonnegative:
-        params["nonnegative"] = nonnegative
 
     if algorithm:
         params["algorithm"] = algorithm
