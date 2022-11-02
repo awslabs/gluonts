@@ -209,11 +209,11 @@ class TimeSeriesSlice:
 
 class AbstractBaseSplitter(ABC):
     """
-    Base class for all other splitter.
+    Base class for all other splitters.
     """
 
     @abstractmethod
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         pass
 
     @abstractmethod
@@ -224,16 +224,16 @@ class AbstractBaseSplitter(ABC):
 
     def split(
         self, dataset: Dataset
-    ) -> Tuple["TrainingDataset", "TestTemplate"]:
+    ) -> Tuple["DatasetSplit", "TestTemplate"]:
         return (
-            TrainingDataset(dataset=dataset, splitter=self),
+            DatasetSplit(dataset=dataset, splitter=self),
             TestTemplate(dataset=dataset, splitter=self),
         )
 
-    def generate_training_entries(
+    def generate_split_entries(
         self, dataset: Dataset
     ) -> Generator[DataEntry, None, None]:
-        yield from map(self.training_entry, dataset)
+        yield from map(self.split_entry, dataset)
 
     def generate_test_pairs(
         self,
@@ -277,7 +277,7 @@ class OffsetSplitter(AbstractBaseSplitter):
 
     offset: int
 
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         return TimeSeriesSlice(entry)[: self.offset]
 
     def test_pair(
@@ -317,7 +317,7 @@ class DateSplitter(AbstractBaseSplitter):
 
     date: pd.Period
 
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         return TimeSeriesSlice(entry)[: self.date]
 
     def test_pair(
@@ -438,7 +438,7 @@ class TestTemplate:
     dataset:
         Whole dataset used for testing.
     splitter:
-        A specific splitter that knows how to slices training and
+        A specific splitter that knows how to slice training and
         test data.
     """
 
@@ -481,12 +481,12 @@ class TestTemplate:
 
 
 @dataclass
-class TrainingDataset:
+class DatasetSplit:
     dataset: Dataset
     splitter: AbstractBaseSplitter
 
     def __iter__(self) -> Generator[DataEntry, None, None]:
-        return self.splitter.generate_training_entries(self.dataset)
+        return self.splitter.generate_split_entries(self.dataset)
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -494,7 +494,7 @@ class TrainingDataset:
 
 def split(
     dataset: Dataset, *, offset: int = None, date: pd.Period = None
-) -> Tuple[TrainingDataset, TestTemplate]:
+) -> Tuple[DatasetSplit, TestTemplate]:
     assert (offset is None) != (
         date is None
     ), "You need to provide ``offset`` or ``date``, but not both."
