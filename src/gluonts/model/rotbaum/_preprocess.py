@@ -45,6 +45,7 @@ class PreprocessGeneric:
         n_ignore_last: int = 0,
         max_n_datapts: int = 400000,
         seed: Optional[int] = None,
+        num_samples: Optional[int] = None,
         **kwargs
     ):
         """
@@ -80,10 +81,10 @@ class PreprocessGeneric:
         self.n_ignore_last = n_ignore_last
         self.max_n_datapts = max_n_datapts
         self.kwargs = kwargs
-        self.num_samples = None
+        self.num_samples = num_samples
         self.feature_data = None
         self.target_data = None
-        if seed:
+        if seed is not None:
             np.random.seed(seed)
 
     def make_features(self, time_series, starting_index):
