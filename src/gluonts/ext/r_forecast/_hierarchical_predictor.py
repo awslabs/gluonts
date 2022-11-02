@@ -106,7 +106,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         fmethod: str,
         period: Optional[int] = None,
         trunc_length: Optional[int] = None,
-        nonnegative: Optional[bool] = False,
+        nonnegative: bool = False,
         level: Optional[int] = None,
         algorithm: Optional[str] = "cg",
         covariance: Optional[str] = "shr",
