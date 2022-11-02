@@ -86,7 +86,7 @@ def test_deepvar_hierarchical(
     coherent_pred_samples,
     warmstart_epoch_frac,
 ):
-    train_datasets = sine7
+    train_datasets = sine7()
     prediction_length = 10
 
     estimator = DeepVARHierarchicalEstimator(
