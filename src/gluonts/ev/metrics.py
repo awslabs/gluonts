@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Optional
+from typing import Collection, Optional
 from typing_extensions import Protocol, runtime_checkable
 
 import numpy as np
@@ -271,4 +271,90 @@ class WeightedSumQuantileLoss:
                 "sum_absolute_label": sum_absolute_label(axis=axis),
             },
             post_process=self.weight_sum_quantile_loss,
+        )
+
+
+# TODO: the following metrics don't fit the new philosophy very well
+# because they aggregate more than once - can we make it less hacky?
+
+
+@dataclass
+class MeanSumQuantileLoss:
+    """formerly known as `mean_absolute_QuantileLoss`"""
+
+    quantile_levels: Collection
+
+    @staticmethod
+    def mean(**kwargs) -> np.ndarray:
+        # TODO: give a choice between mean and nanmean (and masking?)
+        return np.nanmean(
+            [np.nansum(quantile_result) for quantile_result in kwargs.values()]
+        )
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
+
+        return DerivedEvaluator(
+            name=f"mean_sum_quantile_loss[{quantile_levels_str}]",
+            evaluators={
+                f"quantile_loss[{q}]": SumQuantileLoss(q=q)(axis=axis)
+                for q in self.quantile_levels
+            },
+            post_process=self.mean,
+        )
+
+
+@dataclass
+class MeanWeightedSumQuantileLoss:
+    """formerly known as `mean_wQuantileLoss`"""
+
+    quantile_levels: Collection
+
+    @staticmethod
+    def mean(**kwargs) -> np.ndarray:
+        # TODO: give a choice between mean and nanmean (and masking?)
+        return np.nanmean(
+            np.array([quantile_result for quantile_result in kwargs.values()])
+        )
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
+
+        return DerivedEvaluator(
+            name=f"mean_weighted_sum_quantile_loss[{quantile_levels_str}]",
+            evaluators={
+                f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
+                for q in self.quantile_levels
+            },
+            post_process=self.mean,
+        )
+
+
+@dataclass
+class MAECoverage:
+    """Mean Absolute Error Coverage"""
+
+    quantile_levels: Collection
+
+    @staticmethod
+    def mean(quantile_levels, **kwargs) -> np.ndarray:
+        # TODO: give a choice between mean and nanmean (and masking?)
+        intermediate_result = [
+            np.abs(np.nanmean(kwargs[f"quantile_loss[{q}]"]) - np.array([q]))
+            for q in quantile_levels
+        ]
+        return np.mean(intermediate_result)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
+
+        return DerivedEvaluator(
+            name=f"MAE_coverage[{quantile_levels_str}]",
+            evaluators={
+                f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
+                for q in self.quantile_levels
+            },
+            post_process=partial(
+                self.mean, quantile_levels=self.quantile_levels
+            ),
         )
