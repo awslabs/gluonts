@@ -79,6 +79,7 @@ import pandas as pd
 
 from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.common import TrainDatasets
 
 
 def to_positive_slice(slice_: slice, length: int) -> slice:
@@ -386,6 +387,21 @@ class TestData:
     @property
     def label(self) -> "LabelDataset":
         return LabelDataset(self)
+
+    @classmethod
+    def from_TrainDatasets(self, train_dataset: TrainDatasets) -> "TestData":
+        prediction_length = train_dataset.metadata.prediction_length
+
+        test_template = TestTemplate(
+            dataset=train_dataset.test,
+            splitter=OffsetSplitter(offset=-prediction_length),
+        )
+
+        test_data = test_template.generate_instances(
+            prediction_length=prediction_length
+        )
+
+        return test_data
 
 
 @dataclass
