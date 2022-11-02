@@ -2,24 +2,6 @@
 
 This notebook explains how to use the `ev` module which is a new alternative to the `evaluation` module in GluonTS.
 
-## What's different compared to the [current Evaluator](../evaluation/_base.py)?
-
-- Things are more modular. Instead of having one `Evaluator` class which calculates all metrics, each metric now has its own `Evaluator`. More on that below. This means that:
-  1. You can freely choose what metrics (not) to evaluate.
-  2. Most metrics can be configured with parameters. For example, to get the total error, you can use `SumError("median")`, `SumError("mean")` or `SumError("q")` for some `0 < q < 1` to specify the forecast values to compare against.
-
-- There's no need to call `make_evaluation_predictions()` anymore. Instead, the new evaluation appraoch works on `TestData` objects which were introduced [recently](https://github.com/awslabs/gluonts/pull/2223). This means that each time series is clearly separated into input and label and there's no more splitting going on during evaluation.
-
-- Instead of only being able to iterate through `Forecast` objects one by one, the new approach can also handle [ForecastBatches](https://github.com/awslabs/gluonts/pull/2286/) (PR not done yet). As some models predict in batches, these batches can now be handled directly.
-
-- Deciding over what axis to aggregate is more flexible now. Before, the workflow was set in stone: first aggregate per time series, then aggregate those values once more, and finally return per-entry and aggregated metrics. Now that the predictions come in the form of batches, an axis to aggregate over can be chosen. One consequence is that, assuming the timestamps are aligned, aggregating metrics per timestamp is now possible.
-Setting the axis to `None` means aggregating everything into a single value.
-In the univariate case, the rows represent the dataset entries and the columns the timestamps, see [Batching](#batching).
-
-- Larger datasets can be handled. Before, the values for metrics per time series had to fit into a Pandas DataFrame before being aggregated overall. Now, the mean and sum aggregations are implemented in a map-reduce way so that there's no hard limit on how much data to evaluate on, when aggregating the batch axis. No Pandas is used during evaluation anymore; everything is NumPy based.
-
-Here is a closer look at how the new evaluation approach works:
-
 ## [Usage](usage_example.py)
 
 Before diving into how things work, let's look at how to use the new evaluation approach.
@@ -56,7 +38,7 @@ test_data = test_template.generate_instances(
 predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 ```
 
-Now, we specify what metrics to evaluate. We don't provide arguments to MSE and MSIS because we are fine with the default values (in this case, taking the mean forecast as reference for MSE and using alpha=0.05 for MSIS).
+Next, we specify what metrics to evaluate. We don't provide arguments to MSE and MSIS because we are fine with the default values (in this case, taking the mean forecast as reference for MSE and using alpha=0.05 for MSIS).
 ```
 metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
 ```
@@ -127,7 +109,7 @@ Note that there are no assumptions made on what the data represents and how many
 ### [Time Series Stats](ts_stats.py)
 While "stats" take the forecasted values into account somehow, a "time series stat" does not. They act more like attributes of a time series than a comparison between time series and forecast.
 
-Currently, this only includes the seasonal error. Compared to the old approach, we "downgraded" the seasonal error from being a metric to being a time series property. Still, it is essential for some stats which are used by metrics like MASE and MSIS.
+Currently, this only includes the seasonal error which is required for metrics like MASE and MSIS.
 
 ### [Metrics](metrics.py)
 In contrast to stats, metrics always aggregate the underlying data to produce some result. In general, any axis or all of them at once (`axis=None`) can be aggregated - choosing the axis is left to the user.
@@ -157,19 +139,6 @@ There are two kinds of aggregations provided: `Sum` and `Mean`. To keep track of
 - Else, `partial_result` is a list that stores the batch-wise aggregations. When `get` is called, `partial_result` is concatenated and returned as a single `np.ndarray`.
 
 ## Metric support
-### Backward compatibility
-A few metrics provided by the [old evaluation approach](../evaluation/_base.py) are **not** supported anymore as they don't fit well into the new philosophy. These are:
-- mean_absolute_QuantileLoss
-- mean_wQuantileLoss
-- MAE_Coverage
-- [OWA](https://www.sciencedirect.com/science/article/pii/S0169207019301128) (Overall Weighted Avergage)
-
-The reason for not including these metrics is that they are aggregations of aggregations. The new approach focuses on providing maximal flexibility on the **one** axis to aggregate over. Bringing a second axis into it would be more confusing than calculating the underlying metrics and combining them after the evaluation.
-
-Also, OWA uses a naive forecast as normalization which diminishes the meaning of passing a forecast to the evaluation. A more transparent way of getting the OWA would be to calculate sMAPE and MASE with both the forecast to evaluate and the [naive_2 model](../model/naive_2/_predictor.py) and combining the results at the end.
-
-Apart from that, using `axis=None` with the new implementation does not necessarily provide exactly the same results as the `totals` (first tuple entry when calling the `Evaluator` class). This is because the old approach first aggregated per time series and then aggregated these results overall. Especially when dealing with `NaN` values, this yields a different result than aggregating over the data (which is now in batched form) directly.
-
 ### Custom metrics
 To create a new metric, first check if the metric can be implemented in such a way that a `DirectEvaluator` or `DerivedEvaluator` is used. If they don't suffice, subclass `Evaluator` directly and overwrite both `update` and `get` to calculate the desired metric.
 

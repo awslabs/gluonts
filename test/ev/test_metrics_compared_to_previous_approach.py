@@ -96,8 +96,10 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
         np.stack(seasonal_errors)
     )
 
-    # For RMSE, NRMSE, ND and Weighted Quantile Loss, the new implementations
-    # are **not** being used, because they don't follow the two-step approach.
+    # For the following metrics, the new implementations are **not** being
+    # used, because they don't follow the two-step approach. Using the new
+    # implementation with `axis=None` produces slightly different results.
+
     aggregated_metrics["RMSE"] = np.sqrt(aggregated_metrics["MSE"])
     aggregated_metrics["NRMSE"] = (
         aggregated_metrics["RMSE"] / aggregated_metrics["abs_target_mean"]
@@ -113,8 +115,6 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
             / aggregated_metrics["abs_target_sum"]
         )
 
-    # The following metrics are not supported by the new implementation
-    # because they are aggregations of aggregations.
     aggregated_metrics["mean_absolute_QuantileLoss"] = np.array(
         [aggregated_metrics[quantile.loss_name] for quantile in quantiles]
     ).mean()
