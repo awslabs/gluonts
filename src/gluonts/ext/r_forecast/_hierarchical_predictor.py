@@ -30,7 +30,7 @@ HIERARCHICAL_POINT_FORECAST_METHODS = [
     "top_down_w_proportions_of_the_historical_averages",
     "top_down_w_forecasts_proportions",
     "middle_out_w_forecasts_proportions",
-    # TODO: "mint",
+    "mint",
     # TODO: "erm",
     # TODO: "ermParallel",
 ]
@@ -102,13 +102,15 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         target_dim: int,
         num_bottom_ts: int,
         nodes: List,
-        nonnegative: bool,
         method_name: str,
         fmethod: str,
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
-        params: Optional[Dict] = None,
+        nonnegative: bool = False,
         level: Optional[int] = None,
+        algorithm: Optional[str] = "cg",
+        covariance: Optional[str] = "shr",
+        params: Optional[Dict] = None,
     ) -> None:
 
         super().__init__(
@@ -139,6 +141,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
+            "algorithm": algorithm,
+            "covariance": covariance,
         }
 
         if level:
