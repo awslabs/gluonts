@@ -84,7 +84,7 @@ from gluonts.dataset.common import TrainDatasets
 
 def to_positive_slice(slice_: slice, length: int) -> slice:
     """
-    Return an equivalent slice with positive bounds, given the
+    Returns an equivalent slice with positive bounds, given the
     length of the sequence it will apply to.
     """
     start, stop = slice_.start, slice_.stop
@@ -222,9 +222,7 @@ class AbstractBaseSplitter(ABC):
     ) -> Tuple[DataEntry, DataEntry]:
         pass
 
-    def split(
-        self, dataset: Dataset
-    ) -> Tuple["DatasetSplit", "TestTemplate"]:
+    def split(self, dataset: Dataset) -> Tuple["DatasetSplit", "TestTemplate"]:
         return (
             DatasetSplit(dataset=dataset, splitter=self),
             TestTemplate(dataset=dataset, splitter=self),
@@ -389,7 +387,7 @@ class TestData:
         return LabelDataset(self)
 
     @classmethod
-    def from_TrainDatasets(self, train_dataset: TrainDatasets) -> "TestData":
+    def from_TrainDatasets(cls, train_dataset: TrainDatasets) -> "TestData":
         prediction_length = train_dataset.metadata.prediction_length
 
         test_template = TestTemplate(
