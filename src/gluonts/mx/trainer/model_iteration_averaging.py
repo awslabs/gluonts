@@ -68,7 +68,7 @@ class IterationAveragingStrategy:
         metric
             The criteria to trigger averaging.
         epoch
-            The epoch to start averaging.
+            The current epoch, used to check for triggering.
 
         Returns
         -------
@@ -222,7 +222,8 @@ class NTA(IterationAveragingStrategy):
         metric
             The criteria to trigger averaging.
         epoch
-            The epoch to start averaging, not used in NTA
+            The current epoch, used to check for triggering.
+            Only used as fallback in NTA.
 
         Returns
         -------
@@ -257,7 +258,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
 
     r"""
     Implement Alpha Suffix model averaging.
-    This method is based on paper "Making Gradient Descent Optimalfor Strongly
+    This method is based on paper "Making Gradient Descent Optimal for Strongly
     Convex Stochastic Optimization" (https://arxiv.org/pdf/1109.5647.pdf).
     """
 
@@ -294,7 +295,7 @@ class Alpha_Suffix(IterationAveragingStrategy):
         metric
             The criteria to trigger averaging, not used in Alpha Suffix.
         epoch
-            The epoch to start averaging.
+            The current epoch, used to check for triggering.
 
         Returns
         -------
@@ -350,7 +351,7 @@ class ModelIterationAveraging(Callback):
         ctx: mx.Context,
     ) -> bool:
         self.avg_strategy.update_average_trigger(
-            metric=epoch_loss, epoch=epoch_no + 1
+            metric=epoch_loss, epoch=epoch_no
         )
         # once triggered, update the average immediately
         self.avg_strategy.apply(training_network)
