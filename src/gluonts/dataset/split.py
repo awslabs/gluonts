@@ -79,11 +79,12 @@ import pandas as pd
 
 from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.common import TrainDatasets
 
 
 def to_positive_slice(slice_: slice, length: int) -> slice:
     """
-    Return an equivalent slice with positive bounds, given the
+    Returns an equivalent slice with positive bounds, given the
     length of the sequence it will apply to.
     """
     start, stop = slice_.start, slice_.stop
@@ -208,11 +209,11 @@ class TimeSeriesSlice:
 
 class AbstractBaseSplitter(ABC):
     """
-    Base class for all other splitter.
+    Base class for all other splitters.
     """
 
     @abstractmethod
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         pass
 
     @abstractmethod
@@ -221,18 +222,16 @@ class AbstractBaseSplitter(ABC):
     ) -> Tuple[DataEntry, DataEntry]:
         pass
 
-    def split(
-        self, dataset: Dataset
-    ) -> Tuple["TrainingDataset", "TestTemplate"]:
+    def split(self, dataset: Dataset) -> Tuple["DatasetSplit", "TestTemplate"]:
         return (
-            TrainingDataset(dataset=dataset, splitter=self),
+            DatasetSplit(dataset=dataset, splitter=self),
             TestTemplate(dataset=dataset, splitter=self),
         )
 
-    def generate_training_entries(
+    def generate_split_entries(
         self, dataset: Dataset
     ) -> Generator[DataEntry, None, None]:
-        yield from map(self.training_entry, dataset)
+        yield from map(self.split_entry, dataset)
 
     def generate_test_pairs(
         self,
@@ -276,7 +275,7 @@ class OffsetSplitter(AbstractBaseSplitter):
 
     offset: int
 
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         return TimeSeriesSlice(entry)[: self.offset]
 
     def test_pair(
@@ -316,7 +315,7 @@ class DateSplitter(AbstractBaseSplitter):
 
     date: pd.Period
 
-    def training_entry(self, entry: DataEntry) -> DataEntry:
+    def split_entry(self, entry: DataEntry) -> DataEntry:
         return TimeSeriesSlice(entry)[: self.date]
 
     def test_pair(
@@ -387,6 +386,21 @@ class TestData:
     def label(self) -> "LabelDataset":
         return LabelDataset(self)
 
+    @classmethod
+    def from_TrainDatasets(cls, train_dataset: TrainDatasets) -> "TestData":
+        prediction_length = train_dataset.metadata.prediction_length
+
+        test_template = TestTemplate(
+            dataset=train_dataset.test,
+            splitter=OffsetSplitter(offset=-prediction_length),
+        )
+
+        test_data = test_template.generate_instances(
+            prediction_length=prediction_length
+        )
+
+        return test_data
+
 
 @dataclass
 class InputDataset:
@@ -422,7 +436,7 @@ class TestTemplate:
     dataset:
         Whole dataset used for testing.
     splitter:
-        A specific splitter that knows how to slices training and
+        A specific splitter that knows how to slice training and
         test data.
     """
 
@@ -465,12 +479,12 @@ class TestTemplate:
 
 
 @dataclass
-class TrainingDataset:
+class DatasetSplit:
     dataset: Dataset
     splitter: AbstractBaseSplitter
 
     def __iter__(self) -> Generator[DataEntry, None, None]:
-        return self.splitter.generate_training_entries(self.dataset)
+        return self.splitter.generate_split_entries(self.dataset)
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -478,7 +492,7 @@ class TrainingDataset:
 
 def split(
     dataset: Dataset, *, offset: int = None, date: pd.Period = None
-) -> Tuple[TrainingDataset, TestTemplate]:
+) -> Tuple[DatasetSplit, TestTemplate]:
     assert (offset is None) != (
         date is None
     ), "You need to provide ``offset`` or ``date``, but not both."
