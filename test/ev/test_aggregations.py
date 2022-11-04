@@ -77,7 +77,7 @@ def test_Sum(value_stream, res_axis_none, res_axis_0, res_axis_1):
     ):
         sum = Sum(axis=axis)
         for values in value_stream:
-            sum.step(values)
+            sum.step(np.ma.masked_invalid(values))
 
         np.testing.assert_almost_equal(sum.get(), expected_result)
 
@@ -92,19 +92,16 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
     ):
         mean = Mean(axis=axis)
         for values in value_stream:
-            mean.step(values)
+            mean.step(np.ma.masked_invalid(values))
 
         np.testing.assert_almost_equal(mean.get(), expected_result)
 
 
 def test_high_dim():
     shape = (4, 9, 5, 2)
+    batch_count = 3
 
-    value_stream = (
-        [np.random.random(shape)]
-        + [np.full(shape, np.nan)]
-        + [np.random.random(shape)]
-    )
+    value_stream = [np.random.random(shape) for _ in range(batch_count)]
     all_values = np.concatenate(value_stream)
 
     for axis in [None, 0, 1, 2, 3]:
@@ -113,7 +110,7 @@ def test_high_dim():
             sum.step(values)
 
         actual_sum = sum.get()
-        expected_sum = np.nansum(all_values, axis=axis)
+        expected_sum = all_values.sum(axis=axis)
         np.testing.assert_almost_equal(actual_sum, expected_sum)
 
         mean = Mean(axis=axis)
@@ -121,5 +118,5 @@ def test_high_dim():
             mean.step(values)
 
         actual_mean = mean.get()
-        expected_mean = np.nanmean(all_values, axis=axis)
+        expected_mean = all_values.mean(axis=axis)
         np.testing.assert_almost_equal(actual_mean, expected_mean)
