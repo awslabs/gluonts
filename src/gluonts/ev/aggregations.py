@@ -32,8 +32,6 @@ class Aggregation:
 class Sum(Aggregation):
     """Map-reduce way of calculating the sum of a stream of values.
 
-    Invalid values (Inf and NaN) are ignored.
-
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
         In each `step`, sum is being calculated and added to `partial_result`.
@@ -46,8 +44,7 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        values = values.astype("float64")
-        summed_values = np.nansum(values, axis=self.axis)
+        summed_values = np.sum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
             if self.partial_result is None:
@@ -69,8 +66,6 @@ class Sum(Aggregation):
 class Mean(Aggregation):
     """Map-reduce way of calculating the mean of a stream of values.
 
-    Invalid values (Inf and NaN) are ignored.
-
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
         First sum values acoording to axis and keep track of number of entries
@@ -86,10 +81,8 @@ class Mean(Aggregation):
     n: Optional[Union[int, np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        values = values.astype("float64")
-
         if self.axis is None or self.axis == 0:
-            summed_values = np.nansum(values, axis=self.axis)
+            summed_values = np.sum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
                 if self.axis is None:
@@ -100,21 +93,22 @@ class Mean(Aggregation):
             self.partial_result += summed_values
 
             if self.axis is None:
-                invalid_value_count = np.count_nonzero(np.isnan(values))
+                invalid_value_count = np.ma.count_masked(values)
                 self.n += values.size - invalid_value_count
             else:
-                self.n += np.ones(shape=values.shape).sum(axis=0) - np.isnan(
-                    values
-                ).sum(axis=0)
+                # TODO: check if this works
+                self.n += np.ones(shape=values.shape).sum(
+                    axis=0
+                ) - np.ma.is_masked(values).sum(axis=0)
         else:
             if self.partial_result is None:
                 self.partial_result = []
 
-            mean_values = np.nanmean(values, axis=self.axis)
+            mean_values = np.mean(values, axis=self.axis)
             self.partial_result.append(mean_values)
 
     def get(self) -> np.ndarray:
         if self.axis is None or self.axis == 0:
             return self.partial_result / self.n
 
-        return np.concatenate(self.partial_result)
+        return np.ma.concatenate(self.partial_result)
