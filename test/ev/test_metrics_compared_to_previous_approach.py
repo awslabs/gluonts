@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
+from copy import deepcopy
 
+import numpy as np
 from toolz import take
 
 from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
@@ -43,8 +44,27 @@ def get_old_metrics(dataset, predictor):
     return agg_metrics
 
 
+def get_masked_test_data(test_data: TestData) -> TestData:
+    masked_dataset = []
+    for data_entry in test_data.dataset:
+        masekd_data_entry = deepcopy(data_entry)
+        masekd_data_entry["target"] = np.ma.masked_invalid(data_entry["target"])
+        masked_dataset.append(masekd_data_entry)
+
+    masked_test_data = TestData(
+        dataset=masked_dataset,
+        splitter=test_data.splitter,
+        prediction_length=test_data.prediction_length,
+        windows=test_data.windows,
+        distance=test_data.distance,
+        max_history=test_data.max_history,
+    )
+    return masked_test_data
+
+
 def get_new_metrics(test_data: TestData, predictor: Predictor):
     """Simulate former Evaluator by doing two-step aggregations."""
+
     quantiles = [Quantile.parse(q) for q in (0.1, 0.5, 0.9)]
 
     metrics_to_evaluate = [
@@ -60,27 +80,28 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
         *(Coverage(q=quantile.value) for quantile in quantiles),
     ]
 
+    masked_test_data = get_masked_test_data(test_data)
     item_metrics = predictor.backtest(
-        test_data=test_data, metrics=metrics_to_evaluate, axis=1
+        test_data=masked_test_data, metrics=metrics_to_evaluate, axis=1
     )
 
     aggregated_metrics = {
-        "abs_target_mean": np.nanmean(item_metrics["mean_absolute_label"]),
-        "MSE": np.nanmean(item_metrics["MSE"]),
-        "MASE": np.nanmean(item_metrics["MASE"]),
-        "MAPE": np.nanmean(item_metrics["MAPE"]),
-        "sMAPE": np.nanmean(item_metrics["sMAPE"]),
-        "MSIS": np.nanmean(item_metrics["MSIS"]),
+        "abs_target_mean": np.mean(item_metrics["mean_absolute_label"]),
+        "MSE": np.mean(item_metrics["MSE"]),
+        "MASE": np.mean(item_metrics["MASE"]),
+        "MAPE": np.mean(item_metrics["MAPE"]),
+        "sMAPE": np.mean(item_metrics["sMAPE"]),
+        "MSIS": np.mean(item_metrics["MSIS"]),
         **{
-            quantile.coverage_name: np.nanmean(
+            quantile.coverage_name: np.mean(
                 item_metrics[f"coverage[{quantile.value}]"]
             )
             for quantile in quantiles
         },
-        "abs_error": np.nansum(item_metrics["sum_absolute_error"]),
-        "abs_target_sum": np.nansum(item_metrics["sum_absolute_label"]),
+        "abs_error": np.sum(item_metrics["sum_absolute_error"]),
+        "abs_target_sum": np.sum(item_metrics["sum_absolute_label"]),
         **{
-            quantile.loss_name: np.nansum(
+            quantile.loss_name: np.sum(
                 item_metrics[f"sum_quantile_loss[{quantile.value}]"]
             )
             for quantile in quantiles
@@ -88,13 +109,11 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
     }
 
     seasonal_errors = []
-    forecasts = predictor.predict(dataset=test_data.input)
-    for data in predictor.get_backtest_input(test_data, forecasts):
+    forecasts = predictor.predict(dataset=masked_test_data.input)
+    for data in predictor.get_backtest_input(masked_test_data, forecasts):
         seasonal_errors.append(data["seasonal_error"])
 
-    aggregated_metrics["seasonal_error"] = np.nanmean(
-        np.stack(seasonal_errors)
-    )
+    aggregated_metrics["seasonal_error"] = np.mean(np.stack(seasonal_errors))
 
     # For the following metrics, the new implementations are **not** being
     # used, because they don't follow the two-step approach. Using the new
@@ -163,14 +182,6 @@ def test_against_former_evaluator():
     ev_result = get_new_metrics(test_data, predictor)
 
     for metric_name in ev_result.keys():
-        # low precision of decimal=1 is used because masked arrays (which the
-        # old implementation uses) have their own implementation of mean but
-        # not nanmean (which is used in Mean aggregation)
-        # - see https://github.com/numpy/numpy/issues/9071
-
-        if ev_result[metric_name] == np.inf:
-            continue  # TODO: handle inf values
-
         np.testing.assert_almost_equal(
-            ev_result[metric_name], evaluation_result[metric_name], decimal=1
+            ev_result[metric_name], evaluation_result[metric_name]
         )
