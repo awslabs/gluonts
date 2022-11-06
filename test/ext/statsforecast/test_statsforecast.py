@@ -58,18 +58,19 @@ def test_model_config(
 @pytest.mark.parametrize(
     "predictor",
     [
-        ADIDAPredictor(prediction_length=3),
+        ADIDAPredictor(freq="H", prediction_length=3),
         AutoARIMAPredictor(
             prediction_length=3,
+            freq="H",
             quantile_levels=[0.5, 0.1, 0.9, 0.95],
         ),
-        AutoCESPredictor(prediction_length=3, season_length=12),
-        CrostonClassicPredictor(prediction_length=3),
-        CrostonOptimizedPredictor(prediction_length=3),
-        CrostonSBAPredictor(prediction_length=3),
-        ETSPredictor(prediction_length=3, season_length=12),
-        IMAPAPredictor(prediction_length=3),
-        TSBPredictor(prediction_length=3, alpha_d=0.5, alpha_p=0.5),
+        AutoCESPredictor(freq="H", prediction_length=3, season_length=12),
+        CrostonClassicPredictor(freq="H", prediction_length=3),
+        CrostonOptimizedPredictor(freq="H", prediction_length=3),
+        CrostonSBAPredictor(freq="H", prediction_length=3),
+        ETSPredictor(freq="H", prediction_length=3, season_length=12),
+        IMAPAPredictor(freq="H", prediction_length=3),
+        TSBPredictor(freq="H", prediction_length=3, alpha_d=0.5, alpha_p=0.5),
     ],
 )
 @pytest.mark.parametrize(
