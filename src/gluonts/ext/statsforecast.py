@@ -181,12 +181,16 @@ class StatsForecastPredictor(RepresentablePredictor):
             yield self.predict_item(item)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
-        # TODO use also exogenous features
         kwargs = {}
         if self.config.intervals is not None:
             kwargs["level"] = self.config.intervals
 
-        covariates = entry[FieldName.FEAT_TIME].T
+        time_feat = entry[FieldName.FEAT_TIME].T
+        static_real_cov = entry[FieldName.FEAT_STATIC_REAL]
+        repeat_static_real_cov = static_real_cov[None, :].repeat(
+            time_feat.shape[0], axis=0
+        )
+        covariates = np.hstack([time_feat, repeat_static_real_cov])
 
         prediction = self.model.forecast(
             y=entry[FieldName.TARGET],
