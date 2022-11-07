@@ -47,7 +47,7 @@ from gluonts.transform import (
 
 class LSTNetEstimator(GluonEstimator):
     """
-    Constructs an LSTNet estimator for multivariate time-series data.
+    Constructs an LSTNet estimator for multivariate time series data.
 
     The model has been described in this paper:
     https://arxiv.org/abs/1703.07015
@@ -65,7 +65,7 @@ class LSTNetEstimator(GluonEstimator):
         predictions
         (Note that it is constraints by the Conv2D output size)
     num_series
-        Number of time-series (covariates)
+        Number of time series (covariates)
     skip_size
         Skip size for the skip RNN layer
     ar_window

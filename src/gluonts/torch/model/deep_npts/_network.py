@@ -23,9 +23,7 @@ from torch.distributions import (
 )
 from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.model.forecast_generator import SampleForecastBatch
-from gluonts.torch.distributions.discrete_distribution import (
-    DiscreteDistribution,
-)
+from gluonts.torch.distributions import DiscreteDistribution
 from .scaling import (
     min_max_scaling,
     standard_normal_scaling,

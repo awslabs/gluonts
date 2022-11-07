@@ -125,7 +125,7 @@ def backtest_metrics(
     Returns
     -------
     Tuple[dict, pd.DataFrame]
-        A tuple of aggregate metrics and per-time-series metrics obtained by
+        A tuple of aggregate metrics and metrics per time series obtained by
         training `forecaster` on `train_dataset` and evaluating the resulting
         `evaluator` provided on the `test_dataset`.
     """

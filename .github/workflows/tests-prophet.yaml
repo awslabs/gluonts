@@ -27,4 +27,4 @@ jobs:
         pip install -r requirements/requirements-extras-prophet.txt
     - name: Test with pytest
       run: |
-        pytest -n2 --doctest-modules test/model/prophet
+        pytest -n2 --doctest-modules test/ext/prophet

@@ -295,7 +295,7 @@ class LSTNetTrain(LSTNetBase):
         future_observed_values: Tensor,
     ) -> Tensor:
         """
-        Computes the training l1 loss for LSTNet for multivariate time-series.
+        Computes the training l1 loss for LSTNet for multivariate time series.
         All input tensors have NCT layout.
 
         Parameters
