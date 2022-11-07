@@ -12,14 +12,16 @@
 # permissions and limitations under the License.
 
 from copy import deepcopy
+from typing import Dict, Tuple
 
 import numpy as np
 
+from gluonts.dataset import Dataset
+from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
 from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
-from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.ev import (
@@ -36,10 +38,13 @@ from gluonts.ev import (
 )
 
 
-def get_old_metrics(dataset, predictor):
+def get_old_metrics(
+    dataset: Dataset, predictor: Predictor, quantile_levels: Tuple[float]
+) -> Dict[str, np.ndarray]:
     forecast_it, ts_it = make_evaluation_predictions(dataset, predictor)
-    evaluator = Evaluator(quantiles=(0.1, 0.5, 0.9))
+    evaluator = Evaluator(quantiles=quantile_levels)
     agg_metrics, item_metrics = evaluator(ts_it, forecast_it)
+
     return agg_metrics
 
 
@@ -58,13 +63,16 @@ def get_masked_test_data(test_data: TestData) -> TestData:
         distance=test_data.distance,
         max_history=test_data.max_history,
     )
+
     return masked_test_data
 
 
-def get_new_metrics(test_data: TestData, predictor: Predictor):
+def get_new_metrics(
+    test_data: TestData, predictor: Predictor, quantile_levels: Tuple[float]
+) -> Dict[str, np.ndarray]:
     """Simulate former Evaluator by doing two-step aggregations."""
 
-    quantiles = [Quantile.parse(q) for q in (0.1, 0.5, 0.9)]
+    quantiles = [Quantile.parse(q) for q in quantile_levels]
 
     metrics_to_evaluate = [
         sum_absolute_label,
@@ -177,8 +185,12 @@ def test_against_former_evaluator():
     predictor = SeasonalNaivePredictor(
         prediction_length=prediction_length, freq=freq
     )
-    evaluation_result = get_old_metrics(dataset.test, predictor)
-    ev_result = get_new_metrics(test_data, predictor)
+
+    quantile_levels = (0.1, 0.5, 0.9)
+    evaluation_result = get_old_metrics(
+        dataset.test, predictor, quantile_levels
+    )
+    ev_result = get_new_metrics(test_data, predictor, quantile_levels)
 
     for metric_name in ev_result.keys():
         # Using decimal=4 to account for some inprecisions that likely stem
