@@ -27,6 +27,7 @@ from gluonts.dataset.loader import (
 )
 from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.model.predictor import Predictor
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -481,4 +482,5 @@ class DeepAREstimator(GluonEstimator):
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
+            forecast_type=SampleForecastBatch,
         )

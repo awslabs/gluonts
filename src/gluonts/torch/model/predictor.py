@@ -21,11 +21,16 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import ForecastBatch
+from gluonts.model.forecast_generator import ForecastBatch, predict_to_numpy
 from gluonts.model.predictor import Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.component import equals
 from gluonts.transform import Transformation
+
+
+@predict_to_numpy.register(nn.Module)
+def _(prediction_net: nn.Module, args) -> np.ndarray:
+    return prediction_net(*args).cpu().numpy()
 
 
 class PyTorchPredictor(Predictor):

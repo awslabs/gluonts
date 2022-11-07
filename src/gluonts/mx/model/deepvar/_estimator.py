@@ -477,7 +477,6 @@ class DeepVAREstimator(GluonEstimator):
             embedding_dimension=self.embedding_dimension,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
-            output_transform=self.output_transform,
         )
 
         copy_parameters(trained_network, prediction_network)
@@ -488,4 +487,5 @@ class DeepVAREstimator(GluonEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
+            output_transform=self.output_transform,
         )

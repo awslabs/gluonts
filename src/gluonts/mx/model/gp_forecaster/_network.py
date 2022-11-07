@@ -15,8 +15,7 @@ from typing import Tuple, Type
 
 import mxnet as mx
 
-from gluonts.core.component import validated, tensor_to_numpy
-from gluonts.model.forecast_generator import SampleForecastBatch
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution import softplus
 from gluonts.mx.kernels import KernelOutputDict
@@ -284,17 +283,3 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
             past_time_feat, past_target, future_time_feat
         )  # Shape (batch_size, prediction_length, num_samples)
         return samples.swapaxes(1, 2)
-
-    def forecast(self, batch: dict) -> SampleForecastBatch:
-        outputs = self(
-            batch["past_target"],
-            batch["past_time_feat"],
-            batch["future_time_feat"],
-            batch["feat_static_cat"],
-        )
-        return SampleForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            samples=tensor_to_numpy(outputs),
-        )

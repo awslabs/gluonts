@@ -15,8 +15,7 @@ from typing import List, Optional, Tuple
 
 import mxnet as mx
 
-from gluonts.core.component import validated, tensor_to_numpy
-from gluonts.model.forecast_generator import SampleForecastBatch
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import Distribution, DistributionOutput
@@ -837,12 +836,9 @@ class DeepVARTrainingNetwork(DeepVARNetwork):
 
 class DeepVARPredictionNetwork(DeepVARNetwork):
     @validated()
-    def __init__(
-        self, num_parallel_samples: int, output_transform=None, **kwargs
-    ) -> None:
+    def __init__(self, num_parallel_samples: int, **kwargs) -> None:
         super().__init__(**kwargs)
         self.num_parallel_samples = num_parallel_samples
-        self.output_transform = output_transform
 
         # for decoding the lags are shifted by one,
         # at the first time-step of the decoder a lag of one corresponds to
@@ -898,22 +894,4 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
             past_observed_values=past_observed_values,
             past_is_pad=past_is_pad,
             future_time_feat=future_time_feat,
-        )
-
-    def forecast(self, batch: dict) -> SampleForecastBatch:
-        samples = self(
-            batch["target_dimension_indicator"],
-            batch["past_time_feat"],
-            batch["past_target_cdf"],
-            batch["past_observed_values"],
-            batch["past_is_pad"],
-            batch["future_time_feat"],
-        )
-        if self.output_transform is not None:
-            samples = self.output_transform(batch, samples)
-        return SampleForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            samples=tensor_to_numpy(samples),
         )

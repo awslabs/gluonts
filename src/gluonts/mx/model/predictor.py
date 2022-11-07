@@ -19,6 +19,7 @@ from typing import Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
+from gluonts.core.component import tensor_to_numpy
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -37,6 +38,8 @@ from gluonts.mx.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
+
+OutputTransform = Callable[[dict, np.ndarray], np.ndarray]
 
 
 class GluonPredictor(Predictor):
@@ -71,8 +74,10 @@ class GluonPredictor(Predictor):
         prediction_length: int,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_type: Type,
         lead_time: int = 0,
         dtype: Type = np.float32,
+        output_transform: Optional[OutputTransform] = None,
     ) -> None:
         super().__init__(
             lead_time=lead_time,
@@ -85,6 +90,8 @@ class GluonPredictor(Predictor):
         self.input_transform = input_transform
         self.ctx = ctx
         self.dtype = dtype
+        self.forecast_type = forecast_type
+        self.output_transform = output_transform
 
     @property
     def network(self) -> BlockType:
@@ -148,7 +155,19 @@ class GluonPredictor(Predictor):
 
         with mx.Context(self.ctx):
             for batch in inference_data_loader:
-                yield self.prediction_net.forecast(batch)
+                inputs = [batch[name] for name in self.input_names]
+
+                outputs = tensor_to_numpy(self.prediction_net(*inputs))
+
+                if output_transform is not None:
+                    outputs = output_transform(batch, outputs)
+
+                yield self.forecast_type(
+                    outputs,
+                    start=batch["forecast_start"],
+                    item_id=batch.get("item_id"),
+                    info=batch.get("info"),
+                )
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -272,8 +291,10 @@ class RepresentableBlockPredictor(GluonPredictor):
         prediction_length: int,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_type: Type,
         lead_time: int = 0,
         dtype: Type = np.float32,
+        output_transform: Optional[OutputTransform] = None,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(type(prediction_net)),
@@ -284,6 +305,8 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=input_transform,
             lead_time=lead_time,
             dtype=dtype,
+            forecast_type=forecast_type,
+            output_transform=output_transform,
         )
 
     def as_symbol_block_predictor(
