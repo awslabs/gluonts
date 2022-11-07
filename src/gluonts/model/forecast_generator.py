@@ -102,15 +102,19 @@ class ForecastBatch:
 
 @dataclass
 class DistributionForecastBatch(ForecastBatch):
-    batches: list
+    distr_args: list
     distr_output: Any  # TODO fix
     start: list
     item_id: Optional[list] = None
     info: Optional[list] = None
     distr: Type = field(init=False)
 
+    @property
+    def batches(self):
+        return self.distr_args
+
     def __post_init__(self):
-        self.distr = self.distr_output.distribution(*self.batches)
+        self.distr = self.distr_output.distribution(*self.distr_args)
         if self.item_id is None:
             self.item_id = [None for _ in self.start]
         if self.info is None:
@@ -118,7 +122,8 @@ class DistributionForecastBatch(ForecastBatch):
 
     def __iter__(self) -> Iterator[Forecast]:  # TODO fix
         distributions = [
-            self.distr_output.distribution(*u) for u in _unpack(self.batches)
+            self.distr_output.distribution(*u)
+            for u in _unpack(self.distr_args)
         ]
 
         for distr, start, item_id, info in zip(
@@ -141,14 +146,18 @@ class DistributionForecastBatch(ForecastBatch):
 
 @dataclass
 class SampleForecastBatch(ForecastBatch):
-    batches: np.ndarray
+    samples: np.ndarray
     start: list
     item_id: Optional[list] = None
     info: Optional[list] = None
     sorted_samples: np.ndarray = field(init=False)
 
+    @property
+    def batches(self):
+        return self.samples
+
     def __post_init__(self):
-        self.sorted_samples = np.sort(self.batches, axis=1)
+        self.sorted_samples = np.sort(self.samples, axis=1)
 
         if self.item_id is None:
             self.item_id = [None] * self.batch_size
@@ -158,7 +167,7 @@ class SampleForecastBatch(ForecastBatch):
 
     def __iter__(self) -> Iterator[SampleForecast]:
         for sample, start, item_id, info in zip(
-            self.batches, self.start, self.item_id, self.info
+            self.samples, self.start, self.item_id, self.info
         ):
             yield SampleForecast(
                 sample,
@@ -169,14 +178,14 @@ class SampleForecastBatch(ForecastBatch):
 
     @property
     def num_samples(self) -> int:
-        return self.batches.shape[1]
+        return self.samples.shape[1]
 
     @property
     def mean(self) -> np.ndarray:
         if self._mean is not None:
             return self._mean
         else:
-            return np.mean(self.batches, axis=1)
+            return np.mean(self.samples, axis=1)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         q: float = Quantile.parse(q).value
@@ -185,11 +194,15 @@ class SampleForecastBatch(ForecastBatch):
 
 @dataclass
 class QuantileForecastBatch(ForecastBatch):
-    batches: np.ndarray
+    quantile_batch: np.ndarray
     quantile_levels: List[str]
     start: list
     item_id: Optional[list] = None
     info: Optional[list] = None
+
+    @property
+    def batches(self):
+        return self.quantile_batch
 
     def __post_init__(self):
         if self.item_id is None:
@@ -200,7 +213,7 @@ class QuantileForecastBatch(ForecastBatch):
 
     def __iter__(self) -> Iterator[QuantileForecast]:
         for quantiles, start, item_id, info in zip(
-            self.batches, self.start, self.item_id, self.info
+            self.quantile_batch, self.start, self.item_id, self.info
         ):
             yield QuantileForecast(
                 quantiles,
