@@ -14,7 +14,6 @@
 from copy import deepcopy
 
 import numpy as np
-from toolz import take
 
 from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
 from gluonts.model.forecast import Quantile
@@ -47,9 +46,9 @@ def get_old_metrics(dataset, predictor):
 def get_masked_test_data(test_data: TestData) -> TestData:
     masked_dataset = []
     for data_entry in test_data.dataset:
-        masekd_data_entry = deepcopy(data_entry)
-        masekd_data_entry["target"] = np.ma.masked_invalid(data_entry["target"])
-        masked_dataset.append(masekd_data_entry)
+        masked_entry = deepcopy(data_entry)
+        masked_entry["target"] = np.ma.masked_invalid(data_entry["target"])
+        masked_dataset.append(masked_entry)
 
     masked_test_data = TestData(
         dataset=masked_dataset,
@@ -86,22 +85,22 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
     )
 
     aggregated_metrics = {
-        "abs_target_mean": np.mean(item_metrics["mean_absolute_label"]),
-        "MSE": np.mean(item_metrics["MSE"]),
-        "MASE": np.mean(item_metrics["MASE"]),
-        "MAPE": np.mean(item_metrics["MAPE"]),
-        "sMAPE": np.mean(item_metrics["sMAPE"]),
-        "MSIS": np.mean(item_metrics["MSIS"]),
+        "abs_target_mean": np.ma.mean(item_metrics["mean_absolute_label"]),
+        "MSE": np.ma.mean(item_metrics["MSE"]),
+        "MASE": np.ma.mean(item_metrics["MASE"]),
+        "MAPE": np.ma.mean(item_metrics["MAPE"]),
+        "sMAPE": np.ma.mean(item_metrics["sMAPE"]),
+        "MSIS": np.ma.mean(item_metrics["MSIS"]),
         **{
-            quantile.coverage_name: np.mean(
+            quantile.coverage_name: np.ma.mean(
                 item_metrics[f"coverage[{quantile.value}]"]
             )
             for quantile in quantiles
         },
-        "abs_error": np.sum(item_metrics["sum_absolute_error"]),
-        "abs_target_sum": np.sum(item_metrics["sum_absolute_label"]),
+        "abs_error": np.ma.sum(item_metrics["sum_absolute_error"]),
+        "abs_target_sum": np.ma.sum(item_metrics["sum_absolute_label"]),
         **{
-            quantile.loss_name: np.sum(
+            quantile.loss_name: np.ma.sum(
                 item_metrics[f"sum_quantile_loss[{quantile.value}]"]
             )
             for quantile in quantiles
@@ -113,7 +112,9 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
     for data in predictor.get_backtest_input(masked_test_data, forecasts):
         seasonal_errors.append(data["seasonal_error"])
 
-    aggregated_metrics["seasonal_error"] = np.mean(np.stack(seasonal_errors))
+    aggregated_metrics["seasonal_error"] = np.ma.mean(
+        np.stack(seasonal_errors)
+    )
 
     # For the following metrics, the new implementations are **not** being
     # used, because they don't follow the two-step approach. Using the new
@@ -145,7 +146,7 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
         ]
     ).mean()
 
-    aggregated_metrics["MAE_Coverage"] = np.mean(
+    aggregated_metrics["MAE_Coverage"] = np.ma.mean(
         [
             np.abs(
                 aggregated_metrics[quantile.coverage_name]
@@ -159,15 +160,13 @@ def get_new_metrics(test_data: TestData, predictor: Predictor):
 
 
 def test_against_former_evaluator():
-    dataset = get_dataset("electricity")
+    dataset = get_dataset("exchange_rate")
 
     prediction_length = dataset.metadata.prediction_length
     freq = dataset.metadata.freq
 
-    dataset_test = list(take(1000, dataset.test))
-
     test_template = TestTemplate(
-        dataset=dataset_test,
+        dataset=dataset.test,
         splitter=OffsetSplitter(offset=-prediction_length),
     )
 
@@ -178,10 +177,16 @@ def test_against_former_evaluator():
     predictor = SeasonalNaivePredictor(
         prediction_length=prediction_length, freq=freq
     )
-    evaluation_result = get_old_metrics(dataset_test, predictor)
+    evaluation_result = get_old_metrics(dataset.test, predictor)
     ev_result = get_new_metrics(test_data, predictor)
 
     for metric_name in ev_result.keys():
+        # Using decimal=4 to account for some inprecisions that likely stem
+        # from the fact that the old evaluation approach uses Pandas.
+        # Taking the first 1000 entries of "electricity" for example works
+        # fine even with the default precision of decimal=7.
         np.testing.assert_almost_equal(
-            ev_result[metric_name], evaluation_result[metric_name]
+            ev_result[metric_name],
+            evaluation_result[metric_name],
+            decimal=4,
         )
