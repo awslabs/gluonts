@@ -78,7 +78,6 @@ class CausalConv1D(gluon.HybridBlock):
             **kwargs,
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
         """
         In Gluon's conv1D implementation, input has dimension NCW where N is
@@ -148,7 +147,6 @@ class DilatedCausalGated(gluon.HybridBlock):
                 channels=out_channels, kernel_size=1
             )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
         Compute the 1D convolution with Gated mechanism.
@@ -176,7 +174,6 @@ class ResidualSequential(gluon.nn.HybridSequential):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
 

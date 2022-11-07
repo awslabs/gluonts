@@ -562,7 +562,6 @@ class LDSArgsProj(mx.gluon.HybridBlock):
         self.innovation_bounds = innovation_bounds
         self.noise_std_bounds = noise_std_bounds
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         noise_std = (
             self.dense_noise_std(x)
