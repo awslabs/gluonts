@@ -75,7 +75,8 @@ class Bar:
 
 # define test.test_components.X as alias of X within the scope of this
 # file without modifying test/__init__.py
-# noinspection PyPep8Naming
+
+
 class test:
     class test_components:
         Complex = Complex
@@ -83,7 +84,6 @@ class test:
         Foo = Foo
 
 
-# noinspection PyTypeChecker
 def test_component_ctor():
     random.seed(5_432_671_244)
 

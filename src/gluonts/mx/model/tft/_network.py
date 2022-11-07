@@ -102,7 +102,6 @@ class FeatureProjector(HybridBlock):
                 for i, (c, d) in enumerate(zip(feature_dims, embedding_dims))
             ]
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, features: Tensor) -> List[Tensor]:
         """
 

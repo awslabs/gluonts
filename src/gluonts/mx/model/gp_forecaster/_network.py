@@ -93,7 +93,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
                 dtype=self.float_type,
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def get_gp_params(
         self,
         F,
@@ -159,7 +158,6 @@ class GaussianProcessNetworkBase(mx.gluon.HybridBlock):
 
 
 class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
-    # noinspection PyMethodOverriding,PyPep8Naming
     @validated()
     def __init__(self, *args, **kwargs) -> None:
         """
@@ -172,7 +170,6 @@ class GaussianProcessTrainingNetwork(GaussianProcessNetworkBase):
         """
         super().__init__(*args, **kwargs)
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -235,7 +232,6 @@ class GaussianProcessPredictionNetwork(GaussianProcessNetworkBase):
         self.num_parallel_samples = num_parallel_samples
         self.sample_noise = sample_noise
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

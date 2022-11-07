@@ -75,7 +75,6 @@ class FeatureEmbedder(nn.HybridBlock):
                 for i, (c, d) in enumerate(zip(cardinalities, embedding_dims))
             ]
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, features: Tensor) -> Tensor:
         """
 
@@ -138,13 +137,13 @@ class FeatureAssembler(nn.HybridBlock):
     Categorical features can be optionally embedded using trained embedding
     layers via nested :class:`FeatureEmbedder` components.
 
-    >>> # noinspection PyTypeChecker
+    >>>
     ... embed_static = FeatureEmbedder(
     ...     cardinalities=[2],
     ...     embedding_dims=[3],
     ...     prefix='embed_static_',
     ... )
-    >>> # noinspection PyTypeChecker
+    >>>
     ... embed_dynamic = FeatureEmbedder(
     ...     cardinalities=[5, 5],
     ...     embedding_dims=[6, 9],
@@ -236,7 +235,6 @@ class FeatureAssembler(nn.HybridBlock):
             lambda x: x
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

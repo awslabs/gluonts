@@ -164,8 +164,6 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
 
 
 class DeepStateTrainingNetwork(DeepStateNetwork):
-
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -212,7 +210,6 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

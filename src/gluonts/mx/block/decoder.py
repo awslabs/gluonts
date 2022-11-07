@@ -29,7 +29,6 @@ class Seq2SeqDecoder(nn.HybridBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, static_input: Tensor, dynamic_input: Tensor
     ) -> Tensor:

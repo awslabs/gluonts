@@ -32,7 +32,6 @@ class PeriodicKernel(Kernel):
     :math:`\theta_2` is the frequency parameter.
     """
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def __init__(
         self,
         amplitude: Tensor,
@@ -60,7 +59,6 @@ class PeriodicKernel(Kernel):
         self.length_scale = length_scale
         self.frequency = frequency
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor) -> Tensor:
         """
         Parameters
@@ -105,7 +103,6 @@ class PeriodicKernelOutput(KernelOutputDict):
     }
     kernel_cls: type = PeriodicKernel
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -150,7 +147,6 @@ class PeriodicKernelOutput(KernelOutputDict):
             sigma_scaling,
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     @classmethod
     def domain_map(cls, F, amplitude, length_scale, frequency):
         r"""

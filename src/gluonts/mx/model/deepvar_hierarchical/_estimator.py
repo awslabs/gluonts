@@ -206,7 +206,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         coherent_train_samples: bool = True,
         coherent_pred_samples: bool = True,
         warmstart_epoch_frac: float = 0.0,
-        seq_axis: List[int] = None,
+        seq_axis: Optional[List[int]] = None,
         log_coherency_error: bool = True,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
