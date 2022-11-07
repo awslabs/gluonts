@@ -278,3 +278,24 @@ def partition(
             right.append(val)
 
     return left, right
+
+
+def select(keys, source: dict, ignore_missing: bool = False) -> dict:
+    """Select subset of `source` dictionaries.
+
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> select(["a", "b"], d)
+    {'a': 1, 'b': 2}
+
+    """
+
+    result = {}
+
+    for key in keys:
+        try:
+            result[key] = source[key]
+        except KeyError:
+            if not ignore_missing:
+                raise
+
+    return result
