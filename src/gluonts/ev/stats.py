@@ -83,5 +83,7 @@ def scaled_interval_score(
     return numerator / data["seasonal_error"]
 
 
-def absolute_scaled_error(data: Dict[str, np.ndarray], forecast_type: str):
+def absolute_scaled_error(
+    data: Dict[str, np.ndarray], forecast_type: str
+) -> np.ndarray:
     return absolute_error(data, forecast_type) / data["seasonal_error"]
