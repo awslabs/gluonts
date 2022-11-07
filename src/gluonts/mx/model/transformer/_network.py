@@ -231,7 +231,6 @@ class TransformerNetwork(mx.gluon.HybridBlock):
 
 
 class TransformerTrainingNetwork(TransformerNetwork):
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -428,7 +427,6 @@ class TransformerPredictionNetwork(TransformerNetwork):
             )
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

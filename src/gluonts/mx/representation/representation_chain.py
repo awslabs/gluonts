@@ -55,7 +55,6 @@ class RepresentationChain(Representation):
         for representation in self.chain:
             representation.initialize_from_array(input_array, ctx)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

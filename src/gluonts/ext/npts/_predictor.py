@@ -228,7 +228,7 @@ class NPTSPredictor(RepresentablePredictor):
         self,
         ts: pd.Series,
         num_samples: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
         item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
@@ -293,7 +293,7 @@ class NPTSPredictor(RepresentablePredictor):
         self,
         train_index: pd.PeriodIndex,
         prediction_length: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Internal method for computing default, (optional) seasonal features for

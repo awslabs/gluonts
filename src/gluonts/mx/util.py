@@ -136,7 +136,6 @@ def get_hybrid_forward_input_names(
     return param_names[2:]  # skip: self, F
 
 
-# noinspection PyProtectedMember
 def hybrid_block_to_symbol_block(
     hb: mx.gluon.HybridBlock, data_batch: List[mx.nd.NDArray]
 ) -> mx.gluon.SymbolBlock:
@@ -186,7 +185,6 @@ def hybrid_block_to_symbol_block(
         return sb
 
 
-# noinspection PyProtectedMember
 def export_symb_block(
     hb: mx.gluon.HybridBlock, model_dir: Path, model_name: str, epoch: int = 0
 ) -> None:

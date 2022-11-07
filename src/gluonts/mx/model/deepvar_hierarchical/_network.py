@@ -170,7 +170,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         cardinality: List[int] = [1],
         embedding_dimension: int = 1,
         scaling: bool = True,
-        seq_axis: List[int] = None,
+        seq_axis: Optional[List[int]] = None,
         **kwargs,
     ) -> None:
         super().__init__(

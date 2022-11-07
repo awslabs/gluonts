@@ -111,7 +111,6 @@ class QuantileLoss(Loss):
             else uniform_weights(quantiles)
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, y_true: Tensor, y_pred: Tensor, sample_weight=None
     ):
