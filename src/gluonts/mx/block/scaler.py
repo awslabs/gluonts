@@ -59,7 +59,6 @@ class Scaler(nn.HybridBlock):
         """
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tuple[Tensor, Tensor]:
@@ -274,7 +273,6 @@ class NOPScaler(Scaler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # noinspection PyMethodOverriding
     def compute_scale(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tensor:

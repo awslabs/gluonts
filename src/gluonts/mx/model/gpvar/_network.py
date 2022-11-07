@@ -197,8 +197,6 @@ class GPVARNetwork(DeepVARNetwork):
 
 
 class GPVARTrainingNetwork(GPVARNetwork):
-
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -297,7 +295,6 @@ class GPVARPredictionNetwork(GPVARNetwork):
 
         return [[repeat(s) for s in states] for states in begin_states]
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

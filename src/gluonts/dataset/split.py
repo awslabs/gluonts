@@ -477,7 +477,7 @@ class TrainingDataset:
 
 
 def split(
-    dataset: Dataset, *, offset: int = None, date: pd.Period = None
+    dataset: Dataset, *, offset: Optional[int] = None, date: pd.Period = None
 ) -> Tuple[TrainingDataset, TestTemplate]:
     assert (offset is None) != (
         date is None

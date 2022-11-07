@@ -138,7 +138,6 @@ class LayerNormalization(HybridBlock):
                 epsilon=eps,
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
         r"""
         Normalizes hidden units of data as follows:
@@ -303,7 +302,6 @@ class MultiHeadSelfAttention(MultiHeadAttentionBase):
                 units=self.att_dim_in * 3, flatten=False
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -394,7 +392,6 @@ class MultiHeadAttention(MultiHeadAttentionBase):
                 units=self.att_dim_in, flatten=False
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, queries: Tensor, memory: Tensor, mask: Optional[Tensor] = None
     ) -> Tensor:
@@ -515,7 +512,6 @@ class TransformerProcessBlock(HybridBlock):
         if "n" in sequence:
             self.layer_norm = LayerNormalization()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, data: Tensor, prev: Optional[Tensor] = None
     ) -> Tensor:
