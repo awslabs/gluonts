@@ -12,29 +12,13 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-import logging
 from functools import singledispatch
-from typing import (
-    Callable,
-    Iterator,
-    List,
-    Optional,
-    Any,
-    Union,
-    Type,
-    Collection,
-)
+from typing import Iterator, List, Optional, Any, Union, Type, Collection
 
 import numpy as np
 
 from gluonts.core.component import tensor_to_numpy
-from gluonts.dataset.common import DataEntry
-from gluonts.model.forecast import (
-    Forecast,
-    QuantileForecast,
-    SampleForecast,
-    Quantile,
-)
+from .forecast import Forecast, QuantileForecast, SampleForecast, Quantile
 
 
 def fast_quantile(data: np.ndarray, q: float, axis: int) -> np.ndarray:
