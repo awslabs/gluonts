@@ -543,7 +543,7 @@ class MultivariateEvaluator(Evaluator):
         quantiles: Iterable[Union[float, str]] = np.linspace(0.1, 0.9, 9),
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
-        eval_dims: List[int] = None,
+        eval_dims: Optional[List[int]] = None,
         target_agg_funcs: Dict[str, Callable] = {},
         custom_eval_fn: Optional[dict] = None,
         num_workers: Optional[int] = None,
