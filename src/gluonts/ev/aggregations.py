@@ -44,7 +44,7 @@ class Sum(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        summed_values = np.sum(values, axis=self.axis)
+        summed_values = np.ma.sum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
             if self.partial_result is None:
@@ -57,9 +57,9 @@ class Sum(Aggregation):
 
     def get(self) -> np.ndarray:
         if self.axis is None or self.axis == 0:
-            return np.copy(self.partial_result)
+            return np.ma.copy(self.partial_result)
 
-        return np.concatenate(self.partial_result)
+        return np.ma.concatenate(self.partial_result)
 
 
 @dataclass
@@ -82,7 +82,7 @@ class Mean(Aggregation):
 
     def step(self, values: np.ndarray) -> None:
         if self.axis is None or self.axis == 0:
-            summed_values = np.sum(values, axis=self.axis)
+            summed_values = np.ma.sum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
                 if self.axis is None:
@@ -96,7 +96,7 @@ class Mean(Aggregation):
             if self.partial_result is None:
                 self.partial_result = []
 
-            mean_values = np.mean(values, axis=self.axis)
+            mean_values = np.ma.mean(values, axis=self.axis)
             self.partial_result.append(mean_values)
 
     def get(self) -> np.ndarray:
