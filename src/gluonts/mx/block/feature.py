@@ -137,14 +137,12 @@ class FeatureAssembler(nn.HybridBlock):
     Categorical features can be optionally embedded using trained embedding
     layers via nested :class:`FeatureEmbedder` components.
 
-    >>>
-    ... embed_static = FeatureEmbedder(
+    >>> embed_static = FeatureEmbedder(
     ...     cardinalities=[2],
     ...     embedding_dims=[3],
     ...     prefix='embed_static_',
     ... )
-    >>>
-    ... embed_dynamic = FeatureEmbedder(
+    >>> embed_dynamic = FeatureEmbedder(
     ...     cardinalities=[5, 5],
     ...     embedding_dims=[6, 9],
     ...     prefix='embed_dynamic_',

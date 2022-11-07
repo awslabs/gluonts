@@ -75,8 +75,6 @@ class Bar:
 
 # define test.test_components.X as alias of X within the scope of this
 # file without modifying test/__init__.py
-
-
 class test:
     class test_components:
         Complex = Complex
