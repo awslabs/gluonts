@@ -96,7 +96,7 @@ def evaluate(
     recipe: Recipe,
     length: ValueOrCallable,
     *args,
-    global_state: dict = None,
+    global_state: Optional[dict] = None,
     **kwargs,
 ) -> Any:
     if global_state is None:
