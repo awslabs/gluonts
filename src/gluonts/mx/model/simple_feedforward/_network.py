@@ -15,11 +15,7 @@ from typing import List, Tuple
 
 import mxnet as mx
 
-from gluonts.core.component import validated, tensor_to_numpy
-from gluonts.model.forecast_generator import (
-    DistributionForecastBatch,
-    SampleForecastBatch,
-)
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
@@ -214,15 +210,6 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
         # (batch_size, num_samples, prediction_length)
         return samples.swapaxes(0, 1)
 
-    def forecast(self, batch: dict) -> SampleForecastBatch:
-        outputs = self(batch["past_target"])
-        return SampleForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            samples=tensor_to_numpy(outputs),
-        )
-
 
 class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
@@ -256,13 +243,3 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         """
         distr_args, loc, scale = self.get_distr_args(F, past_target)
         return distr_args, loc, scale
-
-    def forecast(self, batch: dict) -> DistributionForecastBatch:
-        outputs = self(batch["past_target"])
-        return DistributionForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            distr_output=self.distr_output,
-            distr_args=outputs,
-        )

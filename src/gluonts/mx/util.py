@@ -215,9 +215,6 @@ def export_symb_block(
         )
         print(dump_json(in_out_format), file=fp)
 
-    with (model_dir / f"{model_name}-network.json").open("w") as fp:
-        print(dump_json(hb), file=fp)
-
 
 def import_symb_block(
     num_inputs: int, model_dir: Path, model_name: str, epoch: int = 0

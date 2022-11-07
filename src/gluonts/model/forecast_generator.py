@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass, field
 from functools import singledispatch
-from typing import Iterator, List, Optional, Any, Union, Type, Collection
+from typing import Any, Collection, Iterator, List, Optional, Type, Union
 
 import numpy as np
 
@@ -141,6 +141,8 @@ class SampleForecastBatch(ForecastBatch):
         return self.samples
 
     def __post_init__(self):
+        self.samples = tensor_to_numpy(self.samples)
+
         self.sorted_samples = np.sort(self.samples, axis=1)
 
         if self.item_id is None:

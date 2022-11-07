@@ -15,7 +15,7 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Iterator, List, Optional, Type
+from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
@@ -24,7 +24,7 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import ForecastBatch
+from gluonts.model.forecast_generator import ForecastBatch, _unpack
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.component import equals
@@ -157,10 +157,10 @@ class GluonPredictor(Predictor):
             for batch in inference_data_loader:
                 inputs = [batch[name] for name in self.input_names]
 
-                outputs = tensor_to_numpy(self.prediction_net(*inputs))
+                outputs = self.prediction_net(*inputs)
 
-                if output_transform is not None:
-                    outputs = output_transform(batch, outputs)
+                if self.output_transform is not None:
+                    outputs = self.output_transform(batch, outputs)
 
                 yield self.forecast_type(
                     outputs,
@@ -196,6 +196,12 @@ class GluonPredictor(Predictor):
         # serialize transformation chain
         with (path / "input_transform.json").open("w") as fp:
             print(dump_json(self.input_transform), file=fp)
+
+        with (path / "output_transform.json").open("w") as fp:
+            print(dump_json(self.output_transform), file=fp)
+
+        with (path / "forecast_type.json").open("w") as fp:
+            print(dump_json(self.forecast_type), file=fp)
 
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
@@ -252,6 +258,12 @@ class SymbolBlockPredictor(GluonPredictor):
             with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
+            with (path / "output_transform.json").open("r") as fp:
+                output_transform = load_json(fp.read())
+
+            with (path / "forecast_type.json").open("r") as fp:
+                forecast_type = load_json(fp.read())
+
             # deserialize prediction network
             num_inputs = len(parameters["input_names"])
             prediction_net = import_symb_block(
@@ -259,8 +271,10 @@ class SymbolBlockPredictor(GluonPredictor):
             )
 
             return SymbolBlockPredictor(
-                input_transform=transform,
                 prediction_net=prediction_net,
+                input_transform=transform,
+                output_transform=output_transform,
+                forecast_type=forecast_type,
                 **parameters,
             )
 
@@ -339,6 +353,8 @@ class RepresentableBlockPredictor(GluonPredictor):
             input_transform=self.input_transform,
             lead_time=self.lead_time,
             dtype=self.dtype,
+            forecast_type=self.forecast_type,
+            output_transform=self.output_transform,
         )
 
     def serialize(self, path: Path) -> None:
@@ -365,7 +381,13 @@ class RepresentableBlockPredictor(GluonPredictor):
 
             # deserialize transformation chain
             with (path / "input_transform.json").open("r") as fp:
-                transform = load_json(fp.read())
+                input_transform = load_json(fp.read())
+
+            with (path / "output_transform.json").open("r") as fp:
+                output_transform = load_json(fp.read())
+
+            with (path / "forecast_type.json").open("r") as fp:
+                forecast_type = load_json(fp.read())
 
             # deserialize prediction network
             prediction_net = import_repr_block(path, "prediction_net")
@@ -377,7 +399,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             parameters["ctx"] = ctx
 
             return RepresentableBlockPredictor(
-                input_transform=transform,
                 prediction_net=prediction_net,
+                input_transform=input_transform,
+                output_transform=output_transform,
+                forecast_type=forecast_type,
                 **parameters,
             )

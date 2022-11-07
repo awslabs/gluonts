@@ -37,9 +37,6 @@ if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
 
 
-OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
-
-
 class Predictor:
     """
     Abstract class representing predictor objects.

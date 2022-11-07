@@ -16,11 +16,7 @@ from typing import List, Optional, Tuple, Type
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import validated, tensor_to_numpy
-from gluonts.model.forecast_generator import (
-    DistributionForecastBatch,
-    QuantileForecastBatch,
-)
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.block.decoder import Seq2SeqDecoder
 from gluonts.mx.block.enc2dec import Seq2SeqEnc2Dec
@@ -341,23 +337,6 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         # shape: (num_test_ts, num_quantiles, prediction_length)
         return fcst_output.swapaxes(2, 1)
 
-    def forecast(self, batch: dict) -> QuantileForecastBatch:
-        outputs = self(
-            batch["past_target"],
-            batch["past_feat_dynamic"],
-            batch["future_feat_dynamic"],
-            batch["feat_static_cat"],
-            batch["past_observed_values"],
-        )
-        assert self.quantile_output is not None
-        return QuantileForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            quantile_batch=tensor_to_numpy(outputs),
-            quantile_levels=self.quantile_output.quantile_strs,
-        )
-
 
 class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
     # noinspection PyMethodOverriding
@@ -407,19 +386,3 @@ class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
         loc = F.zeros_like(scale)
         return distr_args, loc, scale
-
-    def forecast(self, batch: dict) -> DistributionForecastBatch:
-        output = self(
-            batch["past_target"],
-            batch["past_feat_dynamic"],
-            batch["future_feat_dynamic"],
-            batch["feat_static_cat"],
-            batch["past_observed_values"],
-        )
-        return DistributionForecastBatch(
-            start=batch["forecast_start"],
-            item_id=batch.get("item_id", None),
-            info=batch.get("info", None),
-            distr_output=self.distr_output,
-            distr_args=output,
-        )
