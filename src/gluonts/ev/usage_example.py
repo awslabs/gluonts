@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.split import TestTemplate, OffsetSplitter
+from gluonts.dataset.split import split
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
 from gluonts.ev.metrics import MSIS, MSE, SumQuantileLoss
@@ -21,10 +21,7 @@ dataset = get_dataset("exchange_rate")
 prediction_length = dataset.metadata.prediction_length
 freq = dataset.metadata.freq
 
-test_template = TestTemplate(
-    dataset=dataset.test, splitter=OffsetSplitter(offset=-prediction_length)
-)
-
+_, test_template = split(dataset=dataset.test, offset=-prediction_length)
 test_data = test_template.generate_instances(
     prediction_length=prediction_length
 )
