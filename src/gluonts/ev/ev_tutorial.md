@@ -9,7 +9,7 @@ Before diving into how things work, let's look at how to use the new evaluation 
 ### Overview
 1. Decide on the `test_data` (of type `TestData`) and `predictor` to use.
 2. Gather the `metrics` to be evaluated and decide over what `axis` to aggregate (use `None` to aggregate to a single value).
-3. Call `predictor.backtest(test_data, metrics, axis)` to get (metric name, metric result) pairs.
+3. Call `predictor.backtest(metrics, test_data, axis)` to get (metric name, metric result) pairs.
 
 ### Example
 
@@ -45,7 +45,7 @@ metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
 To evaluate these metrics, we call the `backtest` method on our predictor. We want to have these metrics evaluated per time series so we specify `axis=1 `(an `axis` of `0` would aggregate per timestamp and `None` would aggregate overall). The `num_samples` is an optional argument used during the call to `predict`.
 ```
 evaluation_result = predictor.backtest(
-    test_data, metrics_per_entry, axis=1, num_samples=100
+    metrics=metrics_per_entry, test_data=test_data, axis=1, num_samples=100
 )
 ```
 Finally, we print the `evaluation_result`.
