@@ -155,47 +155,6 @@ class Predictor:
         params = {**auto_params, **params}
         return cls.from_hyperparameters(**params)
 
-    def get_backtest_input(
-        self,
-        test_data: TestData,
-        forecasts: Iterable[Union[Forecast, ForecastBatch]],
-    ) -> Iterator[Dict[str, np.ndarray]]:
-        for input, label, forecast in zip(
-            test_data.input, test_data.label, forecasts
-        ):
-            input_target = input["target"]
-            label_target = label["target"]
-
-            non_forecast_data = {
-                "label": label_target,
-                "seasonal_error": seasonal_error(
-                    input_target,
-                    seasonality=get_seasonality(
-                        freq=forecast.start_date.freqstr
-                    ),
-                ),
-            }
-
-            batching_used = isinstance(forecast, ForecastBatch)
-            if batching_used:
-                forecast_data = forecast
-            else:
-                non_forecast_data = {
-                    key: np.expand_dims(value, axis=0)
-                    for key, value in non_forecast_data.items()
-                }
-
-                if isinstance(forecast, SampleForecast):
-                    forecast_data = SampleForecastBatch.from_forecast(forecast)
-                elif isinstance(forecast, QuantileForecast):
-                    forecast_data = QuantileForecastBatch.from_forecast(
-                        forecast
-                    )
-
-            joint_data = ChainMap(non_forecast_data, forecast_data)
-
-            yield joint_data
-
     def backtest(
         self,
         test_data: TestData,
@@ -214,13 +173,11 @@ class Predictor:
             evaluators[evaluator.name] = evaluator
 
         forecasts = self.predict(dataset=test_data.input, **kwargs)
-        data_batches = self.get_backtest_input(
-            test_data=test_data, forecasts=forecasts
-        )
+        data = get_backtest_input(test_data=test_data, forecasts=forecasts)
 
-        for data in data_batches:
+        for data_batch in data:
             for evaluator in evaluators.values():
-                evaluator.update(data)
+                evaluator.update(data_batch)
 
         result = {
             metric_name: evaluator.get()
@@ -504,3 +461,36 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
         return fallback_predict
 
     return decorator
+
+
+def get_backtest_input(
+    test_data: TestData, forecasts: Iterable[Union[Forecast, ForecastBatch]]
+) -> Iterator[Dict[str, np.ndarray]]:
+    for input, label, forecast in zip(
+        test_data.input, test_data.label, forecasts
+    ):
+        non_forecast_data = {
+            "label": label["target"],
+            "seasonal_error": seasonal_error(
+                input["target"],
+                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
+            ),
+        }
+
+        batching_used = isinstance(forecast, ForecastBatch)
+        if batching_used:
+            forecast_data = forecast
+        else:
+            non_forecast_data = {
+                key: np.expand_dims(value, axis=0)
+                for key, value in non_forecast_data.items()
+            }
+
+            if isinstance(forecast, SampleForecast):
+                forecast_data = SampleForecastBatch.from_forecast(forecast)
+            elif isinstance(forecast, QuantileForecast):
+                forecast_data = QuantileForecastBatch.from_forecast(forecast)
+
+        joint_data = ChainMap(non_forecast_data, forecast_data)
+
+        yield joint_data

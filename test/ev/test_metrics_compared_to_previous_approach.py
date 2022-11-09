@@ -20,7 +20,7 @@ from gluonts.dataset import Dataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import TestData, TestTemplate, OffsetSplitter
 from gluonts.model.forecast import Quantile
-from gluonts.model.predictor import Predictor
+from gluonts.model.predictor import Predictor, get_backtest_input
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
@@ -117,7 +117,7 @@ def get_new_metrics(
 
     seasonal_errors = []
     forecasts = predictor.predict(dataset=masked_test_data.input)
-    for data in predictor.get_backtest_input(masked_test_data, forecasts):
+    for data in get_backtest_input(masked_test_data, forecasts):
         seasonal_errors.append(data["seasonal_error"])
 
     aggregated_metrics["seasonal_error"] = np.ma.mean(
