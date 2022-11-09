@@ -11,8 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .viz import plot
+from .viz import (
+    plot_time_series,
+    plot_univariate_forecast,
+    plot_multivariate_forecast,
+    plot_forecast_comparison,
+)
 
 __all__ = [
-    "plot"
+    "plot_time_series",
+    "plot_univariate_forecast",
+    "plot_multivariate_forecast",
+    "plot_forecast_comparison",
 ]
