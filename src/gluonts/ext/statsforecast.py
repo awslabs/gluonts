@@ -29,22 +29,11 @@ from statsforecast.models import (
 )
 
 from gluonts.core.component import validated
-from gluonts.dataset import DataEntry, Dataset
+from gluonts.dataset import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
-from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
-from gluonts.transform import (
-    Transformation,
-    Chain,
-    RemoveFields,
-    SetField,
-    AsNumpyArray,
-    AddTimeFeatures,
-    AddAgeFeature,
-    VstackFeatures,
-)
 
 
 @dataclass
@@ -107,95 +96,49 @@ class StatsForecastPredictor(RepresentablePredictor):
         self,
         prediction_length: int,
         quantile_levels: Optional[List[float]] = None,
-        num_feat_dynamic_real: int = 0,
-        num_feat_static_real: int = 0,
-        freq: Optional[str] = None,
-        time_features: Optional[List[TimeFeature]] = None,
         **model_params,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
         self.model = self.ModelType(**model_params)
         self.config = ModelConfig(quantile_levels=quantile_levels)
-        self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.num_feat_static_real = num_feat_static_real
-        self.time_features = (
-            time_features
-            if time_features is not None
-            else time_features_from_frequency_str(freq)
-        )
-
-    def create_transformation(self) -> Transformation:
-        remove_field_names = []
-        if self.num_feat_static_real == 0:
-            remove_field_names.append(FieldName.FEAT_STATIC_REAL)
-        if self.num_feat_dynamic_real == 0:
-            remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-
-        return Chain(
-            [RemoveFields(field_names=remove_field_names)]
-            + (
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                ]
-                if not self.num_feat_static_real > 0
-                else []
-            )
-            + [
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                ),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-                AddAgeFeature(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_AGE,
-                    pred_length=self.prediction_length,
-                    log_scale=True,
-                ),
-                VstackFeatures(
-                    output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
-                    + (
-                        [FieldName.FEAT_DYNAMIC_REAL]
-                        if self.num_feat_dynamic_real > 0
-                        else []
-                    ),
-                ),
-            ]
-        )
-
-    def predict(
-        self, dataset: Dataset, **kwargs
-    ) -> Iterator[QuantileForecast]:
-        transformation = self.create_transformation()
-        transformed_dataset = transformation(dataset, is_train=False)
-        for item in transformed_dataset:
-            yield self.predict_item(item)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         kwargs = {}
         if self.config.intervals is not None:
             kwargs["level"] = self.config.intervals
 
-        time_feat = entry[FieldName.FEAT_TIME].T
-        static_real_cov = entry[FieldName.FEAT_STATIC_REAL]
-        repeat_static_real_cov = static_real_cov[None, :].repeat(
-            time_feat.shape[0], axis=0
-        )
-        covariates = np.hstack([time_feat, repeat_static_real_cov])
+        length = len(entry[FieldName.TARGET])
+        covariates = None
+
+        if FieldName.FEAT_DYNAMIC_REAL in entry:
+            covariates = entry[FieldName.FEAT_DYNAMIC_REAL].T
+            length = covariates.shape[0]
+
+        if FieldName.FEAT_STATIC_REAL in entry:
+            static_real_cov = entry[FieldName.FEAT_STATIC_REAL]
+
+            repeat_static_real_cov = static_real_cov[None, :].repeat(
+                length, axis=0
+            )
+
+            if covariates is not None:
+                covariates = np.hstack([covariates, repeat_static_real_cov])
+            else:
+                covariates = repeat_static_real_cov
+
+        if covariates is not None and (
+            length == len(entry[FieldName.TARGET]) + self.prediction_length
+        ):
+            X = covariates[: -self.prediction_length, :]
+            X_future = covariates[-self.prediction_length :, :]
+        else:
+            X = covariates
+            X_future = None
 
         prediction = self.model.forecast(
             y=entry[FieldName.TARGET],
-            X=covariates[: -self.prediction_length, :],
-            X_future=covariates[-self.prediction_length :, :],
+            X=X,
+            X_future=X_future,
             h=self.prediction_length,
             **kwargs,
         )

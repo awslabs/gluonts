@@ -58,19 +58,17 @@ def test_model_config(
 @pytest.mark.parametrize(
     "predictor",
     [
-        ADIDAPredictor(freq="H", prediction_length=3),
+        ADIDAPredictor(prediction_length=3),
         AutoARIMAPredictor(
-            prediction_length=3,
-            freq="H",
-            quantile_levels=[0.5, 0.1, 0.9, 0.95],
+            prediction_length=3, quantile_levels=[0.5, 0.1, 0.9, 0.95]
         ),
-        AutoCESPredictor(freq="H", prediction_length=3, season_length=12),
-        CrostonClassicPredictor(freq="H", prediction_length=3),
-        CrostonOptimizedPredictor(freq="H", prediction_length=3),
-        CrostonSBAPredictor(freq="H", prediction_length=3),
-        ETSPredictor(freq="H", prediction_length=3, season_length=12),
-        IMAPAPredictor(freq="H", prediction_length=3),
-        TSBPredictor(freq="H", prediction_length=3, alpha_d=0.5, alpha_p=0.5),
+        AutoCESPredictor(prediction_length=3, season_length=12),
+        CrostonClassicPredictor(prediction_length=3),
+        CrostonOptimizedPredictor(prediction_length=3),
+        CrostonSBAPredictor(prediction_length=3),
+        ETSPredictor(prediction_length=3, season_length=12),
+        IMAPAPredictor(prediction_length=3),
+        TSBPredictor(prediction_length=3, alpha_d=0.5, alpha_p=0.5),
     ],
 )
 @pytest.mark.parametrize(
@@ -81,7 +79,52 @@ def test_model_config(
                 start=pd.Period("2021-02-03 00", freq="H"),
                 target=np.random.normal(loc=10, scale=0.5, size=(100,)),
             )
-        ]
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0, 1.2]),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(1, 53)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0]),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 50)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0]),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 53)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 50)
+                ),
+            )
+        ],
     ],
 )
 def test_predictor_working(
