@@ -31,7 +31,6 @@ class RBFKernel(Kernel):
     :math:`\theta_1` is the length scale parameter.
     """
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def __init__(
         self, amplitude: Tensor, length_scale: Tensor, F=None
     ) -> None:
@@ -51,7 +50,6 @@ class RBFKernel(Kernel):
         self.amplitude = amplitude
         self.length_scale = length_scale
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor) -> Tensor:
         """
         Parameters
@@ -83,7 +81,6 @@ class RBFKernelOutput(KernelOutputDict):
     args_dim: Dict[str, int] = {"amplitude": 1, "length_scale": 1}
     kernel_cls: type = RBFKernel
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
@@ -121,7 +118,6 @@ class RBFKernelOutput(KernelOutputDict):
         )
         return amplitude_scaling, length_scale_scaling, sigma_scaling
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def domain_map(self, F, amplitude, length_scale):
         """
         This function applies the softmax to the RBF Kernel hyper-parameters.

@@ -70,7 +70,6 @@ class CanonicalNetworkBase(HybridBlock):
 
 
 class CanonicalTrainingNetwork(CanonicalNetworkBase):
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -122,7 +121,6 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
         self.prediction_len = prediction_len
         self.num_parallel_samples = num_parallel_samples
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
