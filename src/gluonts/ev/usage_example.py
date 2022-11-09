@@ -33,7 +33,7 @@ predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 
 metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
 evaluation_result = predictor.backtest(
-    test_data, metrics_per_entry, axis=1, num_samples=100
+    metrics=metrics_per_entry, test_data=test_data, axis=1, num_samples=100
 )
 for name, value in evaluation_result.items():
     print(f"\n{name}: {value}")

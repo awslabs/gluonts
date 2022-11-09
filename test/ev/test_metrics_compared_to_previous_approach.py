@@ -89,7 +89,7 @@ def get_new_metrics(
 
     masked_test_data = get_masked_test_data(test_data)
     item_metrics = predictor.backtest(
-        test_data=masked_test_data, metrics=metrics_to_evaluate, axis=1
+        metrics=metrics_to_evaluate, test_data=masked_test_data, axis=1
     )
 
     aggregated_metrics = {
@@ -117,7 +117,9 @@ def get_new_metrics(
 
     seasonal_errors = []
     forecasts = predictor.predict(dataset=masked_test_data.input)
-    for data in get_backtest_input(masked_test_data, forecasts):
+    for data in get_backtest_input(
+        test_data=masked_test_data, forecasts=forecasts
+    ):
         seasonal_errors.append(data["seasonal_error"])
 
     aggregated_metrics["seasonal_error"] = np.ma.mean(

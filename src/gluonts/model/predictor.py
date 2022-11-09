@@ -157,8 +157,8 @@ class Predictor:
 
     def backtest(
         self,
-        test_data: TestData,
         metrics: Collection[Metric],
+        test_data: TestData,
         axis: Optional[int] = None,
         **kwargs,
     ) -> np.ndarray:
