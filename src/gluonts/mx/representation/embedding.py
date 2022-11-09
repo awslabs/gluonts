@@ -55,7 +55,6 @@ class Embedding(Representation):
             input_dim=self.num_bins, output_dim=self.size
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

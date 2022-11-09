@@ -398,7 +398,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         self.forecast_start_field = forecast_start_field
         self.freq = freq
 
-    # noinspection PyMethodMayBeStatic
     def _mask_sorted(self, a: np.ndarray, lb: float, ub: float):
         start = np.searchsorted(a, lb)
         end = np.searchsorted(a, ub)

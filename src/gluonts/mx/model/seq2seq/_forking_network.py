@@ -210,7 +210,6 @@ class ForkingSeq2SeqNetworkBase(gluon.HybridBlock):
 
 
 class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -281,7 +280,6 @@ class ForkingSeq2SeqTrainingNetwork(ForkingSeq2SeqNetworkBase):
 
 
 class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -339,7 +337,6 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
 
 
 class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

@@ -565,10 +565,9 @@ class SampleForecast(Forecast):
         """
         Forecast mean.
         """
-        if self._mean is not None:
-            return self._mean
-        else:
-            return np.mean(self.samples, axis=0)
+        if self._mean is None:
+            self._mean = np.mean(self.samples, axis=0)
+        return self._mean
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -614,17 +613,16 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
+        if self._dim is None:
             if len(self.samples.shape) == 2:
                 # univariate target
                 # shape: (num_samples, prediction_length)
-                return 1
+                self._dim = 1
             else:
                 # multivariate target
                 # shape: (num_samples, prediction_length, target_dim)
-                return self.samples.shape[2]
+                self._dim = self.samples.shape[2]
+        return self._dim
 
     def as_json_dict(self, config: "Config") -> dict:
         result = super().as_json_dict(config)
@@ -706,7 +704,7 @@ class QuantileForecast(Forecast):
             f"The forecast_array (shape={shape} should have the same "
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
-        self.prediction_length = shape[-1]
+        self.prediction_length = shape[1]
         self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
@@ -744,6 +742,25 @@ class QuantileForecast(Forecast):
         else:
             return linear_interpolation(inference_quantile)
 
+    def copy_dim(self, dim: int) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        else:
+            target_dim = self.forecast_array.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            forecast_array = self.forecast_array[:, :, dim]
+
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
     @property
     def mean(self) -> np.ndarray:
         """
@@ -755,17 +772,16 @@ class QuantileForecast(Forecast):
         return self.quantile("p50")
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
-            if (
-                len(self.forecast_array.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
-                return 1
+        if self._dim is None:
+            if len(self.forecast_array.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
+                self._dim = 1
             else:
-                # 2D target. shape: (num_samples, target_dim,
-                # prediction_length)
-                return self.forecast_array.shape[1]
+                # multivariate target
+                # shape: (num_samples, prediction_length, target_dim)
+                self._dim = self.forecast_array.shape[2]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
