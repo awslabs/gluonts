@@ -126,21 +126,21 @@ def common(
     else:
         ndim = 1
 
-    builder = Schema()
-    builder.set(
+    schema = Schema()
+    schema.set(
         "target",
         Array(dtype=dtype, ndim=ndim, time_axis=ndim - 1, past_only=True),
     )
-    builder.set("start", Period(freq=freq))
+    schema.set("start", Period(freq=freq))
 
     feat_dynamic_real.apply(
-        builder, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_axis=1)
+        schema, "feat_dynamic_real", Array(dtype=dtype, ndim=2, time_axis=1)
     )
     feat_static_cat.apply(
-        builder, "feat_static_cat", Array(dtype=dtype, ndim=1)
+        schema, "feat_static_cat", Array(dtype=dtype, ndim=1)
     )
     feat_static_real.apply(
-        builder, "feat_static_real", Array(dtype=dtype, ndim=1)
+        schema, "feat_static_real", Array(dtype=dtype, ndim=1)
     )
 
     return schema
