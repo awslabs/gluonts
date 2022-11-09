@@ -47,7 +47,6 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
         if active:
             raise NotImplementedError()
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, past_target: Tensor, past_valid_length: Tensor
     ) -> Tuple[Tensor, Tensor]:

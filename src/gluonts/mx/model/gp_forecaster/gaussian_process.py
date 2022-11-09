@@ -28,7 +28,6 @@ from gluonts.mx.linalg_util import (
 
 
 class GaussianProcess:
-    # noinspection PyMethodOverriding, PyPep8Naming
     def __init__(
         self,
         sigma: Tensor,
@@ -107,7 +106,6 @@ class GaussianProcess:
         self.increase_jitter = increase_jitter
         self.sample_noise = sample_noise
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def _compute_cholesky_gp(
         self,
         kernel_matrix: Tensor,
@@ -253,7 +251,6 @@ class GaussianProcess:
         )  # Shape (num_samples, batch_size, prediction_length)
         return self.F.transpose(samples, axes=(1, 2, 0))
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def exact_inference(
         self, x_train: Tensor, y_train: Tensor, x_test: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:

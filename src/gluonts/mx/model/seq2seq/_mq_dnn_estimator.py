@@ -31,6 +31,7 @@ from gluonts.mx.block.quantile_output import (
 )
 from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.trainer import Trainer
+from gluonts.transform import InstanceSampler
 
 from ._forking_estimator import ForkingSeq2SeqEstimator
 
@@ -40,6 +41,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
     An :class:`MQDNNEstimator` with a Convolutional Neural Network (CNN) as an
     encoder and a multi-quantile MLP as a decoder. Implements the MQ-CNN
     Forecaster, proposed in [WTN+17]_.
+
+    Note that MQCNN uses ValidationSplitSampler as its default
+    train_sampler. If context_length is less than the length of the input
+    time series, only one example will be used for training.
 
     Parameters
     ----------
@@ -87,7 +92,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         It makes sense to disable this, if you don't have ``feat_dynamic_real``
         for the prediction range.
     seed
-        Will set the specified int seed for numpy anc MXNet if specified.
+        Will set the specified int seed for numpy and MXNet if specified.
         (default: None)
     decoder_mlp_dim_seq
         The dimensionalities of the Multi Layer Perceptron layers of the
@@ -135,6 +140,10 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         Determines whether to use IQF or QF. (default: True).
     batch_size
         The size of the batches to be used training and prediction.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
     """
 
     @validated()
@@ -146,8 +155,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_static_cat: bool = False,
-        cardinality: List[int] = None,
-        embedding_dimension: List[int] = None,
+        cardinality: Optional[List[int]] = None,
+        embedding_dimension: Optional[List[int]] = None,
         add_time_feature: bool = True,
         add_age_feature: bool = False,
         enable_encoder_dynamic_feature: bool = True,
@@ -167,6 +176,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         max_ts_len: Optional[int] = None,
         is_iqf: bool = True,
         batch_size: int = 32,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
 
         assert (distr_output is None) or (quantiles is None)
@@ -217,7 +228,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
 
-        if seed:
+        if seed is not None:
             np.random.seed(seed)
             mx.random.seed(seed, trainer.ctx)
 
@@ -269,6 +280,8 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
             max_ts_len=max_ts_len,
+            train_sampler=train_sampler,
+            validation_sampler=validation_sampler,
             batch_size=batch_size,
         )
 
@@ -341,6 +354,10 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
     encoder and a multi-quantile MLP as a decoder.
 
     Implements the MQ-RNN Forecaster, proposed in [WTN+17]_.
+
+    Note that MQRNN uses ValidationSplitSampler as its default
+    train_sampler. If context_length is less than the length of the input
+    time series, only one example will be used for training.
     """
 
     @validated()
@@ -358,6 +375,8 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         num_forking: Optional[int] = None,
         is_iqf: bool = True,
         batch_size: int = 32,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
 
         assert (
@@ -418,5 +437,7 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
             scaling=scaling,
             scaling_decoder_dynamic_feature=scaling_decoder_dynamic_feature,
             num_forking=num_forking,
+            train_sampler=train_sampler,
+            validation_sampler=validation_sampler,
             batch_size=batch_size,
         )

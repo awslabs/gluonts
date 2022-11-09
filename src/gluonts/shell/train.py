@@ -142,7 +142,7 @@ def run_test(
 
     if len_original is not None and len_original > len_filtered:
         logger.warning(
-            "Not all time-series in the test-channel have "
+            "Not all time series in the test-channel have "
             "enough data to be used for evaluation. Proceeding with "
             f"{len_filtered}/{len_original} "
             f"(~{int(len_filtered / len_original * 100)}%) items."

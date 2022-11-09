@@ -67,7 +67,6 @@ class TransformerEncoder(HybridBlock):
                 prefix="postfftransformerprocessblock_",
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
 
         """

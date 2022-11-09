@@ -766,8 +766,6 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
 
 
 class DeepVARTrainingNetwork(DeepVARNetwork):
-
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -845,7 +843,6 @@ class DeepVARPredictionNetwork(DeepVARNetwork):
         # the last target value
         self.shifted_lags = [l - 1 for l in self.lags_seq]
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

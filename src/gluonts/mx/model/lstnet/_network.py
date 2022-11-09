@@ -188,7 +188,6 @@ class LSTNetBase(nn.HybridBlock):
         ar = self.ar_fc(ar_fc_inputs)  # NxCx(1 or prediction_length)
         return ar
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:
@@ -284,7 +283,6 @@ class LSTNetTrain(LSTNetBase):
         super().__init__(*args, **kwargs)
         self.loss_fn = loss.L1Loss()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -294,7 +292,7 @@ class LSTNetTrain(LSTNetBase):
         future_observed_values: Tensor,
     ) -> Tensor:
         """
-        Computes the training l1 loss for LSTNet for multivariate time-series.
+        Computes the training l1 loss for LSTNet for multivariate time series.
         All input tensors have NCT layout.
 
         Parameters
@@ -326,7 +324,6 @@ class LSTNetTrain(LSTNetBase):
 
 
 class LSTNetPredict(LSTNetBase):
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self, F, past_target: Tensor, past_observed_values: Tensor
     ) -> Tensor:

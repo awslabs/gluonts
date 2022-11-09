@@ -388,7 +388,6 @@ class FixedKnotsArgProj(ArgProj):
                 "knot_spacings", knot_spacings
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
         knot_spacings = kwargs["knot_spacings"]

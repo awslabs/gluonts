@@ -49,7 +49,7 @@ class RenameFields(SimpleTransformation):
 
 class RemoveFields(SimpleTransformation):
     """
-    " Remove field names if present.
+    Remove field names if present.
 
     Parameters
     ----------

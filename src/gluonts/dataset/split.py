@@ -28,7 +28,7 @@ Train/test splitter
 This module defines strategies to split a whole dataset into train and test
 subsets. The :func:`split` function can also be used to trigger their logic.
 
-For uniform datasets, where all time-series start and end at the same point in
+For uniform datasets, where all time series start and end at the same point in
 time :class:`OffsetSplitter` can be used:
 
 .. testcode::
@@ -477,7 +477,7 @@ class TrainingDataset:
 
 
 def split(
-    dataset: Dataset, *, offset: int = None, date: pd.Period = None
+    dataset: Dataset, *, offset: Optional[int] = None, date: pd.Period = None
 ) -> Tuple[TrainingDataset, TestTemplate]:
     assert (offset is None) != (
         date is None

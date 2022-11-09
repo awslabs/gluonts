@@ -304,7 +304,7 @@ class NBEATSSeasonalBlock(NBEATSBlock):
 
 class NBEATSTrendBlock(NBEATSBlock):
     """
-    " The NBEATS Block as described in the paper:
+    The NBEATS Block as described in the paper:
     https://arxiv.org/abs/1905.10437. This is the Trend block variant.
 
     Parameters
@@ -522,7 +522,6 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
                         net_block, f"block_{stack_id}_{block_id}"
                     )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -666,7 +665,6 @@ class NBEATSTrainingNetwork(NBEATSNetwork):
                 " optimization."
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -737,7 +735,6 @@ class NBEATSPredictionNetwork(NBEATSNetwork):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

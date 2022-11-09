@@ -76,7 +76,6 @@ def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
     return mask
 
 
-# noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky_eig(
     F,
     matrix: Tensor,
@@ -134,7 +133,6 @@ def jitter_cholesky_eig(
     )
 
 
-# noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky(
     F,
     matrix: Tensor,

@@ -872,7 +872,6 @@ class DeepARTrainingNetwork(DeepARNetwork):
             else self.distr_output.distribution(distr_args, scale=scale)
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -1120,7 +1119,6 @@ class DeepARPredictionNetwork(DeepARNetwork):
             )
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

@@ -62,7 +62,6 @@ class Representation(nn.HybridBlock):
         """
         pass
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
