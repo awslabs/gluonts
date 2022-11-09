@@ -221,14 +221,9 @@ def _dataclass(
 
     orig_init = dc.__init__
 
-    def _init_(self, *args, **kwargs):
-        # assert len(args) <= len(fields), "Too many arguments"
-        # assert len(args) + len(kwargs) <= len(fields)
-
-        input_kwargs = {
-            field_name: arg for arg, field_name in zip(args, fields)
-        }
-        input_kwargs.update(kwargs)
+    def _init_(self, *args, **input_kwargs):
+        if args:
+            raise TypeError("serde.dataclass is always `kw_only`.")
 
         validated_model = model(**input_kwargs)
         init_kwargs = validated_model.dict()
