@@ -115,7 +115,6 @@ def get_lags_for_frequency(
             offset.n / 7.0
         )
     elif offset_name == "B":
-        # todo find good lags for business day
         lags = _make_lags_for_day(
             offset.n, days_in_week=5, days_in_month=22
         ) + _make_lags_for_week(offset.n / 5.0)
