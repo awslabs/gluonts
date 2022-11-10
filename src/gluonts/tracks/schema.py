@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Dict, Type
+from functools import singledispatch
+from typing import Any, Dict, Type
 
 import numpy as np
 
@@ -48,3 +49,12 @@ class Schema:
 
     def validate(self, entry: dict):
         return {name: ty(entry[name]) for name, ty in self.fields.items()}
+
+    @classmethod
+    def infer(cls, data):
+        return cls({name: infer_type(value) for name, value in data.items()})
+
+
+@singledispatch
+def infer_type(val: Any):
+    return type(val)

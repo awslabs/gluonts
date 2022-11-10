@@ -19,5 +19,6 @@ from .action import (
     Map,
     Pipeline,
     Remove,
+    Set,
 )
 from .schema import Schema
