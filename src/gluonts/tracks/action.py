@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List
+from typing import Any, List
 
 from dataclasses import dataclass
 
@@ -26,6 +26,9 @@ class Action:
     def apply_schema(self, schema):
         raise NotImplementedError
 
+    def bind(self, schema):
+        return Bind(self, schema, self.apply_schema(schema))
+
     def requires(self):
         raise NotImplementedError
 
@@ -34,6 +37,16 @@ class Action:
             return Pipeline([self] + other.actions)
 
         return Pipeline([self, other])
+
+
+@dataclass
+class Bind(Action):
+    action: Action
+    input_schema: "Schema"
+    output_schema: "Schema"
+
+    def apply(self, stream):
+        return self.action.apply(stream)
 
 
 @dataclass
@@ -48,7 +61,7 @@ class Pipeline(Action):
 
     def apply_schema(self, schema):
         for action in self.actions:
-            schema = action.apply(schema)
+            schema = action.apply_schema(schema)
 
         return schema
 
@@ -92,6 +105,19 @@ class Filter(Action):
 
     def apply(self, data):
         return filter(self.filter, data)
+
+
+@dataclass
+class Set(Map):
+    name: str
+    value: Any
+
+    def each(self, data):
+        data[self.name] = self.value
+        return data
+
+    def apply_schema(self, schema):
+        return schema.add(self.name, type(self.value))
 
 
 @dataclass

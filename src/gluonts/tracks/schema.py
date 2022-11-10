@@ -30,7 +30,7 @@ class Schema:
     def copy(self):
         return Schema(self.fields.copy())
 
-    def set(self, name: str, ty: Type, force=False) -> "Schema":
+    def add(self, name: str, ty: Type, force=False) -> "Schema":
         if name in self and not force:
             raise KeyError(f"Can't override existing field {name!r}.")
 
