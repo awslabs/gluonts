@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 from functools import partial
 
+import numpy as np
 from mxnet.gluon import HybridBlock
 
 from gluonts.core.component import validated
@@ -247,14 +248,14 @@ class DeepTPPEstimator(GluonEstimator):
             time_distr_output=trained_network.time_distr_output,
             params=trained_network.collect_params(),
             num_parallel_samples=self.num_parallel_samples,
+            freq=self.freq,
         )
 
         return PointProcessGluonPredictor(
             input_names=["target", "valid_length"],
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            prediction_interval_length=self.prediction_interval_length,
-            freq=self.freq,
+            prediction_length=np.ceil(self.prediction_interval_length),
             ctx=self.trainer.ctx,
             input_transform=transformation + prediction_splitter,
         )

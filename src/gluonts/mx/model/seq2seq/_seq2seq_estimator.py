@@ -25,8 +25,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.model.forecast import Quantile
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.block.decoder import OneShotDecoder
@@ -223,11 +221,6 @@ class Seq2SeqEstimator(GluonEstimator):
         transformation: transform.Transformation,
         trained_network: Seq2SeqTrainingNetwork,
     ) -> Predictor:
-        # todo: this is specific to quantile output
-        quantile_strs = [
-            Quantile.from_float(quantile).name for quantile in self.quantiles
-        ]
-
         prediction_splitter = self._create_instance_splitter("test")
 
         prediction_network = Seq2SeqPredictionNetwork(
@@ -247,7 +240,6 @@ class Seq2SeqEstimator(GluonEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
-            forecast_generator=QuantileForecastGenerator(quantile_strs),
         )
 
 

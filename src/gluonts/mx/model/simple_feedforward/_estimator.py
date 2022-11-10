@@ -24,7 +24,10 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.model.forecast_generator import DistributionForecastGenerator
+from gluonts.model.forecast_generator import (
+    DistributionForecastBatch,
+    SampleForecastBatch,
+)
 from gluonts.mx.batchify import batchify
 from gluonts.mx.distribution import DistributionOutput, StudentTOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -289,14 +292,7 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 params=trained_network.collect_params(),
                 num_parallel_samples=self.num_parallel_samples,
             )
-
-            return RepresentableBlockPredictor(
-                input_transform=transformation + prediction_splitter,
-                prediction_net=prediction_network,
-                batch_size=self.batch_size,
-                prediction_length=self.prediction_length,
-                ctx=self.trainer.ctx,
-            )
+            forecast_type = SampleForecastBatch
 
         else:
             prediction_network = SimpleFeedForwardDistributionNetwork(
@@ -309,13 +305,15 @@ class SimpleFeedForwardEstimator(GluonEstimator):
                 params=trained_network.collect_params(),
                 num_parallel_samples=self.num_parallel_samples,
             )
-            return RepresentableBlockPredictor(
-                input_transform=transformation + prediction_splitter,
-                prediction_net=prediction_network,
-                batch_size=self.batch_size,
-                forecast_generator=DistributionForecastGenerator(
-                    self.distr_output
-                ),
-                prediction_length=self.prediction_length,
-                ctx=self.trainer.ctx,
+            forecast_type = partial(
+                DistributionForecastBatch, distr_output=self.distr_output
             )
+
+        return RepresentableBlockPredictor(
+            input_transform=transformation + prediction_splitter,
+            prediction_net=prediction_network,
+            batch_size=self.batch_size,
+            prediction_length=self.prediction_length,
+            ctx=self.trainer.ctx,
+            forecast_type=forecast_type,
+        )

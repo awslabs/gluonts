@@ -23,7 +23,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
 
 from ._model import QRF, QRX, QuantileReg
@@ -275,9 +274,7 @@ class TreePredictor(RepresentablePredictor):
                     )
         return self
 
-    def predict(
-        self, dataset: Dataset, num_samples: Optional[int] = None
-    ) -> Iterator[Forecast]:
+    def predict(self, dataset: Dataset) -> Iterator[Forecast]:
         """
         Returns a dictionary taking each quantile to a list of floats, which
         are the predictions for that quantile as you run over (time_steps,
@@ -288,12 +285,6 @@ class TreePredictor(RepresentablePredictor):
         then the second time step for all time series ˜˜ , and so forth.
         """
         context_length = self.preprocess_object.context_window_size
-
-        if num_samples:
-            log_once(
-                "Forecast is not sample based. Ignoring parameter"
-                " `num_samples` from predict method."
-            )
 
         for ts in dataset:
             featurized_data = self.preprocess_object.make_features(

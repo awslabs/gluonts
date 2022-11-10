@@ -521,13 +521,11 @@ class SampleForecast(Forecast):
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
-        assert isinstance(
-            samples, np.ndarray
-        ), "samples should be a numpy array"
         assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
             "samples should be a 2-dimensional or 3-dimensional array."
             " Dimensions found: {}".format(len(np.shape(samples)))
         )
+
         self.samples = samples
         self._sorted_samples_value = None
         self._mean = None

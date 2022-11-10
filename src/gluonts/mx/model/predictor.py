@@ -19,16 +19,13 @@ from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
+from gluonts.core.component import tensor_to_numpy
 from gluonts.core.serde import dump_json, load_json
-from gluonts.dataset.common import DataEntry, Dataset
+from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import (
-    ForecastGenerator,
-    SampleForecastGenerator,
-    predict_to_numpy,
-)
-from gluonts.model.predictor import OutputTransform, Predictor
+from gluonts.model.forecast_generator import ForecastBatch, _unpack
+from gluonts.model.predictor import Predictor
 from gluonts.mx.batchify import batchify
 from gluonts.mx.component import equals
 from gluonts.mx.context import get_mxnet_context
@@ -42,10 +39,7 @@ from gluonts.mx.util import (
 )
 from gluonts.transform import Transformation
 
-
-@predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, args) -> np.ndarray:
-    return prediction_net(*args).asnumpy()
+OutputTransform = Callable[[dict, np.ndarray], np.ndarray]
 
 
 class GluonPredictor(Predictor):
@@ -64,8 +58,6 @@ class GluonPredictor(Predictor):
         Number of time steps to predict
     input_transform
         Input transformation pipeline
-    output_transform
-        Output transformation
     ctx
         MXNet context to use for computation
     forecast_generator
@@ -82,10 +74,10 @@ class GluonPredictor(Predictor):
         prediction_length: int,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_type: Type,
         lead_time: int = 0,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
-        output_transform: Optional[OutputTransform] = None,
         dtype: Type = np.float32,
+        output_transform: Optional[OutputTransform] = None,
     ) -> None:
         super().__init__(
             lead_time=lead_time,
@@ -96,10 +88,10 @@ class GluonPredictor(Predictor):
         self.prediction_net = prediction_net
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.forecast_generator = forecast_generator
-        self.output_transform = output_transform
         self.ctx = ctx
         self.dtype = dtype
+        self.forecast_type = forecast_type
+        self.output_transform = output_transform
 
     @property
     def network(self) -> BlockType:
@@ -149,24 +141,33 @@ class GluonPredictor(Predictor):
         self,
         dataset: Dataset,
         num_samples: Optional[int] = None,
-        num_workers: Optional[int] = None,
-        num_prefetch: Optional[int] = None,
-        **kwargs,
     ) -> Iterator[Forecast]:
+        for forecast_batch in self.predict_batches(dataset):
+            yield from forecast_batch
+
+    def predict_batches(self, dataset: Dataset) -> Iterator[ForecastBatch]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
         )
+
         with mx.Context(self.ctx):
-            yield from self.forecast_generator(
-                inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
-                input_names=self.input_names,
-                output_transform=self.output_transform,
-                num_samples=num_samples,
-            )
+            for batch in inference_data_loader:
+                inputs = [batch[name] for name in self.input_names]
+
+                outputs = self.prediction_net(*inputs)
+
+                if self.output_transform is not None:
+                    outputs = self.output_transform(batch, outputs)
+
+                yield self.forecast_type(
+                    outputs,
+                    start=batch["forecast_start"],
+                    item_id=batch.get("item_id"),
+                    info=batch.get("info"),
+                )
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -196,7 +197,11 @@ class GluonPredictor(Predictor):
         with (path / "input_transform.json").open("w") as fp:
             print(dump_json(self.input_transform), file=fp)
 
-        # FIXME: also needs to serialize the output_transform
+        with (path / "output_transform.json").open("w") as fp:
+            print(dump_json(self.output_transform), file=fp)
+
+        with (path / "forecast_type.json").open("w") as fp:
+            print(dump_json(self.forecast_type), file=fp)
 
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
@@ -206,7 +211,6 @@ class GluonPredictor(Predictor):
                 lead_time=self.lead_time,
                 ctx=self.ctx,
                 dtype=self.dtype,
-                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)
@@ -254,6 +258,12 @@ class SymbolBlockPredictor(GluonPredictor):
             with (path / "input_transform.json").open("r") as fp:
                 transform = load_json(fp.read())
 
+            with (path / "output_transform.json").open("r") as fp:
+                output_transform = load_json(fp.read())
+
+            with (path / "forecast_type.json").open("r") as fp:
+                forecast_type = load_json(fp.read())
+
             # deserialize prediction network
             num_inputs = len(parameters["input_names"])
             prediction_net = import_symb_block(
@@ -261,8 +271,10 @@ class SymbolBlockPredictor(GluonPredictor):
             )
 
             return SymbolBlockPredictor(
-                input_transform=transform,
                 prediction_net=prediction_net,
+                input_transform=transform,
+                output_transform=output_transform,
+                forecast_type=forecast_type,
                 **parameters,
             )
 
@@ -293,12 +305,10 @@ class RepresentableBlockPredictor(GluonPredictor):
         prediction_length: int,
         ctx: mx.Context,
         input_transform: Transformation,
+        forecast_type: Type,
         lead_time: int = 0,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
-        output_transform: Optional[
-            Callable[[DataEntry, np.ndarray], np.ndarray]
-        ] = None,
         dtype: Type = np.float32,
+        output_transform: Optional[OutputTransform] = None,
     ) -> None:
         super().__init__(
             input_names=get_hybrid_forward_input_names(type(prediction_net)),
@@ -308,9 +318,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
-            forecast_generator=forecast_generator,
-            output_transform=output_transform,
             dtype=dtype,
+            forecast_type=forecast_type,
+            output_transform=output_transform,
         )
 
     def as_symbol_block_predictor(
@@ -342,9 +352,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             ctx=self.ctx,
             input_transform=self.input_transform,
             lead_time=self.lead_time,
-            forecast_generator=self.forecast_generator,
-            output_transform=self.output_transform,
             dtype=self.dtype,
+            forecast_type=self.forecast_type,
+            output_transform=self.output_transform,
         )
 
     def serialize(self, path: Path) -> None:
@@ -371,7 +381,13 @@ class RepresentableBlockPredictor(GluonPredictor):
 
             # deserialize transformation chain
             with (path / "input_transform.json").open("r") as fp:
-                transform = load_json(fp.read())
+                input_transform = load_json(fp.read())
+
+            with (path / "output_transform.json").open("r") as fp:
+                output_transform = load_json(fp.read())
+
+            with (path / "forecast_type.json").open("r") as fp:
+                forecast_type = load_json(fp.read())
 
             # deserialize prediction network
             prediction_net = import_repr_block(path, "prediction_net")
@@ -383,7 +399,9 @@ class RepresentableBlockPredictor(GluonPredictor):
             parameters["ctx"] = ctx
 
             return RepresentableBlockPredictor(
-                input_transform=transform,
                 prediction_net=prediction_net,
+                input_transform=input_transform,
+                output_transform=output_transform,
+                forecast_type=forecast_type,
                 **parameters,
             )

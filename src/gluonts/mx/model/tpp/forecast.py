@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import dataclass
 from typing import Dict, Optional, Union, cast
 
 import mxnet as mx
@@ -19,6 +20,7 @@ import pandas as pd
 from pandas import to_timedelta
 
 from gluonts.model.forecast import Config, Forecast, OutputType
+from gluonts.model.forecast_generator import ForecastBatch
 
 
 class PointProcessSampleForecast(Forecast):
@@ -162,3 +164,34 @@ class PointProcessSampleForecast(Forecast):
         raise NotImplementedError(
             "Plotting not implemented for point process samples"
         )
+
+
+@dataclass
+class PointProcessSampleForecastBatch(ForecastBatch):
+    samples: np.ndarray
+    valid_length_batch: np.ndarray
+    start: pd.Timestamp
+    freq: str
+    prediction_interval_length: float
+    item_id: Optional[str] = None
+    info: Optional[Dict] = None
+
+    def __post_init__(self):
+        self._sorted_samples_value = None
+        if self.item_id is None:
+            self.item_id = [None for _ in self.start]
+        if self.info is None:
+            self.info = [None for _ in self.start]
+
+    def __iter__(self):
+        batch_size = self.samples.shape[1]
+        for i in range(batch_size):
+            yield PointProcessSampleForecast(
+                self.samples[:, i],
+                valid_length=self.valid_length_batch[:, i],
+                start_date=self.start[i],
+                freq=self.freq,
+                prediction_interval_length=self.prediction_interval_length,
+                item_id=self.item_id[i] if self.item_id is not None else None,
+                info=self.info[i] if self.info is not None else None,
+            )

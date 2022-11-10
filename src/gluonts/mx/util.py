@@ -292,6 +292,7 @@ def export_repr_block(
     """
     with (model_dir / f"{model_name}-network.json").open("w") as fp:
         print(dump_json(rb), file=fp)
+
     rb.save_parameters(str(model_dir / f"{model_name}-{epoch:04}.params"))
 
 

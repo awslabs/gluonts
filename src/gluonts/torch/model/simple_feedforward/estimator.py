@@ -21,7 +21,6 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
-from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
@@ -259,9 +258,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
             prediction_net=module,
-            forecast_generator=DistributionForecastGenerator(
-                self.distr_output
-            ),
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device=torch.device(

@@ -14,7 +14,6 @@
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -22,12 +21,8 @@ from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
-from gluonts.model.forecast_generator import (
-    ForecastGenerator,
-    SampleForecastGenerator,
-    predict_to_numpy,
-)
-from gluonts.model.predictor import OutputTransform, Predictor
+from gluonts.model.forecast_generator import ForecastBatch, predict_to_numpy
+from gluonts.model.predictor import Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.component import equals
 from gluonts.transform import Transformation
@@ -46,8 +41,6 @@ class PyTorchPredictor(Predictor):
         batch_size: int,
         prediction_length: int,
         input_transform: Transformation,
-        forecast_generator: ForecastGenerator = SampleForecastGenerator(),
-        output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
         device: Optional[torch.device] = torch.device("cpu"),
     ) -> None:
@@ -56,8 +49,6 @@ class PyTorchPredictor(Predictor):
         self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
         self.input_transform = input_transform
-        self.forecast_generator = forecast_generator
-        self.output_transform = output_transform
         self.device = device
 
     def to(self, device) -> "PyTorchPredictor":
@@ -69,9 +60,11 @@ class PyTorchPredictor(Predictor):
     def network(self) -> nn.Module:
         return self.prediction_net
 
-    def predict(
-        self, dataset: Dataset, num_samples: Optional[int] = None
-    ) -> Iterator[Forecast]:
+    def predict(self, dataset: Dataset) -> Iterator[Forecast]:
+        for forecast_batch in self.predict_batches(dataset):
+            yield from forecast_batch
+
+    def predict_batches(self, dataset: Dataset) -> Iterator[ForecastBatch]:
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
@@ -82,13 +75,8 @@ class PyTorchPredictor(Predictor):
         self.prediction_net.eval()
 
         with torch.no_grad():
-            yield from self.forecast_generator(
-                inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
-                input_names=self.input_names,
-                output_transform=self.output_transform,
-                num_samples=num_samples,
-            )
+            for batch in inference_data_loader:
+                yield self.prediction_net.forecast(batch)
 
     def __eq__(self, that):
         if type(self) != type(that):
@@ -116,15 +104,12 @@ class PyTorchPredictor(Predictor):
         with (path / "input_transform.json").open("w") as fp:
             print(dump_json(self.input_transform), file=fp)
 
-        # FIXME: also needs to serialize the output_transform
-
         # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
             parameters = dict(
                 batch_size=self.batch_size,
                 prediction_length=self.prediction_length,
                 lead_time=self.lead_time,
-                forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
             )
             print(dump_json(parameters), file=fp)

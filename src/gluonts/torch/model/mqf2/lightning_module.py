@@ -117,3 +117,6 @@ class MQF2MultiHorizonLightningModule(DeepARLightningModule):
         loss_values = self.loss(distr, target)
 
         return loss_values.mean()
+
+    def forecast(self, *args, **kwargs):
+        return self.model.forecast(*args, **kwargs)

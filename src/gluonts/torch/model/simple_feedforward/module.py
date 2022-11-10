@@ -18,6 +18,7 @@ from torch import nn
 
 from gluonts.core.component import validated
 from gluonts.torch.distributions import StudentTOutput
+from gluonts.model.forecast_generator import DistributionForecastBatch
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):
@@ -99,3 +100,13 @@ class SimpleFeedForwardModel(nn.Module):
         )
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale
+
+    def forecast(self, batch: dict) -> DistributionForecastBatch:
+        outputs = self(batch["past_target"])
+        return DistributionForecastBatch(
+            start=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            distr_output=self.distr_output,
+            distr_args=outputs,
+        )

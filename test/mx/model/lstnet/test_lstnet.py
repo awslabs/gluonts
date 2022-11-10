@@ -30,7 +30,6 @@ from gluonts.model.predictor import Predictor
 from gluonts.mx.trainer import Trainer
 
 NUM_SERIES = 10
-NUM_SAMPLES = 5
 
 
 def load_multivariate_constant_dataset():
@@ -91,7 +90,7 @@ def test_lstnet(
         assert predictor == predictor_copy
 
     forecast_it, ts_it = make_evaluation_predictions(
-        dataset=dataset.test, predictor=predictor, num_samples=NUM_SAMPLES
+        dataset=dataset.test, predictor=predictor
     )
     forecasts = list(forecast_it)
     tss = list(ts_it)
@@ -102,7 +101,7 @@ def test_lstnet(
     for fct in forecasts:
         assert fct.freq == freq
         assert fct.samples.shape == (
-            NUM_SAMPLES,
+            1,
             prediction_length,
             NUM_SERIES,
         )

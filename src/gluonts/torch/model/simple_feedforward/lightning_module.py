@@ -107,3 +107,6 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+
+    def forecast(self, *args, **kwargs):
+        return self.model.forecast(*args, **kwargs)

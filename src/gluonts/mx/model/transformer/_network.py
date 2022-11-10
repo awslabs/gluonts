@@ -15,8 +15,9 @@ from typing import List, Optional, Tuple
 
 import mxnet as mx
 
-from gluonts.core.component import validated
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.itertools import prod
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
@@ -473,4 +474,19 @@ class TransformerPredictionNetwork(TransformerNetwork):
             static_feat=static_feat,
             scale=scale,
             enc_out=enc_out,
+        )
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["past_time_feat"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["future_time_feat"],
+        )
+        return SampleForecastBatch(
+            start=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            samples=tensor_to_numpy(outputs),
         )

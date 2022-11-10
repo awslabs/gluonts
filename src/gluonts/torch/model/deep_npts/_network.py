@@ -21,10 +21,9 @@ from torch.distributions import (
     MixtureSameFamily,
     Normal,
 )
-
-from gluonts.core.component import validated
+from gluonts.core.component import validated, tensor_to_numpy
+from gluonts.model.forecast_generator import SampleForecastBatch
 from gluonts.torch.distributions import DiscreteDistribution
-
 from .scaling import (
     min_max_scaling,
     standard_normal_scaling,
@@ -408,4 +407,20 @@ class DeepNPTSMultiStepPredictor(nn.Module):
         # (batch_size, num_parallel_samples, prediction_length)
         return samples_out.reshape(
             -1, self.num_parallel_samples, self.prediction_length
+        )
+
+    def forecast(self, batch: dict) -> SampleForecastBatch:
+        outputs = self(
+            batch["feat_static_cat"],
+            batch["feat_static_real"],
+            batch["past_target"],
+            batch["past_observed_values"],
+            batch["past_time_feat"],
+            batch["future_time_feat"],
+        )
+        return SampleForecastBatch(
+            start=batch["forecast_start"],
+            item_id=batch.get("item_id", None),
+            info=batch.get("info", None),
+            samples=tensor_to_numpy(outputs),
         )

@@ -92,7 +92,10 @@ def test_prediction_network_disallows_hybrid():
 
     with pytest.raises(NotImplementedError):
         smodel = DeepTPPPredictionNetwork(
-            num_marks=3, interval_length=2, prediction_interval_length=3
+            num_marks=3,
+            interval_length=2,
+            prediction_interval_length=3,
+            freq="H",
         )
         smodel.hybridize()
 
@@ -104,6 +107,7 @@ def test_prediction_network_output():
         time_distr_output=WeibullOutput(),
         interval_length=1.0,
         prediction_interval_length=10.0,
+        freq="H",
     )
     model.initialize()
     past_ia_times = nd.array([[0.1, 0.2, 0.1, 0.12], [0.3, 0.15, 0.1, 0.12]])
