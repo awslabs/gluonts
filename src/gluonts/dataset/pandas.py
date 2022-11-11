@@ -140,13 +140,12 @@ class PandasDataset:
         if self.timestamp:
             df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
 
-        if not (self.assume_sorted and self.unchecked):
-            if not isinstance(df.index, pd.PeriodIndex):
-                df = df.to_period(freq=self.freq)
-            if not self.assume_sorted:
-                df.sort_index(inplace=True)
+        if not self.assume_sorted:
+            df.sort_index(inplace=True)
 
         if not self.unchecked:
+            if not isinstance(df.index, pd.PeriodIndex):
+                df = df.to_period(freq=self.freq)
             assert is_uniform(df.index), (
                 "Dataframe index is not uniformly spaced. "
                 "If your dataframe contains data from multiple series in the "
@@ -209,6 +208,8 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
+        if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
+            dataframe.index = pd.to_datetime(dataframe.index)
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
