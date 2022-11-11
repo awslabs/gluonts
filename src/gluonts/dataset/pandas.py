@@ -109,7 +109,12 @@ class PandasDataset:
             self.target = self.target[0]
         self.one_dim_target = not isinstance(self.target, list)
 
-        self._pairs = to_pairs(self.dataframes)
+        if isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
+            self.dataframes = [self.dataframes]
+        if isinstance(self.dataframes, dict):
+            self._pairs = self.dataframes.items()
+        else:
+            self._pairs = Map(pair_with_item_id, self.dataframes)
 
         if not self.freq:
             self.freq = first(self._pairs)[1].index.freqstr
@@ -203,33 +208,12 @@ class PandasDataset:
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
-@dataclass
-class ZipWithNone(Iterable):
-    data: Iterable
-
-    def __iter__(self):
-        for element in self.data:
-            yield (None, element)
-
-    def __len__(self):
-        return len(self.data)
-
-
-def to_pairs(data):
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        return [(None, data)]
-    if isinstance(data, dict):
-        return data.items()
-    if isinstance(data, (Iterable, Collection)):
-        first_element = first(data)
-        if isinstance(first_element, Tuple):
-            return data
-        if isinstance(first_element, (pd.DataFrame, pd.Series)):
-            return ZipWithNone(data)
-        raise ValueError(
-            f"cannot handle data elements of type {type(first_element)}"
-        )
-    raise ValueError(f"cannot handle data of type {type(data)}")
+def pair_with_item_id(obj):
+    if isinstance(obj, tuple) and len(obj) == 2:
+        return obj
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        return (None, obj)
+    raise ValueError(f"{obj}")
 
 
 def to_df(series):
