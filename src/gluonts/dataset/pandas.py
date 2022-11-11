@@ -226,7 +226,9 @@ def to_pairs(data):
             return data
         if isinstance(first_element, (pd.DataFrame, pd.Series)):
             return ZipWithNone(data)
-        raise ValueError(f"cannot handle data elements of type {type(first_element)}")
+        raise ValueError(
+            f"cannot handle data elements of type {type(first_element)}"
+        )
     raise ValueError(f"cannot handle data of type {type(data)}")
 
 
