@@ -109,14 +109,16 @@ class PandasDataset:
         self.one_dim_target = not isinstance(self.target, list)
 
         if isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
-            self.dataframes = [self.dataframes]
-
-        assert isinstance(self.dataframes, SizedIterable)
-
-        if isinstance(self.dataframes, dict):
-            self._pairs: Any = self.dataframes.items()
+            self._dataframes = [self.dataframes]
         else:
-            self._pairs = Map(pair_with_item_id, self.dataframes)
+            self._dataframes = self.dataframes
+
+        assert isinstance(self._dataframes, SizedIterable)
+
+        if isinstance(self._dataframes, dict):
+            self._pairs: Any = self._dataframes.items()
+        else:
+            self._pairs = Map(pair_with_item_id, self._dataframes)
 
         if not self.freq:
             self.freq = first(self._pairs)[1].index.freqstr
