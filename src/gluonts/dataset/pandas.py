@@ -31,7 +31,7 @@ from toolz import first
 
 from gluonts.dataset.common import DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Map
+from gluonts.itertools import Map, SizedIterable
 
 
 @dataclass
@@ -110,8 +110,11 @@ class PandasDataset:
 
         if isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
             self.dataframes = [self.dataframes]
+
+        assert isinstance(self.dataframes, SizedIterable)
+
         if isinstance(self.dataframes, dict):
-            self._pairs = self.dataframes.items()
+            self._pairs: Any = self.dataframes.items()
         else:
             self._pairs = Map(pair_with_item_id, self.dataframes)
 
