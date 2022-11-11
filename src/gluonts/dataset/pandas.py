@@ -28,7 +28,7 @@ from typing import (
 
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from toolz import first, valmap
+from toolz import first
 
 from gluonts.dataset.common import DataEntry, ProcessDataEntry
 from gluonts.dataset.field_names import FieldName
