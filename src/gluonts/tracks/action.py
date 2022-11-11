@@ -33,10 +33,13 @@ class Action:
         raise NotImplementedError
 
     def __add__(self, other):
-        if isinstance(other, Pipeline):
-            return Pipeline([self] + other.actions)
+        return other.__radd__(self)
 
-        return Pipeline([self, other])
+    def __radd__(self, other):
+        if isinstance(other, Pipeline):
+            return Pipeline(other.actions + [self])
+
+        return Pipeline([other, self])
 
 
 @dataclass
@@ -65,11 +68,11 @@ class Pipeline(Action):
 
         return schema
 
-    def __add__(self, other):
+    def __radd__(self, other):
         if isinstance(other, Pipeline):
-            return Pipeline(self.actions + other.actions)
+            return Pipeline(other.actions + self.actions)
 
-        return Pipeline(self.actions + [other])
+        return Pipeline([other] + self.actions)
 
 
 class Map(Action):
@@ -81,6 +84,12 @@ class Map(Action):
 
 
 class Identity(Map):
+    def __add__(self, other):
+        return other
+
+    def __radd__(self, other):
+        return other
+
     def each(self, data):
         return data
 
