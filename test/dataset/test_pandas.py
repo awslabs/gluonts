@@ -198,9 +198,21 @@ def test_long_csv_3M():
     )
 
     expected_entries = [
-        {"start": pd.Period("2021-03", freq="3M"), "item_id": 0, "target": np.array([102, 103, 102, 99])},
-        {"start": pd.Period("2021-04", freq="3M"), "item_id": 1, "target": np.array([134, 151, 144, 148, 117, 138])},
-        {"start": pd.Period("2021-02", freq="3M"), "item_id": 2, "target": np.array([212, 225, 221, 227, 230, 229])},
+        {
+            "start": pd.Period("2021-03", freq="3M"),
+            "item_id": 0,
+            "target": np.array([102, 103, 102, 99]),
+        },
+        {
+            "start": pd.Period("2021-04", freq="3M"),
+            "item_id": 1,
+            "target": np.array([134, 151, 144, 148, 117, 138]),
+        },
+        {
+            "start": pd.Period("2021-02", freq="3M"),
+            "item_id": 2,
+            "target": np.array([212, 225, 221, 227, 230, 229]),
+        },
     ]
 
     with io.StringIO(data) as fp:
