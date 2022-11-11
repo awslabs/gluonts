@@ -176,29 +176,6 @@ def test_infer_period2(my_dataframe):
         assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
-def test_is_series(my_series):
-    assert pandas.is_series(my_series)
-    assert pandas.is_series([my_series])
-    assert pandas.is_series({"A": my_series})
-
-
-def test_is_series_fail(my_dataframe):
-    with pytest.raises(AssertionError):
-        assert pandas.is_series(my_dataframe)
-    with pytest.raises(AssertionError):
-        assert pandas.is_series([my_dataframe])
-    with pytest.raises(AssertionError):
-        assert pandas.is_series({"A": my_dataframe})
-
-
-def test_series_to_dataframe(my_series):
-    assert isinstance(pandas.series_to_dataframe(my_series), pd.DataFrame)
-    assert isinstance(pandas.series_to_dataframe([my_series])[0], pd.DataFrame)
-    dict_df = pandas.series_to_dataframe({"A": my_series})
-    assert list(dict_df.keys())[0] == "A"
-    assert isinstance(list(dict_df.values())[0], pd.DataFrame)
-
-
 def test_long_csv_3M():
     data = (
         "timestamp,item_id,target\n"

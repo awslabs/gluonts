@@ -239,28 +239,6 @@ def to_df(series):
     return series.to_frame(name="target")
 
 
-def series_to_dataframe(
-    series: Union[pd.Series, List[pd.Series], Dict[str, pd.Series]]
-) -> Union[pd.DataFrame, List[pd.DataFrame], Dict[str, pd.DataFrame]]:
-    if isinstance(series, list):
-        return list(map(to_df, series))
-    elif isinstance(series, dict):
-        return valmap(to_df, series)
-    return to_df(series)
-
-
-def is_series(series: Any) -> bool:
-    """
-    return True if ``series`` is ``pd.Series`` or a collection of
-    ``pd.Series``.
-    """
-    if isinstance(series, list):
-        return is_series(series[0])
-    elif isinstance(series, dict):
-        return is_series(list(series.values()))
-    return isinstance(series, pd.Series)
-
-
 def as_dataentry(
     data: pd.DataFrame,
     target: Union[str, List[str]],
