@@ -114,6 +114,7 @@ class PandasDataset:
         elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
             self._pairs = [pair_with_item_id(self.dataframes)]
         else:
+            assert isinstance(self.dataframes, SizedIterable)
             self._pairs = Map(pair_with_item_id, self.dataframes)
 
         assert isinstance(self._pairs, SizedIterable)
@@ -216,7 +217,7 @@ def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]) -> Tuple:
         return obj
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         return (None, obj)
-    raise ValueError(f"input must be a pair, or a pandas Series or DataFrame.")
+    raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
 def as_dataentry(
