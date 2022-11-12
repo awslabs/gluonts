@@ -103,24 +103,18 @@ class PandasDataset:
     unchecked: bool = False
     assume_sorted: bool = False
     _pairs: Any = None
-    _dataframes: Any = None
 
     def __post_init__(self) -> None:
         if isinstance(self.target, list) and len(self.target) == 1:
             self.target = self.target[0]
         self.one_dim_target = not isinstance(self.target, list)
 
-        if isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
-            self._dataframes = [self.dataframes]
+        if isinstance(self.dataframes, dict):
+            self._pairs = self.dataframes.items()
+        elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
+            self._pairs = [pair_with_item_id(self.dataframes)]
         else:
-            self._dataframes = self.dataframes
-
-        assert isinstance(self._dataframes, SizedIterable)
-
-        if isinstance(self._dataframes, dict):
-            self._pairs = self._dataframes.items()
-        else:
-            self._pairs = Map(pair_with_item_id, self._dataframes)
+            self._pairs = Map(pair_with_item_id, self.dataframes)
 
         assert isinstance(self._pairs, SizedIterable)
 
