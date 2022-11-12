@@ -102,6 +102,8 @@ class PandasDataset:
     ignore_last_n_targets: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
+    _pairs: Any = None
+    _dataframes: Any = None
 
     def __post_init__(self) -> None:
         if isinstance(self.target, list) and len(self.target) == 1:
@@ -116,9 +118,11 @@ class PandasDataset:
         assert isinstance(self._dataframes, SizedIterable)
 
         if isinstance(self._dataframes, dict):
-            self._pairs: Any = self._dataframes.items()
+            self._pairs = self._dataframes.items()
         else:
             self._pairs = Map(pair_with_item_id, self._dataframes)
+
+        assert isinstance(self._pairs, SizedIterable)
 
         if not self.freq:
             self.freq = first(self._pairs)[1].index.freqstr
@@ -135,7 +139,7 @@ class PandasDataset:
         item_id, df = pair
 
         if isinstance(df, pd.Series):
-            df = to_df(df)
+            df = df.to_frame(name="target")
 
         if self.timestamp:
             df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
@@ -213,19 +217,12 @@ class PandasDataset:
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
-def pair_with_item_id(obj):
+def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]) -> Tuple:
     if isinstance(obj, tuple) and len(obj) == 2:
         return obj
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         return (None, obj)
-    raise ValueError(f"{obj}")
-
-
-def to_df(series):
-    assert isinstance(
-        series.index, DatetimeIndexOpsMixin
-    ), "series index has to be a DatetimeIndex."
-    return series.to_frame(name="target")
+    raise ValueError(f"input must be a pair, or a pandas Series or DataFrame.")
 
 
 def as_dataentry(
