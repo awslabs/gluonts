@@ -190,6 +190,18 @@ class Map:
         return f"Map(data={self.iterable!r})"
 
 
+class Filter:
+    def __init__(self, fn, iterable: SizedIterable):
+        self.fn = fn
+        self.iterable = iterable
+
+    def __iter__(self):
+        return filter(self.fn, self.iterable)
+
+    def __repr__(self):
+        return f"Filter({self.iterable!r})"
+
+
 K = TypeVar("K")
 V = TypeVar("V")
 
