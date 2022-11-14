@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import dataclass
 from typing import Any, List
 
-from dataclasses import dataclass
+from gluonts import itertools as it
 
 
 class Action:
@@ -80,7 +81,7 @@ class Map(Action):
         raise NotImplementedError
 
     def apply(self, stream):
-        return map(self.each, stream)
+        return it.Map(self.each, stream)
 
 
 class Identity(Map):
@@ -113,7 +114,7 @@ class Filter(Action):
         return schema
 
     def apply(self, data):
-        return filter(self.filter, data)
+        return it.Filter(self.filter, data)
 
 
 @dataclass
