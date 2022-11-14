@@ -31,6 +31,15 @@ class GenericType(Type, typing.Generic[T]):
 
 
 @dataclass
+class AnyType(GenericType[T]):
+    def apply(self, data) -> T:
+        return data
+
+
+Any = AnyType()
+
+
+@dataclass
 class Default(GenericType[T]):
     value: T
     base: typing.Optional[Type] = None
@@ -50,14 +59,15 @@ class Array(GenericType[T]):
 
     This class ensures that the handled output data, will have `ndim` number of
     dimensions. If specified, `dtype` will be applied to the input to force a
-    consistent type, e.g. ``np.float32``. `time_dim` is just a marker,
+    consistent type, e.g. ``np.float32``. `time_axis` is just a marker,
     indicating which axis notes the time-axis, useful for splitting. If
-    `time_dim` is none, the array is time invariant.
+    `time_axis` is none, the array is time invariant.
     """
 
     ndim: int
     dtype: typing.Optional[typing.Type[T]] = None
-    time_dim: typing.Optional[int] = None
+    time_axis: typing.Optional[int] = None
+    past_only: bool = False
 
     def apply(self, data):
         arr = np.asarray(data, dtype=self.dtype)
@@ -65,7 +75,39 @@ class Array(GenericType[T]):
         if arr.ndim != self.ndim:
             raise ValueError("Dimensions do not match.")
 
-        return arr
+        return self.bind(arr)
+
+    def bind(self, data):
+        return ArrayWithType(data, type=self)
+
+
+class ArrayWithType(np.ndarray):
+    def __new__(cls, input_array, type=None):
+        obj = np.asarray(input_array).view(cls)
+        obj.type = type
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self.type = getattr(obj, "type", None)
+
+    @property
+    def time_length(self):
+        return self.shape[self.type.time_axis]
+
+    def split_time(self, start, stop=None):
+        if self.type.time_axis is None:
+            return self
+
+        sl = [slice(None, None)] * self.ndim
+
+        sl[self.type.time_axis] = slice(None, start)
+        left = self[tuple(sl)]
+
+        sl[self.type.time_axis] = slice(start, stop)
+        right = self[tuple(sl)]
+
+        return left, right
 
 
 @dataclass
