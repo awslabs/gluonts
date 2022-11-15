@@ -269,7 +269,7 @@ def as_dataentry(
     dataentry = {FieldName.START: start}
 
     def set_field(fieldname, col_names, f=lambda x: x):
-        if col_names:
+        if len(col_names) > 0:
             dataentry[fieldname] = [
                 f(data.loc[:, n].to_list()) for n in col_names
             ]
