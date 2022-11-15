@@ -22,9 +22,10 @@ from .distribution_output import DistributionOutput
 
 
 class StudentT(TorchStudentT):
-    """Student's t-distribution parametrized by degree of freedom `df`, mean `loc` and scale `scale`.
+    """Student's t-distribution parametrized by degree of freedom `df`, mean `loc`
+    and scale `scale`.
 
-    Based on torch.distributions.StudentT, but additionally implements `cdf` and `icdf` methods.
+    Based on torch.distributions.StudentT, with added `cdf` and `icdf` methods.
     """
 
     def __init__(
