@@ -102,7 +102,9 @@ class PandasDataset:
     ignore_last_n_targets: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
-    _pairs: Any = None
+    _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
+        init=False
+    )
 
     def __post_init__(self) -> None:
         if isinstance(self.target, list) and len(self.target) == 1:
@@ -134,7 +136,7 @@ class PandasDataset:
         item_id, df = pair
 
         if isinstance(df, pd.Series):
-            df = df.to_frame(name="target")
+            df = df.to_frame(name=self.target)
 
         if self.timestamp:
             df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
@@ -212,7 +214,7 @@ class PandasDataset:
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
-def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]) -> Tuple:
+def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
     if isinstance(obj, tuple) and len(obj) == 2:
         return obj
     if isinstance(obj, (pd.DataFrame, pd.Series)):
