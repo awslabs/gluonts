@@ -21,7 +21,6 @@ from .distribution_output import (
     NegativeBinomialOutput,
     NormalOutput,
     PoissonOutput,
-    StudentTOutput,
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
 from .implicit_quantile_network import (
@@ -35,6 +34,7 @@ from .spliced_binned_pareto import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
 )
+from .studentT import StudentTOutput
 
 __all__ = [
     "AffineTransformed",
