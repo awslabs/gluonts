@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -27,7 +27,13 @@ class StudentT(TorchStudentT):
     Based on torch.distributions.StudentT, but additionally implements `cdf` and `icdf` methods.
     """
 
-    def __init__(self, df, loc=0.0, scale=1.0, validate_args=None):
+    def __init__(
+        self,
+        df: Union[float, torch.Tensor],
+        loc: Union[float, torch.Tensor] = 0.0,
+        scale: Union[float, torch.Tensor] = 1.0,
+        validate_args=None,
+    ):
         super().__init__(
             df=df, loc=loc, scale=scale, validate_args=validate_args
         )
@@ -36,13 +42,13 @@ class StudentT(TorchStudentT):
         scale = self.scale.detach().cpu().numpy()
         self.scipy_student_t = ScipyStudentT(df=df, loc=loc, scale=scale)
 
-    def cdf(self, value):
+    def cdf(self, value: torch.Tensor) -> torch.Tensor:
         if self._validate_args:
             self._validate_sample(value)
         result = self.scipy_student_t.cdf(value.detach().cpu().numpy())
         return torch.tensor(result, device=value.device, dtype=value.dtype)
 
-    def icdf(self, value: torch.Tensor):
+    def icdf(self, value: torch.Tensor) -> torch.Tensor:
         result = self.scipy_student_t.ppf(value.detach().cpu().numpy())
         return torch.tensor(result, device=value.device, dtype=value.dtype)
 
