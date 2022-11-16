@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     cast,
+    Collection,
     Dict,
     Iterator,
     Iterable,
@@ -26,10 +27,11 @@ from typing import (
 )
 
 import pandas as pd
+import numpy as np
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
-from gluonts.dataset.common import DataEntry, ProcessDataEntry
+from gluonts.dataset.common import DataEntry, _as_period
 from gluonts.dataset.field_names import FieldName
 from gluonts.itertools import Map, SizedIterable
 
@@ -109,7 +111,6 @@ class PandasDataset:
     def __post_init__(self) -> None:
         if isinstance(self.target, list) and len(self.target) == 1:
             self.target = self.target[0]
-        self.one_dim_target = not isinstance(self.target, list)
 
         if isinstance(self.dataframes, dict):
             self._pairs = self.dataframes.items()
@@ -126,10 +127,6 @@ class PandasDataset:
                 self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
             self.freq = infer_freq(first(self._pairs)[1].index)
-
-        self.process = ProcessDataEntry(
-            cast(str, self.freq), one_dim_target=self.one_dim_target
-        )
 
         self._data_entries = Map(self._pair_to_dataentry, self._pairs)
 
@@ -170,7 +167,8 @@ class PandasDataset:
         if item_id is not None:
             data_entry["item_id"] = item_id
 
-        return self.process(data_entry)
+        data_entry["start"] = _as_period(data_entry["start"], self.freq)
+        return data_entry
 
     def __iter__(self) -> Iterator[DataEntry]:
         for entry in self._data_entries:
@@ -187,7 +185,13 @@ class PandasDataset:
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls,
+        dataframe: pd.DataFrame,
+        item_id: str,
+        *,
+        timestamp: str,
+        freq: str,
+        **kwargs
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe.
@@ -204,6 +208,10 @@ class PandasDataset:
         item_id
             Name of the column that, when grouped by, gives the different time
             series.
+        timestamp
+            Name of the timestamp column.
+        freq
+            Frequency of the data, must be a valid Pandas frequency string.
         **kwargs
             Additional arguments. Same as of PandasDataset class.
 
@@ -212,9 +220,13 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
-        if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
-            dataframe.index = pd.to_datetime(dataframe.index)
-        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
+        dataframe.timestamp = pd.PeriodIndex(dataframe[timestamp], freq=freq)
+        return cls(
+            dataframes=dataframe.groupby(item_id),
+            timestamp=timestamp,
+            freq=freq,
+            **kwargs
+        )
 
 
 def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
@@ -229,6 +241,20 @@ def infer_freq(index: pd.Index):
     if isinstance(index, pd.PeriodIndex):
         return index.freqstr
     return pd.infer_freq(index)
+
+
+def extract_dynamic_array(
+    df: pd.DataFrame, col_names: Union[str, Collection[str]]
+) -> np.ndarray:
+    return df[col_names].values.transpose()
+
+
+def extract_static_array(
+    df: pd.DataFrame, col_names: Union[str, Collection[str]]
+) -> np.ndarray:
+    if isinstance(col_names, str):
+        return df[col_names].values[:1]
+    return df[col_names].values[0, :]
 
 
 def as_dataentry(
@@ -277,21 +303,29 @@ def as_dataentry(
     start = data.loc[:, timestamp].iloc[0] if timestamp else data.index[0]
     dataentry = {FieldName.START: start}
 
-    def set_field(fieldname, col_names, f=lambda x: x):
-        if len(col_names) > 0:
-            dataentry[fieldname] = [
-                f(data.loc[:, n].to_list()) for n in col_names
-            ]
+    dataentry[FieldName.TARGET] = extract_dynamic_array(data, target)
 
-    if isinstance(target, str):
-        dataentry[FieldName.TARGET] = data.loc[:, target].to_list()
-    else:
-        set_field(FieldName.TARGET, target)
-    set_field(FieldName.FEAT_DYNAMIC_REAL, feat_dynamic_real)
-    set_field(FieldName.FEAT_DYNAMIC_CAT, feat_dynamic_cat)
-    set_field(FieldName.FEAT_STATIC_REAL, feat_static_real, lambda x: x[0])
-    set_field(FieldName.FEAT_STATIC_CAT, feat_static_cat, lambda x: x[0])
-    set_field(FieldName.PAST_FEAT_DYNAMIC_REAL, past_feat_dynamic_real)
+    if len(feat_dynamic_real) > 0:
+        dataentry[FieldName.FEAT_DYNAMIC_REAL] = extract_dynamic_array(
+            data, feat_dynamic_real
+        )
+    if len(feat_dynamic_cat) > 0:
+        dataentry[FieldName.FEAT_DYNAMIC_CAT] = extract_dynamic_array(
+            data, feat_dynamic_cat
+        )
+    if len(past_feat_dynamic_real) > 0:
+        dataentry[FieldName.PAST_FEAT_DYNAMIC_REAL] = extract_dynamic_array(
+            data, past_feat_dynamic_real
+        )
+    if len(feat_static_real) > 0:
+        dataentry[FieldName.FEAT_STATIC_REAL] = extract_static_array(
+            data, feat_static_real
+        )
+    if len(feat_static_cat) > 0:
+        dataentry[FieldName.FEAT_STATIC_CAT] = extract_static_array(
+            data, feat_static_cat
+        )
+
     return dataentry
 
 
