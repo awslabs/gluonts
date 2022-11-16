@@ -20,6 +20,9 @@ from .action import (
     Pipeline,
     Remove,
     Set,
+    SetDefault,
+    Update,
+    UpdateDefault,
 )
 from .schema import Schema
 
@@ -32,5 +35,8 @@ __all__ = [
     "Pipeline",
     "Remove",
     "Set",
+    "SetDefault",
+    "Update",
+    "UpdateDefault",
     "Schema",
 ]

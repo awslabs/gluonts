@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 
 from gluonts import itertools as it
 
