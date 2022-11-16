@@ -50,6 +50,8 @@ class DeepARModel(nn.Module):
     num_feat_static_cat
         Number of static categorical features that will be provided to
         ``forward``.
+    target_dim
+        Dimension of the target.
     cardinality
         List of cardinalities, one for each static categorical feature.
     embedding_dimension
@@ -86,6 +88,7 @@ class DeepARModel(nn.Module):
         num_feat_static_real: int,
         num_feat_static_cat: int,
         cardinality: List[int],
+        target_dim: int = 1,
         embedding_dimension: Optional[List[int]] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
@@ -97,6 +100,7 @@ class DeepARModel(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.target_dim = target_dim
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output
@@ -121,7 +125,9 @@ class DeepARModel(nn.Module):
             self.scaler = MeanScaler(dim=1, keepdim=True)
         else:
             self.scaler = NOPScaler(dim=1, keepdim=True)
-        self.rnn_input_size = len(self.lags_seq) + self._number_of_features
+        self.rnn_input_size = (
+            self.target_dim * len(self.lags_seq) + self._number_of_features
+        )
         self.rnn = nn.LSTM(
             input_size=self.rnn_input_size,
             hidden_size=hidden_size,
@@ -136,7 +142,7 @@ class DeepARModel(nn.Module):
             sum(self.embedding_dimension)
             + self.num_feat_dynamic_real
             + self.num_feat_static_real
-            + 1  # the log(scale)
+            + self.target_dim  # the log(scale)
         )
 
     @property
@@ -153,7 +159,8 @@ class DeepARModel(nn.Module):
                 self.num_feat_dynamic_real,
             ),
             "past_target": (batch_size, self._past_length) + self.target_shape,
-            "past_observed_values": (batch_size, self._past_length),
+            "past_observed_values": (batch_size, self._past_length)
+            + self.target_shape,
             "future_time_feat": (
                 batch_size,
                 self.prediction_length,
@@ -206,7 +213,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, *target_shape)``.
         past_observed_values
             Tensor of observed values indicators,
-            shape: ``(batch_size, past_length)``.
+            shape: ``(batch_size, past_length, *target_shape)``.
         future_time_feat
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
@@ -236,9 +243,11 @@ class DeepARModel(nn.Module):
         )
 
         embedded_cat = self.embedder(feat_static_cat)
+        log_scale = (
+            scale.log() if self.target_dim == 1 else scale.squeeze(1).log()
+        )
         static_feat = torch.cat(
-            (embedded_cat, feat_static_real, scale.log()),
-            dim=1,
+            (embedded_cat, feat_static_real, log_scale), dim=1
         )
         expanded_static_feat = static_feat.unsqueeze(1).expand(
             -1, input.shape[1], -1
@@ -321,12 +330,12 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, *target_shape)``.
         past_observed_values
             Tensor of observed values indicators,
-            shape: ``(batch_size, past_length)``.
+            shape: ``(batch_size, past_length, *target_shape)``.
         future_time_feat
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         num_parallel_samples
-            How many future sampels to produce.
+            How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
         if num_parallel_samples is None:

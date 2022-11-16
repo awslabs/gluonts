@@ -21,6 +21,8 @@ from torch.distributions import (
     Beta,
     Distribution,
     Gamma,
+    Independent,
+    LowRankMultivariateNormal,
     NegativeBinomial,
     Normal,
     Poisson,
@@ -78,7 +80,7 @@ class Output:
     """
 
     in_features: int
-    args_dim: Dict[str, int]
+    args_dim: Optional[Dict[str, int]] = None
     _dtype: Type = np.float32
 
     @property
@@ -139,7 +141,9 @@ class DistributionOutput(Output):
         if loc is None and scale is None:
             return distr
         else:
-            return AffineTransformed(distr, loc=loc, scale=scale)
+            return AffineTransformed(
+                distr, loc=loc, scale=scale, event_dim=self.event_dim
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -180,6 +184,17 @@ class NormalOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
     distr_cls: type = Normal
 
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
+
     @classmethod
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
@@ -187,12 +202,23 @@ class NormalOutput(DistributionOutput):
 
     @property
     def event_shape(self) -> Tuple:
-        return ()
+        return () if self.dim == 1 else (self.dim,)
 
 
 class StudentTOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
     distr_cls: type = StudentT
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(
@@ -204,12 +230,23 @@ class StudentTOutput(DistributionOutput):
 
     @property
     def event_shape(self) -> Tuple:
-        return ()
+        return () if self.dim == 1 else (self.dim,)
 
 
 class BetaOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"concentration1": 1, "concentration0": 1}
     distr_cls: type = Beta
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(
@@ -221,17 +258,28 @@ class BetaOutput(DistributionOutput):
         return concentration1.squeeze(dim=-1), concentration0.squeeze(dim=-1)
 
     @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-    @property
     def value_in_support(self) -> float:
         return 0.5
+
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
 
 
 class GammaOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"concentration": 1, "rate": 1}
     distr_cls: type = Gamma
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(cls, concentration: torch.Tensor, rate: torch.Tensor):
@@ -241,17 +289,28 @@ class GammaOutput(DistributionOutput):
         return concentration.squeeze(dim=-1), rate.squeeze(dim=-1)
 
     @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-    @property
     def value_in_support(self) -> float:
         return 0.5
+
+    @property
+    def event_shape(self) -> Tuple:
+        return () if self.dim == 1 else (self.dim,)
 
 
 class PoissonOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"rate": 1}
     distr_cls: type = Poisson
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
+
+    def _base_distribution(self, distr_args):
+        if self.dim == 1:
+            return self.distr_cls(*distr_args)
+        else:
+            return Independent(self.distr_cls(*distr_args), 1)
 
     @classmethod
     def domain_map(cls, rate: torch.Tensor):
@@ -260,12 +319,17 @@ class PoissonOutput(DistributionOutput):
 
     @property
     def event_shape(self) -> Tuple:
-        return ()
+        return () if self.dim == 1 else (self.dim,)
 
 
 class NegativeBinomialOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
     distr_cls: type = NegativeBinomial
+
+    @validated()
+    def __init__(self, dim: int = 1) -> None:
+        self.dim = dim
+        self.args_dim = {k: dim * self.args_dim[k] for k in self.args_dim}
 
     @classmethod
     def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
@@ -274,7 +338,12 @@ class NegativeBinomialOutput(DistributionOutput):
 
     def _base_distribution(self, distr_args) -> Distribution:
         total_count, logits = distr_args
-        return self.distr_cls(total_count=total_count, logits=logits)
+        if self.dim == 1:
+            return self.distr_cls(total_count=total_count, logits=logits)
+        else:
+            return Independent(
+                self.distr_cls(total_count=total_count, logits=logits), 1
+            )
 
     # Overwrites the parent class method. We cannot scale using the affine
     # transformation since negative binomial should return integers. Instead
@@ -290,8 +359,109 @@ class NegativeBinomialOutput(DistributionOutput):
         if scale is not None:
             logits += scale.log()
 
-        return NegativeBinomial(total_count=total_count, logits=logits)
+        return self._base_distribution((total_count, logits))
 
     @property
     def event_shape(self) -> Tuple:
-        return ()
+        return () if self.dim == 1 else (self.dim,)
+
+
+class LowRankMultivariateNormalOutput(DistributionOutput):
+    distr_cls: type = LowRankMultivariateNormal
+
+    @validated()
+    def __init__(
+        self,
+        dim: int,
+        rank: int,
+        sigma_init: float = 1.0,
+        sigma_minimum: float = 1e-4,
+    ) -> None:
+        super().__init__(self)
+
+        assert (
+            isinstance(rank, int) and rank >= 0
+        ), "rank should be a nonnegative integer"
+
+        assert (
+            sigma_init >= 0
+        ), "sigma_init should be greater than or equal to 0"
+
+        assert sigma_minimum > 0, "sigma_minimum should be greater than 0"
+
+        self.dim = dim
+        self.rank = rank
+        if rank == 0:
+            self.args_dim = {"mu": dim, "D": dim}
+        else:
+            self.args_dim = {
+                "mu": dim,
+                "D": dim,
+                "W": dim * rank,
+            }
+        self.sigma_init = sigma_init
+        self.sigma_minimum = sigma_minimum
+
+    def domain_map(
+        self,
+        mu_vector: torch.Tensor,
+        D_vector: torch.Tensor,
+        W_vector: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
+        r"""
+        Parameters
+        ----------
+        mu_vector
+            Tensor of shape (*batch_shape, dim)
+        D_vector
+            Tensor of shape (*batch_shape, dim)
+        W_vector
+            Tensor of shape (*batch_shape, dim * rank)
+        Returns
+        -------
+        Tuple
+            A tuple containing tensors mu, D, and W, with shapes
+            (*batch_shape, dim), (*batch_shape, dim),
+            and (*batch_shape, dim, rank), respectively.
+        """
+
+        # Compute softplus^{-1}(sigma_init)
+        D_bias = (
+            self._inv_softplus(self.sigma_init) if self.sigma_init > 0 else 0
+        )
+
+        D_diag = F.softplus(D_vector + D_bias) + self.sigma_minimum
+
+        if self.rank == 0:
+            # Torch's built-in LowRankMultivariateNormal
+            # doesn't support rank=0. So we pass a zero vector.
+            W_matrix = torch.zeros(
+                (*mu_vector[:-1], self.dim, 1),
+                dtype=mu_vector.dtype,
+                device=mu_vector.device,
+                layout=mu_vector.layout,
+            )
+        else:
+            assert (
+                W_vector is not None
+            ), "W_vector cannot be None if rank is not zero!"
+            # reshape from vector form
+            # (*batch_shape, dim * rank) to
+            # matrix form (*batch_shape, dim, rank)
+            W_matrix = W_vector.reshape(
+                *W_vector.shape[:-1], self.dim, self.rank
+            )
+
+        return mu_vector, W_matrix, D_diag
+
+    def _inv_softplus(self, y):
+        if y < 20.0:
+            # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
+            return np.log(np.exp(y) - 1)
+        else:
+            return y
+
+    @property
+    def event_shape(self) -> Tuple:
+        return (self.dim,)
