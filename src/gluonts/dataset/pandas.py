@@ -15,7 +15,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    cast,
     Collection,
     Dict,
     Iterator,
@@ -28,7 +27,6 @@ from typing import (
 
 import pandas as pd
 import numpy as np
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
 from gluonts.dataset.common import DataEntry, _as_period
