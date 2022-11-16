@@ -26,9 +26,10 @@ from typing import (
 )
 from dataclasses import dataclass, field
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class SizedIterable(Protocol):
     def __len__(self):
         ...
