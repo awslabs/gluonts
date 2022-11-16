@@ -121,8 +121,8 @@ class PandasDataset:
 
         assert isinstance(self._pairs, SizedIterable)
 
-        if not self.freq:
-            self.freq = first(self._pairs)[1].index.freqstr
+        if self.freq is None:
+            self.freq = infer_freq(first(self._pairs)[1].index)
 
         self.process = ProcessDataEntry(
             cast(str, self.freq), one_dim_target=self.one_dim_target
@@ -220,6 +220,12 @@ def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         return (None, obj)
     raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
+
+
+def infer_freq(index: pd.Index):
+    if isinstance(index, pd.PeriodIndex):
+        return index.freqstr
+    return pd.infer_freq(index)
 
 
 def as_dataentry(
