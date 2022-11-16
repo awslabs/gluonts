@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass, field
 from functools import singledispatch
-from typing import Any, Dict, Type
+from typing import Any, Dict, Type, Union
 
 import numpy as np
 
@@ -37,6 +37,11 @@ class Schema:
 
         clone = self.copy()
         clone.fields[name] = ty
+        return clone
+
+    def union(self, name: str, ty: Type) -> "Schema":
+        clone = self.copy()
+        clone.fields[name] = Union[self.fields.get(name, ty), ty]
         return clone
 
     def remove(self, name: str, ignore_missing=False) -> "Schema":

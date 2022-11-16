@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any, Dict, List
 
 from gluonts import itertools as it
 
@@ -128,6 +128,51 @@ class Set(Map):
 
     def apply_schema(self, schema):
         return schema.add(self.name, type(self.value))
+
+
+@dataclass
+class SetDefault(Map):
+    name: str
+    value: Any
+
+    def each(self, data):
+        data.setdefault(self.name, self.value)
+
+        return data
+
+    def apply_schema(self, schema):
+        return schema.union(self.name, type(self.value))
+
+
+@dataclass
+class Update(Map):
+    fields: Dict[str, Type]
+
+    def each(self, data):
+        data.update(self.fields)
+        return data
+
+    def apply_schema(self, schema):
+        for name, value in self.fields.items():
+            schema = schema.add(name, type(value))
+
+        return schema
+
+
+@dataclass
+class UpdateDefault(Map):
+    fields: Dict[str, Type]
+
+    def each(self, data):
+        result = dict(self.fields)
+        result.update(data)
+        return result
+
+    def apply_schema(self, schema):
+        for name, value in self.fields.items():
+            schema = schema.union(name, type(value))
+
+        return schema
 
 
 @dataclass
