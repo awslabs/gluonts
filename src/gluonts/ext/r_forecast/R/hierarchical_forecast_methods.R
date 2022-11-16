@@ -1,5 +1,5 @@
 library("hts")
-library(parallel)
+library("parallel")
 
 naive_bottom_up <- function(hts, params) {
     h <- params$prediction_length
