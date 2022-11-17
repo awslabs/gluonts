@@ -27,6 +27,7 @@ from typing import (
 
 import pandas as pd
 import numpy as np
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
 from gluonts.dataset.common import DataEntry, _as_period
@@ -183,13 +184,7 @@ class PandasDataset:
 
     @classmethod
     def from_long_dataframe(
-        cls,
-        dataframe: pd.DataFrame,
-        item_id: str,
-        *,
-        timestamp: str,
-        freq: str,
-        **kwargs
+        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe.
@@ -206,10 +201,6 @@ class PandasDataset:
         item_id
             Name of the column that, when grouped by, gives the different time
             series.
-        timestamp
-            Name of the timestamp column.
-        freq
-            Frequency of the data, must be a valid Pandas frequency string.
         **kwargs
             Additional arguments. Same as of PandasDataset class.
 
@@ -218,13 +209,9 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
-        dataframe.timestamp = pd.PeriodIndex(dataframe[timestamp], freq=freq)
-        return cls(
-            dataframes=dataframe.groupby(item_id),
-            timestamp=timestamp,
-            freq=freq,
-            **kwargs
-        )
+        if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
+            dataframe.index = pd.to_datetime(dataframe.index)
+        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
 def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
