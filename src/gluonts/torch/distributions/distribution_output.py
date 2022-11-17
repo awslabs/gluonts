@@ -24,7 +24,6 @@ from torch.distributions import (
     NegativeBinomial,
     Normal,
     Poisson,
-    StudentT,
 )
 
 from gluonts.core.component import validated
@@ -184,23 +183,6 @@ class NormalOutput(DistributionOutput):
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
         return loc.squeeze(-1), scale.squeeze(-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-
-class StudentTOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
-    distr_cls: type = StudentT
-
-    @classmethod
-    def domain_map(
-        cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
-    ):
-        scale = F.softplus(scale)
-        df = 2.0 + F.softplus(df)
-        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
     @property
     def event_shape(self) -> Tuple:
