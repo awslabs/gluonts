@@ -347,7 +347,7 @@ class DeepNPTSEstimator(Estimator):
         optimizer = torch.optim.Adam(net.parameters(), lr=lr)
 
         best_loss = float("inf")
-        for epoch_num in range(epochs):
+        for epoch_no in range(1, epochs + 1):
             sum_epoch_loss = 0.0
             for batch_no, batch in enumerate(data_loader, start=1):
                 x = {k: batch[k] for k in self.features_fields}
@@ -372,7 +372,7 @@ class DeepNPTSEstimator(Estimator):
                 best_net = deepcopy(net)
 
             print(
-                f"Loss for epoch {epoch_num}: "
+                f"Loss for epoch {epoch_no}: "
                 f"{sum_epoch_loss / num_batches_per_epoch}"
             )
 

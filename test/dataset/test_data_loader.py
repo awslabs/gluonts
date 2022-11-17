@@ -139,7 +139,7 @@ def test_training_data_loader(dataset_context):
 
         batches = []
 
-        for epoch in range(num_epochs):
+        for epoch in range(1, num_epochs + 1):
             for batch in islice(dl, epoch_length):
                 assert all(batch["is_train"])
                 batches.append(batch)

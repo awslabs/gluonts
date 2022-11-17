@@ -18,7 +18,7 @@ import tempfile
 import time
 import uuid
 import warnings
-from typing import cast, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 import mxnet as mx
 import mxnet.autograd as autograd
@@ -224,9 +224,9 @@ class Trainer:
                     f"{STATE_ARTIFACT_FILE_NAME}_{uuid.uuid4()}",
                 )
 
-            best_epoch_info = {
+            best_epoch_info: Dict[str, Any] = {
                 "params_path": "{}-{}.params".format(base_path(), "init"),
-                "epoch_no": -1,
+                "epoch_no": None,
                 "score": np.Inf,
             }
 
@@ -350,14 +350,14 @@ class Trainer:
                     lv = loss_value(epoch_loss)
                     it.set_postfix(
                         ordered_dict={
-                            "epoch": f"{epoch_no + 1}/{self.epochs}",
+                            "epoch": f"{epoch_no}/{self.epochs}",
                             ("" if is_training else "validation_")
                             + "avg_epoch_loss": lv,
                         },
                         refresh=False,
                     )
                     # print out parameters of the network at the first pass
-                    if batch_no == 1 and epoch_no == 0:
+                    if batch_no == 1 and epoch_no == 1:
                         net_name = type(net).__name__
                         num_model_param = self.count_model_params(net)
                         logger.info(
@@ -407,7 +407,7 @@ class Trainer:
             self.callbacks.on_train_start(max_epochs=self.epochs)
 
             try:
-                for epoch_no in range(self.epochs):
+                for epoch_no in range(1, self.epochs + 1):
                     if self.halt:
                         logger.info(f"Epoch[{epoch_no}] Interrupting training")
                         break

@@ -137,7 +137,7 @@ def maximum_likelihood_estimate_sgd(
         shuffle=True,
     )
 
-    for e in range(num_epochs):
+    for e in range(1, num_epochs + 1):
         cumulative_loss = 0
         num_batches = 0
         # inner loop

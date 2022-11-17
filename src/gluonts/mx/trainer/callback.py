@@ -138,7 +138,7 @@ class Callback:
         Parameters
         ----------
         epoch_no
-            The current epoch (the first epoch has `epoch_no = 0`).
+            The current epoch (the first epoch has `epoch_no = 1`).
         epoch_loss
             The loss that was recorded in the last epoch.
         training_network
@@ -170,7 +170,7 @@ class Callback:
         Parameters
         ----------
         epoch_no
-            The current epoch (the first epoch has `epoch_no = 0`).
+            The current epoch (the first epoch has `epoch_no = 1`).
         epoch_loss
             The validation loss that was recorded in the last epoch.
         training_network
@@ -204,7 +204,7 @@ class Callback:
         Parameters
         ----------
         epoch_no
-            The current epoch (the first epoch has `epoch_no = 0`).
+            The current epoch (the first epoch has `epoch_no = 1`).
         epoch_loss
             The validation loss that was recorded in the last epoch if
             validation data was provided. The training loss otherwise.

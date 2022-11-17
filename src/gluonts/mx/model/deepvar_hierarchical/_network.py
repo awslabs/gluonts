@@ -216,7 +216,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
         # Determine which epoch we are currently in.
         self.batch_no += 1
-        epoch_no = self.batch_no // self.num_batches_per_epoch + 1
+        epoch_no = (self.batch_no - 1) // self.num_batches_per_epoch + 1
         epoch_frac = epoch_no / self.epochs
 
         if (

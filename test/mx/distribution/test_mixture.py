@@ -282,7 +282,7 @@ def fit_mixture_distribution(
         args_proj.collect_params(), "sgd", {"learning_rate": 0.02}
     )
 
-    t = tqdm(list(range(epochs)))
+    t = tqdm(list(range(1, epochs + 1)))
     for _ in t:
         with mx.autograd.record():
             distr_args = args_proj(input)

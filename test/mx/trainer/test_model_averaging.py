@@ -48,12 +48,12 @@ def test_model_averaging(strategy, num_models):
     dummy_checkpoints = [
         {
             "params_path": "dummy_path",
-            "epoch_no": 0,
+            "epoch_no": 1,
             "score": loss_1,
         },
         {
             "params_path": "dummy_path",
-            "epoch_no": 0,
+            "epoch_no": 1,
             "score": loss_2,
         },
     ]
