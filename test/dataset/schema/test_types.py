@@ -21,9 +21,9 @@ f32_2d = ty.Array(dtype=np.float32, ndim=2)
 
 def test_array():
     assert np.array_equal(
-        f32_2d.apply([[0, 1, 2]]), np.arange(3, dtype=np.float32).reshape(1, 3)
+        f32_2d([[0, 1, 2]]), np.arange(3, dtype=np.float32).reshape(1, 3)
     )
 
 
 def test_period():
-    assert pd.Period("2020", freq="M") == ty.Period(freq="M").apply("2020")
+    assert pd.Period("2020", freq="M") == ty.Period(freq="M")("2020")
