@@ -22,7 +22,7 @@ T = typing.TypeVar("T")
 
 
 class Type:
-    def apply(self, data):
+    def __call__(self, data):
         raise NotImplementedError
 
 
@@ -37,9 +37,9 @@ class Default(GenericType[T]):
 
     def __post_init__(self):
         if self.base is not None:
-            self.value = self.base.apply(self.value)
+            self.value = self.base(self.value)
 
-    def apply(self, data) -> T:
+    def __call__(self, data) -> T:
         return self.value
 
 
@@ -59,7 +59,7 @@ class Array(GenericType[T]):
     dtype: typing.Optional[typing.Type[T]] = None
     time_dim: typing.Optional[int] = None
 
-    def apply(self, data):
+    def __call__(self, data):
         arr = np.asarray(data, dtype=self.dtype)
 
         if arr.ndim != self.ndim:
@@ -72,5 +72,5 @@ class Array(GenericType[T]):
 class Period:
     freq: typing.Optional[str] = None
 
-    def apply(self, data):
+    def __call__(self, data):
         return pd.Period(data, freq=self.freq)
