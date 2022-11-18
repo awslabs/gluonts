@@ -76,36 +76,6 @@ class Pipeline(Action):
         return Pipeline([other] + self.actions)
 
 
-class Map(Action):
-    def each(self, data):
-        raise NotImplementedError
-
-    def apply(self, stream):
-        return it.Map(self.each, stream)
-
-
-class Identity(Map):
-    def __add__(self, other):
-        return other
-
-    def __radd__(self, other):
-        return other
-
-    def each(self, data):
-        return data
-
-    def apply_schema(self, schema):
-        return schema
-
-
-class Copy(Map):
-    def each(self, data):
-        return dict(data)
-
-    def apply_schema(self, schema):
-        return schema
-
-
 class Filter(Action):
     def filter(self, data):
         raise NotImplementedError
@@ -117,12 +87,65 @@ class Filter(Action):
         return it.Filter(self.filter, data)
 
 
+class Map(Action):
+    def __call__(self, data: dict) -> dict:
+        raise NotImplementedError
+
+    def apply(self, stream):
+        return it.Map(self, stream)
+
+    def __radd__(self, other):
+        if isinstance(other, Map):
+            if isinstance(other, MapPipeline):
+                return MapPipeline(other.actions + [self])
+            return MapPipeline([other, self])
+
+        return Action.__radd__(self, other)
+
+
+@dataclass
+class MapPipeline(Pipeline, Map):
+    def __call__(self, data):
+        for result in self.apply_one(data):
+            return result
+
+    def __radd__(self, other):
+        if isinstance(other, MapPipeline):
+            return MapPipeline(other.actions + self.actions)
+        elif isinstance(other, Map):
+            return MapPipeline([other] + self.actions)
+        else:
+            return Pipeline.__radd__(self, other)
+
+
+class Identity(Map):
+    def __add__(self, other):
+        return other
+
+    def __radd__(self, other):
+        return other
+
+    def __call__(self, data):
+        return data
+
+    def apply_schema(self, schema):
+        return schema
+
+
+class Copy(Map):
+    def __call__(self, data):
+        return dict(data)
+
+    def apply_schema(self, schema):
+        return schema
+
+
 @dataclass
 class Set(Map):
     name: str
     value: Any
 
-    def each(self, data):
+    def __call__(self, data):
         data[self.name] = self.value
         return data
 
@@ -135,7 +158,7 @@ class SetDefault(Map):
     name: str
     value: Any
 
-    def each(self, data):
+    def __call__(self, data):
         data.setdefault(self.name, self.value)
 
         return data
@@ -148,7 +171,7 @@ class SetDefault(Map):
 class Update(Map):
     fields: Dict[str, Type]
 
-    def each(self, data):
+    def __call__(self, data):
         data.update(self.fields)
         return data
 
@@ -163,7 +186,7 @@ class Update(Map):
 class UpdateDefault(Map):
     fields: Dict[str, Type]
 
-    def each(self, data):
+    def __call__(self, data):
         result = dict(self.fields)
         result.update(data)
         return result
@@ -179,7 +202,7 @@ class UpdateDefault(Map):
 class Remove(Map):
     name: str
 
-    def each(self, data):
+    def __call__(self, data):
         del data[self.name]
         return data
 
