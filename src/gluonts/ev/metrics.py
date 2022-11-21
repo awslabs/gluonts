@@ -285,10 +285,8 @@ class MeanSumQuantileLoss:
         )
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
-
         return DerivedEvaluator(
-            name=f"mean_sum_quantile_loss[{quantile_levels_str}]",
+            name=f"mean_sum_quantile_loss",
             evaluators={
                 f"quantile_loss[{q}]": SumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
@@ -308,10 +306,8 @@ class MeanWeightedSumQuantileLoss:
         )
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
-
         return DerivedEvaluator(
-            name=f"mean_weighted_sum_quantile_loss[{quantile_levels_str}]",
+            name=f"mean_weighted_sum_quantile_loss",
             evaluators={
                 f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
@@ -333,10 +329,8 @@ class MAECoverage:
         return np.ma.mean(intermediate_result)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        quantile_levels_str = ",".join(sorted(map(str, self.quantile_levels)))
-
         return DerivedEvaluator(
-            name=f"MAE_coverage[{quantile_levels_str}]",
+            name=f"MAE_coverage",
             evaluators={
                 f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
