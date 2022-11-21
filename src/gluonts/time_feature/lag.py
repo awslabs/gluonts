@@ -71,12 +71,15 @@ def get_lags_for_frequency(
             _make_lags(k * 24 // multiple, 1) for k in range(1, num_cycles + 1)
         ]
 
-    def _make_lags_for_day(multiple, num_cycles=4):
+    def _make_lags_for_day(
+        multiple, num_cycles=4, days_in_week=7, days_in_month=30
+    ):
         # We use previous ``num_cycles`` weeks to generate lags
         # We use the last month (in addition to 4 weeks) to generate lag.
         return [
-            _make_lags(k * 7 // multiple, 1) for k in range(1, num_cycles + 1)
-        ] + [_make_lags(30 // multiple, 1)]
+            _make_lags(k * days_in_week // multiple, 1)
+            for k in range(1, num_cycles + 1)
+        ] + [_make_lags(days_in_month // multiple, 1)]
 
     def _make_lags_for_week(multiple, num_cycles=3):
         # We use previous ``num_cycles`` years to generate lags
@@ -112,8 +115,9 @@ def get_lags_for_frequency(
             offset.n / 7.0
         )
     elif offset_name == "B":
-        # todo find good lags for business day
-        lags = []
+        lags = _make_lags_for_day(
+            offset.n, days_in_week=5, days_in_month=22
+        ) + _make_lags_for_week(offset.n / 5.0)
     elif offset_name == "H":
         lags = (
             _make_lags_for_hour(offset.n)
