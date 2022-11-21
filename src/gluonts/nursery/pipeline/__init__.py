@@ -24,7 +24,7 @@ from .action import (
     Update,
     UpdateDefault,
 )
-from .schema import Schema
+from .schema import Schema, SchemaTracker
 
 __all__ = [
     "Action",
@@ -39,4 +39,5 @@ __all__ = [
     "Update",
     "UpdateDefault",
     "Schema",
+    "SchemaTracker",
 ]

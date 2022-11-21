@@ -208,3 +208,17 @@ class Remove(Map):
 
     def apply_schema(self, schema):
         return schema.remove(self.name)
+
+
+@dataclass
+class Move(Map):
+    source: str
+    target: str
+
+    def __call__(self, data):
+        data[self.target] = data.pop(self.source)
+        return data
+
+    def apply_schema(self, schema):
+        schema, ty = schema.pop(self.source)
+        return schema.set(self.target, ty)
