@@ -43,6 +43,7 @@ from .metrics import (
 )
 from .aggregations import Aggregation, Sum, Mean
 from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
+from .helpers import evaluate
 
 __all__ = [
     "seasonal_error",
@@ -77,4 +78,5 @@ __all__ = [
     "Evaluator",
     "DirectEvaluator",
     "DerivedEvaluator",
+    "evaluate",
 ]

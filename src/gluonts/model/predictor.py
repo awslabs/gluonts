@@ -52,6 +52,7 @@ from gluonts.model.forecast_batch import (
 from gluonts.time_feature.seasonality import get_seasonality
 from gluonts.ev.metrics import Metric
 from gluonts.ev.ts_stats import seasonal_error
+from gluonts.ev.helpers import evaluate
 
 
 if TYPE_CHECKING:  # avoid circular import
@@ -162,28 +163,12 @@ class Predictor:
         axis: Optional[int] = None,
         **kwargs,
     ) -> np.ndarray:
-        evaluators = {}
-        for metric in metrics:
-            evaluator = metric(axis=axis)
-
-            assert (
-                evaluator.name not in evaluators
-            ), f"Evaluator name '{evaluator.name}' is not unique"
-
-            evaluators[evaluator.name] = evaluator
-
         forecasts = self.predict(dataset=test_data.input, **kwargs)
-        data = get_backtest_input(test_data=test_data, forecasts=forecasts)
+        data_batches = get_backtest_input(
+            test_data=test_data, forecasts=forecasts
+        )
 
-        for data_batch in data:
-            for evaluator in evaluators.values():
-                evaluator.update(data_batch)
-
-        result = {
-            metric_name: evaluator.get()
-            for metric_name, evaluator in evaluators.items()
-        }
-        return result
+        return evaluate(metrics=metrics, data_batches=data_batches, axis=axis)
 
 
 class RepresentablePredictor(Predictor):
