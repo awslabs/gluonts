@@ -13,6 +13,7 @@
 
 from dataclasses import dataclass
 from typing import Callable, ChainMap, Dict
+
 import numpy as np
 
 from .aggregations import Aggregation

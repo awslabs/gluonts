@@ -14,7 +14,7 @@
 from gluonts.dataset.split import split
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import MSIS, MSE, SumQuantileLoss
+from gluonts.ev import MSIS, MSE, SumQuantileLoss
 
 dataset = get_dataset("exchange_rate")
 

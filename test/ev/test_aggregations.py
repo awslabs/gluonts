@@ -15,7 +15,7 @@ import numpy as np
 
 import pytest
 
-from gluonts.ev.aggregations import Mean, Sum
+from gluonts.ev import Mean, Sum
 
 VALUE_STREAM = [
     [

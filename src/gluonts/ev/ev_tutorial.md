@@ -17,7 +17,7 @@ Before diving into how things work, let's look at how to use the new evaluation 
 from gluonts.dataset.split import split
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev.metrics import MSIS, MSE, SumQuantileLoss
+from gluonts.ev import MSIS, MSE, SumQuantileLoss
 ```
 
 First, let's pick a dataset. We choose `exchange_rate` here as it's very lightweight.
