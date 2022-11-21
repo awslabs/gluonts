@@ -24,7 +24,6 @@ from gluonts.mx import Tensor
 from gluonts.mx.distribution import CategoricalOutput
 
 
-# noinspection PyAbstractClass
 class DeepTPPNetworkBase(mx.gluon.HybridBlock):
     """
     Temporal point process model based on a recurrent neural network.
@@ -100,8 +99,6 @@ class DeepTPPNetworkBase(mx.gluon.HybridBlock):
 
 
 class DeepTPPTrainingNetwork(DeepTPPNetworkBase):
-
-    # noinspection PyMethodOverriding,PyPep8Naming,PyIncorrectDocstring
     def hybrid_forward(
         self,
         F,
@@ -225,7 +222,6 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         self.num_parallel_samples = num_parallel_samples
         self.prediction_interval_length = prediction_interval_length
 
-    # noinspection PyMethodOverriding,PyPep8Naming,PyIncorrectDocstring
     def hybrid_forward(
         self,
         F,
