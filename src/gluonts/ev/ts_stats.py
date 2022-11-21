@@ -15,8 +15,8 @@ import numpy as np
 
 
 def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
-    """The seasonal error is a the mean absolute difference of a given time
-    series, shifted by its seasonality.
+    """The mean abs. difference of a time series, shifted by its seasonality.
+    
     Some metrics use the seasonal error for normalization."""
 
     if seasonality < time_series.shape[-1]:
