@@ -5,52 +5,46 @@ This document explains how to use the GluonTS `ev` module.
 ## [Usage](usage_example.py)
 
 ### Overview
-Before diving into how things work, let's look at how the `ev` module can be used. This can be divided into three steps:
-1. Decide on the `test_data` (of type `TestData`) and `predictor` to use.
-2. Gather the `metrics` to be evaluated and decide over what `axis` to aggregate (use `None` to aggregate to a single value).
-3. Call `predictor.backtest(metrics, test_data, axis)` to get (metric name, metric result) pairs.
+Before diving into how things work, let's look at how the `ev` module can be used. This can be divided into these steps:
+1. Gather `metrics` to be evaluated and decide over what `axis` to aggregate.
+2. To evaluate these metrics on some data, you can do one of two things:
+   - With some `TestData` and a `Predictor` in hand, call `predictor.backtest(metrics, test_data, axis)`.
+   - Build some `data_batches` yourself (more info [below](#concepts)) and call `gluonts.ev.evaluate(metrics, data_batches, axis)`.
 
 ### Example
+The following is a toy example using the `gluonts.ev.evaluate` function. In practice, using `TestData` and calling the `backtest` method on a predictor is often more useful, but for this example, we focus as much as possible on the `ev` module itself.
+
+First, we need some data. Let's randomly create a few batches of univariate data. Note that we don't actually use `Forecast` objects here (which would be the case when using `Predictor.backtest`) but instead hardcode the two "forecasts" we need during evalution: "mean" and "0.9" (90% quantile). More on the meaning of the different fields can be found in the [Concepts](#concepts) section.
 
 ```python
-from gluonts.dataset.split import split
-from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model.npts import NPTSPredictor
-from gluonts.ev import SumQuantileLoss, MSE
+batch_count = 3
+forecasts_per_batch = 16
+prediction_length = 10
+
+random_data_batches = [
+    {
+        "label": np.random.rand(forecasts_per_batch, prediction_length),
+        "seasonal_error": np.random.rand(forecasts_per_batch, 1),
+        "mean": np.random.rand(forecasts_per_batch, prediction_length),
+        "0.9": np.random.rand(forecasts_per_batch, prediction_length),
+    }
+    for _ in range(batch_count)
+]
 ```
 
-First, let's pick a dataset.
+Let's evaluate the Quantile Loss for the 90% quantile as well as the Mean Squared Error. To do this, we call the `evaluate` function. Choosing `axis=1` means we aggregate the prediction axis, getting one number per time series.
 
 ```python
-dataset = get_dataset("exchange_rate")
+from gluonts.ev import evaluate, SumQuantileLoss, MSE
 
-prediction_length = dataset.metadata.prediction_length
-freq = dataset.metadata.freq
-```
-
-To get the (input, label) pairs of type `TestData`, we do the following:
-
-```python
-_, test_template = split(dataset=dataset.test, offset=-prediction_length)
-test_data = test_template.generate_instances(prediction_length=prediction_length)
-```
-
-Let's use a non-parametric predictor to keep things simple for this example:
-```python
-predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
-```
-
-Let's evaluate the Quantile Loss for the 90% quantile as well as the Mean Squared Error. To do this, we call the `backtest` method on our predictor. Choosing `axis=1` evaluates this metric per time series. For more information on how to use `axis`, see [Concepts](#concepts).
-
-```python
-evaluation_result = predictor.backtest(
+evaluation_result = evaluate(
     metrics=[SumQuantileLoss(q=0.9), MSE()],
-    test_data=test_data,
+    data_batches=random_data_batches,
     axis=1,
 )
 ```
 
-Finally, we print the `evaluation_result` which is a Python dictionary. This gives for each metric one value per time series.
+Finally, we print the `evaluation_result` which is a dictionary of (metric name, metric result) key-value pairs. In this case, we get for each metric one value per time series.
 ```python
 for name, value in evaluation_result.items():
     print(f"\n{name}: {value}")
