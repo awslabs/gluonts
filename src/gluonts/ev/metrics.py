@@ -279,10 +279,12 @@ class MeanSumQuantileLoss:
     quantile_levels: Collection
 
     @staticmethod
-    def mean(**kwargs) -> np.ndarray:
-        return np.ma.mean(
-            [np.ma.sum(quantile_result) for quantile_result in kwargs.values()]
+    def mean(**quantile_losses) -> np.ndarray:
+        stacked_quantile_losses = np.stack(
+            [quantile_loss for quantile_loss in quantile_losses.values()],
+            axis=0,
         )
+        return np.ma.mean(stacked_quantile_losses, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
@@ -300,10 +302,12 @@ class MeanWeightedSumQuantileLoss:
     quantile_levels: Collection
 
     @staticmethod
-    def mean(**kwargs) -> np.ndarray:
-        return np.ma.mean(
-            np.array([quantile_result for quantile_result in kwargs.values()])
+    def mean(**quantile_losses) -> np.ndarray:
+        stacked_quantile_losses = np.stack(
+            [quantile_loss for quantile_loss in quantile_losses.values()],
+            axis=0,
         )
+        return np.ma.mean(stacked_quantile_losses, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
@@ -321,18 +325,18 @@ class MAECoverage:
     quantile_levels: Collection
 
     @staticmethod
-    def mean(quantile_levels, **kwargs) -> np.ndarray:
-        intermediate_result = [
-            np.abs(np.nanmean(kwargs[f"quantile_loss[{q}]"]) - np.array([q]))
-            for q in quantile_levels
-        ]
-        return np.ma.mean(intermediate_result)
+    def mean(quantile_levels, **coverages) -> np.ndarray:
+        intermediate_result = np.stack(
+            [np.abs(coverages[f"coverage[{q}]"]) - q for q in quantile_levels],
+            axis=0,
+        )
+        return np.ma.mean(intermediate_result, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
             name=f"MAE_coverage",
             evaluators={
-                f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
+                f"coverage[{q}]": Coverage(q=q)(axis=axis)
                 for q in self.quantile_levels
             },
             post_process=partial(
