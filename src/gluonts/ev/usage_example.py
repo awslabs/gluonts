@@ -14,7 +14,7 @@
 from gluonts.dataset.split import split
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev import MSIS, MSE, SumQuantileLoss
+from gluonts.ev import SumQuantileLoss, MSE
 
 dataset = get_dataset("exchange_rate")
 
@@ -28,9 +28,10 @@ test_data = test_template.generate_instances(
 
 predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 
-metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
 evaluation_result = predictor.backtest(
-    metrics=metrics_per_entry, test_data=test_data, axis=1, num_samples=100
+    metrics=[SumQuantileLoss(q=0.9), MSE()],
+    test_data=test_data,
+    axis=1,
 )
 for name, value in evaluation_result.items():
     print(f"\n{name}: {value}")

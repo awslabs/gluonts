@@ -1,12 +1,11 @@
 # New evaluation approach
 
-This notebook explains how to use the `ev` module which is a new alternative to the `evaluation` module in GluonTS.
+This document explains how to use the GluonTS `ev` module.
 
 ## [Usage](usage_example.py)
 
-Before diving into how things work, let's look at how to use the new evaluation approach.
-
 ### Overview
+Before diving into how things work, let's look at how the `ev` module can be used. This can be divided into three steps:
 1. Decide on the `test_data` (of type `TestData`) and `predictor` to use.
 2. Gather the `metrics` to be evaluated and decide over what `axis` to aggregate (use `None` to aggregate to a single value).
 3. Call `predictor.backtest(metrics, test_data, axis)` to get (metric name, metric result) pairs.
@@ -17,10 +16,10 @@ Before diving into how things work, let's look at how to use the new evaluation 
 from gluonts.dataset.split import split
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.npts import NPTSPredictor
-from gluonts.ev import MSIS, MSE, SumQuantileLoss
+from gluonts.ev import SumQuantileLoss, MSE
 ```
 
-First, let's pick a dataset. We choose `exchange_rate` here as it's very lightweight.
+First, let's pick a dataset.
 
 ```python
 dataset = get_dataset("exchange_rate")
@@ -41,69 +40,38 @@ Let's use a non-parametric predictor to keep things simple for this example:
 predictor = NPTSPredictor(prediction_length=prediction_length, freq=freq)
 ```
 
-Next, we specify what metrics to evaluate. We don't provide arguments to MSE and MSIS because we are fine with the default values (in this case, taking the mean forecast as reference for MSE and using `alpha=0.05` for MSIS).
-
-```python
-metrics_per_entry = [MSE(), SumQuantileLoss(q=0.9), MSIS()]
-```
-
-To evaluate these metrics, we call the `backtest` method on our predictor. We want to have these metrics evaluated per time series so we specify `axis=1 `(an `axis` of `0` would aggregate per timestamp and `None` would aggregate overall). The `num_samples` is an optional argument used during the call to `predict`.
+Let's evaluate the Quantile Loss for the 90% quantile as well as the Mean Squared Error. To do this, we call the `backtest` method on our predictor. Choosing `axis=1` evaluates this metric per time series. For more information on how to use `axis`, see [Concepts](#concepts).
 
 ```python
 evaluation_result = predictor.backtest(
-    metrics=metrics_per_entry,
+    metrics=[SumQuantileLoss(q=0.9), MSE()],
     test_data=test_data,
     axis=1,
-    num_samples=100,
 )
 ```
 
-Finally, we print the `evaluation_result`.
-
+Finally, we print the `evaluation_result` which is a Python dictionary. This gives for each metric one value per time series.
 ```python
 for name, value in evaluation_result.items():
     print(f"\n{name}: {value}")
 ```
 
-This gives:
-```python
-MSE: [2.42091992e-03 2.96873403e-04 2.32838181e-04 4.56364661e-04
- 4.88960640e-05 1.81302814e-07 2.58689462e-03 2.14975906e-03
- 2.92379305e-03 7.49952987e-04 3.14545053e-04 7.56220293e-04
- 5.10044955e-05 1.52030675e-08 3.26244101e-03 2.08630866e-03
- 2.82381139e-03 6.12264155e-04 3.14068729e-04 1.03861000e-03
- 4.65201312e-05 6.37289495e-07 3.23557078e-03 1.48686040e-03
- 1.23413809e-03 7.47005498e-04 5.97453674e-05 1.13402517e-03
- 3.91843199e-05 1.79914710e-06 3.95487177e-03 8.02376727e-04
- 8.99772338e-04 5.70332479e-03 4.58576265e-04 1.38216024e-04
- 3.69498352e-05 2.30762632e-06 1.89816125e-03 4.27966194e-04]
-
-sum_quantile_loss[0.9]: [0.16866145 0.22557795 0.14587718 0.5725431  0.08625072 0.002509
- 0.07869875 0.22347358 0.10413065 0.14404998 0.10924783 0.52315023
- 0.09618294 0.004901   0.35419931 0.20256658 0.09526651 0.16359525
- 0.09473243 0.40709562 0.08584013 0.0090656  0.39686875 0.02707392
- 0.15419419 0.39663935 0.18439691 0.36972213 0.03120218 0.012554
- 0.53890196 0.05934963 0.18462441 0.72134459 0.30531565 0.49801474
- 0.03203619 0.0137856  0.05998336 0.09169762]
-
-MSIS: [ 28.47636274  10.68124685  19.50417015  36.81182074 280.62059249
-  23.41230718  22.66611657  38.78746667  26.45110228  11.43631121
-  19.01874257  37.59945338 199.62173272  22.74449539  29.08663882
-  37.83287725  25.41633501  11.03428621  17.14530506  36.30222833
- 109.94536901  22.25100276  23.71050878  35.08409363  24.394528
-  10.6051624   16.58757618  36.13923834  79.2351969   40.7734285
-  29.80105103  33.59646885  24.89069135  13.80472303  16.12984192
-  37.42225089 100.73339766  84.97893271  21.19676102  34.13306657]
-```
-
 ### Batching
-No matter if `Forecast` or `ForecastBatch` objects are passed to `Predictor.backtest`, evaluation happens in batches - `Forecast`s are internally translated into `ForecastBatch`es of batch size 1. This new perspective has the benefit that things work very similar in the univariate and multivariate case and there's no need for heavily differentiating between `Evaluator` and `MultivariateEvaluator` as it's done in the original approach. Also, aggregating metrics per time series becomes possible by just stacking multiple time series with the same time stamps on top of each other.
+No matter if `Forecast` or `ForecastBatch` objects are passed to `Predictor.backtest`, evaluation happens in batches - `Forecast`s are internally translated into `ForecastBatch`es of batch size 1. This new perspective has the benefit that things work similarly in the univariate and multivariate case. Also, aggregating metrics per time series is possible by just stacking multiple time series with the same time stamps on top of each other.
 
 The interpretation of what such a multidimensional batch means is **not** hardcoded in the `ev` module. Using `Predictor.backtest` however will construct the data to evaluate in a specific way:
 - In the univariate case, there are two dimensions and the data is of shape `(num_samples, prediction_length)`.
 - In the multivariate case, there is one more dimension for the different variates, meaning the data is of shape `(num_samples, prediction_length, target_dim)`.
 
 ## Concepts
+### Overview
+There are different `Metric`s, like **MSE** or **SumQuantileLoss**. Calling a metric produces an `Evaluator` which can be fed data and eventually asked to give the result.
+
+One characteristic of a metric is that it aggregates the provided data in some way. We distinguish between `Stat`s and `Aggregation`s. 
+- A `Stat` is a function that manipulates data in some way that is useful for calculating a metric - it does not aggregate any values.
+- An `Aggregation` on the other hand is only good at one thing: aggregating some values over some axis (or all axes).
+So, each `Evaluator` makes use of `Stat`s and `Aggregation`s to calculate the desired result.
+
 ### [Stats](stats.py)
 Stats are simple Python functions that take a `data` dictionary and further parameters as input. One such function represents the heart of one or more metrics and returns an `np.ndarray`. What makes it a "stat" is that there's no aggregation happening here. This is left to `Aggregation`s as explained below.
 
