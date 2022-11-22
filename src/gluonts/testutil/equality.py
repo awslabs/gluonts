@@ -67,7 +67,7 @@ def assert_recursively_close(
 def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
     assert type(obj_a) == type(
         obj_b
-    ), f"types did not match (location: {location}) {type(obj_a)} != {type(obj_b)}"
+    ), f"types don't match (at {location}) {type(obj_a)} != {type(obj_b)}"
     if isinstance(obj_a, (str, int)):
         assert obj_a == obj_b
     elif isinstance(obj_a, float):
@@ -75,7 +75,7 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
     elif isinstance(obj_a, list):
         assert len(obj_a) == len(
             obj_b
-        ), f"length did not match (location: {location})"
+        ), f"lengths don't match (at {location})"
         for i, (element_a, element_b) in enumerate(zip(obj_a, obj_b)):
             _assert_recursively_close(
                 element_a,
@@ -87,7 +87,7 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
     elif isinstance(obj_a, dict):
         assert (
             obj_a.keys() == obj_b.keys()
-        ), f"keys did not match (location: {location})"
+        ), f"keys don't match (at {location})"
         for k in obj_a:
             _assert_recursively_close(
                 obj_a[k], obj_b[k], location=f"{location}.{k}", *args, **kwargs
@@ -95,10 +95,10 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
     elif isinstance(obj_a, np.ndarray):
         assert (
             obj_a.dtype == obj_b.dtype
-        ), f"numpy arrays have different dtype (location: {location})"
+        ), f"numpy arrays have different dtype (at {location})"
         assert np.allclose(
             obj_a, obj_b, *args, **kwargs
-        ), f"numpy arrays are not close enough (location: {location})"
+        ), f"numpy arrays are not close enough (at {location})"
     elif isinstance(obj_a, pd.Period):
         assert obj_a == obj_b
     elif obj_a is None:
