@@ -21,10 +21,11 @@ def assert_recursively_close(
     """
     Asserts that two objects are "close" to each other, recursively.
 
-    Strings or ints are close iff they are equal; floats or numpy arrays are defined
-    close according to the numpy.isclose and numpy.allclose functions, respectively.
-    Lists are close if all of their items are close. Dicts are close if they have the
-    same keys, and elements corresponding to the same key are close.
+    Strings or ints are close iff they are equal; floats or numpy arrays
+    are defined close according to the numpy.isclose and numpy.allclose
+    functions, respectively. Lists are close if all of their items are close.
+    Dicts are close if they have the same keys, and elements corresponding
+    to the same key are close.
 
     Parameters:
     -----------
@@ -33,7 +34,8 @@ def assert_recursively_close(
         Objects to compare.
     rtol
     atol
-        Relative and absolute tolerance for float comparison; see docs for numpy.isclose.
+        Relative and absolute tolerance for float comparison; see docs for
+        numpy.isclose.
     equal_nan
         Indicates whether or not numpy.nan values should be considered equal.
     """
