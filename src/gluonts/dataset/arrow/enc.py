@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from functools import singledispatch
+from functools import partial, singledispatch
 from itertools import chain
 from pathlib import Path
-from typing import List, Set, Optional
+from typing import List, Set, Optional, Union
+from typing_extensions import Literal
 
 from toolz.curried import keyfilter, valmap
 
@@ -125,18 +126,23 @@ def write_dataset(
         writer.close()
 
 
+Compression = Union[Literal["lz4"], Literal["zstd"]]
+
+
 @dataclass
 class ArrowWriter(DatasetWriter):
     stream: bool = False
-    suffix: str = ".arrow"
+    suffix: str = ".feather"
+    compression: Optional[Compression] = None
     flatten_arrays: bool = True
     metadata: Optional[dict] = None
 
     def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        options = pa.ipc.IpcWriteOptions(compression=self.compression)
         if self.stream:
-            writer = pa.RecordBatchStreamWriter
+            writer = partial(pa.RecordBatchStreamWriter, options=options)
         else:
-            writer = pa.RecordBatchFileWriter
+            writer = partial(pa.RecordBatchFileWriter, options=options)
 
         write_dataset(
             writer,
