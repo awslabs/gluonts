@@ -15,6 +15,26 @@ import pandas as pd
 import numpy as np
 
 
+def assert_recursively_equal(obj_a, obj_b, equal_nan=True):
+    """
+    Asserts that two objects are equal, recursively.
+
+    This is based on :func:`assert_recursively_close`, and accepts the
+    same arguments, except that tolerances are set to zero.
+
+    Parameters:
+    -----------
+    obj_a
+    obj_b
+        Objects to compare.
+    equal_nan
+        Indicates whether or not numpy.nan values should be considered equal.
+    """
+    _assert_recursively_close(
+        obj_a, obj_b, location="", rtol=0, atol=0, equal_nan=equal_nan
+    )
+
+
 def assert_recursively_close(
     obj_a, obj_b, rtol=1e-05, atol=1e-08, equal_nan=True
 ):
@@ -56,24 +76,14 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
         assert len(obj_a) == len(
             obj_b
         ), f"length did not match (location: {location})"
-        tmp_a = np.asarray(obj_a)
-        tmp_b = np.asarray(obj_b)
-        assert (
-            tmp_a.dtype == tmp_b.dtype
-        ), f"dtypes did not match (location: {location})"
-        if tmp_a.dtype.kind != "O":
+        for i, (element_a, element_b) in enumerate(zip(obj_a, obj_b)):
             _assert_recursively_close(
-                tmp_a, tmp_b, location=location, *args, **kwargs
+                element_a,
+                element_b,
+                location=f"{location}.{i}",
+                *args,
+                **kwargs,
             )
-        else:
-            for i, (element_a, element_b) in enumerate(zip(obj_a, obj_b)):
-                _assert_recursively_close(
-                    element_a,
-                    element_b,
-                    location=f"{location}.{i}",
-                    *args,
-                    **kwargs,
-                )
     elif isinstance(obj_a, dict):
         assert (
             obj_a.keys() == obj_b.keys()
@@ -95,9 +105,3 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
         assert obj_b is None
     else:
         raise TypeError(f"unsupported type {type(obj_a)}")
-
-
-def assert_recursively_equal(obj_a, obj_b, equal_nan=True):
-    _assert_recursively_close(
-        obj_a, obj_b, location="", rtol=0, atol=0, equal_nan=equal_nan
-    )
