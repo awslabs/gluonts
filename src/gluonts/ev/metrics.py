@@ -327,7 +327,7 @@ class MAECoverage:
     @staticmethod
     def mean(quantile_levels, **coverages) -> np.ndarray:
         intermediate_result = np.stack(
-            [np.abs(coverages[f"coverage[{q}]"]) - q for q in quantile_levels],
+            [np.abs(coverages[f"coverage[{q}]"] - q) for q in quantile_levels],
             axis=0,
         )
         return np.ma.mean(intermediate_result, axis=0)
