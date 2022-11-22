@@ -30,13 +30,15 @@ def cli():
 @click.argument("dataset", type=click.Path(exists=True))
 @click.argument("out", type=click.Path())
 @click.option("--freq", required=True)
-@click.option("--type", "type_", type=click.Choice(["arrow", "parquet"]))
+@click.option(
+    "--type", "type_", type=click.Choice(["arrow", "feather", "parquet"])
+)
 @click.option("--stream", default=False)
 def write(dataset, out, freq, type_, stream):
     out = Path(out)
 
     if type_ is None:
-        if out.suffix == ".arrow":
+        if out.suffix in [".feather", ".arrow"]:
             type_ = "arrow"
         elif out.suffix == ".parquet":
             type_ = "parquet"
