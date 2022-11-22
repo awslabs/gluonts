@@ -12,12 +12,14 @@
 # permissions and limitations under the License.
 
 import io
+from typing import Callable, List, Union
 
 import pandas as pd
 import numpy as np
 import pytest
 
 from gluonts.dataset import pandas
+from gluonts.testutil.equality import assert_recursively_equal
 
 
 @pytest.fixture(params=[pd.date_range, pd.period_range])
@@ -241,3 +243,191 @@ def test_long_csv_3M():
         assert entry["start"] == expected_entry["start"]
         assert entry["item_id"] == expected_entry["item_id"]
         assert np.allclose(entry["target"], expected_entry["target"])
+
+
+def case_series(freq: str, index_type: Callable, dtype=np.float32):
+    series = [
+        pd.Series(
+            np.arange(10, dtype=dtype),
+            index_type("2021-01-01 00:00:00", periods=10, freq=freq),
+        ),
+        pd.Series(
+            np.arange(20, dtype=dtype),
+            index_type("2021-01-02 00:00:00", periods=20, freq=freq),
+        ),
+        pd.Series(
+            np.arange(30, dtype=dtype),
+            index_type("2021-01-03 00:00:00", periods=30, freq=freq),
+        ),
+    ]
+
+    dataset = pandas.PandasDataset(series)
+
+    expected_entries = [
+        {
+            "start": pd.Period(s.index[0], freq=freq),
+            "target": s.values,
+        }
+        for s in series
+    ]
+
+    return dataset, expected_entries
+
+
+def case_dataframes_without_index(
+    freq: str,
+    target: Union[str, List[str]],
+    feat_dynamic_real: List[str],
+    dtype=np.float32,
+):
+    dataframes = [
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ),
+    ]
+
+    dataset = pandas.PandasDataset(
+        dataframes,
+        timestamp="timestamp",
+        freq=freq,
+        target=target,
+        feat_dynamic_real=feat_dynamic_real,
+    )
+
+    expected_entries = [
+        {
+            "start": pd.Period(df["timestamp"][0], freq=freq),
+            "target": df[target].values.transpose(),
+            "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+        }
+        for df in dataframes
+    ]
+
+    return dataset, expected_entries
+
+
+def case_dataframes_with_index(
+    freq: str,
+    index_type: Callable,
+    target: Union[str, List[str]],
+    feat_dynamic_real: List[str],
+    dtype=np.float32,
+):
+    dataframes = [
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                ),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                ),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                ),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+    ]
+
+    print(type(dataframes[0].index))
+
+    dataset = pandas.PandasDataset(
+        dataframes,
+        target=target,
+        feat_dynamic_real=feat_dynamic_real,
+    )
+
+    expected_entries = [
+        {
+            "start": pd.Period(df.index[0], freq=freq),
+            "target": df[target].values.transpose(),
+            "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+        }
+        for df in dataframes
+    ]
+
+    return dataset, expected_entries
+
+
+@pytest.mark.parametrize(
+    "dataset, expected_entries",
+    [
+        case_series(freq="D", index_type=pd.period_range),
+        case_series(freq="H", index_type=pd.date_range),
+        case_dataframes_without_index(
+            freq="D",
+            target="A",
+            feat_dynamic_real=["B", "C"],
+        ),
+        case_dataframes_without_index(
+            freq="H",
+            target=["A", "B"],
+            feat_dynamic_real=["C"],
+        ),
+        case_dataframes_with_index(
+            freq="D",
+            index_type=pd.period_range,
+            target="A",
+            feat_dynamic_real=["B", "C"],
+        ),
+        case_dataframes_with_index(
+            freq="H",
+            index_type=pd.date_range,
+            target=["A", "B"],
+            feat_dynamic_real=["C"],
+        ),
+    ],
+)
+def test_pandas_dataset_cases(dataset, expected_entries):
+    for entry, expected_entry in zip(dataset, expected_entries):
+        assert_recursively_equal(entry, expected_entry)

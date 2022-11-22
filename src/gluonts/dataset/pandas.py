@@ -122,6 +122,9 @@ class PandasDataset:
         assert isinstance(self._pairs, SizedIterable)
 
         if self.freq is None:
+            assert (
+                self.timestamp is None
+            ), "You need to provide `freq` along with `timestamp`"
             self.freq = infer_freq(first(self._pairs)[1].index)
 
         self.process = ProcessDataEntry(
