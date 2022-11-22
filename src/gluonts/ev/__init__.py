@@ -40,6 +40,9 @@ from .metrics import (
     RMSE,
     NRMSE,
     WeightedSumQuantileLoss,
+    MAECoverage,
+    MeanSumQuantileLoss,
+    MeanWeightedSumQuantileLoss,
 )
 from .aggregations import Aggregation, Sum, Mean
 from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
@@ -70,6 +73,9 @@ __all__ = [
     "RMSE",
     "NRMSE",
     "WeightedSumQuantileLoss",
+    "MAECoverage",
+    "MeanSumQuantileLoss",
+    "MeanWeightedSumQuantileLoss",
     "Aggregation",
     "Sum",
     "Mean",
