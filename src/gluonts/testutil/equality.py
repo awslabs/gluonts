@@ -73,9 +73,7 @@ def _assert_recursively_close(obj_a, obj_b, location, *args, **kwargs):
     elif isinstance(obj_a, float):
         assert np.isclose(obj_a, obj_b, *args, **kwargs)
     elif isinstance(obj_a, list):
-        assert len(obj_a) == len(
-            obj_b
-        ), f"lengths don't match (at {location})"
+        assert len(obj_a) == len(obj_b), f"lengths don't match (at {location})"
         for i, (element_a, element_b) in enumerate(zip(obj_a, obj_b)):
             _assert_recursively_close(
                 element_a,
