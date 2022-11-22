@@ -245,7 +245,7 @@ def test_long_csv_3M():
         assert np.allclose(entry["target"], expected_entry["target"])
 
 
-def case_series(freq: str, index_type: Callable, dtype=np.float32):
+def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):
     series = [
         pd.Series(
             np.arange(10, dtype=dtype),
@@ -274,7 +274,7 @@ def case_series(freq: str, index_type: Callable, dtype=np.float32):
     return dataset, expected_entries
 
 
-def case_dataframes_without_index(
+def _testcase_dataframes_without_index(
     freq: str,
     target: Union[str, List[str]],
     feat_dynamic_real: List[str],
@@ -339,7 +339,7 @@ def case_dataframes_without_index(
     return dataset, expected_entries
 
 
-def case_dataframes_with_index(
+def _testcase_dataframes_with_index(
     freq: str,
     index_type: Callable,
     target: Union[str, List[str]],
@@ -402,25 +402,25 @@ def case_dataframes_with_index(
 @pytest.mark.parametrize(
     "dataset, expected_entries",
     [
-        case_series(freq="D", index_type=pd.period_range),
-        case_series(freq="H", index_type=pd.date_range),
-        case_dataframes_without_index(
+        _testcase_series(freq="D", index_type=pd.period_range),
+        _testcase_series(freq="H", index_type=pd.date_range),
+        _testcase_dataframes_without_index(
             freq="D",
             target="A",
             feat_dynamic_real=["B", "C"],
         ),
-        case_dataframes_without_index(
+        _testcase_dataframes_without_index(
             freq="H",
             target=["A", "B"],
             feat_dynamic_real=["C"],
         ),
-        case_dataframes_with_index(
+        _testcase_dataframes_with_index(
             freq="D",
             index_type=pd.period_range,
             target="A",
             feat_dynamic_real=["B", "C"],
         ),
-        case_dataframes_with_index(
+        _testcase_dataframes_with_index(
             freq="H",
             index_type=pd.date_range,
             target=["A", "B"],
