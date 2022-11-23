@@ -21,7 +21,18 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Collection,
+    Dict,
+    Iterable,
+    Iterator,
+    Optional,
+    Type,
+    Union,
+    ChainMap,
+)
 
 import numpy as np
 
@@ -31,7 +42,18 @@ from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSException
-from gluonts.model.forecast import Forecast
+from gluonts.dataset.split import TestData
+from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
+from gluonts.model.forecast_batch import (
+    ForecastBatch,
+    QuantileForecastBatch,
+    SampleForecastBatch,
+)
+from gluonts.time_feature.seasonality import get_seasonality
+from gluonts.ev.metrics import Metric
+from gluonts.ev.ts_stats import seasonal_error
+from gluonts.ev.helpers import evaluate
+
 
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
@@ -133,6 +155,20 @@ class Predictor:
         # user specified 'params' will take precedence:
         params = {**auto_params, **params}
         return cls.from_hyperparameters(**params)
+
+    def backtest(
+        self,
+        metrics: Collection[Metric],
+        test_data: TestData,
+        axis: Optional[int] = None,
+        **kwargs,
+    ) -> np.ndarray:
+        forecasts = self.predict(dataset=test_data.input, **kwargs)
+        data_batches = get_backtest_input(
+            test_data=test_data, forecasts=forecasts
+        )
+
+        return evaluate(metrics=metrics, data_batches=data_batches, axis=axis)
 
 
 class RepresentablePredictor(Predictor):
@@ -410,3 +446,36 @@ def fallback(fallback_cls: Type[FallbackPredictor]):
         return fallback_predict
 
     return decorator
+
+
+def get_backtest_input(
+    test_data: TestData, forecasts: Iterable[Union[Forecast, ForecastBatch]]
+) -> Iterator[Dict[str, np.ndarray]]:
+    for input, label, forecast in zip(
+        test_data.input, test_data.label, forecasts
+    ):
+        non_forecast_data = {
+            "label": label["target"],
+            "seasonal_error": seasonal_error(
+                input["target"],
+                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
+            ),
+        }
+
+        batching_used = isinstance(forecast, ForecastBatch)
+        if batching_used:
+            forecast_data = forecast
+        else:
+            non_forecast_data = {
+                key: np.expand_dims(value, axis=0)
+                for key, value in non_forecast_data.items()
+            }
+
+            if isinstance(forecast, SampleForecast):
+                forecast_data = SampleForecastBatch.from_forecast(forecast)
+            elif isinstance(forecast, QuantileForecast):
+                forecast_data = QuantileForecastBatch.from_forecast(forecast)
+
+        joint_data = ChainMap(non_forecast_data, forecast_data)
+
+        yield joint_data
