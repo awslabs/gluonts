@@ -24,6 +24,7 @@ import numpy as np
 
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import TestData, split
+from gluonts.ext.naive_2 import naive_2
 from gluonts.time_feature.seasonality import get_seasonality
 from gluonts.model.forecast import Quantile, Forecast, SampleForecast
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
@@ -48,6 +49,7 @@ from gluonts.ev import (
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
     WeightedSumQuantileLoss,
+    OWA,
 )
 
 
@@ -134,6 +136,11 @@ def get_data_batches(predictor, test_data):
                 input["target"],
                 seasonality=get_seasonality(freq=forecast.start_date.freqstr),
             ),
+            "naive_2": naive_2(
+                input["target"],
+                len(label["target"]),
+                freq=forecast.start_date.freqstr,
+            ),
         }
 
         # batchify
@@ -178,15 +185,16 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         *(Coverage(q=quantile.value) for quantile in quantiles),
     ]
     aggregated_metrics_to_evaluate = [
+        RMSE(),
+        NRMSE(),
+        ND(),
         *(WeightedSumQuantileLoss(q=quantile.value) for quantile in quantiles),
         MeanSumQuantileLoss([quantile.value for quantile in quantiles]),
         MeanWeightedSumQuantileLoss(
             [quantile.value for quantile in quantiles]
         ),
         MAECoverage([quantile.value for quantile in quantiles]),
-        RMSE(),
-        NRMSE(),
-        ND(),
+        OWA(),
     ]
 
     # mask invalid values
@@ -254,6 +262,7 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         "RMSE": aggregated_metrics["RMSE"],
         "NRMSE": aggregated_metrics["NRMSE"],
         "ND": aggregated_metrics["ND"],
+        "OWA": aggregated_metrics["OWA"],
     }
 
     seasonal_errors = [
@@ -267,7 +276,7 @@ def get_new_metrics(test_data, predictor, quantile_levels):
 
 def get_old_metrics(dataset, predictor, quantile_levels):
     forecast_it, ts_it = make_evaluation_predictions(dataset, predictor)
-    evaluator = Evaluator(quantiles=quantile_levels)
+    evaluator = Evaluator(quantiles=quantile_levels, calculate_owa=True)
     aggregated_metrics, _ = evaluator(ts_it, forecast_it)
 
     return aggregated_metrics
