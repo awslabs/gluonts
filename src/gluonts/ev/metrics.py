@@ -276,10 +276,10 @@ class WeightedSumQuantileLoss:
 
 @dataclass
 class MeanSumQuantileLoss:
-    quantile_levels: Collection
+    quantile_levels: Collection[float]
 
     @staticmethod
-    def mean(**quantile_losses) -> np.ndarray:
+    def mean(**quantile_losses: np.ndarray) -> np.ndarray:
         stacked_quantile_losses = np.stack(
             [quantile_loss for quantile_loss in quantile_losses.values()],
             axis=0,
@@ -299,10 +299,10 @@ class MeanSumQuantileLoss:
 
 @dataclass
 class MeanWeightedSumQuantileLoss:
-    quantile_levels: Collection
+    quantile_levels: Collection[float]
 
     @staticmethod
-    def mean(**quantile_losses) -> np.ndarray:
+    def mean(**quantile_losses: np.ndarray) -> np.ndarray:
         stacked_quantile_losses = np.stack(
             [quantile_loss for quantile_loss in quantile_losses.values()],
             axis=0,
@@ -322,10 +322,12 @@ class MeanWeightedSumQuantileLoss:
 
 @dataclass
 class MAECoverage:
-    quantile_levels: Collection
+    quantile_levels: Collection[float]
 
     @staticmethod
-    def mean(quantile_levels, **coverages) -> np.ndarray:
+    def mean(
+        quantile_levels: Collection[float], **coverages: np.ndarray
+    ) -> np.ndarray:
         intermediate_result = np.stack(
             [np.abs(coverages[f"coverage[{q}]"] - q) for q in quantile_levels],
             axis=0,
@@ -352,7 +354,12 @@ class OWA:
     forecast_type: str = "0.5"
 
     @staticmethod
-    def calculate_OWA(smape, smape_naive2, mase, mase_naive2) -> np.ndarray:
+    def calculate_OWA(
+        smape: np.ndarray,
+        smape_naive2: np.ndarray,
+        mase: np.ndarray,
+        mase_naive2: np.ndarray,
+    ) -> np.ndarray:
         return 0.5 * (smape / smape_naive2 + mase / mase_naive2)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:

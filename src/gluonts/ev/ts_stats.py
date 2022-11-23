@@ -32,7 +32,7 @@ def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
         return np.abs(y_t - y_tm).mean(keepdims=True)
     else:
         # multivariate case:
-        # time_series is has shape (# of time stamps, # of variates)
+        # time_series has shape (# of time stamps, # of variates)
         y_t = time_series[:-forecast_freq, :]
         y_tm = time_series[forecast_freq:, :]
 
