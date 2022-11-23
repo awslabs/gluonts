@@ -26,7 +26,7 @@ from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.dataset.split import TestData, split
 from gluonts.ext.naive_2 import naive_2
 from gluonts.time_feature.seasonality import get_seasonality
-from gluonts.model.forecast import Quantile, Forecast, SampleForecast
+from gluonts.model.forecast import Quantile, SampleForecast
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
@@ -53,22 +53,8 @@ from gluonts.ev import (
 )
 
 
-class ForecastBatch:
-    @classmethod
-    def from_forecast(cls, forecast: Forecast) -> "ForecastBatch":
-        raise NotImplementedError
-
-    def __getitem__(self, name):
-        if name == "mean":
-            return self.mean
-        elif name == "median":
-            return self.median
-
-        return self.quantile(name)
-
-
 @dataclass
-class SampleForecastBatch(ForecastBatch):
+class SampleForecastBatch:
     samples: np.ndarray
     start_date: list
     item_id: Optional[list] = None
@@ -99,10 +85,6 @@ class SampleForecastBatch(ForecastBatch):
             )
 
     @property
-    def batch_size(self) -> int:
-        return self.samples.shape[0]
-
-    @property
     def num_samples(self) -> int:
         return self.samples.shape[1]
 
@@ -115,45 +97,43 @@ class SampleForecastBatch(ForecastBatch):
         sample_idx = int(np.round((self.num_samples - 1) * q))
         return self._sorted_samples[:, sample_idx, :]
 
-    @classmethod
-    def from_forecast(cls, forecast: SampleForecast) -> "SampleForecastBatch":
-        return SampleForecastBatch(
+    def __getitem__(self, name):
+        if name == "mean":
+            return self.mean
+        elif name == "median":
+            return self.median
+
+        return self.quantile(name)
+
+
+def get_data_batches(predictor, test_data):
+    forecasts = predictor.predict(dataset=test_data.input)
+    for input_, label, forecast in zip(
+        test_data.input, test_data.label, forecasts
+    ):
+        forecast_batch = SampleForecastBatch(
             samples=np.array([forecast.samples]),
             start_date=[forecast.start_date],
             item_id=[forecast.item_id],
             info=[forecast.info],
         )
 
-
-def get_data_batches(predictor, test_data):
-    forecasts = predictor.predict(dataset=test_data.input)
-    for input, label, forecast in zip(
-        test_data.input, test_data.label, forecasts
-    ):
-        non_forecast_data = {
-            "label": label["target"],
-            "seasonal_error": seasonal_error(
-                input["target"],
-                seasonality=get_seasonality(freq=forecast.start_date.freqstr),
+        seasonality = get_seasonality(freq=forecast.start_date.freqstr)
+        freq = forecast.start_date.freqstr
+        other_data = {
+            "label": np.array([label["target"]]),
+            "seasonal_error": np.array(
+                [seasonal_error(input_["target"], seasonality=seasonality)]
             ),
-            "naive_2": naive_2(
-                input["target"],
-                len(label["target"]),
-                freq=forecast.start_date.freqstr,
+            "naive_2": np.array(
+                [naive_2(input_["target"], len(label["target"]), freq=freq)]
             ),
         }
 
-        # batchify
-        non_forecast_data = {
-            key: np.expand_dims(value, axis=0)
-            for key, value in non_forecast_data.items()
-        }
-        forecast_data = SampleForecastBatch.from_forecast(forecast)
-
-        yield ChainMap(non_forecast_data, forecast_data)
+        yield ChainMap(other_data, forecast_batch)
 
 
-def evaluate(metrics, data_batches, axis) -> np.ndarray:
+def evaluate(metrics, data_batches, axis):
     evaluators = {}
     for metric in metrics:
         evaluator = metric(axis=axis)
@@ -214,22 +194,18 @@ def get_new_metrics(test_data, predictor, quantile_levels):
     )
 
     # evaluate
-    data_batches = get_data_batches(predictor, masked_test_data)
+    data_batches = list(get_data_batches(predictor, masked_test_data))
     item_metrics = evaluate(item_metrics_to_evaluate, data_batches, axis=1)
-
-    data_batches = get_data_batches(predictor, masked_test_data)
     aggregated_metrics = evaluate(
         aggregated_metrics_to_evaluate, data_batches, axis=None
     )
 
     # rename metrics to match naming of old evaluation approach
     all_metrics = {
+        "seasonal_error": np.ma.mean(
+            np.stack([data["seasonal_error"] for data in data_batches])
+        ),
         "abs_target_mean": np.ma.mean(item_metrics["mean_absolute_label"]),
-        "MSE": np.ma.mean(item_metrics["MSE"]),
-        "MASE": np.ma.mean(item_metrics["MASE"]),
-        "MAPE": np.ma.mean(item_metrics["MAPE"]),
-        "sMAPE": np.ma.mean(item_metrics["sMAPE"]),
-        "MSIS": np.ma.mean(item_metrics["MSIS"]),
         **{
             quantile.coverage_name: np.ma.mean(
                 item_metrics[f"coverage[{quantile.value}]"]
@@ -259,17 +235,13 @@ def get_new_metrics(test_data, predictor, quantile_levels):
             "mean_weighted_sum_quantile_loss"
         ],
         "MAE_Coverage": aggregated_metrics["MAE_coverage"],
-        "RMSE": aggregated_metrics["RMSE"],
-        "NRMSE": aggregated_metrics["NRMSE"],
-        "ND": aggregated_metrics["ND"],
-        "OWA": aggregated_metrics["OWA"],
     }
 
-    seasonal_errors = [
-        data["seasonal_error"]
-        for data in get_data_batches(predictor, masked_test_data)
-    ]
-    all_metrics["seasonal_error"] = np.ma.mean(np.stack(seasonal_errors))
+    for metric_name in ["MSE", "MASE", "MAPE", "sMAPE", "MSIS"]:
+        all_metrics[metric_name] = np.ma.mean(item_metrics[metric_name])
+
+    for metric_name in ["RMSE", "NRMSE", "ND", "OWA"]:
+        all_metrics[metric_name] = aggregated_metrics[metric_name]
 
     return all_metrics
 
