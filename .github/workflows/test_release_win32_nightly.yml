@@ -11,12 +11,12 @@ jobs:
       max-parallel: 4
       fail-fast: false
       matrix:
-        python-version: [3.7]
+        python-version: ['3.7']
 
     runs-on: windows-latest
     steps:
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Clone and install dependencies

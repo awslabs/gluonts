@@ -178,7 +178,7 @@ def FileDataset(
             [dataset for dataset in datasets if dataset is not None]
         )
 
-    assert path.is_file
+    assert path.is_file()
 
     if loader_class is None:
         loader = infer_file_type(path)

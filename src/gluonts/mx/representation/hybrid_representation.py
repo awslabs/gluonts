@@ -55,7 +55,6 @@ class HybridRepresentation(Representation):
         for representation in self.representations:
             representation.initialize_from_array(input_array, ctx)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

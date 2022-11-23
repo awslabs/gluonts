@@ -106,14 +106,14 @@ if __name__ == "__main__":
 
         plt.figure(figsize=(10, 4))
         plt.fill_between(
-            time_index,
+            time_index.to_timestamp(),
             percentiles[0, i],
             percentiles[-1, i],
             alpha=0.5,
             label="80% CI predicted",
         )
-        plt.plot(time_index, target[i], label="target")
-        plt.axvline(time_index[t], alpha=0.5, color="r")
+        plt.plot(time_index.to_timestamp(), target[i], label="target")
+        plt.axvline(time_index[t].to_timestamp(), alpha=0.5, color="r")
         plt.title(f"NLL: {nll[i, t]}")
         plt.legend()
         plt.show()

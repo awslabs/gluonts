@@ -31,7 +31,6 @@ class Seq2SeqEncoder(nn.HybridBlock):
     the `target` sequence.
     """
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

@@ -126,7 +126,6 @@ class SimpleFeedForwardNetworkBase(mx.gluon.HybridBlock):
 
 
 class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,
@@ -180,7 +179,6 @@ class SimpleFeedForwardSamplingNetwork(SimpleFeedForwardNetworkBase):
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
         """
         Computes a probability distribution for future data given the past, and
@@ -219,7 +217,6 @@ class SimpleFeedForwardDistributionNetwork(SimpleFeedForwardNetworkBase):
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, past_target: Tensor) -> Tensor:
         """
         Computes the parameters of distribution for future data given the past,

@@ -26,9 +26,10 @@ from typing import (
 )
 from dataclasses import dataclass, field
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class SizedIterable(Protocol):
     def __len__(self):
         ...
@@ -190,6 +191,18 @@ class Map:
         return f"Map(data={self.iterable!r})"
 
 
+class Filter:
+    def __init__(self, fn, iterable: SizedIterable):
+        self.fn = fn
+        self.iterable = iterable
+
+    def __iter__(self):
+        return filter(self.fn, self.iterable)
+
+    def __repr__(self):
+        return f"Filter({self.iterable!r})"
+
+
 K = TypeVar("K")
 V = TypeVar("V")
 
@@ -273,3 +286,24 @@ def partition(
             right.append(val)
 
     return left, right
+
+
+def select(keys, source: dict, ignore_missing: bool = False) -> dict:
+    """Select subset of `source` dictionaries.
+
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> select(["a", "b"], d)
+    {'a': 1, 'b': 2}
+
+    """
+
+    result = {}
+
+    for key in keys:
+        try:
+            result[key] = source[key]
+        except KeyError:
+            if not ignore_missing:
+                raise
+
+    return result
