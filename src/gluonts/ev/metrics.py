@@ -288,7 +288,7 @@ class MeanSumQuantileLoss:
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=f"mean_sum_quantile_loss",
+            name="mean_sum_quantile_loss",
             evaluators={
                 f"quantile_loss[{q}]": SumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
@@ -311,7 +311,7 @@ class MeanWeightedSumQuantileLoss:
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=f"mean_weighted_sum_quantile_loss",
+            name="mean_weighted_sum_quantile_loss",
             evaluators={
                 f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
@@ -334,7 +334,7 @@ class MAECoverage:
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=f"MAE_coverage",
+            name="MAE_coverage",
             evaluators={
                 f"coverage[{q}]": Coverage(q=q)(axis=axis)
                 for q in self.quantile_levels
@@ -357,12 +357,12 @@ class OWA:
 
     def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
         return DerivedEvaluator(
-            name=f"OWA",
+            name="OWA",
             evaluators={
-                f"smape": SMAPE(forecast_type=self.forecast_type)(axis=axis),
-                f"smape_naive2": SMAPE(forecast_type="naive_2")(axis=axis),
-                f"mase": MASE(forecast_type=self.forecast_type)(axis=axis),
-                f"mase_naive2": MASE(forecast_type="naive_2")(axis=axis),
+                "smape": SMAPE(forecast_type=self.forecast_type)(axis=axis),
+                "smape_naive2": SMAPE(forecast_type="naive_2")(axis=axis),
+                "mase": MASE(forecast_type=self.forecast_type)(axis=axis),
+                "mase_naive2": MASE(forecast_type="naive_2")(axis=axis),
             },
             post_process=self.calculate_OWA,
         )
