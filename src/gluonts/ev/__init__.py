@@ -43,6 +43,7 @@ from .metrics import (
     MAECoverage,
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
+    OWA,
 )
 from .aggregations import Aggregation, Sum, Mean
 from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
@@ -76,6 +77,7 @@ __all__ = [
     "MAECoverage",
     "MeanSumQuantileLoss",
     "MeanWeightedSumQuantileLoss",
+    "OWA",
     "Aggregation",
     "Sum",
     "Mean",

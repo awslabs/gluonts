@@ -343,3 +343,26 @@ class MAECoverage:
                 self.mean, quantile_levels=self.quantile_levels
             ),
         )
+
+
+@dataclass
+class OWA:
+    """Overall Weighted Average"""
+
+    forecast_type: str = "0.5"
+
+    @staticmethod
+    def calculate_OWA(smape, smape_naive2, mase, mase_naive2) -> np.ndarray:
+        return 0.5 * (smape / smape_naive2 + mase / mase_naive2)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        return DerivedEvaluator(
+            name=f"OWA",
+            evaluators={
+                f"smape": SMAPE(forecast_type=self.forecast_type)(axis=axis),
+                f"smape_naive2": SMAPE(forecast_type="naive_2")(axis=axis),
+                f"mase": MASE(forecast_type=self.forecast_type)(axis=axis),
+                f"mase_naive2": MASE(forecast_type="naive_2")(axis=axis),
+            },
+            post_process=self.calculate_OWA,
+        )
