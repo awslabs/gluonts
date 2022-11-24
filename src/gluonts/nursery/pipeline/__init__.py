@@ -11,19 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import numpy as np
-import pandas as pd
+from .action import (
+    Action,
+    Copy,
+    Filter,
+    Identity,
+    Map,
+    Pipeline,
+    Remove,
+    Set,
+    SetDefault,
+    Update,
+    UpdateDefault,
+)
+from .schema import Schema, SchemaTracker
 
-from gluonts.dataset.schema import types as ty
-
-f32_2d = ty.Array(dtype=np.float32, ndim=2)
-
-
-def test_array():
-    assert np.array_equal(
-        f32_2d([[0, 1, 2]]), np.arange(3, dtype=np.float32).reshape(1, 3)
-    )
-
-
-def test_period():
-    assert pd.Period("2020", freq="M") == ty.Period(freq="M")("2020")
+__all__ = [
+    "Action",
+    "Copy",
+    "Filter",
+    "Identity",
+    "Map",
+    "Pipeline",
+    "Remove",
+    "Set",
+    "SetDefault",
+    "Update",
+    "UpdateDefault",
+    "Schema",
+    "SchemaTracker",
+]
