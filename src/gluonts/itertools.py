@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import itertools
+import math
 import random
 from typing import (
     Callable,
@@ -307,3 +308,27 @@ def select(keys, source: dict, ignore_missing: bool = False) -> dict:
                 raise
 
     return result
+
+
+def trim_nans(xs, trim="fb"):
+    """Trim the leading and/or trailing `NaNs` from a 1-D array or sequence.
+
+    Like ``np.trim_zeros`` but for `NaNs`.
+    """
+
+    trim = trim.lower()
+
+    start = None
+    end = None
+
+    if "f" in trim:
+        for start, val in enumerate(xs):
+            if not math.isnan(val):
+                break
+
+    if "b" in trim:
+        for end in range(len(xs), -1, -1):
+            if not math.isnan(xs[end - 1]):
+                break
+
+    return xs[start:end]
