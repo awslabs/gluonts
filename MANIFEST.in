@@ -1,4 +1,4 @@
-include gluonts/model/r_forecast/R/*.R
+include src/gluonts/ext/r_forecast/R/*.R
 
 prune .devtools
 prune .github
