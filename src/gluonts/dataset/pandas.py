@@ -222,10 +222,18 @@ def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
     raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
-def infer_freq(index: pd.Index):
+def infer_freq(index: pd.Index) -> str:
     if isinstance(index, pd.PeriodIndex):
         return index.freqstr
-    return pd.infer_freq(index)
+
+    freq = pd.infer_freq(index)
+    # pandas likes to infer the `start of x` frequency, however when doing
+    # df.to_period("<x>S"), it fails, so we avoid using it. It's enough to
+    # remove the trailing S, e.g `MS` -> `M
+    if len(freq) > 1 and freq.endswith("S"):
+        return freq[:-1]
+
+    return freq
 
 
 def extract_dynamic_array(
