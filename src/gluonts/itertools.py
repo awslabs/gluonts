@@ -41,6 +41,10 @@ class SizedIterable(Protocol):
 
 T = TypeVar("T")
 
+# key / value
+K = TypeVar("K")
+V = TypeVar("V")
+
 
 def maybe_len(obj) -> Optional[int]:
     try:
@@ -204,10 +208,6 @@ class Filter:
         return f"Filter({self.iterable!r})"
 
 
-K = TypeVar("K")
-V = TypeVar("V")
-
-
 def rows_to_columns(
     rows: Sequence[Dict[K, V]],
     wrap: Callable[[Sequence[V]], Sequence[V]] = lambda x: x,
@@ -332,3 +332,10 @@ def trim_nans(xs, trim="fb"):
                 break
 
     return xs[start:end]
+
+
+def inverse(dct: Dict[K, V]) -> Dict[V, K]:
+    """
+    Inverse a dictionary; keys become values and values become keys.
+    """
+    return {value: key for key, value in dct.items()}
