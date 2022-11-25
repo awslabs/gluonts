@@ -54,7 +54,7 @@ def get_infections_data():
     )
 
     df = pd.read_csv(
-        "Aktuell_Deutschland_SarsCov2_Infektionen.txt",
+        url,
         usecols=[
             "IdLandkreis",
             "Altersgruppe",
