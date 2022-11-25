@@ -332,3 +332,10 @@ def trim_nans(xs, trim="fb"):
                 break
 
     return xs[start:end]
+
+
+def inverse(dct):
+    """
+    Inverse a dictionary; keys become values and values become keys.
+    """
+    return {value: key for key, value in dct.items()}
