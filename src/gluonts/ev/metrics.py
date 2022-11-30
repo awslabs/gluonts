@@ -185,7 +185,7 @@ class MASE:
 class ND:
     """Normalized Deviation"""
 
-    forecast_type: str = "mean"
+    forecast_type: str = "0.5"
 
     @staticmethod
     def normalized_deviation(
