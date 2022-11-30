@@ -50,7 +50,6 @@ SUM_RES_AXIS_1 = [
     np.array([3, 3, 3, 12]),
 ]
 
-
 MEAN_RES_AXIS_NONE = [
     np.nan,
     0,
@@ -122,3 +121,103 @@ def test_high_dim():
         actual_mean = mean.get()
         expected_mean = all_values.mean(axis=axis)
         np.testing.assert_almost_equal(actual_mean, expected_mean)
+
+
+WEIGHT_BATCHES = [
+    [
+        np.full((3, 5), 7.21),
+        np.zeros((3, 5)),
+        np.ones((3, 5)),
+    ],
+    [
+        np.array([[1, 1.5], [1, 1.5]]),
+        np.array([[1, 1.5], [1, 1.5]]),
+    ],
+    [
+        np.array([[3, 3, 3], [2, 2, 2], [1, 1, 1]]),
+        np.zeros((1, 3)),
+    ],
+]
+
+RES_WEIGHTED_SUM_AXIS_NONE = [
+    0,
+    2.5,
+    18,
+]
+
+RES_WEIGHTED_SUM_AXIS_0 = [
+    np.zeros(5),
+    np.array([-5, 7.5]),
+    np.array([6, 6, 6]),
+]
+
+RES_WEIGHTED_SUM_AXIS_1 = [
+    np.zeros(9),
+    np.array([0, 0, 7.5, -5]),
+    np.array([9, 6, 3, 0]),
+]
+
+@pytest.mark.parametrize(
+    "value_stream, weight_batches, res_axis_none, res_axis_0, res_axis_1",
+    zip(
+        VALUE_STREAM,
+        WEIGHT_BATCHES,
+        RES_WEIGHTED_SUM_AXIS_NONE,
+        RES_WEIGHTED_SUM_AXIS_0,
+        RES_WEIGHTED_SUM_AXIS_1,
+    ),
+)
+def test_weighted_sum(
+    value_stream, weight_batches, res_axis_none, res_axis_0, res_axis_1
+):
+    for axis, expected_result in zip(
+        [None, 0, 1], [res_axis_none, res_axis_0, res_axis_1]
+    ):
+        sum = Sum(axis=axis)
+        for values, weights in zip(value_stream, weight_batches):
+            sum.step(np.ma.masked_invalid(values), weights)
+        print(sum.get(), expected_result)
+
+        np.testing.assert_almost_equal(sum.get(), expected_result)
+
+
+RES_WEIGHTED_MEAN_AXIS_NONE = [
+    np.nan,
+    0.416_666_666_666_666_666,
+    1.5,
+]
+
+RES_WEIGHTED_MEAN_AXIS_0 = [
+    np.full(5, np.nan),
+    np.array([-1.25, 3.75]),
+    np.array([1.5, 1.5, 1.5]),
+]
+
+RES_WEIGHTED_MEAN_AXIS_1 = [
+    np.full(9, np.nan),
+    np.array([0, 0, 3.75, -5]),
+    np.array([3, 2, 1, 0]),
+]
+
+@pytest.mark.parametrize(
+    "value_stream, weight_batches, res_axis_none, res_axis_0, res_axis_1",
+    zip(
+        VALUE_STREAM,
+        WEIGHT_BATCHES,
+        RES_WEIGHTED_MEAN_AXIS_NONE,
+        RES_WEIGHTED_MEAN_AXIS_0,
+        RES_WEIGHTED_MEAN_AXIS_1,
+    ),
+)
+def test_weighted_mean(
+    value_stream, weight_batches, res_axis_none, res_axis_0, res_axis_1
+):
+    for axis, expected_result in zip(
+        [None, 0, 1], [res_axis_none, res_axis_0, res_axis_1]
+    ):
+        mean = Mean(axis=axis)
+        for values, weights in zip(value_stream, weight_batches):
+            mean.step(np.ma.masked_invalid(values), weights)
+        print(mean.get(), expected_result)
+
+        np.testing.assert_almost_equal(mean.get(), expected_result)
