@@ -24,7 +24,14 @@ from gluonts.torch.distributions import (
 )
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
-from gluonts.torch.util import lagged_sequence_values
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+from gluonts.torch.util import (
+    lagged_sequence_values,
+    repeat_along_dim,
+    unsqueeze_expand,
+    weighted_average,
+)
+from gluonts.itertools import prod
 
 
 class DeepARModel(nn.Module):
@@ -97,11 +104,12 @@ class DeepARModel(nn.Module):
     ) -> None:
         super().__init__()
 
+        assert distr_output.event_shape == ()
+
         self.context_length = context_length
         self.prediction_length = prediction_length
         self.distr_output = distr_output
         self.param_proj = distr_output.get_args_proj(hidden_size)
-        self.target_shape = distr_output.event_shape
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_cat = num_feat_static_cat
         self.num_feat_static_real = num_feat_static_real
@@ -118,9 +126,9 @@ class DeepARModel(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler = MeanScaler(dim=1, keepdim=True)
+            self.scaler = MeanScaler(dim=-1, keepdim=True)
         else:
-            self.scaler = NOPScaler(dim=1, keepdim=True)
+            self.scaler = NOPScaler(dim=-1, keepdim=True)
         self.rnn_input_size = len(self.lags_seq) + self._number_of_features
         self.rnn = nn.LSTM(
             input_size=self.rnn_input_size,
@@ -152,7 +160,7 @@ class DeepARModel(nn.Module):
                 self._past_length,
                 self.num_feat_dynamic_real,
             ),
-            "past_target": (batch_size, self._past_length) + self.target_shape,
+            "past_target": (batch_size, self._past_length),
             "past_observed_values": (batch_size, self._past_length),
             "future_time_feat": (
                 batch_size,
@@ -203,7 +211,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, num_feat_dynamic_real)``.
         past_target
             Tensor of past target values,
-            shape: ``(batch_size, past_length, *target_shape)``.
+            shape: ``(batch_size, past_length)``.
         past_observed_values
             Tensor of observed values indicators,
             shape: ``(batch_size, past_length)``.
@@ -212,7 +220,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         future_target
             (Optional) tensor of future target values,
-            shape: ``(batch_size, prediction_length, *target_shape)``.
+            shape: ``(batch_size, prediction_length)``.
 
         Returns
         -------
@@ -224,13 +232,13 @@ class DeepARModel(nn.Module):
             - Static input to the RNN
             - Output state from the RNN
         """
-        context = past_target[:, -self.context_length :]
-        observed_context = past_observed_values[:, -self.context_length :]
+        context = past_target[..., -self.context_length :]
+        observed_context = past_observed_values[..., -self.context_length :]
         _, scale = self.scaler(context, observed_context)
 
-        prior_input = past_target[:, : -self.context_length] / scale
+        prior_input = past_target[..., : -self.context_length] / scale
         input = (
-            torch.cat((context, future_target[:, :-1]), dim=1) / scale
+            torch.cat((context, future_target[..., :-1]), dim=-1) / scale
             if future_target is not None
             else context / scale
         )
@@ -238,26 +246,28 @@ class DeepARModel(nn.Module):
         embedded_cat = self.embedder(feat_static_cat)
         static_feat = torch.cat(
             (embedded_cat, feat_static_real, scale.log()),
-            dim=1,
+            dim=-1,
         )
-        expanded_static_feat = static_feat.unsqueeze(1).expand(
-            -1, input.shape[1], -1
+        expanded_static_feat = unsqueeze_expand(
+            static_feat, dim=-2, size=input.shape[-1]
         )
 
         time_feat = (
             torch.cat(
                 (
-                    past_time_feat[:, -self.context_length + 1 :, ...],
+                    past_time_feat[..., -self.context_length + 1 :, :],
                     future_time_feat,
                 ),
-                dim=1,
+                dim=-2,
             )
             if future_time_feat is not None
-            else past_time_feat[:, -self.context_length + 1 :, ...]
+            else past_time_feat[..., -self.context_length + 1 :, :]
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
-        lags = lagged_sequence_values(self.lags_seq, prior_input, input)
+        lags = lagged_sequence_values(
+            self.lags_seq, prior_input, input, dim=-1
+        )
         rnn_input = torch.cat((lags, features), dim=-1)
 
         output, new_state = self.rnn(rnn_input)
@@ -318,7 +328,7 @@ class DeepARModel(nn.Module):
             shape: ``(batch_size, past_length, num_feat_dynamic_real)``.
         past_target
             Tensor of past target values,
-            shape: ``(batch_size, past_length, *target_shape)``.
+            shape: ``(batch_size, past_length)``.
         past_observed_values
             Tensor of observed values indicators,
             shape: ``(batch_size, past_length)``.
@@ -376,9 +386,7 @@ class DeepARModel(nn.Module):
                 dim=-1,
             )
             next_lags = lagged_sequence_values(
-                self.lags_seq,
-                repeated_past_target,
-                scaled_next_sample,
+                self.lags_seq, repeated_past_target, scaled_next_sample, dim=-1
             )
             rnn_input = torch.cat((next_lags, next_features), dim=-1)
 
@@ -397,5 +405,74 @@ class DeepARModel(nn.Module):
 
         return future_samples_concat.reshape(
             (-1, num_parallel_samples, self.prediction_length)
-            + self.target_shape,
+        )
+
+    def loss(
+        self,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+        future_only: bool = True,
+        loss: DistributionLoss = NegativeLogLikelihood(),
+    ) -> torch.Tensor:
+        extra_dims = len(future_target.shape) - len(past_target.shape)
+        repeats = prod(future_target.shape[:extra_dims])
+        feat_static_cat = repeat_along_dim(feat_static_cat, 0, repeats)
+        feat_static_real = repeat_along_dim(feat_static_real, 0, repeats)
+        past_time_feat = repeat_along_dim(past_time_feat, 0, repeats)
+        past_target = repeat_along_dim(past_target, 0, repeats)
+        past_observed_values = repeat_along_dim(
+            past_observed_values, 0, repeats
+        )
+        future_time_feat = repeat_along_dim(future_time_feat, 0, repeats)
+
+        future_target_reshaped = future_target.reshape(
+            prod(future_target.shape[: extra_dims + 1]),
+            *future_target.shape[extra_dims + 1 :]
+        )
+
+        params, scale, _, _, _ = self.unroll_lagged_rnn(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            future_target_reshaped,
+        )
+
+        if future_only:
+            distr = self.output_distribution(
+                params, scale, trailing_n=self.prediction_length
+            )
+            target = future_target_reshaped
+            observed_values = future_observed_values
+        else:
+            distr = self.output_distribution(params, scale)
+            context_target = past_target[:, -self.context_length + 1 :]
+            target = torch.cat(
+                (context_target, future_target_reshaped),
+                dim=1,
+            )
+            context_observed = past_observed_values[
+                :, -self.context_length + 1 :
+            ]
+            observed_values = torch.cat(
+                (context_observed, future_observed_values), dim=1
+            )
+
+        loss_values = loss(distr, target)
+        loss_values = loss_values.reshape(
+            *future_target.shape[: extra_dims + 1], *loss_values.shape[1:]
+        )
+
+        return weighted_average(
+            loss_values,
+            weights=observed_values,
+            dim=tuple(range(extra_dims + 1, len(future_target.shape))),
         )

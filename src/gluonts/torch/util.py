@@ -91,6 +91,7 @@ def lagged_sequence_values(
     indices: List[int],
     prior_sequence: torch.Tensor,
     sequence: torch.Tensor,
+    dim: int,
 ) -> torch.Tensor:
     """
     Constructs an array of lagged values from a given sequence.
@@ -104,10 +105,12 @@ def lagged_sequence_values(
         will have observations from times ``t`` and ``t-24``.
     prior_sequence
         Tensor containing the input sequence prior to the time range for
-        which the output is required (shape: ``(N, H, C)``).
+        which the output is required.
     sequence
         Tensor containing the input sequence in the time range where the
-        output is required (shape: ``(N, T, C)``).
+        output is required.
+    dim
+        Time dimension.
 
     Returns
     -------
@@ -115,22 +118,25 @@ def lagged_sequence_values(
         A tensor of shape ``(N, T, L)``: if ``I = len(indices)``,
         and ``sequence.shape = (N, T, C)``, then ``L = C * I``.
     """
-    assert max(indices) <= prior_sequence.shape[1], (
+    assert max(indices) <= prior_sequence.shape[dim], (
         f"lags cannot go further than prior sequence length, found lag"
         f" {max(indices)} while prior sequence is only"
-        f"{prior_sequence.shape[1]}-long"
+        f"{prior_sequence.shape[dim]}-long"
     )
 
-    full_sequence = torch.cat((prior_sequence, sequence), dim=1)
+    full_sequence = torch.cat((prior_sequence, sequence), dim=dim)
 
     lags_values = []
     for lag_index in indices:
-        begin_index = -lag_index - sequence.shape[1]
+        begin_index = -lag_index - sequence.shape[dim]
         end_index = -lag_index if lag_index > 0 else None
-        lags_values.append(full_sequence[:, begin_index:end_index, ...])
+        lags_values.append(
+            slice_along_dim(
+                full_sequence, dim=dim, slc=slice(begin_index, end_index)
+            )
+        )
 
-    lags = torch.stack(lags_values, dim=-1)
-    return lags.reshape(lags.shape[0], lags.shape[1], -1)
+    return torch.stack(lags_values, dim=-1)
 
 
 class IterableDataset(torch.utils.data.IterableDataset):
@@ -139,3 +145,24 @@ class IterableDataset(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         yield from self.iterable
+
+
+def unsqueeze_expand(a, dim, size):
+    a = a.unsqueeze(dim)
+    sizes = list(a.shape)
+    sizes[dim] = size
+    return a.expand(*sizes)
+
+
+def slice_along_dim(a, dim, slc):
+    idx = [slice(None)] * len(a.shape)
+    idx[dim] = slc
+    return a[idx]
+
+
+def repeat_along_dim(a, dim, repeats):
+    if repeats == 1:
+        return a
+    r = [1] * len(a.shape)
+    r[dim] = repeats
+    return a.repeat(*r)

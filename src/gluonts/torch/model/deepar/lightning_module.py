@@ -72,46 +72,18 @@ class DeepARLightningModule(pl.LightningModule):
         return self.model(*args, **kwargs)
 
     def _compute_loss(self, batch):
-        feat_static_cat = batch["feat_static_cat"]
-        feat_static_real = batch["feat_static_real"]
-        past_time_feat = batch["past_time_feat"]
-        past_target = batch["past_target"]
-        future_time_feat = batch["future_time_feat"]
-        future_target = batch["future_target"]
-        past_observed_values = batch["past_observed_values"]
-        future_observed_values = batch["future_observed_values"]
-
-        params, scale, _, _, _ = self.model.unroll_lagged_rnn(
-            feat_static_cat,
-            feat_static_real,
-            past_time_feat,
-            past_target,
-            past_observed_values,
-            future_time_feat,
-            future_target,
-        )
-        distr = self.model.output_distribution(params, scale)
-
-        context_target = past_target[:, -self.model.context_length + 1 :]
-        target = torch.cat(
-            (context_target, future_target),
-            dim=1,
-        )
-        loss_values = self.loss(distr, target)
-
-        context_observed = past_observed_values[
-            :, -self.model.context_length + 1 :
-        ]
-        observed_values = torch.cat(
-            (context_observed, future_observed_values), dim=1
-        )
-
-        if len(self.model.target_shape) == 0:
-            loss_weights = observed_values
-        else:
-            loss_weights, _ = observed_values.min(dim=-1, keepdim=False)
-
-        return weighted_average(loss_values, weights=loss_weights)
+        return self.model.loss(
+            feat_static_cat=batch["feat_static_cat"],
+            feat_static_real=batch["feat_static_real"],
+            past_time_feat=batch["past_time_feat"],
+            past_target=batch["past_target"],
+            future_time_feat=batch["future_time_feat"],
+            future_target=batch["future_target"],
+            past_observed_values=batch["past_observed_values"],
+            future_observed_values=batch["future_observed_values"],
+            future_only=False,
+            loss=self.loss,
+        ).mean()
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
