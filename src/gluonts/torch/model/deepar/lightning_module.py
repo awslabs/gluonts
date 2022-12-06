@@ -17,7 +17,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-from gluonts.torch.util import weighted_average
 
 from .module import DeepARModel
 
