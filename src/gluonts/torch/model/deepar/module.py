@@ -406,6 +406,15 @@ class DeepARModel(nn.Module):
             (-1, num_parallel_samples, self.prediction_length)
         )
 
+    def log_prob(self, *args, **kwargs) -> torch.Tensor:
+        return -self.loss(
+            *args,
+            **kwargs,
+            loss=NegativeLogLikelihood(),
+            future_only=True,
+            aggregate_by=torch.sum,
+        )
+
     def loss(
         self,
         feat_static_cat: torch.Tensor,
@@ -417,8 +426,8 @@ class DeepARModel(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
         loss: DistributionLoss = NegativeLogLikelihood(),
-        future_only: bool = True,
-        aggregate_by=torch.sum,
+        future_only: bool = False,
+        aggregate_by=torch.mean,
     ) -> torch.Tensor:
         extra_dims = len(future_target.shape) - len(past_target.shape)
         repeats = prod(future_target.shape[:extra_dims])

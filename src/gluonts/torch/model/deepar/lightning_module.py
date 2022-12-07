@@ -81,8 +81,6 @@ class DeepARLightningModule(pl.LightningModule):
             past_observed_values=batch["past_observed_values"],
             future_observed_values=batch["future_observed_values"],
             loss=self.loss,
-            future_only=False,
-            aggregate_by=torch.mean,
         ).mean()
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
