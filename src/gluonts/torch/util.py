@@ -131,7 +131,7 @@ def lagged_sequence_values(
         end_index = -lag_index if lag_index > 0 else None
         lags_values.append(
             slice_along_dim(
-                full_sequence, dim=dim, slc=slice(begin_index, end_index)
+                full_sequence, dim=dim, slice_=slice(begin_index, end_index)
             )
         )
 

@@ -29,7 +29,6 @@ from gluonts.torch.util import (
     lagged_sequence_values,
     repeat_along_dim,
     unsqueeze_expand,
-    weighted_average,
 )
 from gluonts.itertools import prod
 
@@ -471,8 +470,6 @@ class DeepARModel(nn.Module):
             *future_target.shape[: extra_dims + 1], *loss_values.shape[1:]
         )
 
-        return weighted_average(
-            loss_values,
-            weights=observed_values,
-            dim=tuple(range(extra_dims + 1, len(future_target.shape))),
+        return (loss_values * observed_values).sum(
+            dim=tuple(range(extra_dims + 1, len(future_target.shape)))
         )
