@@ -23,22 +23,25 @@ from gluonts.torch.util import (
 
 
 @pytest.mark.parametrize(
-    "lag_indices, prior_sequence, sequence",
+    "lag_indices, prior_sequence, sequence, output_shape",
     [
         (
             [0, 1, 5, 10, 20],
             torch.randn((4, 100)),
             torch.randn((4, 8)),
+            (4, 8, 5),
         ),
         (
             [0, 1, 5, 10, 20],
             torch.randn((4, 100, 1)),
             torch.randn((4, 8, 1)),
+            (4, 8, 1, 5),
         ),
         (
             [0, 1, 5, 10, 20],
             torch.randn((4, 100, 2)),
             torch.randn((4, 8, 2)),
+            (4, 8, 2, 5),
         ),
     ],
 )
@@ -46,8 +49,10 @@ def test_lagged_sequence_values(
     lag_indices: List[int],
     prior_sequence: torch.Tensor,
     sequence: torch.Tensor,
+    output_shape: tuple,
 ):
     res = lagged_sequence_values(lag_indices, prior_sequence, sequence, dim=1)
+    assert res.shape == output_shape
     full_sequence = torch.cat((prior_sequence, sequence), dim=1)
     for t in range(res.shape[1]):
         expected_lags_t = torch.stack(

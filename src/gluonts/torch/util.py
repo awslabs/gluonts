@@ -115,8 +115,7 @@ def lagged_sequence_values(
     Returns
     -------
     Tensor
-        A tensor of shape ``(N, T, L)``: if ``I = len(indices)``,
-        and ``sequence.shape = (N, T, C)``, then ``L = C * I``.
+        A tensor of shape (*sequence.shape, len(indices)).
     """
     assert max(indices) <= prior_sequence.shape[dim], (
         f"lags cannot go further than prior sequence length, found lag"
@@ -147,22 +146,75 @@ class IterableDataset(torch.utils.data.IterableDataset):
         yield from self.iterable
 
 
-def unsqueeze_expand(a, dim, size):
-    a = a.unsqueeze(dim)
-    sizes = list(a.shape)
-    sizes[dim] = size
-    return a.expand(*sizes)
+def repeat_along_dim(a: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:
+    """
+    Repeat a tensor along a given dimension, using ``torch.repeat`` internally.
 
+    Parameters
+    ----------
+    a
+        Original tensor to repeat.
+    dim
+        Dimension to repeat data over.
+    repeats
+        How many time to repeat the input tensor.
 
-def slice_along_dim(a, dim, slc):
-    idx = [slice(None)] * len(a.shape)
-    idx[dim] = slc
-    return a[idx]
-
-
-def repeat_along_dim(a, dim, repeats):
+    Returns
+    -------
+    torch.Tensor
+        A tensor with the same size as the input one, except dimension
+        ``dim`` which is multiplied by ``repeats``.
+    """
     if repeats == 1:
         return a
     r = [1] * len(a.shape)
     r[dim] = repeats
     return a.repeat(*r)
+
+
+def slice_along_dim(a: torch.Tensor, dim: int, slice_: slice) -> torch.Tensor:
+    """
+    Slice a tensor along a given dimension.
+
+    Parameters
+    ----------
+    a
+        Original tensor to slice.
+    dim
+        Dimension to slice over.
+    slice_
+        Slice to take.
+
+    Returns
+    -------
+    torch.Tensor
+        A tensor with the same size as the input one, except dimension
+        ``dim`` which has length equal to the slice length.
+    """
+    idx = [slice(None)] * len(a.shape)
+    idx[dim] = slice_
+    return a[idx]
+
+
+def unsqueeze_expand(a: torch.Tensor, dim: int, size: int) -> torch.Tensor:
+    """
+    Unsqueeze a dimension and expand over it in one go.
+
+    Parameters
+    ----------
+    a
+        Original tensor to unsqueeze.
+    dim
+        Dimension to unsqueeze.
+    size
+        Size for the new dimension.
+
+    Returns
+    -------
+    torch.Tensor
+        A tensor with an added dimension ``dim`` of size ``size``.
+    """
+    a = a.unsqueeze(dim)
+    sizes = list(a.shape)
+    sizes[dim] = size
+    return a.expand(*sizes)
