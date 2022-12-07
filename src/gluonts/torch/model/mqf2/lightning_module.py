@@ -19,7 +19,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
-from gluonts.torch.model.deepar.lightning_module import DeepARLightningModule
 from . import MQF2MultiHorizonModel
 
 
