@@ -108,60 +108,6 @@ class MQF2MultiHorizonModel(DeepARModel):
 
         self.picnn = SequentialNet(networks)
 
-    def unroll_lagged_rnn(
-        self,
-        feat_static_cat: torch.Tensor,
-        feat_static_real: torch.Tensor,
-        past_time_feat: torch.Tensor,
-        past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
-        future_time_feat: Optional[torch.Tensor] = None,
-        future_target: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Unrolls the RNN encoder over the context window of the time series
-        Returns the hidden state of the RNN and the scale.
-
-        Parameters
-        ----------
-        feat_static_cat
-            static categorial features (batch_size, num_feat_static_cat)
-        feat_static_real
-            static real-valued features (batch_size, num_feat_static_real)
-        past_time_feat
-            Past time features (batch_size, history_length, num_features)
-        past_target
-            Past target values (batch_size, history_length)
-        past_observed_values
-            Indicate whether or not the values were observed
-            (batch_size, history_length)
-        future_time_feat
-            Future time features (batch_size, prediction_length, num_features)
-        future_target
-            Future target values (batch_size, prediction_length)
-
-        Returns
-        -------
-        hidden_state
-            RNN hidden state (batch_size, context_length, hidden_size)
-        scale
-            Scale calculated from the context window (batch_size, 1)
-        """
-
-        _, scale, hidden_state, _, _ = super().unroll_lagged_rnn(
-            feat_static_cat=feat_static_cat,
-            feat_static_real=feat_static_real,
-            past_time_feat=past_time_feat,
-            past_target=past_target,
-            past_observed_values=past_observed_values,
-            future_time_feat=future_time_feat,
-            future_target=future_target,
-        )
-
-        hidden_state = hidden_state[:, : self.context_length]
-
-        return hidden_state, scale
-
     @torch.jit.ignore
     def output_distribution(
         self,
@@ -238,8 +184,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
-        # TODO in future: add function to make use of all relevant time feat
-        hidden_state, scale = self.unroll_lagged_rnn(
+        _, scale, hidden_state, _, _ = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
             past_time_feat,
@@ -247,6 +192,8 @@ class MQF2MultiHorizonModel(DeepARModel):
             past_observed_values,
             future_time_feat[:, :1],
         )
+
+        hidden_state = hidden_state[:, : self.context_length]
 
         distr = self.output_distribution(
             self.picnn, hidden_state, inference=True

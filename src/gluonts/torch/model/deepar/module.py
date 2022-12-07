@@ -407,7 +407,7 @@ class DeepARModel(nn.Module):
         )
 
     def log_prob(self, *args, **kwargs) -> torch.Tensor:
-        return -self.loss(
+        return -self.loss(  # type: ignore
             *args,
             **kwargs,
             loss=NegativeLogLikelihood(),
@@ -430,7 +430,10 @@ class DeepARModel(nn.Module):
         aggregate_by=torch.mean,
     ) -> torch.Tensor:
         extra_dims = len(future_target.shape) - len(past_target.shape)
-        repeats = prod(future_target.shape[:extra_dims])
+        extra_shape = future_target.shape[:extra_dims]
+        batch_shape = future_target.shape[: extra_dims + 1]
+
+        repeats = prod(extra_shape)
         feat_static_cat = repeat_along_dim(feat_static_cat, 0, repeats)
         feat_static_real = repeat_along_dim(feat_static_real, 0, repeats)
         past_time_feat = repeat_along_dim(past_time_feat, 0, repeats)
@@ -441,8 +444,12 @@ class DeepARModel(nn.Module):
         future_time_feat = repeat_along_dim(future_time_feat, 0, repeats)
 
         future_target_reshaped = future_target.reshape(
-            prod(future_target.shape[: extra_dims + 1]),
-            *future_target.shape[extra_dims + 1 :]
+            -1,
+            *future_target.shape[extra_dims + 1 :],
+        )
+        future_observed_reshaped = future_observed_values.reshape(
+            -1,
+            *future_observed_values.shape[extra_dims + 1 :],
         )
 
         params, scale, _, _, _ = self.unroll_lagged_rnn(
@@ -459,8 +466,9 @@ class DeepARModel(nn.Module):
             distr = self.output_distribution(
                 params, scale, trailing_n=self.prediction_length
             )
-            target = future_target_reshaped
-            observed_values = future_observed_values
+            loss_values = (
+                loss(distr, future_target_reshaped) * future_observed_reshaped
+            )
         else:
             distr = self.output_distribution(params, scale)
             context_target = past_target[:, -self.context_length + 1 :]
@@ -472,15 +480,13 @@ class DeepARModel(nn.Module):
                 :, -self.context_length + 1 :
             ]
             observed_values = torch.cat(
-                (context_observed, future_observed_values), dim=1
+                (context_observed, future_observed_reshaped), dim=1
             )
+            loss_values = loss(distr, target) * observed_values
 
-        loss_values = loss(distr, target)
-        loss_values = loss_values.reshape(
-            *future_target.shape[: extra_dims + 1], *loss_values.shape[1:]
-        )
+        loss_values = loss_values.reshape(*batch_shape, *loss_values.shape[1:])
 
         return aggregate_by(
-            loss_values * observed_values,
+            loss_values,
             dim=tuple(range(extra_dims + 1, len(future_target.shape))),
         )

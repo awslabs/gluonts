@@ -70,7 +70,7 @@ def test_mqf2_modules(
     future_target = torch.ones(batch_size, prediction_length)
     future_observed_values = torch.ones(batch_size, prediction_length)
 
-    hidden_state, scale = model.unroll_lagged_rnn(
+    _, scale, hidden_state, _, _ = model.unroll_lagged_rnn(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -79,6 +79,8 @@ def test_mqf2_modules(
         future_time_feat,
         future_target,
     )
+
+    hidden_state = hidden_state[:, :context_length]
 
     assert scale.shape == (batch_size, 1)
 
