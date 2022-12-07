@@ -416,8 +416,9 @@ class DeepARModel(nn.Module):
         future_time_feat: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-        future_only: bool = True,
         loss: DistributionLoss = NegativeLogLikelihood(),
+        future_only: bool = True,
+        aggregate_by=torch.sum,
     ) -> torch.Tensor:
         extra_dims = len(future_target.shape) - len(past_target.shape)
         repeats = prod(future_target.shape[:extra_dims])
@@ -470,6 +471,7 @@ class DeepARModel(nn.Module):
             *future_target.shape[: extra_dims + 1], *loss_values.shape[1:]
         )
 
-        return (loss_values * observed_values).sum(
-            dim=tuple(range(extra_dims + 1, len(future_target.shape)))
+        return aggregate_by(
+            loss_values * observed_values,
+            dim=tuple(range(extra_dims + 1, len(future_target.shape))),
         )
