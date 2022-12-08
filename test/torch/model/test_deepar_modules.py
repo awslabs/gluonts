@@ -106,6 +106,30 @@ def test_deepar_modules(
 
     assert samples.shape == (batch_size, 100, prediction_length)
 
+    log_densities = model.log_prob(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+        future_target,
+    )
+
+    assert log_densities.shape == (batch_size,)
+
+    log_densities = model.log_prob(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+        samples.transpose(0, 1),  # TODO: ugly!
+    )
+
+    assert log_densities.shape == (100, batch_size)
+
     batch = dict(
         feat_static_cat=feat_static_cat,
         feat_static_real=feat_static_real,
