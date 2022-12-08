@@ -16,8 +16,8 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
+from gluonts.itertools import select
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-from gluonts.torch.util import weighted_average
 
 from .module import DeepARModel
 
@@ -71,53 +71,17 @@ class DeepARLightningModule(pl.LightningModule):
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
-    def _compute_loss(self, batch):
-        feat_static_cat = batch["feat_static_cat"]
-        feat_static_real = batch["feat_static_real"]
-        past_time_feat = batch["past_time_feat"]
-        past_target = batch["past_target"]
-        future_time_feat = batch["future_time_feat"]
-        future_target = batch["future_target"]
-        past_observed_values = batch["past_observed_values"]
-        future_observed_values = batch["future_observed_values"]
-
-        params, scale, _, _, _ = self.model.unroll_lagged_rnn(
-            feat_static_cat,
-            feat_static_real,
-            past_time_feat,
-            past_target,
-            past_observed_values,
-            future_time_feat,
-            future_target,
-        )
-        distr = self.model.output_distribution(params, scale)
-
-        context_target = past_target[:, -self.model.context_length + 1 :]
-        target = torch.cat(
-            (context_target, future_target),
-            dim=1,
-        )
-        loss_values = self.loss(distr, target)
-
-        context_observed = past_observed_values[
-            :, -self.model.context_length + 1 :
-        ]
-        observed_values = torch.cat(
-            (context_observed, future_observed_values), dim=1
-        )
-
-        if len(self.model.target_shape) == 0:
-            loss_weights = observed_values
-        else:
-            loss_weights, _ = observed_values.min(dim=-1, keepdim=False)
-
-        return weighted_average(loss_values, weights=loss_weights)
-
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
         Execute training step.
         """
-        train_loss = self._compute_loss(batch)
+        train_loss = self.model.loss(
+            **select(self.model.input_shapes(), batch),
+            future_observed_values=batch["future_observed_values"],
+            future_target=batch["future_target"],
+            loss=self.loss,
+        ).mean()
+
         self.log(
             "train_loss",
             train_loss,
@@ -125,16 +89,24 @@ class DeepARLightningModule(pl.LightningModule):
             on_step=False,
             prog_bar=True,
         )
+
         return train_loss
 
     def validation_step(self, batch, batch_idx: int):  # type: ignore
         """
         Execute validation step.
         """
-        val_loss = self._compute_loss(batch)
+        val_loss = self.model.loss(
+            **select(self.model.input_shapes(), batch),
+            future_observed_values=batch["future_observed_values"],
+            future_target=batch["future_target"],
+            loss=self.loss,
+        ).mean()
+
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
         )
+
         return val_loss
 
     def configure_optimizers(self):
