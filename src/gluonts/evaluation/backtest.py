@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import logging
-from typing import Iterators, Optional, Tuple
+from typing import Optional, Tuple, Iterator
 
 import numpy as np
 import pandas as pd
