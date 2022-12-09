@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from typing import ClassVar, List, Optional, Type, Literal
+from typing import ClassVar, List, Optional, Type
+from typing_extensions import Literal
 
 import numpy as np
 from mxnet.gluon import HybridBlock
 from pydantic import Field
 
-from gluonts.core.component import validated
 from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName

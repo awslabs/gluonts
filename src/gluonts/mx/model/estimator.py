@@ -15,7 +15,6 @@ from typing import NamedTuple, Optional, Type
 
 import numpy as np
 
-from gluonts.core import fqname_for
 from gluonts.core.component import (
     GluonTSHyperparametersError,
     from_hyperparameters,
