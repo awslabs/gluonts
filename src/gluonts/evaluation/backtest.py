@@ -12,24 +12,17 @@
 # permissions and limitations under the License.
 
 import logging
-import re
-from typing import Dict, Iterator, NamedTuple, Optional, Tuple
+from typing import Iterators, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
-import gluonts  # noqa
-from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.split import split
-from gluonts.dataset.stat import (
-    DatasetStatistics,
-    calculate_dataset_statistics,
-)
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.dataset.util import period_index
 from gluonts.evaluation import Evaluator
-from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.itertools import maybe_len
