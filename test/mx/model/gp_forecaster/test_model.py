@@ -39,9 +39,5 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     accuracy_test(GaussianProcessEstimator, hyperparameters, accuracy=0.3)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(GaussianProcessEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(GaussianProcessEstimator, hyperparameters)

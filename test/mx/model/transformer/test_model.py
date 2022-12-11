@@ -40,9 +40,5 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     accuracy_test(TransformerEstimator, hyperparameters, accuracy=0.2)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(TransformerEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(TransformerEstimator, hyperparameters)

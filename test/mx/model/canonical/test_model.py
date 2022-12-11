@@ -47,10 +47,6 @@ def test_accuracy(Estimator, accuracy_test, hyperparameters, hybridize):
     accuracy_test(Estimator, hyperparameters, accuracy=10.0)
 
 
-def test_repr(Estimator, repr_test, hyperparameters):
-    repr_test(Estimator, hyperparameters)
-
-
 @pytest.mark.xfail
 def test_serialize(Estimator, serialize_test, hyperparameters):
     serialize_test(Estimator, hyperparameters)

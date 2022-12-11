@@ -39,9 +39,5 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     accuracy_test(DeepAREstimator, hyperparameters, accuracy=1.5)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(DeepAREstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(DeepAREstimator, hyperparameters)

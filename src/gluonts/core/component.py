@@ -21,7 +21,7 @@ from typing import Any, Type, TypeVar
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-from gluonts.core.serde import dump_code
+from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
 
 
@@ -307,7 +307,11 @@ def validated(base_model=None):
             )
 
         def validated_repr(self) -> str:
-            return dump_code(self)
+            cname = fqname_for(self.__class__)
+            kwargs = ", ".join(
+                f"{key}={value!r}" for key, value in self.__init_args__.items()
+            )
+            return f"{cname}({kwargs})"
 
         def validated_getnewargs_ex(self):
             return (), self.__init_args__
