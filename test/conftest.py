@@ -338,14 +338,3 @@ def serialize_test(dsinfo):
             assert predictor_act == predictor_exp
 
     return test_serialize
-
-
-@pytest.fixture()
-def repr_test(dsinfo):
-    from gluonts.core.serde import load_code
-
-    def test_repr(Estimator, hyperparameters):
-        estimator = from_hyperparameters(Estimator, hyperparameters, dsinfo)
-        assert repr(estimator) == repr(load_code(repr(estimator)))
-
-    return test_repr

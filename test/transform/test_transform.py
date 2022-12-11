@@ -22,7 +22,7 @@ import pytest
 import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
-from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
@@ -1046,13 +1046,10 @@ def make_dataset(N, train_length):
 def assert_serializable(x: transform.Transformation):
     t = fqname_for(x.__class__)
     y = load_json(dump_json(x))
-    z = load_code(dump_code(x))
+
     assert dump_json(x) == dump_json(
         y
     ), f"Code serialization for transformer {t} does not work"
-    assert dump_code(x) == dump_code(
-        z
-    ), f"JSON serialization for transformer {t} does not work"
 
 
 def assert_shape(array: np.array, reference_shape: Tuple[int, int]):

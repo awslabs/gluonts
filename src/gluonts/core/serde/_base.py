@@ -169,8 +169,6 @@ def encode(v: Any) -> Any:
         Inverse function.
     dump_json
         Serializes an object to a JSON string.
-    dump_code
-        Serializes an object to a Python code string.
     """
     if v is None:
         return None
