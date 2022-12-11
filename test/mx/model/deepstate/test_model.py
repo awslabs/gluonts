@@ -40,9 +40,5 @@ def test_accuracy(accuracy_test, hyperparameters):
     accuracy_test(DeepStateEstimator, hyperparameters, accuracy=0.77)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(DeepStateEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(DeepStateEstimator, hyperparameters)

@@ -67,12 +67,6 @@ def test_json_serialization(e) -> None:
     assert equals(expected, actual)
 
 
-@pytest.mark.parametrize("e", examples)
-def test_code_serialization(e) -> None:
-    expected, actual = e, serde.load_code(serde.dump_code(e))
-    assert equals(expected, actual)
-
-
 @pytest.mark.parametrize(
     "a",
     [
@@ -85,43 +79,9 @@ def test_code_serialization(e) -> None:
         mx.nd.array([[1, 2, 3], [1, 2, 0]], dtype=np.uint8),
     ],
 )
-@pytest.mark.parametrize(
-    "serialize_fn",
-    [
-        lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_code(serde.dump_code(x)),
-    ],
-)
-def test_ndarray_serialization(a, serialize_fn) -> None:
-    b = serialize_fn(a)
+def test_ndarray_serialization(a) -> None:
+    b = serde.load_json(serde.dump_json(a))
     assert type(a) == type(b)
     assert a.dtype == b.dtype
     assert a.shape == b.shape
     assert np.all((a == b).asnumpy())
-
-
-def test_dynamic_loading():
-    code = dedent(
-        """
-        dict(
-           trainer=gluonts.mx.trainer.Trainer(
-               ctx="cpu(0)",
-               epochs=5,
-               learning_rate=0.001,
-               clip_gradient=10.0,
-               weight_decay=1e-08,
-               num_batches_per_epoch=10,
-               hybridize=False,
-           ),
-           num_hidden_dimensions=[3],
-           context_length=5,
-           prediction_length=2,
-           freq="1H",
-           distr_output=gluonts.mx.distribution.StudentTOutput(),
-           batch_normalization=False,
-           mean_scaling=True
-        )
-        """
-    )
-
-    serde.load_code(code)

@@ -35,9 +35,5 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(TreeEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(TreeEstimator, hyperparameters)

@@ -42,9 +42,5 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):
     accuracy_test(SimpleFeedForwardEstimator, hyperparameters, accuracy=0.3)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(SimpleFeedForwardEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(SimpleFeedForwardEstimator, hyperparameters)
