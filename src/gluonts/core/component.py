@@ -276,7 +276,7 @@ def validated(base_model=None):
     """
 
     def validator(init):
-        init_qualname = dict(inspect.getmembers(init))["__qualname__"]
+        init_qualname = dict(inspect.getmembers(init))["__qualname__"]  # noqa
         init_clsnme = init_qualname.split(".")[0]
         init_params = inspect.signature(init).parameters
         init_fields = {
