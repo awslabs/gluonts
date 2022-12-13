@@ -1,4 +1,5 @@
 include src/gluonts/ext/r_forecast/R/*.R
+recursive-include requirements *.txt
 
 prune .devtools
 prune .github
