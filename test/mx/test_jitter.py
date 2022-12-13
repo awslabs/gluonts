@@ -32,7 +32,7 @@ from gluonts.mx.linalg_util import jitter_cholesky, jitter_cholesky_eig
 # Both gpu and cpu as well as single and double precision are tested.
 @pytest.mark.skipif(
     sys.platform == "linux",
-    reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
+    reason="skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
 )
 @pytest.mark.parametrize("ctx", ["cpu", "gpu"])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])
@@ -62,7 +62,7 @@ def test_jitter_unit(jitter_method, float_type, ctx) -> None:
 # and gpu and for single and double precision.
 @pytest.mark.skipif(
     sys.platform == "linux",
-    reason=f"skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
+    reason="skipping since potrf crashes on mxnet 1.6.0 on linux when matrix is not spd",
 )
 @pytest.mark.parametrize("ctx", ["cpu", "gpu"])
 @pytest.mark.parametrize("jitter_method", ["iter", "eig"])

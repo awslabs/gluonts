@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-import pytest
 
 # First-party imports
 from gluonts.mx.trainer import Trainer
@@ -56,7 +55,6 @@ def test_callbacks():
     dataset = "m4_hourly"
     dataset = get_dataset(dataset)
     prediction_length = dataset.metadata.prediction_length
-    freq = dataset.metadata.freq
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,

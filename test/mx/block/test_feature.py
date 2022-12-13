@@ -165,11 +165,9 @@ def test_feature_assembler(config, hybridize):
 
             def test_parameters_length():
                 exp_params_len = sum(
-                    [
-                        len(config[k]["embedding_dims"])
-                        for k in ["embed_static", "embed_dynamic"]
-                        if k in enabled_embedders
-                    ]
+                    len(config[k]["embedding_dims"])
+                    for k in ["embed_static", "embed_dynamic"]
+                    if k in enabled_embedders
                 )
                 act_params_len = len(assemble_feature.collect_params().keys())
                 assert exp_params_len == act_params_len

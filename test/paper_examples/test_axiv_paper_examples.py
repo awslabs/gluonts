@@ -26,7 +26,6 @@ def test_listing_1():
     """
     pytest.importorskip("mxnet")
 
-    from gluonts.dataset.repository.datasets import get_dataset
     from gluonts.evaluation import backtest_metrics, Evaluator
     from gluonts.mx import DeepAREstimator
     from gluonts.mx.trainer import Trainer
