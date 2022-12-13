@@ -118,7 +118,7 @@ def dataclass(
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=True,
+    frozen=False,
 ):
     """Custom dataclass wrapper for serde.
 
@@ -226,7 +226,12 @@ def _dataclass(
             raise TypeError("serde.dataclass is always `kw_only`.")
 
         validated_model = model(**input_kwargs)
-        init_kwargs = validated_model.dict()
+        # .dict() turns its values into dicts as well, so we just get the
+        # attributes directly from the model
+        init_kwargs = {
+            key: getattr(validated_model, key)
+            for key in validated_model.dict()
+        }
 
         for orelse_name, orelse in orelse_order.items():
             value = orelse._call(init_kwargs)
