@@ -27,6 +27,8 @@ from typing import (
 import pydantic.dataclasses
 from pydantic import create_model
 
+from gluonts.itertools import select
+
 T = TypeVar("T")
 
 
@@ -264,8 +266,7 @@ def _dataclass(
             "__init_passed_kwargs__",
             {
                 key: value
-                for key, value in validated_model.dict().items()
-                if key in input_kwargs
+                for key, value in select(input_kwargs, init_kwargs).items()
             },
         )
 

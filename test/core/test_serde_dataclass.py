@@ -60,3 +60,6 @@ def test_dataclass_subtype():
     x = X(a=B())
 
     assert isinstance(x.a, B)
+
+    x2 = serde.decode(serde.encode(x))
+    assert isinstance(x2.a, B)
