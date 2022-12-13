@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import field
 from functools import partial
-from typing import ClassVar, List, Optional, Type
+from typing import List, Optional, Type
 from typing_extensions import Literal
 
 import numpy as np
@@ -169,7 +170,7 @@ class DeepAREstimator(GluonEstimator):
 
     freq: str
     prediction_length: int = Field(ge=1)
-    lead_time: ClassVar[int] = 0
+    lead_time: int = field(default=0, init=False)
     trainer: Trainer = Trainer()
     context_length: int = serde.OrElse(
         lambda prediction_length: prediction_length
