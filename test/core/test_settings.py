@@ -13,7 +13,7 @@
 
 from pydantic import BaseModel
 
-from gluonts.core.settings import Settings, let, inject
+from gluonts.core.settings import Settings, let
 
 
 class MySettings(Settings):

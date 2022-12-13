@@ -11,9 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from itertools import chain
 
-import numpy as np
 import pytest
 
 from gluonts.ext.rotbaum import TreeEstimator
