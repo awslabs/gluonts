@@ -25,7 +25,6 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
     NTA,
     Alpha_Suffix,
-    IterationAveragingStrategy,
 )
 
 

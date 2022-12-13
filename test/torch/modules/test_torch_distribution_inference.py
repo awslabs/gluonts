@@ -107,53 +107,6 @@ def maximum_likelihood_estimate_sgd(
     ]
 
 
-def maximum_likelihood_estimate_sgd_2(
-    distr_output: DistributionOutput,
-    samples: torch.Tensor,
-    init_biases: List[np.ndarray] = None,
-    num_epochs: PositiveInt = PositiveInt(5),
-    learning_rate: PositiveFloat = PositiveFloat(1e-2),
-):
-    arg_proj = distr_output.get_args_proj(in_features=1)
-
-    if init_biases is not None:
-        for param, bias in zip(arg_proj.proj, init_biases):
-            nn.init.constant_(param.bias, bias)
-
-    dummy_data = torch.ones((len(samples), 1))
-
-    dataset = TensorDataset(dummy_data, samples)
-    train_data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    optimizer = SGD(arg_proj.parameters(), lr=learning_rate)
-
-    for e in range(num_epochs):
-        cumulative_loss = 0
-        num_batches = 0
-
-        for i, (data, sample_label) in enumerate(train_data):
-            optimizer.zero_grad()
-            distr_args = arg_proj(data)
-            distr = distr_output.distribution(distr_args)
-            loss_values = loss(distr, sample_label)
-            loss_values = loss_values.mean()
-            loss_values.backward()
-            clip_grad_norm_(arg_proj.parameters(), 10.0)
-            optimizer.step()
-
-            num_batches += 1
-            cumulative_loss += loss_values.item()
-
-    if len(distr_args[0].shape) == 1:
-        return [
-            param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))
-        ]
-
-    return [
-        param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
-    ]
-
-
 def compare_logits(
     logits_true: np.array, logits_hat: np.array, TOL: int = 0.3
 ):
@@ -444,19 +397,9 @@ def test_splicedbinnedpareto_likelihood(
         tail_percentile_gen_pareto=percentile_tail,
     )
 
-    # Initialize parameter estimates
-    init_args = []
-    for param_name in distr_output.args_dim.keys():
-        init_args.append(
-            distr_true.__getattribute__(param_name).squeeze(dim=0).numpy()
-            * (1 - START_TOL_MULTIPLE * TOL)
-        )
-    init_biases = tuple(init_args)
-
     params_hat_values = maximum_likelihood_estimate_sgd(
         distr_output,
         samples,
-        # init_biases=init_biases,
         num_epochs=50,
     )
 

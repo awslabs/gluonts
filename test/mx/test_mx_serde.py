@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from textwrap import dedent
 from typing import List
 
 import pytest
@@ -22,8 +21,6 @@ from pydantic import BaseModel
 
 from gluonts.core import serde
 from gluonts.core.component import equals
-
-import gluonts.mx.prelude as _
 
 
 class CategoricalFeatureInfo(BaseModel):

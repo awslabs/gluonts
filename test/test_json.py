@@ -18,7 +18,7 @@ import pytest
 pytest.importorskip("orjson")
 pytest.importorskip("ujson")
 
-from gluonts.json import _orjson, _ujson, _json
+from gluonts.json import _orjson, _ujson, _json  # noqa
 
 
 class AttrDict(dict):

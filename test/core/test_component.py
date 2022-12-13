@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import random
-from textwrap import dedent
 from typing import Dict, List
 
 from gluonts.core.component import validated
@@ -119,9 +118,9 @@ def test_component_ctor():
     bar01 = Bar(x_list, input_fields=fields, x_dict=x_dict)
     bar02 = load_json(dump_json(bar01))
 
-    assert list == type(bar01.x_list) == type(bar02.x_list)
-    assert dict == type(bar01.x_dict) == type(bar02.x_dict)
-    assert list == type(bar01.input_fields) == type(bar02.input_fields)
+    assert all(isinstance(bar.x_list, list) for bar in [bar01, bar02])
+    assert all(isinstance(bar.x_dict, dict) for bar in [bar01, bar02])
+    assert all(isinstance(bar.input_fields, list) for bar in [bar01, bar02])
 
     assert bar01.x_list == bar02.x_list
     assert bar01.x_dict == bar02.x_dict
