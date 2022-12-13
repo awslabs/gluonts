@@ -12,3 +12,17 @@ addopts = """
     --ignore src/gluonts/trainer.py
 """
 doctest_optionflags = "NORMALIZE_WHITESPACE"
+
+
+[tool.ruff]
+line-length = 79
+
+ignore = [
+    # line-length is handled by black
+    "E501",
+
+    # TODO: remove usage of `l`
+    "E741"
+]
+
+exclude = ["src/gluonts/nursery"]

@@ -12,24 +12,17 @@
 # permissions and limitations under the License.
 
 import logging
-import re
-from typing import Dict, Iterator, NamedTuple, Optional, Tuple
+from typing import Optional, Tuple, Iterator
 
 import numpy as np
 import pandas as pd
 
-import gluonts  # noqa
-from gluonts.core.serde import load_code
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.split import split
-from gluonts.dataset.stat import (
-    DatasetStatistics,
-    calculate_dataset_statistics,
-)
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.dataset.util import period_index
 from gluonts.evaluation import Evaluator
-from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import Predictor
 from gluonts.itertools import maybe_len
@@ -164,43 +157,3 @@ def backtest_metrics(
         del logger, handler
 
     return agg_metrics, item_metrics
-
-
-# TODO does it make sense to have this then?
-class BacktestInformation(NamedTuple):
-    train_dataset_stats: DatasetStatistics
-    test_dataset_stats: DatasetStatistics
-    estimator: Estimator
-    agg_metrics: Dict[str, float]
-
-    @staticmethod
-    def make_from_log(log_file):
-        with open(log_file) as f:
-            return BacktestInformation.make_from_log_contents(
-                "\n".join(f.readlines())
-            )
-
-    @staticmethod
-    def make_from_log_contents(log_contents):
-        messages = dict(re.findall(r"gluonts\[(.*)\]: (.*)", log_contents))
-
-        # avoid to fail if a key is missing for instance in the case a run did
-        # not finish so that we can still get partial information
-        try:
-            return BacktestInformation(
-                train_dataset_stats=eval(
-                    messages[train_dataset_stats_key]
-                ),  # TODO: use load
-                test_dataset_stats=eval(
-                    messages[test_dataset_stats_key]
-                ),  # TODO: use load
-                estimator=load_code(messages[estimator_key]),
-                agg_metrics={
-                    k: load_code(v)
-                    for k, v in messages.items()
-                    if k.startswith("metric-") and v != "nan"
-                },
-            )
-        except Exception as error:
-            logging.error(error)
-            return None

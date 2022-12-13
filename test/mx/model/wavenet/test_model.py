@@ -40,9 +40,5 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     accuracy_test(WaveNetEstimator, hyperparameters, accuracy=1)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(WaveNetEstimator, hyperparameters)
-
-
 def test_serialize(serialize_test, hyperparameters):
     serialize_test(WaveNetEstimator, hyperparameters)

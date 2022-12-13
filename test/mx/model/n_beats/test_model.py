@@ -75,10 +75,6 @@ def test_accuracy(accuracy_test, estimator_config, hybridize):
     accuracy_test(Estimator, hyperparameters, accuracy=0.3)
 
 
-def test_repr(repr_test, estimator_config):
-    repr_test(*estimator_config[1:])
-
-
 def test_serialize(serialize_test, estimator_config):
     if estimator_config[0] == "generic":
         pytest.skip("Too slow.")
