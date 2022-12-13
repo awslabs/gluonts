@@ -34,10 +34,8 @@ from gluonts.mx.distribution import (
     PiecewiseLinear,
     Poisson,
     StudentT,
-    TransformedDistribution,
     Uniform,
     ZeroAndOneInflatedBeta,
-    ZeroInflatedPoissonOutput,
 )
 from gluonts.testutil import empirical_cdf
 

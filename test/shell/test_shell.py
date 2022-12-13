@@ -13,7 +13,6 @@
 
 import json
 import sys
-from distutils.util import strtobool
 from typing import ContextManager
 
 import numpy as np

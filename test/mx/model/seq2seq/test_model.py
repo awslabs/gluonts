@@ -234,7 +234,7 @@ def test_inference_quantile_prediction(quantiles, inference_quantiles):
             for (i, pred) in enumerate(
                 forecasts[item_id].quantile(inference_quantile)
             )
-        ), f"quantile-crossing occurred"
+        ), "quantile-crossing occurred"
 
 
 @pytest.mark.parametrize("is_iqf", [True, False])

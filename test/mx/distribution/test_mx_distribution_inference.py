@@ -17,7 +17,7 @@ distributions exposed to the user.
 """
 from functools import reduce
 
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
 
 import mxnet as mx
 import numpy as np
@@ -158,7 +158,7 @@ def maximum_likelihood_estimate_sgd(
             cumulative_loss += mx.nd.mean(loss).asscalar()
 
             assert not np.isnan(cumulative_loss)
-        print("Epoch %s, loss: %s" % (e, cumulative_loss / num_batches))
+        print("Epoch {}, loss: {}".format(e, cumulative_loss / num_batches))
 
     if len(distr_args[0].shape) == 1:
         return [
@@ -351,7 +351,7 @@ def test_studentT_likelihood(
     ), f"sigma did not match: sigma = {sigma}, sigma_hat = {sigma_hat}"
     assert (
         np.abs(nu_hat - nu) < TOL * nu
-    ), "nu0 did not match: nu0 = %s, nu_hat = %s" % (nu, nu_hat)
+    ), "nu0 did not match: nu0 = {}, nu_hat = {}".format(nu, nu_hat)
 
 
 @pytest.mark.parametrize("alpha, beta", [(3.75, 1.25)])

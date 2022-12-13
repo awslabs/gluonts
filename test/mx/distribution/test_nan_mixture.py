@@ -30,7 +30,6 @@ from gluonts.mx.distribution import (
     NanMixtureOutput,
     StudentTOutput,
 )
-from gluonts.mx.distribution.distribution import Distribution
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
@@ -203,7 +202,7 @@ def test_nanmixture_gaussian_inference() -> None:
     args_proj.initialize()
     args_proj.hybridize()
 
-    input = mx.nd.ones((NUM_SAMPLES))
+    input = mx.nd.ones(NUM_SAMPLES)
 
     trainer = mx.gluon.Trainer(
         args_proj.collect_params(), "sgd", {"learning_rate": 0.00001}
@@ -258,7 +257,7 @@ def test_nanmixture_categorical_inference() -> None:
     args_proj.initialize()
     args_proj.hybridize()
 
-    input = mx.nd.ones((NUM_SAMPLES))
+    input = mx.nd.ones(NUM_SAMPLES)
 
     trainer = mx.gluon.Trainer(
         args_proj.collect_params(), "sgd", {"learning_rate": 0.000002}
