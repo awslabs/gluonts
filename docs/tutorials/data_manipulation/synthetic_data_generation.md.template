@@ -12,8 +12,8 @@ from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 
 
 ```python
+from gluonts.core import serde
 from gluonts.dataset.artificial import recipe as rcp
-from gluonts.core.serde import dump_code, load_code
 ```
 
 
@@ -184,10 +184,10 @@ Recipes composed of serializable / representable components can easily be serial
 
 
 ```python
-dumped = dump_code(result)
+dumped = serde.encode(result)
 print(dumped)
 
-reconstructed = load_code(dumped)
+reconstructed = serde.decode(dumped)
 
 rcp.evaluate(reconstructed, 3)
 ```
