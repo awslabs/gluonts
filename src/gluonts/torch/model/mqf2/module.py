@@ -17,7 +17,10 @@ import torch
 
 from gluonts.core.component import validated
 from gluonts.torch.model.deepar.module import DeepARModel
-from gluonts.torch.distributions import DistributionOutput
+from gluonts.torch.distributions import (
+    DistributionOutput,
+    MQF2DistributionOutput,
+)
 
 from cpflows.flows import ActNorm
 from cpflows.icnn import PICNN
@@ -35,7 +38,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         num_feat_static_real: int,
         num_feat_static_cat: int,
         cardinality: List[int],
-        distr_output: DistributionOutput,
+        distr_output: Optional[DistributionOutput] = None,
         embedding_dimension: Optional[List[int]] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
@@ -74,7 +77,11 @@ class MQF2MultiHorizonModel(DeepARModel):
             num_layers=num_layers,
             hidden_size=hidden_size,
             dropout_rate=dropout_rate,
-            distr_output=distr_output,
+            distr_output=(
+                distr_output
+                if distr_output is not None
+                else MQF2DistributionOutput(prediction_length)
+            ),
             lags_seq=lags_seq,
             scaling=scaling,
             num_parallel_samples=num_parallel_samples,
