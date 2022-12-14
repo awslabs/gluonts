@@ -167,7 +167,7 @@ class FlatMapTransformation(Transformation):
     combine elements from the input stream.
     """
 
-    @validated()
+    # @validated()
     def __init__(self):
         self.max_idle_transforms = env.max_idle_transforms
 
