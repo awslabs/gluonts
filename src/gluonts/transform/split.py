@@ -11,14 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import field
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional
 
 import numpy as np
 from pandas.tseries.offsets import BaseOffset
-from pydantic.dataclasses import Field
 
-from gluonts.core import serde
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -27,28 +24,6 @@ from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 
-def make_pad_indicator(
-    size: int, left: int = 0, right: int = 0, dtype: Type = np.float32
-) -> np.ndarray:
-    pad_indicator = np.zeros(size, dtype=dtype)
-    pad_indicator[:left] = 1
-    pad_indicator[-right:] = 1
-
-    return pad_indicator
-
-
-def slice_window(
-    data,
-    split_index,
-    *,
-    past_length: int,
-    future_length: int,
-    lead_time: int = 0,
-):
-    pass
-
-
-@serde.dataclass
 class InstanceSplitter(FlatMapTransformation):
     """
     Selects training instances, by slicing the target and other time series
@@ -99,59 +74,94 @@ class InstanceSplitter(FlatMapTransformation):
         Value to use for padding. (default: 0.0)
     """
 
-    target_field: str
-    is_pad_field: str
-    start_field: str
-    forecast_start_field: str
-    instance_sampler: InstanceSampler
-    past_length: int = Field(ge=1)
-    future_length: int = Field(ge=1)
-    lead_time: int = 0
-    output_NTC: bool = True
-    time_series_fields: List[str] = Field([])
-    dummy_value: float = 0.0
-    time_axis: int = -1
-    slice_cols: List[str] = field(init=False)
+    @validated()
+    def __init__(
+        self,
+        target_field: str,
+        is_pad_field: str,
+        start_field: str,
+        forecast_start_field: str,
+        instance_sampler: InstanceSampler,
+        past_length: int,
+        future_length: int,
+        lead_time: int = 0,
+        output_NTC: bool = True,
+        time_series_fields: List[str] = [],
+        dummy_value: float = 0.0,
+    ) -> None:
+        super().__init__()
 
-    def __post_init__(self):
-        FlatMapTransformation.__init__(self)
-        self.slice_cols = self.time_series_fields + [self.target_field]
+        assert future_length > 0, "The value of `future_length` should be > 0"
+
+        self.instance_sampler = instance_sampler
+        self.past_length = past_length
+        self.future_length = future_length
+        self.lead_time = lead_time
+        self.output_NTC = output_NTC
+        self.ts_fields = time_series_fields
+        self.target_field = target_field
+        self.is_pad_field = is_pad_field
+        self.start_field = start_field
+        self.forecast_start_field = forecast_start_field
+        self.dummy_value = dummy_value
+
+    def _past(self, col_name):
+        return f"past_{col_name}"
+
+    def _future(self, col_name):
+        return f"future_{col_name}"
 
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        for split_idx in self.instance_sampler(data[self.target_field]):
-            window = data.copy()
-            pad_length = max(self.past_length - split_idx, 0)
+        pl = self.future_length
+        lt = self.lead_time
+        slice_cols = self.ts_fields + [self.target_field]
+        target = data[self.target_field]
 
-            for col in self.slice_cols:
-                timeseries = window.pop(col)
+        sampled_indices = self.instance_sampler(target)
 
-                past, _lead_time, future, _excess = np.split(
-                    timeseries,
-                    np.cumsum([split_idx, self.lead_time, self.future_length]),
-                    axis=-1,
-                )
+        for i in sampled_indices:
+            pad_length = max(self.past_length - i, 0)
+            d = data.copy()
+            for ts_field in slice_cols:
+                if i > self.past_length:
+                    # truncate to past_length
+                    past_piece = d[ts_field][..., i - self.past_length : i]
+                elif i < self.past_length:
+                    pad_block = (
+                        np.ones(
+                            d[ts_field].shape[:-1] + (pad_length,),
+                            dtype=d[ts_field].dtype,
+                        )
+                        * self.dummy_value
+                    )
+                    past_piece = np.concatenate(
+                        [pad_block, d[ts_field][..., :i]], axis=-1
+                    )
+                else:
+                    past_piece = d[ts_field][..., :i]
+                d[self._past(ts_field)] = past_piece
+                d[self._future(ts_field)] = d[ts_field][
+                    ..., i + lt : i + lt + pl
+                ]
+                del d[ts_field]
+            pad_indicator = np.zeros(self.past_length, dtype=target.dtype)
+            if pad_length > 0:
+                pad_indicator[:pad_length] = 1
 
-                past = pad_axis(past, left=pad_length, axis=self.time_axis)
+            if self.output_NTC:
+                for ts_field in slice_cols:
+                    d[self._past(ts_field)] = d[
+                        self._past(ts_field)
+                    ].transpose()
+                    d[self._future(ts_field)] = d[
+                        self._future(ts_field)
+                    ].transpose()
 
-                if self.output_NTC:
-                    past = past.T
-                    future = future.T
-
-                window[f"past_{col}"] = past
-                window[f"future_{col}"] = future
-
-            window[f"past_{self.is_pad_field}"] = make_pad_indicator(
-                self.past_length,
-                left=pad_length,
-                dtype=data[self.target_field].dtype,
-            )
-
-            window[self.forecast_start_field] = (
-                window[self.start_field] + split_idx + self.lead_time
-            )
-            yield window
+            d[self._past(self.is_pad_field)] = pad_indicator
+            d[self.forecast_start_field] = d[self.start_field] + i + lt
+            yield d
 
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
