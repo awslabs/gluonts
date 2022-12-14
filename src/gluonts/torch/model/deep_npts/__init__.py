@@ -14,7 +14,7 @@
 from ._estimator import DeepNPTSEstimator
 from ._network import (
     DeepNPTSNetwork,
-    DeepNPTSMultiStepPredictor,
+    DeepNPTSMultiStepNetwork,
     DeepNPTSNetworkDiscrete,
     DeepNPTSNetworkSmooth,
 )
@@ -23,7 +23,7 @@ from ._network import (
 __all__ = [
     "DeepNPTSEstimator",
     "DeepNPTSNetwork",
-    "DeepNPTSMultiStepPredictor",
+    "DeepNPTSMultiStepNetwork",
     "DeepNPTSNetworkDiscrete",
     "DeepNPTSNetworkSmooth",
 ]
