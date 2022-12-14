@@ -64,7 +64,11 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
             ),
             4,
             [[(4, 12), (4, 12), (4, 12)], (4, 1), (4, 1)],
-            [[torch.float, torch.float, torch.float], torch.float, torch.float],
+            [
+                [torch.float, torch.float, torch.float],
+                torch.float,
+                torch.float,
+            ],
         ),
     ],
 )
