@@ -52,7 +52,7 @@ from .scaling import (
 )
 
 LOSS_SCALING_MAP: Dict[Optional[str], Callable] = {
-    None: lambda _: 1.0,
+    None: lambda _: (0.0, 1.0),
     "min_max_scaling": partial(min_max_scaling, dim=1, keepdim=False),
     "standard_normal_scaling": partial(
         standard_normal_scaling, dim=1, keepdim=False
