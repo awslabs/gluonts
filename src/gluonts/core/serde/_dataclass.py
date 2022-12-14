@@ -27,6 +27,8 @@ from typing import (
 import pydantic.dataclasses
 from pydantic import create_model
 
+from gluonts.itertools import select
+
 T = TypeVar("T")
 
 
@@ -118,7 +120,7 @@ def dataclass(
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=True,
+    frozen=False,
 ):
     """Custom dataclass wrapper for serde.
 
@@ -226,7 +228,12 @@ def _dataclass(
             raise TypeError("serde.dataclass is always `kw_only`.")
 
         validated_model = model(**input_kwargs)
-        init_kwargs = validated_model.dict()
+        # .dict() turns its values into dicts as well, so we just get the
+        # attributes directly from the model
+        init_kwargs = {
+            key: getattr(validated_model, key)
+            for key in validated_model.dict()
+        }
 
         for orelse_name, orelse in orelse_order.items():
             value = orelse._call(init_kwargs)
@@ -259,8 +266,7 @@ def _dataclass(
             "__init_passed_kwargs__",
             {
                 key: value
-                for key, value in validated_model.dict().items()
-                if key in input_kwargs
+                for key, value in select(input_kwargs, init_kwargs).items()
             },
         )
 
