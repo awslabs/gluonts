@@ -51,8 +51,7 @@ from .scaling import (
     standard_normal_scaling,
 )
 
-LOSS_SCALING_MAP: Dict[Optional[str], Callable] = {
-    None: lambda _: (0.0, 1.0),
+LOSS_SCALING_MAP: Dict[str, Callable] = {
     "min_max_scaling": partial(min_max_scaling, dim=1, keepdim=False),
     "standard_normal_scaling": partial(
         standard_normal_scaling, dim=1, keepdim=False
@@ -215,9 +214,9 @@ class DeepNPTSEstimator(Estimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
         self.cache_data = cache_data
-        self.loss_scaling: Callable = (
+        self.loss_scaling: Optional[Callable] = (
             LOSS_SCALING_MAP[loss_scaling]
-            if loss_scaling is None or isinstance(loss_scaling, str)
+            if isinstance(loss_scaling, str)
             else loss_scaling
         )
 
@@ -361,7 +360,12 @@ class DeepNPTSEstimator(Estimator):
                 y = batch[self.target_field]
 
                 predicted_distribution = net(**x)
-                scale = self.loss_scaling(x[self.past_target_field])[1]
+
+                if self.loss_scaling is not None:
+                    scale = self.loss_scaling(x[self.past_target_field])[1]
+                else:
+                    scale = 1.0
+
                 loss = (-predicted_distribution.log_prob(y) / scale).mean()
 
                 optimizer.zero_grad()
