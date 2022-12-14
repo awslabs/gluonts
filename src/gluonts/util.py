@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Type
 
 import numpy as np
 
@@ -56,7 +56,16 @@ def pad_and_slice(
     pad_value=0,
     pad_to: str = "left",
     take_from: str = "left",
-):
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Ensure `data` has correct `size` along `axis`. Returns a tuple of
+    resized data, as well as a padding indicator, where `1` marks a padded
+    value in the returned data.
+
+    If the input array is too small, values are padded either left or right
+    (controlled by `pad_to`) using `pad_value`.
+    If the input data is too big, the array is sliced either left or right
+    (controlled by `take_from`).
+    """
     data = np.array(data)
 
     pad_length = max(0, size - data.shape[axis])
@@ -64,10 +73,30 @@ def pad_and_slice(
     if pad_length:
         if pad_to == "left":
             data = pad_axis(data, axis=axis, left=pad_length, value=pad_value)
+            indicator = pad_indicator(
+                size, pad_left=pad_length, dtype=data.dtype
+            )
         else:
             data = pad_axis(data, axis=axis, right=pad_length, value=pad_value)
+            indicator = pad_indicator(
+                size, pad_right=pad_length, dtype=data.dtype
+            )
+    else:
+        indicator = np.zeros(size, dtype=data.dtype)
 
     if take_from == "left":
-        return AxisView(data, axis)[:size]
+        return AxisView(data, axis)[:size], indicator
     else:
-        return AxisView(data, axis)[-size:]
+        return AxisView(data, axis)[-size:], indicator
+
+
+def pad_indicator(
+    length: int,
+    pad_left: int = 0,
+    pad_right: int = 0,
+    dtype: Optional[Type] = None,
+) -> np.ndarray:
+    indicator = np.zeros(length, dtype=dtype)
+    indicator[:pad_left] = 1
+    indicator[-pad_right:] = 1
+    return indicator
