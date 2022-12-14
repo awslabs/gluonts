@@ -13,6 +13,7 @@
 
 from dataclasses import dataclass
 from typing import Tuple, Type, Optional
+from typing_extensions import Literal
 
 import numpy as np
 
@@ -54,8 +55,8 @@ def pad_and_slice(
     *,
     axis=0,
     pad_value=0,
-    pad_to: str = "left",
-    take_from: str = "left",
+    pad_to: Literal["left", "right"],
+    take_from: Literal["left", "right"],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Ensure `data` has correct `size` along `axis`. Returns a tuple of
     resized data, as well as a padding indicator, where `1` marks a padded
