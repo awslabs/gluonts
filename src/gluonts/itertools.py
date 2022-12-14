@@ -28,8 +28,6 @@ from typing import (
 from dataclasses import dataclass, field
 from typing_extensions import Protocol, runtime_checkable
 
-import numpy as np
-
 
 @runtime_checkable
 class SizedIterable(Protocol):
@@ -340,22 +338,3 @@ def inverse(dct: Dict[K, V]) -> Dict[V, K]:
     Inverse a dictionary; keys become values and values become keys.
     """
     return {value: key for key, value in dct.items()}
-
-
-def pad_axis(
-    a: np.ndarray, *, axis: int = 0, left: int = 0, right: int = 0, value=0
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Similar to ``np.pad``, but pads only a single axis using `left` and
-    `right` parameters.
-
-    ::
-
-        >>> pad_axis([1, 2, 3, 4], left=2, right=3)
-        array([0, 0, 1, 2, 3, 0, 0, 0])
-
-    """
-    a = np.array(a)
-
-    pad_width = [(0, 0)] * a.ndim
-    pad_width[axis] = (left, right)
-    return np.pad(a, pad_width, constant_values=value)
