@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from copy import deepcopy
-from typing import List, Optional, Callable, Union
+from typing import Dict, List, Optional, Callable, Union
 from functools import partial
 
 import torch
@@ -51,7 +51,8 @@ from .scaling import (
     standard_normal_scaling,
 )
 
-LOSS_SCALING_MAP = {
+LOSS_SCALING_MAP: Dict[Optional[str], Callable] = {
+    None: lambda _: 1.0,
     "min_max_scaling": partial(min_max_scaling, dim=1, keepdim=False),
     "standard_normal_scaling": partial(
         standard_normal_scaling, dim=1, keepdim=False
@@ -136,7 +137,7 @@ class DeepNPTSEstimator(Estimator):
         batch_size: int = 32,
         num_batches_per_epoch: int = 100,
         cache_data: bool = False,
-        loss_scaling: Optional[Callable] = None,
+        loss_scaling: Optional[Union[str, Callable]] = None,
     ):
         assert (cardinality is not None) == use_feat_static_cat, (
             "You should set `cardinality` if and only if"
@@ -214,7 +215,11 @@ class DeepNPTSEstimator(Estimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
         self.cache_data = cache_data
-        self.loss_scaling = loss_scaling
+        self.loss_scaling: Callable = (
+            LOSS_SCALING_MAP[loss_scaling]
+            if loss_scaling is None or isinstance(loss_scaling, str)
+            else loss_scaling
+        )
 
     def input_transform(self) -> Transformation:
         # Note: Any change here should be reflected in the
@@ -323,12 +328,6 @@ class DeepNPTSEstimator(Estimator):
         training_data: Dataset,
         cache_data: bool = False,
     ) -> DeepNPTSNetwork:
-        loss_scaling = (
-            LOSS_SCALING_MAP[self.loss_scaling]
-            if isinstance(self.loss_scaling, str)
-            else self.loss_scaling
-        )
-
         transformed_dataset = TransformedDataset(
             training_data, self.input_transform()
         )
@@ -362,11 +361,7 @@ class DeepNPTSEstimator(Estimator):
                 y = batch[self.target_field]
 
                 predicted_distribution = net(**x)
-                scale = (
-                    loss_scaling(x[self.past_target_field])[1]
-                    if loss_scaling
-                    else 1
-                )
+                scale = self.loss_scaling(x[self.past_target_field])[1]
                 loss = (-predicted_distribution.log_prob(y) / scale).mean()
 
                 optimizer.zero_grad()
