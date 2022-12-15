@@ -247,7 +247,7 @@ def materialize_dataset(
     """
     assert dataset_name in dataset_recipes.keys(), (
         f"{dataset_name} is not present, please choose one from "
-        f"{sorted(dataset_recipes.keys())}."
+        f"{sorted(dataset_recipes)}."
     )
 
     path.mkdir(parents=True, exist_ok=True)
