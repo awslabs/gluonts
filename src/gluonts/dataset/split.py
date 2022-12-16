@@ -83,8 +83,8 @@ from gluonts.dataset.field_names import FieldName
 
 def to_positive_slice(slice_: slice, length: int) -> slice:
     """
-    Return an equivalent slice with positive bounds, given the
-    length of the sequence it will apply to.
+    Return an equivalent slice with positive bounds, given the length of the
+    sequence it will apply to.
     """
     start, stop = slice_.start, slice_.stop
     if start is not None and start < 0:
@@ -98,8 +98,8 @@ def to_positive_slice(slice_: slice, length: int) -> slice:
 
 def to_integer_slice(slice_: slice, start: pd.Period) -> slice:
     """
-    Returns an equivalent slice with integer bounds, given the
-    start timestamp of the sequence it will apply to.
+    Returns an equivalent slice with integer bounds, given the start timestamp
+    of the sequence it will apply to.
     """
     start_is_int = isinstance(slice_.start, (int, type(None)))
     stop_is_int = isinstance(slice_.stop, (int, type(None)))
@@ -302,8 +302,7 @@ class OffsetSplitter(AbstractBaseSplitter):
 @dataclass
 class DateSplitter(AbstractBaseSplitter):
     """
-    A splitter that slices training and test data based on a
-    ``pandas.Period``.
+    A splitter that slices training and test data based on a ``pandas.Period``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``date``.
