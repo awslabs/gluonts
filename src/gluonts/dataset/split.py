@@ -96,8 +96,8 @@ def periods_between(
         >>> periods_between(start, end)
         6
 
-        >>> pd.Period("2021-03-03 23:00", freq="30T")
-        >>> pd.Period("2021-03-04 03:29", freq="30T")
+        >>> start = pd.Period("2021-03-03 23:00", freq="30T")
+        >>> end = pd.Period("2021-03-04 03:29", freq="30T")
         >>> periods_between(start, end)
         9
     """
