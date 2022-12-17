@@ -11,41 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import Iterator
-
-# Third-party imports
 import numpy as np
 
-# First-party imports
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
 
 class IdentityPredictor(RepresentablePredictor):
     """
-    A `Predictor` that uses the last `prediction_length` observations
-    to predict the future.
+    A `Predictor` that uses the last `prediction_length` observations to
+    predict the future.
 
     Parameters
     ----------
     prediction_length
         Prediction horizon.
-    freq
-        Frequency of the predicted data.
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
     """
 
     @validated()
-    def __init__(
-        self, prediction_length: int, freq: str, num_samples: int
-    ) -> None:
-        super().__init__(prediction_length, freq)
+    def __init__(self, prediction_length: int, num_samples: int) -> None:
+        super().__init__(prediction_length=prediction_length)
 
         assert num_samples > 0, "The value of `num_samples` should be > 0"
 
@@ -60,7 +52,6 @@ class IdentityPredictor(RepresentablePredictor):
 
         return SampleForecast(
             samples=samples,
-            start_date=item["start"],
-            freq=self.freq,
+            start_date=forecast_start(item),
             item_id=item.get(FieldName.ITEM_ID),
         )

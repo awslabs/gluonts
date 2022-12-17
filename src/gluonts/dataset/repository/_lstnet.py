@@ -15,23 +15,23 @@
 Here we reuse the datasets used by LSTNet as the processed url of the datasets
 are available on GitHub.
 """
-import json
-import os
+
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, cast
 
 import pandas as pd
 
-from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
-from gluonts.support.pandas import frequency_add
+from gluonts.dataset import DatasetWriter
+from gluonts.dataset.common import MetaData, TrainDatasets
+from gluonts.dataset.repository._util import metadata
 
 
 def load_from_pandas(
     df: pd.DataFrame,
-    time_index: pd.DatetimeIndex,
+    time_index: pd.PeriodIndex,
     agg_freq: Optional[str] = None,
 ) -> List[pd.Series]:
-    df = df.set_index(time_index)
+    df: pd.DataFrame = df.set_index(time_index)
 
     pivot_df = df.transpose()
     pivot_df.head()
@@ -62,7 +62,10 @@ class LstnetDataset(NamedTuple):
     agg_freq: Optional[str] = None
 
 
-root = "https://raw.githubusercontent.com/laiguokun/multivariate-time-series-data/master/"
+root = (
+    "https://raw.githubusercontent.com/laiguokun/"
+    "multivariate-time-series-data/master/"
+)
 
 datasets_info = {
     "exchange_rate": LstnetDataset(
@@ -79,9 +82,10 @@ datasets_info = {
     "electricity": LstnetDataset(
         name="electricity",
         url=root + "electricity/electricity.txt.gz",
-        # original dataset can be found at https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
-        # the aggregated ones that is used from LSTNet filters out from the initial 370 series the one with no data
-        # in 2011
+        # original dataset can be found at
+        # https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
+        # the aggregated ones that is used from LSTNet filters out from the
+        # initial 370 series the one with no data in 2011
         num_series=321,
         num_time_steps=26304,
         prediction_length=24,
@@ -93,8 +97,9 @@ datasets_info = {
     "traffic": LstnetDataset(
         name="traffic",
         url=root + "traffic/traffic.txt.gz",
-        # note there are 963 in the original dataset from https://archive.ics.uci.edu/ml/datasets/PEMS-SF
-        # but only 862 in LSTNet
+        # note there are 963 in the original dataset from
+        # https://archive.ics.uci.edu/ml/datasets/PEMS-SF but only 862 in
+        # LSTNet
         num_series=862,
         num_time_steps=17544,
         prediction_length=24,
@@ -117,44 +122,36 @@ datasets_info = {
 }
 
 
-def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
+def generate_lstnet_dataset(
+    dataset_path: Path,
+    dataset_name: str,
+    dataset_writer: DatasetWriter,
+    prediction_length: Optional[int] = None,
+):
     ds_info = datasets_info[dataset_name]
 
-    os.makedirs(dataset_path, exist_ok=True)
-
-    with open(dataset_path / "metadata.json", "w") as f:
-        f.write(
-            json.dumps(
-                metadata(
-                    cardinality=ds_info.num_series,
-                    freq=ds_info.freq,
-                    prediction_length=ds_info.prediction_length,
-                )
-            )
-        )
-
-    train_file = dataset_path / "train" / "data.json"
-    test_file = dataset_path / "test" / "data.json"
-
-    time_index = pd.date_range(
+    time_index = pd.period_range(
         start=ds_info.start_date,
         freq=ds_info.freq,
         periods=ds_info.num_time_steps,
     )
 
-    df = pd.read_csv(ds_info.url, header=None)
+    df = cast(
+        pd.DataFrame,
+        pd.read_csv(ds_info.url, header=None),  # type: ignore
+    )
 
-    assert df.shape == (
-        ds_info.num_time_steps,
-        ds_info.num_series,
-    ), f"expected num_time_steps/num_series {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    assert df.shape == (ds_info.num_time_steps, ds_info.num_series,), (
+        "expected num_time_steps/num_series"
+        f" {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
+    )
 
     timeseries = load_from_pandas(
         df=df, time_index=time_index, agg_freq=ds_info.agg_freq
     )
 
     # the last date seen during training
-    ts_index = timeseries[0].index
+    ts_index = cast(pd.PeriodIndex, timeseries[0].index)
     training_end = ts_index[int(len(ts_index) * (8 / 10))]
 
     train_ts = []
@@ -162,20 +159,19 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
         sliced_ts = ts[:training_end]
         if len(sliced_ts) > 0:
             train_ts.append(
-                to_dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    cat=[cat],
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(train_ts) == ds_info.num_series
 
-    save_to_file(train_file, train_ts)
-
     # time of the first prediction
     prediction_dates = [
-        frequency_add(training_end, i * ds_info.prediction_length)
+        training_end + i * ds_info.prediction_length
         for i in range(ds_info.rolling_evaluations)
     ]
 
@@ -183,18 +179,32 @@ def generate_lstnet_dataset(dataset_path: Path, dataset_name: str):
     for prediction_start_date in prediction_dates:
         for cat, ts in enumerate(timeseries):
             # print(prediction_start_date)
-            prediction_end_date = frequency_add(
-                prediction_start_date, ds_info.prediction_length
+            prediction_end_date = (
+                prediction_start_date + ds_info.prediction_length
             )
             sliced_ts = ts[:prediction_end_date]
             test_ts.append(
-                to_dict(
-                    target_values=sliced_ts.values,
-                    start=sliced_ts.index[0],
-                    cat=[cat],
-                )
+                {
+                    "target": sliced_ts.values,
+                    "start": sliced_ts.index[0],
+                    "feat_static_cat": [cat],
+                    "item_id": cat,
+                }
             )
 
     assert len(test_ts) == ds_info.num_series * ds_info.rolling_evaluations
 
-    save_to_file(test_file, test_ts)
+    meta = MetaData(
+        **metadata(
+            cardinality=ds_info.num_series,
+            freq=ds_info.freq
+            if ds_info.agg_freq is None
+            else ds_info.agg_freq,
+            prediction_length=prediction_length or ds_info.prediction_length,
+        )
+    )
+
+    dataset = TrainDatasets(metadata=meta, train=train_ts, test=test_ts)
+    dataset.save(
+        path_str=str(dataset_path), writer=dataset_writer, overwrite=True
+    )

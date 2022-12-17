@@ -1,26 +1,53 @@
-name: Doc Build
+name: Docs
 
 on: [push, pull_request]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  build:
+  docs-build:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v3
+    - uses: extractions/setup-just@v1
+
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.6
+        python-version: 3.7
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements/requirements-mxnet.txt
-        pip install -e ".[shell]"
-        pip install -r requirements/requirements-test.txt
+        python -m pip install -U pip
+        pip install ".[arrow]"
         pip install -r requirements/requirements-docs.txt
+        pip install -r requirements/requirements-mxnet.txt
+        pip install -r requirements/requirements-pytorch.txt
+
+    - name: Install Pandoc
+      run: |
+        sudo apt-get install pandoc
 
     - name: Build docs
       run: |
-        make -C docs html SPHINXOPTS=-W
+        just docs
+
+    - name: Configure AWS Credentials
+      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
+        role-session-name: docs-push
+        aws-region: us-east-1
+
+    - name: Publish docs
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        aws s3 sync docs/_build/html s3://gluonts-website/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control

@@ -12,22 +12,22 @@
 # permissions and limitations under the License.
 
 
-# Standard library imports
-import json
-from typing import Union, Any
+from itertools import count
+from typing import Any, Union
 
-# First-party imports
-from gluonts.core.serde import load_json
-from gluonts.support.util import map_dct_values
+from toolz import valmap
+
+from gluonts.core.serde import dump_json, load_json
+from gluonts.itertools import batcher
 
 
 def decode_sagemaker_parameter(value: str) -> Union[list, dict, str]:
     """
-    All values passed through the SageMaker API are encoded as strings. Thus
-    we pro-actively decode values that seem like arrays or dicts.
+    All values passed through the SageMaker API are encoded as strings. Thus we
+    pro-actively decode values that seem like arrays or dicts.
 
-    Integer values (e.g. `"1"`) are handled by pydantic models further down
-    the pipeline.
+    Integer values (e.g. `"1"`) are handled by pydantic models further down the
+    pipeline.
     """
     value = value.strip()
 
@@ -48,13 +48,14 @@ def encode_sagemaker_parameter(value: Any) -> str:
     All values passed through the SageMaker API must be encoded as strings.
     """
     if not isinstance(value, str):
-        return json.dumps(value)
+        return dump_json(value)
     else:
         return value
 
 
 def decode_sagemaker_parameters(encoded_params: dict) -> dict:
-    """Decode a SageMaker parameters dictionary where all values are strings.
+    """
+    Decode a SageMaker parameters dictionary where all values are strings.
 
     Example:
 
@@ -64,11 +65,12 @@ def decode_sagemaker_parameters(encoded_params: dict) -> dict:
     ... })
     {'foo': [1, 2, 3], 'bar': 'hello'}
     """
-    return map_dct_values(decode_sagemaker_parameter, encoded_params)
+    return valmap(decode_sagemaker_parameter, encoded_params)
 
 
 def encode_sagemaker_parameters(decoded_params: dict) -> dict:
-    """Encode a SageMaker parameters dictionary where all values are strings.
+    """
+    Encode a SageMaker parameters dictionary where all values are strings.
 
     Example:
 
@@ -78,4 +80,106 @@ def encode_sagemaker_parameters(decoded_params: dict) -> dict:
     ... })
     {'foo': '[1, 2, 3]', 'bar': 'hello'}
     """
-    return map_dct_values(encode_sagemaker_parameter, decoded_params)
+    return valmap(encode_sagemaker_parameter, decoded_params)
+
+
+def detrim_and_decode_sagemaker_parameters(trimmed_params: dict) -> dict:
+    """
+    Decode a SageMaker parameters dictionary where all values are strings.
+
+    Example:
+
+    >>> detrim_and_decode_sagemaker_parameters({
+    ...     '_0_foo': '[1, ',
+    ...     '_1_foo': '2, 3',
+    ...     '_2_foo': ']',
+    ...     '_0_bar': 'hell',
+    ...     '_1_bar': 'o'
+    ... })
+    {'foo': [1, 2, 3], 'bar': 'hello'}
+    """
+    encoded_params = detrim_sagemaker_parameters(trimmed_params)
+    return valmap(decode_sagemaker_parameter, encoded_params)
+
+
+def encode_and_trim_sagemaker_parameters(
+    decoded_params: dict, max_len: int = 256
+) -> dict:
+    """
+    Encode a SageMaker parameters dictionary where all values are strings then
+    trim them to account for Sagemaker character size limit.
+
+    >>> encode_and_trim_sagemaker_parameters({
+    ...     "foo": [1, 2, 3],
+    ...     "bar": "hello"
+    ... }, max_len = 4)
+    {'_0_foo': '[1, ',
+     '_1_foo': '2, 3',
+     '_2_foo': ']',
+     '_0_bar': 'hell',
+     '_1_bar': 'o'}
+    """
+    endoded_params = valmap(encode_sagemaker_parameter, decoded_params)
+    return trim_encoded_sagemaker_parameters(endoded_params, max_len)
+
+
+def trim_encoded_sagemaker_parameters(
+    encoded_params: dict, max_len: int = 256
+) -> dict:
+    """
+    Trim parameters that have already been encoded to a given max length.
+
+    Example:
+
+    >>> trim_encoded_sagemaker_parameters({
+    ...     'foo': '[1, 2, 3]',
+    ...     'bar': 'hello'
+    ... }, max_len = 4)
+    {'_0_foo': '[1, ',
+     '_1_foo': '2, 3',
+     '_2_foo': ']',
+     '_0_bar': 'hell',
+     '_1_bar': 'o'}
+    """
+    trimmed_params = {}
+    for key, value in encoded_params.items():
+        if len(value) > max_len:
+            for idx, substr in enumerate(batcher(value, max_len)):
+                trimmed_params[f"_{idx}_{key}"] = "".join(substr)
+        else:
+            trimmed_params[key] = value
+    return trimmed_params
+
+
+def detrim_sagemaker_parameters(trimmed_params: dict) -> dict:
+    """
+    DE-trim parameters that have already been trimmed.
+
+    Example:
+
+    >>> detrim_sagemaker_parameters({
+    ...     '_0_foo': '[1, ',
+    ...     '_1_foo': '2, 3',
+    ...     '_2_foo': ']',
+    ...     '_0_bar': 'hell',
+    ...     '_1_bar': 'o'
+    ... })
+    {'foo': '[1, 2, 3]', 'bar': 'hello'}
+    """
+    detrimmed_params = trimmed_params.copy()
+
+    trimmed_param_names = [
+        param[3:] for param in detrimmed_params if param.startswith("_0_")
+    ]
+
+    for name in trimmed_param_names:
+        value = ""
+        for idx in count():
+            part = detrimmed_params.pop(f"_{idx}_{name}", None)
+            if part is None:
+                break
+            value += part
+
+        detrimmed_params[name] = value
+
+    return detrimmed_params

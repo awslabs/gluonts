@@ -11,39 +11,55 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._base import (
-    DayOfMonth,
-    DayOfWeek,
-    DayOfYear,
-    HourOfDay,
-    MinuteOfHour,
-    MonthOfYear,
+    Constant,
+    day_of_month,
+    day_of_month_index,
+    day_of_week,
+    day_of_week_index,
+    day_of_year,
+    day_of_year_index,
+    hour_of_day,
+    hour_of_day_index,
+    minute_of_hour,
+    minute_of_hour_index,
+    month_of_year,
+    month_of_year_index,
+    second_of_minute,
+    second_of_minute_index,
     TimeFeature,
-    WeekOfYear,
+    week_of_year,
+    week_of_year_index,
+    norm_freq_str,
     time_features_from_frequency_str,
 )
-
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
-
 from .lag import get_lags_for_frequency
+from .seasonality import get_seasonality
 
 __all__ = [
-    "DayOfMonth",
-    "DayOfWeek",
-    "DayOfYear",
-    "HourOfDay",
-    "MinuteOfHour",
-    "MonthOfYear",
-    "TimeFeature",
-    "WeekOfYear",
+    "Constant",
+    "day_of_month",
+    "day_of_month_index",
+    "day_of_week",
+    "day_of_week_index",
+    "day_of_year",
+    "day_of_year_index",
+    "get_lags_for_frequency",
+    "get_seasonality",
+    "hour_of_day",
+    "hour_of_day_index",
+    "minute_of_hour",
+    "minute_of_hour_index",
+    "month_of_year",
+    "month_of_year_index",
+    "second_of_minute",
+    "second_of_minute_index",
+    "norm_freq_str",
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
-    "get_lags_for_frequency",
     "time_features_from_frequency_str",
+    "TimeFeature",
+    "week_of_year",
+    "week_of_year_index",
 ]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)

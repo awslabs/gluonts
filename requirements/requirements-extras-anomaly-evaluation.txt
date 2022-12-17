@@ -1,0 +1,2 @@
+numba~=0.51,<0.54
+scikit-learn~=0.22

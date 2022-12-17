@@ -1,0 +1,102 @@
+[tool.poetry]
+authors = ["Oliver Borchert <borchero@in.tum.de>"]
+description = "Multi-Objective Model Selection for Time Series Forecasting."
+name = "tsbench"
+packages = [
+  {include = "tsbench", from = "src"},
+  {include = "cli", from = "src"},
+]
+version = "1.0.0"
+
+[tool.poetry.dependencies]
+PyYAML = "^5.4.1"
+autogluon = "^0.3.1"
+catch22 = "^0.2.0"
+click = "^7.1.2"
+fastparquet = "^0.6.1"
+fbprophet = "^0.7.1"
+gluonts = {git = "https://github.com/awslabs/gluonts.git", rev = "7c94c1149875f6ad2e0d7b0a6bcee952f14d3fb1"}
+holidays = "^0.11.1"
+lightkit = "^0.3.6"
+mxnet = "1.8.0.post0"
+numpy = "^1.21.4"
+pandas = "^1.2.4"
+plotly = "^5.3.1"
+pyarrow = "^6.0.0"
+pydantic = "^1.8.2"
+pygmo = "^2.16.1"
+pymongo = "^3.12.0"
+pystan = "^2.0.0"
+python = ">=3.8,<3.9"
+pytorch-lightning = "^1.5.0"
+rpy2 = ">=2.9.*,<3.*"
+sagemaker = "^2.40.0"
+sagemaker-training = "^3.9.2"
+scikit-learn = "^0.24.2"
+scipy = "^1.6.3"
+seaborn = "^0.11.2"
+statsmodels = "^0.13.0"
+toolz = "^0.11.1"
+torch = "^1.10.1"
+tqdm = "^4.60.0"
+ujson = "^5.1.0"
+xgboost = "^1.4.1"
+
+[tool.poetry.dev-dependencies]
+black = "^21.5b1"
+isort = "^5.8.0"
+jupyter = "^1.0.0"
+mypy = "^0.812"
+pylint = "^2.8.2"
+sacred = "^0.8.2"
+xlrd = "^2.0.1"
+
+[tool.poetry.scripts]
+tsbench = "cli:main"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+
+[tool.pylint.master]
+jobs = 0
+
+[tool.pylint.messages_control]
+disable = [
+  "duplicate-code",
+  "missing-module-docstring",
+  "invalid-name",
+  "no-self-use",
+  "too-few-public-methods",
+  "too-many-arguments",
+  "too-many-branches",
+  "too-many-locals",
+  "too-many-instance-attributes",
+]
+
+[tool.pylint.typecheck]
+generated-members = [
+  "pygmo.*",
+  "torch.*",
+]
+
+[tool.pyright]
+reportIncompatibleMethodOverride = false
+reportMissingTypeStubs = false
+reportPrivateImportUsage = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+
+[tool.black]
+line-length = 79
+
+[tool.isort]
+force_alphabetical_sort_within_sections = true
+include_trailing_comma = true
+line_length = 79
+lines_between_sections = 0
+profile = "black"
+skip_gitignore = true

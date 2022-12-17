@@ -11,50 +11,48 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
-import os
-from pathlib import Path
-from typing import Dict, List, Optional
-
-import numpy as np
+from typing import List, Union
 
 
-def to_dict(
-    target_values: np.ndarray, start: str, cat: Optional[List[int]] = None
+def metadata(
+    cardinality: Union[int, List[int]], freq: str, prediction_length: int
 ):
-    def serialize(x):
-        if np.isnan(x):
-            return "NaN"
-        else:
-            # return x
-            return float("{0:.6f}".format(float(x)))
+    if not isinstance(cardinality, list):
+        cardinality = [cardinality]
 
-    res = {
-        "start": str(start),
-        "target": [serialize(x) for x in target_values],
-    }
-
-    if cat is not None:
-        res["feat_static_cat"] = cat
-
-    return res
-
-
-def save_to_file(path: Path, data: List[Dict]):
-    print(f"saving time-series into {path}")
-    path_dir = os.path.dirname(path)
-    os.makedirs(path_dir, exist_ok=True)
-    with open(path, "wb") as fp:
-        for d in data:
-            fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode("utf-8"))
-
-
-def metadata(cardinality: int, freq: str, prediction_length: int):
     return {
         "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
-            {"name": "feat_static_cat", "cardinality": str(cardinality)}
+            {"name": f"feat_static_cat_{i}", "cardinality": str(card)}
+            for i, card in enumerate(cardinality)
         ],
     }
+
+
+def request_retrieve_hook(tqdm):
+    """Wraps tqdm instance, usable in request.urlretrieve
+    the tqdm instance once you're done with it (easiest using `with` syntax).
+    Example
+    -------
+    # >>> with tqdm(...) as _tqdm:
+    # ...     request.urlretrieve(..., reporthook=request_retrieve_hook(_tqdm))
+    """
+    last_byte = 0
+
+    def update_to(block=1, block_size=1, tsize=None):
+        """
+        block  : int, optional
+            Number of blocks transferred so far [default: 1].
+        block_size  : int, optional
+            Size of each block (in tqdm units) [default: 1].
+        tsize  : int, optional
+            Total size (in tqdm units). If [default: None] remains unchanged.
+        """
+        nonlocal last_byte
+        if tsize is not None:
+            tqdm.total = tsize
+        tqdm.update((block - last_byte) * block_size)
+        last_byte = block
+
+    return update_to

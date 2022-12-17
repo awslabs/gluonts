@@ -1,0 +1,4 @@
+sagemaker~=2.0
+s3fs~=0.6; python_version >= "3.7.0"
+s3fs~=0.5; python_version < "3.7.0"
+fsspec~=0.8,<0.9; python_version < "3.7.0"

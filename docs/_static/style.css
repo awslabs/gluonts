@@ -1,0 +1,9 @@
+.sidebar-brand-text, .hide-on-website {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .highlight {
+        border-left: 2px solid #94b594;
+    }
+}

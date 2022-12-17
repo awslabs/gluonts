@@ -11,87 +11,138 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+import json
 import logging
-from typing import Type, Union
+from typing import Any, Optional, Type, Union
 
-# First-party imports
 import gluonts
-from gluonts.core import fqname_for, log
-from gluonts.core.component import check_gpu_support
-from gluonts.core.serde import dump_code
+from gluonts.core import fqname_for
+from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
-from gluonts.model.estimator import Estimator
+from gluonts.model.estimator import Estimator, IncrementallyTrainable
+from gluonts.model.forecast import Quantile
 from gluonts.model.predictor import Predictor
-from gluonts.transform import Dataset, FilterTransformation, TransformedDataset
+from gluonts.itertools import maybe_len
+from gluonts.transform import FilterTransformation
 
-# Relative imports
-from .sagemaker import TrainEnv
+from .env import TrainEnv
+from .util import invoke_with
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-    datefmt="[%Y-%m-%d %H:%M:%S %z]",
-)
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger("gluonts.train")
+
+def log_metric(metric: str, value: Any) -> None:
+    logger.info(f"gluonts[{metric}]: {value}")
+
+
+def log_version(forecaster_type):
+    name = fqname_for(forecaster_type)
+    version = forecaster_type.__version__
+
+    logger.info(f"Using gluonts v{gluonts.__version__}")
+    logger.info(f"Using forecaster {name} v{version}")
 
 
 def run_train_and_test(
     env: TrainEnv, forecaster_type: Type[Union[Estimator, Predictor]]
 ) -> None:
-    check_gpu_support()
-
-    forecaster_fq_name = fqname_for(forecaster_type)
-    forecaster_version = forecaster_type.__version__
-
-    logger.info(f"Using gluonts v{gluonts.__version__}")
-    logger.info(f"Using forecaster {forecaster_fq_name} v{forecaster_version}")
-
-    forecaster = forecaster_type.from_hyperparameters(**env.hyperparameters)
+    log_version(forecaster_type)
 
     logger.info(
-        f"The forecaster can be reconstructed with the following expression: "
-        f"{dump_code(forecaster)}"
+        "Using the following data channels: %s", ", ".join(env.datasets)
+    )
+
+    forecaster = forecaster_type.from_inputs(
+        env.datasets["train"], **env.hyperparameters
+    )
+    logger.info(
+        "The forecaster can be reconstructed with the following expression: "
+        f"{forecaster}"
     )
 
     if isinstance(forecaster, Predictor):
         predictor = forecaster
     else:
-        predictor = run_train(forecaster, env.datasets["train"])
+        predictor = run_train(
+            forecaster=forecaster,
+            train_dataset=env.datasets["train"],
+            validation_dataset=env.datasets.get("validation"),
+            hyperparameters=env.hyperparameters,
+            from_predictor=env.datasets.get("model"),
+        )
 
     predictor.serialize(env.path.model)
 
     if "test" in env.datasets:
-        run_test(env, predictor, env.datasets["test"])
+        run_test(env, predictor, env.datasets["test"], env.hyperparameters)
 
 
-def run_train(forecaster: Estimator, train_dataset: Dataset) -> Predictor:
-    log.metric("train_dataset_stats", train_dataset.calc_stats())
+def run_train(
+    forecaster: Estimator,
+    train_dataset: Dataset,
+    hyperparameters: dict,
+    validation_dataset: Optional[Dataset],
+    from_predictor: Optional[Predictor],
+) -> Predictor:
+    num_workers = (
+        int(hyperparameters["num_workers"])
+        if "num_workers" in hyperparameters
+        else None
+    )
+    shuffle_buffer_length = (
+        int(hyperparameters["shuffle_buffer_length"])
+        if "shuffle_buffer_length" in hyperparameters
+        else None
+    )
+    num_prefetch = (
+        int(hyperparameters["num_prefetch"])
+        if "num_prefetch" in hyperparameters
+        else None
+    )
 
-    return forecaster.train(train_dataset)
+    if from_predictor is not None:
+        assert isinstance(forecaster, IncrementallyTrainable), (
+            "The model provided does not implement the "
+            "IncrementallyTrainable protocol"
+        )
+        return invoke_with(
+            forecaster.train_from,
+            from_predictor,
+            training_data=train_dataset,
+            validation_data=validation_dataset,
+            num_workers=num_workers,
+            num_prefetch=num_prefetch,
+            shuffle_buffer_length=shuffle_buffer_length,
+        )
+
+    return invoke_with(
+        forecaster.train,
+        training_data=train_dataset,
+        validation_data=validation_dataset,
+        num_workers=num_workers,
+        num_prefetch=num_prefetch,
+        shuffle_buffer_length=shuffle_buffer_length,
+    )
 
 
 def run_test(
-    env: TrainEnv, predictor: Predictor, test_dataset: Dataset
+    env: TrainEnv,
+    predictor: Predictor,
+    test_dataset: Dataset,
+    hyperparameters: dict,
 ) -> None:
-    len_original = len(test_dataset)
+    len_original = maybe_len(test_dataset)
 
-    test_dataset = TransformedDataset(
-        base_dataset=test_dataset,
-        transformations=[
-            FilterTransformation(
-                lambda x: x["target"].shape[-1] > predictor.prediction_length
-            )
-        ],
-    )
+    test_dataset = FilterTransformation(
+        lambda x: x["target"].shape[-1] > predictor.prediction_length
+    ).apply(test_dataset)
 
     len_filtered = len(test_dataset)
 
-    if len_original > len_filtered:
+    if len_original is not None and len_original > len_filtered:
         logger.warning(
-            f"Not all time-series in the test-channel have "
-            f"enough data to be used for evaluation. Proceeding with "
+            "Not all time series in the test-channel have "
+            "enough data to be used for evaluation. Proceeding with "
             f"{len_filtered}/{len_original} "
             f"(~{int(len_filtered / len_original * 100)}%) items."
         )
@@ -100,7 +151,22 @@ def run_test(
         dataset=test_dataset, predictor=predictor, num_samples=100
     )
 
-    agg_metrics, _item_metrics = Evaluator()(
+    test_quantiles = (
+        [
+            Quantile.parse(quantile).name
+            for quantile in hyperparameters["test_quantiles"]
+        ]
+        if "test_quantiles" in hyperparameters
+        else None
+    )
+
+    if test_quantiles is not None:
+        logger.info(f"Using quantiles `{test_quantiles}` for evaluation.")
+        evaluator = Evaluator(quantiles=test_quantiles)
+    else:
+        evaluator = Evaluator()
+
+    agg_metrics, item_metrics = evaluator(
         ts_iterator=ts_it,
         fcst_iterator=forecast_it,
         num_series=len(test_dataset),
@@ -109,3 +175,9 @@ def run_test(
     # we only log aggregate metrics for now as item metrics may be very large
     for name, score in agg_metrics.items():
         logger.info(f"#test_score ({env.current_host}, {name}): {score}")
+
+    # store metrics
+    with open(env.path.model / "agg_metrics.json", "w") as agg_metric_file:
+        json.dump(agg_metrics, agg_metric_file)
+    with open(env.path.model / "item_metrics.csv", "w") as item_metrics_file:
+        item_metrics.to_csv(item_metrics_file, index=False)

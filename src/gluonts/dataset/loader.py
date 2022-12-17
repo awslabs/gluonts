@@ -11,226 +11,155 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-import itertools
-from collections import defaultdict
-from typing import Any, Dict, Iterable, Iterator, List, Optional  # noqa: F401
+import logging
+from typing import Callable, Iterable, Optional
 
-# Third-party imports
-import mxnet as mx
-import numpy as np
+from pydantic import BaseModel
 
-# First-party imports
-from gluonts.core.component import DType
-from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.transform import Transformation
+from gluonts.dataset import DataBatch, Dataset
+from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
+from gluonts.transform import AdhocTransform, Identity, Transformation
 
-DataBatch = Dict[str, Any]
+logger = logging.getLogger(__name__)
 
 
-class BatchBuffer:
-    def __init__(
-        self, batch_size: int, ctx: mx.Context, dtype: DType = np.float32
-    ) -> None:
-        self._buffers: Dict[Any, List[Any]] = defaultdict(list)
-        self.batch_size = batch_size
-        self._size = 0
-        self.ctx = ctx
-        self.dtype = dtype
-
-    def add(self, d: Dict[str, List[np.ndarray]]):
-        if self._buffers:
-            assert self._buffers.keys() == d.keys()
-        for k, v in d.items():
-            self._buffers[k].append(v)
-        self._size += 1
-
-    def __len__(self):
-        return self._size
-
-    def next_batch(self) -> DataBatch:
-        assert self._size > 0
-        n = min(self._size, self.batch_size)
-        batch = {k: self.stack(v[:n]) for k, v in self._buffers.items()}
-        for key in self._buffers.keys():
-            self._buffers[key] = self._buffers[key][n:]
-        self._size -= n
-        return batch
-
-    def stack(self, xs):
-        if isinstance(xs[0], np.ndarray):
-            data = np.asarray(xs)
-            if data.dtype.kind == "f":
-                data = data.astype(self.dtype)
-            return mx.nd.array(data, dtype=data.dtype, ctx=self.ctx)
-        elif isinstance(xs[0], mx.nd.NDArray):
-            return mx.nd.stack(*xs)
-        elif isinstance(xs[0], list):
-            return [self.stack(t) for t in zip(*[x for x in xs])]
-        elif isinstance(xs[0], tuple):
-            return tuple([self.stack(t) for t in zip(*[x for x in xs])])
-        else:
-            return xs  # stack all other types as list
-
-    def shuffle(self):
-        perm = np.random.permutation(self._size)
-        for key in self._buffers.keys():
-            li = self._buffers[key]
-            self._buffers[key] = [li[i] for i in perm]
+DataLoader = Iterable[DataBatch]
 
 
-class DataLoader(Iterable[DataEntry]):
+# TODO: the following are for backward compatibility
+# and could eventually be removed
+
+
+class Batch(Transformation, BaseModel):
+    batch_size: int
+
+    def __call__(self, data, is_train):
+        yield from batcher(data, self.batch_size)
+
+
+def TrainDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+    num_batches_per_epoch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+):
     """
-    An abstract Iterable type for iterating and transforming a dataset,
-    in batches of a prescribed size.
+    Construct an iterator of batches for training purposes.
+
+    This function wraps around ``DataLoader`` to offer training-specific
+    behaviour and options, as follows:
+
+        1. The provided dataset is iterated cyclically, so that one can go over
+        it multiple times in a single epoch. 2. A transformation must be
+        provided, that is lazily applied as the dataset is being iterated;
+        this is useful e.g. to slice random instances of fixed length out of
+        each time series in the dataset. 3. The resulting batches can be
+        iterated in a pseudo-shuffled order.
+
+    The returned object is a stateful iterator, whose length is either
+    ``num_batches_per_epoch`` (if not ``None``) or infinite (otherwise).
 
     Parameters
     ----------
     dataset
-        The dataset from which to load data.
+        Data to iterate over.
     transform
-        A transformation to apply to each entry in the dataset.
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "training mode" (``is_train=True``).
     batch_size
-        The size of the batches to emit.
-    ctx
-        MXNet context to use to store data.
-    dtype
-        Floating point type to use.
-    """
-
-    def __init__(
-        self,
-        dataset: Dataset,
-        transform: Transformation,
-        batch_size: int,
-        ctx: mx.Context,
-        dtype: DType = np.float32,
-    ) -> None:
-        self.dataset = dataset
-        self.transform = transform
-        self.batch_size = batch_size
-        self.ctx = ctx
-        self.dtype = dtype
-
-
-class TrainDataLoader(DataLoader):
-    """
-    An Iterable type for iterating and transforming a dataset, in batches of a
-    prescribed size, until a given number of batches is reached.
-
-    The transformation are applied with in training mode, i.e. with the flag
-    `is_train = True`.
-
-    Parameters
-    ----------
-    dataset
-        The dataset from which to load data.
-    transform
-        A transformation to apply to each entry in the dataset.
-    batch_size
-        The size of the batches to emit.
-    ctx
-        MXNet context to use to store data.
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
     num_batches_per_epoch
-        Number of batches to return in one complete iteration over this object.
-    dtype
-        Floating point type to use.
+        Length of the iterator. If ``None``, then the iterator is endless.
+    shuffle_buffer_length
+        Size of the buffer used for shuffling. Default: None, in which case no
+        shuffling occurs.
+
+    Returns
+    -------
+    Iterator[DataBatch]
+        An iterator of batches.
     """
+    dataset: Dataset = Cyclic(dataset)
 
-    def __init__(
-        self,
-        dataset: Dataset,
-        transform: Transformation,
-        batch_size: int,
-        ctx: mx.Context,
-        num_batches_per_epoch: int,
-        dtype: DType = np.float32,
-        shuffle_for_training: bool = True,
-        num_batches_for_shuffling: int = 10,
-    ) -> None:
-        super().__init__(dataset, transform, batch_size, ctx, dtype)
-        self.num_batches_per_epoch = num_batches_per_epoch
-        self.shuffle_for_training = shuffle_for_training
-        self._num_buffered_batches = (
-            num_batches_for_shuffling if shuffle_for_training else 1
-        )
-        self._cur_iter: Optional[Iterator] = None
-        self._buffer = BatchBuffer(self.batch_size, ctx, dtype)
+    if shuffle_buffer_length:
+        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
 
-    def _emit_batches_while_buffer_larger_than(
-        self, thresh
-    ) -> Iterator[DataBatch]:
-        if self.shuffle_for_training:
-            self._buffer.shuffle()
-        while len(self._buffer) > thresh:
-            yield self._buffer.next_batch()
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    transformed_dataset = transform.apply(dataset, is_train=True)
 
-    def _iterate_forever(
-        self, collection: Iterable[DataEntry]
-    ) -> Iterator[DataEntry]:
-        # iterate forever over the collection, the collection must be non empty
-        while True:
-            try:
-                first = next(iter(collection))
-            except StopIteration:
-                raise Exception("empty dataset")
-            else:
-                for x in itertools.chain([first], collection):
-                    yield x
-
-    def __len__(self) -> int:
-        return self.num_batches_per_epoch
-
-    def __iter__(self) -> Iterator[DataBatch]:
-        batch_count = 0
-        if self._cur_iter is None:
-            self._cur_iter = self.transform(
-                self._iterate_forever(self.dataset), is_train=True
-            )
-        assert self._cur_iter is not None
-        while True:
-            data_entry = next(self._cur_iter)
-            self._buffer.add(data_entry)
-            if (
-                len(self._buffer)
-                >= self._num_buffered_batches * self.batch_size
-            ):
-                for batch in self._emit_batches_while_buffer_larger_than(
-                    self.batch_size - 1
-                ):
-                    yield batch
-                    batch_count += 1
-                    if batch_count >= self.num_batches_per_epoch:
-                        return
+    batches = iter(transformed_dataset)
+    return IterableSlice(batches, num_batches_per_epoch)
 
 
-class InferenceDataLoader(DataLoader):
+def ValidationDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+):
     """
-    An Iterable type for iterating and transforming a dataset just once, in
-    batches of a prescribed size.
-
-    The transformation are applied with in inference mode, i.e. with the flag
-    `is_train = False`.
+    Construct an iterator of batches for validation purposes.
 
     Parameters
     ----------
     dataset
-        The dataset from which to load data.
+        Data to iterate over.
     transform
-        A transformation to apply to each entry in the dataset.
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "training mode" (``is_train=True``).
     batch_size
-        The size of the batches to emit.
-    ctx
-        MXNet context to use to store data.
-    dtype
-        Floating point type to use.
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
+
+    Returns
+    -------
+    Iterable[DataBatch]
+        An iterable sequence of batches.
     """
 
-    def __iter__(self) -> Iterator[DataBatch]:
-        buffer = BatchBuffer(self.batch_size, self.ctx, self.dtype)
-        for data_entry in self.transform(iter(self.dataset), is_train=False):
-            buffer.add(data_entry)
-            if len(buffer) >= self.batch_size:
-                yield buffer.next_batch()
-        if len(buffer) > 0:
-            yield buffer.next_batch()
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=True)
+
+
+def InferenceDataLoader(
+    dataset: Dataset,
+    *,
+    transform: Transformation = Identity(),
+    batch_size: int,
+    stack_fn: Callable,
+):
+    """
+    Construct an iterator of batches for inference purposes.
+
+    Parameters
+    ----------
+    dataset
+        Data to iterate over.
+    transform
+        Transformation to be lazily applied as data is being iterated.
+        The transformation is applied in "inference mode" (``is_train=False``).
+    batch_size
+        Number of entries to include in a batch.
+    stack_fn
+        Function to use to stack data entries into batches.
+        This can be used to set a specific array type or computing device
+        the arrays should end up onto (CPU, GPU).
+
+    Returns
+    -------
+    Iterable[DataBatch]
+        An iterable sequence of batches.
+    """
+    transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
+    return transform.apply(dataset, is_train=False)

@@ -11,114 +11,36 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
+import functools
+import logging
 import shutil
-from functools import lru_cache
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Sized,
-    cast,
-)
+from types import ModuleType
+from typing import Callable, List, NamedTuple, Optional, Union, cast
 
-# Third-party imports
 import numpy as np
 import pandas as pd
-import pydantic
-import ujson as json
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick
 
-# First-party imports
-from gluonts.core.exception import GluonTSDataError
-from gluonts.dataset import jsonl, util
-from gluonts.dataset.stat import (
-    DatasetStatistics,
-    calculate_dataset_statistics,
-)
+import pydantic
 
-# Dictionary used for data flowing through the transformations.
-# A Dataset is an iterable over such dictionaries.
-DataEntry = Dict[str, Any]
+from gluonts import json
+from gluonts.itertools import Cached, Map
+from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.schema import Translator
+from gluonts.exceptions import GluonTSDataError
 
 
-class Timestamp(pd.Timestamp):
-    # we need to sublcass, since pydantic otherwise converts the value into
-    # datetime.datetime instead of using pd.Timestamp
-    @classmethod
-    def __get_validators__(cls):
-        def conv(val):
-            if isinstance(val, pd.Timestamp):
-                return val
-            else:
-                return pd.Timestamp(val)
-
-        yield conv
+from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
+from . import jsonl, DatasetWriter
 
 
-class TimeSeriesItem(pydantic.BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {np.ndarray: np.ndarray.tolist}
+arrow: Optional[ModuleType]
 
-    start: Timestamp
-    target: np.ndarray
-    item: Optional[str] = None
-
-    feat_static_cat: List[int] = []
-    feat_static_real: List[float] = []
-    feat_dynamic_cat: List[List[int]] = []
-    feat_dynamic_real: List[List[float]] = []
-
-    # A dataset can use this field to include information about the origin of
-    # the item (e.g. the file name and line). If an exception in a
-    # transformation occurs the content of the field will be included in the
-    # error message (if the field is set).
-    metadata: dict = {}
-
-    @pydantic.validator("target", pre=True)
-    def validate_target(cls, v):
-        return np.asarray(v)
-
-    def __eq__(self, other: Any) -> bool:
-        # we have to overwrite this function, since we can't just compare
-        # numpy ndarrays, but have to call all on it
-        if isinstance(other, TimeSeriesItem):
-            return (
-                self.start == other.start
-                and (self.target == other.target).all()
-                and self.item == other.item
-                and self.feat_static_cat == other.feat_static_cat
-                and self.feat_static_real == other.feat_static_real
-                and self.feat_dynamic_cat == other.feat_dynamic_cat
-                and self.feat_dynamic_real == other.feat_dynamic_real
-            )
-        return False
-
-    def gluontsify(self, metadata: "MetaData") -> dict:
-        data: dict = {
-            "item": self.item,
-            "start": self.start,
-            "target": self.target,
-        }
-
-        if metadata.feat_static_cat:
-            data["feat_static_cat"] = self.feat_static_cat
-        if metadata.feat_static_real:
-            data["feat_static_real"] = self.feat_static_real
-        if metadata.feat_dynamic_cat:
-            data["feat_dynamic_cat"] = self.feat_dynamic_cat
-        if metadata.feat_dynamic_real:
-            data["feat_dynamic_real"] = self.feat_dynamic_real
-
-        return data
+try:
+    from . import arrow
+except ImportError:
+    arrow = None
 
 
 class BasicFeatureInfo(pydantic.BaseModel):
@@ -131,7 +53,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    freq: str = pydantic.Schema(..., alias="time_granularity")  # type: ignore
+    freq: str = pydantic.Field(..., alias="time_granularity")  # type: ignore
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
@@ -142,7 +64,7 @@ class MetaData(pydantic.BaseModel):
     prediction_length: Optional[int] = None
 
     class Config(pydantic.BaseConfig):
-        allow_population_by_alias = True
+        allow_population_by_field_name = True
 
 
 class SourceContext(NamedTuple):
@@ -150,101 +72,166 @@ class SourceContext(NamedTuple):
     row: int
 
 
-class Dataset(Sized, Iterable[DataEntry]):
-    """
-    An abstract class for datasets, i.e., iterable collection of DataEntry.
-    """
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        raise NotImplementedError
-
-    def __len__(self):
-        raise NotImplementedError
-
-    def calc_stats(self) -> DatasetStatistics:
-        return calculate_dataset_statistics(self)
-
-
-class Channel(pydantic.BaseModel):
-    metadata: Path
-    train: Path
-    test: Optional[Path] = None
-
-    def get_datasets(self) -> "TrainDatasets":
-        return load_datasets(self.metadata, self.train, self.test)
-
-
 class TrainDatasets(NamedTuple):
     """
-    A dataset containing two subsets, one to be used for training purposes,
-    and the other for testing purposes, as well as metadata.
+    A dataset containing two subsets, one to be used for training purposes, and
+    the other for testing purposes, as well as metadata.
     """
 
     metadata: MetaData
     train: Dataset
     test: Optional[Dataset] = None
 
+    def save(
+        self,
+        path_str: str,
+        writer: DatasetWriter,
+        overwrite=False,
+    ) -> None:
+        """
+        Saves an TrainDatasets object to a JSON Lines file.
 
-class FileDataset(Dataset):
+        Parameters
+        ----------
+        path_str
+            Where to save the dataset.
+        overwrite
+            Whether to delete previous version in this folder.
+        """
+        path = Path(path_str)
+
+        if overwrite:
+            shutil.rmtree(path, ignore_errors=True)
+
+        path.mkdir(parents=True)
+        with open(path / "metadata.json", "wb") as out_file:
+            json.bdump(self.metadata.dict(), out_file, nl=True)
+
+        train = path / "train"
+        train.mkdir(parents=True)
+        writer.write_to_folder(self.train, train)
+
+        if self.test is not None:
+            test = path / "test"
+            test.mkdir(parents=True)
+            writer.write_to_folder(self.test, test)
+
+
+def infer_file_type(path):
+    suffix = "".join(path.suffixes)
+
+    if suffix in jsonl.JsonLinesFile.SUFFIXES:
+        return jsonl.JsonLinesFile(path)
+
+    if arrow is not None and suffix in arrow.File.SUFFIXES:
+        return arrow.File.infer(path)
+
+    return None
+
+
+def _glob(path: Path, pattern="*", levels=1):
+    if levels is not None:
+        levels -= 1
+
+    for subpath in path.glob(pattern):
+        if subpath.is_dir():
+            if levels != 0:
+                yield from _glob(subpath, pattern, levels)
+        else:
+            yield subpath
+
+
+def FileDataset(
+    path: Path,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+    loader_class=None,
+    ignore=False,
+    pattern="*",
+    levels=1,
+    translate=None,
+) -> Dataset:
+    path = Path(path)
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    if path.is_dir():
+        subpaths = _glob(path, pattern, levels)
+
+        datasets = [
+            FileDataset(
+                subpath,
+                freq,
+                one_dim_target,
+                cache,
+                use_timestamp,
+                loader_class=loader_class,
+                ignore=True,
+            )
+            for subpath in subpaths
+        ]
+
+        return DatasetCollection(
+            [dataset for dataset in datasets if dataset is not None]
+        )
+
+    assert path.is_file()
+
+    if loader_class is None:
+        loader = infer_file_type(path)
+        if loader is None:
+            message = f"Cannot infer loader for {path}."
+            if ignore:
+                logging.warning(message)
+                return None  # type: ignore
+
+            raise ValueError(message)
+    else:
+        loader = loader_class(path)
+
+    return _FileDataset(
+        loader, freq, one_dim_target, cache, use_timestamp, translate
+    )
+
+
+def _FileDataset(
+    dataset: Dataset,
+    freq: str,
+    one_dim_target: bool = True,
+    cache: bool = False,
+    use_timestamp: bool = False,
+    translate: Optional[dict] = None,
+) -> Dataset:
+    process = ProcessDataEntry(
+        freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+    )
+
+    if translate is not None:
+        dataset = cast(Dataset, Map(Translator.parse(translate), dataset))
+
+    dataset = cast(Dataset, Map(process, dataset))
+
+    if cache:
+        dataset = cast(Dataset, Cached(dataset))
+
+    return dataset
+
+
+def ListDataset(
+    data_iter: Dataset,
+    freq: str,
+    one_dim_target: bool = True,
+    use_timestamp: bool = False,
+    translate: Optional[dict] = None,
+) -> List[DataEntry]:
     """
-    Dataset that loads JSON Lines files contained in a path.
+    Dataset backed directly by a list of dictionaries.
 
     Parameters
     ----------
-    path
-        Path containing the dataset files. Each file is considered
-        and should be valid to the exception of files starting with '.'
-        or ending with '_SUCCESS'. A valid line in a file can be for
-        instance: {"start": "2014-09-07", "target": [0.1, 0.2]}.
-    freq
-        Frequency of the observation in the time series.
-        Must be a valid Pandas frequency.
-    one_dim_target
-        Whether to accept only univariate target time series.
-    """
-
-    def __init__(
-        self, path: Path, freq: str, one_dim_target: bool = True
-    ) -> None:
-        self.path = path
-        self.process = ProcessDataEntry(freq, one_dim_target=one_dim_target)
-        if not self.files():
-            raise OSError(f"no valid file found in {path}")
-
-    def __iter__(self) -> Iterator[DataEntry]:
-        for path in self.files():
-            for line in jsonl.JsonLinesFile(path):
-                data = self.process(line.content)
-                data["source"] = SourceContext(
-                    source=line.span, row=line.span.line
-                )
-                yield data
-
-    def __len__(self):
-        return sum([len(jsonl.JsonLinesFile(path)) for path in self.files()])
-
-    def files(self) -> List[Path]:
-        """
-        List the files that compose the dataset.
-
-        Returns
-        -------
-        List[Path]
-            List of the paths of all files composing the dataset.
-        """
-        return util.find_files(self.path, FileDataset.is_valid)
-
-    @staticmethod
-    def is_valid(path: Path) -> bool:
-        # TODO: given that we only support json, should we also filter json
-        # TODO: in the extension?
-        return not (path.name.startswith(".") or path.name == "_SUCCESS")
-
-
-class ListDataset(Dataset):
-    """
-    Dataset backed directly by an array of dictionaries.
-
     data_iter
         Iterable object yielding all items in the dataset.
         Each item should be a dictionary mapping strings to values.
@@ -256,28 +243,26 @@ class ListDataset(Dataset):
         Whether to accept only univariate target time series.
     """
 
-    def __init__(
-        self,
-        data_iter: Iterable[DataEntry],
-        freq: str,
-        one_dim_target: bool = True,
-    ) -> None:
-        process = ProcessDataEntry(freq, one_dim_target)
-        self.list_data = [process(data) for data in data_iter]
+    if translate is not None:
+        data_iter = Map(Translator.parse(translate), data_iter)
 
-    def __iter__(self) -> Iterator[DataEntry]:
-        source_name = "list_data"
-        for row_number, data in enumerate(self.list_data, start=1):
-            data["source"] = SourceContext(source=source_name, row=row_number)
-            yield data
-
-    def __len__(self):
-        return len(self.list_data)
+    return list(
+        Map(
+            ProcessDataEntry(to_offset(freq), one_dim_target, use_timestamp),
+            data_iter,
+        )
+    )
 
 
-class ProcessStartField:
+@functools.lru_cache(10_000)
+def _as_period(val, freq):
+    return pd.Period(val, freq)
+
+
+# TODO: find out whether this is a duplicate
+class ProcessStartField(pydantic.BaseModel):
     """
-    Transform the start field into a Timestamp with the given frequency.
+    Transform the start field into a Period with the given frequency.
 
     Parameters
     ----------
@@ -287,57 +272,25 @@ class ProcessStartField:
         Frequency to use. This must be a valid Pandas frequency string.
     """
 
-    def __init__(self, name: str, freq: str) -> None:
-        self.name = name
-        self.freq = freq
+    class Config:
+        arbitrary_types_allowed = True
+
+    freq: Union[str, pd.DateOffset]
+    use_timestamp: bool = False
+    name: str = FieldName.START
 
     def __call__(self, data: DataEntry) -> DataEntry:
         try:
-            value = ProcessStartField.process(data[self.name], self.freq)
+            if self.use_timestamp:
+                data[self.name] = pd.Timestamp(data[self.name])
+            else:
+                data[self.name] = _as_period(data[self.name], self.freq)
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'
-            )
-
-        if value.tz is not None:
-            raise GluonTSDataError(
-                f'Timezone information is not supported, but provided in the "{self.name}" field'
-            )
-
-        data[self.name] = value
+            ) from e
 
         return data
-
-    @staticmethod
-    @lru_cache(maxsize=10000)
-    def process(string: str, freq: str) -> pd.Timestamp:
-        """Create timestamp and align it according to frequency.
-        """
-
-        timestamp = pd.Timestamp(string, freq=freq)
-
-        # operate on time information (days, hours, minute, second)
-        if isinstance(timestamp.freq, Tick):
-            return pd.Timestamp(
-                timestamp.floor(timestamp.freq), timestamp.freq
-            )
-
-        # since we are only interested in the data piece, we normalize the
-        # time information
-        timestamp = timestamp.replace(
-            hour=0, minute=0, second=0, microsecond=0, nanosecond=0
-        )
-
-        return timestamp.freq.rollforward(timestamp)
-
-
-def rollback(timestamp):
-    offset = timestamp.freq
-    # if not offset.onOffset(timestamp):
-    return timestamp - offset.__class__(
-        offset.n, normalize=True, **offset.kwds
-    )
-    # return timestamp
 
 
 class ProcessTimeSeriesField:
@@ -383,14 +336,11 @@ class ProcessTimeSeriesField:
         value = data.get(self.name, None)
         if value is not None:
             value = np.asarray(value, dtype=self.dtype)
-            ddiff = self.req_ndim - value.ndim
 
-            if ddiff == 1:
-                value = np.expand_dims(a=value, axis=0)
-            elif ddiff != 0:
+            if self.req_ndim != value.ndim:
                 raise GluonTSDataError(
-                    f"JSON array has bad shape - expected {self.req_ndim} "
-                    f"dimensions, got {ddiff}"
+                    f"Array '{self.name}' has bad shape - expected "
+                    f"{self.req_ndim} dimensions, got {value.ndim}."
                 )
 
             data[self.name] = value
@@ -400,12 +350,17 @@ class ProcessTimeSeriesField:
             return data
         else:
             raise GluonTSDataError(
-                f"JSON object is missing a required field `{self.name}`"
+                f"Object is missing a required field `{self.name}`"
             )
 
 
 class ProcessDataEntry:
-    def __init__(self, freq: str, one_dim_target: bool = True) -> None:
+    def __init__(
+        self,
+        freq: str,
+        one_dim_target: bool = True,
+        use_timestamp: bool = False,
+    ) -> None:
         # TODO: create a FormatDescriptor object that can be derived from a
         # TODO: Metadata and pass it instead of freq.
         # TODO: In addition to passing freq, the descriptor should be carry
@@ -413,34 +368,46 @@ class ProcessDataEntry:
         self.trans = cast(
             List[Callable[[DataEntry], DataEntry]],
             [
-                ProcessStartField("start", freq=freq),
+                ProcessStartField(freq=freq, use_timestamp=use_timestamp),
                 # The next line abuses is_static=True in case of 1D targets.
                 ProcessTimeSeriesField(
-                    "target",
+                    FieldName.TARGET,
                     is_required=True,
                     is_cat=False,
                     is_static=one_dim_target,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_cat",
+                    FieldName.FEAT_DYNAMIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_dynamic_real",
+                    FieldName.FEAT_DYNAMIC_REAL_LEGACY,  # backwards compatible
                     is_required=False,
                     is_cat=False,
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_cat",
+                    FieldName.FEAT_DYNAMIC_REAL,
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
+                    FieldName.PAST_FEAT_DYNAMIC_REAL,
+                    is_required=False,
+                    is_cat=False,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
+                    FieldName.FEAT_STATIC_CAT,
                     is_required=False,
                     is_cat=True,
                     is_static=True,
                 ),
                 ProcessTimeSeriesField(
-                    "feat_static_real",
+                    FieldName.FEAT_STATIC_REAL,
                     is_required=False,
                     is_cat=False,
                     is_static=True,
@@ -455,7 +422,11 @@ class ProcessDataEntry:
 
 
 def load_datasets(
-    metadata: Path, train: Path, test: Optional[Path]
+    metadata: Path,
+    train: Path,
+    test: Optional[Path],
+    one_dim_target: bool = True,
+    cache: bool = False,
 ) -> TrainDatasets:
     """
     Loads a dataset given metadata, train and test path.
@@ -468,6 +439,10 @@ def load_datasets(
         Path to the training dataset files.
     test
         Path to the test dataset files.
+    one_dim_target
+        Whether to load FileDatasets as univariate target time series.
+    cache
+        Indicates whether the FileDatasets should be cached or not.
 
     Returns
     -------
@@ -475,76 +450,18 @@ def load_datasets(
         An object collecting metadata, training data, test data.
     """
     meta = MetaData.parse_file(Path(metadata) / "metadata.json")
-    train_ds = FileDataset(train, meta.freq)
-    test_ds = FileDataset(test, meta.freq) if test else None
+    train_ds = FileDataset(
+        path=train, freq=meta.freq, one_dim_target=one_dim_target, cache=cache
+    )
+    test_ds = (
+        FileDataset(
+            path=test,
+            freq=meta.freq,
+            one_dim_target=one_dim_target,
+            cache=cache,
+        )
+        if test
+        else None
+    )
 
     return TrainDatasets(metadata=meta, train=train_ds, test=test_ds)
-
-
-def save_datasets(
-    dataset: TrainDatasets, path_str: str, overwrite=True
-) -> None:
-    """
-    Saves an TrainDatasets object to a JSON Lines file.
-
-    Parameters
-    ----------
-    dataset
-        The training datasets.
-    path_str
-        Where to save the dataset.
-    overwrite
-        Whether to delete previous version in this folder.
-    """
-    path = Path(path_str)
-
-    if overwrite:
-        shutil.rmtree(path, ignore_errors=True)
-
-    def dump_line(f, line):
-        f.write(json.dumps(line).encode("utf-8"))
-        f.write("\n".encode("utf-8"))
-
-    (path / "metadata").mkdir(parents=True)
-    with open(path / "metadata/metadata.json", "wb") as f:
-        dump_line(f, dataset.metadata.dict())
-
-    (path / "train").mkdir(parents=True)
-    with open(path / "train/data.json", "wb") as f:
-        for entry in dataset.train:
-            dump_line(f, serialize_data_entry(entry))
-
-    if dataset.test is not None:
-        (path / "test").mkdir(parents=True)
-        with open(path / "test/data.json", "wb") as f:
-            for entry in dataset.test:
-                dump_line(f, serialize_data_entry(entry))
-
-
-def serialize_data_entry(data):
-    """
-    Encode the numpy values in the a DataEntry dictionary into lists so the
-    dictionary can be JSON serialized.
-
-    Parameters
-    ----------
-    data
-        The dictionary to be transformed.
-
-    Returns
-    -------
-    Dict
-        The transformed dictionary, where all fields where transformed into
-        strings.
-    """
-
-    def serialize_field(field):
-        if isinstance(field, np.ndarray):
-            # circumvent https://github.com/micropython/micropython/issues/3511
-            nan_ix = np.isnan(field)
-            field = field.astype(np.object_)
-            field[nan_ix] = "NaN"
-            return field.tolist()
-        return str(field)
-
-    return {k: serialize_field(v) for k, v in data.items() if v is not None}

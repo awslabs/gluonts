@@ -17,12 +17,10 @@ This example shows how to serialize and deserialize a model
 import os
 import pprint
 
-from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.support.util import get_download_path
-from gluonts.trainer import Trainer
+from gluonts.dataset.repository.datasets import get_dataset, get_download_path
+from gluonts.evaluation import make_evaluation_predictions, Evaluator
+from gluonts.mx import SimpleFeedForwardEstimator
+from gluonts.mx.trainer import Trainer
 from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":
@@ -31,7 +29,6 @@ if __name__ == "__main__":
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
         trainer=Trainer(epochs=5, num_batches_per_epoch=10),
     )
 

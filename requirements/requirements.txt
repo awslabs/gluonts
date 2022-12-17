@@ -1,12 +1,10 @@
-# fixes conflict with dateutil requirement
-# see: https://github.com/boto/botocore/commit/e87e7a745fd972815b235a9ee685232745aa94f9
-python-dateutil==2.8.0
+numpy~=1.16
+pandas~=1.0
+pydantic~=1.7
+tqdm~=4.23
+toolz~=0.10
 
-boto3==1.*
-holidays==0.9.*
-matplotlib==3.*
-numpy==1.14.*
-pandas>=0.25.0
-pydantic==0.28.*
-tqdm>=4.23.0
-ujson>=1.35
+# used for Protocol, can be removed once Python 3.8 is required
+typing-extensions~=4.0
+
+dataclasses; python_version == '3.6.*'

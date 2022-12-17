@@ -11,12 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Callable
+from typing import Callable, List
 
 import numpy as np
 import pandas as pd
 from pandas.tseries.holiday import (
     SU,
+    TH,
     EasterMonday,
     GoodFriday,
     Holiday,
@@ -29,9 +30,9 @@ from pandas.tseries.holiday import (
 )
 from pandas.tseries.offsets import DateOffset, Day, Easter
 
-MAX_WINDOW = (
-    183
-)  # This is 183 to cover half a year (in both directions), also for leap years
+# This is 183 to cover half a year (in both directions), also for leap years
+# + 17 as Eastern can be between March, 22 - April, 25
+MAX_WINDOW = 183 + 17
 
 
 def distance_to_holiday(holiday):
@@ -64,7 +65,18 @@ IndependenceDay = Holiday("Independence Day", month=7, day=4)
 ChristmasEve = Holiday("Christmas", month=12, day=24)
 ChristmasDay = Holiday("Christmas", month=12, day=25)
 NewYearsEve = Holiday("New Years Eve", month=12, day=31)
-
+BlackFriday = Holiday(
+    "Black Friday",
+    month=11,
+    day=1,
+    offset=[pd.DateOffset(weekday=TH(4)), Day(1)],
+)
+CyberMonday = Holiday(
+    "Cyber Monday",
+    month=11,
+    day=1,
+    offset=[pd.DateOffset(weekday=TH(4)), Day(4)],
+)
 
 NEW_YEARS_DAY = "new_years_day"
 MARTIN_LUTHER_KING_DAY = "martin_luther_king_day"
@@ -82,7 +94,8 @@ THANKSGIVING = "thanksgiving"
 CHRISTMAS_EVE = "christmas_eve"
 CHRISTMAS_DAY = "christmas_day"
 NEW_YEARS_EVE = "new_years_eve"
-
+BLACK_FRIDAY = "black_friday"
+CYBER_MONDAY = "cyber_monday"
 
 SPECIAL_DATE_FEATURES = {
     NEW_YEARS_DAY: distance_to_holiday(NewYearsDay),
@@ -101,6 +114,8 @@ SPECIAL_DATE_FEATURES = {
     CHRISTMAS_EVE: distance_to_holiday(ChristmasEve),
     CHRISTMAS_DAY: distance_to_holiday(ChristmasDay),
     NEW_YEARS_EVE: distance_to_holiday(NewYearsEve),
+    BLACK_FRIDAY: distance_to_holiday(BlackFriday),
+    CYBER_MONDAY: distance_to_holiday(CyberMonday),
 }
 
 
@@ -134,9 +149,9 @@ def squared_exponential_kernel(alpha=1.0, tol=1e-9):
 class SpecialDateFeatureSet:
     """
     Implements calculation of holiday features. The SpecialDateFeatureSet is
-    applied on a pandas Series with Datetimeindex and returns a 2D array of
-    the shape (len(dates), num_features), where num_features are the number
-    of holidays.
+    applied on a pandas Series with Datetimeindex and returns a 2D array of the
+    shape (len(dates), num_features), where num_features are the number of
+    holidays.
 
     Note that for lower than daily granularity the distance to the holiday is
     still computed on a per-day basis.
@@ -151,7 +166,7 @@ class SpecialDateFeatureSet:
         ... )
         >>> import pandas as pd
         >>> sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY])
-        >>> date_indices = pd.date_range(
+        >>> date_indices = pd.period_range(
         ...     start="2016-12-24",
         ...     end="2016-12-31",
         ...     freq='D'
@@ -169,8 +184,7 @@ class SpecialDateFeatureSet:
                 1.12535175e-07, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00],
                [3.67879441e-01, 1.00000000e+00, 3.67879441e-01, 1.83156389e-02,
                 1.23409804e-04, 1.12535175e-07, 0.00000000e+00, 0.00000000e+00]])
-
-    """
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -181,7 +195,8 @@ class SpecialDateFeatureSet:
         Parameters
         ----------
         feature_names
-            list of strings with holiday names for which features should be created.
+            list of strings with holiday names for which features should be
+            created.
         kernel_function
             kernel function to pass the feature value based
             on distance in days. Can be indicator function (default),

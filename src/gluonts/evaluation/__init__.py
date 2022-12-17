@@ -11,12 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
-from ._base import Evaluator, MultivariateEvaluator, get_seasonality
+from ._base import (
+    Evaluator,
+    MultivariateEvaluator,
+    aggregate_all,
+    aggregate_no_nan,
+    aggregate_valid,
+)
+from .backtest import backtest_metrics, make_evaluation_predictions
 
-__all__ = ["get_seasonality", "Evaluator", "MultivariateEvaluator"]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)
+__all__ = [
+    "Evaluator",
+    "MultivariateEvaluator",
+    "make_evaluation_predictions",
+    "backtest_metrics",
+    "aggregate_no_nan",
+    "aggregate_all",
+    "aggregate_valid",
+]

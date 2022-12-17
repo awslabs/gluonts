@@ -10,64 +10,37 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
+from typing import Optional
 
-# Standard library imports
-import logging
-import os
-from pathlib import Path
-from typing import Callable, Iterator, List, Tuple, TypeVar
-
-# Third-party imports
 import pandas as pd
 
-
-T = TypeVar("T")
-
-
-def _split(
-    it: Iterator[T], fn: Callable[[T], bool]
-) -> Tuple[List[T], List[T]]:
-    left, right = [], []
-
-    for val in it:
-        if fn(val):
-            left.append(val)
-        else:
-            right.append(val)
-
-    return left, right
+from .common import DataEntry
+from .field_names import FieldName
 
 
-def _list_files(directory: Path) -> Iterator[Path]:
-    for dirname, _, filenames in os.walk(directory):
-        for filename in filenames:
-            yield Path(dirname, filename)
+def forecast_start(entry, time_axis: int = -1):
+    return entry[FieldName.START] + entry[FieldName.TARGET].shape[time_axis]
 
 
-def true_predicate(*args) -> bool:
-    return True
+def period_index(entry: DataEntry, freq=None) -> pd.PeriodIndex:
+    if freq is None:
+        freq = entry[FieldName.START].freq
+
+    return pd.period_range(
+        start=entry[FieldName.START],
+        periods=entry[FieldName.TARGET].shape[-1],
+        freq=freq,
+    )
 
 
-def find_files(
-    data_dir: Path, predicate: Callable[[Path], bool] = true_predicate
-) -> List[Path]:
-    all_files = _list_files(data_dir)
-    chosen, ignored = _split(all_files, predicate)
-
-    for ign in ignored:
-        logging.info(f"Ignoring input file `{ign.name}`.")
-
-    return sorted(chosen)
-
-
-def to_pandas(instance: dict, freq: str = None) -> pd.Series:
+def to_pandas(entry: DataEntry, freq: Optional[str] = None) -> pd.Series:
     """
-    Transform a dictionary into a pandas.Series object, using its
-    "start" and "target" fields.
+    Transform a dictionary into a pandas.Series object, using its "start" and
+    "target" fields.
 
     Parameters
     ----------
-    instance
+    entry
         Dictionary containing the time series data.
     freq
         Frequency to use in the pandas.Series index.
@@ -77,9 +50,7 @@ def to_pandas(instance: dict, freq: str = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    target = instance["target"]
-    start = instance["start"]
-    if not freq:
-        freq = start.freqstr
-    index = pd.date_range(start=start, periods=len(target), freq=freq)
-    return pd.Series(target, index=index)
+    return pd.Series(
+        entry[FieldName.TARGET],
+        index=period_index(entry, freq=freq),
+    )

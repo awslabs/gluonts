@@ -11,11 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Relative imports
 from ._base import (
     ArtificialDataset,
-    ConstantDataset,
     ComplexSeasonalTimeSeries,
+    ConstantDataset,
     RecipeDataset,
     constant_dataset,
     default_synthetic,
@@ -29,8 +28,3 @@ __all__ = [
     "constant_dataset",
     "default_synthetic",
 ]
-
-# fix Sphinx issues, see https://bit.ly/2K2eptM
-for item in __all__:
-    if hasattr(item, "__module__"):
-        setattr(item, "__module__", __name__)

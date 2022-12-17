@@ -1,150 +1,129 @@
+<img class="hide-on-website" height="100px" src="https://ts.gluon.ai/dev/_static/gluonts.svg">
+
 # GluonTS - Probabilistic Time Series Modeling in Python
 
-![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square) ![GitHub](https://img.shields.io/github/license/awslabs/gluon-ts.svg?style=flat-square)
+[![PyPI](https://img.shields.io/pypi/v/gluonts.svg?style=flat-square&color=b75347)](https://pypi.org/project/gluonts/)
+[![GitHub](https://img.shields.io/github/license/awslabs/gluonts.svg?style=flat-square&color=df7e66)](./LICENSE)
+[![Static](https://img.shields.io/static/v1?label=docs&message=stable&color=edc775&style=flat-square)](https://ts.gluon.ai/)
+[![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=edc775&style=flat-square)](https://ts.gluon.ai/dev/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/gluonts?style=flat-square&color=94b594)](https://pepy.tech/project/gluonts)
 
-GluonTS is a Python toolkit for probabilistic time series modeling,
-built around [Apache MXNet (incubating)](https://mxnet.incubator.apache.org/).
+GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models,
+based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
-GluonTS provides utilities for loading and iterating over time series datasets,
-state of the art models ready to be trained, and building blocks to define
-your own models and quickly experiment with different solutions.
-
-* [Documentation](https://gluon-ts.mxnet.io/)
-* [Paper](https://arxiv.org/abs/1906.05264)
 
 ## Installation
 
-GluonTS requires Python 3.6, and the easiest
-way to install it is via `pip`:
+GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
-pip install mxnet==1.4.1 gluonts
+# support for mxnet models, faster datasets
+pip install "gluonts[mxnet,pro]"
+
+# support for torch models, faster datasets
+pip install "gluonts[torch,pro]"
 ```
 
-## Quick start guide
+## Simple Example
 
-This simple example illustrates how to train a model from GluonTS on some data,
-and then use it to make predictions. As a first step, we need to collect
-some data: in this example we will use the volume of tweets mentioning the
-AMZN ticker symbol.
+To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
+using the simple "airpassengers" dataset. The dataset consists of a single
+time series, containing monthly international passengers between the years
+1949 and 1960, a total of 144 values (12 years * 12 months). We split the
+dataset into train and test parts, by removing the last three years (36 month)
+from the train data. Thus, we will train a model on just the first nine years
+of data.
 
-```python
-import pandas as pd
-url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0, index_col=0)
-```
 
-The first 100 data points look like follows:
-
-```python
+```py
 import matplotlib.pyplot as plt
-df[:100].plot(linewidth=2)
-plt.grid(which='both')
-plt.show()
-```
-
-![Data](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_data.png)
-
-We can now prepare a training dataset for our model to train on.
-Datasets in GluonTS are essentially iterable collections of
-dictionaries: each dictionary represents a time series
-with possibly associated features. For this example, we only have one
-entry, specified by the `"start"` field which is the timestamp of the
-first datapoint, and the `"target"` field containing time series data.
-For training, we will use data up to midnight on April 5th, 2015.
-
-```python
-from gluonts.dataset.common import ListDataset
-training_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-05 00:00:00"]}],
-    freq = "5min"
-)
-```
-
-A forecasting model in GluonTS is a *predictor* object. One way of obtaining
-predictors is by training a correspondent *estimator*. Instantiating an
-estimator requires specifying the frequency of the time series that it will
-handle, as well as the number of time steps to predict. In our example
-we're using 5 minutes data, so `freq="5min"`,
-and we will train a model to predict the next hour, so `prediction_length=12`.
-We also specify some minimal training options.
-
-```python
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.trainer import Trainer
-
-estimator = DeepAREstimator(freq="5min", prediction_length=12, trainer=Trainer(epochs=10))
-predictor = estimator.train(training_data=training_data)
-```
-
-During training, useful information about the progress will be displayed.
-To get a full overview of the available options, please refer to the
-documentation of `DeepAREstimator` (or other estimators) and `Trainer`.
-
-We're now ready to make predictions: we will forecast the hour following
-the midnight on April 15th, 2015.
-
-```python
-test_data = ListDataset(
-    [{"start": df.index[0], "target": df.value[:"2015-04-15 00:00:00"]}],
-    freq = "5min"
-)
-
 from gluonts.dataset.util import to_pandas
+from gluonts.dataset.pandas import PandasDataset
+from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.mx import DeepAREstimator, Trainer
 
-for test_entry, forecast in zip(test_data, predictor.predict(test_data)):
-    to_pandas(test_entry)[-60:].plot(linewidth=2)
-    forecast.plot(color='g', prediction_intervals=[50.0, 90.0])
-plt.grid(which='both')
+dataset = get_dataset("airpassengers")
+
+deepar = DeepAREstimator(prediction_length=12, freq="M", trainer=Trainer(epochs=5))
+model = deepar.train(dataset.train)
+
+# Make predictions
+true_values = to_pandas(list(dataset.test)[0])
+true_values.to_timestamp().plot(color="k")
+
+prediction_input = PandasDataset([true_values[:-36], true_values[:-24], true_values[:-12]])
+predictions = model.predict(prediction_input)
+
+for color, prediction in zip(["green", "blue", "purple"], predictions):
+    prediction.plot(color=f"tab:{color}")
+
+plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 
-![Forecast](https://github.com/awslabs/gluon-ts/raw/master/docs/figures/Tweets_AMZN_forecast.png)
+![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
 
-Note that the forecast is displayed in terms of a probability distribution:
-the shaded areas represent the 50% and 90% prediction intervals, respectively,
-centered around the median (dark green line).
 
-## Further examples
-
-The following are good entry-points to understand how to use
-many features of GluonTS:
-
-* [Quick Start Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/basic_forecasting_tutorial/tutorial.md): a quick start guide.
-* [Extended Forecasting Tutorial](https://github.com/awslabs/gluon-ts/tree/master/docs/examples/extended_forecasting_tutorial/extended_tutorial.md): a detailed tutorial on forecasting.
-* [evaluate_model.py](https://github.com/awslabs/gluon-ts/tree/master/examples/evaluate_model.py): how to train a model and compute evaluation metrics.
-* [benchmark_m4.py](https://github.com/awslabs/gluon-ts/tree/master/examples/benchmark_m4.py): how to evaluate and compare multiple models on multiple datasets.
-
-The following modules illustrate how custom models can be implemented:
-
-* [`gluonts.model.seasonal_naive`](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/model/seasonal_naive): how to implement simple models using just NumPy and Pandas.
-* [`gluonts.model.simple_feedforward`](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/model/simple_feedforward): how to define a trainable, Gluon-based model.
+Note that the forecasts are displayed in terms of a probability distribution:
+The shaded areas represent the 50% and 90% prediction intervals, respectively,
+centered around the median.
 
 ## Contributing
 
 If you wish to contribute to the project, please refer to our
-[contribution guidelines](https://github.com/awslabs/gluon-ts/tree/master/CONTRIBUTING.md).
+[contribution guidelines](https://github.com/awslabs/gluonts/tree/dev/CONTRIBUTING.md).
 
 ## Citing
 
-If you use GluonTS in a scientific publication, we encourage you to add
-the following reference to the associated
-[paper](https://arxiv.org/abs/1906.05264):
+If you use GluonTS in a scientific publication, we encourage you to add the following references to the related papers,
+in addition to any model-specific references that are relevant for your work:
 
-```
-@article{gluonts,
-  title={{GluonTS: Probabilistic Time Series Modeling in Python}},
-  author={Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
-          Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
-          and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
-          Türkmen, A. C. and Wang, Y.},
-  journal={arXiv preprint arXiv:1906.05264},
-  year={2019}
+```bibtex
+@article{gluonts_jmlr,
+  author  = {Alexander Alexandrov and Konstantinos Benidis and Michael Bohlke-Schneider
+    and Valentin Flunkert and Jan Gasthaus and Tim Januschowski and Danielle C. Maddix
+    and Syama Rangapuram and David Salinas and Jasper Schulz and Lorenzo Stella and
+    Ali Caner Türkmen and Yuyang Wang},
+  title   = {{GluonTS: Probabilistic and Neural Time Series Modeling in Python}},
+  journal = {Journal of Machine Learning Research},
+  year    = {2020},
+  volume  = {21},
+  number  = {116},
+  pages   = {1-6},
+  url     = {http://jmlr.org/papers/v21/19-820.html}
 }
 ```
 
-## Further Reading 
+```bibtex
+@article{gluonts_arxiv,
+  author  = {Alexandrov, A. and Benidis, K. and Bohlke-Schneider, M. and
+    Flunkert, V. and Gasthaus, J. and Januschowski, T. and Maddix, D. C.
+    and Rangapuram, S. and Salinas, D. and Schulz, J. and Stella, L. and
+    Türkmen, A. C. and Wang, Y.},
+  title   = {{GluonTS: Probabilistic Time Series Modeling in Python}},
+  journal = {arXiv preprint arXiv:1906.05264},
+  year    = {2019}
+}
+```
 
-* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluon-ts/tree/master/REFERENCES.md): a bibliography.
+## Links
+
+### Documentation
+
+* [Documentation (stable)](https://ts.gluon.ai/stable/)
+* [Documentation (development)](https://ts.gluon.ai/dev/)
+
+### References
+
+* [JMLR MLOSS Paper](http://www.jmlr.org/papers/v21/19-820.html)
+* [ArXiv Paper](https://arxiv.org/abs/1906.05264)
+* [Collected Papers from the group behind GluonTS](https://github.com/awslabs/gluonts/tree/dev/REFERENCES.md): a bibliography.
+
+### Tutorials and Workshops
+
+* [Tutorial at IJCAI 2021 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-IJCAI-2021/) with [YouTube link](https://youtu.be/AB3I9pdT46c). 
+* [Tutorial at WWW 2020 (with videos)](https://lovvge.github.io/Forecasting-Tutorial-WWW-2020/)
 * [Tutorial at SIGMOD 2019](https://lovvge.github.io/Forecasting-Tutorials/SIGMOD-2019/)
 * [Tutorial at KDD 2019](https://lovvge.github.io/Forecasting-Tutorial-KDD-2019/)
 * [Tutorial at VLDB 2018](https://lovvge.github.io/Forecasting-Tutorial-VLDB-2018/)
+* [Neural Time Series with GluonTS](https://youtu.be/beEJMIt9xJ8)
+* [International Symposium of Forecasting: Deep Learning for Forecasting workshop](https://lostella.github.io/ISF-2020-Deep-Learning-Workshop/)

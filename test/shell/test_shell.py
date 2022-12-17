@@ -11,24 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import json
-from typing import ContextManager
 import sys
+from typing import ContextManager
 
-# Third-party imports
 import numpy as np
 import pytest
 
-# First-party imports
 from gluonts.core.component import equals
+from gluonts.dataset.jsonl import encode_json
 from gluonts.model.trivial.mean import MeanPredictor
-from gluonts.shell.sagemaker import ServeEnv, TrainEnv
+from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.train import run_train_and_test
 
 try:
     from gluonts.shell.serve import Settings
-    from gluonts.shell.serve.util import jsonify_floats
     from gluonts.testutil import shell as testutil
 except ImportError:
     if sys.platform != "win32":
@@ -44,11 +41,18 @@ num_samples = 4
 
 
 @pytest.fixture(scope="function")  # type: ignore
-def train_env() -> ContextManager[TrainEnv]:
+def train_env(listify_dataset) -> ContextManager[TrainEnv]:
     hyperparameters = {
         "context_length": context_length,
         "prediction_length": prediction_length,
         "num_samples": num_samples,
+        "listify_dataset": listify_dataset,
+        "num_workers": 3,
+        "num_prefetch": 4,
+        "shuffle_buffer_length": 256,
+        "epochs": 3,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "test_quantiles": [0.25, 0.75],
     }
     with testutil.temporary_train_env(hyperparameters, "constant") as env:
         yield env
@@ -62,7 +66,9 @@ def static_server(
     predictor.serialize(train_env.path.model)
 
     serve_env = ServeEnv(train_env.path.base)
-    settings = Settings(sagemaker_server_port=testutil.free_port())
+    settings = Settings(
+        sagemaker_server_port=testutil.free_port(), model_server_workers=1
+    )
     with testutil.temporary_server(serve_env, None, settings) as server:
         yield server
 
@@ -72,7 +78,9 @@ def dynamic_server(
     train_env: TrainEnv,
 ) -> ContextManager["testutil.ServerFacade"]:
     serve_env = ServeEnv(train_env.path.base)
-    settings = Settings(sagemaker_server_port=testutil.free_port())
+    settings = Settings(
+        sagemaker_server_port=testutil.free_port(), model_server_workers=1
+    )
     with testutil.temporary_server(
         serve_env, MeanPredictor, settings
     ) as server:
@@ -93,25 +101,37 @@ def batch_transform(monkeypatch, train_env):
     }
 
     monkeypatch.setenv("INFERENCE_CONFIG", json.dumps(inference_config))
+    monkeypatch.setenv("GLUONTS_FORWARD_FIELDS", json.dumps(["foo"]))
     return inference_config
 
 
-def test_train_shell(train_env: TrainEnv, caplog) -> None:
-    run_train_and_test(env=train_env, forecaster_type=MeanPredictor)
-
-    for _, _, line in caplog.record_tuples:
-        if "#test_score (local, QuantileLoss" in line:
-            assert line.endswith("0.0")
-        if "local, wQuantileLoss" in line:
-            assert line.endswith("0.0")
-        if "local, Coverage" in line:
-            assert line.endswith("0.0")
-        if "MASE" in line or "MSIS" in line:
-            assert line.endswith("0.0")
-        if "abs_target_sum" in line:
-            assert line.endswith("270.0")
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
+def test_listify_dataset(train_env: TrainEnv, listify_dataset):
+    for dataset in train_env.datasets.values():
+        if listify_dataset == "yes":
+            assert isinstance(dataset, list)
 
 
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
+@pytest.mark.parametrize("forecaster_type", [MeanPredictor])
+def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
+    run_train_and_test(env=train_env, forecaster_type=forecaster_type)
+
+    if forecaster_type == MeanPredictor:
+        for _, _, line in caplog.record_tuples:
+            if "#test_score (local, QuantileLoss" in line:
+                assert line.endswith("0.0")
+            if "local, wQuantileLoss" in line:
+                assert line.endswith("0.0")
+            if "local, Coverage" in line:
+                assert line.endswith("0.0")
+            if "MASE" in line or "MSIS" in line:
+                assert line.endswith("nan")
+            if "abs_target_sum" in line:
+                assert line.endswith("270.0")
+
+
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_server_shell(
     train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -128,6 +148,7 @@ def test_server_shell(
         "num_samples": 1,  # FIXME: this is ignored
         "output_types": ["mean", "samples"],
         "quantiles": [],
+        **train_env.hyperparameters,
     }
 
     for entry in train_env.datasets["train"]:
@@ -153,6 +174,7 @@ def test_server_shell(
         assert equals(exp_samples, act_samples)
 
 
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_dynamic_shell(
     train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
@@ -195,6 +217,7 @@ def test_dynamic_shell(
         assert equals(exp_samples, act_samples)
 
 
+@pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 def test_dynamic_batch_shell(
     batch_transform,
     train_env: TrainEnv,
@@ -211,10 +234,13 @@ def test_dynamic_batch_shell(
     assert execution_parameters["MaxPayloadInMB"] == 6
 
     for entry in train_env.datasets["train"]:
+        entry["foo"] = 42
         forecast = dynamic_server.batch_invocations([entry])[0]
 
         for output_type in batch_transform["output_types"]:
             assert output_type in forecast
+
+        assert forecast["foo"] == 42
 
         act_mean = np.array(forecast["mean"])
         act_samples = np.array(forecast["samples"])
@@ -249,5 +275,4 @@ def test_as_json_dict_outputs_valid_json():
     with pytest.raises(ValueError):
         json.dumps(non_compliant_json, allow_nan=False)
 
-    output_json = jsonify_floats(non_compliant_json)
-    json.dumps(output_json, allow_nan=False)
+    json.dumps(encode_json(non_compliant_json), allow_nan=False)

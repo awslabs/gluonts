@@ -1,0 +1,40 @@
+name: Test latest release nightly Ubuntu
+
+on:
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  test-stable-ubuntu:
+
+    strategy:
+      max-parallel: 4
+      fail-fast: false
+      matrix:
+        python-version: ['3.7']
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Clone and install dependencies
+      run: |
+        git clone https://github.com/awslabs/gluonts --branch $(curl https://api.github.com/repos/awslabs/gluonts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
+        cd gluon-ts
+        python -m pip install pip==20.2
+        pip install mxnet~=1.8.0
+        pip install torch==1.10.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install pytorch-lightning~=1.5
+        pip install -e ".[shell]"
+        pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
+        pip install -r requirements/requirements-extras-m-competitions.txt
+        pip install -r requirements/requirements-rotbaum.txt
+        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
+        pip install -r requirements/requirements-extras-autogluon.txt
+    - name: Test with pytest
+      run: |
+        cd gluon-ts
+        pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test

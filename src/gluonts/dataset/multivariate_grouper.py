@@ -11,25 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
 import logging
-import numpy as np
-import pandas as pd
 from typing import Callable, Optional
 
-# First-party imports
-from gluonts.dataset.common import ListDataset, DataEntry, Dataset
+import numpy as np
+import pandas as pd
+
 from gluonts.core.component import validated
+from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.constants import DateConstants
 
 
 class MultivariateGrouper:
     """
     The MultivariateGrouper takes a univariate dataset and groups it into a
-    single multivariate time series. Therefore, this class allows the user
-    to convert a univariate dataset into a multivariate dataset without making
-    a separate copy of the dataset.
+    single multivariate time series. Therefore, this class allows the user to
+    convert a univariate dataset into a multivariate dataset without making a
+    separate copy of the dataset.
 
     The Multivariate Grouper has two different modes:
 
@@ -38,12 +36,12 @@ class MultivariateGrouper:
     padded to produce an array of shape (dim, num_time_steps)
 
     Test: The test dataset might have multiple start dates (usually because
-          the test dataset mimics a rolling evaluation scenario). In this case,
-          the univariate dataset will be split into n multivariate time series,
-          where n is the number of evaluation dates. Again, the
-          time series will be grouped but only left padded. Note that the
-          padded value will influence the prediction if the context length is
-          longer than the length of the time series.
+    the test dataset mimics a rolling evaluation scenario). In this case,
+    the univariate dataset will be split into n multivariate time series,
+    where n is the number of evaluation dates. Again, the
+    time series will be grouped but only left padded. Note that the
+    padded value will influence the prediction if the context length is
+    longer than the length of the time series.
 
     Rules for padding for training and test datasets can be specified by the
     user.
@@ -65,7 +63,6 @@ class MultivariateGrouper:
     test_fill_rule
         Implements the rule that fills missing data after alignment of the
         time series for the test dataset.
-
     """
 
     @validated()
@@ -81,8 +78,8 @@ class MultivariateGrouper:
         self.train_fill_function = train_fill_rule
         self.test_fill_rule = test_fill_rule
 
-        self.first_timestamp = DateConstants.LATEST_SUPPORTED_TIMESTAMP
-        self.last_timestamp = DateConstants.OLDEST_SUPPORTED_TIMESTAMP
+        self.first_timestamp = None
+        self.last_timestamp = None
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
@@ -93,20 +90,31 @@ class MultivariateGrouper:
         """
         The preprocess function iterates over the dataset to gather data that
         is necessary for alignment.
-        This includes
-            1) Storing first/last timestamp in the dataset
-            2) Storing the frequency of the dataset
+
+        This includes     1) Storing first/last timestamp in the dataset     2)
+        Storing the frequency of the dataset
         """
         for data in dataset:
             timestamp = data[FieldName.START]
+
+            if self.first_timestamp is None:
+                self.first_timestamp = timestamp
+
+            if self.last_timestamp is None:
+                self.last_timestamp = timestamp
+
+            assert self.first_timestamp is not None
+            assert self.last_timestamp is not None
+
             self.first_timestamp = min(self.first_timestamp, timestamp)
             self.last_timestamp = max(
                 self.last_timestamp,
-                timestamp + (len(data[FieldName.TARGET]) - 1) * timestamp.freq,
+                timestamp + len(data[FieldName.TARGET]) - 1,
             )
             self.frequency = timestamp.freq
+
         logging.info(
-            f"first/last timestamp found: "
+            "first/last timestamp found: "
             f"{self.first_timestamp}/{self.last_timestamp}"
         )
 
@@ -117,10 +125,17 @@ class MultivariateGrouper:
             grouped_dataset = self._prepare_test_data(dataset)
         return grouped_dataset
 
-    def _prepare_train_data(self, dataset: Dataset) -> ListDataset:
-        logging.info("group training time-series to datasets")
+    def _prepare_train_data(self, dataset: Dataset) -> Dataset:
+        logging.info("group training time series to datasets")
 
         grouped_data = self._transform_target(self._align_data_entry, dataset)
+        for data in dataset:
+            fields = data.keys()
+            break
+        if FieldName.FEAT_DYNAMIC_REAL in fields:
+            grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+            )
         grouped_data = self._restrict_max_dimensionality(grouped_data)
         grouped_data[FieldName.START] = self.first_timestamp
         grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -129,8 +144,10 @@ class MultivariateGrouper:
             [grouped_data], freq=self.frequency, one_dim_target=False
         )
 
-    def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
-        logging.info("group test time-series to datasets")
+    def _prepare_test_data(self, dataset: Dataset) -> Dataset:
+        assert self.num_test_dates is not None
+
+        logging.info("group test time series to datasets")
 
         grouped_data = self._transform_target(self._left_pad_data, dataset)
         # splits test dataset with rolling date into N R^d time series where
@@ -145,6 +162,13 @@ class MultivariateGrouper:
             grouped_data[FieldName.TARGET] = np.array(
                 list(dataset_at_test_date), dtype=np.float32
             )
+            for data in dataset:
+                fields = data.keys()
+                break
+            if FieldName.FEAT_DYNAMIC_REAL in fields:
+                grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                    [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+                )
             grouped_data = self._restrict_max_dimensionality(grouped_data)
             grouped_data[FieldName.START] = self.first_timestamp
             grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -154,10 +178,10 @@ class MultivariateGrouper:
             all_entries, freq=self.frequency, one_dim_target=False
         )
 
-    def _align_data_entry(self, data: DataEntry) -> np.array:
+    def _align_data_entry(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=self.last_timestamp,
                 freq=data[FieldName.START].freq,
@@ -165,10 +189,10 @@ class MultivariateGrouper:
             fill_value=self.train_fill_function(ts),
         ).values
 
-    def _left_pad_data(self, data: DataEntry) -> np.array:
+    def _left_pad_data(self, data: DataEntry) -> np.ndarray:
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=ts.index[-1],
                 freq=data[FieldName.START].freq,
@@ -202,13 +226,17 @@ class MultivariateGrouper:
             data[FieldName.TARGET] = data[FieldName.TARGET][
                 -self.max_target_dimension :, :
             ]
+            if FieldName.FEAT_DYNAMIC_REAL in data.keys():
+                data[FieldName.FEAT_DYNAMIC_REAL] = data[
+                    FieldName.FEAT_DYNAMIC_REAL
+                ][-self.max_target_dimension :, :]
         return data
 
     @staticmethod
     def to_ts(data: DataEntry) -> pd.Series:
         return pd.Series(
             data[FieldName.TARGET],
-            index=pd.date_range(
+            index=pd.period_range(
                 start=data[FieldName.START],
                 periods=len(data[FieldName.TARGET]),
                 freq=data[FieldName.START].freq,
