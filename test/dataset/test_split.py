@@ -15,11 +15,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.dataset.common import ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.split import (
-    DateSplitter,
     OffsetSplitter,
+    periods_between,
     split,
     TimeSeriesSlice,
 )
@@ -58,47 +57,78 @@ def test_time_series_slice():
     ).all()
 
 
-def test_split_mult_freq():
-    splitter = DateSplitter(
-        date=pd.Period("2021-01-01", "2h"),
-    )
-
-    splitter.split(
-        [
-            {
-                "item_id": "1",
-                "target": pd.Series([0, 1, 2]),
-                "start": pd.Period("2021-01-01", freq="2H"),
-            }
-        ]
-    )
+@pytest.mark.parametrize(
+    "start, end, count",
+    [
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-05", freq="2D"),
+            1,
+        ),
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-08", freq="2D"),
+            3,
+        ),
+        (
+            pd.Period("2021-03-03 23:00", freq="30T"),
+            pd.Period("2021-03-04 03:29", freq="30T"),
+            9,
+        ),
+        (
+            pd.Period("2015-04-07 00:00", freq="30T"),
+            pd.Period("2015-04-07 09:31", "30T"),
+            20,
+        ),
+        (
+            pd.Period("2015-04-07 00:00", freq="30T"),
+            pd.Period("2015-04-08 16:10", freq="30T"),
+            81,
+        ),
+        (
+            pd.Period("2021-01-01 00", freq="2H"),
+            pd.Period("2021-01-01 08", "2H"),
+            5,
+        ),
+        (
+            pd.Period("2021-01-01 00", freq="2H"),
+            pd.Period("2021-01-01 11", "2H"),
+            6,
+        ),
+    ],
+)
+def test_periods_between(start, end, count):
+    assert count == periods_between(start, end)
 
 
 def test_negative_offset_splitter():
-    dataset = ListDataset(
-        [
-            {"item_id": 0, "start": "2021-03-04", "target": [1.0] * 100},
-            {"item_id": 1, "start": "2021-03-04", "target": [2.0] * 50},
-        ],
-        freq="D",
-    )
+    dataset = [
+        {
+            "item_id": 0,
+            "start": pd.Period("2021-03-04", freq="D"),
+            "target": np.ones(shape=(100,)),
+        },
+        {
+            "item_id": 1,
+            "start": pd.Period("2021-03-04", freq="D"),
+            "target": 2 * np.ones(shape=(50,)),
+        },
+    ]
 
-    splitter = OffsetSplitter(offset=-7).split(dataset)
+    train, test_gen = OffsetSplitter(offset=-7).split(dataset)
 
-    assert [len(t["target"]) for t in splitter[0]] == [93, 43]
+    assert [len(t["target"]) for t in train] == [93, 43]
     assert [
         len(t["target"]) + len(s["target"])
-        for t, s in splitter[1].generate_instances(prediction_length=7)
+        for t, s in test_gen.generate_instances(prediction_length=7)
     ] == [100, 50]
 
-    rolling_splitter = OffsetSplitter(offset=-21).split(dataset)
+    train, test_gen = OffsetSplitter(offset=-21).split(dataset)
 
-    assert [len(t["target"]) for t in rolling_splitter[0]] == [79, 29]
+    assert [len(t["target"]) for t in train] == [79, 29]
     assert [
         len(t["target"]) + len(s["target"])
-        for t, s in rolling_splitter[1].generate_instances(
-            prediction_length=7, windows=3
-        )
+        for t, s in test_gen.generate_instances(prediction_length=7, windows=3)
     ] == [
         86,
         93,
@@ -155,41 +185,38 @@ def check_training_validation(
 @pytest.mark.parametrize(
     "dataset",
     [
-        ListDataset(
-            [
-                {
-                    "item_id": 0,
-                    "start": "2021-03-04",
-                    "target": [1.0] * 365,
-                    "feat_dynamic_real": [[2.0] * 365],
-                },
-                {
-                    "item_id": 1,
-                    "start": "2021-03-04",
-                    "target": [2.0] * 265,
-                    "feat_dynamic_real": [[3.0] * 265],
-                },
-            ],
-            freq="D",
-        ),
-        ListDataset(
-            [
-                {
-                    "item_id": 0,
-                    "start": "2021-03-04",
-                    "target": [[1.0] * 365, [10.0] * 365],
-                    "feat_dynamic_real": [[2.0] * 365],
-                },
-                {
-                    "item_id": 1,
-                    "start": "2021-03-04",
-                    "target": [[2.0] * 265, [20.0] * 265],
-                    "feat_dynamic_real": [[3.0] * 265],
-                },
-            ],
-            one_dim_target=False,
-            freq="D",
-        ),
+        [
+            {
+                "item_id": 0,
+                "start": pd.Period("2021-03-04", freq="D"),
+                "target": np.ones(shape=(365,)),
+                "feat_dynamic_real": 2 * np.ones(shape=(1, 365)),
+            },
+            {
+                "item_id": 1,
+                "start": pd.Period("2021-03-04", freq="D"),
+                "target": 2 * np.ones(shape=(265,)),
+                "feat_dynamic_real": 3 * np.ones(shape=(1, 265)),
+            },
+        ],
+        [
+            {
+                "item_id": 0,
+                "start": pd.Period("2021-03-04", freq="D"),
+                "target": np.stack(
+                    [np.ones(shape=(365,)), 10 * np.ones(shape=(365,))]
+                ),
+                "feat_dynamic_real": 2 * np.ones(shape=(1, 365)),
+            },
+            {
+                "item_id": 1,
+                "start": pd.Period("2021-03-04", freq="D"),
+                "target": np.stack(
+                    [2 * np.ones(shape=(265,)), 20 * np.ones(shape=(265,))]
+                ),
+                "feat_dynamic_real": 3 * np.ones(shape=(1, 265)),
+            },
+        ],
     ],
 )
 @pytest.mark.parametrize(
@@ -238,3 +265,128 @@ def test_split(dataset, date, offset, windows, distance, max_history):
                 offset=offset,
             )
             k += 1
+
+
+@pytest.mark.parametrize(
+    "entry, offset, prediction_length, test_label_start",
+    [
+        (
+            {
+                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "target": np.random.randn(100),
+            },
+            20,
+            6,
+            pd.Period("2015-04-07 10:00:00", freq="30T"),
+        ),
+        (
+            {
+                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "target": np.random.randn(100),
+            },
+            -20,
+            6,
+            pd.Period("2015-04-08 16:00:00", freq="30T"),
+        ),
+    ],
+)
+def test_split_offset(
+    entry,
+    offset,
+    prediction_length,
+    test_label_start,
+):
+    training_dataset, test_template = split([entry], offset=offset)
+
+    training_entry = next(iter(training_dataset))
+    test_input, test_label = next(
+        iter(
+            test_template.generate_instances(
+                prediction_length=prediction_length
+            )
+        )
+    )
+
+    if offset < 0:
+        training_size = (len(entry["target"]) + offset,)
+    else:
+        training_size = (offset,)
+
+    assert training_entry["start"] == entry["start"]
+    assert training_entry["target"].shape == training_size
+
+    assert test_input["start"] == entry["start"]
+    assert test_input["target"].shape == training_size
+
+    assert test_label["start"] == test_label_start
+    assert test_label["target"].shape == (prediction_length,)
+
+
+@pytest.mark.parametrize(
+    "entry, date, prediction_length, training_size",
+    [
+        (
+            {
+                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "target": np.random.randn(100),
+            },
+            pd.Period("2015-04-07 09:30", "30T"),
+            6,
+            (20,),
+        ),
+        (
+            {
+                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "target": np.random.randn(100),
+            },
+            pd.Period("2015-04-08 16:00:00", freq="30T"),
+            6,
+            (81,),
+        ),
+        (
+            {
+                "start": pd.Period("2021-01-01 00", freq="2H"),
+                "target": np.arange(10),
+            },
+            pd.Period("2021-01-01 08", "2h"),
+            2,
+            (5,),
+        ),
+        (
+            {
+                "start": pd.Period("2021-01-01 00", freq="2H"),
+                "target": np.arange(10),
+            },
+            pd.Period("2021-01-01 11", "2h"),
+            2,
+            (6,),
+        ),
+    ],
+)
+def test_split_date(
+    entry,
+    date,
+    prediction_length,
+    training_size,
+):
+    training_dataset, test_template = split([entry], date=date)
+
+    training_entry = next(iter(training_dataset))
+    test_input, test_label = next(
+        iter(
+            test_template.generate_instances(
+                prediction_length=prediction_length
+            )
+        )
+    )
+
+    assert training_entry["start"] == entry["start"]
+    assert training_entry["target"].shape == training_size
+
+    assert test_input["start"] == entry["start"]
+    assert test_input["target"].shape == training_size
+
+    assert test_label["start"] == test_input["start"] + len(
+        test_input["target"]
+    )
+    assert test_label["target"].shape == (prediction_length,)
