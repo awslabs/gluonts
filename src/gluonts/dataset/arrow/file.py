@@ -32,8 +32,9 @@ class File:
     def infer(
         path: Path,
     ) -> Union["ArrowFile", "ArrowStreamFile", "ParquetFile"]:
-        """Return `ArrowFile`, `ArrowStreamFile` or `ParquetFile` by
-        inspecting provided path.
+        """
+        Return `ArrowFile`, `ArrowStreamFile` or `ParquetFile` by inspecting
+        provided path.
 
         Arrow's `random-access` format starts with `ARROW1`, so we peek the
         provided file for it.

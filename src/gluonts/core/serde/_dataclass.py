@@ -79,7 +79,8 @@ else:
 
 @dataclasses.dataclass
 class OrElse(AnyLike):
-    """A default field for a dataclass, that uses a function to calculate the
+    """
+    A default field for a dataclass, that uses a function to calculate the
     value if none was passed.
 
     The function can take arguments, which are other fields of the annotated
@@ -98,7 +99,6 @@ class OrElse(AnyLike):
         assert x.b == 2
         assert x.c == 4
     ```
-
     """
 
     fn: Callable
@@ -122,8 +122,8 @@ def dataclass(
     unsafe_hash=False,
     frozen=False,
 ):
-    """Custom dataclass wrapper for serde.
-
+    """
+    Custom dataclass wrapper for serde.
 
     This works similar to the ``dataclasses.dataclass`` and
     ``pydantic.dataclasses.dataclass`` decorators. Similar to the ``pydantic``

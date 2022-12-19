@@ -187,11 +187,10 @@ class PandasDataset:
         cls, dataframe: pd.DataFrame, item_id: str, **kwargs
     ) -> "PandasDataset":
         """
-        Construct ``PandasDataset`` out of a long dataframe.
-        A long dataframe uses the long format for each variable. Target time
-        series values, for example, are stacked on top of each other rather
-        than side-by-side. The same is true for other dynamic or categorical
-        features.
+        Construct ``PandasDataset`` out of a long dataframe. A long dataframe
+        uses the long format for each variable. Target time series values, for
+        example, are stacked on top of each other rather than side-by-side. The
+        same is true for other dynamic or categorical features.
 
         Parameters
         ----------
@@ -261,8 +260,8 @@ def as_dataentry(
     past_feat_dynamic_real: List[str] = [],
 ) -> DataEntry:
     """
-    Convert a single time series (uni- or multi-variate) that is given in
-    a pandas.DataFrame format to a DataEntry.
+    Convert a single time series (uni- or multi-variate) that is given in a
+    pandas.DataFrame format to a DataEntry.
 
     Parameters
     ----------

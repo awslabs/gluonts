@@ -102,7 +102,8 @@ class ListElement:
 
 
 class LinkedList:
-    """Simple linked list, where only elements controls removal of them.
+    """
+    Simple linked list, where only elements controls removal of them.
 
     This is needed to allow for behaviour like this:
 
@@ -137,7 +138,9 @@ class LinkedList:
         return self.end
 
     def last(self):
-        """Peek last value."""
+        """
+        Peek last value.
+        """
         return self.end.val
 
     def reverse(self):
