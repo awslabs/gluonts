@@ -26,3 +26,9 @@ ignore = [
 ]
 
 exclude = ["src/gluonts/nursery"]
+
+
+[tool.docformatter]
+pre-summary-newline = true
+make-summary-multi-line = true
+wrap-descriptions = 79
