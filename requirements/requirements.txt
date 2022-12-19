@@ -1,6 +1,4 @@
-# upper bound added since numpy==1.24 broke importing mxnet,
-# see https://github.com/awslabs/gluonts/pull/2506
-numpy~=1.16,<1.24  
+numpy~=1.16
 pandas~=1.0
 pydantic~=1.7
 tqdm~=4.23
