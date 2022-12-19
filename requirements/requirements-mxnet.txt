@@ -1,1 +1,4 @@
+# upper bound added since numpy==1.24 broke importing mxnet,
+# see https://github.com/awslabs/gluonts/pull/2506
+numpy<1.24
 mxnet~=1.7
