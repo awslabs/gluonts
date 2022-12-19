@@ -76,7 +76,6 @@ from dataclasses import dataclass
 from typing import Generator, Optional, Tuple
 
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 
 from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
@@ -87,12 +86,22 @@ def periods_between(
     end: pd.Period,
 ) -> int:
     """
-    Counts how many periods fit between ``start`` and ``end``
-    (inclusive).
+    Count how many periods fit between ``start`` and ``end``
+    (inclusive). The frequency is taken from ``start``.
 
-    The frequency is taken from ``start``.
+    For example:
+
+        >>> start = pd.Period("2021-01-01 00", freq="2H")
+        >>> end = pd.Period("2021-01-01 11", "2H")
+        >>> periods_between(start, end)
+        6
+
+        >>> start = pd.Period("2021-03-03 23:00", freq="30T")
+        >>> end = pd.Period("2021-03-04 03:29", freq="30T")
+        >>> periods_between(start, end)
+        9
     """
-    return ((end - start).n // to_offset(start.freq).n) + 1
+    return ((end - start).n // start.freq.n) + 1
 
 
 def to_positive_slice(slice_: slice, length: int) -> slice:
