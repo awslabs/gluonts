@@ -16,13 +16,10 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install ruff
-        pip install docformatter
+        pip install docformatter==1.5.0[tomli]
     - name: Ruff (Flake8)
       run: |
         ruff src
     - name: DocFormatter
       run: |
-        docformatter \
-           --pre-summary-newline --make-summary-multi-line \
-           --wrap-descriptions 79 \
-           -r src/gluonts
+        docformatter -r src/gluonts
