@@ -117,7 +117,6 @@ class HierarchicalTimeSeries:
         -------
             A pandas dataframe consisting of aggregated time series
             (at all non-leaf levels).
-
         """
         num_ts, num_bottom_ts = S.shape
         num_agg_ts = num_ts - num_bottom_ts
@@ -177,7 +176,6 @@ class HierarchicalTimeSeries:
         -------
         PandasDataset
             An instance of `PandasDataset`.
-
         """
         ignore_last_n_targets = 0
 

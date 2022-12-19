@@ -791,7 +791,6 @@ class RecipeDataset(ArtificialDataset):
 
 
 def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
-
     recipe = [
         (FieldName.TARGET, LinearTrend() + RandomGaussian()),
         (FieldName.FEAT_STATIC_CAT, RandomCat([10])),
