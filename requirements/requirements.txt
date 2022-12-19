@@ -1,4 +1,4 @@
-numpy~=1.16
+numpy~=1.16,<1.24
 pandas~=1.0
 pydantic~=1.7
 tqdm~=4.23
