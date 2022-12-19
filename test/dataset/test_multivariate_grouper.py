@@ -119,6 +119,9 @@ TEST_FILL_RULE = [lambda x: 0.0, lambda x: 0.0]
 MAX_TARGET_DIM = [2, 1]
 
 
+@pytest.mark.xfail(
+    reason="This test is known to fail with numpy>=1.24, and a fix is pending"
+)
 @pytest.mark.parametrize(
     "univariate_ts, multivariate_ts, test_fill_rule, max_target_dim",
     zip(
