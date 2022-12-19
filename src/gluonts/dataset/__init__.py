@@ -35,7 +35,9 @@ class Dataset(Protocol):
 
 @dataclass
 class DatasetCollection:
-    """Flattened access to a collection of datasets."""
+    """
+    Flattened access to a collection of datasets.
+    """
 
     datasets: List[Dataset]
     interleave: bool = False
