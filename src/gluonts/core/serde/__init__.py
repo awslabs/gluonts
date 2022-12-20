@@ -69,6 +69,7 @@ occurances. Consequently, ciruclar references do not work.
 `dump_json` and `load_json` are simple helpers, which use `encode` and
 `decode` internally.
 """
+
 from . import flat
 from ._base import Stateful, Stateless, decode, encode
 from ._dataclass import dataclass, EVENTUAL, Eventual, OrElse
