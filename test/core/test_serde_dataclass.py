@@ -63,3 +63,18 @@ def test_dataclass_subtype():
 
     x2 = serde.decode(serde.encode(x))
     assert isinstance(x2.a, B)
+
+
+def test_dataclass_inheritance():
+    @serde.dataclass
+    class A:
+        x: int = 1
+        y: int = 2
+
+    @serde.dataclass
+    class B(A):
+        z: int = 4
+
+    b = B(x=3)
+    assert b.x == 3
+    assert b.z == 4
