@@ -712,7 +712,7 @@ class QuantileForecast(Forecast):
 
         inference_quantile = Quantile.parse(inference_quantile).value
 
-        if len(quantiles) == 1 or inference_quantile in quantiles:
+        if len(quantiles) < 2 or inference_quantile in quantiles:
             q_str = Quantile.parse(inference_quantile).name
             return self._forecast_dict.get(q_str, self._nan_out)
 
