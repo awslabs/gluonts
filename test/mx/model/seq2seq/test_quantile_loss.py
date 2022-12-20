@@ -51,7 +51,7 @@ def test_compute_quantile_loss(quantile_weights, correct_qt_loss) -> None:
     else:
         assert (
             nd.mean(loss(y_true, y_pred)) - correct_qt_loss < tol
-        ), f"computing weighted quantile loss fails!"
+        ), "computing weighted quantile loss fails!"
 
 
 @pytest.mark.parametrize(
@@ -72,7 +72,7 @@ def test_crps_pwl_quantile_weights(quantiles, true_quantile_weight) -> None:
     assert len(quantiles) == len(true_quantile_weight), (
         f"length quantiles {quantiles} "
         f"and quantile_weights {true_quantile_weight} "
-        f"do not match."
+        "do not match."
     )
     tol = 1e-5
     quantile_weights = crps_weights_pwl(quantiles)
@@ -82,7 +82,7 @@ def test_crps_pwl_quantile_weights(quantiles, true_quantile_weight) -> None:
             for i in range(len(quantiles))
         )
         < tol
-    ), f"inaccurate computation of quantile weights"
+    ), "inaccurate computation of quantile weights"
 
 
 @pytest.mark.parametrize(
@@ -144,7 +144,7 @@ def test_infer_quantile_forecast(
                         - quantile_forecast.quantile(q)
                     )
                     < tol
-                ), f"infer_quantile_forecast failed for singleton quantile."
+                ), "infer_quantile_forecast failed for singleton quantile."
 
     else:
         assert (
@@ -156,4 +156,4 @@ def test_infer_quantile_forecast(
                 for q in inference_quantiles
             )
             < tol
-        ), f"infer_quantile_forecast failed."
+        ), "infer_quantile_forecast failed."

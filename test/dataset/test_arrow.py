@@ -23,7 +23,6 @@ from gluonts.dataset.arrow import (
     File,
     ArrowWriter,
     ParquetWriter,
-    write_dataset,
 )
 
 

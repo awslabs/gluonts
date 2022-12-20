@@ -401,7 +401,7 @@ def test_mixture_logprob(
         lp.asnumpy(),
         np.log(p) + gaussian.log_prob(values_outside_support).asnumpy(),
         atol=1e-6,
-    ), f"log_prob(x) should be equal to log(p)+gaussian.log_prob(x)"
+    ), "log_prob(x) should be equal to log(p)+gaussian.log_prob(x)"
 
     fit_mixture = fit_mixture_distribution(
         values_outside_support,
