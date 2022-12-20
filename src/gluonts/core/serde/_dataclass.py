@@ -293,4 +293,4 @@ def _dataclass(
 
 
 if TYPE_CHECKING:
-    dataclass = dataclasses.dataclass  # type: ignore
+    dataclass = dataclasses.dataclass  # type: ignore # noqa
