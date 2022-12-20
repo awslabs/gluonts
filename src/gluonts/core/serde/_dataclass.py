@@ -24,8 +24,8 @@ from typing import (
     TypeVar,
 )
 
+import pydantic
 import pydantic.dataclasses
-from pydantic import create_model
 
 from gluonts.itertools import select
 
@@ -148,26 +148,47 @@ def _dataclass(
     unsafe_hash=False,
     frozen=True,
 ):
-    fields = {}
+    class Config:
+        arbitrary_types_allowed = True
+
+    # make `cls` a dataclass
+    pydantic.dataclasses.dataclass(
+        init=init,
+        repr=repr,
+        eq=eq,
+        order=order,
+        unsafe_hash=unsafe_hash,
+        frozen=frozen,
+        config=Config,
+    )(cls)
+
+    model_fields = {}
     orelse_fields = {}
     eventual_fields = set()
 
-    for name, ty in getattr(cls, "__annotations__", {}).items():
-        value = cls.__dict__.get(name, dataclasses.MISSING)
+    # Collect init args to pass to pydantic model
+    # Also, collect eventual and orelse fields
+    for name, field in cls.__dataclass_fields__.items():
+        if not field.init:
+            continue
 
-        # skip if: field(init=False)
-        if isinstance(value, dataclasses.Field):
-            if not value.init:
-                continue
-            default = value.default
-        else:
-            default = value
+        if field.default is EVENTUAL:
+            eventual_fields.add(name)
+            continue
 
-        if default is dataclasses.MISSING:
-            default = ...
+        elif isinstance(field.default, OrElse):
+            orelse_fields[name] = field.default
+            continue
+
+        # now let's look at the type
+        ty = field.type
 
         # skip ClassVar
-        if ty is ClassVar or getattr(cls, "__origin__", None) is ClassVar:
+        if (
+            ty is ClassVar
+            # `ClassVar[X].__origin__ is ClassVar`
+            or getattr(ty, "__origin__", None) is ClassVar
+        ):
             continue
 
         # if InitVar is used, we extract the inner value
@@ -176,18 +197,24 @@ def _dataclass(
         elif isinstance(ty, dataclasses.InitVar):
             ty = ty.type
 
-        if default is EVENTUAL:
-            eventual_fields.add(name)
+        # do we have a default value set
+        if not isinstance(field.default, dataclasses._MISSING_TYPE):
+            model_fields[name] = ty, pydantic.Field(default=field.default)
+        # do we have a default_factory set
+        elif not isinstance(field.default_factory, dataclasses._MISSING_TYPE):
+            model_fields[name] = ty, pydantic.Field(
+                default_factory=field.default_factory
+            )
+        # no default
+        else:
+            model_fields[name] = ty, ...
 
-        if isinstance(default, OrElse):
-            orelse_fields[name] = default
-
-        fields[name] = ty, default
-
+    # figure out in which order to resolve `OrElse`, since they can depend on
+    # each other -- however, no cycles!
     orelse_order = {}
 
     if orelse_fields:
-        available_fields = set(fields)
+        available_fields = set(cls.__dataclass_fields__)
 
         unhandled = dict(orelse_fields)
 
@@ -206,22 +233,11 @@ def _dataclass(
                     f"Can not resolve dependencies of {unhandled}"
                 )
 
-    class Config:
-        arbitrary_types_allowed = True
+    model = pydantic.create_model(
+        f"{cls.__name__}Model", __config__=Config, **model_fields
+    )
 
-    model = create_model(f"{cls.__name__}Model", __config__=Config, **fields)
-
-    dc = pydantic.dataclasses.dataclass(
-        init=init,
-        repr=repr,
-        eq=eq,
-        order=order,
-        unsafe_hash=unsafe_hash,
-        frozen=frozen,
-        config=Config,
-    )(cls)
-
-    orig_init = dc.__init__
+    orig_init = cls.__init__
 
     def _init_(self, *args, **input_kwargs):
         if args:
@@ -272,5 +288,5 @@ def _dataclass(
 
         orig_init(self, **init_kwargs)
 
-    dc.__init__ = _init_
-    return dc
+    cls.__init__ = _init_
+    return cls
