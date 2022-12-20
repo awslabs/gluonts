@@ -290,3 +290,7 @@ def _dataclass(
 
     cls.__init__ = _init_
     return cls
+
+
+if TYPE_CHECKING:
+    dataclass = dataclasses.dataclass  # type: ignore # noqa
