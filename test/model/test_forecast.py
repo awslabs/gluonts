@@ -88,7 +88,7 @@ def test_mean_only_forecast():
 
     for level in [0.1, 0.5, 0.7]:
         assert np.isnan(forecast.quantile(level)).all()
-    
+
     assert np.equal(forecast.mean, 1).all()
 
 
