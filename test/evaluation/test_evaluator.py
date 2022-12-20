@@ -42,24 +42,6 @@ def fcst_iterator(fcst, start_dates):
         )
 
 
-def iterator(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterator)
-    """
-    return iter(it)
-
-
-def iterable(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterable)
-    """
-    return list(it)
-
-
 def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
     """
     :param ts: pandas.Series
@@ -88,7 +70,7 @@ def calculate_metrics(
     ts_datastructure,
     has_nans=False,
     forecaster=naive_forecaster,
-    input_type=iterator,
+    input_type=iter,
 ):
     num_timeseries = timeseries.shape[0]
     num_timestamps = timeseries.shape[1]
@@ -435,7 +417,7 @@ RES = [
 HAS_NANS = [False, False, True, False, True, True]
 
 
-INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
+INPUT_TYPE = [list, list, list, iter, iter, list]
 
 
 @pytest.mark.parametrize(
@@ -611,7 +593,7 @@ HAS_NANS_MULTIVARIATE = [False, False, False, False, False, False]
 
 EVAL_DIMS = [[0], [1], [0, 1], [0], [1], None]
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable, iterator]
+INPUT_TYPE = [list, list, iter, iter, list, iter]
 
 
 @pytest.mark.parametrize(
@@ -849,14 +831,14 @@ FCST_TYPES = ["mean"] * 8
 HAS_NANS = [False, False, True, False, False, True, True, True]
 
 INPUT_TYPE = [
-    iterable,
-    iterable,
-    iterable,
-    iterator,
-    iterator,
-    iterator,
-    iterator,
-    iterable,
+    list,
+    list,
+    list,
+    iter,
+    iter,
+    iter,
+    iter,
+    list,
 ]
 
 
@@ -1041,7 +1023,7 @@ HAS_NANS_MULTIVARIATE = [False, False, False, False, False, False]
 
 EVAL_DIMS = [[0], [1], [0, 1], [0], [1], None]
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable, iterator]
+INPUT_TYPE = [list, list, iter, iter, list, iter]
 
 CALLABLES = [rmsle] * 6
 METRIC_NAMES = ["RMSLE"] * 6
