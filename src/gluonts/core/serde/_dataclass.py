@@ -274,3 +274,7 @@ def _dataclass(
 
     dc.__init__ = _init_
     return dc
+
+
+if TYPE_CHECKING:
+    dataclass = dataclasses.dataclass  # type: ignore
