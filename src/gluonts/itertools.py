@@ -199,7 +199,8 @@ def rows_to_columns(
     rows: Sequence[Dict[K, V]],
     wrap: Callable[[Sequence[V]], Sequence[V]] = lambda x: x,
 ) -> Dict[K, Sequence[V]]:
-    """Transpose rows of dicts, to one dict containing columns.
+    """
+    Transpose rows of dicts, to one dict containing columns.
 
     >>> rows_to_columns([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
     {'a': [1, 3], 'b': [2, 4]}
@@ -220,7 +221,8 @@ def rows_to_columns(
 
 
 def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
-    """Transpose column-orientation to row-orientation.
+    """
+    Transpose column-orientation to row-orientation.
 
     >>> columns_to_rows({'a': [1, 3], 'b': [2, 4]})
     [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
@@ -237,7 +239,8 @@ def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
 
 
 def roundrobin(*iterables):
-    """`roundrobin('ABC', 'D', 'EF') --> A D E B F C`
+    """
+    `roundrobin('ABC', 'D', 'EF') --> A D E B F C`
 
     Taken from: https://docs.python.org/3/library/itertools.html#recipes.
     """
@@ -258,7 +261,8 @@ def roundrobin(*iterables):
 def partition(
     it: Iterator[T], fn: Callable[[T], bool]
 ) -> Tuple[List[T], List[T]]:
-    """Partition `it` into two lists given predicate `fn`.
+    """
+    Partition `it` into two lists given predicate `fn`.
 
     This is similar to the recipe defined in Python's `itertools` docs, however
     this method consumes the iterator directly  and returns lists instead of
@@ -274,3 +278,24 @@ def partition(
             right.append(val)
 
     return left, right
+
+
+def select(keys, source: dict, ignore_missing: bool = False) -> dict:
+    """Select subset of `source` dictionaries.
+
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> select(["a", "b"], d)
+    {'a': 1, 'b': 2}
+
+    """
+
+    result = {}
+
+    for key in keys:
+        try:
+            result[key] = source[key]
+        except KeyError:
+            if not ignore_missing:
+                raise
+
+    return result

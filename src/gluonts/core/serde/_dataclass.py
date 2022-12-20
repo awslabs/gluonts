@@ -27,6 +27,8 @@ from typing import (
 import pydantic.dataclasses
 from pydantic import create_model
 
+from gluonts.itertools import select
+
 T = TypeVar("T")
 
 
@@ -77,7 +79,8 @@ else:
 
 @dataclasses.dataclass
 class OrElse(AnyLike):
-    """A default field for a dataclass, that uses a function to calculate the
+    """
+    A default field for a dataclass, that uses a function to calculate the
     value if none was passed.
 
     The function can take arguments, which are other fields of the annotated
@@ -96,7 +99,6 @@ class OrElse(AnyLike):
         assert x.b == 2
         assert x.c == 4
     ```
-
     """
 
     fn: Callable
@@ -118,10 +120,10 @@ def dataclass(
     eq=True,
     order=False,
     unsafe_hash=False,
-    frozen=True,
+    frozen=False,
 ):
-    """Custom dataclass wrapper for serde.
-
+    """
+    Custom dataclass wrapper for serde.
 
     This works similar to the ``dataclasses.dataclass`` and
     ``pydantic.dataclasses.dataclass`` decorators. Similar to the ``pydantic``
@@ -231,7 +233,12 @@ def _dataclass(
         input_kwargs.update(kwargs)
 
         validated_model = model(**input_kwargs)
-        init_kwargs = validated_model.dict()
+        # .dict() turns its values into dicts as well, so we just get the
+        # attributes directly from the model
+        init_kwargs = {
+            key: getattr(validated_model, key)
+            for key in validated_model.dict()
+        }
 
         for orelse_name, orelse in orelse_order.items():
             value = orelse._call(init_kwargs)
@@ -264,8 +271,7 @@ def _dataclass(
             "__init_passed_kwargs__",
             {
                 key: value
-                for key, value in validated_model.dict().items()
-                if key in input_kwargs
+                for key, value in select(input_kwargs, init_kwargs).items()
             },
         )
 

@@ -44,10 +44,10 @@ Python has the notion of [extras](https://peps.python.org/pep-0508/#extras)
 a package.
 
 When installing a package, they are passed via ``[...]`` after the package
-name (and version specifier):
+name, but before the version specifier:
 
 ```sh
-pip install some-package==version[extra-1,extra-2]
+pip install some-package[extra-1,extra-2]==version
 ````
 
 We make extensive use of optional dependencies in GluonTS to keep the amount of
