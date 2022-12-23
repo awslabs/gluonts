@@ -27,11 +27,14 @@ logger = logging.getLogger(__name__)
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
-LOG_CACHE = set([])
+LOG_CACHE = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )
-NOT_SAMPLE_BASED_MSG = "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
+NOT_SAMPLE_BASED_MSG = (
+    "Forecast is not sample based. Ignoring parameter `num_samples` from"
+    " predict method."
+)
 
 
 def log_once(msg):
@@ -41,55 +44,37 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
-# different deep learning frameworks generate predictions and the tensor to numpy conversion differently,
-# use a dispatching function to prevent needing a ForecastGenerators for each framework
+# different deep learning frameworks generate predictions and the tensor to
+# numpy conversion differently, use a dispatching function to prevent needing
+# a ForecastGenerators for each framework
 @singledispatch
-def predict_to_numpy(prediction_net, tensor) -> np.ndarray:
+def predict_to_numpy(prediction_net, args) -> np.ndarray:
     raise NotImplementedError
 
 
-@singledispatch
-def recursively_zip_arrays(x) -> Iterator:
+def _unpack(batched) -> Iterator:
     """
-    Helper function to recursively zip nested collections of arrays.
+    Unpack batches.
 
-    This defines the fallback implementation, which one can specialized for specific types
-    using by doing ``@recursively_zip_arrays.register`` on the type. Implementations for
-    lists, tuples, and NumPy arrays are provided.
+    This assumes that arrays are wrapped in a  nested structure of lists and
+    tuples, and each array has the same shape::
 
-    For an array `a` (e.g. a numpy array)
-
-        _extract_instances(a) -> [a[0], a[1], ...]
-
-    For (nested) tuples of arrays `(a, (b, c))`
-
-        _extract_instances((a, (b, c)) -> [(a[0], (b[0], c[0])), (a[1], (b[1], c[1])), ...]
+        >>> a = np.arange(5)
+        >>> batched = [a, (a, [a, a, a])]
+        >>> list(_unpack(batched))
+        [[0, (0, [0, 0, 0])],
+         [1, (1, [1, 1, 1])],
+         [2, (2, [2, 2, 2])],
+         [3, (3, [3, 3, 3])],
+         [4, (4, [4, 4, 4])]]
     """
-    raise NotImplementedError
 
+    if isinstance(batched, (list, tuple)):
+        T = type(batched)
 
-@recursively_zip_arrays.register(np.ndarray)
-def _(x: np.ndarray) -> Iterator[list]:
-    for i in range(x.shape[0]):
-        yield x[i]
+        return map(T, zip(*map(_unpack, batched)))
 
-
-@recursively_zip_arrays.register(tuple)
-def _(x: tuple) -> Iterator[tuple]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield tuple([r for r in m])
-
-
-@recursively_zip_arrays.register(list)
-def _(x: list) -> Iterator[list]:
-    for m in zip(*[recursively_zip_arrays(y) for y in x]):
-        yield [r for r in m]
-
-
-@recursively_zip_arrays.register(type(None))
-def _(x: type(None)) -> Iterator[type(None)]:
-    while True:
-        yield None
+    return batched
 
 
 @singledispatch
@@ -107,7 +92,6 @@ class ForecastGenerator:
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -125,7 +109,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -143,15 +126,14 @@ class QuantileForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield QuantileForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class SampleForecastGenerator(ForecastGenerator):
@@ -164,7 +146,6 @@ class SampleForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -192,14 +173,13 @@ class SampleForecastGenerator(ForecastGenerator):
             for i, output in enumerate(outputs):
                 yield SampleForecast(
                     output,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class DistributionForecastGenerator(ForecastGenerator):
@@ -212,7 +192,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         inference_data_loader: DataLoader,
         prediction_net,
         input_names: List[str],
-        freq: str,
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
         **kwargs
@@ -227,19 +206,17 @@ class DistributionForecastGenerator(ForecastGenerator):
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
-                self.distr_output.distribution(*u)
-                for u in recursively_zip_arrays(outputs)
+                self.distr_output.distribution(*u) for u in _unpack(outputs)
             ]
 
             i = -1
             for i, distr in enumerate(distributions):
                 yield make_distribution_forecast(
                     distr,
-                    start_date=batch["forecast_start"][i],
-                    freq=freq,
+                    start_date=batch[FieldName.FORECAST_START][i],
                     item_id=batch[FieldName.ITEM_ID][i]
                     if FieldName.ITEM_ID in batch
                     else None,
                     info=batch["info"][i] if "info" in batch else None,
                 )
-            assert i + 1 == len(batch["forecast_start"])
+            assert i + 1 == len(batch[FieldName.FORECAST_START])

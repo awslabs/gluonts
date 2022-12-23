@@ -17,7 +17,7 @@ This example show how to intialize the network with parameters from a model that
 
 from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
 from gluonts.evaluation import backtest_metrics, Evaluator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 import pandas as pd
 
@@ -31,7 +31,6 @@ if __name__ == "__main__":
     # First train a model
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
         trainer=Trainer(epochs=10, num_batches_per_epoch=10),
     )
 
@@ -46,7 +45,6 @@ if __name__ == "__main__":
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
         trainer=Trainer(
             epochs=5, num_batches_per_epoch=10, post_initialize_cb=copy_params
         ),

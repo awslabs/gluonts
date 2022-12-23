@@ -116,9 +116,11 @@ def aggregate_precision_recall_curve(
     n_jobs: int = -1,
 ):
     """
-    Computes aggregate range-based precision recall curves over a data set, iterating over
-    individual time series. Optionally takes partially constructed filter that converts given scores/thresholds to
-    anomaly labels. See `gluonts.nursery.anomaly_detection.supervised_metrics.filters` for example filters.
+    Computes aggregate range-based precision recall curves over a data set,
+    iterating over individual time series. Optionally takes partially
+    constructed filter that converts given scores/thresholds to anomaly labels.
+    See `gluonts.nursery.anomaly_detection.supervised_metrics.filters` for
+    example filters.
 
     Parameters
     ----------
@@ -207,7 +209,8 @@ def aggregate_precision_recall(
     precision_recall_fn: Callable = buffered_precision_recall,
 ) -> Tuple[float, float]:
     """
-    Computes aggregate range-based precision recall metrics for the given prediction labels.
+    Computes aggregate range-based precision recall metrics for the given
+    prediction labels.
 
     Parameters
     ----------

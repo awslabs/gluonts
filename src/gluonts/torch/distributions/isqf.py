@@ -11,24 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
+from torch.distributions import AffineTransform, TransformedDistribution
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
-    Distribution,
-    DistributionOutput,
-)
 
-from torch.distributions import (
-    AffineTransform,
-    TransformedDistribution,
-)
+from .distribution_output import DistributionOutput
 
 
-class ISQF(Distribution):
+class ISQF(torch.distributions.Distribution):
     r"""
     Distribution class for the Incremental (Spline) Quantile Function in the
     paper ``Learning Quantile Functions without Quantile Crossing for
@@ -65,7 +59,7 @@ class ISQF(Distribution):
         self.qk_y_all = qk_y
         self.tol = tol
 
-        super(ISQF, self).__init__(
+        super().__init__(
             batch_shape=self.batch_shape, validate_args=validate_args
         )
 
@@ -760,8 +754,8 @@ class ISQFOutput(DistributionOutput):
         torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
     ]:
         """
-        Domain map function
-        The inputs of this function are specified by self.args_dim
+        Domain map function The inputs of this function are specified by
+        self.args_dim.
 
         spline_knots, spline_heights:
         parameterizing the x-/ y-positions of the spline knots,
@@ -821,9 +815,8 @@ class ISQFOutput(DistributionOutput):
 
     def reshape_spline_args(self, distr_args, qk_x: List[float]):
         """
-        auxiliary function reshaping
-        knots and heights to (*batch_shape, num_qk-1, num_pieces)
-        qk_x to (*batch_shape, num_qk)
+        auxiliary function reshaping knots and heights to (*batch_shape,
+        num_qk-1, num_pieces) qk_x to (*batch_shape, num_qk)
         """
 
         spline_knots, spline_heights = distr_args[0], distr_args[1]

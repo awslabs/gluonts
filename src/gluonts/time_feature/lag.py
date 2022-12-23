@@ -21,7 +21,7 @@ from gluonts.time_feature import norm_freq_str
 
 def _make_lags(middle: int, delta: int) -> np.ndarray:
     """
-    Create a set of lags around a middle point including +/- delta
+    Create a set of lags around a middle point including +/- delta.
     """
     return np.arange(middle - delta, middle + delta + 1).tolist()
 
@@ -30,17 +30,19 @@ def get_lags_for_frequency(
     freq_str: str, lag_ub: int = 1200, num_lags: Optional[int] = None
 ) -> List[int]:
     """
-    Generates a list of lags that that are appropriate for the given frequency string.
+    Generates a list of lags that that are appropriate for the given frequency
+    string.
 
     By default all frequencies have the following lags: [1, 2, 3, 4, 5, 6, 7].
-    Remaining lags correspond to the same `season` (+/- `delta`) in previous `k` cycles.
-    Here `delta` and `k` are chosen according to the existing code.
+    Remaining lags correspond to the same `season` (+/- `delta`) in previous
+    `k` cycles. Here `delta` and `k` are chosen according to the existing code.
 
     Parameters
     ----------
 
     freq_str
-        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
+        Frequency string of the form [multiple][granularity] such as "12H",
+        "5min", "1D" etc.
 
     lag_ub
         The maximum value for a lag.
@@ -49,7 +51,14 @@ def get_lags_for_frequency(
         Maximum number of lags; by default all generated lags are returned
     """
 
-    # Lags are target values at the same `season` (+/- delta) but in the previous cycle.
+    # Lags are target values at the same `season` (+/- delta) but in the
+    # previous cycle.
+    def _make_lags_for_second(multiple, num_cycles=3):
+        # We use previous ``num_cycles`` hours to generate lags
+        return [
+            _make_lags(k * 60 // multiple, 2) for k in range(1, num_cycles + 1)
+        ]
+
     def _make_lags_for_minute(multiple, num_cycles=3):
         # We use previous ``num_cycles`` hours to generate lags
         return [
@@ -62,12 +71,15 @@ def get_lags_for_frequency(
             _make_lags(k * 24 // multiple, 1) for k in range(1, num_cycles + 1)
         ]
 
-    def _make_lags_for_day(multiple, num_cycles=4):
+    def _make_lags_for_day(
+        multiple, num_cycles=4, days_in_week=7, days_in_month=30
+    ):
         # We use previous ``num_cycles`` weeks to generate lags
         # We use the last month (in addition to 4 weeks) to generate lag.
         return [
-            _make_lags(k * 7 // multiple, 1) for k in range(1, num_cycles + 1)
-        ] + [_make_lags(30 // multiple, 1)]
+            _make_lags(k * days_in_week // multiple, 1)
+            for k in range(1, num_cycles + 1)
+        ] + [_make_lags(days_in_month // multiple, 1)]
 
     def _make_lags_for_week(multiple, num_cycles=3):
         # We use previous ``num_cycles`` years to generate lags
@@ -103,21 +115,29 @@ def get_lags_for_frequency(
             offset.n / 7.0
         )
     elif offset_name == "B":
-        # todo find good lags for business day
-        lags = []
+        lags = _make_lags_for_day(
+            offset.n, days_in_week=5, days_in_month=22
+        ) + _make_lags_for_week(offset.n / 5.0)
     elif offset_name == "H":
         lags = (
             _make_lags_for_hour(offset.n)
-            + _make_lags_for_day(offset.n / 24.0)
-            + _make_lags_for_week(offset.n / (24.0 * 7))
+            + _make_lags_for_day(offset.n / 24)
+            + _make_lags_for_week(offset.n / (24 * 7))
         )
     # minutes
     elif offset_name == "T":
         lags = (
             _make_lags_for_minute(offset.n)
-            + _make_lags_for_hour(offset.n / 60.0)
-            + _make_lags_for_day(offset.n / (60.0 * 24))
-            + _make_lags_for_week(offset.n / (60.0 * 24 * 7))
+            + _make_lags_for_hour(offset.n / 60)
+            + _make_lags_for_day(offset.n / (60 * 24))
+            + _make_lags_for_week(offset.n / (60 * 24 * 7))
+        )
+    # second
+    elif offset_name == "S":
+        lags = (
+            _make_lags_for_second(offset.n)
+            + _make_lags_for_minute(offset.n / 60)
+            + _make_lags_for_hour(offset.n / (60 * 60))
         )
     else:
         raise Exception("invalid frequency")

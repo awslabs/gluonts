@@ -12,14 +12,15 @@
 # permissions and limitations under the License.
 
 import os
+import tarfile
 from distutils.util import strtobool
 from functools import partial
-from typing import Dict
+from typing import Dict, Optional, Union
 
 from toolz import valmap
 
-from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
-from gluonts.model import forecast
+from gluonts.dataset.common import Dataset, FileDataset, MetaData
+from gluonts.model import forecast, Predictor
 
 from . import sagemaker
 
@@ -29,19 +30,27 @@ class TrainEnv(sagemaker.TrainEnv):
         sagemaker.TrainEnv.__init__(self, *args, **kwargs)
         self.datasets = self._load()
 
-    def _load(self) -> Dict[str, Dataset]:
+    def _load(self) -> Dict[str, Union[Dataset, Predictor]]:
         if "metadata" in self.channels:
             path = self.channels.pop("metadata")
             self.hyperparameters["freq"] = MetaData.parse_file(
                 path / "metadata.json"
             ).freq
 
+        model: Optional[Predictor] = None
+        if "model" in self.channels:
+            path = self.channels.pop("model")
+            with tarfile.open(path / "model.tar.gz") as targz:
+                targz.extractall(path=path)
+            model = Predictor.deserialize(path)
+
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
-        list_dataset = partial(ListDataset, freq=self.hyperparameters["freq"])
 
         datasets = valmap(file_dataset, self.channels)
         if self._listify_dataset():
-            datasets = valmap(list_dataset, datasets)
+            datasets = valmap(list, datasets)
+        if model is not None:
+            datasets["model"] = model
 
         return datasets
 

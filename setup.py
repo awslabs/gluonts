@@ -63,7 +63,9 @@ def get_version_and_cmdclass(version_file):
     return globals_["__version__"], globals_["cmdclass"]()
 
 
-version, version_cmdclass = get_version_and_cmdclass("src/gluonts/_version.py")
+version, version_cmdclass = get_version_and_cmdclass(
+    "src/gluonts/meta/_version.py"
+)
 
 
 class TypeCheckCommand(distutils.cmd.Command):
@@ -192,18 +194,21 @@ class StyleCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+arrow_require = find_requirements("requirements-arrow.txt")
 docs_require = find_requirements("requirements-docs.txt")
 tests_require = find_requirements("requirements-test.txt")
 sagemaker_api_require = find_requirements(
     "requirements-extras-sagemaker-sdk.txt"
 )
 shell_require = find_requirements("requirements-extras-shell.txt")
-setup_requires = find_requirements("requirements-setup.txt")
+mxnet_require = find_requirements("requirements-mxnet.txt")
+torch_require = find_requirements("requirements-pytorch.txt")
+
 dev_require = (
-    docs_require
+    arrow_require
+    + docs_require
     + tests_require
     + shell_require
-    + setup_requires
     + sagemaker_api_require
 )
 
@@ -216,63 +221,41 @@ setup_kwargs: dict = dict(
     ),
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
-    url="https://github.com/awslabs/gluon-ts",
+    url="https://github.com/awslabs/gluonts/",
+    project_urls={
+        "Documentation": "https://ts.gluon.ai/stable/",
+        "Source Code": "https://github.com/awslabs/gluonts/",
+    },
     author="Amazon",
     author_email="gluon-ts-dev@amazon.com",
     maintainer_email="gluon-ts-dev@amazon.com",
     license="Apache License 2.0",
-    python_requires=">= 3.7",
+    python_requires=">= 3.6",
     package_dir={"": "src"},
     packages=find_namespace_packages(include=["gluonts*"], where=str(SRC)),
     include_package_data=True,
-    setup_requires=setup_requires,
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
+        "arrow": arrow_require,
         "dev": dev_require,
         "docs": docs_require,
+        "mxnet": mxnet_require,
         "R": find_requirements("requirements-extras-r.txt"),
         "Prophet": find_requirements("requirements-extras-prophet.txt"),
+        "pro": arrow_require + ["orjson"],
         "shell": shell_require,
+        "torch": torch_require,
     },
-    entry_points=dict(
-        gluonts_forecasters=[
-            "deepar=gluonts.model.deepar:DeepAREstimator",
-            "DeepAR=gluonts.model.deepar:DeepAREstimator",
-            "DeepFactor=gluonts.model.deep_factor:DeepFactorEstimator",
-            "DeepState=gluonts.model.deepstate:DeepStateEstimator",
-            "DeepVAR=gluonts.model.deepvar:DeepVAREstimator",
-            "GaussianProcess=gluonts.model.gp_forecaster:GaussianProcessEstimator",
-            "GPVAR=gluonts.model.gpvar:GPVAREstimator",
-            "LSTNet=gluonts.model.lstnet:LSTNetEstimator",
-            "NBEATS=gluonts.model.n_beats:NBEATSEstimator",
-            "NBEATSEnsemble=gluonts.model.n_beats:NBEATSEnsembleEstimator",
-            "NPTS=gluonts.model.npts:NPTSPredictor",
-            "Rotbaum=gluonts.model.rotbaum:TreeEstimator",
-            "SelfAttention=gluonts.model.san:SelfAttentionEstimator",
-            "SeasonalNaive=gluonts.model.seasonal_naive:SeasonalNaivePredictor",
-            "MQCNN=gluonts.model.seq2seq:MQCNNEstimator",
-            "MQRNN=gluonts.model.seq2seq:MQRNNEstimator",
-            "Seq2Seq=gluonts.model.seq2seq:Seq2SeqEstimator",
-            "SimpleFeedForward=gluonts.model.simple_feedforward:SimpleFeedForwardEstimator",
-            "TFT=gluonts.model.tft:TemporalFusionTransformerEstimator",
-            "DeepTPP=gluonts.model.tpp:DeepTPPEstimator",
-            "Transformer=gluonts.model.transformer:TransformerEstimator",
-            "Constant=gluonts.model.trivial.constant:ConstantPredictor",
-            "ConstantValue=gluonts.model.trivial.constant:ConstantValuePredictor",
-            "Identity=gluonts.model.trivial.identity:IdentityPredictor",
-            "Mean=gluonts.model.trivial.mean:MeanEstimator",
-            "MeanPredictor=gluonts.model.trivial.mean:MeanPredictor",
-            "MovingAverage=gluonts.model.trivial.mean:MovingAveragePredictor",
-            "WaveNet=gluonts.model.wavenet:WaveNetEstimator",
-            # "r=gluonts.model.r_forecast:RForecastPredictor [R]",
-            # "prophet=gluonts.model.prophet:ProphetPredictor [Prophet]",
-        ]
-    ),
     cmdclass={
         "type_check": TypeCheckCommand,
         "style_check": StyleCheckCommand,
         **version_cmdclass,
+    },
+    entry_points={
+        "pygments.styles": [
+            "gluonts-dark=gluonts.meta.style:Dark",
+        ]
     },
 )
 

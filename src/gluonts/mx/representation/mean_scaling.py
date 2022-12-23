@@ -21,8 +21,8 @@ from .representation import Representation
 
 class MeanScaling(Representation):
     """
-    A class representing a mean scaling approach.
-    Inputs are simply rescaled based on their mean.
+    A class representing a mean scaling approach. Inputs are simply rescaled
+    based on their mean.
 
     Parameters
     ----------
@@ -31,8 +31,8 @@ class MeanScaling(Representation):
         (default: 1e-10)
     clip_max
         The maximum value to which re-scaled values will be clipped to.
-        Negative values will be clipped at -clip_max and positive values at clip_max.
-        (default: None)
+        Negative values will be clipped at -clip_max and positive values at
+        clip_max. (default: None)
     """
 
     @validated()
@@ -74,7 +74,6 @@ class MeanScaling(Representation):
 
         return F.maximum(scale, self.scale_min)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

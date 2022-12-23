@@ -208,9 +208,9 @@ class NTA(IterationAveragingStrategy):
         # Historical validation metrics.
         self.val_logs = []
 
-        # The epoch where we fallback to alpha suffix. This solves the edge case
-        # where the averaging is never triggered and without the fallback the
-        # model of the last epoch would be returned.
+        # The epoch where we fallback to alpha suffix. This solves the edge
+        # case where the averaging is never triggered and without the fallback
+        # the model of the last epoch would be returned.
         self.fallback_alpha_suffix = epochs * (1.0 - fallback_alpha)
 
     def update_average_trigger(
@@ -336,8 +336,9 @@ class ModelIterationAveraging(Callback):
         self.avg_strategy.load_cached_model(training_network)
         return True
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         self.avg_strategy.apply(training_network)
+        return True
 
     def on_epoch_end(
         self,

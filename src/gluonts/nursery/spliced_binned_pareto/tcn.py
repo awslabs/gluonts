@@ -64,7 +64,8 @@ import torch
 
 
 class Chomp1d(torch.nn.Module):
-    """Removes leading or trailing elements of a time series.
+    """
+    Removes leading or trailing elements of a time series.
 
     Takes as input a three-dimensional tensor (`B`, `C`, `L`) where `B` is the
     batch size, `C` is the number of input channels, and `L` is the length of
@@ -78,7 +79,7 @@ class Chomp1d(torch.nn.Module):
     """
 
     def __init__(self, chomp_size: int, last: bool = True):
-        super(Chomp1d, self).__init__()
+        super().__init__()
         self.chomp_size = chomp_size
         self.last = last
 
@@ -92,7 +93,8 @@ class Chomp1d(torch.nn.Module):
 
 
 class TCNBlock(torch.nn.Module):
-    """Temporal Convolutional Network block.
+    """
+    Temporal Convolutional Network block.
 
     Composed sequentially of two causal convolutions (with leaky ReLU activation functions),
     and a parallel residual connection.
@@ -123,7 +125,7 @@ class TCNBlock(torch.nn.Module):
         final: bool = False,
     ):
 
-        super(TCNBlock, self).__init__()
+        super().__init__()
 
         in_channels = int(in_channels)
         kernel_size = int(kernel_size)
@@ -191,7 +193,8 @@ class TCNBlock(torch.nn.Module):
 
 
 class TCN(torch.nn.Module):
-    """Temporal Convolutional Network.
+    """
+    Temporal Convolutional Network.
 
     Composed of a sequence of causal convolution blocks.
 
@@ -222,7 +225,7 @@ class TCN(torch.nn.Module):
         fwd_time: bool = True,
     ):
 
-        super(TCN, self).__init__()
+        super().__init__()
 
         layers = int(layers)
 

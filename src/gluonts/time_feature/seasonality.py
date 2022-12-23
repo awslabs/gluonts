@@ -14,16 +14,18 @@
 import logging
 
 import pandas as pd
+
 from gluonts.time_feature import norm_freq_str
 
 logger = logging.getLogger(__name__)
 
 
 DEFAULT_SEASONALITIES = {
-    "T": 1440,
-    "H": 24,
-    "D": 1,
-    "W": 1,
+    "S": 3600,  # 1 hour
+    "T": 1440,  # 1 day
+    "H": 24,  # 1 day
+    "D": 1,  # 1 day
+    "W": 1,  # 1 week
     "M": 12,
     "B": 5,
     "Q": 4,
@@ -31,11 +33,11 @@ DEFAULT_SEASONALITIES = {
 
 
 def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
-    """Return the seasonality of a given frequency:
+    """
+    Return the seasonality of a given frequency:
 
     >>> get_seasonality("2H")
     12
-
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 

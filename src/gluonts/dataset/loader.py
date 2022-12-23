@@ -11,120 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import io
 import logging
-import multiprocessing as mp
-import pickle
-import sys
-from functools import partial
-from multiprocessing.reduction import ForkingPickler
 from typing import Callable, Iterable, Optional
 
 from pydantic import BaseModel
 
-from gluonts.dataset.common import DataBatch, Dataset
-from gluonts.dataset.util import MPWorkerInfo
+from gluonts.dataset import DataBatch, Dataset
 from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
 from gluonts.transform import AdhocTransform, Identity, Transformation
 
 logger = logging.getLogger(__name__)
 
 
-def win32_guard(cls, num_workers):
-    if num_workers is None:
-        return None
-
-    assert num_workers > 0, "num_workers can't be negative"
-
-    if sys.platform == "win32":
-        logger.warning(
-            "Multiprocessing is not supported on Windows, "
-            "num_workers will be set to None."
-        )
-        return None
-
-    return num_workers
-
-
-def _encode(value):
-    buf = io.BytesIO()
-    ForkingPickler(buf, pickle.HIGHEST_PROTOCOL).dump(value)
-    return buf.getvalue()
-
-
-def worker_fn(
-    worker_id: int,
-    dataset,
-    num_workers: int,
-    result_queue: mp.Queue,
-):
-    MPWorkerInfo.set_worker_info(
-        num_workers=num_workers,
-        worker_id=worker_id,
-    )
-
-    for raw in map(_encode, dataset):
-        try:
-            result_queue.put(raw)
-        except (EOFError, BrokenPipeError):
-            return
-
-
 DataLoader = Iterable[DataBatch]
-
-
-class MultiProcessLoader(DataLoader):
-    def __init__(
-        self,
-        dataset: Dataset,
-        num_workers: int,
-        max_queue_size: Optional[int],
-        decode_fn: Callable = lambda x: x,
-    ):
-        assert num_workers >= 1
-
-        if max_queue_size is None:
-            max_queue_size = 5 * num_workers
-        else:
-            assert max_queue_size >= num_workers
-
-        self.decode_fn = decode_fn
-        self.result_queue = mp.Manager().Queue(maxsize=max_queue_size)
-
-        create_worker = partial(
-            mp.Process,
-            target=worker_fn,
-            kwargs={
-                "dataset": dataset,
-                "result_queue": self.result_queue,
-                "num_workers": num_workers,
-            },
-        )
-
-        self.processes = [
-            create_worker(args=[worker_id]) for worker_id in range(num_workers)
-        ]
-        for process in self.processes:
-            process.start()
-
-    def _has_values(self):
-        alive = any(proc.is_alive() for proc in self.processes)
-        return alive or not self.result_queue.empty()
-
-    def __iter__(self):
-        while self._has_values():
-            yield self._get()
-
-        self._terminate()
-
-    def _get(self):
-        # TODO make timeout configurable
-        raw = self.result_queue.get(timeout=120)
-        return self.decode_fn(pickle.loads(raw))
-
-    def _terminate(self):
-        for process in self.processes:
-            process.terminate()
 
 
 # TODO: the following are for backward compatibility
@@ -145,12 +44,10 @@ def TrainDataLoader(
     batch_size: int,
     stack_fn: Callable,
     num_batches_per_epoch: Optional[int] = None,
-    num_prefetch: Optional[int] = None,
-    num_workers: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
-    decode_fn: Callable = lambda x: x,
 ):
-    """Construct an iterator of batches for training purposes.
+    """
+    Construct an iterator of batches for training purposes.
 
     This function wraps around ``DataLoader`` to offer training-specific
     behaviour and options, as follows:
@@ -180,17 +77,9 @@ def TrainDataLoader(
         the arrays should end up onto (CPU, GPU).
     num_batches_per_epoch
         Length of the iterator. If ``None``, then the iterator is endless.
-    num_workers
-        Number of worker processes to use. Default: None.
-    num_prefetch
-        Sets the length of the queue of batches being produced by worker
-        processes. (Only meaningful when ``num_workers is not None``).
     shuffle_buffer_length
         Size of the buffer used for shuffling. Default: None, in which case no
         shuffling occurs.
-    decode_fn
-        A function called on each batch after it's been taken out of the queue.
-        (Only meaningful when ``num_workers is not None``).
 
     Returns
     -------
@@ -205,21 +94,8 @@ def TrainDataLoader(
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     transformed_dataset = transform.apply(dataset, is_train=True)
 
-    if num_workers is not None:
-        loader = MultiProcessLoader(
-            transformed_dataset,
-            decode_fn=decode_fn,
-            num_workers=num_workers,
-            max_queue_size=num_prefetch,
-        )
-        batches = iter(loader)
-    else:
-        batches = iter(transformed_dataset)
-
-    if num_batches_per_epoch is None:
-        return batches
-    else:
-        return IterableSlice(batches, num_batches_per_epoch)
+    batches = iter(transformed_dataset)
+    return IterableSlice(batches, num_batches_per_epoch)
 
 
 def ValidationDataLoader(
@@ -229,7 +105,8 @@ def ValidationDataLoader(
     batch_size: int,
     stack_fn: Callable,
 ):
-    """Construct an iterator of batches for validation purposes.
+    """
+    Construct an iterator of batches for validation purposes.
 
     Parameters
     ----------
@@ -262,7 +139,8 @@ def InferenceDataLoader(
     batch_size: int,
     stack_fn: Callable,
 ):
-    """Construct an iterator of batches for inference purposes.
+    """
+    Construct an iterator of batches for inference purposes.
 
     Parameters
     ----------

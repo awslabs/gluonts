@@ -15,7 +15,9 @@ from gluonts.core.serde.flat import clone
 from gluonts import time_feature, transform
 from gluonts.core.component import equals
 from gluonts.dataset.field_names import FieldName
-from gluonts.model.canonical._estimator import CanonicalRNNEstimator
+from gluonts.mx import CanonicalRNNEstimator
+
+from pandas.tseries.frequencies import to_offset
 
 
 def test_map_transformation():
@@ -35,9 +37,9 @@ def test_add_time_features():
         target_field=FieldName.TARGET,
         output_field="time_feat",
         time_features=[
-            time_feature.DayOfWeek(),
-            time_feature.DayOfMonth(),
-            time_feature.MonthOfYear(),
+            time_feature.day_of_week,
+            time_feature.day_of_month,
+            time_feature.month_of_year,
         ],
         pred_length=10,
     )
@@ -46,8 +48,8 @@ def test_add_time_features():
         tran,
         {
             "time_features": [
-                time_feature.DayOfWeek(),
-                time_feature.DayOfMonth(),
+                time_feature.day_of_week,
+                time_feature.day_of_month,
             ]
         },
     )
@@ -114,12 +116,14 @@ def test_continuous_time_splitter():
         past_interval_length=1,
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimePointSampler(),
+        freq=to_offset("H"),
     )
 
     splitter2 = transform.ContinuousTimeInstanceSplitter(
         past_interval_length=1,
         future_interval_length=1,
         instance_sampler=transform.ContinuousTimePointSampler(min_past=1.0),
+        freq=to_offset("H"),
     )
 
     assert equals(splitter, clone(splitter))
@@ -134,9 +138,9 @@ def test_chain():
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=10,
             ),
@@ -162,9 +166,9 @@ def test_chain():
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=10,
             ),

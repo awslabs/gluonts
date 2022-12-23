@@ -23,15 +23,18 @@ from .representation import Representation
 
 class Embedding(Representation):
     """
-    A class representing an embedding operation on top of a given binning.
-    Note that this representation is intended to applied on top of categorical/binned data.
+    A class representing an embedding operation on top of a given binning. Note
+    that this representation is intended to applied on top of
+    categorical/binned data.
 
     Parameters
     ----------
     num_bins
-        The number of categories/bins of the data on which this representation is applied.
+        The number of categories/bins of the data on which this representation
+        is applied.
     size
-        The desired embedding size. By default, the following heuristic is used:
+        The desired embedding size. By default, the following heuristic is
+        used:
         https://developers.googleblog.com/2017/11/introducing-tensorflow-feature-columns.html
         (default: round(num_bins**(1/4)))
     """
@@ -52,7 +55,6 @@ class Embedding(Representation):
             input_dim=self.num_bins, output_dim=self.size
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

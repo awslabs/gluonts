@@ -72,11 +72,90 @@ Whenever a new value is set, it is type-checked.
 
 import functools
 import inspect
+import itertools
 from operator import attrgetter
 from typing import Any
 
 import pydantic
 from pydantic.utils import deep_update
+
+
+class ListElement:
+    def __init__(self, ll, val, prv=None, nxt=None):
+        self.ll = ll
+        self.val = val
+        self.prv = prv
+        self.nxt = nxt
+
+    def remove(self):
+        if self.prv is not None:
+            self.prv.nxt = self.nxt
+
+        if self.nxt is not None:
+            self.nxt.prv = self.prv
+
+        if self.ll.end is self:
+            self.ll.end = self.prv
+
+        self.prv = self.nxt = None
+        return self.val
+
+
+class LinkedList:
+    """
+    Simple linked list, where only elements controls removal of them.
+
+    This is needed to allow for behaviour like this:
+
+    >>> settings = Settings()
+    ...
+    ... with settings._let(x=1):
+    ...     settings._push(x=2)
+    ...
+    ... assert settings.x == 2
+
+    When going out of a `let` block, the pushed environment should be destroyed
+    and not just the last element of the stack.
+    """
+
+    def __init__(self, elements=()):
+        self.start = None
+        self.end = None
+
+        for element in elements:
+            self.push(element)
+
+    def push(self, val):
+        element = ListElement(self, val, prv=self.end)
+
+        # is first element to add?
+        if self.start is None:
+            self.start = element
+        else:
+            self.end.nxt = element
+
+        self.end = element
+        return self.end
+
+    def last(self):
+        """
+        Peek last value.
+        """
+        return self.end.val
+
+    def reverse(self):
+        current = self.end
+
+        while current is not None:
+            yield current.val
+            current = current.prv
+
+    def __iter__(self):
+        current = self.start
+
+        while current is not None:
+            yield current.val
+            current = current.nxt
 
 
 class Dependency:
@@ -120,7 +199,7 @@ class Settings:
         # ensured that there are always at least two entries in the chain:
         # A default, used to declare default values for any given key and a
         # base to guard from writing to the default through normal access.
-        self._chain = [self._default, kwargs]
+        self._chain = LinkedList([self._default, kwargs])
 
         # If sublcassed, `_cls_types` can contain declarations which we need to
         # execute.
@@ -132,15 +211,14 @@ class Settings:
             self._dependency(name, fn)
 
     def _reduce(self):
-        """"""
-
         assert not self._context_count, "Cannot reduce within with-blocks."
         compact = {}
 
-        for dct in self._chain[1:]:
+        # skip 1 (default dict)
+        for dct in itertools.islice(self._chain, 1):
             compact.update(dct)
 
-        self._chain = [self._default, compact]
+        self._chain = LinkedList([self._default, compact])
 
     def _already_declared(self, key):
         return key in self._types or key in self._dependencies
@@ -175,14 +253,17 @@ class Settings:
     def _dependency(self, name, fn):
         dependencies = list(inspect.signature(fn).parameters)
         for dependency in dependencies:
-            assert self._already_declared(
-                dependency
-            ), f"`{name}` depends on `{dependency}`, which has not been declared yet."
+            assert self._already_declared(dependency), (
+                f"`{name}` depends on `{dependency}`, which has not been"
+                " declared yet."
+            )
 
         self._dependencies[name] = Dependency(fn, dependencies)
 
     def _get(self, key, default=None):
-        """Like `dict.get`."""
+        """
+        Like `dict.get`.
+        """
         try:
             return self[key]
         except KeyError:
@@ -202,7 +283,7 @@ class Settings:
         if key in self._dependencies:
             return self._dependencies[key].resolve(self)
 
-        for dct in reversed(self._chain):
+        for dct in self._chain.reverse():
             try:
                 return dct[key]
             except KeyError:
@@ -218,7 +299,8 @@ class Settings:
             return self[key]
 
     def _set_(self, dct, key, value):
-        """Helper method to assign item to a given dictionary.
+        """
+        Helper method to assign item to a given dictionary.
 
         Uses `_types` to type-check the value, before assigning.
         """
@@ -243,28 +325,22 @@ class Settings:
 
         dct[key] = value
 
-    def __setitem__(self, key, value):
+    def _set(self, key, value):
         # Always assigns to the most recent dictionary in our chain.
-        self._set_(self._chain[-1], key, value)
-
-    def __setattr__(self, key, value):
-        # Same check as in `__getattribute__`.
-        if key.startswith("_"):
-            super().__setattr__(key, value)
-        else:
-            self[key] = value
+        self._set_(self._chain.last(), key, value)
 
     def _push(self, **kwargs):
-        """Add new entry to our chain-map.
+        """
+        Add new entry to our chain-map.
 
         Values are type-checked.
         """
-        self._chain.append({})
+        el = self._chain.push({})
         # Since we want to type-check, we add the entries manually.
         for key, value in kwargs.items():
-            self[key] = value
+            self._set(key, value)
 
-        return self
+        return el
 
     def _pop(self):
         assert len(self._chain) > 2, "Can't pop initial setting."
@@ -275,7 +351,8 @@ class Settings:
         return f"<Settings [{inner}]>"
 
     def _let(self, **kwargs) -> "_ScopedSettings":
-        """Create a new context, where kwargs are added to the chain::
+        """
+        Create a new context, where kwargs are added to the chain::
 
             with settings._let(foo=42):
                 assert settings.foo = 42
@@ -287,7 +364,8 @@ class Settings:
         return _ScopedSettings(self, kwargs)
 
     def _inject(self, *keys, **kwargs):
-        """Dependency injection.
+        """
+        Dependency injection.
 
         This will inject values from settings if avaiable and not passed
         directly::
@@ -348,21 +426,26 @@ class _ScopedSettings:
     def __init__(self, settings, kwargs):
         self.settings = settings
         self.kwargs = kwargs
+        self.element = None
 
     def __enter__(self):
         self.settings._context_count += 1
-        return self.settings._push(**self.kwargs)
+        self.element = self.settings._push(**self.kwargs)
 
     def __exit__(self, *args):
         self.settings._context_count -= 1
-        self.settings._pop()
+        self.element.remove()
 
 
 def let(settings, **kwargs):
-    "`let(settings, ...)` is the same as `settings._let(...)`."
+    """
+    `let(settings, ...)` is the same as `settings._let(...)`.
+    """
     return settings._let(**kwargs)
 
 
 def inject(settings, *args, **kwargs):
-    "`inject(settings, ...)` is the same as `settings._inject(...)`."
+    """
+    `inject(settings, ...)` is the same as `settings._inject(...)`.
+    """
     return settings._inject(*args, **kwargs)

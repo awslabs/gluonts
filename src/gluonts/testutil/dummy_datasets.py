@@ -17,7 +17,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from gluonts.dataset.common import ListDataset
+from gluonts.dataset.common import Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
 
 
@@ -31,7 +31,7 @@ def make_dummy_datasets_with_features(
     cardinality: List[int] = [],
     num_feat_dynamic_real: int = 0,
     num_past_feat_dynamic_real: int = 0,
-) -> Tuple[ListDataset, ListDataset]:
+) -> Tuple[Dataset, Dataset]:
 
     data_iter_train = []
     data_iter_test = []
@@ -52,7 +52,8 @@ def make_dummy_datasets_with_features(
                 for k in range(num_past_feat_dynamic_real)
             ]
         # Since used directly in predict and not in make_evaluate_predictions,
-        # where the test target would be chopped, test and train target have the same lengths
+        # where the test target would be chopped, test and train target have
+        # the same lengths
         data_entry_test = data_entry_train.copy()
         if num_feat_dynamic_real > 0:
             data_entry_train[FieldName.FEAT_DYNAMIC_REAL] = [
@@ -73,31 +74,34 @@ def make_dummy_datasets_with_features(
 
 
 def get_dataset():
-
-    data_entry_list = [
-        {
-            "target": np.c_[
-                np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
-                np.array([0, 1, 2, 0, 1, 2, 2, 2]),
-            ].T,
-            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-        },
-        {
-            "target": np.c_[
-                np.array([0.2, 0.1, 0.2, 0.5, 0.4]), np.array([0, 1, 2, 1, 1])
-            ].T,
-            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-        },
-        {
-            "target": np.c_[
-                np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
-                np.array([0, 1, 2, 0, 1, 0, 2]),
-            ].T,
-            "start": pd.Timestamp("2011-01-01 00:00:00", freq="H"),
-            "end": pd.Timestamp("2011-01-01 03:00:00", freq="H"),
-        },
-    ]
-
-    return ListDataset(data_entry_list, freq="H", one_dim_target=False)
+    return ListDataset(
+        [
+            {
+                "target": np.c_[
+                    np.array([0.2, 0.7, 0.2, 0.5, 0.3, 0.3, 0.2, 0.1]),
+                    np.array([0, 1, 2, 0, 1, 2, 2, 2]),
+                ].T,
+                "start": "2011-01-01 00:00:00",
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
+            },
+            {
+                "target": np.c_[
+                    np.array([0.2, 0.1, 0.2, 0.5, 0.4]),
+                    np.array([0, 1, 2, 1, 1]),
+                ].T,
+                "start": "2011-01-01 00:00:00",
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
+            },
+            {
+                "target": np.c_[
+                    np.array([0.2, 0.7, 0.2, 0.5, 0.1, 0.2, 0.1]),
+                    np.array([0, 1, 2, 0, 1, 0, 2]),
+                ].T,
+                "start": "2011-01-01 00:00:00",
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
+            },
+        ],
+        freq="H",
+        one_dim_target=False,
+        use_timestamp=True,
+    )

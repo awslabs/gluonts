@@ -12,22 +12,119 @@
 # permissions and limitations under the License.
 
 
+from pathlib import Path
+from typing import List, NamedTuple
+import gluonts
 import logging
+import numpy as np
 import os
+import pandas as pd
+import pytest
 import random
 import sys
+import tempfile
 import warnings
-from pathlib import Path
 
-import numpy as np
-import pytest
-
-import gluonts
+from gluonts.model import Predictor
+from gluonts.dataset.common import ListDataset
 
 try:
     import mxnet as mx
 except ImportError:
     mx = None
+
+try:
+    import statsmodels
+except ImportError:
+    statsmodels = None
+
+
+class HierarchicalMetaData(NamedTuple):
+    S: np.ndarray
+    freq: str
+    nodes: List
+
+
+class HierarchicalTrainDatasets(NamedTuple):
+    train: ListDataset
+    test: ListDataset
+    metadata: HierarchicalMetaData
+
+
+@pytest.fixture
+def sine7():
+    def _sine7(
+        seq_length: int = 100,
+        prediction_length: int = 10,
+        nonnegative: bool = False,
+    ):
+        x = np.arange(0, seq_length)
+
+        # Bottom layer (4 series)
+        amps = [0.8, 0.9, 1, 1.1]
+        freqs = [1 / 20, 1 / 30, 1 / 50, 1 / 100]
+
+        b = np.zeros((4, seq_length))
+        for i, f in enumerate(freqs):
+            omega = 0
+            if i == 3:
+                np.random.seed(0)
+                omega = np.random.uniform(0, np.pi)  # random phase shift
+            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
+
+        if nonnegative:
+            b = abs(b)
+
+        # Aggregation matrix S
+        S = np.array(
+            [
+                [1, 1, 1, 1],
+                [1, 1, 0, 0],
+                [0, 0, 1, 1],
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ],
+        )
+
+        Y = S @ b
+
+        # Indices and timestamps
+        index = pd.date_range(
+            start=pd.Timestamp("2020-01-01", freq="D"),
+            periods=Y.shape[1],
+            freq="D",
+        )
+
+        metadata = HierarchicalMetaData(
+            S=S, freq=index.freqstr, nodes=[2, [2] * 2]
+        )
+
+        train_dataset = ListDataset(
+            [
+                {
+                    "start": index[0],
+                    "item_id": "all_items",
+                    "target": Y[:, :-prediction_length],
+                }
+            ],
+            freq=index.freqstr,
+            one_dim_target=False,
+        )
+
+        test_dataset = ListDataset(
+            [{"start": index[0], "item_id": "all_items", "target": Y}],
+            freq=index.freqstr,
+            one_dim_target=False,
+        )
+
+        assert Y.shape[0] == S.shape[0]
+        return HierarchicalTrainDatasets(
+            train=train_dataset, test=test_dataset, metadata=metadata
+        )
+
+    return _sine7
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -128,3 +225,116 @@ def get_collect_ignores():
 
 
 collect_ignore = get_collect_ignores()
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def pytest_runtest_setup(item):
+    skip_datasets = [
+        mark.args[0] for mark in item.iter_markers(name="skip_dataset")
+    ]
+
+    if skip_datasets:
+        ds_name = item._request.getfixturevalue("dsinfo")["name"]
+        if ds_name in skip_datasets:
+            pytest.skip(f"Skip test on dataset {ds_name}")
+
+
+@pytest.fixture(scope="session", params=["synthetic", "constant"])
+def dsinfo(request):
+    from gluonts import time_feature
+    from gluonts.dataset.artificial import constant_dataset, default_synthetic
+
+    if request.param == "constant":
+        ds_info, train_ds, test_ds = constant_dataset()
+
+        return AttrDict(
+            name="constant",
+            cardinality=int(ds_info.metadata.feat_static_cat[0].cardinality),
+            freq=ds_info.metadata.freq,
+            num_parallel_samples=2,
+            prediction_length=ds_info.prediction_length,
+            # FIXME: Should time features should not be needed for GP
+            time_features=[time_feature.day_of_week, time_feature.hour_of_day],
+            train_ds=train_ds,
+            test_ds=test_ds,
+        )
+    elif request.param == "synthetic":
+        ds_info, train_ds, test_ds = default_synthetic()
+
+        return AttrDict(
+            name="synthetic",
+            batch_size=32,
+            cardinality=int(ds_info.metadata.feat_static_cat[0].cardinality),
+            context_length=2,
+            freq=ds_info.metadata.freq,
+            prediction_length=ds_info.prediction_length,
+            num_parallel_samples=2,
+            train_ds=train_ds,
+            test_ds=test_ds,
+            time_features=None,
+        )
+
+
+def from_hyperparameters(Forecaster, hyperparameters, dsinfo):
+    return Forecaster.from_hyperparameters(
+        freq=dsinfo.freq,
+        **{
+            "prediction_length": dsinfo.prediction_length,
+            "num_parallel_samples": dsinfo.num_parallel_samples,
+        },
+        **hyperparameters,
+    )
+
+
+@pytest.fixture()
+def accuracy_test(dsinfo):
+    from gluonts.evaluation import backtest_metrics, Evaluator
+
+    def test_accuracy(Forecaster, hyperparameters, accuracy):
+        forecaster = from_hyperparameters(Forecaster, hyperparameters, dsinfo)
+
+        if isinstance(forecaster, Predictor):
+            predictor = forecaster
+        else:
+            predictor = forecaster.train(training_data=dsinfo.train_ds)
+
+        agg_metrics, item_metrics = backtest_metrics(
+            test_dataset=dsinfo.test_ds,
+            predictor=predictor,
+            evaluator=Evaluator(
+                calculate_owa=statsmodels is not None, num_workers=0
+            ),
+        )
+
+        if dsinfo.name == "synthetic":
+            accuracy = 10.0
+
+        assert agg_metrics["ND"] <= accuracy
+
+    return test_accuracy
+
+
+@pytest.fixture()
+def serialize_test(dsinfo):
+    from gluonts.model.predictor import Predictor
+
+    def test_serialize(Forecaster, hyperparameters):
+        forecaster = from_hyperparameters(Forecaster, hyperparameters, dsinfo)
+
+        if isinstance(forecaster, Predictor):
+            predictor_act = forecaster
+        else:
+            predictor_act = forecaster.train(dsinfo.train_ds)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            predictor_act.serialize(Path(temp_dir))
+            predictor_exp = Predictor.deserialize(Path(temp_dir))
+            # TODO: DeepFactorEstimator does not pass this assert
+            assert predictor_act == predictor_exp
+
+    return test_serialize

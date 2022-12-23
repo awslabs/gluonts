@@ -32,8 +32,9 @@ from .session import default_session
 # -------------------------------------------------------------------------------------------------
 class Artifact:
     """
-    An artifact manages an untarred model artifact of a training job. More precisely, it manages
-    a local temporary directory which contains all files stored as artifacts.
+    An artifact manages an untarred model artifact of a training job. More
+    precisely, it manages a local temporary directory which contains all files
+    stored as artifacts.
 
     The artifact ought to be used within a `with` statement. Upon exit, the temporary directory is
     cleaned up.
@@ -97,7 +98,7 @@ class TrainingJob:
         return self.info["CreationTime"]
 
     @property
-    def hyperparameters(self) -> Dict[str, Any]:
+    def hyperparameters(self) -> dict[str, Any]:
         """
         Returns all user-defined hyper parameters.
         """
@@ -109,10 +110,10 @@ class TrainingJob:
         }
 
     @lru_cache()
-    def pull_logs(self) -> List[str]:
+    def pull_logs(self) -> list[str]:
         """
-        Pulls the training job's logs such that subsequent accesses to the `logs` property are
-        noops.
+        Pulls the training job's logs such that subsequent accesses to the
+        `logs` property are noops.
         """
         # Check if the logs are already available locally
         log_file = self._cache_dir() / "logs.txt"
@@ -153,7 +154,7 @@ class TrainingJob:
         return res
 
     @property
-    def logs(self) -> List[str]:
+    def logs(self) -> list[str]:
         """
         Retrieves the logs emitted by this training job.
         """
@@ -162,10 +163,12 @@ class TrainingJob:
         return self.pull_logs()
 
     @cached_property
-    def metrics(self) -> Dict[str, np.ndarray]:
+    def metrics(self) -> dict[str, np.ndarray]:
         """
-        Fetches the metrics defined by the training script from the training job's logs. For each
-        metric, it returns a 1D NumPy array (ordered chronologically).
+        Fetches the metrics defined by the training script from the training
+        job's logs.
+
+        For each metric, it returns a 1D NumPy array (ordered chronologically).
         """
         # Check if the logs are already available locally
         metrics_file = self._cache_dir() / "metrics.json"
@@ -194,7 +197,8 @@ class TrainingJob:
 
     def artifact(self, cache: bool = True) -> Artifact:
         """
-        Retrieves the model artifact from S3 and stores it locally in a temporary directory.
+        Retrieves the model artifact from S3 and stores it locally in a
+        temporary directory.
 
         Args:
             cache: Whether to cache the extracted artifact.
@@ -285,7 +289,8 @@ class TrainingJob:
 # -------------------------------------------------------------------------------------------------
 class Analysis:
     """
-    The analysis object allows analyzing a set of training jobs that belong to the same experiment.
+    The analysis object allows analyzing a set of training jobs that belong to
+    the same experiment.
     """
 
     def __init__(
@@ -296,9 +301,9 @@ class Analysis:
         resolve_duplicates: bool = True,
     ):
         """
-        Initializes a new analysis object, using the specified session to make requests to AWS and
-        Sagemaker. The initializer already fetches all training jobs belonging to the provided
-        experiment.
+        Initializes a new analysis object, using the specified session to make
+        requests to AWS and Sagemaker. The initializer already fetches all
+        training jobs belonging to the provided experiment.
 
         Args:
             session: The session to interact with AWS services.
@@ -333,7 +338,7 @@ class Analysis:
         return self.map[name]
 
     @property
-    def status(self) -> Dict[str, int]:
+    def status(self) -> dict[str, int]:
         """
         Returns the aggregate statistics about the status of all jobs.
         """
@@ -347,7 +352,10 @@ class Analysis:
         return len(self.map)
 
     def __repr__(self) -> str:
-        return f"Analysis(experiment='{self.experiment_name}', num_jobs={len(self):,})"
+        return (
+            f"Analysis(experiment='{self.experiment_name}',"
+            f" num_jobs={len(self):,})"
+        )
 
 
 # -------------------------------------------------------------------------------------------------
@@ -356,7 +364,7 @@ def _fetch_training_jobs(
     experiment: str,
     only_completed: bool,
     resolve_duplicates: bool,
-) -> Tuple[List[TrainingJob], List[TrainingJob]]:
+) -> tuple[list[TrainingJob], list[TrainingJob]]:
     """
     Fetches all training jobs which are associated with this experiment.
     """
@@ -435,7 +443,7 @@ def _fetch_training_jobs(
 
 
 # -------------------------------------------------------------------------------------------------
-def _process_hyperparameter_value(v: str) -> Union[str, float, int, bool]:
+def _process_hyperparameter_value(v: str) -> str | float | int | bool:
     if re.match(r'^"(.*)"$', v):  # value is a string
         return v[1:-1]
     if v in ("false", "False", "true", "True"):

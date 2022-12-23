@@ -40,7 +40,6 @@ def getF(var: Tensor):
 
 
 def _index_tensor(x: Tensor, item: Any) -> Tensor:
-    """"""
     squeeze: List[int] = []
     if not isinstance(item, tuple):
         item = (item,)
@@ -277,7 +276,7 @@ class Distribution:
 
     def cdf(self, x: Tensor) -> Tensor:
         r"""
-        Returns the value of the cumulative distribution function evaluated at x
+        Return the value of the cumulative distribution function evaluated at x
         """
         raise NotImplementedError()
 
@@ -285,7 +284,8 @@ class Distribution:
         self, level: Tensor, tol=1e-6, max_iter=120
     ) -> Tensor:
         r"""
-        Returns a Tensor of shape (len(level), *batch_size) with the corresponding quantiles.
+        Returns a Tensor of shape (len(level), *batch_size) with the
+        corresponding quantiles.
         """
         F = self.F
         local_max_support_val = min(1e16, MAX_SUPPORT_VAL)
@@ -370,7 +370,8 @@ class Distribution:
 
                (num_levels, ...DISTRIBUTION_SHAPE...),
 
-            where DISTRIBUTION_SHAPE is the shape of the underlying distribution.
+            where DISTRIBUTION_SHAPE is the shape of the underlying
+            distribution.
         """
 
         return self._tensor_cdf_bisection(level)

@@ -21,8 +21,8 @@ from pymongo.database import Database
 
 class SacredExperiment:
     """
-    A sacred experiment describes a Sacred experiment stored in MongoDB and is retrieved from a
-    Sacred Mongo client.
+    A sacred experiment describes a Sacred experiment stored in MongoDB and is
+    retrieved from a Sacred Mongo client.
     """
 
     def __init__(self, info: Dict[str, Any], db: Database, gridfs: GridFS):
@@ -85,7 +85,8 @@ class SacredExperiment:
 
     def delete(self) -> None:
         """
-        Deletes the experiment by setting the associated experiment name to "Trash".
+        Deletes the experiment by setting the associated experiment name to
+        "Trash".
         """
         self.db.runs.update_one(
             {"_id": self.info["_id"]},

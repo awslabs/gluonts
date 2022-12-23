@@ -18,8 +18,10 @@ from torch import nn
 
 class ListMLELoss(nn.Module):
     """
-    Loss that is used for ListMLE. For each feature, ranking is performed independently. A lower
-    score indicates a lower rank (i.e. "better" value).
+    Loss that is used for ListMLE.
+
+    For each feature, ranking is performed independently. A lower score
+    indicates a lower rank (i.e. "better" value).
     """
 
     def __init__(

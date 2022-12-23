@@ -2,22 +2,31 @@ name: Docs
 
 on: [push, pull_request]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   docs-build:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+    - uses: extractions/setup-just@v1
 
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: 3.7
 
     - name: Install dependencies
       run: |
         python -m pip install -U pip
-        pip install .
+        pip install ".[arrow]"
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-mxnet.txt
         pip install -r requirements/requirements-pytorch.txt
@@ -28,17 +37,17 @@ jobs:
 
     - name: Build docs
       run: |
-        make docs
+        just docs
 
     - name: Configure AWS Credentials
-      if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.DOCS_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.DOCS_AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
+        role-session-name: docs-push
         aws-region: us-east-1
 
     - name: Publish docs
       if: ${{ github.event_name == 'push' }}
       run: |
-        aws s3 sync docs/_build/html s3://gluon-ts/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control
+        aws s3 sync docs/_build/html s3://gluonts-website/${GITHUB_REF#refs/heads/} --delete --acl bucket-owner-full-control

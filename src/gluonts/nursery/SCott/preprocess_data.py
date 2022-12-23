@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 from pts.dataset.repository.datasets import get_dataset, dataset_recipes
 from pts.dataset.utils import to_pandas
 import os
@@ -73,7 +86,8 @@ def get_mixed_pattern(unit_length=16, num_duplicates=1000):
                     {"target": ts_sample, "start": start}
                 )
     print(
-        "Generating the synthetic training data, the total number of training examples:",
+        "Generating the synthetic training data, the total number of training"
+        " examples:",
         len(whole_data),
     )
     ret["group_ratio"] = [len(i) / len(whole_data) for i in dataset_group]
@@ -179,7 +193,8 @@ def group_electricity_cv(
             )
 
     print(
-        "Generating the electricity training data, the total number of training examples:",
+        "Generating the electricity training data, the total number of"
+        " training examples:",
         len(train_full_data),
     )
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
@@ -357,7 +372,8 @@ def group_exchangerate_cv(
                 }
             )
     print(
-        "Generating the exchange rate training data, the total number of training examples:",
+        "Generating the exchange rate training data, the total number of"
+        " training examples:",
         len(train_full_data),
     )
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
@@ -461,7 +477,8 @@ def group_traffic_cv(
             )
 
     print(
-        "Generating the traffic training data, the total number of training examples:",
+        "Generating the traffic training data, the total number of training"
+        " examples:",
         len(train_full_data),
     )
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
@@ -506,5 +523,6 @@ group_electricity_cv(
     file_name="electricity",
 )
 print(
-    "Finished the preprocessing data, please verify ./dataset/ contains four .csv files"
+    "Finished the preprocessing data, please verify ./dataset/ contains four"
+    " .csv files"
 )

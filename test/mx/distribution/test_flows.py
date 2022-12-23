@@ -13,7 +13,6 @@
 
 # Standard library imports
 from functools import partial
-from typing import Tuple
 
 # Third-party imports
 import numpy as np

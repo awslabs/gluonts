@@ -15,7 +15,7 @@ from typing import List, Optional, Dict, Any
 
 from gluonts.torch.model.deepar.estimator import DeepAREstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
-from gluonts.torch.distributions.mqf2 import MQF2DistributionOutput
+from gluonts.torch.distributions import MQF2DistributionOutput
 
 from . import MQF2MultiHorizonLightningModule, MQF2MultiHorizonModel
 
@@ -46,6 +46,10 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         Number of RNN layers
     hidden_size
         Hidden state size of RNN
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
     dropout_rate
         Dropout regularization parameter
     num_feat_dynamic_real
@@ -106,6 +110,8 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         dropout_rate: float = 0.1,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
@@ -152,6 +158,8 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
             context_length=context_length,
             num_layers=num_layers,
             hidden_size=hidden_size,
+            lr=lr,
+            weight_decay=weight_decay,
             dropout_rate=dropout_rate,
             num_feat_dynamic_real=num_feat_dynamic_real,
             num_feat_static_cat=num_feat_static_cat,
@@ -203,4 +211,9 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
             estimate_logdet=self.estimate_logdet,
         )
 
-        return MQF2MultiHorizonLightningModule(model=model, loss=self.loss)
+        return MQF2MultiHorizonLightningModule(
+            model=model,
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )

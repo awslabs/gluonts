@@ -46,6 +46,7 @@ class InpuDataConfig(BaseModel):
 class TrainPaths:
     def __init__(self, base: Path = Path("/opt/ml")) -> None:
         self.base = base.expanduser().resolve()
+        self.input = self.base / "input"
         self.config = self.base / "input" / "config"
         self.data = self.base / "input" / "data"
         self.model = self.base / "model"
@@ -92,7 +93,8 @@ class TrainEnv:
         return None
 
     def _load_channels(self) -> Dict[str, Path]:
-        """Lists the available channels in `/opt/ml/input/data`.
+        """
+        Lists the available channels in `/opt/ml/input/data`.
 
         Return:
         Dict of channel-names mapping to the corresponding path.

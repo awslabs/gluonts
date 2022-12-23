@@ -52,35 +52,47 @@ from ._main import ensembles
 @click.option(
     "--max_ensemble_size",
     default=10,
-    help="The maximum number of ensemble members for any ensemble that is evaluated.",
+    help=(
+        "The maximum number of ensemble members for any ensemble that is"
+        " evaluated."
+    ),
 )
 @click.option(
     "--default_samples",
     default=0,
     show_default=True,
-    help="The number of ensembles to sample which combine only default configurations of all "
-    "models. If set to -1, uses all available configurations.",
+    help=(
+        "The number of ensembles to sample which combine only default"
+        " configurations of all models. If set to -1, uses all available"
+        " configurations."
+    ),
 )
 @click.option(
     "--hyperensemble_samples",
     default=0,
     show_default=True,
-    help="The number of ensembles to sample which constitute hyperensembles. If set to -1, uses"
-    "all hyperensembles that can be built.",
+    help=(
+        "The number of ensembles to sample which constitute hyperensembles. If"
+        " set to -1, usesall hyperensembles that can be built."
+    ),
 )
 @click.option(
     "--random_samples",
     default=0,
     show_default=True,
-    help="The number of ensembles to sample which combine random configurations found in the"
-    "offline evaluations.",
+    help=(
+        "The number of ensembles to sample which combine random configurations"
+        " found in theoffline evaluations."
+    ),
 )
 @click.option(
     "--sample_datasets",
     default=True,
     show_default=True,
-    help="Whether to sample a single random dataset for each ensemble being evaluated or to"
-    "evaluate each ensemble on all available datasets.",
+    help=(
+        "Whether to sample a single random dataset for each ensemble being"
+        " evaluated or toevaluate each ensemble on all available datasets."
+    ),
 )
 @click.option(
     "--seed",
@@ -100,8 +112,10 @@ def simulate(
     seed: int,
 ):
     """
-    Simulates the performance of various ensembles. The ensembles are built from configurations
-    (i.e. model types and hyperparameters) for which offline evaluations are available.
+    Simulates the performance of various ensembles.
+
+    The ensembles are built from configurations (i.e. model types and
+    hyperparameters) for which offline evaluations are available.
     """
     assert any(
         [default_samples != 0, hyperensemble_samples != 0, random_samples != 0]

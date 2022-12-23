@@ -20,7 +20,8 @@ from .base import Callback
 
 class ModelSaverCallback(Callback):  # type: ignore
     """
-    The model saver callback saves the model during training at exponential frequency.
+    The model saver callback saves the model during training at exponential
+    frequency.
 
     Attributes:
         network: The network that was trained. Not available prior to training.

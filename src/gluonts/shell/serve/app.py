@@ -24,10 +24,10 @@ from flask import Flask, Response, jsonify, request
 from pydantic import BaseModel
 
 from gluonts.dataset.common import ListDataset
+from gluonts.dataset.jsonl import encode_json
 from gluonts.model.forecast import Config as ForecastConfig
 from gluonts.shell.util import forecaster_type_by_name
 
-from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
 
@@ -68,7 +68,8 @@ def log_throughput(instances, timings):
             zip(timings, item_lengths), start=1
         ):
             logger.info(
-                f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+                f"\t{idx} took -> {duration:.2f}s"
+                f" (len(target)=={input_length})."
             )
     else:
         logger.info(
@@ -98,7 +99,7 @@ def handle_predictions(predictor, instances, configuration):
     # create the forecasts
     forecasts = ThrougputIter(
         predictor.predict(
-            ListDataset(instances, predictor.freq),
+            ListDataset(instances, configuration.freq),
             num_samples=configuration.num_samples,
         )
     )
@@ -119,7 +120,7 @@ def inference_invocations(predictor_factory) -> Callable[[], Response]:
         predictions = handle_predictions(
             predictor, req.instances, req.configuration
         )
-        return jsonify(predictions=jsonify_floats(predictions))
+        return jsonify(predictions=encode_json(predictions))
 
     return invocations
 
@@ -207,7 +208,7 @@ def batch_inference_invocations(
         else:
             instances = []
 
-        dataset = ListDataset(instances, predictor.freq)
+        dataset = ListDataset(instances, configuration.freq)
 
         start_time = time.time()
 
@@ -225,7 +226,6 @@ def batch_inference_invocations(
                     settings.gluonts_batch_fallback_predictor
                 )
                 fallback_predictor = FallbackPredictor(
-                    freq=predictor.freq,
                     prediction_length=predictor.prediction_length,
                 )
 
@@ -249,7 +249,7 @@ def batch_inference_invocations(
             for input_item, prediction in zip(dataset, predictions):
                 prediction[forward_field] = input_item.get(forward_field)
 
-        lines = list(map(json.dumps, map(jsonify_floats, predictions)))
+        lines = list(map(json.dumps, map(encode_json, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
     def invocations_error_wrapper() -> Response:

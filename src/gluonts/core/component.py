@@ -21,7 +21,7 @@ from typing import Any, Type, TypeVar
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-from gluonts.core.serde import dump_code
+from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
 
 
@@ -220,8 +220,8 @@ class BaseValidatedInitializerModel(BaseModel):
 
 def validated(base_model=None):
     """
-    Decorates an ``__init__`` method with typed parameters with validation
-    and auto-conversion logic.
+    Decorates an ``__init__`` method with typed parameters with validation and
+    auto-conversion logic.
 
     >>> class ComplexNumber:
     ...     @validated()
@@ -242,7 +242,8 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error for ComplexNumberModel
+    pydantic.error_wrappers.ValidationError: 1 validation error for
+    ComplexNumberModel
     y
       none is not an allowed value (type=type_error.none.not_allowed)
 
@@ -275,7 +276,7 @@ def validated(base_model=None):
     """
 
     def validator(init):
-        init_qualname = dict(inspect.getmembers(init))["__qualname__"]
+        init_qualname = dict(inspect.getmembers(init))["__qualname__"]  # noqa
         init_clsnme = init_qualname.split(".")[0]
         init_params = inspect.signature(init).parameters
         init_fields = {
@@ -306,7 +307,11 @@ def validated(base_model=None):
             )
 
         def validated_repr(self) -> str:
-            return dump_code(self)
+            cname = fqname_for(self.__class__)
+            kwargs = ", ".join(
+                f"{key}={value!r}" for key, value in self.__init_args__.items()
+            )
+            return f"{cname}({kwargs})"
 
         def validated_getnewargs_ex(self):
             return (), self.__init_args__

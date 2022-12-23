@@ -54,7 +54,6 @@ class CausalConv1D(gluon.HybridBlock):
         Activation function to use. See :func:`~mxnet.ndarray.Activation`.
         If you don't specify anything, no activation is applied
         (ie. "linear" activation: `a(x) = x`).
-
     """
 
     def __init__(
@@ -65,7 +64,7 @@ class CausalConv1D(gluon.HybridBlock):
         activation: Optional[str] = None,
         **kwargs,
     ):
-        super(CausalConv1D, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.dilation = _get_int(dilation)
         self.kernel_size = _get_int(kernel_size)
@@ -79,12 +78,10 @@ class CausalConv1D(gluon.HybridBlock):
             **kwargs,
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
         """
         In Gluon's conv1D implementation, input has dimension NCW where N is
         batch_size, C is channel, and W is time (sequence_length).
-
 
         Parameters
         ----------
@@ -94,17 +91,20 @@ class CausalConv1D(gluon.HybridBlock):
         Returns
         -------
         Tensor
-            causal conv1d output. Shape (batch_size, num_features, sequence_length)
+            causal conv1d output. Shape (batch_size, num_features,
+            sequence_length)
         """
         ct = self.conv1d(data)
         if self.kernel_size > 0:
-            ct = F.slice_axis(ct, axis=2, begin=0, end=-self.padding)
+            end_ = -self.padding if self.padding != 0 else None
+            ct = F.slice_axis(ct, axis=2, begin=0, end=end_)
         return ct
 
 
 class DilatedCausalGated(gluon.HybridBlock):
     """
-    1D convolution with Gated mechanism, see the Wavenet papers described above.
+    1D convolution with Gated mechanism, see the Wavenet papers described
+    above.
 
     Parameters
     ----------
@@ -129,7 +129,7 @@ class DilatedCausalGated(gluon.HybridBlock):
         dilation: Union[int, Tuple[int], List[int]],
         **kwargs,
     ) -> None:
-        super(DilatedCausalGated, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         with self.name_scope():
             self.conv1 = CausalConv1D(
                 channels=inner_channels,
@@ -147,7 +147,6 @@ class DilatedCausalGated(gluon.HybridBlock):
                 channels=out_channels, kernel_size=1
             )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
         Compute the 1D convolution with Gated mechanism.
@@ -169,13 +168,12 @@ class DilatedCausalGated(gluon.HybridBlock):
 
 class ResidualSequential(gluon.nn.HybridSequential):
     """
-    Adding residual connection to each layer of the hybrid sequential blocks
+    Adding residual connection to each layer of the hybrid sequential blocks.
     """
 
     def __init__(self, **kwargs):
-        super(ResidualSequential, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
 

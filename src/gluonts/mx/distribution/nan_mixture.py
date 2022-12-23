@@ -26,14 +26,16 @@ from .mixture import MixtureDistribution
 
 class NanMixture(MixtureDistribution):
     r"""
-    A mixture distribution of a NaN-valued Deterministic distribution and Distribution
+    A mixture distribution of a NaN-valued Deterministic distribution and
+    Distribution
 
     Parameters
     ----------
     nan_prob
-        A tensor of the probabilities of missing values. The entries should all be positive
-        and smaller than 1. All axis should either coincide with the ones from the component distributions,
-        or be 1 (in which case, the NaN probability is shared across the axis).
+        A tensor of the probabilities of missing values. The entries should all
+        be positive and smaller than 1. All axis should either coincide with
+        the ones from the component distributions, or be 1 (in which case, the
+        NaN probability is shared across the axis).
     distribution
         A Distribution object representing the Distribution of non-NaN values.
         Distributions can be of different types. Each component's support

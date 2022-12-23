@@ -34,7 +34,8 @@ def get_dataset_config(
     name: str, path: Union[Path, str] = DEFAULT_DATA_PATH
 ) -> DatasetConfig:
     """
-    This method creates the dataset configuration of the model with the specified name.
+    This method creates the dataset configuration of the model with the
+    specified name.
 
     Args:
         name: The canonical name of the dataset. See `DATASET_REGISTRY`.

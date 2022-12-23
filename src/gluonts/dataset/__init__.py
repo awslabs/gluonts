@@ -11,8 +11,59 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional
 
-from pkgutil import extend_path
+from typing_extensions import Protocol, runtime_checkable
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+from gluonts.itertools import roundrobin
+
+# Dictionary used for data flowing through the transformations.
+DataEntry = Dict[str, Any]
+DataBatch = Dict[str, Any]
+
+
+@runtime_checkable
+class Dataset(Protocol):
+    def __iter__(self) -> Iterator[DataEntry]:
+        raise NotImplementedError
+
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+
+@dataclass
+class DatasetCollection:
+    """
+    Flattened access to a collection of datasets.
+    """
+
+    datasets: List[Dataset]
+    interleave: bool = False
+
+    def iter_sequential(self):
+        for dataset in self.datasets:
+            yield from dataset
+
+    def iter_interleaved(self):
+        yield from roundrobin(*self.datasets)
+
+    def __iter__(self):
+        if self.interleave:
+            yield from self.iter_interleaved()
+        else:
+            yield from self.iter_sequential()
+
+    def __len__(self):
+        return sum(map(len, self.datasets))
+
+
+class DatasetWriter:
+    def write_to_file(self, dataset: Dataset, path: Path) -> None:
+        raise NotImplementedError
+
+    def write_to_folder(
+        self, dataset: Dataset, folder: Path, name: Optional[str] = None
+    ) -> None:
+        raise NotImplementedError

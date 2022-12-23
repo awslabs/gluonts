@@ -19,8 +19,9 @@ from .base import Callback
 
 class LearningRateScheduleCallback(Callback):  # type: ignore
     """
-    The learning rate schedule callback decreases the learning rate by a predefined factor after
-    each of the provided milestones (after x seconds during training).
+    The learning rate schedule callback decreases the learning rate by a
+    predefined factor after each of the provided milestones (after x seconds
+    during training).
     """
 
     def __init__(

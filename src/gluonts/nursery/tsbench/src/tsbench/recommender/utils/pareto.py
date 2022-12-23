@@ -19,8 +19,8 @@ import scipy.stats as st
 
 def pareto_efficiency_mask(X: npt.NDArray[np.float32]) -> np.ndarray:
     """
-    Evaluates for each allocation in the provided array whether it is Pareto efficient. The costs
-    are assumed to be improved by lowering them.
+    Evaluates for each allocation in the provided array whether it is Pareto
+    efficient. The costs are assumed to be improved by lowering them.
 
     Args:
         X: Array of shape [N, D] (N: number of allocations, D: number of costs) containing the
@@ -51,9 +51,10 @@ def epsilon_net_indices(
     X: npt.NDArray[np.float32], dim: Optional[int] = None
 ) -> np.ndarray:
     """
-    Outputs an order of the items in the provided array such that the items are spaced well. This
-    means that after choosing a seed item, the next item is chosen to be the farthest from the seed
-    item. The third item is then chosen to maximize the distance to the existing points and so on.
+    Outputs an order of the items in the provided array such that the items are
+    spaced well. This means that after choosing a seed item, the next item is
+    chosen to be the farthest from the seed item. The third item is then chosen
+    to maximize the distance to the existing points and so on.
 
     This algorithm is taken from "Nearest-Neighbor Searching and Metric Space Dimensions"
     (Clarkson, 2005, p.17).
@@ -106,9 +107,10 @@ def argsort_nondominated(
     flatten: bool = True,
 ) -> Union[List[int], List[List[int]]]:
     """
-    Performs a multi-objective sort by iteratively computing the Pareto front and sparsifying the
-    items within the Pareto front. This is a non-dominated sort leveraging an epsilon-net. All
-    metrics are normalized using quantile normalization.
+    Performs a multi-objective sort by iteratively computing the Pareto front
+    and sparsifying the items within the Pareto front. This is a non-dominated
+    sort leveraging an epsilon-net. All metrics are normalized using quantile
+    normalization.
 
     Args:
         X: Array of shape [N, D] (N: number of items, D: dimensionality) with the

@@ -46,10 +46,11 @@ from gluonts.torch.util import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.modules.distribution_output import (
+from gluonts.torch.distributions import (
     DistributionOutput,
     StudentTOutput,
 )
+from gluonts.transform.sampler import InstanceSampler
 
 from .module import DeepARModel
 from .lightning_module import DeepARLightningModule
@@ -70,6 +71,82 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class DeepAREstimator(PyTorchLightningEstimator):
+    """
+    Estimator class to train a DeepAR model, as described in [SFG17]_.
+
+    This class is uses the model defined in ``DeepARModel``, and wraps it
+    into a ``DeepARLightningModule`` for training purposes: training is
+    performed using PyTorch Lightning's ``pl.Trainer`` class.
+
+    *Note:* the code of this model is unrelated to the implementation behind
+    `SageMaker's DeepAR Forecasting Algorithm
+    <https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html>`_.
+
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict.
+    prediction_length
+        Length of the prediction horizon.
+    context_length
+        Number of steps to unroll the RNN for before computing predictions
+        (default: None, in which case context_length = prediction_length).
+    num_layers
+        Number of RNN layers (default: 2).
+    hidden_size
+        Number of RNN cells for each layer (default: 40).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
+    dropout_rate
+        Dropout regularization parameter (default: 0.1).
+    patience
+        Patience parameter for learning rate scheduler.
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
+    num_feat_static_real
+        Number of static real features in the data (default: 0).
+    num_feat_static_cat
+        Number of static categorical features in the data (default: 0).
+    cardinality
+        Number of values of each categorical feature.
+        This must be set if ``num_feat_static_cat > 0`` (default: None).
+    embedding_dimension
+        Dimension of the embeddings for categorical features
+        (default: ``[min(50, (cat+1)//2) for cat in cardinality]``).
+    distr_output
+        Distribution to use to evaluate observations and sample predictions
+        (default: StudentTOutput()).
+    loss
+        Loss to be optimized during training
+        (default: ``NegativeLogLikelihood()``).
+    scaling
+        Whether to automatically scale the target values (default: true).
+    lags_seq
+        Indices of the lagged target values to use as inputs of the RNN
+        (default: None, in which case these are automatically determined
+        based on freq).
+    time_features
+        List of time features, from :py:mod:`gluonts.time_feature`, to use as
+        inputs of the RNN in addition to the provided data (default: None,
+        in which case these are automatically determined based on freq).
+    num_parallel_samples
+        Number of samples per time series to that the resulting predictor
+        should produce (default: 100).
+    batch_size
+        The size of the batches to be used for training (default: 32).
+    num_batches_per_epoch
+        Number of batches to be processed in each training epoch
+        (default: 50).
+    trainer_kwargs
+        Additional arguments to provide to ``pl.Trainer`` for construction.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
+    """
+
     @validated()
     def __init__(
         self,
@@ -78,7 +155,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         dropout_rate: float = 0.1,
+        patience: int = 10,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
         num_feat_static_real: int = 0,
@@ -93,6 +173,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
@@ -107,10 +189,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
             context_length if context_length is not None else prediction_length
         )
         self.prediction_length = prediction_length
+        self.patience = patience
         self.distr_output = distr_output
         self.loss = loss
         self.num_layers = num_layers
         self.hidden_size = hidden_size
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.dropout_rate = dropout_rate
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_cat = num_feat_static_cat
@@ -131,10 +216,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
-        self.train_sampler = ExpectedNumInstanceSampler(
+        self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
-        self.validation_sampler = ValidationSplitSampler(
+        self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
 
@@ -300,7 +385,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
             num_parallel_samples=self.num_parallel_samples,
         )
 
-        return DeepARLightningModule(model=model, loss=self.loss)
+        return DeepARLightningModule(
+            model=model,
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+            patience=self.patience,
+        )
 
     def create_predictor(
         self,
@@ -312,9 +403,8 @@ class DeepAREstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module.model,
+            prediction_net=module,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             device=torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu"

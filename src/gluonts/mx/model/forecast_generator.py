@@ -11,22 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator
-
-import mxnet as mx
-
-from gluonts.model.forecast_generator import (
-    recursively_zip_arrays,
-    make_distribution_forecast,
-)
+from gluonts.model.forecast_generator import make_distribution_forecast
 from gluonts.mx.distribution import Distribution
 from gluonts.mx.model.forecast import DistributionForecast
-
-
-@recursively_zip_arrays.register(mx.nd.NDArray)
-def _(x: mx.nd.NDArray) -> Iterator[mx.nd.NDArray]:
-    for i in range(x.shape[0]):
-        yield x[i]
 
 
 @make_distribution_forecast.register(Distribution)

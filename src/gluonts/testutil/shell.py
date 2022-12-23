@@ -20,12 +20,14 @@ import tempfile
 import time
 import typing
 from contextlib import closing, contextmanager
+from dataclasses import dataclass
 from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
 
 import requests
-from gluonts.dataset.common import DataEntry, serialize_data_entry
+from gluonts.dataset.common import DataEntry
+from gluonts.dataset.jsonl import encode_json
 from gluonts.dataset.repository.datasets import materialize_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
@@ -36,8 +38,8 @@ from gluonts.shell.serve import Settings, make_gunicorn_app
 
 class ServerFacade:
     """
-    A convenience wrapper for sending requests and handling responses to
-    an inference server located at the given address.
+    A convenience wrapper for sending requests and handling responses to an
+    inference server located at the given address.
     """
 
     def __init__(self, base_address: str) -> None:
@@ -69,7 +71,7 @@ class ServerFacade:
     def invocations(
         self, data_entries: Iterable[DataEntry], configuration: dict
     ) -> List[dict]:
-        instances = list(map(serialize_data_entry, data_entries))
+        instances = list(map(encode_json, data_entries))
         response = requests.post(
             url=self.url("/invocations"),
             json={"instances": instances, "configuration": configuration},
@@ -88,7 +90,7 @@ class ServerFacade:
     def batch_invocations(
         self, data_entries: Iterable[DataEntry]
     ) -> List[dict]:
-        instances_pre = map(serialize_data_entry, data_entries)
+        instances_pre = map(encode_json, data_entries)
         instances = list(map(json.dumps, instances_pre))
 
         response = requests.post(
@@ -104,10 +106,25 @@ class ServerFacade:
 
 
 def free_port() -> int:
-    """Returns a random unbound port."""
+    """
+    Returns a random unbound port.
+    """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         sock.bind(("", 0))
         return sock.getsockname()[1]
+
+
+@dataclass
+class Server:
+    env: ServeEnv
+    forecaster_type: Optional[Type[Predictor]]
+    settings: Settings = Settings()
+
+    def run(self):
+        gunicorn_app = make_gunicorn_app(
+            self.env, self.forecaster_type, self.settings
+        )
+        gunicorn_app.run()
 
 
 @contextmanager
@@ -137,11 +154,11 @@ def temporary_server(
         A context manager that yields the `InferenceServer` instance
         wrapping the spawned inference server.
     """
-    context = multiprocessing.get_context("fork")
+    context = multiprocessing.get_context("spawn")
     context = typing.cast(ForkContext, context)  # cast to make mypi pass
 
-    gunicorn_app = make_gunicorn_app(env, forecaster_type, settings)
-    process = context.Process(target=gunicorn_app.run)
+    server = Server(env, forecaster_type, settings)
+    process = context.Process(target=server.run)
     process.start()
 
     endpoint = ServerFacade(
@@ -221,8 +238,7 @@ def temporary_train_env(
 def temporary_serve_env(predictor: Predictor) -> ContextManager[ServeEnv]:
     """
     A context manager that instantiates a serve environment for a given
-    `Predictor` in a temporary directory and removes the directory on
-    exit.
+    `Predictor` in a temporary directory and removes the directory on exit.
 
     Parameters
     ----------

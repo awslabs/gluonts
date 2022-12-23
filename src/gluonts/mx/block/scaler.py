@@ -59,7 +59,6 @@ class Scaler(nn.HybridBlock):
         """
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tuple[Tensor, Tensor]:
@@ -83,10 +82,12 @@ class Scaler(nn.HybridBlock):
         Tensor
             Tensor containing the "scaled" data.
         Tensor
-            Tensor containing the scale: this has the same shape as the data, except for the axis ``axis``
-            along which the scale is computed, which is removed if ``keepdims == False``, and kept with
-            length 1 otherwise. For example, if ``data`` has shape ``(N, T, C)`` and ``axis ==1 ``, then
-            ``scale`` has shape ``(N, C)`` if ``keepdims == False``, and ``(N, 1, C)`` otherwise.
+            Tensor containing the scale: this has the same shape as the data,
+            except for the axis ``axis`` along which the scale is computed,
+            which is removed if ``keepdims == False``, and kept with length 1
+            otherwise. For example, if ``data`` has shape ``(N, T, C)`` and
+            ``axis ==1 ``, then ``scale`` has shape ``(N, C)`` if ``keepdims
+            == False``, and ``(N, 1, C)`` otherwise.
 
         """
         scale = self.compute_scale(F, data, observed_indicator)
@@ -186,7 +187,8 @@ class MeanScaler(Scaler):
 
 class MinMax(Scaler):
     """
-    The 'MinMax' scales the input data using a min-max approach along the specified axis.
+    The 'MinMax' scales the input data using a min-max approach along the
+    specified axis.
     """
 
     @validated()
@@ -225,45 +227,52 @@ class MinMax(Scaler):
             axis_zero, shape=data.shape
         )  # Broadcast it to the shape of data
 
+        # return the min value along specified axis while ignoring value
+        # according to observed_indicator
         min_val = nd.where(
             1 - observed_indicator,
             nd.broadcast_to(data.max(keepdims=True), shape=data.shape),
             data,
-        ).min(
-            axis=self.axis, keepdims=True
-        )  # return the min value along specified axis while ignoring value according to observed_indicator
+        ).min(axis=self.axis, keepdims=True)
+
+        # return the max value along specified axis while ignoring value
+        # according to observed_indicator
         max_val = nd.where(
             1 - observed_indicator,
             nd.broadcast_to(data.min(keepdims=True), shape=data.shape),
             data,
-        ).max(
-            axis=self.axis, keepdims=True
-        )  # return the max value along specified axis while ignoring value according to observed_indicator
+        ).max(axis=self.axis, keepdims=True)
 
         scaled_data = (data - min_val) / (max_val - min_val)  # Rescale
+
+        # Clip Nan values to zero if the data was equal to zero along specified
+        # axis
         scaled_data = nd.where(
             axis_zero, scaled_data.zeros_like(), scaled_data
-        )  # Clip Nan values to zero if the data was equal to zero along specified axis
+        )
+
+        # Clip the Nan values to one. scaled_date!=scaled_data tells us where
+        # the Nan values are in scaled_data
         scaled_data = nd.where(
             scaled_data != scaled_data, scaled_data.ones_like(), scaled_data
-        )  # Clip the Nan values to one. scaled_date!=scaled_data tells us where the Nan values are in scaled_data
+        )
 
+        # Replace data with zero where observed_indicator tells us to.
         return nd.where(
             1 - observed_indicator, scaled_data.zeros_like(), scaled_data
-        )  # Replace data with zero where observed_indicator tells us to.
+        )
 
 
 class NOPScaler(Scaler):
     """
-    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
-    no scaling is applied upon calling the ``NOPScaler``.
+    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e., no
+    scaling is applied upon calling the ``NOPScaler``.
     """
 
     @validated()
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # noinspection PyMethodOverriding
     def compute_scale(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tensor:

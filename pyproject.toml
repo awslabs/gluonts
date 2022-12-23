@@ -1,2 +1,34 @@
 [tool.black]
 line-length = 79
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+timeout = 60
+addopts = """
+    --ignore src/gluonts/block.py
+    --ignore src/gluonts/distribution.py
+    --ignore src/gluonts/kernels.py
+    --ignore src/gluonts/representation.py
+    --ignore src/gluonts/trainer.py
+"""
+doctest_optionflags = "NORMALIZE_WHITESPACE"
+
+
+[tool.ruff]
+line-length = 79
+
+ignore = [
+    # line-length is handled by black
+    "E501",
+
+    # TODO: remove usage of `l`
+    "E741"
+]
+
+exclude = ["src/gluonts/nursery"]
+
+
+[tool.docformatter]
+pre-summary-newline = true
+make-summary-multi-line = true
+wrap-descriptions = 79

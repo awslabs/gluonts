@@ -44,13 +44,7 @@ class StatelessMeta(type):
     def __call__(cls, *args, **kwargs):
         self = cls.__new__(cls, *args, **kwargs)
         if isinstance(self, cls):
-            if hasattr(self.__init__, "__checked__"):
-                (this, *args), kwargs = self.__init__.__checked__(
-                    self, *args, **kwargs
-                )
-                self.__init__.__wrapped__(this, *args, **kwargs)
-            else:
-                self.__init__(*args, **kwargs)
+            self.__init__(*args, **kwargs)
             self.__init_args__ = args, kwargs
             self.__sealed__ = True
         return self
@@ -175,8 +169,6 @@ def encode(v: Any) -> Any:
         Inverse function.
     dump_json
         Serializes an object to a JSON string.
-    dump_code
-        Serializes an object to a Python code string.
     """
     if v is None:
         return None
@@ -208,6 +200,13 @@ def encode(v: Any) -> Any:
 
     if isinstance(v, type):
         return {"__kind__": Kind.Type, "class": fqname_for(v)}
+
+    if hasattr(v, "__init_passed_kwargs__"):
+        return {
+            "__kind__": Kind.Instance,
+            "class": fqname_for(v.__class__),
+            "kwargs": encode(v.__init_passed_kwargs__),  # mypy: ignore
+        }
 
     if hasattr(v, "__getnewargs_ex__"):
         args, kwargs = v.__getnewargs_ex__()  # mypy: ignore

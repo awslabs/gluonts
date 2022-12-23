@@ -51,9 +51,7 @@ class ActivationRegularizationLoss(Loss):
         time_axis: int = 0,
         **kwargs
     ):
-        super(ActivationRegularizationLoss, self).__init__(
-            weight, batch_axis, **kwargs
-        )
+        super().__init__(weight, batch_axis, **kwargs)
         self._alpha = alpha
         self._batch_axis = batch_axis
         self._time_axis = time_axis
@@ -67,12 +65,14 @@ class ActivationRegularizationLoss(Loss):
         Parameters
         ----------
         states
-            the stack outputs from RNN, which consists of output from each time step.
+            the stack outputs from RNN, which consists of output from each time
+            step.
 
         Returns
         --------
         Tensor
-            loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
+            loss tensor with shape (batch_size,). Dimensions other than
+            batch_axis are averaged out.
         """
         if self._alpha != 0 and states:
             means = []
@@ -96,7 +96,9 @@ class TemporalActivationRegularizationLoss(Loss):
         L = \beta \| h_t-h_{t+1} \|_2^2,
 
     where :math:`h_t` is the output of the RNN at timestep t,
-    :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta` is scaling coefficient.
+    :math:`h_{t+1}` is the output of the RNN at timestep t+1, :math:`\beta`
+    is scaling coefficient.
+
     The implementation follows [MMS17]_.
     Computes Temporal Activation Regularization Loss. (alias: TAR)
 
@@ -121,9 +123,7 @@ class TemporalActivationRegularizationLoss(Loss):
         time_axis: int = 0,
         **kwargs
     ):
-        super(TemporalActivationRegularizationLoss, self).__init__(
-            weight, batch_axis, **kwargs
-        )
+        super().__init__(weight, batch_axis, **kwargs)
         self._beta = beta
         self._batch_axis = batch_axis
         self._time_axis = time_axis
@@ -137,12 +137,14 @@ class TemporalActivationRegularizationLoss(Loss):
         Parameters
         ----------
         states
-            the stack outputs from RNN, which consists of output from each time step.
+            the stack outputs from RNN, which consists of output from each time
+            step.
 
         Returns
         --------
         Tensor
-            loss tensor with shape (batch_size,). Dimensions other than batch_axis are averaged out.
+            loss tensor with shape (batch_size,). Dimensions other than
+            batch_axis are averaged out.
         """
         if self._beta != 0 and states:
             means = []

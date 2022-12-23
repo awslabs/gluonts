@@ -65,7 +65,6 @@ class ArgProj(gluon.HybridBlock):
             self.register_child(dense)
         self.domain_map = domain_map
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
 
@@ -87,6 +86,10 @@ class Output:
     @dtype.setter
     def dtype(self, dtype: Type):
         self._dtype = dtype
+
+    @classmethod
+    def eps(cls):
+        return np.finfo(cls._dtype).eps
 
     def get_args_proj(self, prefix: Optional[str] = None) -> gluon.HybridBlock:
         return ArgProj(

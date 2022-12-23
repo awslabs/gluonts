@@ -26,7 +26,7 @@ from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 
 from gluonts.dataset.loader import TrainDataLoader
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.batchify import batchify
@@ -97,22 +97,23 @@ if __name__ == "__main__":
         i = k // nll.shape[1]
         t = k % nll.shape[1]
 
-        time_index = pd.date_range(
-            pd.Timestamp(data_entry["forecast_start"][i]),
+        time_index = pd.period_range(
+            data_entry["forecast_start"][i],
             periods=context_length + prediction_length,
+            freq=data_entry["forecast_start"][i].freq,
         )
         time_index -= context_length * time_index.freq
 
         plt.figure(figsize=(10, 4))
         plt.fill_between(
-            time_index,
+            time_index.to_timestamp(),
             percentiles[0, i],
             percentiles[-1, i],
             alpha=0.5,
             label="80% CI predicted",
         )
-        plt.plot(time_index, target[i], label="target")
-        plt.axvline(time_index[t], alpha=0.5, color="r")
+        plt.plot(time_index.to_timestamp(), target[i], label="target")
+        plt.axvline(time_index[t].to_timestamp(), alpha=0.5, color="r")
         plt.title(f"NLL: {nll[i, t]}")
         plt.legend()
         plt.show()

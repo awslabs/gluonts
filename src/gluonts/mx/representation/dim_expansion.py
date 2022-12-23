@@ -21,7 +21,8 @@ from .representation import Representation
 
 class DimExpansion(Representation):
     """
-    A class representing a dimension expansion operation along a specified axis.
+    A class representing a dimension expansion operation along a specified
+    axis.
 
     Parameters
     ----------
@@ -35,7 +36,6 @@ class DimExpansion(Representation):
         super().__init__(*args, **kwargs)
         self.axis = axis
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

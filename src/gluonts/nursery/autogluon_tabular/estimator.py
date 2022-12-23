@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class TabularEstimator(Estimator):
-    """An estimator that trains an Autogluon Tabular model for time series
+    """
+    An estimator that trains an Autogluon Tabular model for time series
     forecasting.
 
     Additional keyword arguments to the constructor, other than the ones documented
@@ -62,7 +63,7 @@ class TabularEstimator(Estimator):
         Batch size of the resulting predictor; this is just used at prediction
         time, and does not affect training in any way.
     disable_auto_regression
-        Whether to forecefully disable auto-regression in the model. If ``True``,
+        Whether to forcefully disable auto-regression in the model. If ``True``,
         this will remove any lag index which is smaller than ``prediction_length``.
         This will make predictions more efficient, but may impact their accuracy.
     quantiles_to_predict
@@ -90,17 +91,16 @@ class TabularEstimator(Estimator):
     ) -> None:
         super().__init__()
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.lag_indices = (
             lag_indices
             if lag_indices is not None
-            else get_lags_for_frequency(self.freq)
+            else get_lags_for_frequency(freq)
         )
         self.time_features = (
             time_features
             if time_features is not None
-            else time_features_from_frequency_str(self.freq)
+            else time_features_from_frequency_str(freq)
         )
         self.batch_size = batch_size
         self.disable_auto_regression = disable_auto_regression
@@ -143,11 +143,12 @@ class TabularEstimator(Estimator):
             )
             for entry in training_data
         ]
+
         if validation_data is not None or self.last_k_for_val is not None:
             kwargs_override["auto_stack"] = False
             logger.warning(
-                "Auto Stacking is turned off "
-                "as validation dataset is provided before input into Tabular Predictor."
+                "Auto Stacking is turned off as validation dataset is provided"
+                " before input into Tabular Predictor."
             )
 
         if validation_data is not None:
@@ -165,7 +166,9 @@ class TabularEstimator(Estimator):
         elif self.last_k_for_val is not None:
             logger.log(
                 20,
-                f"last_k_for_val is provided, choosing last {self.last_k_for_val} of each time series as validation set.",
+                "last_k_for_val is provided, choosing last"
+                f" {self.last_k_for_val} of each time series as validation"
+                " set.",
             )
             train_dfs = [
                 tmp_df.iloc[: -self.last_k_for_val, :] for tmp_df in dfs
@@ -178,8 +181,9 @@ class TabularEstimator(Estimator):
         else:
             logger.log(
                 20,
-                "No validation dataset is provided, will let TabularPredictor do the splitting automatically,"
-                "Note that this might break the time order of time series data.",
+                "No validation dataset is provided, will let TabularPredictor"
+                " do the splitting automatically,Note that this might break"
+                " the time order of time series data.",
             )
             train_df = pd.concat(dfs)
             val_df = None
@@ -207,7 +211,6 @@ class TabularEstimator(Estimator):
 
         return TabularPredictor(
             ag_model=ag_model,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             time_features=self.time_features,
             lag_indices=self.lag_indices,

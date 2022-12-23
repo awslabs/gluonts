@@ -26,8 +26,9 @@ from .representation import Representation
 
 class HybridRepresentation(Representation):
     """
-    A class representing a hybrid approach of combining multiple representations into a single representation.
-    Representations will be combined by concatenating them on dim=-1.
+    A class representing a hybrid approach of combining multiple
+    representations into a single representation. Representations will be
+    combined by concatenating them on dim=-1.
 
     Parameters
     ----------
@@ -54,7 +55,6 @@ class HybridRepresentation(Representation):
         for representation in self.representations:
             representation.initialize_from_array(input_array, ctx)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

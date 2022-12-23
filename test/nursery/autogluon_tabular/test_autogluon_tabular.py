@@ -22,11 +22,14 @@ from pathlib import Path
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.util import to_pandas
 from gluonts.nursery.autogluon_tabular.predictor import get_features_dataframe
-from gluonts.nursery.autogluon_tabular import (
-    TabularEstimator,
-)
+from gluonts.nursery.autogluon_tabular import TabularEstimator
 from gluonts.model.predictor import Predictor
-from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
+from gluonts.time_feature import (
+    TimeFeature,
+    hour_of_day,
+    day_of_week,
+    month_of_year,
+)
 
 
 @pytest.mark.parametrize(
@@ -34,25 +37,25 @@ from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
     [
         (
             pd.Series(
-                list(range(5)),
-                index=pd.date_range(
+                np.arange(5),
+                index=pd.period_range(
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
-            [MonthOfYear(), DayOfWeek(), HourOfDay()],
+            [month_of_year, day_of_week, hour_of_day],
             [1, 2, 5],
             None,
             pd.DataFrame(
                 {
-                    "MonthOfYear": [0.5, 0.5, -0.5, -0.5, -0.5],
-                    "DayOfWeek": [
+                    "month_of_year": [0.5, 0.5, -0.5, -0.5, -0.5],
+                    "day_of_week": [
                         0.0,
                         0.0,
                         4.0 / 6 - 0.5,
                         4.0 / 6 - 0.5,
                         4.0 / 6 - 0.5,
                     ],
-                    "HourOfDay": [
+                    "hour_of_day": [
                         22.0 / 23 - 0.5,
                         0.5,
                         -0.5,
@@ -62,39 +65,39 @@ from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
                     "lag_1": [np.nan, 0, 1, 2, 3],
                     "lag_2": [np.nan, np.nan, 0, 1, 2],
                     "lag_5": [np.nan, np.nan, np.nan, np.nan, np.nan],
-                    "target": list(range(5)),
+                    "target": np.arange(5),
                 },
-                index=pd.date_range(
+                index=pd.period_range(
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
         ),
         (
             pd.Series(
-                list(range(5)),
-                index=pd.date_range(
+                np.arange(5),
+                index=pd.period_range(
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
-            [MonthOfYear(), DayOfWeek(), HourOfDay()],
+            [month_of_year, day_of_week, hour_of_day],
             [1, 2, 5],
             pd.Series(
-                list(range(5)),
-                index=pd.date_range(
+                np.arange(5),
+                index=pd.period_range(
                     "2020-12-31 16:00:00", freq="H", periods=5
                 ),
             ),
             pd.DataFrame(
                 {
-                    "MonthOfYear": [0.5, 0.5, -0.5, -0.5, -0.5],
-                    "DayOfWeek": [
+                    "month_of_year": [0.5, 0.5, -0.5, -0.5, -0.5],
+                    "day_of_week": [
                         0.0,
                         0.0,
                         4.0 / 6 - 0.5,
                         4.0 / 6 - 0.5,
                         4.0 / 6 - 0.5,
                     ],
-                    "HourOfDay": [
+                    "hour_of_day": [
                         22.0 / 23 - 0.5,
                         0.5,
                         -0.5,
@@ -104,9 +107,9 @@ from gluonts.time_feature import TimeFeature, HourOfDay, DayOfWeek, MonthOfYear
                     "lag_1": [np.nan, 0, 1, 2, 3],
                     "lag_2": [4, np.nan, 0, 1, 2],
                     "lag_5": [1, 2, 3, 4, np.nan],
-                    "target": list(range(5)),
+                    "target": np.arange(5),
                 },
-                index=pd.date_range(
+                index=pd.period_range(
                     "2020-12-31 22:00:00", freq="H", periods=5
                 ),
             ),
@@ -136,9 +139,7 @@ def test_get_features_dataframe(
             ListDataset(
                 [
                     {
-                        "start": pd.Timestamp(
-                            "1750-01-07 00:00:00", freq="W-TUE"
-                        ),
+                        "start": "1750-01-07 00:00:00",
                         "target": np.array(
                             [
                                 1089.2,
@@ -151,9 +152,7 @@ def test_get_features_dataframe(
                         ),
                     },
                     {
-                        "start": pd.Timestamp(
-                            "1750-01-07 00:00:00", freq="W-TUE"
-                        ),
+                        "start": "1750-01-07 00:00:00",
                         "target": np.array(
                             [
                                 1099.2,
@@ -182,7 +181,7 @@ def test_get_features_dataframe(
         ListDataset(
             [
                 {
-                    "start": pd.Timestamp("1750-01-07 00:00:00", freq="W-TUE"),
+                    "start": "1750-01-07 00:00:00",
                     "target": np.array(
                         [
                             1089.2,
@@ -195,7 +194,7 @@ def test_get_features_dataframe(
                     ),
                 },
                 {
-                    "start": pd.Timestamp("1750-01-07 00:00:00", freq="W-TUE"),
+                    "start": "1750-01-07 00:00:00",
                     "target": np.array(
                         [
                             1099.2,
@@ -233,7 +232,7 @@ def test_tabular_estimator(
 
     def check_consistency(entry, f1, f2):
         ts = to_pandas(entry)
-        start_timestamp = ts.index[-1] + pd.tseries.frequencies.to_offset(freq)
+        start_timestamp = ts.index[-1] + 1
         assert f1.samples.shape == (1, prediction_length)
         assert f1.start_date == start_timestamp
         assert f2.samples.shape == (1, prediction_length)

@@ -27,6 +27,7 @@ from typing import (
     Tuple,
     Union,
     Mapping,
+    cast,
 )
 
 import numpy as np
@@ -75,8 +76,8 @@ def aggregate_no_nan(
     """
     Filter all `nan` but keep `inf`.
 
-    `nan` is only possible in the aggregate metric if all timeseries
-    for a metric resulted in `nan`.
+    `nan` is only possible in the aggregate metric if all timeseries for a
+    metric resulted in `nan`.
     """
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
@@ -90,8 +91,8 @@ def aggregate_valid(
     """
     Filter all `nan` & `inf` values from `metric_per_ts`.
 
-    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the
-    result will be `np.ma.masked` for that column.
+    If all metrics in a column of `metric_per_ts` are `nan` or `inf` the result
+    will be `np.ma.masked` for that column.
     """
     metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
     return {
@@ -102,8 +103,8 @@ def aggregate_valid(
 
 class Evaluator:
     """
-    Evaluator class, to compute accuracy metrics by comparing observations
-    to forecasts.
+    Evaluator class, to compute accuracy metrics by comparing observations to
+    forecasts.
 
     Parameters
     ----------
@@ -116,9 +117,10 @@ class Evaluator:
         for the given series frequency as returned by `get_seasonality`
     alpha
         Parameter of the MSIS metric from the M4 competition that
-        defines the confidence interval.
-        For alpha=0.05 (default) the 95% considered is considered in the metric,
-        see https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+        defines the prediction interval.
+        For alpha=0.05 (default) the 95% considered is considered in the
+        metric, see
+        https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
         for more detail on MSIS
     calculate_owa
         Determines whether the OWA metric should also be calculated,
@@ -132,7 +134,7 @@ class Evaluator:
         First, a callable which takes as input target and forecast and
         returns the evaluation metric.
         Second, a string specifying the aggregation metric across all
-        time-series, f.e. "mean", "sum".
+        time series, f.e. "mean", "sum".
         Third, either "mean" or "median" to specify whether mean or median
         forecast should be passed to the custom evaluation function.
         E.g. {"RMSE": [rmse, "mean", "median"]}
@@ -144,7 +146,8 @@ class Evaluator:
         Controls the approximate chunk size each workers handles at a time.
         Default is 32.
     ignore_invalid_values
-        Ignore `NaN` and `inf` values in the timeseries when calculating metrics.
+        Ignore `NaN` and `inf` values in the timeseries when calculating
+        metrics.
     aggregation_strategy:
         Function for aggregating per timeseries metrics.
         Available options are:
@@ -200,7 +203,7 @@ class Evaluator:
         dict
             Dictionary of aggregated metrics
         pd.DataFrame
-            DataFrame containing per-time-series metrics
+            DataFrame containing metrics per time series
         """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
@@ -211,7 +214,7 @@ class Evaluator:
             zip(ts_iterator, fcst_iterator),
             total=num_series,
             desc="Running evaluation",
-        ) as it, np.errstate(invalid="ignore"):
+        ) as it, np.errstate(divide="ignore", invalid="ignore"):
             if self.num_workers and not sys.platform == "win32":
                 mp_pool = multiprocessing.Pool(
                     initializer=None, processes=self.num_workers
@@ -236,14 +239,26 @@ class Evaluator:
         ), "fcst_iterator has more elements than ts_iterator"
 
         if num_series is not None:
-            assert (
-                len(rows) == num_series
-            ), f"num_series={num_series} did not match number of elements={len(rows)}"
+            assert len(rows) == num_series, (
+                f"num_series={num_series} did not match number of"
+                f" elements={len(rows)}"
+            )
 
-        # If all entries of a target array are NaNs, the resulting metric will have value "masked". Pandas does not
-        # handle masked values correctly. Thus we set dtype=np.float64 to convert masked values back to NaNs which
-        # are handled correctly by pandas Dataframes during aggregation.
-        metrics_per_ts = pd.DataFrame(rows, dtype=np.float64)
+        metrics_per_ts = pd.DataFrame.from_records(rows)
+
+        # If all entries of a target array are NaNs, the resulting metric will
+        # have value "masked". Pandas does not handle masked values correctly.
+        # Thus we set dtype=np.float64 to convert masked values back to NaNs
+        # which are handled correctly by pandas Dataframes during
+        # aggregation.
+        metrics_per_ts = metrics_per_ts.astype(
+            {
+                col: np.float64
+                for col in metrics_per_ts.columns
+                if col not in ["item_id", "forecast_start"]
+            }
+        )
+
         return self.get_aggregate_metrics(metrics_per_ts)
 
     @staticmethod
@@ -265,8 +280,9 @@ class Evaluator:
         assert forecast.index.intersection(time_series.index).equals(
             forecast.index
         ), (
-            "Cannot extract prediction target since the index of forecast is outside the index of target\n"
-            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+            "Cannot extract prediction target since the index of forecast is"
+            " outside the index of target\nIndex of forecast:"
+            f" {forecast.index}\n Index of target: {time_series.index}"
         )
 
         # cut the time series using the dates of the forecast object
@@ -274,8 +290,8 @@ class Evaluator:
             np.squeeze(time_series.loc[forecast.index].transpose())
         )
 
-    # This method is needed for the owa calculation
-    # It extracts the training sequence from the Series or DataFrame to a numpy array
+    # This method is needed for the owa calculation. It extracts the training
+    # sequence from the Series or DataFrame to a numpy array
     @staticmethod
     def extract_past_data(
         time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
@@ -296,14 +312,15 @@ class Evaluator:
         assert forecast.index.intersection(time_series.index).equals(
             forecast.index
         ), (
-            "Index of forecast is outside the index of target\n"
-            f"Index of forecast: {forecast.index}\n Index of target: {time_series.index}"
+            "Index of forecast is outside the index of target\nIndex of"
+            f" forecast: {forecast.index}\n Index of target:"
+            f" {time_series.index}"
         )
 
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = forecast.index[0] - forecast.index[0].freq
+        date_before_forecast = forecast.index[0] - forecast.freq
         return np.atleast_1d(
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
@@ -325,11 +342,12 @@ class Evaluator:
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
-            past_data, forecast, self.seasonality
+            past_data, forecast.start_date.freqstr, self.seasonality
         )
 
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
+            "forecast_start": forecast.start_date,
             "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
@@ -341,6 +359,9 @@ class Evaluator:
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
         }
+        metrics["ND"] = cast(float, metrics["abs_error"]) / cast(
+            float, metrics["abs_target_sum"]
+        )
 
         if self.custom_eval_fn is not None:
             for k, (eval_fn, _, fcst_type) in self.custom_eval_fn.items():
@@ -381,7 +402,7 @@ class Evaluator:
             metrics["MSIS"] = np.nan
 
         if self.calculate_owa:
-            from gluonts.model.naive_2 import naive_2
+            from gluonts.ext.naive_2 import naive_2
 
             naive_median_forecast = naive_2(
                 past_data, len(pred_target), freq=forecast.start_date.freqstr
@@ -471,7 +492,8 @@ class Evaluator:
         if self.calculate_owa:
             if totals["sMAPE_naive2"] == 0 or totals["MASE_naive2"] == 0:
                 logging.warning(
-                    "OWA cannot be computed as Naive2 yields an sMAPE or MASE of 0."
+                    "OWA cannot be computed as Naive2 yields an sMAPE or MASE"
+                    " of 0."
                 )
                 totals["OWA"] = np.nan
             else:
@@ -490,10 +512,9 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-
     The MultivariateEvaluator class owns functionality for evaluating
-    multidimensional target arrays of shape
-    (target_dimensionality, prediction_length).
+    multidimensional target arrays of shape (target_dimensionality,
+    prediction_length).
 
     Evaluations of individual dimensions will be stored with the corresponding
     dimension prefix and contain the metrics calculated by only this dimension.
@@ -522,7 +543,7 @@ class MultivariateEvaluator(Evaluator):
         quantiles: Iterable[Union[float, str]] = np.linspace(0.1, 0.9, 9),
         seasonality: Optional[int] = None,
         alpha: float = 0.05,
-        eval_dims: List[int] = None,
+        eval_dims: Optional[List[int]] = None,
         target_agg_funcs: Dict[str, Callable] = {},
         custom_eval_fn: Optional[dict] = None,
         num_workers: Optional[int] = None,
@@ -599,9 +620,9 @@ class MultivariateEvaluator(Evaluator):
     def get_target_dimensionality(forecast: Forecast) -> int:
         target_dim = forecast.dim()
         assert target_dim > 1, (
-            f"the dimensionality of the forecast should be larger than 1, "
+            "the dimensionality of the forecast should be larger than 1, "
             f"but got {target_dim}. "
-            f"Please use the Evaluator to evaluate 1D forecasts."
+            "Please use the Evaluator to evaluate 1D forecasts."
         )
         return target_dim
 
@@ -612,7 +633,7 @@ class MultivariateEvaluator(Evaluator):
             else list(range(0, target_dimensionality))
         )
         assert max(eval_dims) < target_dimensionality, (
-            f"eval dims should range from 0 to target_dimensionality - 1, "
+            "eval dims should range from 0 to target_dimensionality - 1, "
             f"but got max eval_dim {max(eval_dims)}"
         )
         return eval_dims
@@ -638,7 +659,7 @@ class MultivariateEvaluator(Evaluator):
         Dict[str, float]
             dictionary with aggregate datasets metrics
         """
-        agg_metrics, _ = super(MultivariateEvaluator, self).__call__(
+        agg_metrics, _ = super().__call__(
             self.extract_aggregate_target(ts_iterator, agg_fun),
             self.extract_aggregate_forecast(forecast_iterator, agg_fun),
         )
@@ -696,9 +717,7 @@ class MultivariateEvaluator(Evaluator):
         )
 
         for dim in eval_dims:
-            agg_metrics, metrics_per_ts = super(
-                MultivariateEvaluator, self
-            ).__call__(
+            agg_metrics, metrics_per_ts = super().__call__(
                 self.extract_target_by_dim(ts_iterator_set[dim], dim),
                 self.extract_forecast_by_dim(fcst_iterator_set[dim], dim),
             )

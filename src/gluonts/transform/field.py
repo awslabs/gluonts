@@ -48,7 +48,7 @@ class RenameFields(SimpleTransformation):
 
 
 class RemoveFields(SimpleTransformation):
-    """ "
+    """
     Remove field names if present.
 
     Parameters
@@ -90,7 +90,8 @@ class SetField(SimpleTransformation):
 
 
 class SetFieldIfNotPresent(SimpleTransformation):
-    """Sets a field in the dictionary with the given value, in case it does not
+    """
+    Sets a field in the dictionary with the given value, in case it does not
     exist already.
 
     Parameters
@@ -114,17 +115,24 @@ class SetFieldIfNotPresent(SimpleTransformation):
 
 class SelectFields(MapTransformation):
     """
-    Only keep the listed fields
+    Only keep the listed fields.
 
     Parameters
     ----------
     input_fields
         List of fields to keep.
+    allow_missing
+        If ``True``, skip any missing field. Default: ``False``.
     """
 
     @validated()
-    def __init__(self, input_fields: List[str]) -> None:
+    def __init__(
+        self, input_fields: List[str], allow_missing: bool = False
+    ) -> None:
         self.input_fields = input_fields
+        self.allow_missing = allow_missing
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
+        if self.allow_missing:
+            return {f: data[f] for f in self.input_fields if f in data}
         return {f: data[f] for f in self.input_fields}
