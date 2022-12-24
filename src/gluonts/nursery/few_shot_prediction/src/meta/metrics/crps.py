@@ -40,10 +40,18 @@ class CRPS(Metric):
             process_group=process_group,
             dist_sync_fn=dist_sync_fn,
         )
-        self.register_buffer("quantiles", torch.as_tensor([float(q) for q in quantiles]))
+        self.register_buffer(
+            "quantiles", torch.as_tensor([float(q) for q in quantiles])
+        )
         self.rescale = rescale
-        self.add_state("quantile_losses", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("denom", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
+        self.add_state(
+            "quantile_losses",
+            default=torch.as_tensor(0.0),
+            dist_reduce_fx="sum",
+        )
+        self.add_state(
+            "denom", default=torch.as_tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(
         self,
@@ -63,7 +71,10 @@ class CRPS(Metric):
         y_pred = y_pred[:, : y_true.size()[1], ...]
         y_true = y_true.unsqueeze(-1)
         quantile_losses = 2 * torch.sum(
-            torch.abs((y_pred - y_true) * ((y_true <= y_pred).type(torch.uint8) - self.quantiles)),
+            torch.abs(
+                (y_pred - y_true)
+                * ((y_true <= y_pred).type(torch.uint8) - self.quantiles)
+            ),
             axis=-1,
         )  # shape [num_time_series, max_ts_length]
         self.denom += torch.sum(torch.abs(y_true))

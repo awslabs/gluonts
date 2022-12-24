@@ -60,7 +60,9 @@ class TimeSeries:
         return self.values.shape[0]
 
     def __getitem__(self, sequence: slice) -> TimeSeries:
-        assert sequence.start >= 0, "Time series cannot be sliced prior to start."
+        assert (
+            sequence.start >= 0
+        ), "Time series cannot be sliced prior to start."
         assert (
             sequence.step is None or sequence.step == 1
         ), "Time series cannot be sliced with a step size other than 1."
@@ -81,7 +83,11 @@ class TimeSeriesDataset(Dataset[TimeSeries]):
     """
 
     def __init__(
-        self, series: List[TimeSeries], prediction_length: int, freq: str, standardize: bool = True
+        self,
+        series: List[TimeSeries],
+        prediction_length: int,
+        freq: str,
+        standardize: bool = True,
     ):
         """
         Args:
@@ -114,5 +120,7 @@ class TimeSeriesDataset(Dataset[TimeSeries]):
 
     def __getitem__(self, index: int) -> TimeSeries:
         if self.standardize:
-            return self.series[index].standardize(self.means[index], self.stds[index])
+            return self.series[index].standardize(
+                self.means[index], self.stds[index]
+            )
         return self.series[index]

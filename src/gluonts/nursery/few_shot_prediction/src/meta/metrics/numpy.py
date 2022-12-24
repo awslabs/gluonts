@@ -41,7 +41,9 @@ def naive_error(y_past: ma.masked_array, seasonality: int) -> np.ndarray:
     return ma.getdata(error)
 
 
-def mase(y_pred: np.ndarray, y_true: np.ndarray, error: np.ndarray) -> np.ndarray:
+def mase(
+    y_pred: np.ndarray, y_true: np.ndarray, error: np.ndarray
+) -> np.ndarray:
     mase_values = np.abs(y_pred - y_true).mean(1) / error
     return mase_values.mean()
 
@@ -62,7 +64,10 @@ def mean_weighted_quantile_loss(
     y_true_rep = y_true[:, None].repeat(len(quantiles), axis=1)
     quantiles = np.array([float(q) for q in quantiles])
     quantile_losses = 2 * np.sum(
-        np.abs((y_pred - y_true_rep) * ((y_true_rep <= y_pred) - quantiles[:, None])),
+        np.abs(
+            (y_pred - y_true_rep)
+            * ((y_true_rep <= y_pred) - quantiles[:, None])
+        ),
         axis=-1,
     )  # shape [num_time_series, num_quantiles]
     denom = np.sum(np.abs(y_true))  # shape [1]
@@ -71,7 +76,10 @@ def mean_weighted_quantile_loss(
 
 
 def compute_metrics(
-    forecasts: np.ndarray, dataset: EvaluationDataset, quantiles: List[str], seasonality: int
+    forecasts: np.ndarray,
+    dataset: EvaluationDataset,
+    quantiles: List[str],
+    seasonality: int,
 ) -> Dict[str, float]:
     """
     Evaluates the forecasts on the provided dataset and returns summary metrics.
@@ -104,8 +112,10 @@ def compute_metrics(
     # Compute all the metrics
     results = {
         # normalized deviation (see e.g. DeepAR paper)
-        "nd": abs_error_sum(median, dataset.future) / abs_target_sum(dataset.future),
-        "nrmse": rmse(median, dataset.future) / abs_target_mean(dataset.future),
+        "nd": abs_error_sum(median, dataset.future)
+        / abs_target_sum(dataset.future),
+        "nrmse": rmse(median, dataset.future)
+        / abs_target_mean(dataset.future),
         "mase": mase(median, dataset.future, seasonal_error),
         "smape": smape(median, dataset.future),
         "mean_weighted_quantile_loss": mean_weighted_quantile_loss(

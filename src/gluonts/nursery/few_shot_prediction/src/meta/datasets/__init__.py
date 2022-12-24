@@ -21,4 +21,9 @@ from .m1 import M1DataModule
 from .m3 import M3DataModule
 from .m4 import M4DataModule
 
-__all__ = ["DATA_MODULE_REGISTRY", "get_data_module", "sample_datasets", "DATASETS_FILTERED"]
+__all__ = [
+    "DATA_MODULE_REGISTRY",
+    "get_data_module",
+    "sample_datasets",
+    "DATASETS_FILTERED",
+]

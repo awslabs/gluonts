@@ -64,6 +64,10 @@ def get_model(name: str, **kwargs: Any) -> nn.Module:
         for key, field in config_cls.__dataclass_fields__.items()
         if (field.default is MISSING and field.default_factory is MISSING)  # type: ignore
     }
-    assert all(r in kwargs for r in required), "Keyword arguments missing at least one parameter."
+    assert all(
+        r in kwargs for r in required
+    ), "Keyword arguments missing at least one parameter."
 
-    return model_cls(config_cls(**{k: v for k, v in kwargs.items() if k in all_params}))
+    return model_cls(
+        config_cls(**{k: v for k, v in kwargs.items() if k in all_params})
+    )

@@ -39,7 +39,15 @@ class LSTMEncoderFeedforwardDecoderConfig:
     prediction_length: int = 1
     # The quantiles the model predicts
     quantiles: List[str] = field(
-        default_factory=lambda: ["0.02", "0.1", "0.25", "0.5", "0.75", "0.9", "0.98"]
+        default_factory=lambda: [
+            "0.02",
+            "0.1",
+            "0.25",
+            "0.5",
+            "0.75",
+            "0.9",
+            "0.98",
+        ]
     )
     query_out_channels: int = 64
     # The number of layers in the encoding LSTM

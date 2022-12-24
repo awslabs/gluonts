@@ -41,7 +41,9 @@ class M4DataModule(GluonTSDataModule):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.freq, self.category = [s.capitalize() for s in self.dataset_name.split("_")[1:]]
+        self.freq, self.category = [
+            s.capitalize() for s in self.dataset_name.split("_")[1:]
+        ]
 
     def _materialize(self, directory: Path) -> None:
         generate_m4_dataset(
@@ -58,16 +60,26 @@ class M4DataModule(GluonTSDataModule):
 
 
 def generate_m4_dataset(
-    dataset_path: Path, m4_freq: str, pandas_freq: str, prediction_length: int, category: str
+    dataset_path: Path,
+    m4_freq: str,
+    pandas_freq: str,
+    prediction_length: int,
+    category: str,
 ):
-    m4_dataset_url = "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
+    m4_dataset_url = (
+        "https://github.com/M4Competition/M4-methods/raw/master/Dataset"
+    )
     meta_df = pd.read_csv(f"{m4_dataset_url}/M4-info.csv", index_col=0)
     meta_df = meta_df.loc[meta_df["SP"] == m4_freq]
 
-    train_df = pd.read_csv(f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0)
+    train_df = pd.read_csv(
+        f"{m4_dataset_url}/Train/{m4_freq}-train.csv", index_col=0
+    )
     train_df = train_df.loc[meta_df["category"] == category]
 
-    test_df = pd.read_csv(f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0)
+    test_df = pd.read_csv(
+        f"{m4_dataset_url}/Test/{m4_freq}-test.csv", index_col=0
+    )
     test_df = test_df.loc[meta_df["category"] == category]
 
     meta_df = meta_df.loc[meta_df["category"] == category]
@@ -101,15 +113,23 @@ def generate_m4_dataset(
         # of those time series as Yearly. We use only those time series with
         # fewer than upper limit items for this reason.
         start_dates = list(meta_df.StartingDate)
-        upper_limit = pd.Timestamp.today().year - min([pd.Timestamp(s).year for s in start_dates])
+        upper_limit = pd.Timestamp.today().year - min(
+            [pd.Timestamp(s).year for s in start_dates]
+        )
         filter_long = [len(ts) <= upper_limit for ts in test_target_values]
-        train_target_values = [ts for ts, b in zip(train_target_values, filter_long) if b]
-        test_target_values = [ts for ts, b in zip(test_target_values, filter_long) if b]
+        train_target_values = [
+            ts for ts, b in zip(train_target_values, filter_long) if b
+        ]
+        test_target_values = [
+            ts for ts, b in zip(test_target_values, filter_long) if b
+        ]
         meta_df = meta_df.loc[filter_long]
 
     start_dates = list(meta_df.StartingDate)
     start_dates = [
-        sd if pd.Timestamp(sd) <= pd.Timestamp("2022") else str(pd.Timestamp("1900"))
+        sd
+        if pd.Timestamp(sd) <= pd.Timestamp("2022")
+        else str(pd.Timestamp("1900"))
         for sd in start_dates
     ]
 
@@ -122,7 +142,9 @@ def generate_m4_dataset(
                 cat=[cat],
                 item_id=cat,
             )
-            for cat, (target, start_date) in enumerate(zip(train_target_values, start_dates))
+            for cat, (target, start_date) in enumerate(
+                zip(train_target_values, start_dates)
+            )
         ],
     )
 
@@ -135,6 +157,8 @@ def generate_m4_dataset(
                 cat=[cat],
                 item_id=cat,
             )
-            for cat, (target, start_date) in enumerate(zip(test_target_values, start_dates))
+            for cat, (target, start_date) in enumerate(
+                zip(test_target_values, start_dates)
+            )
         ],
     )

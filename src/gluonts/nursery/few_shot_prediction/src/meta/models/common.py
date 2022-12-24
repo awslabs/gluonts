@@ -17,7 +17,9 @@ import torch
 
 
 def load_weights(model: nn.Module, path_to_weights: str) -> nn.Module:
-    ckpt = torch.load(path_to_weights, map_location=lambda storage, loc: storage)
+    ckpt = torch.load(
+        path_to_weights, map_location=lambda storage, loc: storage
+    )
 
     # this seems to be necessary
     for key in ckpt["state_dict"].copy():

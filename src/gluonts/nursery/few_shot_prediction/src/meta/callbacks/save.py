@@ -32,7 +32,9 @@ class InitialSaveCallback(Callback):  # type: ignore
         super().__init__()
         self.args_to_save = args_to_save
 
-    def on_pretrain_routine_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_pretrain_routine_start(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
         base_dir = get_save_dir_from_csvlogger(trainer.logger)
         # save the dictionary
         with open(base_dir / "args.json", "w") as fp:

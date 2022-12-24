@@ -37,7 +37,9 @@ class SeriesBatch:
     ] = None  # shape[batch, 2] contains mean and std the ts has been scaled with
 
     @classmethod
-    def from_lists(cls, lists: List[List[TimeSeries]], squeeze: bool = False) -> SeriesBatch:
+    def from_lists(
+        cls, lists: List[List[TimeSeries]], squeeze: bool = False
+    ) -> SeriesBatch:
         """
         Initializes a series batch from the provided series.
 
@@ -59,7 +61,9 @@ class SeriesBatch:
             pad_sequence(values, batch_first=True),
             lengths=torch.as_tensor([len(s) for s in series]),
             split_sections=torch.as_tensor(split_sections),
-            scales=torch.stack([s.scale for s in series]) if series[0].scale is not None else None,
+            scales=torch.stack([s.scale for s in series])
+            if series[0].scale is not None
+            else None,
         )
 
     def pin_memory(self):
@@ -135,7 +139,9 @@ class SeriesBatch:
         )
 
     def __getitem__(self, index: int) -> SeriesBatch:
-        split = torch.split(self.sequences, self.split_sections.tolist())[index]
+        split = torch.split(self.sequences, self.split_sections.tolist())[
+            index
+        ]
         length = torch.split(self.lengths, self.split_sections.tolist())[index]
         return SeriesBatch(
             sequences=split,

@@ -68,7 +68,9 @@ from experiments.evaluation.eval_real_cheat import large_training_evaluation
     type=click.Choice(MODEL_REGISTRY.keys()),
 )
 @click.option("--quantiles", default="0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9")
-@click.option("--dm_name", required=True, type=click.Choice(DATA_MODULE_REGISTRY.keys()))
+@click.option(
+    "--dm_name", required=True, type=click.Choice(DATA_MODULE_REGISTRY.keys())
+)
 @click.option("--support_set_size", default=3)
 @click.option("--standardize", default=True)
 # ------  Data module specific hyperparameters ------
@@ -77,7 +79,9 @@ from experiments.evaluation.eval_real_cheat import large_training_evaluation
 @click.option("--dm_super_dataset_names_val", default="electricity")
 @click.option("--dm_super_dataset_names_test", default="electricity")
 @click.option(
-    "--dm_super_dataset_sampling", default="weighted", type=click.Choice(["weighted", "uniform"])
+    "--dm_super_dataset_sampling",
+    default="weighted",
+    type=click.Choice(["weighted", "uniform"]),
 )
 @click.option("--dm_super_catch22_train", default=False)
 @click.option("--dm_super_catch22_val_test", default=False)
@@ -106,7 +110,10 @@ from experiments.evaluation.eval_real_cheat import large_training_evaluation
 @click.option("--dm_cheat_counterfactual_query_length_scale", default=5.0)
 @click.option("--dm_cheat_counterfactual_counterfactual_size", default=1)
 @click.option("--dm_cheat_counterfactual_counterfactual_mixing", default=False)
-@click.option("--dm_cheat_counterfactual_support_length_scale_same_as_query", default=True)
+@click.option(
+    "--dm_cheat_counterfactual_support_length_scale_same_as_query",
+    default=True,
+)
 # Common hyperparameters
 @click.option("--pretrained", default=None)
 @click.option("--learning_rate", default=1e-3)
@@ -272,13 +279,18 @@ def main(
         checkpoint_callback,
     ]
     if dm_name == "dm_super":
-        callbacks.append(LossPlotLoggerCallback(every_n_epochs=log_plot_every_n_epochs))
+        callbacks.append(
+            LossPlotLoggerCallback(every_n_epochs=log_plot_every_n_epochs)
+        )
         if len(kwargs["dm_super_dataset_names_val"].split(",")) > 1:
-            callbacks.append(MacroCRPSPlotCallback(every_n_epochs=log_plot_every_n_epochs))
+            callbacks.append(
+                MacroCRPSPlotCallback(every_n_epochs=log_plot_every_n_epochs)
+            )
     elif dm_name == "dm_cheat":
         callbacks.append(
             CheatLossPlotLoggerCallback(
-                dataset_names_val=dm.dataset_names_val, every_n_epochs=log_plot_every_n_epochs
+                dataset_names_val=dm.dataset_names_val,
+                every_n_epochs=log_plot_every_n_epochs,
             )
         )
 
@@ -338,7 +350,9 @@ def main(
 
     # -------------------- evaluate model and store results ---------------------------------------------------
     # load weights with best validation loss during training period
-    model_best = load_weights(model=model, path_to_weights=checkpoint_callback.best_model_path)
+    model_best = load_weights(
+        model=model, path_to_weights=checkpoint_callback.best_model_path
+    )
     if dm_name == "dm_super" and model_name in attention_models:
         save_dir = get_save_dir_from_csvlogger(trainer.logger)
         large_training_evaluation(

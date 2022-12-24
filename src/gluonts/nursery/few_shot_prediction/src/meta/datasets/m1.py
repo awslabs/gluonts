@@ -49,7 +49,10 @@ class M1DataModule(GluonTSDataModule):
 
 
 def generate_m1_dataset(
-    dataset_path: Path, m1_freq: str, category: str, prediction_length: Optional[int] = None
+    dataset_path: Path,
+    m1_freq: str,
+    category: str,
+    prediction_length: Optional[int] = None,
 ):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
@@ -149,7 +152,8 @@ def generate_m1_dataset(
                 metadata(
                     cardinality=len(train_data),
                     freq=subset.freq,
-                    prediction_length=prediction_length or subset.prediction_length,
+                    prediction_length=prediction_length
+                    or subset.prediction_length,
                 )
             )
         )

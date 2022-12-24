@@ -21,4 +21,6 @@ def tensor_to_np(tensor: torch.Tensor) -> np.ndarray:
 
 def get_mask(pad_size: torch.Size, lengths: torch.Tensor) -> torch.Tensor:
     device = lengths.device
-    return torch.arange(pad_size, device=device)[None, :] < lengths[:, None].to(device)
+    return torch.arange(pad_size, device=device)[None, :] < lengths[
+        :, None
+    ].to(device)

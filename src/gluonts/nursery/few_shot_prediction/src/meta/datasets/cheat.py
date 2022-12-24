@@ -66,7 +66,11 @@ class CheatMetaData:
             json.dump(asdict(self), fp)
 
     def get_hash(self):
-        return hashlib.md5(json.dumps(asdict(self)).encode("utf-8")).digest().hex()
+        return (
+            hashlib.md5(json.dumps(asdict(self)).encode("utf-8"))
+            .digest()
+            .hex()
+        )
 
 
 @register_data_module
@@ -203,7 +207,11 @@ class CheatArtificialDataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[str] = None) -> None:
         self.generate()
         self.splits = DatasetSplits(
-            self.meta, self.root, self.dataset_name, self.prediction_length, self.standardize
+            self.meta,
+            self.root,
+            self.dataset_name,
+            self.prediction_length,
+            self.standardize,
         )
         self.splits.train().prepare()
         for d_name in self.dataset_names_val:
@@ -214,7 +222,9 @@ class CheatArtificialDataModule(pl.LightningDataModule):
     def train_dataloader(self) -> DataLoader[TripletBatch]:
         split = self.splits.train()
         return DataLoader(
-            TripletDataset(queries=split.data(), support_sets=split.support_set()),
+            TripletDataset(
+                queries=split.data(), support_sets=split.support_set()
+            ),
             collate_fn=TripletBatch.collate,
             batch_size=self.batch_size_train,
             num_workers=self.num_workers,
@@ -227,7 +237,9 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         return list(
             [
                 DataLoader(
-                    TripletDataset(queries=split.data(), support_sets=split.support_set()),
+                    TripletDataset(
+                        queries=split.data(), support_sets=split.support_set()
+                    ),
                     collate_fn=TripletBatch.collate,
                     batch_size=self.batch_size_val_test,
                     num_workers=self.num_workers,
@@ -238,11 +250,15 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self) -> DataLoader[TripletBatch]:
-        splits = [self.splits.test(d_name) for d_name in self.dataset_names_test]
+        splits = [
+            self.splits.test(d_name) for d_name in self.dataset_names_test
+        ]
         return list(
             [
                 DataLoader(
-                    TripletDataset(queries=split.data(), support_sets=split.support_set()),
+                    TripletDataset(
+                        queries=split.data(), support_sets=split.support_set()
+                    ),
                     collate_fn=TripletBatch.collate,
                     batch_size=self.batch_size_val_test,
                     num_workers=self.num_workers,
@@ -260,12 +276,20 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         self.meta.save(self.root / "metadata.json")
         for split, n_samples in zip(
             ["train", "val", "test"],
-            [self.meta.train_set_size, self.meta.val_set_size, self.meta.test_set_size],
+            [
+                self.meta.train_set_size,
+                self.meta.val_set_size,
+                self.meta.test_set_size,
+            ],
         ):
             if split in ["val", "test"]:
-                self.generate_split(split + "_cc1.0", n_samples, always_cheat=True)
                 self.generate_split(
-                    split + f"_cc{self.meta.cheat_chance}", n_samples, always_cheat=False
+                    split + "_cc1.0", n_samples, always_cheat=True
+                )
+                self.generate_split(
+                    split + f"_cc{self.meta.cheat_chance}",
+                    n_samples,
+                    always_cheat=False,
                 )
             else:
                 self.generate_split(split, n_samples, always_cheat=False)
@@ -280,13 +304,19 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         queries, support_sets = zip(
             *[
                 self.generate_artificial_tuplets(
-                    item_id=i, always_cheat=always_cheat, query_length_scale=query_length_scale
+                    item_id=i,
+                    always_cheat=always_cheat,
+                    query_length_scale=query_length_scale,
                 )
-                for i in tqdm(range(n_samples), desc="generating artificial data")
+                for i in tqdm(
+                    range(n_samples), desc="generating artificial data"
+                )
             ]
         )
         _write_data_to_file(self.root / split / "data.json", queries)
-        _write_data_to_file(self.root / split / ".support_set.json", support_sets)
+        _write_data_to_file(
+            self.root / split / ".support_set.json", support_sets
+        )
 
     def generate_artificial_tuplets(
         self, item_id: int, always_cheat: bool, query_length_scale: float
@@ -296,9 +326,15 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         query_x = np.arange(query_length).reshape(-1, 1)
         support_x = np.arange(self.support_length).reshape(-1, 1)
 
-        kernel = 0.5 * RBF(length_scale=query_length_scale, length_scale_bounds=(1e-1, 10.0))
-        gpr = GaussianProcessRegressor(kernel=kernel, random_state=self.random_state)
-        query = gpr.sample_y(query_x, 1, random_state=self.random_state).squeeze()
+        kernel = 0.5 * RBF(
+            length_scale=query_length_scale, length_scale_bounds=(1e-1, 10.0)
+        )
+        gpr = GaussianProcessRegressor(
+            kernel=kernel, random_state=self.random_state
+        )
+        query = gpr.sample_y(
+            query_x, 1, random_state=self.random_state
+        ).squeeze()
         assert query.shape == (query_length,), query.shape
 
         # prepare support set
@@ -313,7 +349,8 @@ class CheatArtificialDataModule(pl.LightningDataModule):
             for _ in range(self.meta.support_set_size):
                 sample_length_scale = self.random_state.uniform(0, 10)
                 kernel = 0.5 * RBF(
-                    length_scale=sample_length_scale, length_scale_bounds=(1e-1, 10.0)
+                    length_scale=sample_length_scale,
+                    length_scale_bounds=(1e-1, 10.0),
                 )
                 gpr_support = GaussianProcessRegressor(
                     kernel=kernel, random_state=self.random_state
@@ -328,7 +365,11 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         ), support_set.shape
 
         # decide to cheat on 1 TS in support set or not based on cheat_chance
-        is_cheat = True if always_cheat else self.random_state.rand() <= self.meta.cheat_chance
+        is_cheat = (
+            True
+            if always_cheat
+            else self.random_state.rand() <= self.meta.cheat_chance
+        )
 
         if is_cheat:
             # generate a random place to for TS in support set to start cheating
@@ -339,7 +380,9 @@ class CheatArtificialDataModule(pl.LightningDataModule):
             )
 
             # prepare data to train the GP
-            x = np.array(range(marker_start, marker_start + signal_length)).reshape(-1, 1)
+            x = np.array(
+                range(marker_start, marker_start + signal_length)
+            ).reshape(-1, 1)
             y = query.tolist()[-signal_length:]
 
             # fit gp and sample from fitted gp
@@ -352,31 +395,47 @@ class CheatArtificialDataModule(pl.LightningDataModule):
                 y_hat = gpr.sample_y(support_x)
             else:
                 sample_length_scale = self.random_state.uniform(0, 10)
-                gpr.kernel_.set_params(**{"k2__length_scale": sample_length_scale})
+                gpr.kernel_.set_params(
+                    **{"k2__length_scale": sample_length_scale}
+                )
                 y_hat = gpr.sample_y(support_x)
             support_set[si] = y_hat.ravel()
 
         # add noise
         if self.meta.noise_level > 0:
-            noise = self.random_state.randn(query.shape[0]) * self.meta.noise_level
+            noise = (
+                self.random_state.randn(query.shape[0]) * self.meta.noise_level
+            )
             query += noise
 
             new_support_set = []
             for s in support_set:
-                noise = self.random_state.randn(s.shape[0]) * self.meta.noise_level
+                noise = (
+                    self.random_state.randn(s.shape[0]) * self.meta.noise_level
+                )
                 new_support_set.append(s + noise)
             support_set = np.array(new_support_set)
 
-        q = {"target": query.tolist(), "item_id": item_id, "start": "2012-01-01 00:00:00"}
+        q = {
+            "target": query.tolist(),
+            "item_id": item_id,
+            "start": "2012-01-01 00:00:00",
+        }
         s = [
-            {"target": s.tolist(), "start": "2012-01-01 00:00:00", "item_id": item_id}
+            {
+                "target": s.tolist(),
+                "start": "2012-01-01 00:00:00",
+                "item_id": item_id,
+            }
             for s in support_set
         ]
         return q, s
 
     def get_log_batches(self, n_logging_samples: int) -> Tuple[TripletBatch]:
         log_batch_train = (
-            next(iter(self.train_dataloader())).reduce_to_unique_query().first_n(n_logging_samples)
+            next(iter(self.train_dataloader()))
+            .reduce_to_unique_query()
+            .first_n(n_logging_samples)
         )
         log_batch_val = (
             next(iter(self.val_dataloader()[0]))
@@ -404,7 +463,8 @@ class CheatArtificialDataModule(pl.LightningDataModule):
             dl = self.val_dataloader()
 
         for batch in tqdm(
-            dl, desc=f"generating predictions for dataset {self.name()} with support set size"
+            dl,
+            desc=f"generating predictions for dataset {self.name()} with support set size",
         ):
             pred.append(model(supps=batch.support_set, query=batch.query_past))
 
@@ -521,11 +581,16 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         return "cf_" + self.meta.get_hash()
 
     def train_dataloader(self) -> DataLoader[TripletBatch]:
-        splits = [self.splits.train(name=d_name) for d_name in self.dataset_names_train]
+        splits = [
+            self.splits.train(name=d_name)
+            for d_name in self.dataset_names_train
+        ]
 
         datasets = ConcatDataset(
             [
-                TripletDataset(queries=split.data(), support_sets=split.support_set())
+                TripletDataset(
+                    queries=split.data(), support_sets=split.support_set()
+                )
                 for split in splits
             ]
         )
@@ -547,7 +612,11 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         self.meta.save(self.root / "metadata.json")
         for split, n_samples in zip(
             ["train", "val", "test"],
-            [self.meta.train_set_size, self.meta.val_set_size, self.meta.test_set_size],
+            [
+                self.meta.train_set_size,
+                self.meta.val_set_size,
+                self.meta.test_set_size,
+            ],
         ):
             self.generate_split(
                 split + "_cc1.0",
@@ -578,11 +647,15 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
                     query_length_scale=query_length_scale,
                     counterfactual_size=counterfactual_size,
                 )
-                for i in tqdm(range(n_samples), desc="generating artificial data")
+                for i in tqdm(
+                    range(n_samples), desc="generating artificial data"
+                )
             ]
         )
         _write_data_to_file(self.root / split / "data.json", queries)
-        _write_data_to_file(self.root / split / ".support_set.json", support_sets)
+        _write_data_to_file(
+            self.root / split / ".support_set.json", support_sets
+        )
 
     def generate_artificial_tuplets(
         self,
@@ -599,9 +672,15 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         query_x = np.arange(query_length).reshape(-1, 1)
         support_x = np.arange(self.support_length).reshape(-1, 1)
 
-        kernel = 0.5 * RBF(length_scale=query_length_scale, length_scale_bounds=(1e-1, 10.0))
-        gpr = GaussianProcessRegressor(kernel=kernel, random_state=self.random_state)
-        query = gpr.sample_y(query_x, 1, random_state=self.random_state).squeeze()
+        kernel = 0.5 * RBF(
+            length_scale=query_length_scale, length_scale_bounds=(1e-1, 10.0)
+        )
+        gpr = GaussianProcessRegressor(
+            kernel=kernel, random_state=self.random_state
+        )
+        query = gpr.sample_y(
+            query_x, 1, random_state=self.random_state
+        ).squeeze()
         assert query.shape == (query_length,), query.shape
 
         support_set = gpr.sample_y(
@@ -618,10 +697,14 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         # generate a random place to for TS in support set to start cheating
         marker_length = self.meta.prediction_length
         signal_length = marker_length + self.meta.prediction_length
-        marker_start = self.random_state.choice(np.arange(0, self.support_length - signal_length))
+        marker_start = self.random_state.choice(
+            np.arange(0, self.support_length - signal_length)
+        )
 
         # prepare data to train the GP
-        x = np.array(range(marker_start, marker_start + signal_length)).reshape(-1, 1)
+        x = np.array(
+            range(marker_start, marker_start + signal_length)
+        ).reshape(-1, 1)
         y = query.tolist()[-signal_length:]
 
         # fit gp and sample from fitted gp
@@ -636,33 +719,51 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         indices.remove(si)
 
         # generate a counterfactual TS, only contains information in the context (marker length)
-        x_cf = np.array(range(marker_start, marker_start + marker_length)).reshape(-1, 1)
+        x_cf = np.array(
+            range(marker_start, marker_start + marker_length)
+        ).reshape(-1, 1)
         y_cf = query.tolist()[-signal_length:-marker_length]
 
         # fit gp and sample from fitted gp
         for _ in range(counterfactual_size):
-            gpr_cf = GaussianProcessRegressor(kernel=kernel, random_state=self.random_state)
+            gpr_cf = GaussianProcessRegressor(
+                kernel=kernel, random_state=self.random_state
+            )
             gpr_cf.fit(x_cf, y_cf)
             # generate a random index from support set for cf
             cf_si = self.random_state.choice(indices)
-            y_hat_cf = gpr_cf.sample_y(support_x, 1, random_state=self.random_state)
+            y_hat_cf = gpr_cf.sample_y(
+                support_x, 1, random_state=self.random_state
+            )
             support_set[cf_si] = y_hat_cf.ravel()
             indices.remove(cf_si)
 
         # add noise
         if self.meta.noise_level > 0:
-            noise = self.random_state.randn(query.shape[0]) * self.meta.noise_level
+            noise = (
+                self.random_state.randn(query.shape[0]) * self.meta.noise_level
+            )
             query += noise
 
             new_support_set = []
             for s in support_set:
-                noise = self.random_state.randn(s.shape[0]) * self.meta.noise_level
+                noise = (
+                    self.random_state.randn(s.shape[0]) * self.meta.noise_level
+                )
                 new_support_set.append(s + noise)
             support_set = np.array(new_support_set)
 
-        q = {"target": query.tolist(), "item_id": item_id, "start": "2012-01-01 00:00:00"}
+        q = {
+            "target": query.tolist(),
+            "item_id": item_id,
+            "start": "2012-01-01 00:00:00",
+        }
         s = [
-            {"target": s.tolist(), "start": "2012-01-01 00:00:00", "item_id": item_id}
+            {
+                "target": s.tolist(),
+                "start": "2012-01-01 00:00:00",
+                "item_id": item_id,
+            }
             for s in support_set
         ]
         return q, s

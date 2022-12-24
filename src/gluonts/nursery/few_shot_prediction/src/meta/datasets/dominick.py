@@ -18,8 +18,15 @@ from zipfile import ZipFile
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.repository._tsf_reader import TSFReader, frequency_converter
-from gluonts.dataset.repository._tsf_datasets import datasets, save_datasets, save_metadata
+from gluonts.dataset.repository._tsf_reader import (
+    TSFReader,
+    frequency_converter,
+)
+from gluonts.dataset.repository._tsf_datasets import (
+    datasets,
+    save_datasets,
+    save_metadata,
+)
 
 from meta.datasets.gluonts import GluonTSDataModule
 from meta.datasets.registry import register_data_module

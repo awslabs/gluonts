@@ -151,19 +151,28 @@ class SuperDataModule(pl.LightningDataModule):
 
     @property
     def prediction_length(self) -> int:
-        all_dms = self.data_modules_train + self.data_modules_val + self.data_modules_test
+        all_dms = (
+            self.data_modules_train
+            + self.data_modules_val
+            + self.data_modules_test
+        )
         return max([dm.prediction_length for dm in all_dms])
 
     def setup(self, stage: Optional[str] = None) -> None:
         for dm in tqdm(
-            self.data_modules_train + self.data_modules_val + self.data_modules_test,
+            self.data_modules_train
+            + self.data_modules_val
+            + self.data_modules_test,
             desc="setup data loader",
         ):
             dm.setup()
 
     def train_dataloader(self) -> DataLoader[TripletBatch]:
         super_sampling_dataset = SuperSamplingTripletDataset(
-            datasets=[dm.sampling_triplet_dataset("train") for dm in self.data_modules_train],
+            datasets=[
+                dm.sampling_triplet_dataset("train")
+                for dm in self.data_modules_train
+            ],
             dataset_sampling=self.dataset_sampling,
         )
         return DataLoader(
@@ -175,24 +184,40 @@ class SuperDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self) -> DataLoader[TripletBatch]:
-        return list([dm_val.val_dataloader() for dm_val in self.data_modules_val])
+        return list(
+            [dm_val.val_dataloader() for dm_val in self.data_modules_val]
+        )
 
     def test_dataloader(self) -> DataLoader[TripletBatch]:
-        return list([dm_test.test_dataloader() for dm_test in self.data_modules_test])
+        return list(
+            [dm_test.test_dataloader() for dm_test in self.data_modules_test]
+        )
 
     def get_log_batches(self, n_logging_samples: int) -> Tuple[TripletBatch]:
         its_train = cycle(
-            list([iter(dm.sampling_triplet_dataset("train")) for dm in self.data_modules_train])
+            list(
+                [
+                    iter(dm.sampling_triplet_dataset("train"))
+                    for dm in self.data_modules_train
+                ]
+            )
         )
         its_val = cycle(
-            list([iter(dm.sequential_triplet_dataset("val")) for dm in self.data_modules_val])
+            list(
+                [
+                    iter(dm.sequential_triplet_dataset("val"))
+                    for dm in self.data_modules_val
+                ]
+            )
         )
 
         def get_log_batch(its):
             samples = []
             for i in range(n_logging_samples):
                 samples.append(next(next(its)))
-            samples = sorted(samples, key=lambda triplet: triplet.query_past[0].dataset_name)
+            samples = sorted(
+                samples, key=lambda triplet: triplet.query_past[0].dataset_name
+            )
             return TripletBatch.collate(samples)
 
         return get_log_batch(its_train), get_log_batch(its_val)

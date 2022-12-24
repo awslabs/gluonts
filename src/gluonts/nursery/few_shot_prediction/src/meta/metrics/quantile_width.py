@@ -39,11 +39,23 @@ class QuantileWidth(Metric):
             process_group=process_group,
             dist_sync_fn=dist_sync_fn,
         )
-        self.register_buffer("quantiles", torch.as_tensor([float(q) for q in quantiles]))
-        self.add_state("quantiles_width", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("num_observations", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
+        self.register_buffer(
+            "quantiles", torch.as_tensor([float(q) for q in quantiles])
+        )
+        self.add_state(
+            "quantiles_width",
+            default=torch.as_tensor(0.0),
+            dist_reduce_fx="sum",
+        )
+        self.add_state(
+            "num_observations",
+            default=torch.as_tensor(0.0),
+            dist_reduce_fx="sum",
+        )
 
-    def update(self, y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor) -> None:
+    def update(
+        self, y_pred: torch.Tensor, y_true: torch.Tensor, mask: torch.Tensor
+    ) -> None:
         # crop y_pred to shape of y_true since the model always predicts the max prediction length
         # max prediction length might be longer than max length in the particular batch
         y_pred = y_pred[:, : y_true.size()[1], ...]

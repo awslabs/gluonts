@@ -45,7 +45,9 @@ class QuantileMetricLoggerCallback(Callback):
         self.split = split
         self.every_n_epochs = every_n_epochs
 
-    def on_validation_epoch_end(self, trainer: Trainer, pl_module: MetaLightningModule) -> None:
+    def on_validation_epoch_end(
+        self, trainer: Trainer, pl_module: MetaLightningModule
+    ) -> None:
         if trainer.current_epoch % self.every_n_epochs:
             return
         dm_super = trainer.lightning_module.trainer.datamodule
@@ -55,7 +57,11 @@ class QuantileMetricLoggerCallback(Callback):
         pred = []
         for batch in dl:
             batch = batch.to(pl_module.device)
-            pred.append(pl_module.model(supps=batch.support_set, query=batch.query_past))
+            pred.append(
+                pl_module.model(
+                    supps=batch.support_set, query=batch.query_past
+                )
+            )
 
         # redo standardization for evaluation
         pred = split.data().rescale_dataset(torch.cat(pred, dim=0).cpu())

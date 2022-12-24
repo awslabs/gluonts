@@ -49,7 +49,10 @@ class M3DataModule(GluonTSDataModule):
 
 
 def generate_m3_dataset(
-    dataset_path: Path, m3_freq: str, category: str, prediction_length: Optional[int] = None
+    dataset_path: Path,
+    m3_freq: str,
+    category: str,
+    prediction_length: Optional[int] = None,
 ):
     from gluonts.dataset.repository.datasets import default_dataset_path
 
@@ -142,7 +145,9 @@ def generate_m3_dataset(
         )
         train_data.append(d_train)
 
-        d_test = to_dict(target_values=target, start=start, cat=cat, item_id=series)
+        d_test = to_dict(
+            target_values=target, start=start, cat=cat, item_id=series
+        )
         test_data.append(d_test)
         i += 1
 
@@ -153,7 +158,8 @@ def generate_m3_dataset(
                 metadata(
                     cardinality=len(train_data),
                     freq=subset.freq,
-                    prediction_length=prediction_length or subset.prediction_length,
+                    prediction_length=prediction_length
+                    or subset.prediction_length,
                 )
             )
         )

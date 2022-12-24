@@ -39,9 +39,18 @@ CATEGORIES_M3_M4 = [
 ]
 
 
-M1 = ["m1_" + freq + "_" + cat for freq, cat in itertools.product(FREQ_M1_M3, CATEGORIES_M1)]
-M3 = ["m3_" + freq + "_" + cat for freq, cat in itertools.product(FREQ_M1_M3, CATEGORIES_M3_M4)]
-M4 = ["m4_" + freq + "_" + cat for freq, cat in itertools.product(FREQ_M4, CATEGORIES_M3_M4)]
+M1 = [
+    "m1_" + freq + "_" + cat
+    for freq, cat in itertools.product(FREQ_M1_M3, CATEGORIES_M1)
+]
+M3 = [
+    "m3_" + freq + "_" + cat
+    for freq, cat in itertools.product(FREQ_M1_M3, CATEGORIES_M3_M4)
+]
+M4 = [
+    "m4_" + freq + "_" + cat
+    for freq, cat in itertools.product(FREQ_M4, CATEGORIES_M3_M4)
+]
 
 DATASETS_SINGLE = [
     # "exchange_rate",
@@ -99,9 +108,15 @@ DATASETS_FILTERED = [
 
 
 def sample_datasets(
-    n_folds: int, train_size: float = 0.7, val_size: float = 0.2, test_size: float = 0.1, seed=42
+    n_folds: int,
+    train_size: float = 0.7,
+    val_size: float = 0.2,
+    test_size: float = 0.1,
+    seed=42,
 ):
-    assert isclose(train_size + val_size + test_size, 1.0), "sizes need to add up to 1"
+    assert isclose(
+        train_size + val_size + test_size, 1.0
+    ), "sizes need to add up to 1"
     random_state = np.random.RandomState(seed)
     folds = []
     for _ in range(n_folds):

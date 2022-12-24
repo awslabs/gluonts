@@ -54,7 +54,9 @@ class MetaLightningModule(pl.LightningModule):
         self.quantile_width = quantile_width
 
         # validation
-        self.val_loss = nn.ModuleList([loss.clone() for _ in range(len(val_dataset_names))])
+        self.val_loss = nn.ModuleList(
+            [loss.clone() for _ in range(len(val_dataset_names))]
+        )
         self.val_loss_macro = sum(self.val_loss) / len(self.val_loss)
 
         if quantile_width is not None:
@@ -62,7 +64,10 @@ class MetaLightningModule(pl.LightningModule):
                 [quantile_width.clone() for _ in range(len(val_dataset_names))]
             )
             self.test_quantile_width = nn.ModuleList(
-                [quantile_width.clone() for _ in range(len(test_dataset_names))]
+                [
+                    quantile_width.clone()
+                    for _ in range(len(test_dataset_names))
+                ]
             )
 
         self.val_dataset_names = val_dataset_names
@@ -118,7 +123,9 @@ class MetaLightningModule(pl.LightningModule):
         self.log("train_loss", self.train_loss)
         return loss
 
-    def validation_step(self, batch: TripletBatch, batch_idx, *args: Any) -> None:
+    def validation_step(
+        self, batch: TripletBatch, batch_idx, *args: Any
+    ) -> None:
         # a hack since pl considers a list of only one dataloader not as multiple
         if len(self.val_dataset_names) == 1:
             dataset_idx = 0
@@ -135,7 +142,10 @@ class MetaLightningModule(pl.LightningModule):
             add_dataloader_idx=False,
         )
         self.val_crps[dataset_idx](
-            y_pred, batch.query_future.sequences, mask, batch.query_future.scales
+            y_pred,
+            batch.query_future.sequences,
+            mask,
+            batch.query_future.scales,
         )
         self.log(
             f"{d_name}_val_crps",
@@ -143,7 +153,9 @@ class MetaLightningModule(pl.LightningModule):
             add_dataloader_idx=False,
         )
         if self.val_crps_scaled is not None:
-            self.val_crps_scaled[dataset_idx](y_pred, batch.query_future.sequences, mask)
+            self.val_crps_scaled[dataset_idx](
+                y_pred, batch.query_future.sequences, mask
+            )
             self.log(
                 f"{d_name}_val_crps_scaled",
                 self.val_crps_scaled[dataset_idx],
@@ -151,7 +163,9 @@ class MetaLightningModule(pl.LightningModule):
             )
 
         if self.quantile_width is not None:
-            self.val_quantile_width[dataset_idx](y_pred, batch.query_future.sequences, mask)
+            self.val_quantile_width[dataset_idx](
+                y_pred, batch.query_future.sequences, mask
+            )
             self.log(
                 f"{d_name}_val_quantile_width",
                 self.val_quantile_width[dataset_idx],
@@ -162,7 +176,11 @@ class MetaLightningModule(pl.LightningModule):
         self.log("val_crps_macro", self.val_crps_macro, prog_bar=True)
         self.log("val_loss_macro", self.val_loss_macro, prog_bar=True)
         if self.val_crps_scaled:
-            self.log("val_crps_scaled_macro", self.val_crps_scaled_macro, prog_bar=True)
+            self.log(
+                "val_crps_scaled_macro",
+                self.val_crps_scaled_macro,
+                prog_bar=True,
+            )
 
     def test_step(self, batch: TripletBatch, batch_idx, *args: Any) -> None:
         # a hack since pl considers a list of only one dataloader not as multiple
@@ -175,7 +193,10 @@ class MetaLightningModule(pl.LightningModule):
         y_pred = self.model(batch.support_set, batch.query_past)
         d_name = self.test_dataset_names[dataset_idx]
         self.test_crps[dataset_idx](
-            y_pred, batch.query_future.sequences, mask, batch.query_future.scales
+            y_pred,
+            batch.query_future.sequences,
+            mask,
+            batch.query_future.scales,
         )
         self.log(
             f"{d_name}_test_crps",
@@ -183,14 +204,18 @@ class MetaLightningModule(pl.LightningModule):
             add_dataloader_idx=False,
         )
         if self.test_crps_scaled is not None:
-            self.test_crps_scaled[dataset_idx](y_pred, batch.query_future.sequences, mask)
+            self.test_crps_scaled[dataset_idx](
+                y_pred, batch.query_future.sequences, mask
+            )
             self.log(
                 f"{d_name}_test_crps_scaled",
                 self.test_crps_scaled[dataset_idx],
                 add_dataloader_idx=False,
             )
         if self.quantile_width is not None:
-            self.test_quantile_width[dataset_idx](y_pred, batch.query_future.sequences, mask)
+            self.test_quantile_width[dataset_idx](
+                y_pred, batch.query_future.sequences, mask
+            )
             self.log(
                 f"{d_name}_test_quantile_width",
                 self.test_quantile_width[dataset_idx],
@@ -200,14 +225,29 @@ class MetaLightningModule(pl.LightningModule):
     def test_epoch_end(self, test_step_outputs):
         self.log("test_crps_macro", self.test_crps_macro, prog_bar=True)
         if self.test_crps_scaled:
-            self.log("test_crps_scaled_macro", self.test_crps_scaled_macro, prog_bar=True)
+            self.log(
+                "test_crps_scaled_macro",
+                self.test_crps_scaled_macro,
+                prog_bar=True,
+            )
 
 
-def _init_metrics(dataset_names: List[str], crps: Metric, crps_scaled: Optional[Metric] = None):
+def _init_metrics(
+    dataset_names: List[str],
+    crps: Metric,
+    crps_scaled: Optional[Metric] = None,
+):
     n_datasets = len(dataset_names)
     crps = nn.ModuleList([crps.clone() for _ in range(n_datasets)])
     macro_crps = sum(crps) / len(crps)
     if crps_scaled:
-        crps_scaled = nn.ModuleList([crps_scaled.clone() for _ in range(n_datasets)])
+        crps_scaled = nn.ModuleList(
+            [crps_scaled.clone() for _ in range(n_datasets)]
+        )
         macro_crps_scaled = sum(crps_scaled) / len(crps_scaled)
-    return crps, macro_crps, crps_scaled, macro_crps_scaled if crps_scaled else None
+    return (
+        crps,
+        macro_crps,
+        crps_scaled,
+        macro_crps_scaled if crps_scaled else None,
+    )

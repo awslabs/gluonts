@@ -45,7 +45,9 @@ class WeightedIndexIterator:
 
     def __next__(self):
         if self.i >= self.num_cache:
-            self.idx = np.random.choice(len(self.weights), p=self.weights, size=self.num_cache)
+            self.idx = np.random.choice(
+                len(self.weights), p=self.weights, size=self.num_cache
+            )
             self.i = 0
 
         idx = self.idx[self.i]
@@ -59,9 +61,15 @@ class Triplet:
     A triplet is composed of a support set, observed queries, and corresponding (unobserved) future queries.
     """
 
-    support_set: List[TimeSeries]  # length: support_set_size, length TimeSeries: context_length
-    query_past: List[TimeSeries]  # length: num_queries, length TimeSeries: context_length
-    query_future: List[TimeSeries]  # length: num_queries, length TimeSeries: prediction_length
+    support_set: List[
+        TimeSeries
+    ]  # length: support_set_size, length TimeSeries: context_length
+    query_past: List[
+        TimeSeries
+    ]  # length: num_queries, length TimeSeries: context_length
+    query_future: List[
+        TimeSeries
+    ]  # length: num_queries, length TimeSeries: prediction_length
 
     def __iter__(self):
         return (getattr(self, field.name) for field in fields(self))
@@ -72,7 +80,9 @@ class TripletDataset(Dataset[Triplet]):
     The triplet dataset gets a list of queries and corresponding support set and returns them as triplets.
     """
 
-    def __init__(self, queries: TimeSeriesDataset, support_sets: List[List[TimeSeries]]):
+    def __init__(
+        self, queries: TimeSeriesDataset, support_sets: List[List[TimeSeries]]
+    ):
         self.queries = queries
         self.support_sets = support_sets
         assert len(queries) == len(
@@ -133,7 +143,9 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
         self.support_length = support_length
         self.prediction_length = prediction_length
         self.cheat = cheat
-        assert not cheat or self.num_queries == 1, "Cheat sampling only allows num_queries = 1"
+        assert (
+            not cheat or self.num_queries == 1
+        ), "Cheat sampling only allows num_queries = 1"
 
         time_series_lengths = np.array([len(s) for s in dataset])
         time_series_weights = time_series_lengths / time_series_lengths.sum()
@@ -146,14 +158,21 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
 
     def __iter__(self) -> Iterator[Triplet]:
         while True:
-            query_past, query_future, cheat_query, query_idx = self._sample_queries()
+            (
+                query_past,
+                query_future,
+                cheat_query,
+                query_idx,
+            ) = self._sample_queries()
 
             # We do not use the qsplit option for training
             support_set = sample_supps(
                 supps_size=self.support_set_size,
                 length=self.support_length,
                 dataset=self.dataset,
-                cheat_query=cheat_query[0] if np.random.rand() < self.cheat else None,
+                cheat_query=cheat_query[0]
+                if np.random.rand() < self.cheat
+                else None,
                 index_iterator=self.index_iterator
                 if self.catch22_nn is None
                 else iter(self.catch22_nn[query_idx]),
@@ -172,9 +191,14 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
             # Then, sample a slice with uniform probability
             # context should be at least prediction length long
             split_point = np.random.choice(
-                np.arange(self.prediction_length, len(series) - self.prediction_length + 1)
+                np.arange(
+                    self.prediction_length,
+                    len(series) - self.prediction_length + 1,
+                )
             )
-            prediction = series[split_point : split_point + self.prediction_length]
+            prediction = series[
+                split_point : split_point + self.prediction_length
+            ]
             context_start = max(0, split_point - self.context_length)
             context = series[context_start:split_point]
 
@@ -184,9 +208,14 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
             # sample the start of the cheat time series
             cheat_earliest_start = max(
                 0,
-                context_start - self.support_length + self.context_length + self.prediction_length,
+                context_start
+                - self.support_length
+                + self.context_length
+                + self.prediction_length,
             )
-            cheat_start = np.random.choice(np.arange(cheat_earliest_start, context_start + 1))
+            cheat_start = np.random.choice(
+                np.arange(cheat_earliest_start, context_start + 1)
+            )
             cheat_end = min(len(series), cheat_start + self.support_length)
             query_cheat.append(series[cheat_start:cheat_end])
         return query_past, query_future, query_cheat, idx
@@ -237,14 +266,22 @@ class SequentialTripletDataset(Dataset[Triplet]):  # type: ignore
         self.support_length = support_length
         self.prediction_length = prediction_length
         self.cheat = cheat
-        assert not cheat or self.num_queries == 1, "Cheat sampling only allows num_queries = 1"
+        assert (
+            not cheat or self.num_queries == 1
+        ), "Cheat sampling only allows num_queries = 1"
 
         self.support_dataset = support_dataset or dataset
         self.seed = seed
         if catch22_nn is None:
-            time_series_lengths = np.array([len(s) for s in self.support_dataset])
-            time_series_weights = time_series_lengths / time_series_lengths.sum()
-            self.index_iterator = iter(WeightedIndexIterator(time_series_weights))
+            time_series_lengths = np.array(
+                [len(s) for s in self.support_dataset]
+            )
+            time_series_weights = (
+                time_series_lengths / time_series_lengths.sum()
+            )
+            self.index_iterator = iter(
+                WeightedIndexIterator(time_series_weights)
+            )
         self.catch22_nn = catch22_nn
         assert not (
             self.catch22_nn is not None and num_queries > 1
@@ -262,7 +299,9 @@ class SequentialTripletDataset(Dataset[Triplet]):  # type: ignore
         # support time series should end before earliest start of future queries
         q_split = min(q.start_date for q in query_future)
         query = self.dataset[index]
-        cheat_query = query[max(0, len(query) - self.support_length) : len(query)]
+        cheat_query = query[
+            max(0, len(query) - self.support_length) : len(query)
+        ]
         support_set = sample_supps(
             supps_size=self.support_set_size,
             length=self.support_length,
@@ -281,7 +320,9 @@ class SequentialTripletDataset(Dataset[Triplet]):  # type: ignore
     def _last_slice(self, series: TimeSeries):
         split_point = len(series) - self.dataset.prediction_length
         prediction = series[split_point : split_point + self.prediction_length]
-        context = series[max(0, split_point - self.context_length) : split_point]
+        context = series[
+            max(0, split_point - self.context_length) : split_point
+        ]
         return context, prediction
 
 
@@ -311,7 +352,10 @@ def sample_supps(
             # support set slice is the one closest to the prediction point of the query
             freq = series.start_date.freq
             end_point = min(
-                (q_split.to_period(freq) - series.start_date.to_period(freq)).n, len(series)
+                (
+                    q_split.to_period(freq) - series.start_date.to_period(freq)
+                ).n,
+                len(series),
             )
             if end_point <= 0:
                 # this should basically never happen and is only there to not break the training in case it happens
@@ -326,7 +370,9 @@ def sample_supps(
                 continue
         else:
             # if possible choose a full-length slice
-            end_point = np.random.randint(low=min(len(series), length), high=len(series) + 1)
+            end_point = np.random.randint(
+                low=min(len(series), length), high=len(series) + 1
+            )
         support_ts = series[max(0, end_point - length) : end_point]
         support_set.append(support_ts)
     if cheat_query is not None:
@@ -343,7 +389,9 @@ class SuperSamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
     The dataset yields infinitely many items.
     """
 
-    def __init__(self, datasets: List[SamplingTripletDataset], dataset_sampling: str):
+    def __init__(
+        self, datasets: List[SamplingTripletDataset], dataset_sampling: str
+    ):
         """
         Args:
             datasets: The base datasets to sample from.
@@ -357,16 +405,23 @@ class SuperSamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
         if dataset_sampling == "weighted":
             # Sample a dataset with probability relative to the total number of observations in it
             self.dataset_weights = [
-                sampling_dataset.dataset.number_of_time_steps for sampling_dataset in datasets
+                sampling_dataset.dataset.number_of_time_steps
+                for sampling_dataset in datasets
             ]
-            self.dataset_weights = np.array(self.dataset_weights) / sum(self.dataset_weights)
+            self.dataset_weights = np.array(self.dataset_weights) / sum(
+                self.dataset_weights
+            )
         elif dataset_sampling == "uniform":
             self.dataset_weights = None
         else:
-            raise ValueError(f"dataset sampling {dataset_sampling} is not implemented.")
+            raise ValueError(
+                f"dataset sampling {dataset_sampling} is not implemented."
+            )
 
     def __iter__(self) -> Iterator[Triplet]:
         while True:
-            index = np.random.choice(len(self.datasets), p=self.dataset_weights)
+            index = np.random.choice(
+                len(self.datasets), p=self.dataset_weights
+            )
             # Return item of chosen base dataset
             yield next(self.datasets[index])

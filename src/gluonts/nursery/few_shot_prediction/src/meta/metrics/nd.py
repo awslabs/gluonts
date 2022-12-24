@@ -35,8 +35,12 @@ class NormalizedDeviation(Metric):
             dist_sync_fn=dist_sync_fn,
         )
         self.rescale = rescale
-        self.add_state("numerator", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("denom", default=torch.as_tensor(0.0), dist_reduce_fx="sum")
+        self.add_state(
+            "numerator", default=torch.as_tensor(0.0), dist_reduce_fx="sum"
+        )
+        self.add_state(
+            "denom", default=torch.as_tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(
         self,

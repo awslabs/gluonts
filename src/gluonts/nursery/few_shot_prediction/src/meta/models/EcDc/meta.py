@@ -67,7 +67,10 @@ class EncoderDecoderMetaModel(MetaModel):
         self.decoder = decoder
 
     def forward(
-        self, supps: SeriesBatch, query: SeriesBatch, return_attention: bool = False
+        self,
+        supps: SeriesBatch,
+        query: SeriesBatch,
+        return_attention: bool = False,
     ) -> torch.Tensor:
         """
         Computes the forecasts from the provided queries and support set.
@@ -104,7 +107,15 @@ class IwataKumagaiEcDcConfig:
     prediction_length: int = 1
     # The quantiles the model predicts
     quantiles: List[str] = field(
-        default_factory=lambda: ["0.02", "0.1", "0.25", "0.5", "0.75", "0.9", "0.98"]
+        default_factory=lambda: [
+            "0.02",
+            "0.1",
+            "0.25",
+            "0.5",
+            "0.75",
+            "0.9",
+            "0.98",
+        ]
     )
     query_out_channels: int = 32
     lstm_num_layers: int = 1
@@ -115,7 +126,9 @@ class IwataKumagaiEcDcConfig:
 
 
 @register_model
-class IwataKumagaiEcDc(EncoderDecoderMetaModel, Configurable[IwataKumagaiEcDcConfig]):
+class IwataKumagaiEcDc(
+    EncoderDecoderMetaModel, Configurable[IwataKumagaiEcDcConfig]
+):
     """
     The base model from the paper https://arxiv.org/abs/2009.14379 by Iwata and Kumagai.
     Differences are quantile prediction and (optionally) longer prediction window.
@@ -139,7 +152,8 @@ class IwataKumagaiEcDc(EncoderDecoderMetaModel, Configurable[IwataKumagaiEcDcCon
                 hidden_size=config.query_out_channels,
             ),
             attention=MultiHeadSupportSetQueryAttention(
-                supps_size=config.supps_out_channels * (1 + config.supps_bidirectional),
+                supps_size=config.supps_out_channels
+                * (1 + config.supps_bidirectional),
                 q_size=config.query_out_channels,
                 num_heads=config.num_heads,
             ),
@@ -169,7 +183,15 @@ class CNNLSTMEcDcConfig:
     prediction_length: int = 1
     # The quantiles the model predicts
     quantiles: List[str] = field(
-        default_factory=lambda: ["0.02", "0.1", "0.25", "0.5", "0.75", "0.9", "0.98"]
+        default_factory=lambda: [
+            "0.02",
+            "0.1",
+            "0.25",
+            "0.5",
+            "0.75",
+            "0.9",
+            "0.98",
+        ]
     )
     supps_out_channels: int = 64
     num_heads: int = 1
@@ -187,7 +209,9 @@ class CNNLSTMEcDc(EncoderDecoderMetaModel, Configurable[CNNLSTMEcDcConfig]):
         EncoderDecoderMetaModel.__init__(
             self,
             feature_extractor=IdentityFeatureExtractor(),
-            supps_enc=CNNSupportSetEncoder(input_size=1, out_channels=config.supps_out_channels),
+            supps_enc=CNNSupportSetEncoder(
+                input_size=1, out_channels=config.supps_out_channels
+            ),
             query_enc=LSTMQueryEncoder(
                 input_size=1,
                 num_layers=1,
@@ -222,7 +246,15 @@ class TcnEcDcConfig:
     # -------- decoder config ----------
     prediction_length: int = 1
     quantiles: List[str] = field(
-        default_factory=lambda: ["0.02", "0.1", "0.25", "0.5", "0.75", "0.9", "0.98"]
+        default_factory=lambda: [
+            "0.02",
+            "0.1",
+            "0.25",
+            "0.5",
+            "0.75",
+            "0.9",
+            "0.98",
+        ]
     )
     decoder_hidden_size: int = 64
 

@@ -69,7 +69,9 @@ class MultiHeadSupportSetQueryAttention(SupportSetQueryAttention):
 
     def __init__(self, supps_size: int, q_size: int, num_heads: int = 1):
         super().__init__()
-        assert q_size % num_heads == 0, "Embedding dimension must be 0 modulo number of heads."
+        assert (
+            q_size % num_heads == 0
+        ), "Embedding dimension must be 0 modulo number of heads."
 
         self.supps_embed_size = supps_size
         self.num_heads = num_heads
@@ -93,9 +95,13 @@ class MultiHeadSupportSetQueryAttention(SupportSetQueryAttention):
         """
         n_supps = supps.split_sections[0]
         pad_size = supps.sequences.size()[1]
-        support_set = supps.sequences.reshape(-1, n_supps * pad_size, self.supps_embed_size)
+        support_set = supps.sequences.reshape(
+            -1, n_supps * pad_size, self.supps_embed_size
+        )
         device = supps.sequences.device
-        mask = torch.arange(pad_size, device=device)[None, :] < supps.lengths[:, None].to(device)
+        mask = torch.arange(pad_size, device=device)[None, :] < supps.lengths[
+            :, None
+        ].to(device)
         mask = ~mask.reshape(-1, n_supps * pad_size)
 
         values, attention = self.multihead_attn(

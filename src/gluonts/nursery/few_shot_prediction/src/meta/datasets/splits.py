@@ -109,7 +109,9 @@ class DatasetSplit:
         Returns a time series dataset for the dataset split. This loads the associated JSON file and
         is, thus, potentially slow.
         """
-        gluonts = FileDataset(self._directory / self._split, freq=self._metadata.freq)
+        gluonts = FileDataset(
+            self._directory / self._split, freq=self._metadata.freq
+        )
         series = [
             TimeSeries(
                 dataset_name=self._dataset_name,
@@ -130,7 +132,9 @@ class DatasetSplit:
 
     def support_set(self) -> List[List[TimeSeries]]:
         support_set_path = self._directory / self._split / ".support_set.json"
-        assert support_set_path.exists(), "No support set has been saved for this dataset."
+        assert (
+            support_set_path.exists()
+        ), "No support set has been saved for this dataset."
         support_set = []
         with open(support_set_path) as json_file:
             for line in json_file:
@@ -151,12 +155,17 @@ class DatasetSplit:
         Returns the NumPy arrays that are used to perform evaluation.
         """
         if self._split == "train":
-            raise ValueError("training data does not provide an evaluation dataset")
+            raise ValueError(
+                "training data does not provide an evaluation dataset"
+            )
 
         base = self._directory / "numpy" / self._split
         return EvaluationDataset(
             np.load(base / "future_data.npy")[..., : self._prediction_length],
-            ma.MaskedArray(np.load(base / "past_data.npy"), mask=np.load(base / "past_mask.npy")),
+            ma.MaskedArray(
+                np.load(base / "past_data.npy"),
+                mask=np.load(base / "past_mask.npy"),
+            ),
         )
 
     def prepare(self) -> None:

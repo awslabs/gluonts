@@ -116,7 +116,9 @@ class GluonTSDataModule(pl.LightningDataModule):
         self.catch22_train = catch22_train
         self.catch22_val_test = catch22_val_test
         self.cheat = cheat
-        assert not cheat or num_queries == 1, "Cheat sampling only allows num_queries = 1"
+        assert (
+            not cheat or num_queries == 1
+        ), "Cheat sampling only allows num_queries = 1"
         assert not (
             (catch22_val_test or catch22_train) and num_queries > 1
         ), "Catch22 support set selection only works with num_queries equal to one."
@@ -145,15 +147,23 @@ class GluonTSDataModule(pl.LightningDataModule):
         """
         Returns the dataset's metadata.
         """
-        return MetaData.parse_file(self.root / "metadata.json") if self.root.exists() else None
+        return (
+            MetaData.parse_file(self.root / "metadata.json")
+            if self.root.exists()
+            else None
+        )
 
-    def sampling_triplet_dataset(self, split: Literal["train", "val"]) -> SamplingTripletDataset:
+    def sampling_triplet_dataset(
+        self, split: Literal["train", "val"]
+    ) -> SamplingTripletDataset:
         if split == "train":
             dataset = self.splits.train().data()
         elif split == "val":
             dataset = self.splits.val().data()
         else:
-            raise ValueError("test split should not be used with sampling data set")
+            raise ValueError(
+                "test split should not be used with sampling data set"
+            )
         return SamplingTripletDataset(
             dataset=dataset,
             context_length=self.context_length,
@@ -176,7 +186,9 @@ class GluonTSDataModule(pl.LightningDataModule):
             dataset = self.splits.test().data()
             support_dataset = self.splits.val().data()
         else:
-            raise ValueError("train split should not be used with sequential data set")
+            raise ValueError(
+                "train split should not be used with sequential data set"
+            )
         return SequentialTripletDataset(
             dataset=dataset,
             support_dataset=support_dataset,
@@ -203,7 +215,11 @@ class GluonTSDataModule(pl.LightningDataModule):
 
         self.generate()
         self.splits = DatasetSplits(
-            self.meta, self.root, self.dataset_name, self.prediction_length, self.standardize
+            self.meta,
+            self.root,
+            self.dataset_name,
+            self.prediction_length,
+            self.standardize,
         )
         self.splits.train().prepare()
         self.splits.val().prepare()
@@ -260,11 +276,16 @@ class GluonTSDataModule(pl.LightningDataModule):
                 # we have that ts in train split are at least 2 * prediction length long.
                 # This makes it possible to predict a full prediction length
                 # and have a context window of size prediction length.
-                filters = self._filters(meta.prediction_length, 3 * meta.prediction_length)
+                filters = self._filters(
+                    meta.prediction_length, 3 * meta.prediction_length
+                )
                 read_transform_write(
                     self.root / "train" / "data.json",
                     filters=filters
-                    + [EndOfSeriesCutFilter(meta.prediction_length), ItemIDTransform()],
+                    + [
+                        EndOfSeriesCutFilter(meta.prediction_length),
+                        ItemIDTransform(),
+                    ],
                     source=source / "train" / "data.json",
                 )
                 num_train = count_lines(self.root / "train" / "data.json")
@@ -279,7 +300,9 @@ class GluonTSDataModule(pl.LightningDataModule):
                 # exclude any more data! The time series is only longer by the prediction length...
                 read_transform_write(
                     self.root / "test" / "data.json",
-                    filters=self._filters(2 * meta.prediction_length, 4 * meta.prediction_length)
+                    filters=self._filters(
+                        2 * meta.prediction_length, 4 * meta.prediction_length
+                    )
                     + [
                         ItemIDTransform(num_train),
                     ],
@@ -289,7 +312,9 @@ class GluonTSDataModule(pl.LightningDataModule):
         num_val = count_lines(self.root / "val" / "data.json")
         num_test = count_lines(self.root / "test" / "data.json")
 
-        assert num_train == num_val and (num_test % num_val == 0), "Splits do not match."
+        assert num_train == num_val and (
+            num_test % num_val == 0
+        ), "Splits do not match."
 
         # compute catch22 features
         file = self.root / "catch22" / "features.pkl"
@@ -327,7 +352,9 @@ class GluonTSDataModule(pl.LightningDataModule):
             # for more than 5000 ts use kd_tree algo
             algo = "brute" if num_ts <= 5000 else "kd_tree"
             num_nn = 100
-            nbrs = NearestNeighbors(n_neighbors=min(num_ts, num_nn + 1), algorithm=algo).fit(df)
+            nbrs = NearestNeighbors(
+                n_neighbors=min(num_ts, num_nn + 1), algorithm=algo
+            ).fit(df)
             distances, indices = nbrs.kneighbors(df)
             with open(file, "wb") as f:
                 # exclude the query ts itself
@@ -347,9 +374,13 @@ class GluonTSDataModule(pl.LightningDataModule):
     def evaluate_model(self, **kwargs):
         pass
 
-    def _filters(self, prediction_length: int, min_length: int) -> List[Filter]:
+    def _filters(
+        self, prediction_length: int, min_length: int
+    ) -> List[Filter]:
         return [
-            ConstantTargetFilter(prediction_length, required_length=self.catch22_tail),
+            ConstantTargetFilter(
+                prediction_length, required_length=self.catch22_tail
+            ),
             AbsoluteValueFilter(1e18),
             MinLengthFilter(min_length),
         ]

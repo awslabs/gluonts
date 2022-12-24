@@ -117,11 +117,15 @@ def statistics():
             support_set_size=1,
         )
         dm.setup()
-        train_file_size = os.path.getsize(path_to_data / dataset / "train" / "data.json")
+        train_file_size = os.path.getsize(
+            path_to_data / dataset / "train" / "data.json"
+        )
 
         dataset_stats[dataset] = {
             "length": len(dm.splits.train().data()),
-            "n_total_observations": dm.splits.train().data().number_of_time_steps,
+            "n_total_observations": dm.splits.train()
+            .data()
+            .number_of_time_steps,
             "freq": dm.meta.freq,
             "train_file_size": train_file_size,
             "prediction_length": dm.meta.prediction_length,
@@ -130,7 +134,9 @@ def statistics():
     lengths = np.asarray([dataset_stats[d]["length"] for d in datasets])
     lengths_normalized = lengths / sum(lengths)
 
-    n_total = np.asarray([dataset_stats[d]["n_total_observations"] for d in datasets])
+    n_total = np.asarray(
+        [dataset_stats[d]["n_total_observations"] for d in datasets]
+    )
     n_total_normalized = n_total / sum(n_total)
 
     datasets, lengths_normalized, n_total_normalized = zip(
@@ -148,8 +154,15 @@ def statistics():
     # -------- plot without logarithmic y-axis ------
     fig, ax = plt.subplots(figsize=[25, 8])
     width = 0.35  # the width of the bars
-    rects1 = ax.bar(x - width / 2, lengths_normalized, width, label="number of ts")
-    rects2 = ax.bar(x + width / 2, n_total_normalized, width, label="total number of time steps")
+    rects1 = ax.bar(
+        x - width / 2, lengths_normalized, width, label="number of ts"
+    )
+    rects2 = ax.bar(
+        x + width / 2,
+        n_total_normalized,
+        width,
+        label="total number of time steps",
+    )
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel("normalized size")
@@ -169,8 +182,15 @@ def statistics():
 
     fig, ax = plt.subplots(figsize=[25, 8])
     width = 0.35  # the width of the bars
-    rects1 = ax.bar(x - width / 2, lengths_normalized, width, label="number of ts")
-    rects2 = ax.bar(x + width / 2, n_total_normalized, width, label="total number of time steps")
+    rects1 = ax.bar(
+        x - width / 2, lengths_normalized, width, label="number of ts"
+    )
+    rects2 = ax.bar(
+        x + width / 2,
+        n_total_normalized,
+        width,
+        label="total number of time steps",
+    )
     ax.set_yscale("log")
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel("normalized size")
@@ -194,7 +214,9 @@ def statistics():
     f_size = sum([dataset_stats[d]["train_file_size"] for d in datasets])
     print(f"training set memory size: {f_size / float(1<<30)} GB")
 
-    prediction_lengths = np.asarray([dataset_stats[d]["prediction_length"] for d in datasets])
+    prediction_lengths = np.asarray(
+        [dataset_stats[d]["prediction_length"] for d in datasets]
+    )
     print(f"max prediction length is {np.max(prediction_lengths)}")
 
 

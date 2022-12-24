@@ -60,7 +60,13 @@ class CausalConvolution(torch.nn.Module):
     an activation function.
     """
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, dilation: int):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        dilation: int,
+    ):
         """
         Args:
             in_channels: The number of input channels.
@@ -70,7 +76,12 @@ class CausalConvolution(torch.nn.Module):
         """
         super().__init__()
 
-        conv = torch.nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size, dilation=dilation)
+        conv = torch.nn.Conv1d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            dilation=dilation,
+        )
         self.padding = (kernel_size - 1) * dilation
         self.normalized_conv = torch.nn.utils.weight_norm(conv)
         self.activation = torch.nn.LeakyReLU()
@@ -144,7 +155,9 @@ class CausalConvolutionBlock(torch.nn.Module):
 
         # Residual connection
         self.upordownsample = (
-            torch.nn.Conv1d(in_channels, out_channels, 1) if in_channels != out_channels else None
+            torch.nn.Conv1d(in_channels, out_channels, 1)
+            if in_channels != out_channels
+            else None
         )
 
         # Final activation function
@@ -194,12 +207,18 @@ class CausalCNN(torch.nn.Module):
         for i in range(depth):
             in_channels_block = in_channels if i == 0 else channels
             layers += [
-                CausalConvolutionBlock(in_channels_block, channels, kernel_size, dilation_size)
+                CausalConvolutionBlock(
+                    in_channels_block, channels, kernel_size, dilation_size
+                )
             ]
             dilation_size *= 2  # Doubles the dilation size at each step
 
         # Last layer
-        layers += [CausalConvolutionBlock(channels, out_channels, kernel_size, dilation_size)]
+        layers += [
+            CausalConvolutionBlock(
+                channels, out_channels, kernel_size, dilation_size
+            )
+        ]
 
         self.network = torch.nn.Sequential(*layers)
 
@@ -236,7 +255,9 @@ class CausalCNNEncoder(torch.nn.Module):
         kernel_size: int,
     ):
         super(CausalCNNEncoder, self).__init__()
-        causal_cnn = CausalCNN(in_channels, channels, depth, out_channels, kernel_size)
+        causal_cnn = CausalCNN(
+            in_channels, channels, depth, out_channels, kernel_size
+        )
         self.network = torch.nn.Sequential(
             causal_cnn,
         )

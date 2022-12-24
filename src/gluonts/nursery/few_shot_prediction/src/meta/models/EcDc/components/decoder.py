@@ -23,7 +23,9 @@ class Decoder(nn.Module, ABC):
     """
 
     @abstractmethod
-    def forward(self, query: torch.Tensor, value: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, query: torch.Tensor, value: torch.Tensor
+    ) -> torch.Tensor:
         """
         Forecast from encoded (query, support set) (typically via attention) and encoded queries.
 
@@ -68,9 +70,13 @@ class FeedForwardQuantileDecoder(Decoder):
         self.num_quantiles = num_quantiles
         self.prediction_length = prediction_length
         self.fc1 = nn.Linear(embed_size + q_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, prediction_length * self.num_quantiles)
+        self.fc2 = nn.Linear(
+            hidden_size, prediction_length * self.num_quantiles
+        )
 
-    def forward(self, query: torch.Tensor, value: torch.Tensor = None) -> torch.Tensor:
+    def forward(
+        self, query: torch.Tensor, value: torch.Tensor = None
+    ) -> torch.Tensor:
         if value is not None:
             x = torch.cat((value, query.sequences), dim=1)
         else:

@@ -23,13 +23,20 @@ class ParameterCountCallback(Callback):  # type: ignore
     def __init__(self) -> None:
         super().__init__()
 
-    def on_pretrain_routine_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_pretrain_routine_start(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
         # compute number of model params
-        model_total_params = sum(p.numel() for p in pl_module.model.parameters())
+        model_total_params = sum(
+            p.numel() for p in pl_module.model.parameters()
+        )
         model_total_trainable_params = sum(
             p.numel() for p in pl_module.model.parameters() if p.requires_grad
         )
 
         # log
         print("\n" + f"model_total_params: {model_total_params},")
-        print("\n" + f"model_total_trainable_params: {model_total_trainable_params},")
+        print(
+            "\n"
+            + f"model_total_trainable_params: {model_total_trainable_params},"
+        )

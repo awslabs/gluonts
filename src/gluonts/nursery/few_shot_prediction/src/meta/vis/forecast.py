@@ -58,11 +58,17 @@ def plot_forecast_supportset_attention(
         # plot prediction
         subs[plots_per_sample * i].set_title(f"query {i}")
         _plot_quantile_forecast(
-            subs[plots_per_sample * i], query_past[i], query_future[i], pred[i], quantiles
+            subs[plots_per_sample * i],
+            query_past[i],
+            query_future[i],
+            pred[i],
+            quantiles,
         )
         # plot support ts and attention weights
         for j in range(1, supps_size + 1):
-            subs[plots_per_sample * i + j].set_title(f"support ts {j} for query {i}")
+            subs[plots_per_sample * i + j].set_title(
+                f"support ts {j} for query {i}"
+            )
             subs[plots_per_sample * i + j].plot(supps[i][j - 1].squeeze())
 
             subs[plots_per_sample * i + j].sharex(subs[plots_per_sample * i])
@@ -118,11 +124,15 @@ def plot_quantile_forecast(
     if n_samples > 1:
         for i in range(n_samples):
             subs[i].set_title(f"sample {i}")
-            _plot_quantile_forecast(subs[i], query_past[i], query_future[i], pred[i], quantiles)
+            _plot_quantile_forecast(
+                subs[i], query_past[i], query_future[i], pred[i], quantiles
+            )
     else:
         i = 0
         subs.set_title(f"sample {i}")
-        _plot_quantile_forecast(subs, query_past[i], query_future[i], pred[i], quantiles)
+        _plot_quantile_forecast(
+            subs, query_past[i], query_future[i], pred[i], quantiles
+        )
     return fig
 
 
@@ -164,7 +174,13 @@ def _plot_quantile_forecast(
         ci = 100 - 2 * int(float(quantiles[i]) * 100)
         cmap_index = int((cmap.N / (num_intervals + 1)) * (i + 1))
         if len(pred) > 1:
-            sub.fill_between(pred_time, lower, upper, color=cmap(cmap_index), label=f"{ci}% CI")
+            sub.fill_between(
+                pred_time,
+                lower,
+                upper,
+                color=cmap(cmap_index),
+                label=f"{ci}% CI",
+            )
         else:
             sub.fill_between(
                 np.append(pred_time, pred_time[0] + 0.5),
@@ -174,7 +190,12 @@ def _plot_quantile_forecast(
                 label=f"{ci}% CI",
             )
     if len(pred) > 1:
-        sub.plot(pred_time, pred[..., num_intervals], color="black", label="pred median")
+        sub.plot(
+            pred_time,
+            pred[..., num_intervals],
+            color="black",
+            label="pred median",
+        )
     else:
         sub.plot(
             np.append(pred_time, pred_time[0] + 0.5),

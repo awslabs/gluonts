@@ -68,7 +68,10 @@ class LSTMQueryEncoder(QueryEncoder):
 
     def forward(self, query: SeriesBatch) -> torch.Tensor:
         query_packed = pack_padded_sequence(
-            query.sequences, query.lengths.cpu(), batch_first=True, enforce_sorted=False
+            query.sequences,
+            query.lengths.cpu(),
+            batch_first=True,
+            enforce_sorted=False,
         )
         _, (output, _) = self.encoder(query_packed)
         # return last layer of hidden states

@@ -57,7 +57,13 @@ class LSTMSupportSetEncoder(SupportSetEncoder):
     bidirectional: If a bidirectional LSTM is used. If true: D = 2, else D = 1.
     """
 
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, bidirectional: bool):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        bidirectional: bool,
+    ):
         super().__init__()
         self.encoder = nn.LSTM(
             input_size=input_size,
@@ -69,10 +75,15 @@ class LSTMSupportSetEncoder(SupportSetEncoder):
 
     def forward(self, supps: SeriesBatch) -> torch.Tensor:
         supps_packed = pack_padded_sequence(
-            supps.sequences, supps.lengths.cpu(), batch_first=True, enforce_sorted=False
+            supps.sequences,
+            supps.lengths.cpu(),
+            batch_first=True,
+            enforce_sorted=False,
         )
         output_packed, _ = self.encoder(supps_packed)
-        output_padded, output_lengths = pad_packed_sequence(output_packed, batch_first=True)
+        output_padded, output_lengths = pad_packed_sequence(
+            output_packed, batch_first=True
+        )
         return SeriesBatch(output_padded, output_lengths, supps.split_sections)
 
 
@@ -127,7 +138,9 @@ class CNNSupportSetEncoder(SupportSetEncoder):
         x = pool(F.relu(self.conv4(x)), 2)
 
         # TODO: padding of the batches is not takes into account!
-        return SeriesBatch(x.permute(0, 2, 1), supps.lengths, supps.split_sections)
+        return SeriesBatch(
+            x.permute(0, 2, 1), supps.lengths, supps.split_sections
+        )
 
 
 class TcnSupportSetEncoder(SupportSetEncoder):
@@ -162,4 +175,6 @@ class TcnSupportSetEncoder(SupportSetEncoder):
 
     def forward(self, supps: SeriesBatch) -> torch.Tensor:
         output_padded = self.encoder(supps.sequences.transpose(1, 2))
-        return SeriesBatch(output_padded.transpose(1, 2), supps.lengths, supps.split_sections)
+        return SeriesBatch(
+            output_padded.transpose(1, 2), supps.lengths, supps.split_sections
+        )
