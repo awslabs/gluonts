@@ -126,16 +126,10 @@ def test_forecasts(
         method_name=method_name,
         fmethod=fmethod,
         nonnegative=nonnegative,
+        covariance=covariance,
+        algorithm=algorithm,
+        level=level,
     )
-
-    if level:
-        params["level"] = level
-
-    if covariance:
-        params["covariance"] = covariance
-
-    if algorithm:
-        params["algorithm"] = algorithm
 
     predictor = RHierarchicalForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
