@@ -31,8 +31,7 @@ HIERARCHICAL_POINT_FORECAST_METHODS = [
     "top_down_w_forecasts_proportions",
     "middle_out_w_forecasts_proportions",
     "mint",
-    # TODO: "erm",
-    # TODO: "ermParallel",
+    "erm",
 ]
 
 HIERARCHICAL_SAMPLE_FORECAST_METHODS = []  # TODO: Add `depbu_mint`.
@@ -74,7 +73,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     method_name
         Hierarchical forecasting or reconciliation method to be used; mutst be one of:
         "naive_bottom_up", "middle_out_w_forecasts_proportions", "top_down_w_average_historical_proportions",
-        "top_down_w_proportions_of_the_historical_averages", "top_down_w_forecasts_proportions",
+        "top_down_w_proportions_of_the_historical_averages", "top_down_w_forecasts_proportions", "mint", "erm"
     fmethod
         The forecasting method to be used for generating base forecasts (i.e., un-reconciled forecasts).
     period
@@ -91,6 +90,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         Level of hierarchy to be used as reference for `middle out` reconciliation (i.e. level=1 means that the level
         below the highest one will be used as reference to compute the forecasts of all the other levels). This value
         is required only for `middle out`.
+    numcores
+        Number of cores to be used for parallelization of ERM. If not provided, all cores will be used.
     """
 
     @validated()
@@ -110,6 +111,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         level: Optional[int] = None,
         algorithm: Optional[str] = "cg",
         covariance: Optional[str] = "shr",
+        numcores: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
 
@@ -143,13 +145,17 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             "nonnegative": nonnegative,
             "algorithm": algorithm,
             "covariance": covariance,
+            "numcores": numcores,
+            "level": level,
         }
 
-        if level:
-            self.params["level"] = level
+        for p in ["algorithm", "covariance", "numcores", "level"]:
+            if self.params[p] is None:
+                self.params[p] = self._robjects.rinterface.NULL
 
         if params is not None:
             self.params.update(params)
+
         self.is_hts = is_hts
 
     def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
