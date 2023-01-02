@@ -30,3 +30,6 @@ compile_notebooks mode="release":
 
 release:
   python setup.py sdist
+
+black:
+  black --check src test examples
