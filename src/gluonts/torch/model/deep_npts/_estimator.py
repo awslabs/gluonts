@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from copy import deepcopy
 from typing import List, Optional, Callable, Union
 from functools import partial
 
@@ -369,7 +368,7 @@ class DeepNPTSEstimator(Estimator):
 
             if sum_epoch_loss < best_loss:
                 best_loss = sum_epoch_loss
-                best_net = deepcopy(net)
+                torch.save(net.state_dict(), "best-model-params.pt")
 
             print(
                 f"Loss for epoch {epoch_num}: "
@@ -378,7 +377,8 @@ class DeepNPTSEstimator(Estimator):
 
         print(f"Best loss: {best_loss / num_batches_per_epoch}")
 
-        return best_net
+        net.load_state_dict(torch.load("best-model-params.pt"))
+        return net
 
     def get_predictor(
         self, net: torch.nn.Module, batch_size: int, device=torch.device("cpu")
