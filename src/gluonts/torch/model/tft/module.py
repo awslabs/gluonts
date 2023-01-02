@@ -3,9 +3,12 @@ import torch.nn as nn
 
 from typing import List, Optional, Dict, Tuple
 from gluonts.core.component import validated
+from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
+
 
 from .layers import (
     FeatureEmbedder,
+    FeatureProjector,
     VariableSelectionNetwork,
     GatedResidualNetwork,
     TemporalFusionDecoder,
@@ -19,12 +22,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         context_length: int,
         prediction_length: int,
-        num_feat_static_real: int,
-        num_feat_dynamic_real: int,
-        num_past_feat_dynamic_real: int,
-        cardinalities_static: List[int],
-        cardinalities_dynamic: List[int],
-        cardinalities_past_dynamic: List[int],
+        d_past_feat_dynamic_real: List[int],
+        c_past_feat_dynamic_cat: List[int],
+        d_feat_dynamic_real: List[int],
+        c_feat_dynamic_cat: List[int],
+        d_feat_static_real: List[int],
+        c_feat_static_cat: List[int],
         quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
         d_hidden: int = 32,
@@ -44,74 +47,78 @@ class TemporalFusionTransformerModel(nn.Module):
             quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         self.quantiles = quantiles
 
-        self.num_feat_static_real = num_feat_static_real
-        self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.num_past_feat_dynamic_real = num_past_feat_dynamic_real
-        self.cardinalities_static = cardinalities_static or []
-        self.cardinalities_dynamic = cardinalities_dynamic or []
-        self.cardinalities_past_dynamic = cardinalities_past_dynamic or []
-        self.num_feat_static_cat = len(self.cardinalities_static)
-        self.num_feat_dynamic_cat = len(self.cardinalities_dynamic)
-        self.num_past_feat_dynamic_cat = len(self.cardinalities_past_dynamic)
+        self.d_feat_static_real = d_feat_static_real
+        self.d_feat_dynamic_real = d_feat_dynamic_real
+        self.d_past_feat_dynamic_real = d_past_feat_dynamic_real
+        self.c_feat_static_cat = c_feat_static_cat or []
+        self.c_feat_dynamic_cat = c_feat_dynamic_cat or []
+        self.c_past_feat_dynamic_cat = c_past_feat_dynamic_cat or []
 
-        self.num_feat_static = (
-            self.num_feat_static_real + self.num_feat_static_cat
+        self.num_feat_static = len(self.d_feat_static_real) + len(
+            self.c_feat_static_cat
         )
-        self.num_feat_dynamic = (
-            self.num_feat_dynamic_real + self.num_feat_dynamic_cat
+        self.num_feat_dynamic = len(self.d_feat_dynamic_real) + len(
+            self.c_feat_dynamic_cat
         )
-        self.num_past_feat_dynamic = (
-            self.num_past_feat_dynamic_real + self.num_past_feat_dynamic_cat
+        self.num_past_feat_dynamic = len(self.d_past_feat_dynamic_real) + len(
+            self.c_past_feat_dynamic_cat
         )
+
+        if scaling:
+            self.scaler = MeanScaler(dim=1, keepdim=True)
+        else:
+            self.scaler = NOPScaler(dim=1, keepdim=True)
 
         self.target_proj = nn.Linear(in_features=1, out_features=self.d_var)
-        # Past dynamic features
-        if self.num_past_feat_dynamic_real:
-            self.past_feat_dynamic_proj = nn.Linear(
-                in_features=self.num_past_feat_dynamic_real,
-                out_features=self.d_var,
+        # Past-only dynamic features
+        if self.d_past_feat_dynamic_real:
+            self.past_feat_dynamic_proj = FeatureProjector(
+                feature_dims=self.d_past_feat_dynamic_real,
+                embedding_dims=[self.d_var]
+                * len(self.d_past_feat_dynamic_real),
             )
         else:
             self.past_feat_dynamic_proj = None
 
-        if self.cardinalities_past_dynamic:
+        if self.c_past_feat_dynamic_cat:
             self.past_feat_dynamic_embed = FeatureEmbedder(
-                cardinalities=cardinalities_past_dynamic,
-                embedding_dims=[d_var] * self.num_past_feat_dynamic_cat,
+                cardinalities=self.c_past_feat_dynamic_cat,
+                embedding_dims=[self.d_var]
+                * len(self.c_past_feat_dynamic_cat),
             )
         else:
             self.past_feat_dynamic_embed = None
 
         # Known dynamic features
-        if self.num_feat_dynamic_real:
-            self.feat_dynamic_proj = nn.Linear(
-                in_features=self.num_feat_dynamic_real,
-                out_features=self.d_var,
+        if self.d_feat_dynamic_real:
+            self.feat_dynamic_proj = FeatureProjector(
+                feature_dims=self.d_feat_dynamic_real,
+                embedding_dims=[self.d_var] * len(self.d_feat_dynamic_real),
             )
         else:
             self.feat_dynamic_proj = None
 
-        if self.cardinalities_dynamic:
+        if self.c_feat_dynamic_cat:
             self.feat_dynamic_embed = FeatureEmbedder(
-                cardinalities=cardinalities_dynamic,
-                embedding_dims=[d_var] * self.num_feat_dynamic_cat,
+                cardinalities=self.c_feat_dynamic_cat,
+                embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
             )
         else:
             self.feat_dynamic_embed = None
 
         # Static features
-        if self.num_feat_static_real:
-            self.feat_static_proj = nn.Linear(
-                in_features=self.num_feat_static_real,
-                out_features=self.d_var,
+        if self.d_feat_static_real:
+            self.feat_static_proj = FeatureProjector(
+                feature_dims=self.d_feat_static_real,
+                embedding_dims=[self.d_var] * len(self.d_feat_static_real),
             )
         else:
             self.feat_static_proj = None
 
-        if self.cardinalities_static:
+        if self.c_feat_static_cat:
             self.feat_static_embed = FeatureEmbedder(
-                cardinalities=cardinalities_static,
-                embedding_dims=[d_var] * self.num_feat_static_cat,
+                cardinalities=self.c_feat_static_cat,
+                embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
             )
         else:
             self.feat_static_embed = None
@@ -143,17 +150,15 @@ class TemporalFusionTransformerModel(nn.Module):
         )
         self.state_h = GatedResidualNetwork(
             d_hidden=self.d_var,
-            output_dim=self.d_hidden,
+            d_output=self.d_hidden,
             dropout=self.dropout_rate,
         )
         self.state_c = GatedResidualNetwork(
             d_hidden=self.d_var,
-            output_dim=self.d_hidden,
-            dropout_rate=self.dropout_rate,
+            d_output=self.d_hidden,
+            dropout=self.dropout_rate,
         )
         self.temporal_encoder = TemporalFusionEncoder(
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
             d_input=self.d_var,
             d_hidden=self.d_hidden,
         )
@@ -165,8 +170,11 @@ class TemporalFusionTransformerModel(nn.Module):
             num_heads=self.num_heads,
             dropout=self.dropout_rate,
         )
-        self.output = IncrementalQuantileOutput(quantiles=self.quantiles)
-        self.output_proj = self.output.get_quantile_proj()
+        # self.output = IncrementalQuantileOutput(quantiles=self.quantiles)
+        # self.output_proj = self.output.get_quantile_proj()
+        self.output_proj = nn.Linear(
+            in_features=self.d_hidden, out_features=len(self.quantiles)
+        )
 
     def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
         return {
@@ -208,16 +216,41 @@ class TemporalFusionTransformerModel(nn.Module):
             "feat_static_cat": torch.long,
         }
 
+    def _preprocess(
+        self,
+        past_target: torch.Tensor,  # [N, T]
+        past_observed_values: torch.Tensor,  # [N, T]
+        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
+        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
+        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
+        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
+        feat_static_real: torch.Tensor,  # [N, D_sr]
+        feat_static_cat: torch.Tensor,  # [N, D_sc]
+    ):
+        past_target, scale = self.scaler(
+            data=past_target, weights=past_observed_values
+        )
+
+        past_covariates = [self.target_proj(past_target.unsqueeze(-1))]
+        future_covariates = []
+        static_covariates = []
+        if self.past_feat_dynamic_proj is not None:
+            past_covariates.append()
+
+        if self.feat_static_proj is not None:
+            projs = self.feat_static_proj(feat_static_real)
+            static_covariates.app
+
     def forward(
         self,
-        past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
-        past_feat_dynamic_real: torch.Tensor,
-        past_feat_dynamic_cat: torch.Tensor,
-        feat_dynamic_real: torch.Tensor,
-        feat_dynamic_cat: torch.Tensor,
-        feat_static_real: torch.Tensor,
-        feat_static_cat: torch.Tensor,
+        past_target: torch.Tensor,  # [N, T]
+        past_observed_values: torch.Tensor,  # [N, T]
+        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
+        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
+        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
+        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
+        feat_static_real: torch.Tensor,  # [N, D_sr]
+        feat_static_cat: torch.Tensor,  # [N, D_sc]
     ) -> torch.Tensor:
         (
             past_covariates,

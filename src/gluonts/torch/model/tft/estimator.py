@@ -54,6 +54,24 @@ from .lightning_module import TemporalFusionTransformerLightningModule
 from .transformation import TFTInstanceSplitter
 
 
+PREDICTION_INPUT_NAMES = [
+    "feat_static_cat",
+    "feat_static_real",
+    "feat_dynamic_cat",
+    "feat_dynamic_real",
+    "past_feat_dynamic_cat",
+    "past_feat_dynamic_real",
+    "past_target",
+    "past_observed_values",
+    "past_is_pad",
+]
+
+TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
+    "future_target",
+    "future_observed_values",
+]
+
+
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     """
     Estimator class to train a Temporal Fusion Transformer model, as described in [SFG17]_.
@@ -95,14 +113,14 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
-        hidden_size: int = 40,
-        num_feat_static_real: int = 0,
-        num_feat_dynamic_real: int = 0,
-        num_past_feat_dynamic_real: int = 0,
-        cardinalities_static: Optional[List[int]] = None,
-        cardinalities_dynamic: Optional[List[int]] = None,
-        cardinalities_past_dynamic: Optional[List[int]] = None,
-        embedding_dimension: Optional[List[int]] = None,
+        hidden_dim: int = 32,
+        variable_dim: int = 32,
+        static_dims: Optional[List[int]] = None,
+        dynamic_dims: Optional[List[int]] = None,
+        past_dynamic_dims: Optional[List[int]] = None,
+        static_cardinalities: Optional[List[int]] = None,
+        dynamic_cardinalities: Optional[List[int]] = None,
+        past_dynamic_cardinalities: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         lr: float = 1e-3,
         dropout_rate: float = 0.1,
@@ -130,14 +148,16 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         # Model architecture
         self.quantiles = quantiles
         self.num_heads = num_heads
-        self.hidden_size = hidden_size
-        self.num_feat_dynamic_real = num_feat_dynamic_real
-        self.num_feat_static_real = num_feat_static_real
-        self.num_past_feat_dynamic_real = num_past_feat_dynamic_real
-        self.cardinalities_static = cardinalities_static
-        self.cardinalities_dynamic = cardinalities_dynamic
-        self.cardinalities_past_dynamic = cardinalities_past_dynamic
-        self.embedding_dimension = embedding_dimension
+        self.hidden_dim = hidden_dim
+        self.variable_dim = variable_dim
+
+        self.static_dims = static_dims
+        self.dynamic_dims = dynamic_dims
+        self.past_dynamic_dims = past_dynamic_dims
+        self.static_cardinalities = static_cardinalities
+        self.dynamic_cardinalities = dynamic_cardinalities
+        self.past_dynamic_cardinalities = past_dynamic_cardinalities
+
         if time_features is None:
             time_features = time_features_from_frequency_str(self.freq)
         self.time_features = time_features
@@ -207,12 +227,30 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
-        module: TemporalFusionTransformerLightningModule,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        # TODO
-        pass
+        transformation = self._create_instance_splitter(
+            "training"
+        ) + SelectFields(TRAINING_INPUT_NAMES)
+        training_instances = transformation.apply(
+            Cyclic(data)
+            if shuffle_buffer_length is None
+            else PseudoShuffled(
+                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
+            )
+        )
+
+        return IterableSlice(
+            iter(
+                DataLoader(
+                    IterableDataset(training_instances),
+                    batch_size=self.batch_size,
+                    **kwargs,
+                )
+            ),
+            self.num_batches_per_epoch,
+        )
 
     def create_lightning_module(
         self,
@@ -232,7 +270,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         module: TemporalFusionTransformerLightningModule,
     ) -> PyTorchPredictor:
         # TODO
-        prediction_splitter = self._create_instance_splitter(module, "test")
+        prediction_splitter = self._create_instance_splitter("test")
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,

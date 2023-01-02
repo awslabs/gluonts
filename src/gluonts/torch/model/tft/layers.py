@@ -20,6 +20,62 @@ class FeatureEmbedder(BaseFeatureEmbedder):
         return features
 
 
+class FeatureProjector(nn.Module):
+    @validated()
+    def __init__(
+        self,
+        feature_dims: List[int],
+        embedding_dims: List[int],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+
+        assert len(feature_dims) > 0, "Expected len(feature_dims) > 1"
+        assert len(feature_dims) == len(
+            embedding_dims
+        ), "Length of `feature_dims` and `embedding_dims` should match"
+        assert all(
+            c > 0 for c in feature_dims
+        ), "Elements of `feature_dims` should be > 0"
+        assert all(
+            d > 0 for d in embedding_dims
+        ), "Elements of `embedding_dims` should be > 0"
+
+        self.feature_dims = feature_dims
+        self._num_features = len(feature_dims)
+
+        self._projectors = nn.ModuleList(
+            [
+                nn.Linear(out_features=d, in_features=c)
+                for c, d in zip(feature_dims, embedding_dims)
+            ]
+        )
+
+    def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
+        """
+
+        Parameters
+        ----------
+        features
+            Numerical features with shape (..., sum(self.feature_dims)).
+
+        Returns
+        -------
+        projected_features
+            List of project features, with shapes
+            [(..., self.embedding_dims[i]) for i in self.embedding_dims]
+        """
+        if self._num_features > 1:
+            feature_slices = torch.split(features, self.feature_dims, dim=-1)
+        else:
+            feature_slices = [features]
+
+        return [
+            proj(feat_slice)
+            for proj, feat_slice in zip(self._projectors, feature_slices)
+        ]
+
+
 class GatedLinearUnit(nn.Module):
     @validated()
     def __init__(self, dim: int = -1, nonlinear: bool = True):
@@ -116,7 +172,7 @@ class VariableSelectionNetwork(nn.Module):
 
         self.weight_network = GatedResidualNetwork(
             d_hidden=self.d_hidden,
-            d_input=self.d_hidden * self.n_vars,
+            d_input=self.d_hidden * self.num_vars,
             d_output=self.num_vars,
             d_static=self.d_hidden if add_static else None,
             dropout=dropout,
