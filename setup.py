@@ -3,19 +3,9 @@ import sys
 from pathlib import Path
 from textwrap import dedent
 
-from setuptools import find_namespace_packages, setup
+from setuptools import setup
 
 ROOT = Path(__file__).parent
-
-
-def read(*names, encoding="utf8"):
-    with (ROOT / Path(*names)).open(encoding=encoding) as fp:
-        return fp.read()
-
-
-def find_requirements(filename):
-    lines = read("requirements", filename).splitlines()
-    return [line.rstrip() for line in lines if not line.startswith("#")]
 
 
 class TypeCheckCommand(distutils.cmd.Command):
@@ -77,6 +67,11 @@ class TypeCheckCommand(distutils.cmd.Command):
             sys.exit(exit_code)
 
 
+def find_requirements(filename):
+    with open(ROOT / "requirements" / filename) as fobj:
+        return [line.rstrip() for line in fobj if not line.startswith("#")]
+
+
 arrow_require = find_requirements("requirements-arrow.txt")
 docs_require = find_requirements("requirements-docs.txt")
 tests_require = find_requirements("requirements-test.txt")
@@ -96,11 +91,6 @@ dev_require = (
 )
 
 setup(
-    package_dir={"": "src"},
-    packages=find_namespace_packages(
-        include=["gluonts*"], where=str(ROOT / "src")
-    ),
-    include_package_data=True,
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
