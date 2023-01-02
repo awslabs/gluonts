@@ -33,3 +33,9 @@ release:
 
 black:
   black --check src test examples
+
+mypy:
+  python setup.py type_check
+
+license:
+  python .devtools/license check src test
