@@ -350,9 +350,6 @@ class DeepNPTSEstimator(Estimator):
             batch_norm=self.batch_norm,
         )
 
-        for parameter in net.parameters():
-            parameter.requires_grad = True
-
         optimizer = torch.optim.Adam(net.parameters(), lr=self.lr)
 
         best_loss = float("inf")
