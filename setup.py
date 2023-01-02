@@ -108,21 +108,6 @@ dev_require = (
 )
 
 setup(
-    name="gluonts",
-    version=version,
-    description="Probabilistic time series modeling in Python.",
-    long_description=read("README.md"),
-    long_description_content_type="text/markdown",
-    url="https://github.com/awslabs/gluonts/",
-    project_urls={
-        "Documentation": "https://ts.gluon.ai/stable/",
-        "Source Code": "https://github.com/awslabs/gluonts/",
-    },
-    author="Amazon",
-    author_email="gluon-ts-dev@amazon.com",
-    maintainer_email="gluon-ts-dev@amazon.com",
-    license="Apache License 2.0",
-    python_requires=">= 3.6",
     package_dir={"": "src"},
     packages=find_namespace_packages(
         include=["gluonts*"], where=str(ROOT / "src")
@@ -144,10 +129,5 @@ setup(
     cmdclass={
         "type_check": TypeCheckCommand,
         **version_cmdclass,
-    },
-    entry_points={
-        "pygments.styles": [
-            "gluonts-dark=gluonts.meta.style:Dark",
-        ]
     },
 )
