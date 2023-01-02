@@ -8,6 +8,16 @@ from setuptools import setup
 ROOT = Path(__file__).parent
 
 
+def get_version_cmdclass(version_file):
+    with open(version_file) as fobj:
+        code = fobj.read()
+
+    globals_ = {"__file__": str(version_file)}
+    exec(code, globals_)
+
+    return globals_["cmdclass"]()
+
+
 class TypeCheckCommand(distutils.cmd.Command):
     """A custom command to run MyPy on the project sources."""
 
@@ -106,5 +116,6 @@ setup(
     },
     cmdclass={
         "type_check": TypeCheckCommand,
+        **get_version_cmdclass("src/gluonts/meta/_version.py"),
     },
 )
