@@ -18,18 +18,6 @@ def find_requirements(filename):
     return [line.rstrip() for line in lines if not line.startswith("#")]
 
 
-def get_version_and_cmdclass(version_file):
-    globals_ = {"__file__": str(version_file)}
-    exec(read(version_file), globals_)
-
-    return globals_["__version__"], globals_["cmdclass"]()
-
-
-version, version_cmdclass = get_version_and_cmdclass(
-    "src/gluonts/meta/_version.py"
-)
-
-
 class TypeCheckCommand(distutils.cmd.Command):
     """A custom command to run MyPy on the project sources."""
 
@@ -128,6 +116,5 @@ setup(
     },
     cmdclass={
         "type_check": TypeCheckCommand,
-        **version_cmdclass,
     },
 )
