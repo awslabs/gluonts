@@ -15,7 +15,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.evaluation import Evaluator, MultivariateEvaluator, aggregate_valid
+from gluonts.evaluation import (
+    Evaluator,
+    MultivariateEvaluator,
+    aggregate_valid,
+)
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -1086,7 +1090,9 @@ def test_aggregate_valid():
     series = [
         pd.Series(
             np.random.normal(24 + 6),
-            index=pd.date_range(start="2022-12-31 00", periods=24+6, freq="H")
+            index=pd.date_range(
+                start="2022-12-31 00", periods=24 + 6, freq="H"
+            ),
         ).to_period()
         for _ in range(num_series)
     ]
@@ -1098,5 +1104,7 @@ def test_aggregate_valid():
         )
         for item_id in range(num_series)
     ]
-    evaluator = Evaluator(aggregation_strategy=aggregate_valid, num_workers=None)
+    evaluator = Evaluator(
+        aggregation_strategy=aggregate_valid, num_workers=None
+    )
     agg_metrics, item_metrics = evaluator(series, forecasts)
