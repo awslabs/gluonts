@@ -12,11 +12,10 @@
 # permissions and limitations under the License.
 
 import random
-from textwrap import dedent
 from typing import Dict, List
 
 from gluonts.core.component import validated
-from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.core.serde import dump_json, load_json
 
 
 class Complex:
@@ -117,32 +116,15 @@ def test_component_ctor():
     }
 
     bar01 = Bar(x_list, input_fields=fields, x_dict=x_dict)
-    bar02 = load_code(dump_code(bar01))
-    bar03 = load_json(dump_json(bar02))
+    bar02 = load_json(dump_json(bar01))
 
-    def compare_tpes(x, y, z, tpe):
-        assert tpe == type(x) == type(y) == type(z)
+    assert all(isinstance(bar.x_list, list) for bar in [bar01, bar02])
+    assert all(isinstance(bar.x_dict, dict) for bar in [bar01, bar02])
+    assert all(isinstance(bar.input_fields, list) for bar in [bar01, bar02])
 
-    def compare_vals(x, y, z):
-        assert x == y == z
-
-    compare_tpes(bar02.x_list, bar02.x_list, bar03.x_list, tpe=list)
-    compare_tpes(bar02.x_dict, bar02.x_dict, bar03.x_dict, tpe=dict)
-    compare_tpes(
-        bar02.input_fields, bar02.input_fields, bar03.input_fields, tpe=list
-    )
-
-    compare_vals(len(bar02.x_list), len(bar02.x_list), len(bar03.x_list))
-    compare_vals(len(bar02.x_dict), len(bar02.x_dict), len(bar03.x_dict))
-    compare_vals(
-        len(bar02.input_fields),
-        len(bar02.input_fields),
-        len(bar03.input_fields),
-    )
-
-    compare_vals(bar02.x_list, bar02.x_list, bar03.x_list)
-    compare_vals(bar02.x_dict, bar02.x_dict, bar03.x_dict)
-    compare_vals(bar02.input_fields, bar02.input_fields, bar03.input_fields)
+    assert bar01.x_list == bar02.x_list
+    assert bar01.x_dict == bar02.x_dict
+    assert bar01.input_fields == bar02.input_fields
 
     baz01 = Baz(a="0", b="9", c=Complex(x="1", y="2"), d="42")
     baz02 = load_json(dump_json(baz01))

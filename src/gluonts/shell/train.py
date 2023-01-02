@@ -17,7 +17,6 @@ from typing import Any, Optional, Type, Union
 
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.serde import dump_code
 from gluonts.dataset.common import Dataset
 from gluonts.evaluation import Evaluator, backtest
 from gluonts.model.estimator import Estimator, IncrementallyTrainable
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def log_metric(metric: str, value: Any) -> None:
-    logger.info(f"gluonts[{metric}]: {dump_code(value)}")
+    logger.info(f"gluonts[{metric}]: {value}")
 
 
 def log_version(forecaster_type):
@@ -58,7 +57,7 @@ def run_train_and_test(
     )
     logger.info(
         "The forecaster can be reconstructed with the following expression: "
-        f"{dump_code(forecaster)}"
+        f"{forecaster}"
     )
 
     if isinstance(forecaster, Predictor):

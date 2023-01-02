@@ -13,6 +13,8 @@
 
 from typing import List
 
+from pydantic import BaseModel
+
 from gluonts.core import serde
 
 
@@ -33,9 +35,46 @@ class Estimator:
             cardinality.set_default([1])
 
 
+class A(BaseModel):
+    pass
+
+
+class B(A):
+    pass
+
+
+@serde.dataclass
+class X:
+    a: A
+
+
 def test_dataclass():
     est = Estimator(prediction_length=7)
 
     assert est.prediction_length == 7
     assert est.context_length == 14
     assert est.cardinality == [1]
+
+
+def test_dataclass_subtype():
+    x = X(a=B())
+
+    assert isinstance(x.a, B)
+
+    x2 = serde.decode(serde.encode(x))
+    assert isinstance(x2.a, B)
+
+
+def test_dataclass_inheritance():
+    @serde.dataclass
+    class A:
+        x: int = 1
+        y: int = 2
+
+    @serde.dataclass
+    class B(A):
+        z: int = 4
+
+    b = B(x=3)
+    assert b.x == 3
+    assert b.z == 4

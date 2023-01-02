@@ -26,10 +26,11 @@ from gluonts.ext.statsforecast import (
     ADIDAPredictor,
     AutoARIMAPredictor,
     AutoCESPredictor,
+    AutoETSPredictor,
+    AutoThetaPredictor,
     CrostonClassicPredictor,
     CrostonOptimizedPredictor,
     CrostonSBAPredictor,
-    ETSPredictor,
     IMAPAPredictor,
     TSBPredictor,
 )
@@ -63,10 +64,19 @@ def test_model_config(
             prediction_length=3, quantile_levels=[0.5, 0.1, 0.9, 0.95]
         ),
         AutoCESPredictor(prediction_length=3, season_length=12),
+        AutoETSPredictor(
+            prediction_length=3,
+            season_length=12,
+            quantile_levels=[0.5, 0.1, 0.9, 0.95],
+        ),
+        AutoThetaPredictor(
+            prediction_length=3,
+            season_length=12,
+            quantile_levels=[0.5, 0.1, 0.9, 0.95],
+        ),
         CrostonClassicPredictor(prediction_length=3),
         CrostonOptimizedPredictor(prediction_length=3),
         CrostonSBAPredictor(prediction_length=3),
-        ETSPredictor(prediction_length=3, season_length=12),
         IMAPAPredictor(prediction_length=3),
         TSBPredictor(prediction_length=3, alpha_d=0.5, alpha_p=0.5),
     ],

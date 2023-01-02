@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 from flaky import flaky
 
-from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.core.serde import dump_json, load_json
 from gluonts.mx.model.tpp.distribution import Loglogistic, Weibull
 
 from gluonts.mx.distribution import (
@@ -34,10 +34,8 @@ from gluonts.mx.distribution import (
     PiecewiseLinear,
     Poisson,
     StudentT,
-    TransformedDistribution,
     Uniform,
     ZeroAndOneInflatedBeta,
-    ZeroInflatedPoissonOutput,
 )
 from gluonts.testutil import empirical_cdf
 

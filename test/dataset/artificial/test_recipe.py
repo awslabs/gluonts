@@ -18,7 +18,7 @@ import pytest
 import gluonts.dataset.artificial.recipe as rcp
 
 from gluonts.core.component import validated
-from gluonts.core.serde import dump_code, load_code
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.artificial import RecipeDataset
 from gluonts.dataset.artificial.recipe import (
     Add,
@@ -92,7 +92,7 @@ def test_call_and_repr(func) -> None:
         **kwargs,
     )
 
-    func_reconstructed = load_code(dump_code(func))
+    func_reconstructed = load_json(dump_json(func))
 
     np.random.seed(0)
     ret2 = func_reconstructed(

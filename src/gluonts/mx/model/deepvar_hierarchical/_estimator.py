@@ -285,7 +285,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         A = constraint_mat(S.astype(self.dtype))
         M = null_space_projection_mat(A)
-        self.M, self.A = mx.nd.array(M), mx.nd.array(A)
+        ctx = self.trainer.ctx
+        self.M, self.A = mx.nd.array(M, ctx=ctx), mx.nd.array(A, ctx=ctx)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight

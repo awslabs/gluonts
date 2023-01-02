@@ -20,10 +20,11 @@ from statsforecast.models import (
     ADIDA,
     AutoARIMA,
     AutoCES,
+    AutoETS,
+    AutoTheta,
     CrostonClassic,
     CrostonOptimized,
     CrostonSBA,
-    ETS,
     IMAPA,
     TSB,
 )
@@ -192,6 +193,30 @@ class AutoCESPredictor(StatsForecastPredictor):
     ModelType = AutoCES
 
 
+class AutoETSPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``AutoETS`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = AutoETS
+
+
+class AutoThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``AutoTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = AutoTheta
+
+
 class CrostonClassicPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``CrostonClassic`` model from `statsforecast`_.
@@ -226,18 +251,6 @@ class CrostonSBAPredictor(StatsForecastPredictor):
     """
 
     ModelType = CrostonSBA
-
-
-class ETSPredictor(StatsForecastPredictor):
-    """
-    A predictor wrapping the ``ETS`` model from `statsforecast`_.
-
-    See :class:`StatsForecastPredictor` for the list of arguments.
-
-    .. _statsforecast: https://github.com/Nixtla/statsforecast
-    """
-
-    ModelType = ETS
 
 
 class IMAPAPredictor(StatsForecastPredictor):

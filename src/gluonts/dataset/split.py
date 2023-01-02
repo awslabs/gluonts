@@ -81,10 +81,33 @@ from gluonts.dataset import Dataset, DataEntry
 from gluonts.dataset.field_names import FieldName
 
 
+def periods_between(
+    start: pd.Period,
+    end: pd.Period,
+) -> int:
+    """
+    Count how many periods fit between ``start`` and ``end``
+    (inclusive). The frequency is taken from ``start``.
+
+    For example:
+
+        >>> start = pd.Period("2021-01-01 00", freq="2H")
+        >>> end = pd.Period("2021-01-01 11", "2H")
+        >>> periods_between(start, end)
+        6
+
+        >>> start = pd.Period("2021-03-03 23:00", freq="30T")
+        >>> end = pd.Period("2021-03-04 03:29", freq="30T")
+        >>> periods_between(start, end)
+        9
+    """
+    return ((end - start).n // start.freq.n) + 1
+
+
 def to_positive_slice(slice_: slice, length: int) -> slice:
     """
-    Return an equivalent slice with positive bounds, given the
-    length of the sequence it will apply to.
+    Return an equivalent slice with positive bounds, given the length of the
+    sequence it will apply to.
     """
     start, stop = slice_.start, slice_.stop
     if start is not None and start < 0:
@@ -98,8 +121,8 @@ def to_positive_slice(slice_: slice, length: int) -> slice:
 
 def to_integer_slice(slice_: slice, start: pd.Period) -> slice:
     """
-    Returns an equivalent slice with integer bounds, given the
-    start timestamp of the sequence it will apply to.
+    Returns an equivalent slice with integer bounds, given the start timestamp
+    of the sequence it will apply to.
     """
     start_is_int = isinstance(slice_.start, (int, type(None)))
     stop_is_int = isinstance(slice_.stop, (int, type(None)))
@@ -277,7 +300,7 @@ class OffsetSplitter(AbstractBaseSplitter):
     offset: int
 
     def training_entry(self, entry: DataEntry) -> DataEntry:
-        return TimeSeriesSlice(entry)[: self.offset]
+        return slice_data_entry(entry, slice(None, self.offset))
 
     def test_pair(
         self, entry: DataEntry, prediction_length: int, offset: int = 0
@@ -286,24 +309,25 @@ class OffsetSplitter(AbstractBaseSplitter):
         if self.offset < 0 and offset_ >= 0:
             offset_ += len(entry)
         if offset_ + prediction_length:
-            return (
-                TimeSeriesSlice(entry, prediction_length)[:offset_],
-                TimeSeriesSlice(entry, prediction_length)[
-                    offset_ : offset_ + prediction_length
-                ],
-            )
+            input_slice = slice(None, offset_)
+            label_slice = slice(offset_, offset_ + prediction_length)
         else:
-            return (
-                TimeSeriesSlice(entry, prediction_length)[:offset_],
-                TimeSeriesSlice(entry, prediction_length)[offset_:],
-            )
+            input_slice = slice(None, offset_)
+            label_slice = slice(offset_, None)
+        return (
+            slice_data_entry(
+                entry, input_slice, prediction_length=prediction_length
+            ),
+            slice_data_entry(
+                entry, label_slice, prediction_length=prediction_length
+            ),
+        )
 
 
 @dataclass
 class DateSplitter(AbstractBaseSplitter):
     """
-    A splitter that slices training and test data based on a
-    ``pandas.Period``.
+    A splitter that slices training and test data based on a ``pandas.Period``.
 
     Training entries obtained from this class will be limited to observations
     up to (including) the given ``date``.
@@ -317,17 +341,22 @@ class DateSplitter(AbstractBaseSplitter):
     date: pd.Period
 
     def training_entry(self, entry: DataEntry) -> DataEntry:
-        return TimeSeriesSlice(entry)[: self.date]
+        length = periods_between(entry["start"], self.date)
+        return slice_data_entry(entry, slice(None, length))
 
     def test_pair(
         self, entry: DataEntry, prediction_length: int, offset: int = 0
     ) -> Tuple[DataEntry, DataEntry]:
-        date = self.date.asfreq(entry[FieldName.START].freq)
+        base = periods_between(entry["start"], self.date)
+        input_slice = slice(None, base + offset)
+        label_slice = slice(base + offset, base + offset + prediction_length)
         return (
-            TimeSeriesSlice(entry, prediction_length)[: date + offset],
-            TimeSeriesSlice(entry, prediction_length)[
-                date + (offset + 1) : date + (prediction_length + offset)
-            ],
+            slice_data_entry(
+                entry, input_slice, prediction_length=prediction_length
+            ),
+            slice_data_entry(
+                entry, label_slice, prediction_length=prediction_length
+            ),
         )
 
 

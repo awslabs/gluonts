@@ -69,9 +69,9 @@ def test_item_id_info(dataset: Dataset, estimator: Estimator):
     predictor = estimator.train(dataset)
     forecasts = predictor.predict(dataset)
     for data_entry, forecast in zip(dataset, forecasts):
-        assert (not "item_id" in data_entry) or data_entry[
+        assert ("item_id" not in data_entry) or data_entry[
             "item_id"
         ] == forecast.item_id
-        assert (not "info" in data_entry) or data_entry[
+        assert ("info" not in data_entry) or data_entry[
             "info"
         ] == forecast.info

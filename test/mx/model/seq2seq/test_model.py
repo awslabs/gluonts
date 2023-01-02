@@ -234,7 +234,7 @@ def test_inference_quantile_prediction(quantiles, inference_quantiles):
             for (i, pred) in enumerate(
                 forecasts[item_id].quantile(inference_quantile)
             )
-        ), f"quantile-crossing occurred"
+        ), "quantile-crossing occurred"
 
 
 @pytest.mark.parametrize("is_iqf", [True, False])
@@ -261,12 +261,6 @@ def test_is_iqf(is_iqf):
     predictor = estimator.train(dataset_train, num_workers=None)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)
-
-
-@pytest.mark.parametrize("is_iqf", [True, False])
-def test_repr(Estimator, repr_test, hyperparameters, is_iqf):
-    hyperparameters.update(is_iqf=is_iqf)
-    repr_test(Estimator, hyperparameters)
 
 
 @pytest.mark.parametrize("is_iqf", [True, False])
