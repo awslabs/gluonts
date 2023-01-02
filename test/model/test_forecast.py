@@ -53,7 +53,7 @@ MULTIVARIATE_FORECASTS = {
 
 
 @pytest.mark.parametrize("name", FORECASTS.keys())
-def test_Forecast(name):
+def test_forecast(name):
     forecast = FORECASTS[name]
 
     def percentile(value):
@@ -73,6 +73,23 @@ def test_Forecast(name):
     assert forecast.index[0] == START_DATE
 
     forecast.plot()
+
+
+def test_mean_only_forecast():
+    forecast = QuantileForecast(
+        forecast_arrays=np.ones(shape=(1, 12)),
+        start_date=pd.Period("2022-03-04 00", freq="H"),
+        forecast_keys=["mean"],
+    )
+
+    assert forecast.prediction_length == 12
+    assert len(forecast.index) == 12
+    assert forecast.index[0] == pd.Period("2022-03-04 00", freq="H")
+
+    for level in [0.1, 0.5, 0.7]:
+        assert np.isnan(forecast.quantile(level)).all()
+
+    assert np.equal(forecast.mean, 1).all()
 
 
 @pytest.mark.parametrize(
