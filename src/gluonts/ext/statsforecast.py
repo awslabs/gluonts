@@ -223,9 +223,6 @@ class CrostonSBAPredictor(StatsForecastPredictor):
     ModelType = CrostonSBA
 
 
-ETSPredictor = AutoETSPredictor  # NOTE: for backward-compatibility
-
-
 class IMAPAPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``IMAPA`` model from `statsforecast`_.
