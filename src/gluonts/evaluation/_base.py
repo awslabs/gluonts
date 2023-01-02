@@ -94,7 +94,9 @@ def aggregate_valid(
     If all metrics in a column of `metric_per_ts` are `nan` or `inf` the result
     will be `np.ma.masked` for that column.
     """
-    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    metric_per_ts = metric_per_ts.select_dtypes(include=[np.number]).apply(
+        np.ma.masked_invalid
+    )
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
         for key, agg in agg_funs.items()
