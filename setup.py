@@ -7,6 +7,22 @@ from setuptools import setup
 
 ROOT = Path(__file__).parent
 
+# Note: In GluonTS we use git tags to manage versions. A new release is created
+# by creating a new tag on GitHub through their release mechanism. Thus,
+# `gluonts.__version__` uses the latest available git tag. If there are
+# additional commits on top of the tagged commit, we extend the version
+# information and append a `.dev0+g{commit_id}` to the version. If there are
+# uncommitted changes, an additional `.dirty` is appended to the version.
+# Since we always rely on the latest available tag, it is important to ensure
+# that the latest tag in the `main` branch is `v0` and not a more specific
+# version like `v0.x`, since the `main` branch should be independent from a
+# more specific version. This means that we can't tag a commit on `main` when
+# doing a new release. If git is not available, we fallback to version
+# `0.0.0`. When doing releases, the version gets frozen, by overwriting
+# `meta/_version.py` with the static version information. For this to work, we
+# need to adapt the `sdist` and `build_py` command classes to also handle
+# freezing of the versions.
+
 
 def get_version_cmdclass(version_file):
     with open(version_file) as fobj:
