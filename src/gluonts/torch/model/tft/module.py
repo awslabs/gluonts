@@ -34,7 +34,7 @@ class TemporalFusionTransformerModel(nn.Module):
         d_var: int = 32,
         dropout_rate: float = 0.1,
         scaling: bool = True,
-    ) -> None:
+    ):
         super().__init__()
 
         self.context_length = context_length
@@ -128,13 +128,13 @@ class TemporalFusionTransformerModel(nn.Module):
             num_vars=self.num_feat_static,
             dropout=self.dropout_rate,
         )
-        self.context_selector = VariableSelectionNetwork(
+        self.ctx_selector = VariableSelectionNetwork(
             d_hidden=self.d_var,
             num_vars=self.num_past_feat_dynamic + self.num_feat_dynamic + 1,
             add_static=True,
             dropout=self.dropout_rate,
         )
-        self.target_selector = VariableSelectionNetwork(
+        self.tgt_selector = VariableSelectionNetwork(
             d_hidden=self.d_var,
             num_vars=self.num_feat_dynamic,
             add_static=True,
@@ -183,25 +183,25 @@ class TemporalFusionTransformerModel(nn.Module):
             "past_feat_dynamic_real": (
                 batch_size,
                 self.context_length,
-                self.num_feat_dynamic_real,
+                sum(self.d_past_feat_dynamic_real),
             ),
             "past_feat_dynamic_cat": (
                 batch_size,
                 self.context_length,
-                self.num_past_feat_dynamic_cat,
+                len(self.c_past_feat_dynamic_cat),
             ),
             "feat_dynamic_real": (
                 batch_size,
                 self.context_length + self.prediction_length,
-                self.num_feat_dynamic_real,
+                sum(self.d_feat_dynamic_real),
             ),
             "feat_dynamic_cat": (
                 batch_size,
                 self.context_length + self.prediction_length,
-                self.num_feat_dynamic_cat,
+                len(self.c_feat_dynamic_cat),
             ),
-            "feat_static_real": (batch_size, self.num_feat_static_real),
-            "feat_static_cat": (batch_size, self.num_feat_static_cat),
+            "feat_static_real": (batch_size, sum(self.d_feat_static_real)),
+            "feat_static_cat": (batch_size, len(self.c_feat_static_cat)),
         }
 
     def input_types(self) -> Dict[str, torch.dtype]:
@@ -226,7 +226,12 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
         feat_static_real: torch.Tensor,  # [N, D_sr]
         feat_static_cat: torch.Tensor,  # [N, D_sc]
-    ):
+    ) -> Tuple[
+        List[torch.Tensor],
+        List[torch.Tensor],
+        List[torch.Tensor],
+        torch.Tensor,
+    ]:
         past_target, scale = self.scaler(
             data=past_target, weights=past_observed_values
         )
@@ -235,11 +240,40 @@ class TemporalFusionTransformerModel(nn.Module):
         future_covariates = []
         static_covariates = []
         if self.past_feat_dynamic_proj is not None:
-            past_covariates.append()
+            projs = self.past_feat_dynamic_proj(past_feat_dynamic_real)
+            past_covariates.extend(projs)
+        if self.past_feat_dynamic_embed is not None:
+            embs = self.past_feat_dynamic_embed(past_feat_dynamic_cat)
+            past_covariates.extend(embs)
+
+        if self.feat_dynamic_proj is not None:
+            projs = self.feat_dynamic_proj(feat_dynamic_real)
+            for proj in projs:
+                ctx_proj = proj[..., : self.context_length, :]
+                tgt_proj = proj[..., self.context_length :, :]
+                past_covariates.append(ctx_proj)
+                future_covariates.append(tgt_proj)
+        if self.feat_dynamic_embed is not None:
+            embs = self.feat_dynamic_embed(feat_dynamic_cat)
+            for emb in embs:
+                ctx_emb = emb[..., : self.context_length, :]
+                tgt_emb = emb[..., self.context_length :, :]
+                past_covariates.append(ctx_emb)
+                future_covariates.append(tgt_emb)
 
         if self.feat_static_proj is not None:
             projs = self.feat_static_proj(feat_static_real)
-            static_covariates.app
+            static_covariates.extend(projs)
+        if self.feat_static_embed is not None:
+            embs = self.feat_static_embed(feat_static_cat)
+            static_covariates.extend(embs)
+
+        return (
+            past_covariates,
+            future_covariates,
+            static_covariates,
+            scale,
+        )
 
     def forward(
         self,
@@ -253,11 +287,10 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_static_cat: torch.Tensor,  # [N, D_sc]
     ) -> torch.Tensor:
         (
-            past_covariates,
-            future_covariates,
-            static_covariates,
-            offset,
-            scale,
+            past_covariates,  # [[N, T, d_var], ...]
+            future_covariates,  # [[N, H, d_var], ...]
+            static_covariates,  # [[N, d_var], ...]
+            scale,  # [N, 1]
         ) = self._preprocess(
             past_target,
             past_observed_values,
@@ -269,21 +302,28 @@ class TemporalFusionTransformerModel(nn.Module):
             feat_static_cat,
         )
 
-        static_var, _ = self.static_selector(static_covariates)
-        c_selection = self.selection(static_var).expand_dims(axis=1)
-        c_enrichment = self.enrichment(static_var).expand_dims(axis=1)
-        c_h = self.state_h(static_var)
-        c_c = self.state_c(static_var)
+        static_var, _ = self.static_selector(static_covariates)  # [N, d_var]
+        c_selection = self.selection(static_var).unsqueeze(1)  # [N, 1, d_var]
+        c_enrichment = self.enrichment(static_var).unsqueeze(1)
+        c_h = self.state_h(static_var)  # [N, self.d_hidden]
+        c_c = self.state_c(static_var)  # [N, self.d_hidden]
+        states = [c_h.unsqueeze(0), c_c.unsqueeze(0)]
 
-        ctx_input, _ = self.ctx_selector(past_covariates, c_selection)
-        tgt_input, _ = self.tgt_selector(future_covariates, c_selection)
+        ctx_input, _ = self.ctx_selector(
+            past_covariates, c_selection
+        )  # [N, T, d_var]
+        tgt_input, _ = self.tgt_selector(
+            future_covariates, c_selection
+        )  # [N, H, d_var]
 
-        encoding = self.temporal_encoder(ctx_input, tgt_input, [c_h, c_c])
+        encoding = self.temporal_encoder(
+            ctx_input, tgt_input, states
+        )  # [N, T + H, d_hidden]
         decoding = self.temporal_decoder(
             encoding, c_enrichment, past_observed_values
-        )
+        )  # [N, H, d_hidden]
         preds = self.output_proj(decoding)
-        return self._postprocess(preds, offset, scale)
+        return preds * scale.unsqueeze(-1)
 
     def loss(
         self,
@@ -298,6 +338,15 @@ class TemporalFusionTransformerModel(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
     ):
-        preds = self.forward()  # [N, T, Q]
+        preds = self.forward(
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_feat_dynamic_real=past_feat_dynamic_real,
+            past_feat_dynamic_cat=past_feat_dynamic_cat,
+            feat_dynamic_real=feat_dynamic_real,
+            feat_dynamic_cat=feat_dynamic_cat,
+            feat_static_real=feat_static_real,
+            feat_static_cat=feat_static_cat,
+        )  # [N, T, Q]
         loss = self.quantile_loss(future_target, preds)  # [N, T]
         return masked_average(loss, future_observed_values)  # [N]

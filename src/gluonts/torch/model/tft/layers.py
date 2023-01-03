@@ -10,7 +10,7 @@ from gluonts.torch.modules.feature import (
 
 class FeatureEmbedder(BaseFeatureEmbedder):
     def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
-        concat_features = super(FeatureEmbedder, self)(features=features)
+        concat_features = super().forward(features=features)
 
         if self._num_features > 1:
             features = torch.chunk(concat_features, self._num_features, dim=-1)
@@ -196,7 +196,7 @@ class VariableSelectionNetwork(nn.Module):
         weight = torch.softmax(weight.unsqueeze(-2), dim=-1)
 
         var_encodings = [
-            net(var) for var, net in zip(variables, self.variable_network)
+            net(var) for var, net in zip(variables, self.variable_networks)
         ]
         var_encodings = torch.stack(var_encodings, dim=-1)
 
@@ -327,23 +327,23 @@ class TemporalFusionDecoder(nn.Module):
         mask: Optional[torch.Tensor] = None,
         causal: bool = True,
     ) -> torch.Tensor:
-        expanded_static = static.expand_as(x)
-        # static.repeat((1, self.context_length + self.prediction_length, 1))
+        expanded_static = static.repeat(
+            (1, self.context_length + self.prediction_length, 1)
+        )
 
         skip = x[:, self.context_length :, ...]
         x = self.enrich(x, expanded_static)
 
-        # does not work on GPU :-(
-        # mask_pad = torch.ones_like(mask)[:, 0:1, ...]
-        # mask_pad = mask_pad.repeat((1, self.prediction_length))
-        # key_padding_mask = torch.cat((mask, mask_pad), dim=1).bool()
+        mask_pad = torch.ones_like(mask)[:, 0:1, ...]
+        mask_pad = mask_pad.repeat((1, self.prediction_length))
+        key_padding_mask = torch.cat((mask, mask_pad), dim=1).bool()
 
         query_key_value = x
         attn_output, _ = self.attention(
             query=query_key_value[:, self.context_length :, ...],
             key=query_key_value,
             value=query_key_value,
-            # key_padding_mask=key_padding_mask,
+            key_padding_mask=key_padding_mask,
             attn_mask=self.attn_mask if causal else None,
         )
         att = self.att_net(attn_output)

@@ -72,6 +72,13 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 ]
 
 
+def _default_feat_args(dims_or_cardinalities: List[int]):
+    if dims_or_cardinalities:
+        return dims_or_cardinalities
+    else:
+        return [1]
+
+
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     """
     Estimator class to train a Temporal Fusion Transformer model, as described in [SFG17]_.
@@ -256,7 +263,26 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         self,
     ) -> TemporalFusionTransformerLightningModule:
         model = TemporalFusionTransformerModel(
-            freq=self.freq,
+            context_length=self.context_length,
+            prediction_length=self.prediction_length,
+            d_var=self.variable_dim,
+            d_hidden=self.hidden_dim,
+            num_heads=self.num_heads,
+            quantiles=self.quantiles,
+            d_past_feat_dynamic_real=_default_feat_args(
+                self.past_dynamic_dims
+            ),
+            c_past_feat_dynamic_cat=_default_feat_args(
+                self.past_dynamic_cardinalities
+            ),
+            d_feat_dynamic_real=_default_feat_args(
+                [1] * len(self.time_features) + self.dynamic_dims
+            ),
+            c_feat_dynamic_cat=_default_feat_args(self.dynamic_cardinalities),
+            d_feat_static_real=_default_feat_args(self.static_dims),
+            c_feat_static_cat=_default_feat_args(self.static_cardinalities),
+            dropout_rate=self.dropout_rate,
+            scaling=self.scaling,
         )
         return TemporalFusionTransformerLightningModule(
             model=model,
