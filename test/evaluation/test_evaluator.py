@@ -15,7 +15,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.evaluation import Evaluator, MultivariateEvaluator
+from gluonts.evaluation import (
+    Evaluator,
+    MultivariateEvaluator,
+    aggregate_valid,
+)
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -1097,3 +1101,28 @@ def test_metrics_multivariate_custom_eval_fn(
                 "Scores for the metric {} do not match: \nexpected: {} "
                 "\nobtained: {}".format(metric, res[metric], score)
             )
+
+
+def test_aggregate_valid():
+    num_series = 3
+    series = [
+        pd.Series(
+            np.random.normal(24 + 6),
+            index=pd.date_range(
+                start="2022-12-31 00", periods=24 + 6, freq="H"
+            ),
+        ).to_period()
+        for _ in range(num_series)
+    ]
+    forecasts = [
+        SampleForecast(
+            samples=np.random.normal(size=(10, 6)),
+            start_date=pd.Period("2023-01-01 00", freq="H"),
+            item_id=str(item_id),
+        )
+        for item_id in range(num_series)
+    ]
+    evaluator = Evaluator(
+        aggregation_strategy=aggregate_valid, num_workers=None
+    )
+    agg_metrics, item_metrics = evaluator(series, forecasts)

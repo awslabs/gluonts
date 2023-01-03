@@ -17,6 +17,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: extractions/setup-just@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
