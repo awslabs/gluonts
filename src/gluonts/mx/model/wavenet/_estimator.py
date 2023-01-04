@@ -12,14 +12,15 @@
 # permissions and limitations under the License.
 
 import logging
+from dataclasses import field
 from functools import partial
-from typing import List, Optional
+from typing import List, Type
 
 import mxnet as mx
 import numpy as np
 
 from gluonts import transform
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -56,7 +57,10 @@ from gluonts.transform import (
 
 from ._network import WaveNet, WaveNetSampler, WaveNetTraining
 
+logger = logging.getLogger(__name__)
 
+
+@serde.dataclass
 class QuantizeScaled(SimpleTransformation):
     """
     Rescale and quantize the target variable.
@@ -71,18 +75,10 @@ class QuantizeScaled(SimpleTransformation):
     The calculated scale is included as a new field "scale"
     """
 
-    @validated()
-    def __init__(
-        self,
-        bin_edges: List[float],
-        past_target: str,
-        future_target: str,
-        scale: str = "scale",
-    ):
-        self.bin_edges = np.array(bin_edges)
-        self.future_target = future_target
-        self.past_target = past_target
-        self.scale = scale
+    bin_edges: List[float]
+    past_target: str
+    future_target: str
+    scale: str = "scale"
 
     def transform(self, data: DataEntry) -> DataEntry:
         p = data[self.past_target]
@@ -98,6 +94,7 @@ class QuantizeScaled(SimpleTransformation):
         return data
 
 
+@serde.dataclass
 class WaveNetEstimator(GluonEstimator):
     """
     Model with Wavenet architecture and quantized target.
@@ -149,69 +146,75 @@ class WaveNetEstimator(GluonEstimator):
         The size of the batches to be used training and prediction.
     """
 
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        prediction_length: int,
-        trainer: Trainer = Trainer(
+    freq: str
+    prediction_length: int
+    lead_time: int = field(default=0, init=False)
+    dtype: Type = np.float32
+    trainer: Trainer = (
+        Trainer(
             learning_rate=0.01,
             epochs=200,
             num_batches_per_epoch=50,
             hybridize=False,
         ),
-        cardinality: List[int] = [1],
-        seasonality: Optional[int] = None,
-        embedding_dimension: int = 5,
-        num_bins: int = 1024,
-        hybridize_prediction_net: bool = False,
-        n_residue=24,
-        n_skip=32,
-        dilation_depth: Optional[int] = None,
-        n_stacks: int = 1,
-        train_window_length: Optional[int] = None,
-        temperature: float = 1.0,
-        act_type: str = "elu",
-        num_parallel_samples: int = 200,
-        train_sampler: Optional[InstanceSampler] = None,
-        validation_sampler: Optional[InstanceSampler] = None,
-        batch_size: int = 32,
-        negative_data: bool = False,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
-
-        self.freq = freq
-        self.prediction_length = prediction_length
-        self.cardinality = cardinality
-        self.embedding_dimension = embedding_dimension
-        self.num_bins = num_bins
-        self.hybridize_prediction_net = hybridize_prediction_net
-
-        self.n_residue = n_residue
-        self.n_skip = n_skip
-        self.n_stacks = n_stacks
-        self.train_window_length = (
-            train_window_length
-            if train_window_length is not None
-            else prediction_length
+    )
+    cardinality: List[int] = field(default_factory=lambda: [1])
+    seasonality: int = serde.OrElse(
+        lambda freq: get_seasonality(
+            freq,
+            {
+                "H": 7 * 24,
+                "D": 7,
+                "W": 52,
+                "M": 12,
+                "B": 7 * 5,
+                "min": 24 * 60,
+            },
         )
-        self.temperature = temperature
-        self.act_type = act_type
-        self.num_parallel_samples = num_parallel_samples
-        self.train_sampler = (
-            train_sampler
-            if train_sampler is not None
-            else ExpectedNumInstanceSampler(
-                num_instances=1.0, min_future=self.train_window_length
-            )
+    )
+    embedding_dimension: int = 5
+    num_bins: int = 1024
+    hybridize_prediction_net: bool = False
+    n_residue: int = 24
+    n_skip: int = 32
+    dilation_depth: int = serde.EVENTUAL
+    n_stacks: int = 1
+    train_window_length: int = serde.OrElse(
+        lambda prediction_length: prediction_length
+    )
+    temperature: float = 1.0
+    act_type: str = "elu"
+    num_parallel_samples: int = 200
+    batch_size: int = 32
+    negative_data: bool = False
+    train_sampler: InstanceSampler = serde.OrElse(
+        lambda train_window_length: ExpectedNumInstanceSampler(
+            num_instances=1.0, min_future=train_window_length
         )
-        self.validation_sampler = (
-            validation_sampler
-            if validation_sampler is not None
-            else ValidationSplitSampler(min_future=self.train_window_length)
+    )
+    validation_sampler: InstanceSampler = serde.OrElse(
+        lambda train_window_length: ValidationSplitSampler(
+            min_future=train_window_length
         )
-        self.negative_data = negative_data
+    )
 
+    def __eventually__(self, dilation_depth):
+        goal_receptive_length = max(
+            2 * self.seasonality, 2 * self.prediction_length
+        )
+
+        if dilation_depth.value is serde.EVENTUAL:
+            d = 1
+            while (
+                WaveNet.get_receptive_field(
+                    dilation_depth=d, n_stacks=self.n_stacks
+                )
+                < goal_receptive_length
+            ):
+                d += 1
+            dilation_depth.set(d)
+
+    def __post_init__(self):
         low = -10.0 if self.negative_data else 0
         high = 10.0
         bin_centers = np.linspace(low, high, self.num_bins)
@@ -221,42 +224,10 @@ class WaveNetEstimator(GluonEstimator):
         self.bin_centers = bin_centers.tolist()
         self.bin_edges = bin_edges.tolist()
 
-        seasonality = (
-            get_seasonality(
-                self.freq,
-                {
-                    "H": 7 * 24,
-                    "D": 7,
-                    "W": 52,
-                    "M": 12,
-                    "B": 7 * 5,
-                    "min": 24 * 60,
-                },
-            )
-            if seasonality is None
-            else seasonality
-        )
-
-        goal_receptive_length = max(
-            2 * seasonality, 2 * self.prediction_length
-        )
-        if dilation_depth is None:
-            d = 1
-            while (
-                WaveNet.get_receptive_field(
-                    dilation_depth=d, n_stacks=n_stacks
-                )
-                < goal_receptive_length
-            ):
-                d += 1
-            self.dilation_depth = d
-        else:
-            self.dilation_depth = dilation_depth
         self.context_length = WaveNet.get_receptive_field(
-            dilation_depth=self.dilation_depth, n_stacks=n_stacks
+            dilation_depth=self.dilation_depth, n_stacks=self.n_stacks
         )
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(
+        logger.info(
             "Using dilation depth %d and receptive field length %d",
             self.dilation_depth,
             self.context_length,
