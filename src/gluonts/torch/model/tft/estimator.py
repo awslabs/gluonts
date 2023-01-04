@@ -74,7 +74,7 @@ def _default_feat_args(dims_or_cardinalities: List[int]):
 
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     """
-    Estimator class to train a Temporal Fusion Transformer model, as described in [SFG17]_.
+    Estimator class to train a Temporal Fusion Transformer model, as described in [LAL+21]_.
 
     Parameters
     ----------
@@ -83,7 +83,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     prediction_length
         Length of the prediction horizon.
     context_length
-        Number of steps to unroll the RNN for before computing predictions
+        Number of previous time series values provided as input to the encoder.
         (default: None, in which case context_length = prediction_length).
     quantiles
         List of quantiles that the model will learn to predict.
@@ -91,9 +91,9 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     num_heads
         Number of attention heads in self-attention layer in the decoder.
     hidden_dim
-        Size of the LSTM & transformer hidden states
+        Size of the LSTM & transformer hidden states.
     variable_dim
-        Size of the feature embeddings
+        Size of the feature embeddings.
     static_dims
         Sizes of the real-valued static features.
     dynamic_dims
