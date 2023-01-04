@@ -18,6 +18,11 @@ from .layers import (
 
 
 class TemporalFusionTransformerModel(nn.Module):
+    """Temporal Fusion Transformer neural network.
+
+    Partially based on the implementation in github.com/kashif/pytorch-transformer-ts.
+    """
+
     @validated()
     def __init__(
         self,
