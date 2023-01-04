@@ -25,7 +25,6 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.transform import Transformation
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
 
 
 class TrainOutput(NamedTuple):
