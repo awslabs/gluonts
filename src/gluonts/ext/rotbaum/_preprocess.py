@@ -21,6 +21,8 @@ import numpy as np
 
 from gluonts.core.component import validated
 
+logger = logging.getLogger(__name__)
+
 
 class CardinalityLabel(str, Enum):
     auto = "auto"
