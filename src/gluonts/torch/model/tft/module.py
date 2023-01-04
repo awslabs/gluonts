@@ -1,21 +1,19 @@
+from typing import Dict, List, Optional, Tuple
+
 import torch
 import torch.nn as nn
-
-from typing import List, Optional, Dict, Tuple
 from gluonts.core.component import validated
-from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
 from gluonts.torch.modules.quantile_output import QuantileOutput
+from gluonts.torch.modules.scaler import StdScaler
 from gluonts.torch.util import weighted_average
-
 
 from .layers import (
     FeatureEmbedder,
     FeatureProjector,
-    VariableSelectionNetwork,
     GatedResidualNetwork,
-    StdScaler,
     TemporalFusionDecoder,
     TemporalFusionEncoder,
+    VariableSelectionNetwork,
 )
 
 

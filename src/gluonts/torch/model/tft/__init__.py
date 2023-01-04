@@ -11,9 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .module import TemporalFusionTransformerModel
-from .lightning_module import TemporalFusionTransformerLightningModule
 from .estimator import TemporalFusionTransformerEstimator
+from .lightning_module import TemporalFusionTransformerLightningModule
+from .module import TemporalFusionTransformerModel
 
 __all__ = [
     "TemporalFusionTransformerModel",

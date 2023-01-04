@@ -11,48 +11,41 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Iterable, Dict, Any
+from typing import Any, Dict, Iterable, List, Optional
 
 import torch
-from torch.utils.data import DataLoader
-
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
-from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
-)
+from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled
 from gluonts.model.forecast_generator import QuantileForecastGenerator
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-from gluonts.transform import (
-    Transformation,
-    Chain,
-    RemoveFields,
-    SetField,
-    AsNumpyArray,
-    AddObservedValuesIndicator,
-    AddTimeFeatures,
-    AddAgeFeature,
-    VstackFeatures,
-    InstanceSplitter,
-    ValidationSplitSampler,
-    TestSplitSampler,
-    ExpectedNumInstanceSampler,
-    SelectFields,
-)
-from gluonts.torch.util import (
-    IterableDataset,
-)
+from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+from gluonts.torch.util import IterableDataset
+from gluonts.transform import (
+    AddAgeFeature,
+    AddObservedValuesIndicator,
+    AddTimeFeatures,
+    AsNumpyArray,
+    Chain,
+    ExpectedNumInstanceSampler,
+    InstanceSplitter,
+    RemoveFields,
+    SelectFields,
+    SetField,
+    TestSplitSampler,
+    Transformation,
+    ValidationSplitSampler,
+    VstackFeatures,
+)
 from gluonts.transform.sampler import InstanceSampler
+from torch.utils.data import DataLoader
 
-from .module import TemporalFusionTransformerModel
 from .lightning_module import TemporalFusionTransformerLightningModule
+from .module import TemporalFusionTransformerModel
 from .transformation import TFTInstanceSplitter
-
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",

@@ -123,3 +123,52 @@ class NOPScaler(nn.Module):
             keepdim=self.keepdim,
         )
         return data, scale
+
+
+class StdScaler(nn.Module):
+    """
+    Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
+
+    Parameters
+    ----------
+    dim
+        dimension along which to compute the scale
+    keepdim
+        controls whether to retain dimension ``dim`` (of length 1) in the
+        scale tensor, or suppress it.
+    minimum_scale
+        default scale that is used for elements that are constantly zero
+        along dimension ``dim``.
+    """
+
+    @validated()
+    def __init__(
+        self, dim: int, keepdim: bool = False, minimum_scale: float = 1e-5
+    ):
+        super().__init__()
+        assert dim > 0, (
+            "Cannot compute scale along dim = 0 (batch dimension), please"
+            " provide dim > 0"
+        )
+        self.dim = dim
+        self.keepdim = keepdim
+        self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
+
+    def forward(
+        self, data: torch.Tensor, weights: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        assert (
+            data.shape == weights.shape
+        ), "data and weights must have same shape"
+        with torch.no_grad():
+            denominator = weights.sum(self.dim, keepdim=self.keepdim)
+            denominator = denominator.clamp_min(1.0)
+            loc = (data * weights).sum(
+                self.dim, keepdim=self.keepdim
+            ) / denominator
+
+            variance = (((data - loc) * weights) ** 2).sum(
+                self.dim, keepdim=self.keepdim
+            ) / denominator
+            scale = torch.sqrt(variance + self.minimum_scale)
+            return (data - loc) / scale, loc, scale
