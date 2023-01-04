@@ -4,6 +4,8 @@ import torch.nn as nn
 from typing import List, Optional, Dict, Tuple
 from gluonts.core.component import validated
 from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
+from gluonts.torch.modules.quantile_output import QuantileOutput
+from gluonts.torch.util import weighted_average
 
 
 from .layers import (
@@ -170,11 +172,8 @@ class TemporalFusionTransformerModel(nn.Module):
             num_heads=self.num_heads,
             dropout=self.dropout_rate,
         )
-        # self.output = IncrementalQuantileOutput(quantiles=self.quantiles)
-        # self.output_proj = self.output.get_quantile_proj()
-        self.output_proj = nn.Linear(
-            in_features=self.d_hidden, out_features=len(self.quantiles)
-        )
+        self.output = QuantileOutput(quantiles=self.quantiles)
+        self.output_proj = self.output.get_args_proj(in_features=self.d_hidden)
 
     def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
         return {
@@ -337,7 +336,7 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_static_cat: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-    ):
+    ) -> torch.Tensor:
         preds = self.forward(
             past_target=past_target,
             past_observed_values=past_observed_values,
@@ -348,5 +347,8 @@ class TemporalFusionTransformerModel(nn.Module):
             feat_static_real=feat_static_real,
             feat_static_cat=feat_static_cat,
         )  # [N, T, Q]
-        loss = self.quantile_loss(future_target, preds)  # [N, T]
-        return masked_average(loss, future_observed_values)  # [N]
+        loss = self.output.quantile_loss(
+            y_true=future_target, y_pred=preds
+        )  # [N, T]
+        loss = weighted_average(loss, future_observed_values)  # [N]
+        return loss.mean()

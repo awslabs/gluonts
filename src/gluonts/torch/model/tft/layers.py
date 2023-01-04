@@ -299,33 +299,11 @@ class TemporalFusionDecoder(nn.Module):
         )
         self.ff_lnorm = nn.LayerNorm(d_hidden)
 
-        self.register_buffer(
-            "attn_mask",
-            self._generate_subsequent_mask(
-                prediction_length, prediction_length + context_length
-            ),
-        )
-
-    @staticmethod
-    def _generate_subsequent_mask(
-        target_length: int, source_length: int
-    ) -> torch.Tensor:
-        mask = (
-            torch.triu(torch.ones(source_length, target_length)) == 1
-        ).transpose(0, 1)
-        mask = (
-            mask.float()
-            .masked_fill(mask == 0, float("-inf"))
-            .masked_fill(mask == 1, float(0.0))
-        )
-        return mask
-
     def forward(
         self,
         x: torch.Tensor,
         static: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
-        causal: bool = True,
     ) -> torch.Tensor:
         expanded_static = static.repeat(
             (1, self.context_length + self.prediction_length, 1)
@@ -336,7 +314,7 @@ class TemporalFusionDecoder(nn.Module):
 
         mask_pad = torch.ones_like(mask)[:, 0:1, ...]
         mask_pad = mask_pad.repeat((1, self.prediction_length))
-        key_padding_mask = torch.cat((mask, mask_pad), dim=1).bool()
+        key_padding_mask = (1.0 - torch.cat((mask, mask_pad), dim=1)).bool()
 
         query_key_value = x
         attn_output, _ = self.attention(
@@ -344,7 +322,6 @@ class TemporalFusionDecoder(nn.Module):
             key=query_key_value,
             value=query_key_value,
             key_padding_mask=key_padding_mask,
-            attn_mask=self.attn_mask if causal else None,
         )
         att = self.att_net(attn_output)
 
