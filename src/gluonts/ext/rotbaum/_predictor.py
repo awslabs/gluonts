@@ -15,6 +15,7 @@ import concurrent.futures
 import logging
 from itertools import chain
 from typing import Iterator, List, Optional
+from toolz import first
 
 import numpy as np
 import pandas as pd
