@@ -275,12 +275,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         past_target: torch.Tensor,  # [N, T]
         past_observed_values: torch.Tensor,  # [N, T]
-        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
-        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
-        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
-        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
-        feat_static_real: torch.Tensor,  # [N, D_sr]
-        feat_static_cat: torch.Tensor,  # [N, D_sc]
+        past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
+        past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
+        feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T + H, D_dr]
+        feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
+        feat_static_real: Optional[torch.Tensor] = None,  # [N, D_sr]
+        feat_static_cat: Optional[torch.Tensor] = None,  # [N, D_sc]
     ) -> torch.Tensor:
         (
             past_covariates,  # [[N, T, d_var], ...]
@@ -326,14 +326,14 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
-        past_feat_dynamic_real: torch.Tensor,
-        past_feat_dynamic_cat: torch.Tensor,
-        feat_dynamic_real: torch.Tensor,
-        feat_dynamic_cat: torch.Tensor,
-        feat_static_real: torch.Tensor,
-        feat_static_cat: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
+        past_feat_dynamic_real: Optional[torch.Tensor] = None,
+        past_feat_dynamic_cat: Optional[torch.Tensor] = None,
+        feat_dynamic_real: Optional[torch.Tensor] = None,
+        feat_dynamic_cat: Optional[torch.Tensor] = None,
+        feat_static_real: Optional[torch.Tensor] = None,
+        feat_static_cat: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         preds = self.forward(
             past_target=past_target,
