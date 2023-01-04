@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-import torch.nn as nn
+from gluonts.core.component import validated
 from gluonts.itertools import select
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -27,6 +27,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         Patience parameter for learning rate scheduler, default: ``10``.
     """
 
+    @validated()
     def __init__(
         self,
         model: TemporalFusionTransformerModel,
@@ -35,7 +36,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         weight_decay: float = 0.0,
     ):
         super().__init__()
-        self.save_hyperparameters(ignore=["model"])
+        self.save_hyperparameters()
         self.model = model
         self.lr = lr
         self.patience = patience

@@ -320,7 +320,8 @@ class TemporalFusionTransformerModel(nn.Module):
             encoding, c_enrichment, past_observed_values
         )  # [N, H, d_hidden]
         preds = self.output_proj(decoding)
-        return preds * scale.unsqueeze(-1) + loc.unsqueeze(-1)
+        output = preds * scale.unsqueeze(-1) + loc.unsqueeze(-1)
+        return output.transpose(1, 2)  # [N, Q, H]
 
     def loss(
         self,
@@ -344,9 +345,9 @@ class TemporalFusionTransformerModel(nn.Module):
             feat_dynamic_cat=feat_dynamic_cat,
             feat_static_real=feat_static_real,
             feat_static_cat=feat_static_cat,
-        )  # [N, T, Q]
+        )  # [N, Q, T]
         loss = self.output.quantile_loss(
-            y_true=future_target, y_pred=preds
+            y_true=future_target, y_pred=preds.transpose(1, 2)
         )  # [N, T]
         loss = weighted_average(loss, future_observed_values)  # [N]
         return loss.mean()

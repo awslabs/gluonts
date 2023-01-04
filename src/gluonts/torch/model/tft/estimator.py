@@ -48,28 +48,20 @@ from .module import TemporalFusionTransformerModel
 from .transformation import TFTInstanceSplitter
 
 PREDICTION_INPUT_NAMES = [
-    "feat_static_cat",
-    "feat_static_real",
-    "feat_dynamic_cat",
-    "feat_dynamic_real",
-    "past_feat_dynamic_cat",
-    "past_feat_dynamic_real",
     "past_target",
     "past_observed_values",
-    "past_is_pad",
+    "past_feat_dynamic_real",
+    "past_feat_dynamic_cat",
+    "feat_dynamic_real",
+    "feat_dynamic_cat",
+    "feat_static_real",
+    "feat_static_cat",
 ]
 
 TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
     "future_target",
     "future_observed_values",
 ]
-
-
-def _default_feat_args(dims_or_cardinalities: List[int]):
-    if dims_or_cardinalities:
-        return dims_or_cardinalities
-    else:
-        return [1]
 
 
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
