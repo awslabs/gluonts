@@ -11,14 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Type
+from typing import NamedTuple, Optional
 
-import numpy as np
+from gluonts.core.component import from_hyperparameters
 
-from gluonts.core.component import (
-    GluonTSHyperparametersError,
-    from_hyperparameters,
-)
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.env import env
@@ -49,19 +45,8 @@ class GluonEstimator(Estimator):
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-
-            if Model:
-                return cls(
-                    **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-                )
-            else:
-                return cls(**{**hyperparameters, "trainer": trainer})
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
+        trainer = from_hyperparameters(Trainer, **hyperparameters)
+        return cls(**{**hyperparameters, "trainer": trainer})
 
     def create_transformation(self) -> Transformation:
         """

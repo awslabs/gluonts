@@ -200,7 +200,6 @@ class CanonicalRNNEstimator(CanonicalEstimator):
 @serde.dataclass
 class MLPForecasterEstimator(CanonicalEstimator):
     hidden_dim_sequence: List[int] = field(default_factory=lambda: [50])
-    is_sequential: bool = field(default=False, init=False)
 
     def __post_init__(self, embedding_dimension):
         self.is_sequential = False
