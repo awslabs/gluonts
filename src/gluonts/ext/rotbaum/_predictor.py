@@ -29,6 +29,7 @@ from gluonts.model.predictor import RepresentablePredictor
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
+from ._types import FeatureImportanceResult, ExplanationResult
 
 logger = logging.getLogger(__name__)
 
