@@ -18,7 +18,6 @@ import numpy as np
 from gluonts.core.component import (
     GluonTSHyperparametersError,
     from_hyperparameters,
-    validated,
 )
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
@@ -47,23 +46,6 @@ class GluonEstimator(Estimator):
     `create_transformation`, `create_training_network`, `create_predictor`,
     `create_training_data_loader`, and `create_validation_data_loader`.
     """
-
-    @validated()
-    def __init__(
-        self,
-        *,
-        trainer: Trainer,
-        batch_size: int = 32,
-        lead_time: int = 0,
-        dtype: Type = np.float32,
-    ) -> None:
-        super().__init__(lead_time=lead_time)
-
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
-
-        self.batch_size = batch_size
-        self.trainer = trainer
-        self.dtype = dtype
 
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":

@@ -11,12 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from dataclasses import field, InitVar
 from functools import partial
-from typing import List
+from typing import List, Type
 
+import numpy as np
 from mxnet.gluon import HybridBlock, nn
+from pydantic import Field
 
-from gluonts.core.component import validated
+from gluonts.core import serde
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import (
@@ -48,34 +51,28 @@ from gluonts.transform import (
 from ._network import CanonicalPredictionNetwork, CanonicalTrainingNetwork
 
 
+@serde.dataclass
 class CanonicalEstimator(GluonEstimator):
-    @validated()
-    def __init__(
-        self,
-        model: HybridBlock,
-        is_sequential: bool,
-        freq: str,
-        context_length: int,
-        prediction_length: int,
-        trainer: Trainer = Trainer(),
-        num_parallel_samples: int = 100,
-        cardinality: List[int] = list([1]),
-        embedding_dimension: int = 10,
-        distr_output: DistributionOutput = StudentTOutput(),
-        batch_size: int = 32,
-    ) -> None:
-        super().__init__(trainer=trainer, batch_size=batch_size)
+    model: HybridBlock = field(init=False)
+    is_sequential: bool = field(init=False)
+    freq: str
+    context_length: int
+    prediction_length: int
+    lead_time: int = field(default=0, init=False)
+    trainer: Trainer = Trainer()
+    num_parallel_samples: int = 100
+    cardinality: List[int] = field(default_factory=lambda: [1])
+    embedding_dimension: InitVar[int] = 10
+    distr_output: DistributionOutput = StudentTOutput()
+    batch_size: int = Field(32, ge=1)
+    dtype: Type = np.float32
 
-        # TODO: error checking
-        self.freq = freq
-        self.context_length = context_length
-        self.prediction_length = prediction_length
-        self.distr_output = distr_output
-        self.num_parallel_samples = num_parallel_samples
-        self.cardinality = cardinality
-        self.embedding_dimensions = [embedding_dimension for _ in cardinality]
-        self.model = model
-        self.is_sequential = is_sequential
+    embedding_dimensions: List[int] = field(init=False)
+
+    def __post_init__(self, embedding_dimension) -> None:
+        self.embedding_dimensions = [embedding_dimension] * len(
+            self.cardinality
+        )
 
     def create_transformation(self) -> Transformation:
         return (
@@ -183,58 +180,36 @@ class CanonicalEstimator(GluonEstimator):
         )
 
 
+@serde.dataclass
 class CanonicalRNNEstimator(CanonicalEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        context_length: int,
-        prediction_length: int,
-        trainer: Trainer = Trainer(),
-        num_layers: int = 1,
-        num_cells: int = 50,
-        cell_type: str = "lstm",
-        num_parallel_samples: int = 100,
-        cardinality: List[int] = list([1]),
-        embedding_dimension: int = 10,
-        distr_output: DistributionOutput = StudentTOutput(),
-    ) -> None:
-        model = RNN(
-            mode=cell_type, num_layers=num_layers, num_hidden=num_cells
+    num_layers: int = 1
+    num_cells: int = 50
+    cell_type: str = "lstm"
+
+    def __post_init__(self, embedding_dimension):
+        self.is_sequential = False
+        self.model = RNN(
+            mode=self.cell_type,
+            num_layers=self.num_layers,
+            num_hidden=self.num_cells,
         )
 
-        super().__init__(
-            model=model,
-            is_sequential=True,
-            freq=freq,
-            context_length=context_length,
-            prediction_length=prediction_length,
-            trainer=trainer,
-            num_parallel_samples=num_parallel_samples,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            distr_output=distr_output,
-        )
+        super().__post_init__(embedding_dimension)
 
 
+@serde.dataclass
 class MLPForecasterEstimator(CanonicalEstimator):
-    @validated()
-    def __init__(
-        self,
-        freq: str,
-        context_length: int,
-        prediction_length: int,
-        trainer: Trainer = Trainer(),
-        hidden_dim_sequence=list([50]),
-        num_parallel_samples: int = 100,
-        cardinality: List[int] = list([1]),
-        embedding_dimension: int = 10,
-        distr_output: DistributionOutput = StudentTOutput(),
-    ) -> None:
-        model = nn.HybridSequential()
+    hidden_dim_sequence: List[int] = field(default_factory=lambda: [50])
+    is_sequential: bool = field(default=False, init=False)
 
-        for layer, layer_dim in enumerate(hidden_dim_sequence):
-            model.add(
+    def __post_init__(self, embedding_dimension):
+        self.is_sequential = False
+        self.model = nn.HybridSequential()
+
+        super().__post_init__(embedding_dimension)
+
+        for layer, layer_dim in enumerate(self.hidden_dim_sequence):
+            self.model.add(
                 nn.Dense(
                     layer_dim,
                     flatten=False,
@@ -242,16 +217,3 @@ class MLPForecasterEstimator(CanonicalEstimator):
                     prefix="mlp_%d_" % layer,
                 )
             )
-
-        super().__init__(
-            model=model,
-            is_sequential=False,
-            freq=freq,
-            context_length=context_length,
-            prediction_length=prediction_length,
-            trainer=trainer,
-            num_parallel_samples=num_parallel_samples,
-            cardinality=cardinality,
-            embedding_dimension=embedding_dimension,
-            distr_output=distr_output,
-        )
