@@ -104,7 +104,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     lr
     dropout_rate
     patience
-    scaling
     batch_size
     num_batches_per_epoch
     trainer_kwargs
@@ -132,7 +131,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         dropout_rate: float = 0.1,
         patience: int = 10,
-        scaling: bool = True,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
@@ -173,7 +171,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         self.lr = lr
         self.dropout_rate = dropout_rate
         self.patience = patience
-        self.scaling = scaling
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
@@ -259,6 +256,21 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             self.num_batches_per_epoch,
         )
 
+    def create_validation_data_loader(
+        self, data: Dataset, **kwargs
+    ) -> Iterable:
+        transformation = self._create_instance_splitter(
+            "validation"
+        ) + SelectFields(TRAINING_INPUT_NAMES)
+
+        validation_instances = transformation.apply(data)
+
+        return DataLoader(
+            IterableDataset(validation_instances),
+            batch_size=self.batch_size,
+            **kwargs,
+        )
+
     def create_lightning_module(
         self,
     ) -> TemporalFusionTransformerLightningModule:
@@ -282,7 +294,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             d_feat_static_real=_default_feat_args(self.static_dims),
             c_feat_static_cat=_default_feat_args(self.static_cardinalities),
             dropout_rate=self.dropout_rate,
-            scaling=self.scaling,
         )
         return TemporalFusionTransformerLightningModule(
             model=model,

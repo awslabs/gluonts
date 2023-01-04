@@ -13,6 +13,7 @@ from .layers import (
     FeatureProjector,
     VariableSelectionNetwork,
     GatedResidualNetwork,
+    StdScaler,
     TemporalFusionDecoder,
     TemporalFusionEncoder,
 )
@@ -35,7 +36,6 @@ class TemporalFusionTransformerModel(nn.Module):
         d_hidden: int = 32,
         d_var: int = 32,
         dropout_rate: float = 0.1,
-        scaling: bool = True,
     ):
         super().__init__()
 
@@ -66,10 +66,7 @@ class TemporalFusionTransformerModel(nn.Module):
             self.c_past_feat_dynamic_cat
         )
 
-        if scaling:
-            self.scaler = MeanScaler(dim=1, keepdim=True)
-        else:
-            self.scaler = NOPScaler(dim=1, keepdim=True)
+        self.scaler = StdScaler(dim=1, keepdim=True)
 
         self.target_proj = nn.Linear(in_features=1, out_features=self.d_var)
         # Past-only dynamic features
@@ -230,8 +227,9 @@ class TemporalFusionTransformerModel(nn.Module):
         List[torch.Tensor],
         List[torch.Tensor],
         torch.Tensor,
+        torch.Tensor,
     ]:
-        past_target, scale = self.scaler(
+        past_target, loc, scale = self.scaler(
             data=past_target, weights=past_observed_values
         )
 
@@ -271,6 +269,7 @@ class TemporalFusionTransformerModel(nn.Module):
             past_covariates,
             future_covariates,
             static_covariates,
+            loc,
             scale,
         )
 
@@ -289,6 +288,7 @@ class TemporalFusionTransformerModel(nn.Module):
             past_covariates,  # [[N, T, d_var], ...]
             future_covariates,  # [[N, H, d_var], ...]
             static_covariates,  # [[N, d_var], ...]
+            loc,  # [N, 1]
             scale,  # [N, 1]
         ) = self._preprocess(
             past_target,
@@ -322,7 +322,7 @@ class TemporalFusionTransformerModel(nn.Module):
             encoding, c_enrichment, past_observed_values
         )  # [N, H, d_hidden]
         preds = self.output_proj(decoding)
-        return preds * scale.unsqueeze(-1)
+        return preds * scale.unsqueeze(-1) + loc.unsqueeze(-1)
 
     def loss(
         self,
