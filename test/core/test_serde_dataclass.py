@@ -93,3 +93,12 @@ def test_dataclass_eventual():
 
     x2 = X()
     assert x2.y == 3
+
+
+def test_dataclass_additional_args():
+    @serde.dataclass
+    class X:
+        y: int
+
+    # passing additional values should not fail
+    X(y=1, z=2)
