@@ -13,6 +13,7 @@
 
 from typing import Any, Dict, Iterable, List, Optional
 
+import numpy as np
 import torch
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -31,7 +32,6 @@ from gluonts.transform import (
     AsNumpyArray,
     Chain,
     ExpectedNumInstanceSampler,
-    InstanceSplitter,
     RemoveFields,
     SelectFields,
     SetField,
@@ -243,7 +243,11 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
                 SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
             )
         transforms.append(
-            AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1)
+            AsNumpyArray(
+                field=FieldName.FEAT_STATIC_CAT,
+                expected_ndim=1,
+                dtype=np.int64,
+            )
         )
 
         # Concat time features with known dynamic features
@@ -288,6 +292,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
+        module: TemporalFusionTransformerLightningModule = None,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
@@ -314,7 +319,10 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         )
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs
+        self,
+        data: Dataset,
+        module: TemporalFusionTransformerLightningModule = None,
+        **kwargs,
     ) -> Iterable:
         transformation = self._create_instance_splitter(
             "validation"
@@ -347,9 +355,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             c_feat_static_cat=self.static_cardinalities or [1],
             dropout_rate=self.dropout_rate,
         )
-        print("Creating with kwargs:")
-        for k, v in kwargs.items():
-            print(f"{k}: {v}")
         model = TemporalFusionTransformerModel(**kwargs)
         return TemporalFusionTransformerLightningModule(
             model=model,
