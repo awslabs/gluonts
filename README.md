@@ -55,7 +55,7 @@ df = pd.read_csv(url, index_col=0)
 df.index = pd.to_datetime(df.index)
 dataset = PandasDataset(df, target="#Passengers")
 
-# Train DeepAR model on all data but the last 36 months
+# Train a DeepAR model on all data but the last 36 months
 
 training_data, test_gen = split(dataset, offset=-36)
 
