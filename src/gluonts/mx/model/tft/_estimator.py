@@ -50,12 +50,13 @@ from gluonts.transform import (
     ValidationSplitSampler,
     VstackFeatures,
 )
+from gluonts.transform.split import TFTInstanceSplitter
 
 from ._network import (
     TemporalFusionTransformerPredictionNetwork,
     TemporalFusionTransformerTrainingNetwork,
 )
-from ._transform import BroadcastTo, TFTInstanceSplitter
+from ._transform import BroadcastTo
 
 
 def _default_feat_args(dims_or_cardinalities: List[int]):

@@ -116,7 +116,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         for batch in inference_data_loader:
             # TODO: Change inputs to dict to avoid assuming matching order in input_names / model signature?
             inputs = [batch.get(k) for k in input_names]
-            outputs = prediction_net(*inputs).cpu().detach().numpy()
+            outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
 

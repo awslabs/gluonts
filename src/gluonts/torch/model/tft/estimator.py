@@ -39,11 +39,11 @@ from gluonts.transform import (
     VstackFeatures,
 )
 from gluonts.transform.sampler import InstanceSampler
+from gluonts.transform.split import TFTInstanceSplitter
 from torch.utils.data import DataLoader
 
 from .lightning_module import TemporalFusionTransformerLightningModule
 from .module import TemporalFusionTransformerModel
-from .transformation import TFTInstanceSplitter
 
 PREDICTION_INPUT_NAMES = [
     "past_target",
