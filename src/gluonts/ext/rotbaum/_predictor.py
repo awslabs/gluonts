@@ -15,9 +15,11 @@ import concurrent.futures
 import logging
 from itertools import chain
 from typing import Iterator, List, Optional
+from toolz import first
 
 import numpy as np
 import pandas as pd
+from itertools import compress
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -28,6 +30,7 @@ from gluonts.model.predictor import RepresentablePredictor
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
+from ._types import FeatureImportanceResult, ExplanationResult
 
 logger = logging.getLogger(__name__)
 
@@ -189,8 +192,18 @@ class TreePredictor(RepresentablePredictor):
         # timestep in the forecast horizon to create the partition.
     ):
         assert training_data
+        if self.preprocess_object.use_feat_dynamic_real:
+            assert (
+                len(first(training_data)["feat_dynamic_real"][0])
+                == len(first(training_data)["target"])
+                + self.preprocess_object.forecast_horizon
+            )
+        if self.preprocess_object.use_past_feat_dynamic_real:
+            assert len(
+                first(training_data)["past_feat_dynamic_real"][0]
+            ) == len(first(training_data)["target"])
         assert self.freq is not None
-        if next(iter(training_data))["start"].freq is not None:
+        if first(training_data)["start"].freq is not None:
             assert self.freq == next(iter(training_data))["start"].freq
         self.preprocess_object.preprocess_from_list(
             ts_list=list(training_data), change_internal_variables=True
@@ -243,10 +256,17 @@ class TreePredictor(RepresentablePredictor):
                 else self.model_list[i]
                 for i in range(n_models)
             ]
+            target_data = np.array(target_data)
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.max_workers
             ) as executor:
                 for n_step, model in enumerate(self.model_list):
+                    current_target_data = target_data[:, n_step]
+                    indices = ~np.isnan(current_target_data)
+                    assert sum(indices), (
+                        f"in timestamp {n_step} all values "
+                        f"in train were nan"
+                    )
                     if n_step != train_QRX_only_using_timestep:
                         logger.info(
                             f"Training model for step no. {n_step + 1} in the "
@@ -255,23 +275,30 @@ class TreePredictor(RepresentablePredictor):
                         )
                         executor.submit(
                             model.fit,
-                            feature_data,
-                            np.array(target_data)[:, n_step],
+                            list(compress(feature_data, indices)),
+                            current_target_data[indices],
                             model_is_already_trained=True,
                         )
         else:
+            target_data = np.array(target_data)
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.max_workers
             ) as executor:
                 for n_step, model in enumerate(self.model_list):
+                    current_target_data = target_data[:, n_step]
+                    indices = ~np.isnan(current_target_data)
+                    assert sum(indices), (
+                        f"in timestamp {n_step} all values "
+                        f"in train were nan"
+                    )
                     logger.info(
                         f"Training model for step no. {n_step + 1} in the"
                         " forecast horizon"
                     )
                     executor.submit(
                         model.fit,
-                        feature_data,
-                        np.array(target_data)[:, n_step],
+                        list(compress(feature_data, indices)),
+                        current_target_data[indices],
                     )
         return self
 
@@ -294,6 +321,8 @@ class TreePredictor(RepresentablePredictor):
                 "Forecast is not sample based. Ignoring parameter"
                 " `num_samples` from predict method."
             )
+        if not self.model_list:
+            logger.error("model_list is empty during prediction")
 
         for ts in dataset:
             featurized_data = self.preprocess_object.make_features(
@@ -305,3 +334,199 @@ class TreePredictor(RepresentablePredictor):
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
             )
+
+    def explain(
+        self, importance_type: str = "gain", percentage: bool = True
+    ) -> ExplanationResult:
+        """
+        This function only works for self.method == "QuantileRegression",
+        and uses lightgbm's feature importance functionality. It takes the
+        mean feature importance across quantiles and timestamps in the
+        forecast horizon; and then adds these mean values across all of the
+        feature coordinates that are associated to "target",
+        "feat_static_real", "feat_static_cat", "past_feat_dynamic_real",
+        "feat_dynamic_real", "feat_dynamic_cat"
+
+        Parameters
+        ----------
+        importance_type: str
+            Either "gain" or "split". Since for the models that predict
+            timestamps that are further along in the forecast horizon are
+            expected to perform less well, it is desirable to give less
+            weight to those models compared to the ones that make
+            predictions for timestamps closer to the forecast horizon.
+            "split" will give equal weight, and is therefore less desirable;
+            whereas "gain" will naturally give less weight to models that
+            perform less well.
+
+        percentage: bool
+            If results should be in percentage format and sum up to 1. Default is True
+
+        Returns
+        -------
+        ExplanationResult
+        """
+        assert self.method == "QuantileRegression", (
+            "the explain method is "
+            "only currently "
+            "supported for "
+            "QuantileRegression"
+        )
+        importances = np.array(
+            [
+                [
+                    self.model_list[time_stamp]
+                    .models[quantile]
+                    .booster_.feature_importance(
+                        importance_type=importance_type
+                    )
+                    for time_stamp in range(self.prediction_length)
+                ]
+                for quantile in self.quantiles
+            ]
+        ).transpose((2, 1, 0))
+        # The shape is: (features, pred_length, quantiles)
+        importances = importances.mean(axis=2)  # Average over quantiles
+        # The shape of importances is: (features, pred_length)
+
+        if percentage:
+            importances /= importances.sum(axis=0)
+        dynamic_length = self.preprocess_object.dynamic_length
+        num_feat_static_real = self.preprocess_object.num_feat_static_real
+        num_feat_static_cat = self.preprocess_object.num_feat_static_cat
+        num_past_feat_dynamic_real = (
+            self.preprocess_object.num_past_feat_dynamic_real
+        )
+        num_feat_dynamic_real = self.preprocess_object.num_feat_dynamic_real
+        num_feat_dynamic_cat = self.preprocess_object.num_feat_dynamic_cat
+        coordinate_map = {}
+        coordinate_map["target"] = (0, dynamic_length)
+        coordinate_map["feat_static_real"] = [
+            (dynamic_length + i, dynamic_length + i + 1)
+            for i in range(num_feat_static_real)
+        ]
+        coordinate_map["feat_static_cat"] = []
+        static_cat_features_so_far = 0
+        cardinality = (
+            self.preprocess_object.cardinality
+            if (
+                self.preprocess_object.cardinality
+                and self.preprocess_object.one_hot_encode
+            )
+            else [1] * num_feat_static_cat
+        )
+
+        for i in range(num_feat_static_cat):
+            coordinate_map["feat_static_cat"].append(
+                (
+                    dynamic_length
+                    + num_feat_static_real
+                    + static_cat_features_so_far,
+                    dynamic_length
+                    + num_feat_static_real
+                    + static_cat_features_so_far
+                    + cardinality[i],
+                )
+            )
+            static_cat_features_so_far += cardinality[i]
+
+        coordinate_map["past_feat_dynamic_real"] = [
+            (
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (i + 1) * dynamic_length,
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (i + 2) * dynamic_length,
+            )
+            for i in range(num_past_feat_dynamic_real)
+        ]
+        coordinate_map["feat_dynamic_real"] = [
+            (
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (num_past_feat_dynamic_real + 1) * dynamic_length
+                + i * (dynamic_length + self.prediction_length),
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (num_past_feat_dynamic_real + 1) * dynamic_length
+                + (i + 1) * (dynamic_length + self.prediction_length),
+            )
+            for i in range(num_feat_dynamic_real)
+        ]
+        coordinate_map["feat_dynamic_cat"] = [
+            (
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (num_past_feat_dynamic_real + 1) * dynamic_length
+                + num_feat_dynamic_real
+                * (dynamic_length + self.prediction_length)
+                + i,
+                num_feat_static_real
+                + static_cat_features_so_far
+                + (num_past_feat_dynamic_real + 1) * dynamic_length
+                + num_feat_dynamic_real
+                * (dynamic_length + self.prediction_length)
+                + i
+                + 1,
+            )
+            for i in range(num_feat_dynamic_cat)
+        ]
+        logger.info(
+            f"coordinate_map from the preprocessor is: {coordinate_map}"
+        )
+        logger.info(f"shape of importance matrix is: {importances.shape}")
+        assert (
+            sum(
+                [
+                    sum([coor[1] - coor[0] for coor in coordinate_map[key]])
+                    for key in coordinate_map
+                    if key != "target"
+                ]
+            )
+            + coordinate_map["target"][1]
+            - coordinate_map["target"][0]
+        ) == importances.shape[
+            0
+        ]  # Testing that we covered all of coordinates
+
+        quantile_aggregated_importance_result = FeatureImportanceResult(
+            target=np.expand_dims(
+                importances[
+                    coordinate_map["target"][0] : coordinate_map["target"][1],
+                    :,
+                ].sum(axis=0),
+                axis=0,
+            ).tolist(),
+            feat_static_real=[
+                importances[start:end, :].sum(axis=0).tolist()
+                for start, end in coordinate_map["feat_static_real"]
+            ],
+            feat_static_cat=[
+                importances[start:end, :].sum(axis=0).tolist()
+                for start, end in coordinate_map["feat_static_cat"]
+            ],
+            past_feat_dynamic_real=[
+                importances[start:end, :].sum(axis=0).tolist()
+                for start, end in coordinate_map["past_feat_dynamic_real"]
+            ],
+            feat_dynamic_real=[
+                importances[start:end, :].sum(axis=0).tolist()
+                for start, end in coordinate_map["feat_dynamic_real"]
+            ],
+            feat_dynamic_cat=[
+                importances[start:end, :].sum(axis=0).tolist()
+                for start, end in coordinate_map["feat_dynamic_cat"]
+            ],
+        )
+
+        explain_result = ExplanationResult(
+            time_quantile_aggregated_result=quantile_aggregated_importance_result.mean(
+                axis=1
+            ),
+            quantile_aggregated_result=quantile_aggregated_importance_result,
+        )
+        logger.info(
+            f"explain result with importance_type: {importance_type} and percentage: {percentage} is {explain_result.dict()}"
+        )
+        return explain_result
