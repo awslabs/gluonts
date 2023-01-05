@@ -47,8 +47,7 @@ from gluonts.torch.model.deepar import DeepAREstimator
 
 url = (
     "https://raw.githubusercontent.com/AileenNielsen/"
-    "TimeSeriesAnalysisWithPython/master/data/"
-    "AirPassengers.csv"
+    "TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv"
 )
 
 df = pd.read_csv(url, index_col=0)
