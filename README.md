@@ -36,28 +36,47 @@ of data.
 
 
 ```py
+import pandas as pd
 import matplotlib.pyplot as plt
-from gluonts.dataset.util import to_pandas
+
 from gluonts.dataset.pandas import PandasDataset
-from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.mx import DeepAREstimator, Trainer
+from gluonts.dataset.split import split
+from gluonts.torch.model.deepar import DeepAREstimator
 
-dataset = get_dataset("airpassengers")
+# Load data from a CSV file into a PandasDataset
 
-deepar = DeepAREstimator(prediction_length=12, freq="M", trainer=Trainer(epochs=5))
-model = deepar.train(dataset.train)
+url = (
+    "https://raw.githubusercontent.com/AileenNielsen/"
+    "TimeSeriesAnalysisWithPython/master/data/"
+    "AirPassengers.csv"
+)
 
-# Make predictions
-true_values = to_pandas(list(dataset.test)[0])
-true_values.to_timestamp().plot(color="k")
+df = pd.read_csv(url, index_col=0)
+df.index = pd.to_datetime(df.index)
+dataset = PandasDataset(df, target="#Passengers")
 
-prediction_input = PandasDataset([true_values[:-36], true_values[:-24], true_values[:-12]])
-predictions = model.predict(prediction_input)
+# Train DeepAR model on all data but the last 36 months
 
-for color, prediction in zip(["green", "blue", "purple"], predictions):
-    prediction.plot(color=f"tab:{color}")
+training_data, test_gen = split(dataset, offset=-36)
+
+model = DeepAREstimator(
+    prediction_length=12, freq="M", trainer_kwargs={"max_epochs": 5},
+).train(training_data)
+
+# Generate test instances and predict
+
+test_data = test_gen.generate_instances(prediction_length=12, windows=3)
+
+forecasts = list(model.predict(test_data.input))
+
+# Plot predictions
+
+df["#Passengers"].plot(color="black")
+for forecast, color in zip(forecasts, ["green", "blue", "purple"]):
+    forecast.plot(color=f"tab:{color}")
 
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
+plt.show()
 ```
 
 ![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
