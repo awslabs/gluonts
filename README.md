@@ -38,10 +38,9 @@ of data.
 ```py
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.split import split
-from gluonts.torch.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator, Trainer
 
 # Load data from a CSV file into a PandasDataset
 
@@ -57,15 +56,13 @@ dataset = PandasDataset(df, target="#Passengers")
 # Train a DeepAR model on all data but the last 36 months
 
 training_data, test_gen = split(dataset, offset=-36)
-
 model = DeepAREstimator(
-    prediction_length=12, freq="M", trainer_kwargs={"max_epochs": 5},
+    prediction_length=12, freq="M", trainer=Trainer(epochs=5)
 ).train(training_data)
 
 # Generate test instances and predictions for them
 
 test_data = test_gen.generate_instances(prediction_length=12, windows=3)
-
 forecasts = list(model.predict(test_data.input))
 
 # Plot predictions
