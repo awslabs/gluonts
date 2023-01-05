@@ -63,7 +63,7 @@ model = DeepAREstimator(
     prediction_length=12, freq="M", trainer_kwargs={"max_epochs": 5},
 ).train(training_data)
 
-# Generate test instances and predict
+# Generate test instances and predictions for them
 
 test_data = test_gen.generate_instances(prediction_length=12, windows=3)
 
@@ -76,7 +76,6 @@ for forecast, color in zip(forecasts, ["green", "blue", "purple"]):
     forecast.plot(color=f"tab:{color}")
 
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
-plt.show()
 ```
 
 ![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
