@@ -16,7 +16,7 @@ import io
 import pickle
 from tempfile import TemporaryFile
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Optional
+from typing import cast, Callable, Iterable, Optional
 
 from pydantic import BaseModel
 
@@ -151,10 +151,10 @@ def TrainDataLoader(
     if cache:
         dataset = PickleCache(dataset)
 
-    dataset = Cyclic(dataset)
+    dataset = cast(Dataset, Cyclic(dataset))
 
     if shuffle_buffer_length:
-        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+        dataset = cast(Dataset, PseudoShuffled(dataset, shuffle_buffer_length))
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     transformed_dataset = transform.apply(dataset, is_train=True)
