@@ -160,12 +160,14 @@ def TrainDataLoader(
     return IterableSlice(batches, num_batches_per_epoch)
 
 
+@env._inject(cache="cache_loader")
 def ValidationDataLoader(
     dataset: Dataset,
     *,
     transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
+    cache: bool = False,
 ):
     """
     Construct an iterator of batches for validation purposes.
@@ -189,6 +191,9 @@ def ValidationDataLoader(
     Iterable[DataBatch]
         An iterable sequence of batches.
     """
+
+    if cache:
+        dataset: Dataset = PickleCache(dataset)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=True)
