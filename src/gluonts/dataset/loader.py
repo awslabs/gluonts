@@ -61,6 +61,9 @@ class Cache:
         else:
             yield from self._iter_cached()
 
+    def __len__(self):
+        return len(self.dataset)
+
 
 @dataclass
 class PickleCache(Cache):
@@ -146,9 +149,9 @@ def TrainDataLoader(
     """
 
     if cache:
-        dataset: Dataset = PickleCache(dataset)
+        dataset = PickleCache(dataset)
 
-    dataset: Dataset = Cyclic(dataset)
+    dataset = Cyclic(dataset)
 
     if shuffle_buffer_length:
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
@@ -193,7 +196,7 @@ def ValidationDataLoader(
     """
 
     if cache:
-        dataset: Dataset = PickleCache(dataset)
+        dataset = PickleCache(dataset)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=True)
