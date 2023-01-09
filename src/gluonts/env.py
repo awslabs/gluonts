@@ -29,5 +29,7 @@ class Environment(Settings):
     # we want to be able to disable TQDM, for example when running in sagemaker
     use_tqdm: bool = True
 
+    cache_loader: bool = True
+
 
 env = Environment()
