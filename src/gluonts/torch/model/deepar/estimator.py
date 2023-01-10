@@ -39,7 +39,7 @@ from gluonts.transform import (
     ValidationSplitSampler,
     TestSplitSampler,
     ExpectedNumInstanceSampler,
-    SelectFields,
+    SelectFields, MissingValueImputation, DummyValueImputation,
 )
 from gluonts.torch.util import (
     IterableDataset,
@@ -172,6 +172,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
+        imputation_method: Optional[MissingValueImputation] = None,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
@@ -215,6 +216,12 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
+
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
 
         self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
@@ -264,6 +271,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
