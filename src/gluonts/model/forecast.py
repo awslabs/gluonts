@@ -24,67 +24,27 @@ from pydantic.dataclasses import dataclass
 from gluonts.core.component import validated
 
 
-class LinearInterpolation:
-    """
-    Linear interpolation based on datapoints (x_coord, y_coord)
+def _linear_interpolation(
+    xs: np.ndarray, ys: np.ndarray, x: float
+) -> np.ndarray:
+    assert sorted(xs) == xs
+    assert len(xs) == len(ys)
+    assert len(xs) >= 2
 
-    Parameters
-    ----------
-    x_coord
-        x-coordinates of the data points must be in increasing order.
-    y_coord
-        y-coordinates of the data points - may be a list of lists.
-    tol
-        tolerance when performing the division in the linear interpolation.
-    """
+    if x < xs[0]:
+        idx = 1
+    elif x > xs[-1]:
+        idx = len(xs) - 1
+    else:
+        idx = next(i for i, x_ in enumerate(xs) if x <= x_)
 
-    def __init__(
-        self,
-        x_coord: List[float],
-        y_coord: List[np.ndarray],
-        tol: float = 1e-8,
-    ) -> None:
-        self.x_coord = x_coord
-        assert sorted(self.x_coord) == self.x_coord
-        self.y_coord = y_coord
-        self.num_points = len(self.x_coord)
-        assert (
-            self.num_points >= 2
-        ), "Need at least two points for linear interpolation."
-        self.tol = tol
+    x_low, x_high = xs[idx - 1 : idx + 1]
+    y_low, y_high = ys[idx - 1 : idx + 1]
 
-    def __call__(self, x: float):
-        return self.linear_interpolation(x)
+    dx = x_high - x_low
+    dy = y_high - y_low
 
-    def linear_interpolation(self, x: float) -> np.ndarray:
-        """
-        If x is out of interpolation range, return smallest or largest value.
-        Otherwise, find two nearest points [x_1, y_1], [x_2, y_2] and return
-        its linear interpolation.
-
-        y = (x_2 - x)/(x_2 - x_1) * y_1 + (x - x_1)/(x_2 - x_1) * y_2.
-
-        Parameters
-        ----------
-        x
-            x-coordinate to evaluate the interpolated points.
-
-        Returns
-        -------
-        np.ndarray
-            Interpolated values same shape as self.y_coord
-        """
-        if self.x_coord[0] >= x:
-            return self.y_coord[0]
-        elif self.x_coord[-1] <= x:
-            return self.y_coord[-1]
-        else:
-            for i, (x1, x2) in enumerate(zip(self.x_coord, self.x_coord[1:])):
-                if x1 < x < x2:
-                    denominator = x2 - x1 + self.tol
-                    return (x2 - x) / denominator * self.y_coord[i] + (
-                        x - x1
-                    ) / denominator * self.y_coord[i + 1]
+    return y_low + (x - x_low) / dx * dy
 
 
 class ExponentialTailApproximation:
@@ -707,9 +667,6 @@ class QuantileForecast(Forecast):
             q_str = Quantile.parse(inference_quantile).name
             return self._forecast_dict.get(q_str, self._nan_out)
 
-        linear_interpolation = LinearInterpolation(
-            quantiles, quantile_predictions
-        )
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
         )
@@ -725,7 +682,9 @@ class QuantileForecast(Forecast):
         elif inference_quantile >= right_tail_quantile:
             return exp_tail_approximation.right(inference_quantile)
         else:
-            return linear_interpolation(inference_quantile)
+            return _linear_interpolation(
+                quantiles, quantile_predictions, inference_quantile
+            )
 
     def copy_dim(self, dim: int) -> "QuantileForecast":
         if len(self.forecast_array.shape) == 2:
