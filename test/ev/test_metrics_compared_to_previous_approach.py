@@ -207,7 +207,7 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         ),
         "abs_target_mean": np.ma.mean(item_metrics["mean_absolute_label"]),
         **{
-            quantile.coverage_name: np.ma.mean(
+            f"Coverage[{quantile}]": np.ma.mean(
                 item_metrics[f"coverage[{quantile.value}]"]
             )
             for quantile in quantiles
@@ -215,13 +215,13 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         "abs_error": np.ma.sum(item_metrics["sum_absolute_error"]),
         "abs_target_sum": np.ma.sum(item_metrics["sum_absolute_label"]),
         **{
-            quantile.loss_name: np.ma.sum(
+            f"QuantileLoss[{quantile}]": np.ma.sum(
                 item_metrics[f"sum_quantile_loss[{quantile.value}]"]
             )
             for quantile in quantiles
         },
         **{
-            quantile.weighted_loss_name: np.ma.sum(
+            f"wQuantileLoss[{quantile}]": np.ma.sum(
                 aggregated_metrics[
                     f"weighted_sum_quantile_loss[{quantile.value}]"
                 ]
