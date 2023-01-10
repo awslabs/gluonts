@@ -20,7 +20,7 @@ import numpy as np
 
 from gluonts.dataset import Dataset
 from gluonts.model import Predictor, QuantileForecast
-from gluonts.ext.statsforecast import (
+from gluonts.ext.nixtla.statsforecast import (
     ModelConfig,
     StatsForecastPredictor,
     ADIDAPredictor,
