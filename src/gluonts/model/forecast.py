@@ -12,15 +12,16 @@
 # permissions and limitations under the License.
 
 import re
+from dataclasses import field
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Set, Union, Tuple
 
 import numpy as np
 import pandas as pd
 import pydantic
+from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
-from gluonts.exceptions import GluonTSUserError
 
 
 class LinearInterpolation:
@@ -206,52 +207,32 @@ class ExponentialTailApproximation:
         return left_tail, right_tail
 
 
-class Quantile(pydantic.BaseModel):
-    value: float
+@dataclass
+class Quantile:
+    value: float = field(metadata={"ge": 0.0, "le": 1.0})
     name: str
-
-    @property
-    def loss_name(self):
-        return f"QuantileLoss[{self.name}]"
-
-    @property
-    def weighted_loss_name(self):
-        return f"wQuantileLoss[{self.name}]"
-
-    @property
-    def coverage_name(self):
-        return f"Coverage[{self.name}]"
-
-    @classmethod
-    def checked(cls, value: float, name: str) -> "Quantile":
-        if not 0 <= value <= 1:
-            raise GluonTSUserError(
-                f"quantile value should be in [0, 1] but found {value}"
-            )
-
-        return Quantile(value=value, name=name)
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
         assert isinstance(quantile, float)
-        return cls.checked(value=quantile, name=str(quantile))
+        return cls(value=quantile, name=str(quantile))
 
     @classmethod
     def from_str(cls, quantile: str) -> "Quantile":
         assert isinstance(quantile, str)
+
         try:
-            return cls.checked(value=float(quantile), name=quantile)
+            return cls(value=float(quantile), name=quantile)
         except ValueError:
-            m = re.match(r"^p(\d{2})$", quantile)
+            m = re.match(r"^p(\d+)$", quantile)
 
             if m is None:
-                raise GluonTSUserError(
+                raise ValueError(
                     'Quantile string should be of the form "p10", "p50", ...'
                     f' or "0.1", "0.5", ... but found {quantile}'
                 )
-            else:
-                quantile_float: float = int(m.group(1)) / 100
-                return cls(value=quantile_float, name=str(quantile_float))
+
+            return cls.from_float(float(m.group(1)) / 100)
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
@@ -275,7 +256,7 @@ class Quantile(pydantic.BaseModel):
         ----------
         quantile
             Quantile, can be a float a str representing a float e.g. '0.1' or a
-            quantile string of the form 'p0.1'.
+            quantile string of the form 'p10'.
 
         Returns
         -------
@@ -285,10 +266,14 @@ class Quantile(pydantic.BaseModel):
         """
         if isinstance(quantile, Quantile):
             return quantile
-        elif isinstance(quantile, float):
+
+        if isinstance(quantile, float):
             return cls.from_float(quantile)
-        else:
-            return cls.from_str(quantile)
+
+        return cls.from_str(quantile)
+
+    def __str__(self):
+        return self.name
 
 
 class Forecast:
