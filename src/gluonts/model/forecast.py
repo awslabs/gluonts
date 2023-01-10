@@ -13,12 +13,10 @@
 
 import re
 from dataclasses import field
-from enum import Enum
-from typing import Callable, Dict, List, Optional, Set, Union, Tuple
+from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-import pydantic
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
@@ -421,25 +419,6 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def as_json_dict(self, config: "Config") -> dict:
-        result = {}
-
-        if OutputType.mean in config.output_types:
-            result["mean"] = self.mean.tolist()
-
-        if OutputType.quantiles in config.output_types:
-            quantiles = map(Quantile.parse, config.quantiles)
-
-            result["quantiles"] = {
-                quantile.name: self.quantile(quantile.value).tolist()
-                for quantile in quantiles
-            }
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = []
-
-        return result
-
 
 class SampleForecast(Forecast):
     """
@@ -568,14 +547,6 @@ class SampleForecast(Forecast):
                 # shape: (num_samples, prediction_length, target_dim)
                 self._dim = self.samples.shape[2]
         return self._dim
-
-    def as_json_dict(self, config: "Config") -> dict:
-        result = super().as_json_dict(config)
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
-
-        return result
 
     def __repr__(self):
         return ", ".join(
@@ -754,21 +725,3 @@ class QuantileForecast(Forecast):
             )
         if output_file:
             plt.savefig(output_file)
-
-
-class OutputType(str, Enum):
-    mean = "mean"
-    samples = "samples"
-    quantiles = "quantiles"
-
-
-class Config(pydantic.BaseModel):
-    num_samples: int = pydantic.Field(100, alias="num_eval_samples")
-    output_types: Set[OutputType] = {OutputType.quantiles, OutputType.mean}
-    # FIXME: validate list elements
-    quantiles: List[str] = ["0.1", "0.5", "0.9"]
-
-    class Config:
-        allow_population_by_field_name = True
-        # store additional fields
-        extra = "allow"

@@ -20,7 +20,7 @@ from typing import Dict, Optional, Union
 from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
-from gluonts.model import forecast, Predictor
+from gluonts.model import Predictor
 
 from . import sagemaker
 
@@ -63,7 +63,9 @@ class ServeEnv(sagemaker.ServeEnv):
         sagemaker.ServeEnv.__init__(self, *args, **kwargs)
 
         if self.sagemaker_batch:
-            self.batch_config = forecast.Config.parse_raw(
+            from .serve.app import ForecastConfig
+
+            self.batch_config = ForecastConfig.parse_raw(
                 os.environ["INFERENCE_CONFIG"]
             )
         else:

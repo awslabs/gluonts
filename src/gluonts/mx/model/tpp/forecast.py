@@ -131,15 +131,6 @@ class PointProcessSampleForecast(Forecast):
             "Period index not defined for point process samples"
         )
 
-    def as_json_dict(self, config: "Config") -> dict:
-        result = super().as_json_dict(config)
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
-            result["valid_length"] = self.valid_length.tolist()
-
-        return result
-
     def __repr__(self):
         return ", ".join(
             [
