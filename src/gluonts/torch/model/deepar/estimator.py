@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
 from gluonts.time_feature import (
     TimeFeature,
@@ -231,6 +232,16 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        stats = calculate_dataset_statistics(train_iter)
+
+        return {
+            "num_feat_dynamic_real": stats.num_feat_dynamic_real,
+            "num_feat_static_cat": len(stats.feat_static_cat),
+            "cardinality": [len(cats) for cats in stats.feat_static_cat],
+        }
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
