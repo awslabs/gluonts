@@ -83,7 +83,8 @@ class SeasonalNaivePredictor(RepresentablePredictor):
             samples = target[indices].reshape((1, self.prediction_length))
         else:
             samples = np.full(
-                shape=(1, self.prediction_length), fill_value=target.mean()
+                shape=(1, self.prediction_length),
+                fill_value=np.nanmean(target),
             )
 
         return SampleForecast(
