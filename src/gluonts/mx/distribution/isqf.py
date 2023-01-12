@@ -353,34 +353,29 @@ class ISQF(Distribution):
 
         spline_val = self.quantile_spline(alpha, axis=axis)
 
-        for spline_idx in range(self.num_qk - 1):
+        is_in_between = F.broadcast_logical_and(
+            F.broadcast_lesser_equal(qk_x, F.expand_dims(alpha, axis=-1)),
+            F.broadcast_lesser(F.expand_dims(alpha, axis=-1), qk_x_plus),
+        )
 
-            is_in_between = F.broadcast_logical_and(
-                F.broadcast_lesser_equal(
-                    F.slice_axis(
-                        qk_x, axis=-1, begin=spline_idx, end=spline_idx + 1
-                    ).squeeze(-1),
-                    alpha,
-                ),
-                F.broadcast_lesser(
-                    alpha,
-                    F.slice_axis(
-                        qk_x_plus,
-                        axis=-1,
-                        begin=spline_idx,
-                        end=spline_idx + 1,
-                    ).squeeze(-1),
-                ),
-            )
+        # Assert that:
+        # (1) there's at most one place where is_in_between is True
+        # (2) there are places where points have is_in_between False everwhere
+        # assert F.max(F.sum(is_in_between, axis=-1)).asnumpy().item() == 1
+        # assert F.min(F.sum(is_in_between, axis=-1)).asnumpy().item() == 0
 
-            quantile = F.where(
-                is_in_between,
-                F.slice_axis(
-                    spline_val, axis=-1, begin=spline_idx, end=spline_idx + 1
-                ).squeeze(-1),
-                quantile,
-            )
-
+        # Where we evaluate in between points, use spline value for the one region.
+        # Where outside, use quantile value.
+        quantile = F.sum(
+            F.broadcast_mul(is_in_between, spline_val),
+            axis=-1,
+        ) + F.sum(
+            F.expand_dims(
+                F.broadcast_mul(1 - F.max(is_in_between, axis=-1), quantile),
+                axis=-1,
+            ),
+            axis=-1,
+        )
         return quantile
 
     def quantile_spline(
