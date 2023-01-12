@@ -35,7 +35,6 @@ class MeanScaler(nn.Module):
         default scale that is used for elements that are constantly zero
     minimum_scale
         minimum possible scale that is used for any item.
-        along dimension ``dim``.
     """
 
     @validated()
