@@ -126,6 +126,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         (default: ``NegativeLogLikelihood()``).
     scaling
         Whether to automatically scale the target values (default: true).
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined

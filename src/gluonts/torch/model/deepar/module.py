@@ -77,6 +77,10 @@ class DeepARModel(nn.Module):
         and ``t-25`` as input.
     scaling
         Whether to apply mean scaling to the observations (target).
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
     num_parallel_samples
         Number of samples to produce when unrolling the RNN in the prediction
         time range.

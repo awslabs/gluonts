@@ -31,8 +31,10 @@ class MeanScaler(nn.Module):
     keepdim
         controls whether to retain dimension ``dim`` (of length 1) in the
         scale tensor, or suppress it.
-    minimum_scale
+    default_scale
         default scale that is used for elements that are constantly zero
+    minimum_scale
+        minimum possible scale that is used for any item.
         along dimension ``dim``.
     """
 
