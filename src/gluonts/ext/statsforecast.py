@@ -251,18 +251,6 @@ class IMAPAPredictor(StatsForecastPredictor):
     ModelType = IMAPA
 
 
-class TSBPredictor(StatsForecastPredictor):
-    """
-    A predictor wrapping the ``TSB`` model from `statsforecast`_.
-
-    See :class:`StatsForecastPredictor` for the list of arguments.
-
-    .. _statsforecast: https://github.com/Nixtla/statsforecast
-    """
-
-    ModelType = TSB
-
-
 class DynamicOptimizedThetaPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``DynamicOptimizedTheta`` model from `statsforecast`_.
@@ -453,6 +441,18 @@ class SimpleExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
     """
 
     ModelType = SimpleExponentialSmoothingOptimized
+
+
+class TSBPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``TSB`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = TSB
 
 
 class ThetaPredictor(StatsForecastPredictor):
