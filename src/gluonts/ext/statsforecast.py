@@ -27,6 +27,7 @@ from statsforecast.models import (
     CrostonSBA,
     DynamicOptimizedTheta,
     DynamicTheta,
+    ETS,
     IMAPA,
     TSB,
 )
@@ -269,3 +270,15 @@ class DynamicThetaPredictor(StatsForecastPredictor):
     """
 
     ModelType = DynamicTheta
+
+
+class ETSPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = ETS
