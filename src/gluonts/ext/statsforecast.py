@@ -25,6 +25,7 @@ from statsforecast.models import (
     CrostonClassic,
     CrostonOptimized,
     CrostonSBA,
+    DynamicOptimizedTheta,
     IMAPA,
     TSB,
 )
@@ -109,9 +110,7 @@ class StatsForecastPredictor(RepresentablePredictor):
             kwargs["level"] = self.config.intervals
 
         prediction = self.model.forecast(
-            y=entry["target"],
-            h=self.prediction_length,
-            **kwargs,
+            y=entry["target"], h=self.prediction_length, **kwargs,
         )
 
         forecast_arrays = [
@@ -245,3 +244,15 @@ class TSBPredictor(StatsForecastPredictor):
     """
 
     ModelType = TSB
+
+
+class DynamicOptimizedThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicOptimizedTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = DynamicOptimizedTheta
