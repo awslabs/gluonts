@@ -41,6 +41,7 @@ from statsforecast.models import (
     SeasonalNaive,
     SeasonalWindowAverage,
     SimpleExponentialSmoothing,
+    SimpleExponentialSmoothingOptimized,
     TSB,
 )
 
@@ -438,3 +439,15 @@ class SimpleExponentialSmoothingPredictor(StatsForecastPredictor):
     """
 
     ModelType = SimpleExponentialSmoothing
+
+
+class SimpleExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SimpleExponentialSmoothingOptimized`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SimpleExponentialSmoothingOptimized
