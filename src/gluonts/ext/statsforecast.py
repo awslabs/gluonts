@@ -35,6 +35,7 @@ from statsforecast.models import (
     MSTL,
     Naive,
     OptimizedTheta,
+    RandomWalkWithDrift,
     TSB,
 )
 
@@ -360,3 +361,15 @@ class OptimizedThetaPredictor(StatsForecastPredictor):
     """
 
     ModelType = OptimizedTheta
+
+
+class RandomWalkWithDriftPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``RandomWalkWithDrift`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = RandomWalkWithDrift
