@@ -26,6 +26,7 @@ from statsforecast.models import (
     CrostonOptimized,
     CrostonSBA,
     DynamicOptimizedTheta,
+    DynamicTheta,
     IMAPA,
     TSB,
 )
@@ -256,3 +257,15 @@ class DynamicOptimizedThetaPredictor(StatsForecastPredictor):
     """
 
     ModelType = DynamicOptimizedTheta
+
+
+class DynamicThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = DynamicTheta
