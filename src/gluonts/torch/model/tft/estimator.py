@@ -26,6 +26,7 @@ from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.util import IterableDataset
 from gluonts.transform import (
     AddObservedValuesIndicator,
+    AddConstFeature,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
@@ -212,14 +213,28 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
                 target_field=FieldName.TARGET,
                 output_field=FieldName.OBSERVED_VALUES,
             ),
-            AddTimeFeatures(
-                start_field=FieldName.START,
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_TIME,
-                time_features=self.time_features,
-                pred_length=self.prediction_length,
-            ),
         ]
+        if len(self.time_features) > 0:
+            transforms.append(
+                AddTimeFeatures(
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
+                    time_features=self.time_features,
+                    pred_length=self.prediction_length,
+                )
+            )
+        else:
+            # Add dummy dynamic feature if no time features are available
+            transforms.append(
+                AddConstFeature(
+                    output_field=FieldName.FEAT_TIME,
+                    target_field=FieldName.TARGET,
+                    pred_length=self.prediction_length,
+                    const=0.0,
+                )
+            )
+
         # Provide dummy values if static features are missing
         if not self.static_dims:
             transforms.append(
@@ -338,7 +353,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             quantiles=self.quantiles,
             d_past_feat_dynamic_real=self.past_dynamic_dims,
             c_past_feat_dynamic_cat=self.past_dynamic_cardinalities,
-            d_feat_dynamic_real=[1] * len(self.time_features)
+            d_feat_dynamic_real=[1] * max(len(self.time_features), 1)
             + self.dynamic_dims,
             c_feat_dynamic_cat=self.dynamic_cardinalities,
             d_feat_static_real=self.static_dims or [1],
