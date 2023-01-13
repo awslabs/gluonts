@@ -483,7 +483,7 @@ class SampleForecast(Forecast):
         return _fast_quantile(
             self._sorted_samples,
             q=Quantile.parse(q).value,
-            axis=1,
+            axis=0,
         )
 
     @property
