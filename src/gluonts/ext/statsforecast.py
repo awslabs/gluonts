@@ -43,6 +43,7 @@ from statsforecast.models import (
     SimpleExponentialSmoothing,
     SimpleExponentialSmoothingOptimized,
     TSB,
+    Theta,
 )
 
 from gluonts.core.component import validated
@@ -451,3 +452,15 @@ class SimpleExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
     """
 
     ModelType = SimpleExponentialSmoothingOptimized
+
+
+class ThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Theta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Theta
