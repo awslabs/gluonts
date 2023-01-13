@@ -44,6 +44,7 @@ from statsforecast.models import (
     SimpleExponentialSmoothingOptimized,
     TSB,
     Theta,
+    WindowAverage,
 )
 
 from gluonts.core.component import validated
@@ -464,3 +465,15 @@ class ThetaPredictor(StatsForecastPredictor):
     """
 
     ModelType = Theta
+
+
+class WindowAveragePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``WindowAverage`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = WindowAverage
