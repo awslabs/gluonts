@@ -11,8 +11,36 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import copy
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
+
+T = TypeVar("T")
+
+
+def copy_with(obj: T, **kwargs) -> T:
+    """Return copy of `obj` and update attributes of the copy using `kwargs`.
+
+    ::
+
+        @dataclass
+        class MyClass:
+            value: int
+
+        a = MyClass(1)
+        b = copy_with(a, value=2)
+
+        assert a.value == 1
+        assert b.value == 2
+
+    """
+
+    new_obj = copy.copy(obj)
+
+    for name, value in kwargs.items():
+        setattr(new_obj, name, value)
+
+    return new_obj
 
 
 if TYPE_CHECKING:
