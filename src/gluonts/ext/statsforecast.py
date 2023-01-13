@@ -28,6 +28,7 @@ from statsforecast.models import (
     DynamicOptimizedTheta,
     DynamicTheta,
     ETS,
+    HistoricAverage,
     IMAPA,
     TSB,
 )
@@ -282,3 +283,15 @@ class ETSPredictor(StatsForecastPredictor):
     """
 
     ModelType = ETS
+
+
+class HistoricAveragePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = HistoricAverage
