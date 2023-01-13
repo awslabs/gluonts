@@ -183,7 +183,7 @@ class PandasDataset:
         return len(self._data_entries)
 
     def __str__(self) -> str:
-        return f"PandasDataset with {len(self)} series, freq={self.freq}"
+        return f"PandasDataset<size={len(self)}, freq={self.freq}>"
 
     @classmethod
     def from_long_dataframe(
