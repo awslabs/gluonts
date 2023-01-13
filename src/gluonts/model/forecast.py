@@ -85,7 +85,7 @@ class ExponentialTailApproximation:
         y_coord: List[np.ndarray],
         tol: float = 1e-8,
     ) -> None:
-        assert sorted(self.x_coord) == self.x_coord
+        assert sorted(x_coord) == x_coord
         assert (
             len(x_coord) >= 2
         ), "Need at least two points for exponential approximation."
