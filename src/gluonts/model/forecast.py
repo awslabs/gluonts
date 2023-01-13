@@ -13,7 +13,6 @@
 
 import re
 from dataclasses import field
-from functools import lru_cache
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
@@ -21,11 +20,15 @@ import pandas as pd
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts.util import lazy_property
 
 
 def _linear_interpolation(
     xs: np.ndarray, ys: np.ndarray, x: float
 ) -> np.ndarray:
+    # TODO: This currently also extrapolates if `x` is out of range/
+    # Do we want this?
+
     assert sorted(xs) == xs
     assert len(xs) == len(ys)
     assert len(xs) >= 2
@@ -48,9 +51,8 @@ def _linear_interpolation(
 
 def _fast_quantile(data: np.ndarray, q: float, axis: int) -> np.ndarray:
     """Fast Quantile, assumes that data is sorted along axis `axis`."""
-    num_samples = data.shape[axis]
 
-    idx, fraction = divmod(q * (num_samples - 1), 1)
+    idx, fraction = divmod(q * (data.shape[axis] - 1), 1)
     idx = int(idx)
 
     left = data.take(idx, axis=axis)
@@ -58,7 +60,6 @@ def _fast_quantile(data: np.ndarray, q: float, axis: int) -> np.ndarray:
         return left
 
     right = data.take(idx + 1, axis=axis)
-
     return left + (right - left) * fraction
 
 
@@ -394,8 +395,7 @@ class Forecast:
         if output_file:
             plt.savefig(output_file)
 
-    @property
-    @lru_cache(1)
+    @lazy_property
     def index(self) -> pd.PeriodIndex:
         return pd.period_range(
             self.start_date,
@@ -472,8 +472,7 @@ class SampleForecast(Forecast):
     def prediction_length(self):
         return self.samples.shape[1]
 
-    @property
-    @lru_cache(1)
+    @lazy_property
     def mean(self) -> np.ndarray:
         """
         Forecast mean.
@@ -491,8 +490,7 @@ class SampleForecast(Forecast):
     def is_univariate(self):
         return self.samples.ndim == 2
 
-    @property
-    @lru_cache(1)
+    @lazy_property
     def _sorted_samples(self):
         return np.sort(self.samples, axis=0)
 
