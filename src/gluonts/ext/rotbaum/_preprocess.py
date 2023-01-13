@@ -476,7 +476,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                     *[
                         list(ent[0]) + list(ent[1].values())
                         for ent in [
-                            self._pre_transform(ts[starting_index:end_index])
+                            self._pre_transform(
+                                ts[starting_index:end_index],
+                                self.subtract_mean,
+                                self.count_nans,
+                            )
                             for ts in time_series["past_feat_dynamic_real"]
                         ]
                     ]
@@ -495,7 +499,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                                 ts[
                                     starting_index : end_index
                                     + self.forecast_horizon
-                                ]
+                                ],
+                                self.subtract_mean,
+                                self.count_nans,
                             )
                             for ts in time_series["feat_dynamic_real"]
                         ]
