@@ -33,6 +33,7 @@ from statsforecast.models import (
     HoltWinters,
     IMAPA,
     MSTL,
+    Naive,
     TSB,
 )
 
@@ -334,3 +335,15 @@ class MSTLPredictor(StatsForecastPredictor):
     """
 
     ModelType = MSTL
+
+
+class NaivePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Naive`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Naive
