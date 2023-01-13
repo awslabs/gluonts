@@ -29,6 +29,7 @@ from statsforecast.models import (
     DynamicTheta,
     ETS,
     HistoricAverage,
+    Holt,
     IMAPA,
     TSB,
 )
@@ -275,7 +276,7 @@ class DynamicThetaPredictor(StatsForecastPredictor):
 
 class ETSPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+    A predictor wrapping the ``ETS`` model from `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -287,7 +288,7 @@ class ETSPredictor(StatsForecastPredictor):
 
 class HistoricAveragePredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+    A predictor wrapping the ``HistoricAverage`` model from `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -295,3 +296,15 @@ class HistoricAveragePredictor(StatsForecastPredictor):
     """
 
     ModelType = HistoricAverage
+
+
+class HoltPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Holt`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Holt
