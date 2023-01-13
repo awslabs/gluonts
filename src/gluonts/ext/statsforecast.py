@@ -34,6 +34,7 @@ from statsforecast.models import (
     IMAPA,
     MSTL,
     Naive,
+    OptimizedTheta,
     TSB,
 )
 
@@ -347,3 +348,15 @@ class NaivePredictor(StatsForecastPredictor):
     """
 
     ModelType = Naive
+
+
+class OptimizedThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``OptimizedTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = OptimizedTheta
