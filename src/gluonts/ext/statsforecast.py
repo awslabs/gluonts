@@ -127,7 +127,9 @@ class StatsForecastPredictor(RepresentablePredictor):
             kwargs["level"] = self.config.intervals
 
         prediction = self.model.forecast(
-            y=entry["target"], h=self.prediction_length, **kwargs,
+            y=entry["target"],
+            h=self.prediction_length,
+            **kwargs,
         )
 
         forecast_arrays = [
