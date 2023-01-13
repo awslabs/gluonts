@@ -38,6 +38,7 @@ from statsforecast.models import (
     RandomWalkWithDrift,
     SeasonalExponentialSmoothing,
     SeasonalExponentialSmoothingOptimized,
+    SeasonalNaive,
     TSB,
 )
 
@@ -399,3 +400,15 @@ class SeasonalExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
     """
 
     ModelType = SeasonalExponentialSmoothingOptimized
+
+
+class SeasonalNaivePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SeasonalNaive`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SeasonalNaive
