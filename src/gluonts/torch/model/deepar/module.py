@@ -92,10 +92,10 @@ class DeepARModel(nn.Module):
         freq: str,
         context_length: int,
         prediction_length: int,
-        num_feat_dynamic_real: int,
-        num_feat_static_real: int,
-        num_feat_static_cat: int,
-        cardinality: List[int],
+        num_feat_dynamic_real: int = 1,
+        num_feat_static_real: int = 1,
+        num_feat_static_cat: int = 1,
+        cardinality: List[int] = [1],
         embedding_dimension: Optional[List[int]] = None,
         num_layers: int = 2,
         hidden_size: int = 40,
@@ -109,6 +109,14 @@ class DeepARModel(nn.Module):
         super().__init__()
 
         assert distr_output.event_shape == ()
+        assert num_feat_dynamic_real > 0
+        assert num_feat_static_real > 0
+        assert num_feat_static_cat > 0
+        assert len(cardinality) == num_feat_static_cat
+        assert (
+            embedding_dimension is None
+            or len(embedding_dimension) == num_feat_static_cat
+        )
 
         self.context_length = context_length
         self.prediction_length = prediction_length
