@@ -30,6 +30,7 @@ from statsforecast.models import (
     ETS,
     HistoricAverage,
     Holt,
+    HoltWinters,
     IMAPA,
     TSB,
 )
@@ -308,3 +309,15 @@ class HoltPredictor(StatsForecastPredictor):
     """
 
     ModelType = Holt
+
+
+class HoltWintersPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``HoltWinters`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = HoltWinters
