@@ -27,7 +27,6 @@ from statsforecast.models import (
     CrostonSBA,
     DynamicOptimizedTheta,
     DynamicTheta,
-    ETS,
     HistoricAverage,
     Holt,
     HoltWinters,
@@ -275,18 +274,6 @@ class DynamicThetaPredictor(StatsForecastPredictor):
     """
 
     ModelType = DynamicTheta
-
-
-class ETSPredictor(StatsForecastPredictor):
-    """
-    A predictor wrapping the ``ETS`` model from `statsforecast`_.
-
-    See :class:`StatsForecastPredictor` for the list of arguments.
-
-    .. _statsforecast: https://github.com/Nixtla/statsforecast
-    """
-
-    ModelType = ETS
 
 
 class HistoricAveragePredictor(StatsForecastPredictor):
