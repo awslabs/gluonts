@@ -24,6 +24,7 @@ from gluonts.torch.model.deepar import DeepAREstimator
 from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
@@ -48,6 +49,13 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             trainer_kwargs=dict(max_epochs=2),
         ),
         lambda dataset: SimpleFeedForwardEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: TemporalFusionTransformerEstimator(
+            freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
             num_batches_per_epoch=3,
@@ -115,6 +123,16 @@ def test_estimator_constant_dataset(estimator_constructor):
             num_feat_static_real=1,
             num_feat_static_cat=2,
             cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: TemporalFusionTransformerEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            dynamic_dims=[3],
+            static_dims=[1],
+            static_cardinalities=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
         ),
     ],
