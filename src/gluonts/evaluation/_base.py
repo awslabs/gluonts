@@ -103,6 +103,36 @@ def aggregate_valid(
     }
 
 
+def validate_forecast(
+    forecast: Forecast, quantiles: Iterable[Union[float, str]]
+) -> bool:
+    """Validates a Forecast object by checking it for NaN values.
+    The supplied quantiles and mean (if available) are checked.
+
+    Parameters
+    ----------
+    forecast
+        The forecast object.
+    quantiles
+        List of strings of the form 'p10' or floats in [0, 1] with
+        the quantile levels.
+
+    Returns
+    -------
+        True, if the forecast's mean and quantiles have no NaN values,
+        else False.
+    """
+    try:
+        mean_fcst = getattr(forecast, "mean", None)
+    except NotImplementedError:
+        mean_fcst = None
+
+    valid = ~np.isnan(mean_fcst).any() if mean_fcst is not None else True
+    valid &= all(~np.isnan(forecast.quantile(q)).any() for q in quantiles)
+
+    return valid
+
+
 class Evaluator:
     """
     Evaluator class, to compute accuracy metrics by comparing observations to
