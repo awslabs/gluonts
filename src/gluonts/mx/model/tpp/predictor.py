@@ -183,9 +183,7 @@ class PointProcessGluonPredictor(GluonPredictor):
             inference_data_loader=inference_data_loader,
             prediction_net=self.prediction_net,
             input_names=self.input_names,
-            freq=self.freq,
             output_transform=self.output_transform,
-            num_samples=num_samples,
         )
 
     def serialize_prediction_net(self, path: Path) -> None:
