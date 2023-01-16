@@ -31,10 +31,6 @@ LOG_CACHE = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )
-NOT_SAMPLE_BASED_MSG = (
-    "Forecast is not sample based. Ignoring parameter `num_samples` from"
-    " predict method."
-)
 
 
 def log_once(msg):
@@ -93,8 +89,6 @@ class ForecastGenerator:
         prediction_net,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
 
@@ -110,17 +104,13 @@ class QuantileForecastGenerator(ForecastGenerator):
         prediction_net,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
+
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
-
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
 
             i = -1
             for i, output in enumerate(outputs):
@@ -147,39 +137,29 @@ class SampleForecastGenerator(ForecastGenerator):
         prediction_net,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
+            batch_size = len(batch[FieldName.FORECAST_START])
+            nones = np.full(batch_size, None)
+
             inputs = [batch[k] for k in input_names]
             outputs = predict_to_numpy(prediction_net, inputs)
+
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
-            if num_samples:
-                num_collected_samples = outputs[0].shape[0]
-                collected_samples = [outputs]
-                while num_collected_samples < num_samples:
-                    outputs = predict_to_numpy(prediction_net, inputs)
-                    if output_transform is not None:
-                        outputs = output_transform(batch, outputs)
-                    collected_samples.append(outputs)
-                    num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
-                assert len(outputs[0]) == num_samples
-            i = -1
-            for i, output in enumerate(outputs):
+
+            for output, forecast_start, item_id, info in zip(
+                outputs,
+                batch[FieldName.FORECAST_START],
+                batch.get("item_id", nones),
+                batch.get("info", nones),
+            ):
                 yield SampleForecast(
                     output,
-                    start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
-                    info=batch["info"][i] if "info" in batch else None,
+                    start_date=forecast_start,
+                    item_id=item_id,
+                    info=info,
                 )
-            assert i + 1 == len(batch[FieldName.FORECAST_START])
 
 
 class DistributionForecastGenerator(ForecastGenerator):
@@ -193,8 +173,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         prediction_net,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
@@ -202,8 +180,6 @@ class DistributionForecastGenerator(ForecastGenerator):
 
             if output_transform:
                 log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
                 self.distr_output.distribution(*u) for u in _unpack(outputs)
