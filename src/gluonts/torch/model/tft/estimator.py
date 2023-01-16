@@ -74,7 +74,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
 
     For example, if the dataset contains key "feat_static_real" with shape
     [batch_size, 3], we can, e.g.,
-    - set ``static_dims = [3]`` to treat all five dimensions as a single feature
+    - set ``static_dims = [3]`` to treat all three dimensions as a single feature
     - set ``static_dims = [1, 1, 1]`` to treat each dimension as a separate feature
     - set ``static_dims = [2, 1]`` to treat the first two dims as a single feature
 

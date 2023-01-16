@@ -44,12 +44,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         context_length: int,
         prediction_length: int,
-        d_feat_static_real: List[int] = None,  #  Defaults to [1]
-        c_feat_static_cat: List[int] = None,  #  Defaults to [1]
-        d_feat_dynamic_real: List[int] = None,  # Defaults to [1]
-        c_feat_dynamic_cat: List[int] = None,  # Defaults to []
-        d_past_feat_dynamic_real: List[int] = None,  # Defaults to []
-        c_past_feat_dynamic_cat: List[int] = None,  # Defaults to []
+        d_feat_static_real: Optional[List[int]] = None,  #  Defaults to [1]
+        c_feat_static_cat: Optional[List[int]] = None,  #  Defaults to [1]
+        d_feat_dynamic_real: Optional[List[int]] = None,  # Defaults to [1]
+        c_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
+        d_past_feat_dynamic_real: Optional[List[int]] = None,  # Defaults to []
+        c_past_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
         quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
         d_hidden: int = 32,
