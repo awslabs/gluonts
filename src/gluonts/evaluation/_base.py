@@ -187,9 +187,10 @@ class Evaluator:
         Available options are:
         aggregate_valid | aggregate_all | aggregate_no_nan
         The default function is aggregate_no_nan.
-    strict
-        Raise an error when forecast contains `NaN` values.
-        Defaults to True.
+    allow_nan_forecast
+        Whether to allow `NaN` values in forecasts.
+        If False, raises an error when forecast contains `NaN` values.
+        Defaults to False.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -205,7 +206,7 @@ class Evaluator:
         chunk_size: int = 32,
         aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
-        strict: bool = True,
+        allow_nan_forecast: bool = False,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -216,7 +217,7 @@ class Evaluator:
         self.chunk_size = chunk_size
         self.aggregation_strategy = aggregation_strategy
         self.ignore_invalid_values = ignore_invalid_values
-        self.strict = strict
+        self.allow_nan_forecast = allow_nan_forecast
 
     def __call__(
         self,
@@ -368,12 +369,12 @@ class Evaluator:
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
         if not validate_forecast(forecast, self.quantiles):
-            if self.strict:
-                raise ValueError("Forecast contains NaN values.")
-            else:
+            if self.allow_nan_forecast:
                 logging.warning(
                     "Forecast contains NaN values. Metrics may be incorrect."
                 )
+            else:
+                raise ValueError("Forecast contains NaN values.")
 
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
