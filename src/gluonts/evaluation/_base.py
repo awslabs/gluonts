@@ -106,7 +106,7 @@ def aggregate_valid(
 def validate_forecast(
     forecast: Forecast, quantiles: Iterable[Union[float, str]]
 ) -> bool:
-    """Validates a Forecast object by checking it for NaN values.
+    """Validates a Forecast object by checking it for `NaN` values.
     The supplied quantiles and mean (if available) are checked.
 
     Parameters
@@ -119,7 +119,7 @@ def validate_forecast(
 
     Returns
     -------
-        True, if the forecast's mean and quantiles have no NaN values,
+        True, if the forecast's mean and quantiles have no `NaN` values,
         else False.
     """
     try:
@@ -180,11 +180,14 @@ class Evaluator:
     ignore_invalid_values
         Ignore `NaN` and `inf` values in the timeseries when calculating
         metrics.
-    aggregation_strategy:
+    aggregation_strategy
         Function for aggregating per timeseries metrics.
         Available options are:
         aggregate_valid | aggregate_all | aggregate_no_nan
         The default function is aggregate_no_nan.
+    strict
+        Raise an error when forecast contains `NaN` values.
+        Defaults to True.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -200,6 +203,7 @@ class Evaluator:
         chunk_size: int = 32,
         aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
+        strict: bool = True,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -210,6 +214,7 @@ class Evaluator:
         self.chunk_size = chunk_size
         self.aggregation_strategy = aggregation_strategy
         self.ignore_invalid_values = ignore_invalid_values
+        self.strict = strict
 
     def __call__(
         self,
@@ -360,6 +365,14 @@ class Evaluator:
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
+        if not validate_forecast(forecast, self.quantiles):
+            if self.strict:
+                raise ValueError("Forecast contains NaN values.")
+            else:
+                logging.warning(
+                    "Forecast contains NaN values. Metrics may be incorrect."
+                )
+
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
