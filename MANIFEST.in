@@ -1,20 +1,23 @@
-include src/gluonts/ext/r_forecast/R/*.R
-recursive-include requirements *.txt
+
+# include all of gluonts
+graft src/gluonts
+
+# except the nursery
+prune src/gluonts/nursery
+
+graft docs
+graft requirements
+graft test
+
+includes *.md
+include NOTICE
 
 prune .devtools
+prune .gitattributes
 prune .github
 prune examples
 prune evaluations
-prune docs
-prune test
-
-
-prune src/gluonts/nursery
-
 
 exclude .dockerignore
 exclude .gitignore
 exclude dev_setup.sh
-
-
-global-exclude *.ipynb
