@@ -41,6 +41,7 @@ from gluonts.mx.util import (
     import_symb_block,
 )
 from gluonts.transform import Transformation
+from gluonts.util import copy_with
 
 
 @predict_to_numpy.register(mx.gluon.Block)
@@ -159,13 +160,20 @@ class GluonPredictor(Predictor):
             batch_size=self.batch_size,
             stack_fn=partial(batchify, ctx=self.ctx, dtype=self.dtype),
         )
+
+        if num_samples is not None:
+            prediction_net = copy_with(
+                self.prediction_net, num_parallel_samples=num_samples
+            )
+        else:
+            prediction_net = self.prediction_net
+
         with mx.Context(self.ctx):
             yield from self.forecast_generator(
                 inference_data_loader=inference_data_loader,
-                prediction_net=self.prediction_net,
+                prediction_net=prediction_net,
                 input_names=self.input_names,
                 output_transform=self.output_transform,
-                num_samples=num_samples,
             )
 
     def __eq__(self, that):
