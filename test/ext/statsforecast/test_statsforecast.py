@@ -31,8 +31,25 @@ from gluonts.ext.statsforecast import (
     CrostonClassicPredictor,
     CrostonOptimizedPredictor,
     CrostonSBAPredictor,
+    DynamicOptimizedThetaPredictor,
+    DynamicThetaPredictor,
+    HistoricAveragePredictor,
+    HoltPredictor,
+    HoltWintersPredictor,
     IMAPAPredictor,
+    MSTLPredictor,
+    NaivePredictor,
+    OptimizedThetaPredictor,
+    RandomWalkWithDriftPredictor,
+    SeasonalExponentialSmoothingOptimizedPredictor,
+    SeasonalExponentialSmoothingPredictor,
+    SeasonalNaivePredictor,
+    SeasonalWindowAveragePredictor,
+    SimpleExponentialSmoothingOptimizedPredictor,
+    SimpleExponentialSmoothingPredictor,
     TSBPredictor,
+    ThetaPredictor,
+    WindowAveragePredictor,
 )
 
 
@@ -77,8 +94,31 @@ def test_model_config(
         CrostonClassicPredictor(prediction_length=3),
         CrostonOptimizedPredictor(prediction_length=3),
         CrostonSBAPredictor(prediction_length=3),
+        DynamicOptimizedThetaPredictor(prediction_length=3),
+        DynamicThetaPredictor(prediction_length=3),
+        HistoricAveragePredictor(prediction_length=3),
+        HoltPredictor(prediction_length=3, season_length=2),
+        HoltWintersPredictor(prediction_length=3, season_length=2),
         IMAPAPredictor(prediction_length=3),
+        MSTLPredictor(prediction_length=3, season_length=2),
+        NaivePredictor(prediction_length=3),
+        OptimizedThetaPredictor(prediction_length=3),
+        RandomWalkWithDriftPredictor(prediction_length=3),
+        SeasonalExponentialSmoothingOptimizedPredictor(
+            prediction_length=3, season_length=2
+        ),
+        SeasonalExponentialSmoothingPredictor(
+            prediction_length=3, season_length=2, alpha=0.5
+        ),
+        SeasonalNaivePredictor(prediction_length=3, season_length=2),
+        SeasonalWindowAveragePredictor(
+            prediction_length=3, season_length=2, window_size=1
+        ),
+        SimpleExponentialSmoothingOptimizedPredictor(prediction_length=3),
+        SimpleExponentialSmoothingPredictor(prediction_length=3, alpha=0.5),
         TSBPredictor(prediction_length=3, alpha_d=0.5, alpha_p=0.5),
+        ThetaPredictor(prediction_length=3),
+        WindowAveragePredictor(prediction_length=3, window_size=1),
     ],
 )
 @pytest.mark.parametrize(

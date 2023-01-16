@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
 from gluonts.time_feature import (
     TimeFeature,
@@ -40,6 +41,8 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
+    MissingValueImputation,
+    DummyValueImputation,
 )
 from gluonts.torch.util import (
     IterableDataset,
@@ -123,6 +126,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         (default: ``NegativeLogLikelihood()``).
     scaling
         Whether to automatically scale the target values (default: true).
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined
@@ -167,11 +174,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
+        default_scale: Optional[float] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
+        imputation_method: Optional[MissingValueImputation] = None,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
@@ -205,6 +214,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
+        self.default_scale = default_scale
         self.lags_seq = lags_seq
         self.time_features = (
             time_features
@@ -216,12 +226,28 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
+
         self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
         self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        stats = calculate_dataset_statistics(train_iter)
+
+        return {
+            "num_feat_dynamic_real": stats.num_feat_dynamic_real,
+            "num_feat_static_cat": len(stats.feat_static_cat),
+            "cardinality": [len(cats) for cats in stats.feat_static_cat],
+        }
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
@@ -264,6 +290,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
@@ -382,6 +409,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
             dropout_rate=self.dropout_rate,
             lags_seq=self.lags_seq,
             scaling=self.scaling,
+            default_scale=self.default_scale,
             num_parallel_samples=self.num_parallel_samples,
         )
 

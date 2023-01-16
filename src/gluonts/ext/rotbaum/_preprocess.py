@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import concurrent.futures
 import logging
 from enum import Enum
 from itertools import chain, starmap
@@ -19,6 +20,8 @@ from typing import Dict, List, Tuple, Union, Optional
 import numpy as np
 
 from gluonts.core.component import validated
+
+logger = logging.getLogger(__name__)
 
 
 class CardinalityLabel(str, Enum):
@@ -145,17 +148,7 @@ class PreprocessGeneric:
             + 1
         )
         if max_num_context_windows < 1:
-            if not self.use_feat_static_real and not self.cardinality:
-                return [], []
-            else:
-                # will return featurized data containing no target
-                return (
-                    self.make_features(
-                        altered_time_series,
-                        len(altered_time_series["target"]),
-                    ),
-                    [],
-                )
+            return [[]], [[]]
 
         if self.num_samples > 0:
             locations = [
@@ -197,6 +190,9 @@ class PreprocessGeneric:
                 )
         return feature_data, target_data
 
+    def infer_feature_characteristics(self, ts):
+        raise NotImplementedError
+
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
     ) -> Tuple:
@@ -228,12 +224,19 @@ class PreprocessGeneric:
                 else []
             )
 
-        for time_series in ts_list:
-            ts_feature_data, ts_target_data = self.preprocess_from_single_ts(
-                time_series=time_series
-            )
-            feature_data += list(ts_feature_data)
-            target_data += list(ts_target_data)
+        self.infer_feature_characteristics(ts_list[0])
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            logger.info("using concurrent data preprocessing")
+            for result in executor.map(
+                self.preprocess_from_single_ts, ts_list
+            ):
+                ts_feature_data, ts_target_data = result
+                # Ensure that only non-empty lists are added to the dataset
+                if len(ts_target_data[0]) > 0:
+                    feature_data += list(ts_feature_data)
+                    target_data += list(ts_target_data)
+
         logging.info(
             "Done preprocessing. Resulting number of datapoints is: {}".format(
                 len(feature_data)
@@ -318,6 +321,18 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         self.one_hot_encode = one_hot_encode
         self.subtract_mean = subtract_mean
         self.count_nans = count_nans
+        time_series_window, stats_dict = self._pre_transform(
+            [0] * self.context_window_size, subtract_mean, count_nans
+        )
+        self.dynamic_length = len(time_series_window) + len(
+            stats_dict.values()
+        )
+
+        self.num_feat_dynamic_cat = None
+        self.num_feat_dynamic_real = None
+        self.num_feat_static_cat = None
+        self.num_feat_static_real = None
+        self.num_past_feat_dynamic_real = None
 
     @classmethod
     def _pre_transform(
@@ -387,6 +402,35 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         )
         return [len(set(xs)) for xs in mat.T]
 
+    def infer_feature_characteristics(self, ts):
+        self.num_feat_static_real = (
+            0
+            if ("feat_static_real" not in ts)
+            or (self.use_feat_static_real is False)
+            else len(ts["feat_static_real"])
+        )
+        self.num_feat_static_cat = (
+            0 if ("feat_static_cat" not in ts) else len(ts["feat_static_cat"])
+        )
+        self.num_past_feat_dynamic_real = (
+            0
+            if ("past_feat_dynamic_real" not in ts)
+            or (self.use_past_feat_dynamic_real is False)
+            else len(ts["past_feat_dynamic_real"])
+        )
+        self.num_feat_dynamic_real = (
+            0
+            if ("feat_dynamic_real" not in ts)
+            or (self.use_feat_dynamic_real is False)
+            else len(ts["feat_dynamic_real"])
+        )
+        self.num_feat_dynamic_cat = (
+            0
+            if ("feat_dynamic_cat" not in ts)
+            or (self.use_feat_dynamic_cat is False)
+            else len(ts["feat_dynamic_real"])
+        )
+
     def make_features(self, time_series: Dict, starting_index: int) -> List:
         """
         Makes features for the context window starting at starting_index.
@@ -432,7 +476,11 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                     *[
                         list(ent[0]) + list(ent[1].values())
                         for ent in [
-                            self._pre_transform(ts[starting_index:end_index])
+                            self._pre_transform(
+                                ts[starting_index:end_index],
+                                self.subtract_mean,
+                                self.count_nans,
+                            )
                             for ts in time_series["past_feat_dynamic_real"]
                         ]
                     ]
@@ -451,7 +499,9 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
                                 ts[
                                     starting_index : end_index
                                     + self.forecast_horizon
-                                ]
+                                ],
+                                self.subtract_mean,
+                                self.count_nans,
                             )
                             for ts in time_series["feat_dynamic_real"]
                         ]

@@ -11,7 +11,6 @@ MQ-CNN<br>[Wen et al. 2017][Wen2017]                         | Global       | Un
 MQ-RNN<br>[Wen et al. 2017][Wen2017]                         | Global       | Univariate               | RNN encoder, MLP encoder | [MXNet][MQDNN]
 N-BEATS<br>[Oreshkin et al. 2019][Oreshkin2019]              | Global       | Univariate               | MLP, residual links | [MXNet][NBeats]
 Rotbaum<br>[Hasson et al. 2021][Hasson2021]                  | Global       | Univariate               | XGBoost, Quantile Regression Forests, LightGBM, Level Set Forecaster | [Numpy][Rotbaum]
-Causal Convolutional Transformer<br>[Li et al. 2019][Li2019] | Global       | Univariate               | Causal convolution, self attention | [MXNet][SAN]
 Temporal Fusion Transformer<br>[Lim et al. 2021][Lim2021]    | Global       | Univariate               | LSTM, self attention | [MXNet][TFT]
 Transformer<br>[Vaswani et al. 2017][Vaswani2017]            | Global       | Univariate               | MLP, multi-head attention | [MXNet][Transformer]
 WaveNet<br>[van den Oord et al. 2016][vanDenOord2016]        | Global       | Univariate               | Dilated convolution | [MXNet][WaveNet]
@@ -37,7 +36,6 @@ NPTS                                                         | Local        | Un
 [Wen2017]: https://arxiv.org/abs/1711.11053
 [Oreshkin2019]: https://openreview.net/forum?id=r1ecqn4YwB
 [Hasson2021]: https://openreview.net/forum?id=VD3TMzyxKK
-[Li2019]: https://papers.nips.cc/paper/2019/hash/6775a0635c302542da2c32aa19d86be0-Abstract.html
 [Lim2021]: https://doi.org/10.1016/j.ijforecast.2021.03.012
 [Vaswani2017]: https://papers.nips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html
 [vanDenOord2016]: https://arxiv.org/abs/1609.03499
@@ -60,7 +58,6 @@ NPTS                                                         | Local        | Un
 [MQDNN]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/seq2seq/_mq_dnn_estimator.py
 [NBeats]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/n_beats/_estimator.py
 [Rotbaum]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/rotbaum/_estimator.py
-[SAN]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/san/_estimator.py
 [TFT]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/tft/_estimator.py
 [Transformer]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/transformer/_estimator.py
 [WaveNet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/wavenet/_estimator.py

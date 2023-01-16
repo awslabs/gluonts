@@ -25,8 +25,25 @@ from statsforecast.models import (
     CrostonClassic,
     CrostonOptimized,
     CrostonSBA,
+    DynamicOptimizedTheta,
+    DynamicTheta,
+    HistoricAverage,
+    Holt,
+    HoltWinters,
     IMAPA,
+    MSTL,
+    Naive,
+    OptimizedTheta,
+    RandomWalkWithDrift,
+    SeasonalExponentialSmoothing,
+    SeasonalExponentialSmoothingOptimized,
+    SeasonalNaive,
+    SeasonalWindowAverage,
+    SimpleExponentialSmoothing,
+    SimpleExponentialSmoothingOptimized,
     TSB,
+    Theta,
+    WindowAverage,
 )
 
 from gluonts.core.component import validated
@@ -265,6 +282,186 @@ class IMAPAPredictor(StatsForecastPredictor):
     ModelType = IMAPA
 
 
+class DynamicOptimizedThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicOptimizedTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = DynamicOptimizedTheta
+
+
+class DynamicThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``DynamicTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = DynamicTheta
+
+
+class HistoricAveragePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``HistoricAverage`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = HistoricAverage
+
+
+class HoltPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Holt`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Holt
+
+
+class HoltWintersPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``HoltWinters`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = HoltWinters
+
+
+class MSTLPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``MSTL`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = MSTL
+
+
+class NaivePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Naive`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Naive
+
+
+class OptimizedThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``OptimizedTheta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = OptimizedTheta
+
+
+class RandomWalkWithDriftPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``RandomWalkWithDrift`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = RandomWalkWithDrift
+
+
+class SeasonalExponentialSmoothingPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SeasonalExponentialSmoothing`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SeasonalExponentialSmoothing
+
+
+class SeasonalExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SeasonalExponentialSmoothingOptimized`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SeasonalExponentialSmoothingOptimized
+
+
+class SeasonalNaivePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SeasonalNaive`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SeasonalNaive
+
+
+class SeasonalWindowAveragePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SeasonalWindowAverage`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SeasonalWindowAverage
+
+
+class SimpleExponentialSmoothingPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SimpleExponentialSmoothing`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SimpleExponentialSmoothing
+
+
+class SimpleExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``SimpleExponentialSmoothingOptimized`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = SimpleExponentialSmoothingOptimized
+
+
 class TSBPredictor(StatsForecastPredictor):
     """
     A predictor wrapping the ``TSB`` model from `statsforecast`_.
@@ -275,3 +472,27 @@ class TSBPredictor(StatsForecastPredictor):
     """
 
     ModelType = TSB
+
+
+class ThetaPredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``Theta`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = Theta
+
+
+class WindowAveragePredictor(StatsForecastPredictor):
+    """
+    A predictor wrapping the ``WindowAverage`` model from `statsforecast`_.
+
+    See :class:`StatsForecastPredictor` for the list of arguments.
+
+    .. _statsforecast: https://github.com/Nixtla/statsforecast
+    """
+
+    ModelType = WindowAverage

@@ -182,6 +182,9 @@ class PandasDataset:
     def __len__(self) -> int:
         return len(self._data_entries)
 
+    def __str__(self) -> str:
+        return f"PandasDataset<size={len(self)}, freq={self.freq}>"
+
     @classmethod
     def from_long_dataframe(
         cls, dataframe: pd.DataFrame, item_id: str, **kwargs

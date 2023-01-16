@@ -417,10 +417,10 @@ class Evaluator:
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
 
-            metrics[quantile.loss_name] = quantile_loss(
+            metrics[f"QuantileLoss[{quantile}]"] = quantile_loss(
                 pred_target, forecast_quantile, quantile.value
             )
-            metrics[quantile.coverage_name] = coverage(
+            metrics[f"Coverage[{quantile}]"] = coverage(
                 pred_target, forecast_quantile
             )
 
@@ -446,8 +446,8 @@ class Evaluator:
             agg_funs["MASE_naive2"] = "mean"
 
         for quantile in self.quantiles:
-            agg_funs[quantile.loss_name] = "sum"
-            agg_funs[quantile.coverage_name] = "mean"
+            agg_funs[f"QuantileLoss[{quantile}]"] = "sum"
+            agg_funs[f"Coverage[{quantile}]"] = "mean"
 
         if self.custom_eval_fn is not None:
             for k, (_, agg_type, _) in self.custom_eval_fn.items():
@@ -468,24 +468,27 @@ class Evaluator:
         totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
 
         for quantile in self.quantiles:
-            totals[quantile.weighted_loss_name] = (
-                totals[quantile.loss_name] / totals["abs_target_sum"]
+            totals[f"wQuantileLoss[{quantile}]"] = (
+                totals[f"QuantileLoss[{quantile}]"] / totals["abs_target_sum"]
             )
 
         totals["mean_absolute_QuantileLoss"] = np.array(
-            [totals[quantile.loss_name] for quantile in self.quantiles]
+            [
+                totals[f"QuantileLoss[{quantile}]"]
+                for quantile in self.quantiles
+            ]
         ).mean()
 
         totals["mean_wQuantileLoss"] = np.array(
             [
-                totals[quantile.weighted_loss_name]
+                totals[f"wQuantileLoss[{quantile}]"]
                 for quantile in self.quantiles
             ]
         ).mean()
 
         totals["MAE_Coverage"] = np.mean(
             [
-                np.abs(totals[q.coverage_name] - np.array([q.value]))
+                np.abs(totals[f"Coverage[{quantile}]"] - np.array([q.value]))
                 for q in self.quantiles
             ]
         )

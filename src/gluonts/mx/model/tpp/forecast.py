@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from pandas import to_timedelta
 
-from gluonts.model.forecast import Config, Forecast, OutputType
+from gluonts.model.forecast import Forecast
 
 
 class PointProcessSampleForecast(Forecast):
@@ -130,15 +130,6 @@ class PointProcessSampleForecast(Forecast):
         raise AttributeError(
             "Period index not defined for point process samples"
         )
-
-    def as_json_dict(self, config: "Config") -> dict:
-        result = super().as_json_dict(config)
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
-            result["valid_length"] = self.valid_length.tolist()
-
-        return result
 
     def __repr__(self):
         return ", ".join(

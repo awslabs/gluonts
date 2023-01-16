@@ -18,7 +18,7 @@ import pytest
 from gluonts.model.forecast import (
     QuantileForecast,
     SampleForecast,
-    LinearInterpolation,
+    _linear_interpolation,
     ExponentialTailApproximation,
 )
 
@@ -144,12 +144,14 @@ def test_linear_interpolation() -> None:
         np.array([1.0, 2.0, 3.0]),
         np.array([0.25, 0.5, 0.9]),
     ]
-    linear_interpolation = LinearInterpolation(x_coord, y_coord)
+
     x = 0.75
     exact = y_coord[1] + (x - x_coord[1]) * (y_coord[2] - y_coord[1]) / (
         x_coord[2] - x_coord[1]
     )
-    assert np.all(np.abs(exact - linear_interpolation(x)) <= tol)
+    assert np.all(
+        np.abs(exact - _linear_interpolation(x_coord, y_coord, x)) <= tol
+    )
 
 
 def test_exponential_left_tail_approximation() -> None:
