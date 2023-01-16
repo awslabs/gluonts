@@ -30,6 +30,7 @@ from gluonts.model.forecast_generator import (
 from gluonts.mx.batchify import batchify
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
+from gluonts.util import copy_with
 
 
 class DeepRenewalProcessSampleOutputTransform:

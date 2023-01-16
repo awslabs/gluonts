@@ -31,10 +31,6 @@ LOG_CACHE = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )
-NOT_SAMPLE_BASED_MSG = (
-    "Forecast is not sample based. Ignoring parameter `num_samples` from"
-    " predict method."
-)
 
 
 def log_once(msg):
@@ -116,9 +112,6 @@ class QuantileForecastGenerator(ForecastGenerator):
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
 
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
-
             i = -1
             for i, output in enumerate(outputs):
                 yield QuantileForecast(
@@ -176,8 +169,6 @@ class DistributionForecastGenerator(ForecastGenerator):
         prediction_net,
         input_names: List[str],
         output_transform: Optional[OutputTransform],
-        num_samples: Optional[int],
-        **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
@@ -185,8 +176,6 @@ class DistributionForecastGenerator(ForecastGenerator):
 
             if output_transform:
                 log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
-            if num_samples:
-                log_once(NOT_SAMPLE_BASED_MSG)
 
             distributions = [
                 self.distr_output.distribution(*u) for u in _unpack(outputs)
