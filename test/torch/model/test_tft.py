@@ -90,14 +90,14 @@ def test_tft_modules(
         loc,
         scale,
     ) = model._preprocess(
-        past_target,
-        past_observed_values,
-        past_feat_dynamic_real,
-        past_feat_dynamic_cat,
-        feat_dynamic_real,
-        feat_dynamic_cat,
-        feat_static_real,
-        feat_static_cat,
+        past_target=past_target,
+        past_observed_values=past_observed_values,
+        feat_static_real=feat_static_real,
+        feat_static_cat=feat_static_cat,
+        feat_dynamic_real=feat_dynamic_real,
+        feat_dynamic_cat=feat_dynamic_cat,
+        past_feat_dynamic_real=past_feat_dynamic_real,
+        past_feat_dynamic_cat=past_feat_dynamic_cat,
     )
     for x in past_covariates:
         assert x.shape == (batch_size, context_length, model.d_var)
@@ -108,14 +108,14 @@ def test_tft_modules(
     assert loc.shape == scale.shape == (batch_size, 1)
 
     output = model(
-        past_target,
-        past_observed_values,
-        past_feat_dynamic_real,
-        past_feat_dynamic_cat,
-        feat_dynamic_real,
-        feat_dynamic_cat,
-        feat_static_real,
-        feat_static_cat,
+        past_target=past_target,
+        past_observed_values=past_observed_values,
+        feat_static_real=feat_static_real,
+        feat_static_cat=feat_static_cat,
+        feat_dynamic_real=feat_dynamic_real,
+        feat_dynamic_cat=feat_dynamic_cat,
+        past_feat_dynamic_real=past_feat_dynamic_real,
+        past_feat_dynamic_cat=past_feat_dynamic_cat,
     )
 
     assert output.shape == (batch_size, len(quantiles), prediction_length)

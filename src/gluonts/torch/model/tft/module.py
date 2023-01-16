@@ -34,6 +34,9 @@ class TemporalFusionTransformerModel(nn.Module):
     """Temporal Fusion Transformer neural network.
 
     Partially based on the implementation in github.com/kashif/pytorch-transformer-ts.
+
+    Inputs feat_static_real, feat_static_cat and feat_dynamic_real are mandatory.
+    Inputs feat_dynamic_cat, past_feat_dynamic_real and past_feat_dynamic_cat are optional.
     """
 
     @validated()
@@ -41,12 +44,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         context_length: int,
         prediction_length: int,
-        d_past_feat_dynamic_real: List[int],
-        c_past_feat_dynamic_cat: List[int],
-        d_feat_dynamic_real: List[int],
-        c_feat_dynamic_cat: List[int],
-        d_feat_static_real: List[int],
-        c_feat_static_cat: List[int],
+        d_feat_static_real: List[int] = None,  #  Defaults to [1]
+        c_feat_static_cat: List[int] = None,  #  Defaults to [1]
+        d_feat_dynamic_real: List[int] = None,  # Defaults to [1]
+        c_feat_dynamic_cat: List[int] = None,  # Defaults to []
+        d_past_feat_dynamic_real: List[int] = None,  # Defaults to []
+        c_past_feat_dynamic_cat: List[int] = None,  # Defaults to []
         quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
         d_hidden: int = 32,
@@ -65,10 +68,10 @@ class TemporalFusionTransformerModel(nn.Module):
             quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         self.quantiles = quantiles
 
-        self.d_feat_static_real = d_feat_static_real
-        self.d_feat_dynamic_real = d_feat_dynamic_real
-        self.d_past_feat_dynamic_real = d_past_feat_dynamic_real
-        self.c_feat_static_cat = c_feat_static_cat or []
+        self.d_feat_static_real = d_feat_static_real or [1]
+        self.d_feat_dynamic_real = d_feat_dynamic_real or [1]
+        self.d_past_feat_dynamic_real = d_past_feat_dynamic_real or []
+        self.c_feat_static_cat = c_feat_static_cat or [1]
         self.c_feat_dynamic_cat = c_feat_dynamic_cat or []
         self.c_past_feat_dynamic_cat = c_past_feat_dynamic_cat or []
 
@@ -192,16 +195,8 @@ class TemporalFusionTransformerModel(nn.Module):
         return {
             "past_target": (batch_size, self.context_length),
             "past_observed_values": (batch_size, self.context_length),
-            "past_feat_dynamic_real": (
-                batch_size,
-                self.context_length,
-                sum(self.d_past_feat_dynamic_real),
-            ),
-            "past_feat_dynamic_cat": (
-                batch_size,
-                self.context_length,
-                len(self.c_past_feat_dynamic_cat),
-            ),
+            "feat_static_real": (batch_size, sum(self.d_feat_static_real)),
+            "feat_static_cat": (batch_size, len(self.c_feat_static_cat)),
             "feat_dynamic_real": (
                 batch_size,
                 self.context_length + self.prediction_length,
@@ -212,32 +207,40 @@ class TemporalFusionTransformerModel(nn.Module):
                 self.context_length + self.prediction_length,
                 len(self.c_feat_dynamic_cat),
             ),
-            "feat_static_real": (batch_size, sum(self.d_feat_static_real)),
-            "feat_static_cat": (batch_size, len(self.c_feat_static_cat)),
+            "past_feat_dynamic_real": (
+                batch_size,
+                self.context_length,
+                sum(self.d_past_feat_dynamic_real),
+            ),
+            "past_feat_dynamic_cat": (
+                batch_size,
+                self.context_length,
+                len(self.c_past_feat_dynamic_cat),
+            ),
         }
 
     def input_types(self) -> Dict[str, torch.dtype]:
         return {
             "past_target": torch.float,
             "past_observed_values": torch.float,
-            "past_feat_dynamic_real": torch.float,
-            "past_feat_dynamic_cat": torch.long,
-            "feat_dynamic_real": torch.float,
-            "feat_dynamic_cat": torch.long,
             "feat_static_real": torch.float,
             "feat_static_cat": torch.long,
+            "feat_dynamic_real": torch.float,
+            "feat_dynamic_cat": torch.long,
+            "past_feat_dynamic_real": torch.float,
+            "past_feat_dynamic_cat": torch.long,
         }
 
     def _preprocess(
         self,
         past_target: torch.Tensor,  # [N, T]
         past_observed_values: torch.Tensor,  # [N, T]
-        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
-        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
-        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
-        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
         feat_static_real: torch.Tensor,  # [N, D_sr]
         feat_static_cat: torch.Tensor,  # [N, D_sc]
+        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
+        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
+        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
+        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
     ) -> Tuple[
         List[torch.Tensor],
         List[torch.Tensor],
@@ -293,12 +296,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         past_target: torch.Tensor,  # [N, T]
         past_observed_values: torch.Tensor,  # [N, T]
+        feat_static_real: Optional[torch.Tensor],  # [N, D_sr]
+        feat_static_cat: Optional[torch.Tensor],  # [N, D_sc]
+        feat_dynamic_real: Optional[torch.Tensor],  # [N, T + H, D_dr]
+        feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
         past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
         past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
-        feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T + H, D_dr]
-        feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
-        feat_static_real: Optional[torch.Tensor] = None,  # [N, D_sr]
-        feat_static_cat: Optional[torch.Tensor] = None,  # [N, D_sc]
     ) -> torch.Tensor:
         (
             past_covariates,  # [[N, T, d_var], ...]
@@ -307,14 +310,14 @@ class TemporalFusionTransformerModel(nn.Module):
             loc,  # [N, 1]
             scale,  # [N, 1]
         ) = self._preprocess(
-            past_target,
-            past_observed_values,
-            past_feat_dynamic_real,
-            past_feat_dynamic_cat,
-            feat_dynamic_real,
-            feat_dynamic_cat,
-            feat_static_real,
-            feat_static_cat,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            feat_static_real=feat_static_real,
+            feat_static_cat=feat_static_cat,
+            feat_dynamic_real=feat_dynamic_real,
+            feat_dynamic_cat=feat_dynamic_cat,
+            past_feat_dynamic_real=past_feat_dynamic_real,
+            past_feat_dynamic_cat=past_feat_dynamic_cat,
         )
 
         static_var, _ = self.static_selector(static_covariates)  # [N, d_var]
@@ -343,26 +346,26 @@ class TemporalFusionTransformerModel(nn.Module):
 
     def loss(
         self,
-        past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
-        future_target: torch.Tensor,
-        future_observed_values: torch.Tensor,
-        past_feat_dynamic_real: Optional[torch.Tensor] = None,
-        past_feat_dynamic_cat: Optional[torch.Tensor] = None,
-        feat_dynamic_real: Optional[torch.Tensor] = None,
-        feat_dynamic_cat: Optional[torch.Tensor] = None,
-        feat_static_real: Optional[torch.Tensor] = None,
-        feat_static_cat: Optional[torch.Tensor] = None,
+        past_target: torch.Tensor,  # [N, T]
+        past_observed_values: torch.Tensor,  # [N, T]
+        future_target: torch.Tensor,  # [N, H]
+        future_observed_values: torch.Tensor,  # [N, H]
+        feat_static_real: torch.Tensor,  # [N, D_sr]
+        feat_static_cat: torch.Tensor,  # [N, D_sc]
+        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
+        feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
+        past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
+        past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
     ) -> torch.Tensor:
         preds = self.forward(
             past_target=past_target,
             past_observed_values=past_observed_values,
-            past_feat_dynamic_real=past_feat_dynamic_real,
-            past_feat_dynamic_cat=past_feat_dynamic_cat,
-            feat_dynamic_real=feat_dynamic_real,
-            feat_dynamic_cat=feat_dynamic_cat,
             feat_static_real=feat_static_real,
             feat_static_cat=feat_static_cat,
+            feat_dynamic_real=feat_dynamic_real,
+            feat_dynamic_cat=feat_dynamic_cat,
+            past_feat_dynamic_real=past_feat_dynamic_real,
+            past_feat_dynamic_cat=past_feat_dynamic_cat,
         )  # [N, Q, T]
         loss = self.output.quantile_loss(
             y_true=future_target, y_pred=preds.transpose(1, 2)

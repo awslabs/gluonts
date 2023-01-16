@@ -49,12 +49,12 @@ from .module import TemporalFusionTransformerModel
 PREDICTION_INPUT_NAMES = [
     "past_target",
     "past_observed_values",
-    "past_feat_dynamic_real",
-    "past_feat_dynamic_cat",
-    "feat_dynamic_real",
-    "feat_dynamic_cat",
     "feat_static_real",
     "feat_static_cat",
+    "feat_dynamic_real",
+    "feat_dynamic_cat",
+    "past_feat_dynamic_real",
+    "past_feat_dynamic_cat",
 ]
 
 TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
@@ -65,7 +65,23 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     """
-    Estimator class to train a Temporal Fusion Transformer model, as described in [LAL+21]_.
+    Estimator class to train a Temporal Fusion Transformer (TFT) model, as described in [LAL+21]_.
+
+    TFT internally performs feature selection when making forecasts. For this
+    reason, the dimensions of real-valued features can be grouped together if
+    they correspond to the same variable (e.g., treat weather features as a
+    one feature and holiday indicators as another feature).
+
+    For example, if the dataset contains key "feat_static_real" with shape
+    [batch_size, 3], we can, e.g.,
+    - set ``static_dims = [3]`` to treat all five dimensions as a single feature
+    - set ``static_dims = [1, 1, 1]`` to treat each dimension as a separate feature
+    - set ``static_dims = [2, 1]`` to treat the first two dims as a single feature
+
+    See ``gluonts.torch.model.tft.TemporalFusionTransformerModel.input_shapes``
+    for more details on how the model configuration corresponds to the expected
+    input shapes.
+
 
     Parameters
     ----------
