@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
+
 from pathlib import Path
 from typing import Dict, Optional, List, Iterator, Tuple
 
