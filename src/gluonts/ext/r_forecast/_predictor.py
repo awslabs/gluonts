@@ -109,18 +109,13 @@ class RBasePredictor(RepresentablePredictor):
         self._rinterface.initr()
         self._rpackages = rpackages
 
-        this_dir = os.path.dirname(os.path.realpath(__file__))
-        this_dir = this_dir.replace("\\", "/")  # for windows
-        r_files = [
-            n[:-2]
-            for n in os.listdir(f"{this_dir}/R/")
-            if n[-2:] == ".R" and n.startswith(r_file_prefix)
-        ]
+        this_dir = Path(__file__).resolve().parent.absolute()
+        this_dir = Path(f"{this_dir}".replace("\\", "/"))  # for windows
+        r_files = this_dir.rglob(f"{r_file_prefix}*.R")
 
-        for n in r_files:
+        for r_file in r_files:
             try:
-                path = Path(this_dir, "R", f"{n}.R")
-                robjects.r(f'source("{path}")'.replace("\\", "\\\\"))
+                robjects.r(f'source("{r_file}")'.replace("\\", "\\\\"))
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
