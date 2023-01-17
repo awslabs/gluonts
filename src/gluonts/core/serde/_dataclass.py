@@ -257,7 +257,7 @@ def _dataclass(
 
         if eventual_fields:
             eventual_kwargs = {
-                key: Eventual(getattr(validated_model, key, EVENTUAL))
+                key: Eventual(input_kwargs.get(key, EVENTUAL))
                 for key in eventual_fields
             }
 

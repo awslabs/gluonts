@@ -448,7 +448,9 @@ INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
 )
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=None)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=None, allow_nan_forecast=True
+    )
     agg_metrics, _ = calculate_metrics(
         timeseries,
         evaluator,
@@ -472,7 +474,9 @@ def test_metrics(timeseries, res, has_nans, input_type):
 def test_metrics_mp(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
     # Default will be multiprocessing evaluator
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=4, allow_nan_forecast=True
+    )
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
@@ -661,7 +665,7 @@ def test_evaluation_with_QuantileForecast():
     index = pd.period_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
-    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"))
+    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"), allow_nan_forecast=True)
 
     fcst = [
         QuantileForecast(
@@ -891,6 +895,7 @@ def test_custom_eval_fn(
     evaluator = Evaluator(
         quantiles=QUANTILES,
         custom_eval_fn={eval_name: [eval_fn, agg_str, fcst_type]},
+        allow_nan_forecast=True,
     )
 
     agg_metrics, item_metrics = calculate_metrics(

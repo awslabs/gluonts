@@ -7,9 +7,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
+    - uses: extractions/setup-just@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: '3.7'
     - name: Install dependencies
@@ -19,7 +22,7 @@ jobs:
         pip install click black mypy
     - name: Style and type checks
       run: |
-        python setup.py style_check
-        python setup.py type_check
+        just black
+        just mypy
     - name: Check license headers
-      run: python .devtools/license check src test
+      run: just license
