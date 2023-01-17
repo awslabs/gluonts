@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import itertools
+import math
 import random
 from typing import (
     Callable,
@@ -26,9 +27,10 @@ from typing import (
 )
 from dataclasses import dataclass, field
 
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class SizedIterable(Protocol):
     def __len__(self):
         ...
@@ -38,6 +40,10 @@ class SizedIterable(Protocol):
 
 
 T = TypeVar("T")
+
+# key / value
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 def maybe_len(obj) -> Optional[int]:
@@ -190,15 +196,24 @@ class Map:
         return f"Map(data={self.iterable!r})"
 
 
-K = TypeVar("K")
-V = TypeVar("V")
+class Filter:
+    def __init__(self, fn, iterable: SizedIterable):
+        self.fn = fn
+        self.iterable = iterable
+
+    def __iter__(self):
+        return filter(self.fn, self.iterable)
+
+    def __repr__(self):
+        return f"Filter({self.iterable!r})"
 
 
 def rows_to_columns(
     rows: Sequence[Dict[K, V]],
     wrap: Callable[[Sequence[V]], Sequence[V]] = lambda x: x,
 ) -> Dict[K, Sequence[V]]:
-    """Transpose rows of dicts, to one dict containing columns.
+    """
+    Transpose rows of dicts, to one dict containing columns.
 
     >>> rows_to_columns([{'a': 1, 'b': 2}, {'a': 3, 'b': 4}])
     {'a': [1, 3], 'b': [2, 4]}
@@ -219,7 +234,8 @@ def rows_to_columns(
 
 
 def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
-    """Transpose column-orientation to row-orientation.
+    """
+    Transpose column-orientation to row-orientation.
 
     >>> columns_to_rows({'a': [1, 3], 'b': [2, 4]})
     [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]
@@ -236,7 +252,8 @@ def columns_to_rows(columns: Dict[K, Sequence[V]]) -> List[Dict[K, V]]:
 
 
 def roundrobin(*iterables):
-    """`roundrobin('ABC', 'D', 'EF') --> A D E B F C`
+    """
+    `roundrobin('ABC', 'D', 'EF') --> A D E B F C`
 
     Taken from: https://docs.python.org/3/library/itertools.html#recipes.
     """
@@ -257,7 +274,8 @@ def roundrobin(*iterables):
 def partition(
     it: Iterator[T], fn: Callable[[T], bool]
 ) -> Tuple[List[T], List[T]]:
-    """Partition `it` into two lists given predicate `fn`.
+    """
+    Partition `it` into two lists given predicate `fn`.
 
     This is similar to the recipe defined in Python's `itertools` docs, however
     this method consumes the iterator directly  and returns lists instead of
@@ -273,3 +291,56 @@ def partition(
             right.append(val)
 
     return left, right
+
+
+def select(keys, source: dict, ignore_missing: bool = False) -> dict:
+    """
+    Select subset of `source` dictionaries.
+
+    >>> d = {"a": 1, "b": 2, "c": 3}
+    >>> select(["a", "b"], d)
+    {'a': 1, 'b': 2}
+    """
+
+    result = {}
+
+    for key in keys:
+        try:
+            result[key] = source[key]
+        except KeyError:
+            if not ignore_missing:
+                raise
+
+    return result
+
+
+def trim_nans(xs, trim="fb"):
+    """
+    Trim the leading and/or trailing `NaNs` from a 1-D array or sequence.
+
+    Like ``np.trim_zeros`` but for `NaNs`.
+    """
+
+    trim = trim.lower()
+
+    start = None
+    end = None
+
+    if "f" in trim:
+        for start, val in enumerate(xs):
+            if not math.isnan(val):
+                break
+
+    if "b" in trim:
+        for end in range(len(xs), -1, -1):
+            if not math.isnan(xs[end - 1]):
+                break
+
+    return xs[start:end]
+
+
+def inverse(dct: Dict[K, V]) -> Dict[V, K]:
+    """
+    Inverse a dictionary; keys become values and values become keys.
+    """
+    return {value: key for key, value in dct.items()}

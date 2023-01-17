@@ -12,78 +12,37 @@
 # permissions and limitations under the License.
 
 import re
-from enum import Enum
-from typing import Callable, Dict, List, Optional, Set, Union, Tuple
+from dataclasses import field
+from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-import pydantic
+from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
-from gluonts.exceptions import GluonTSUserError
 
 
-class LinearInterpolation:
-    """
-    Linear interpolation based on datapoints (x_coord, y_coord)
+def _linear_interpolation(
+    xs: np.ndarray, ys: np.ndarray, x: float
+) -> np.ndarray:
+    assert sorted(xs) == xs
+    assert len(xs) == len(ys)
+    assert len(xs) >= 2
 
-    Parameters
-    ----------
-    x_coord
-        x-coordinates of the data points must be in increasing order.
-    y_coord
-        y-coordinates of the data points - may be a list of lists.
-    tol
-        tolerance when performing the division in the linear interpolation.
-    """
+    if x < xs[0]:
+        idx = 1
+    elif x > xs[-1]:
+        idx = len(xs) - 1
+    else:
+        idx = next(i for i, x_ in enumerate(xs) if x <= x_)
 
-    def __init__(
-        self,
-        x_coord: List[float],
-        y_coord: List[np.ndarray],
-        tol: float = 1e-8,
-    ) -> None:
-        self.x_coord = x_coord
-        assert sorted(self.x_coord) == self.x_coord
-        self.y_coord = y_coord
-        self.num_points = len(self.x_coord)
-        assert (
-            self.num_points >= 2
-        ), "Need at least two points for linear interpolation."
-        self.tol = tol
+    x_low, x_high = xs[idx - 1 : idx + 1]
+    y_low, y_high = ys[idx - 1 : idx + 1]
 
-    def __call__(self, x: float):
-        return self.linear_interpolation(x)
+    dx = x_high - x_low
+    dy = y_high - y_low
 
-    def linear_interpolation(self, x: float) -> np.ndarray:
-        """
-        If x is out of interpolation range, return smallest or largest value.
-        Otherwise, find two nearest points [x_1, y_1], [x_2, y_2] and return
-        its linear interpolation.
-
-        y = (x_2 - x)/(x_2 - x_1) * y_1 + (x - x_1)/(x_2 - x_1) * y_2.
-
-        Parameters
-        ----------
-        x
-            x-coordinate to evaluate the interpolated points.
-
-        Returns
-        -------
-        np.ndarray
-            Interpolated values same shape as self.y_coord
-        """
-        if self.x_coord[0] >= x:
-            return self.y_coord[0]
-        elif self.x_coord[-1] <= x:
-            return self.y_coord[-1]
-        else:
-            for i, (x1, x2) in enumerate(zip(self.x_coord, self.x_coord[1:])):
-                if x1 < x < x2:
-                    denominator = x2 - x1 + self.tol
-                    return (x2 - x) / denominator * self.y_coord[i] + (
-                        x - x1
-                    ) / denominator * self.y_coord[i + 1]
+    return y_low + (x - x_low) / dx * dy
 
 
 class ExponentialTailApproximation:
@@ -206,52 +165,32 @@ class ExponentialTailApproximation:
         return left_tail, right_tail
 
 
-class Quantile(pydantic.BaseModel):
-    value: float
+@dataclass
+class Quantile:
+    value: float = field(metadata={"ge": 0.0, "le": 1.0})
     name: str
-
-    @property
-    def loss_name(self):
-        return f"QuantileLoss[{self.name}]"
-
-    @property
-    def weighted_loss_name(self):
-        return f"wQuantileLoss[{self.name}]"
-
-    @property
-    def coverage_name(self):
-        return f"Coverage[{self.name}]"
-
-    @classmethod
-    def checked(cls, value: float, name: str) -> "Quantile":
-        if not 0 <= value <= 1:
-            raise GluonTSUserError(
-                f"quantile value should be in [0, 1] but found {value}"
-            )
-
-        return Quantile(value=value, name=name)
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
         assert isinstance(quantile, float)
-        return cls.checked(value=quantile, name=str(quantile))
+        return cls(value=quantile, name=str(quantile))
 
     @classmethod
     def from_str(cls, quantile: str) -> "Quantile":
         assert isinstance(quantile, str)
+
         try:
-            return cls.checked(value=float(quantile), name=quantile)
+            return cls(value=float(quantile), name=quantile)
         except ValueError:
-            m = re.match(r"^p(\d{2})$", quantile)
+            m = re.match(r"^p(\d+)$", quantile)
 
             if m is None:
-                raise GluonTSUserError(
+                raise ValueError(
                     'Quantile string should be of the form "p10", "p50", ...'
                     f' or "0.1", "0.5", ... but found {quantile}'
                 )
-            else:
-                quantile_float: float = int(m.group(1)) / 100
-                return cls(value=quantile_float, name=str(quantile_float))
+
+            return cls.from_float(float(m.group(1)) / 100)
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
@@ -275,7 +214,7 @@ class Quantile(pydantic.BaseModel):
         ----------
         quantile
             Quantile, can be a float a str representing a float e.g. '0.1' or a
-            quantile string of the form 'p0.1'.
+            quantile string of the form 'p10'.
 
         Returns
         -------
@@ -285,10 +224,14 @@ class Quantile(pydantic.BaseModel):
         """
         if isinstance(quantile, Quantile):
             return quantile
-        elif isinstance(quantile, float):
+
+        if isinstance(quantile, float):
             return cls.from_float(quantile)
-        else:
-            return cls.from_str(quantile)
+
+        return cls.from_str(quantile)
+
+    def __str__(self):
+        return self.name
 
 
 class Forecast:
@@ -476,25 +419,6 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def as_json_dict(self, config: "Config") -> dict:
-        result = {}
-
-        if OutputType.mean in config.output_types:
-            result["mean"] = self.mean.tolist()
-
-        if OutputType.quantiles in config.output_types:
-            quantiles = map(Quantile.parse, config.quantiles)
-
-            result["quantiles"] = {
-                quantile.name: self.quantile(quantile.value).tolist()
-                for quantile in quantiles
-            }
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = []
-
-        return result
-
 
 class SampleForecast(Forecast):
     """
@@ -565,10 +489,9 @@ class SampleForecast(Forecast):
         """
         Forecast mean.
         """
-        if self._mean is not None:
-            return self._mean
-        else:
-            return np.mean(self.samples, axis=0)
+        if self._mean is None:
+            self._mean = np.mean(self.samples, axis=0)
+        return self._mean
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -614,25 +537,16 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
+        if self._dim is None:
             if len(self.samples.shape) == 2:
                 # univariate target
                 # shape: (num_samples, prediction_length)
-                return 1
+                self._dim = 1
             else:
                 # multivariate target
                 # shape: (num_samples, prediction_length, target_dim)
-                return self.samples.shape[2]
-
-    def as_json_dict(self, config: "Config") -> dict:
-        result = super().as_json_dict(config)
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
-
-        return result
+                self._dim = self.samples.shape[2]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
@@ -706,7 +620,7 @@ class QuantileForecast(Forecast):
             f"The forecast_array (shape={shape} should have the same "
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
-        self.prediction_length = shape[-1]
+        self.prediction_length = shape[1]
         self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
@@ -720,13 +634,10 @@ class QuantileForecast(Forecast):
 
         inference_quantile = Quantile.parse(inference_quantile).value
 
-        if len(quantiles) == 1 or inference_quantile in quantiles:
+        if len(quantiles) < 2 or inference_quantile in quantiles:
             q_str = Quantile.parse(inference_quantile).name
             return self._forecast_dict.get(q_str, self._nan_out)
 
-        linear_interpolation = LinearInterpolation(
-            quantiles, quantile_predictions
-        )
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
         )
@@ -742,7 +653,28 @@ class QuantileForecast(Forecast):
         elif inference_quantile >= right_tail_quantile:
             return exp_tail_approximation.right(inference_quantile)
         else:
-            return linear_interpolation(inference_quantile)
+            return _linear_interpolation(
+                quantiles, quantile_predictions, inference_quantile
+            )
+
+    def copy_dim(self, dim: int) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        else:
+            target_dim = self.forecast_array.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            forecast_array = self.forecast_array[:, :, dim]
+
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
 
     @property
     def mean(self) -> np.ndarray:
@@ -755,17 +687,16 @@ class QuantileForecast(Forecast):
         return self.quantile("p50")
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
-            if (
-                len(self.forecast_array.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
-                return 1
+        if self._dim is None:
+            if len(self.forecast_array.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
+                self._dim = 1
             else:
-                # 2D target. shape: (num_samples, target_dim,
-                # prediction_length)
-                return self.forecast_array.shape[1]
+                # multivariate target
+                # shape: (num_samples, prediction_length, target_dim)
+                self._dim = self.forecast_array.shape[2]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
@@ -794,21 +725,3 @@ class QuantileForecast(Forecast):
             )
         if output_file:
             plt.savefig(output_file)
-
-
-class OutputType(str, Enum):
-    mean = "mean"
-    samples = "samples"
-    quantiles = "quantiles"
-
-
-class Config(pydantic.BaseModel):
-    num_samples: int = pydantic.Field(100, alias="num_eval_samples")
-    output_types: Set[OutputType] = {OutputType.quantiles, OutputType.mean}
-    # FIXME: validate list elements
-    quantiles: List[str] = ["0.1", "0.5", "0.9"]
-
-    class Config:
-        allow_population_by_field_name = True
-        # store additional fields
-        extra = "allow"

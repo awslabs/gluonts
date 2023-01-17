@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field, MISSING
-from typing import Any, Dict
+from typing import Any, Dict, Type as typingType, Union
 
 from .translate import Translator
 from .types import Type, Array, Default, Period
@@ -30,9 +30,12 @@ __all__ = [
 ]
 
 
+TypeType = Union[typingType, Type]
+
+
 @dataclass
 class Schema:
-    fields: Dict[str, Type] = field(default_factory=dict)
+    fields: Dict[str, TypeType] = field(default_factory=dict)
     default_fields: Dict[str, Any] = field(init=False)
 
     def __post_init__(self):
@@ -44,7 +47,7 @@ class Schema:
 
     def apply(self, entry) -> dict:
         result = {
-            field_name: ty.apply(entry[field_name])
+            field_name: ty(entry[field_name])
             for field_name, ty in self.fields.items()
         }
 
@@ -52,15 +55,17 @@ class Schema:
             result[name] = default
         return result
 
-    def add(self, name: str, ty: Type):
+    def add(self, name: str, ty: TypeType):
         self.fields[name] = ty
 
         return self
 
-    def add_if(self, condition: bool, name: str, ty: Type, default=MISSING):
+    def add_if(
+        self, condition: bool, name: str, ty: TypeType, default=MISSING
+    ):
         if not condition:
             if default is not MISSING:
-                self.default_fields[name] = ty.apply(default)
+                self.default_fields[name] = ty(default)
             return self
 
         return self.add(name, ty)

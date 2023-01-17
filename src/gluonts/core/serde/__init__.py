@@ -69,11 +69,11 @@ occurances. Consequently, ciruclar references do not work.
 `dump_json` and `load_json` are simple helpers, which use `encode` and
 `decode` internally.
 """
+
 from . import flat
 from ._base import Stateful, Stateless, decode, encode
 from ._dataclass import dataclass, EVENTUAL, Eventual, OrElse
 from ._json import dump_json, load_json
-from ._repr import dump_code, load_code
 
 
 # TODO: remove
@@ -87,8 +87,6 @@ __all__ = [
     "flat",
     "encode",
     "decode",
-    "dump_code",
-    "load_code",
     "dump_json",
     "load_json",
     "Stateful",

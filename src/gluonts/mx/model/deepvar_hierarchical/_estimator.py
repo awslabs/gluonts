@@ -206,7 +206,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         coherent_train_samples: bool = True,
         coherent_pred_samples: bool = True,
         warmstart_epoch_frac: float = 0.0,
-        seq_axis: List[int] = None,
+        seq_axis: Optional[List[int]] = None,
         log_coherency_error: bool = True,
         trainer: Trainer = Trainer(),
         context_length: Optional[int] = None,
@@ -285,7 +285,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         A = constraint_mat(S.astype(self.dtype))
         M = null_space_projection_mat(A)
-        self.M, self.A = mx.nd.array(M), mx.nd.array(A)
+        ctx = self.trainer.ctx
+        self.M, self.A = mx.nd.array(M, ctx=ctx), mx.nd.array(A, ctx=ctx)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight

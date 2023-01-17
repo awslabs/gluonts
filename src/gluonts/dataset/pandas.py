@@ -13,14 +13,26 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, cast, Dict, Iterator, List, Optional, Union
+from typing import (
+    Any,
+    Collection,
+    Dict,
+    Iterator,
+    Iterable,
+    List,
+    Optional,
+    Union,
+    Tuple,
+)
 
 import pandas as pd
+import numpy as np
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from toolz import valmap
+from toolz import first
 
-from gluonts.dataset.common import DataEntry, ProcessDataEntry
+from gluonts.dataset.common import DataEntry, _as_period
 from gluonts.dataset.field_names import FieldName
+from gluonts.itertools import Map, SizedIterable
 
 
 @dataclass
@@ -62,13 +74,21 @@ class PandasDataset:
         For target and past dynamic features last ``ignore_last_n_targets``
         elements are removed when iterating over the data set. This becomes
         important when the predictor is called.
+    unchecked
+        Whether consistency checks on indexes should be skipped.
+        (Default: ``False``)
+    assume_sorted
+        Whether to assume that indexes are sorted by time, and skip sorting.
+        (Default: ``False``)
     """
 
     dataframes: Union[
         pd.DataFrame,
         pd.Series,
-        List[pd.DataFrame],
-        List[pd.Series],
+        Iterable[pd.DataFrame],
+        Iterable[pd.Series],
+        Iterable[Tuple[Any, pd.DataFrame]],
+        Iterable[Tuple[Any, pd.Series]],
         Dict[str, pd.DataFrame],
         Dict[str, pd.Series],
     ]
@@ -81,33 +101,51 @@ class PandasDataset:
     feat_static_cat: List[str] = field(default_factory=list)
     past_feat_dynamic_real: List[str] = field(default_factory=list)
     ignore_last_n_targets: int = 0
+    unchecked: bool = False
+    assume_sorted: bool = False
+    _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
+        init=False
+    )
 
     def __post_init__(self) -> None:
         if isinstance(self.target, list) and len(self.target) == 1:
             self.target = self.target[0]
-        self.one_dim_target = not isinstance(self.target, list)
 
-        if is_series(self.dataframes):
-            self.dataframes = series_to_dataframe(self.dataframes)
-        # store data internally as List[Tuple[str, pandas.DataFrame]]
-        # if str is not empty it will be set in ``DataEntry`` as ``item_id``.
         if isinstance(self.dataframes, dict):
-            self._dataframes = list(self.dataframes.items())
-        elif isinstance(self.dataframes, list):
-            self._dataframes = [(None, df) for df in self.dataframes]
-        else:  # case single dataframe
-            self._dataframes = [(None, self.dataframes)]
+            self._pairs = self.dataframes.items()
+        elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
+            self._pairs = [pair_with_item_id(self.dataframes)]
+        else:
+            assert isinstance(self.dataframes, SizedIterable)
+            self._pairs = Map(pair_with_item_id, self.dataframes)
 
-        for i, (item_id, df) in enumerate(self._dataframes):
-            if self.timestamp:
-                df = df.set_index(keys=self.timestamp)
+        assert isinstance(self._pairs, SizedIterable)
 
-            if not isinstance(df.index, pd.PeriodIndex):
-                df.index = pd.to_datetime(df.index)
-                df = df.to_period(freq=self.freq)
+        if self.freq is None:
+            assert (
+                self.timestamp is None
+            ), "You need to provide `freq` along with `timestamp`"
+            self.freq = infer_freq(first(self._pairs)[1].index)
 
+        self._data_entries = Map(self._pair_to_dataentry, self._pairs)
+
+    def _pair_to_dataentry(
+        self, pair: Tuple[Any, Union[pd.Series, pd.DataFrame]]
+    ) -> DataEntry:
+        item_id, df = pair
+
+        if isinstance(df, pd.Series):
+            df = df.to_frame(name=self.target)
+
+        if self.timestamp:
+            df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
+
+        if not self.assume_sorted:
             df.sort_index(inplace=True)
 
+        if not self.unchecked:
+            if not isinstance(df.index, pd.PeriodIndex):
+                df = df.to_period(freq=self.freq)
             assert is_uniform(df.index), (
                 "Dataframe index is not uniformly spaced. "
                 "If your dataframe contains data from multiple series in the "
@@ -115,19 +153,7 @@ class PandasDataset:
                 "dataset with `PandasDataset.from_long_dataframe` instead."
             )
 
-            self._dataframes[i] = (item_id, df)
-
-        if not self.freq:  # infer frequency from index
-            self.freq = self._dataframes[0][1].index.freqstr
-
-        self.process = ProcessDataEntry(
-            cast(str, self.freq), one_dim_target=self.one_dim_target
-        )
-
-    def _dataentry(
-        self, item_id: Optional[str], df: pd.DataFrame
-    ) -> DataEntry:
-        dataentry = as_dataentry(
+        data_entry = as_dataentry(
             data=df,
             target=self.target,
             feat_dynamic_real=self.feat_dynamic_real,
@@ -136,32 +162,38 @@ class PandasDataset:
             feat_static_cat=self.feat_static_cat,
             past_feat_dynamic_real=self.past_feat_dynamic_real,
         )
+
         if item_id is not None:
-            dataentry["item_id"] = item_id
-        return dataentry
+            data_entry["item_id"] = item_id
+
+        data_entry["start"] = _as_period(data_entry["start"], self.freq)
+        return data_entry
 
     def __iter__(self) -> Iterator[DataEntry]:
-        for item_id, df in self._dataframes:
-            dataentry = self.process(self._dataentry(item_id, df))
+        for entry in self._data_entries:
             if self.ignore_last_n_targets:
-                dataentry = prepare_prediction_data(
-                    dataentry, self.ignore_last_n_targets
+                entry = prepare_prediction_data(
+                    entry, self.ignore_last_n_targets
                 )
-            yield dataentry
+            yield entry
+
+        self.unchecked = True
 
     def __len__(self) -> int:
-        return len(self._dataframes)
+        return len(self._data_entries)
+
+    def __str__(self) -> str:
+        return f"PandasDataset<size={len(self)}, freq={self.freq}>"
 
     @classmethod
     def from_long_dataframe(
         cls, dataframe: pd.DataFrame, item_id: str, **kwargs
     ) -> "PandasDataset":
         """
-        Construct ``PandasDataset`` out of a long dataframe.
-        A long dataframe uses the long format for each variable. Target time
-        series values, for example, are stacked on top of each other rather
-        than side-by-side. The same is true for other dynamic or categorical
-        features.
+        Construct ``PandasDataset`` out of a long dataframe. A long dataframe
+        uses the long format for each variable. Target time series values, for
+        example, are stacked on top of each other rather than side-by-side. The
+        same is true for other dynamic or categorical features.
 
         Parameters
         ----------
@@ -179,35 +211,45 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
-        return cls(dataframes=dict(list(dataframe.groupby(item_id))), **kwargs)
+        if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
+            dataframe.index = pd.to_datetime(dataframe.index)
+        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
-def series_to_dataframe(
-    series: Union[pd.Series, List[pd.Series], Dict[str, pd.Series]]
-) -> Union[pd.DataFrame, List[pd.DataFrame], Dict[str, pd.DataFrame]]:
-    def to_df(series):
-        assert isinstance(
-            series.index, DatetimeIndexOpsMixin
-        ), "series index has to be a DatetimeIndex."
-        return series.to_frame(name="target")
-
-    if isinstance(series, list):
-        return list(map(to_df, series))
-    elif isinstance(series, dict):
-        return valmap(to_df, series)
-    return to_df(series)
+def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
+    if isinstance(obj, tuple) and len(obj) == 2:
+        return obj
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        return (None, obj)
+    raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
-def is_series(series: Any) -> bool:
-    """
-    return True if ``series`` is ``pd.Series`` or a collection of
-    ``pd.Series``.
-    """
-    if isinstance(series, list):
-        return is_series(series[0])
-    elif isinstance(series, dict):
-        return is_series(list(series.values()))
-    return isinstance(series, pd.Series)
+def infer_freq(index: pd.Index) -> str:
+    if isinstance(index, pd.PeriodIndex):
+        return index.freqstr
+
+    freq = pd.infer_freq(index)
+    # pandas likes to infer the `start of x` frequency, however when doing
+    # df.to_period("<x>S"), it fails, so we avoid using it. It's enough to
+    # remove the trailing S, e.g `MS` -> `M
+    if len(freq) > 1 and freq.endswith("S"):
+        return freq[:-1]
+
+    return freq
+
+
+def extract_dynamic_array(
+    df: pd.DataFrame, col_names: Union[str, Collection[str]]
+) -> np.ndarray:
+    return df[col_names].values.transpose()
+
+
+def extract_static_array(
+    df: pd.DataFrame, col_names: Union[str, Collection[str]]
+) -> np.ndarray:
+    if isinstance(col_names, str):
+        return df[col_names].values[:1]
+    return df[col_names].values[0, :]
 
 
 def as_dataentry(
@@ -221,8 +263,8 @@ def as_dataentry(
     past_feat_dynamic_real: List[str] = [],
 ) -> DataEntry:
     """
-    Convert a single time series (uni- or multi-variate) that is given in
-    a pandas.DataFrame format to a DataEntry.
+    Convert a single time series (uni- or multi-variate) that is given in a
+    pandas.DataFrame format to a DataEntry.
 
     Parameters
     ----------
@@ -256,21 +298,29 @@ def as_dataentry(
     start = data.loc[:, timestamp].iloc[0] if timestamp else data.index[0]
     dataentry = {FieldName.START: start}
 
-    def set_field(fieldname, col_names, f=lambda x: x):
-        if col_names:
-            dataentry[fieldname] = [
-                f(data.loc[:, n].to_list()) for n in col_names
-            ]
+    dataentry[FieldName.TARGET] = extract_dynamic_array(data, target)
 
-    if isinstance(target, str):
-        dataentry[FieldName.TARGET] = data.loc[:, target].to_list()
-    else:
-        set_field(FieldName.TARGET, target)
-    set_field(FieldName.FEAT_DYNAMIC_REAL, feat_dynamic_real)
-    set_field(FieldName.FEAT_DYNAMIC_CAT, feat_dynamic_cat)
-    set_field(FieldName.FEAT_STATIC_REAL, feat_static_real, lambda x: x[0])
-    set_field(FieldName.FEAT_STATIC_CAT, feat_static_cat, lambda x: x[0])
-    set_field(FieldName.PAST_FEAT_DYNAMIC_REAL, past_feat_dynamic_real)
+    if len(feat_dynamic_real) > 0:
+        dataentry[FieldName.FEAT_DYNAMIC_REAL] = extract_dynamic_array(
+            data, feat_dynamic_real
+        )
+    if len(feat_dynamic_cat) > 0:
+        dataentry[FieldName.FEAT_DYNAMIC_CAT] = extract_dynamic_array(
+            data, feat_dynamic_cat
+        )
+    if len(past_feat_dynamic_real) > 0:
+        dataentry[FieldName.PAST_FEAT_DYNAMIC_REAL] = extract_dynamic_array(
+            data, past_feat_dynamic_real
+        )
+    if len(feat_static_real) > 0:
+        dataentry[FieldName.FEAT_STATIC_REAL] = extract_static_array(
+            data, feat_static_real
+        )
+    if len(feat_static_cat) > 0:
+        dataentry[FieldName.FEAT_STATIC_CAT] = extract_static_array(
+            data, feat_static_cat
+        )
+
     return dataentry
 
 
@@ -281,10 +331,10 @@ def prepare_prediction_data(
     Remove ``ignore_last_n_targets`` values from ``target`` and
     ``past_feat_dynamic_real``.  Works in univariate and multivariate case.
 
-    >>> prepare_prediction_data(
-    >>>    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
-    >>> )
-    {'target': array([1., 2.])}
+        >>> prepare_prediction_data(
+        >>>    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
+        >>> )
+        {'target': array([1., 2.])}
     """
     entry = deepcopy(dataentry)
     for fname in [FieldName.TARGET, FieldName.PAST_FEAT_DYNAMIC_REAL]:
@@ -298,12 +348,12 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     Check if ``index`` contains monotonically increasing periods, evenly spaced
     with frequency ``index.freq``.
 
-    >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
-    True
-    >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
-    >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
-    False
+        >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        True
+        >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        False
     """
     other = pd.period_range(index[0], periods=len(index), freq=index.freq)
     return (other == index).all()

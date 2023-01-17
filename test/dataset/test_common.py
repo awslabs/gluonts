@@ -13,7 +13,7 @@
 
 import pandas as pd
 import pytest
-from gluonts.dataset.common import Dataset, ProcessStartField
+from gluonts.dataset.common import Dataset
 
 
 @pytest.mark.parametrize(

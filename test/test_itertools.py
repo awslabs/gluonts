@@ -30,6 +30,9 @@ from gluonts.itertools import (
     PseudoShuffled,
     rows_to_columns,
     columns_to_rows,
+    select,
+    Map,
+    Filter,
 )
 
 
@@ -117,3 +120,29 @@ def test_rows_to_columns(given, expected, wrapper):
     output = rows_to_columns(given, wrapper)
     assert_equal(output, expected)
     assert columns_to_rows(output) == given
+
+
+def test_select():
+    d = {"a": 1, "b": 2, "c": 3}
+
+    assert select("abc", d) == d
+    assert select("ab", d) == {"a": 1, "b": 2}
+
+    assert select("abd", d, ignore_missing=True) == {"a": 1, "b": 2}
+
+    with pytest.raises(KeyError):
+        select("abd", d, ignore_missing=False) == {"a": 1, "b": 2}
+
+
+def test_map():
+    data = [1, 2, 3]
+    applied = Map(lambda n: n + 1, data)
+
+    assert list(applied) == [2, 3, 4]
+
+
+def test_filter():
+    data = [1, 2, 3]
+    applied = Filter(lambda n: n <= 2, data)
+
+    assert list(applied) == [1, 2]

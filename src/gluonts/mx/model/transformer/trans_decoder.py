@@ -84,7 +84,6 @@ class TransformerDecoder(HybridBlock):
     def cache_reset(self):
         self.cache = {}
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
         self,
         F,

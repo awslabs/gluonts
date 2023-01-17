@@ -11,9 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from itertools import chain
 
-import numpy as np
 import pytest
 
 from gluonts.ext.rotbaum import TreeEstimator
@@ -33,10 +31,6 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
     hyperparameters.update(quantiles=quantiles, max_workers=32)
 
     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
-
-
-def test_repr(repr_test, hyperparameters):
-    repr_test(TreeEstimator, hyperparameters)
 
 
 def test_serialize(serialize_test, hyperparameters):

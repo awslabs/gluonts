@@ -21,6 +21,8 @@ Bibliography
 
 .. [LCY+18] Lai, Guokun, et al. "Modeling long-and short-term temporal patterns with deep neural networks." The 41st International ACM SIGIR Conference on Research & Development in Information Retrieval. ACM, 2018.
 
+.. [LAL+21] Lim, Bryan, Sercan O. Arik, Nicolas Loeff, and Tomas Pfister. "Temporal Fusion Transformers for Interpretable Multi-horizon Time Series Forecasting." International Journal of Forecasting 37.4 (2021): 1748-1764
+
 .. [SSA20] Makridakis, Spyros, Evangelos Spiliotis, and Vassilios Assimakopoulos. "The M4 Competition: 100,000 time series and 61 forecasting methods." International Journal of Forecasting 36.1 (2020): 54-74.
 
 .. [MKH19] Muller, Rafael, Simon Kornblith, and Geoffrey E. Hinton. "When does label smoothing help?." Advances in Neural Information Processing Systems. 2019.

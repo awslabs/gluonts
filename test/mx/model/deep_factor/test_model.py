@@ -36,10 +36,6 @@ def test_accuracy(accuracy_test, hyperparameters, hybridize):
     accuracy_test(DeepFactorEstimator, hyperparameters, accuracy=0.3)
 
 
-def test_repr(repr_test, hyperparameters):
-    repr_test(DeepFactorEstimator, hyperparameters)
-
-
 # TODO: Enable this test: Error:  assert <gluonts.model.predictor.RepresentableBlockPredictor object at
 # TODO: 0x124701240> == <gluonts.model.predictor.RepresentableBlockPredictor object at 0x124632940>
 @pytest.mark.xfail

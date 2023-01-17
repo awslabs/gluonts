@@ -23,7 +23,6 @@ from gluonts.dataset.arrow import (
     File,
     ArrowWriter,
     ParquetWriter,
-    write_dataset,
 )
 
 
@@ -56,7 +55,7 @@ def make_data(n: int):
 @pytest.mark.parametrize(
     "writer",
     [
-        ArrowWriter(stream=True, metadata={"freq": "H"}),
+        ArrowWriter(stream=True, metadata={"freq": "H"}, compression="lz4"),
         ArrowWriter(stream=False, metadata={"freq": "H"}),
         ParquetWriter(metadata={"freq": "H"}),
     ],

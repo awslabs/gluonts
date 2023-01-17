@@ -102,7 +102,6 @@ class Seq2SeqNetworkBase(mx.gluon.HybridBlock):
 
 
 class Seq2SeqTrainingNetwork(Seq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -151,7 +150,6 @@ class Seq2SeqTrainingNetwork(Seq2SeqNetworkBase):
 
 
 class Seq2SeqPredictionNetwork(Seq2SeqNetworkBase):
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

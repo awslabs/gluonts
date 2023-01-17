@@ -12,12 +12,14 @@
 # permissions and limitations under the License.
 
 import io
+from typing import Callable, List, Union
 
 import pandas as pd
 import numpy as np
 import pytest
 
 from gluonts.dataset import pandas
+from gluonts.testutil.equality import assert_recursively_equal
 
 
 @pytest.fixture(params=[pd.date_range, pd.period_range])
@@ -176,49 +178,44 @@ def test_infer_period2(my_dataframe):
         assert entry["start"] == pd.Period("2021-01-01", freq="1D")
 
 
-def test_is_series(my_series):
-    assert pandas.is_series(my_series)
-    assert pandas.is_series([my_series])
-    assert pandas.is_series({"A": my_series})
-
-
-def test_is_series_fail(my_dataframe):
-    with pytest.raises(AssertionError):
-        assert pandas.is_series(my_dataframe)
-    with pytest.raises(AssertionError):
-        assert pandas.is_series([my_dataframe])
-    with pytest.raises(AssertionError):
-        assert pandas.is_series({"A": my_dataframe})
-
-
-def test_series_to_dataframe(my_series):
-    assert isinstance(pandas.series_to_dataframe(my_series), pd.DataFrame)
-    assert isinstance(pandas.series_to_dataframe([my_series])[0], pd.DataFrame)
-    dict_df = pandas.series_to_dataframe({"A": my_series})
-    assert list(dict_df.keys())[0] == "A"
-    assert isinstance(list(dict_df.values())[0], pd.DataFrame)
-
-
 def test_long_csv_3M():
     data = (
         "timestamp,item_id,target\n"
         "2021-03,0,102\n"
+        "2022-07,1,138\n"
         "2021-06,0,103\n"
+        "2021-11,2,227\n"
         "2021-09,0,102\n"
         "2021-12,0,99\n"
-        "2021-04,1,134\n"
-        "2021-07,1,151\n"
-        "2021-10,1,144\n"
         "2022-01,1,148\n"
+        "2022-05,2,229\n"
+        "2021-04,1,134\n"
         "2022-04,1,117\n"
-        "2022-07,1,138\n"
         "2021-02,2,212\n"
         "2021-05,2,225\n"
+        "2021-07,1,151\n"
         "2021-08,2,221\n"
-        "2021-11,2,227\n"
         "2022-02,2,230\n"
-        "2022-05,2,229\n"
+        "2021-10,1,144\n"
     )
+
+    expected_entries = [
+        {
+            "start": pd.Period("2021-03", freq="3M"),
+            "item_id": 0,
+            "target": np.array([102, 103, 102, 99]),
+        },
+        {
+            "start": pd.Period("2021-04", freq="3M"),
+            "item_id": 1,
+            "target": np.array([134, 151, 144, 148, 117, 138]),
+        },
+        {
+            "start": pd.Period("2021-02", freq="3M"),
+            "item_id": 2,
+            "target": np.array([212, 225, 221, 227, 230, 229]),
+        },
+    ]
 
     with io.StringIO(data) as fp:
         ds = pandas.PandasDataset.from_long_dataframe(
@@ -228,8 +225,11 @@ def test_long_csv_3M():
             timestamp="timestamp",
             freq="3M",
         )
-        for entry in ds:
-            assert entry["start"].freqstr == "3M"
+    for entry, expected_entry in zip(ds, expected_entries):
+        assert entry["start"].freqstr == "3M"
+        assert entry["start"] == expected_entry["start"]
+        assert entry["item_id"] == expected_entry["item_id"]
+        assert np.allclose(entry["target"], expected_entry["target"])
 
     with io.StringIO(data) as fp:
         ds = pandas.PandasDataset.from_long_dataframe(
@@ -238,5 +238,196 @@ def test_long_csv_3M():
             item_id="item_id",
             freq="3M",
         )
-        for entry in ds:
-            assert entry["start"].freqstr == "3M"
+    for entry, expected_entry in zip(ds, expected_entries):
+        assert entry["start"].freqstr == "3M"
+        assert entry["start"] == expected_entry["start"]
+        assert entry["item_id"] == expected_entry["item_id"]
+        assert np.allclose(entry["target"], expected_entry["target"])
+
+
+def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):
+    series = [
+        pd.Series(
+            np.arange(10, dtype=dtype),
+            index_type("2021-01-01 00:00:00", periods=10, freq=freq),
+        ),
+        pd.Series(
+            np.arange(20, dtype=dtype),
+            index_type("2021-01-02 00:00:00", periods=20, freq=freq),
+        ),
+        pd.Series(
+            np.arange(30, dtype=dtype),
+            index_type("2021-01-03 00:00:00", periods=30, freq=freq),
+        ),
+    ]
+
+    dataset = pandas.PandasDataset(series)
+
+    expected_entries = [
+        {
+            "start": pd.Period(s.index[0], freq=freq),
+            "target": s.values,
+        }
+        for s in series
+    ]
+
+    return dataset, expected_entries
+
+
+def _testcase_dataframes_without_index(
+    freq: str,
+    target: Union[str, List[str]],
+    feat_dynamic_real: List[str],
+    dtype=np.float32,
+):
+    dataframes = [
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ),
+    ]
+
+    dataset = pandas.PandasDataset(
+        dataframes,
+        timestamp="timestamp",
+        freq=freq,
+        target=target,
+        feat_dynamic_real=feat_dynamic_real,
+    )
+
+    expected_entries = [
+        {
+            "start": pd.Period(df["timestamp"][0], freq=freq),
+            "target": df[target].values.transpose(),
+            "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+        }
+        for df in dataframes
+    ]
+
+    return dataset, expected_entries
+
+
+def _testcase_dataframes_with_index(
+    freq: str,
+    index_type: Callable,
+    target: Union[str, List[str]],
+    feat_dynamic_real: List[str],
+    dtype=np.float32,
+):
+    dataframes = [
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                ),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                ),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                ),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+    ]
+
+    print(type(dataframes[0].index))
+
+    dataset = pandas.PandasDataset(
+        dataframes,
+        target=target,
+        feat_dynamic_real=feat_dynamic_real,
+    )
+
+    expected_entries = [
+        {
+            "start": pd.Period(df.index[0], freq=freq),
+            "target": df[target].values.transpose(),
+            "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+        }
+        for df in dataframes
+    ]
+
+    return dataset, expected_entries
+
+
+@pytest.mark.parametrize(
+    "dataset, expected_entries",
+    [
+        _testcase_series(freq="D", index_type=pd.period_range),
+        _testcase_series(freq="H", index_type=pd.date_range),
+        _testcase_dataframes_without_index(
+            freq="D",
+            target="A",
+            feat_dynamic_real=["B", "C"],
+        ),
+        _testcase_dataframes_without_index(
+            freq="H",
+            target=["A", "B"],
+            feat_dynamic_real=["C"],
+        ),
+        _testcase_dataframes_with_index(
+            freq="D",
+            index_type=pd.period_range,
+            target="A",
+            feat_dynamic_real=["B", "C"],
+        ),
+        _testcase_dataframes_with_index(
+            freq="H",
+            index_type=pd.date_range,
+            target=["A", "B"],
+            feat_dynamic_real=["C"],
+        ),
+    ],
+)
+def test_pandas_dataset_cases(dataset, expected_entries):
+    for entry, expected_entry in zip(dataset, expected_entries):
+        assert_recursively_equal(entry, expected_entry)
