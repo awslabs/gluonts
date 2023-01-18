@@ -30,7 +30,7 @@ from gluonts.ext.r_forecast import (
 # conditionally skip these tests if `R` and `rpy2` are not installed
 if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
     skip_message = "Skipping test because `R` and `rpy2` are not installed!"
-    pytest.skip(msg=skip_message, allow_module_level=True)
+    pytest.skip(skip_message, allow_module_level=True)
 
 
 TOLERANCE = 1e-6
