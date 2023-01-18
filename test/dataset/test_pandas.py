@@ -69,7 +69,6 @@ def long_dataset(long_dataframe):  # initialized with dict
         item_id="item",
         freq="1H",
         feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
     )
 
 
@@ -87,65 +86,10 @@ def test_LongDataFrameDataset_iter(long_dataset):
         assert "start" in i
         assert "target" in i
         assert "feat_dynamic_real" in i
-        assert "feat_static_cat" in i
 
 
 def test_LongDataFrameDataset_len(long_dataset):
     assert len(long_dataset) == 2
-
-
-def test_as_dataentry(long_dataframe):
-    df = long_dataframe.groupby("item").get_group("A")
-    dataentry = pandas.as_dataentry(
-        data=df,
-        target="target",
-        timestamp="time",
-        feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
-    )
-    assert "start" in dataentry
-    assert "target" in dataentry
-    assert "feat_dynamic_real" in dataentry
-    assert "feat_static_cat" in dataentry
-
-
-def test_prepare_prediction_data():
-    assert np.all(
-        pandas.prepare_prediction_data(
-            {"target": np.arange(20)}, ignore_last_n_targets=5
-        )["target"]
-        == np.arange(15)
-    )
-
-
-def test_prepare_prediction_data_nested():
-    assert np.all(
-        pandas.prepare_prediction_data(
-            {"target": np.ones(shape=(3, 20))},
-            ignore_last_n_targets=5,
-        )["target"]
-        == np.ones(shape=(3, 15))
-    )
-
-
-def test_prepare_prediction_data_with_features():
-    res = pandas.prepare_prediction_data(
-        {
-            "start": pd.Period("2021-01-01", freq="1H"),
-            "target": np.array([1.0, 2.0, np.nan]),
-            "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
-            "past_feat_dynamic_real": np.array([[1.0, 2.0, np.nan]]),
-        },
-        ignore_last_n_targets=1,
-    )
-    expected = {
-        "start": pd.Period("2021-01-01", freq="1H"),
-        "target": np.array([1.0, 2.0]),
-        "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
-        "past_feat_dynamic_real": np.array([[1.0, 2.0]]),
-    }
-    for key in res:
-        assert np.all(res[key] == expected[key])
 
 
 def test_is_uniform_2H():
@@ -267,8 +211,9 @@ def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):
         {
             "start": pd.Period(s.index[0], freq=freq),
             "target": s.values,
+            "item_id": k,
         }
-        for s in series
+        for k, s in enumerate(series)
     ]
 
     return dataset, expected_entries
@@ -332,8 +277,9 @@ def _testcase_dataframes_without_index(
             "start": pd.Period(df["timestamp"][0], freq=freq),
             "target": df[target].values.transpose(),
             "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+            "item_id": k,
         }
-        for df in dataframes
+        for k, df in enumerate(dataframes)
     ]
 
     return dataset, expected_entries
@@ -392,8 +338,9 @@ def _testcase_dataframes_with_index(
             "start": pd.Period(df.index[0], freq=freq),
             "target": df[target].values.transpose(),
             "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
+            "item_id": k,
         }
-        for df in dataframes
+        for k, df in enumerate(dataframes)
     ]
 
     return dataset, expected_entries
