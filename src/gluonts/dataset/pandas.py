@@ -29,7 +29,6 @@ from gluonts.itertools import SizedIterable
 # - feat_dynamic_cat -> gone, too painful to do now, let's think about it later
 # - TODO have dtype somewhere?
 # - TODO have assertions for stuff being the right dtype?
-# - TODO add the "ignore_last_n_targets" in some way (I don't like it)
 # - TODO benchmark
 # - TODO adjust tests, especially add tests for static features
 
@@ -49,6 +48,7 @@ class PandasDataset:
     timestamp: Optional[str] = None
     freq: Optional[str] = None
     static_features: Optional[pd.DataFrame] = None
+    ignore_last_n_targets: int = 0
     unchecked: bool = True
     assume_sorted: bool = False
     _static_reals: Optional[pd.DataFrame] = None
@@ -142,7 +142,9 @@ class PandasDataset:
             )
 
         start = df.index[0]
-        target = df[self.target].values.transpose()
+        target = df[self.target].values.transpose()[
+            ..., -self.ignore_last_n_targets :
+        ]
 
         entry = {
             "item_id": item_id,

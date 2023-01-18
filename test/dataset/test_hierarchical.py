@@ -140,17 +140,17 @@ def test_hts_to_dataset(mode: str):
         # In both train and inference modes, the index of the target
         # dataframe should be same as that of time features since we pad
         # NaNs in inference mode.
-        assert (ds.dataframes.index == features_df.index).all(), (
+        assert (ds.dataframes[0].index == features_df.index).all(), (
             "The index of target dataframe and the features dataframe "
             "do not match!\n"
-            f"Index of target dataframe: {ds.dataframes.index}.\n"
+            f"Index of target dataframe: {ds.dataframes[0].index}.\n"
             f"Index of features dataframe: {features_df.index}."
         )
 
         if mode == "train":
             # There should be no NaN in the target dataframe after concatenating
             # with the features dataframe since there are no future time steps.
-            assert not ds.dataframes.isnull().values.any(), (
+            assert not ds.dataframes[0].isnull().values.any(), (
                 "The target dataframe is incorrectly constructed and "
                 "contains NaNs."
             )
@@ -164,7 +164,7 @@ def test_hts_to_dataset(mode: str):
 
             # For each target column there would be `num_future_time_steps` NaNs.
             num_nans_expected = len(ds.target) * num_future_time_steps
-            num_nans = ds.dataframes.isnull().values.sum()
+            num_nans = ds.dataframes[0].isnull().values.sum()
             assert num_nans == num_nans_expected, (
                 "The target dataframe is incorrectly constructed and "
                 "do not contain the correct number of NaNs. \n"
