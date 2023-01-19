@@ -12,11 +12,10 @@
 # permissions and limitations under the License.
 
 
-# Third-party imports
 import numpy as np
 import pandas as pd
+from toolz.itertoolz import first
 
-# First-party imports
 import pytest
 from gluonts.dataset.hierarchical import HierarchicalTimeSeries
 
@@ -137,7 +136,7 @@ def test_hts_to_dataset(mode: str):
             ds = hts.to_dataset(feat_dynamic_real=features_df)
     else:
         ds = hts.to_dataset(feat_dynamic_real=features_df)
-        entry = next(iter(ds))
+        entry = first(ds)
 
         assert entry["start"] == features_df.index[0]
 

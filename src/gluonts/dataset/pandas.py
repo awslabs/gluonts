@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Dict, Iterable, Union, List, Optional, Tuple
 from dataclasses import dataclass, field
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
 from gluonts.dataset.common import DataEntry
-from gluonts.itertools import SizedIterable, Map
+from gluonts.itertools import Map, SizedIterable
 
 
 @dataclass
@@ -91,8 +91,8 @@ class PandasDataset:
     _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
         init=False
     )
-    _static_reals: Optional[pd.DataFrame] = None
-    _static_cats: Optional[pd.DataFrame] = None
+    _static_reals: Optional[pd.DataFrame] = field(init=False)
+    _static_cats: Optional[pd.DataFrame] = field(init=False)
 
     def __post_init__(self):
         if isinstance(self.dataframes, dict):
@@ -111,11 +111,10 @@ class PandasDataset:
             ), "You need to provide `freq` along with `timestamp`"
             self.freq = infer_freq(first(self._pairs)[1].index)
 
-        if self.static_features is not None:
-            (
-                self._static_reals,
-                self._static_cats,
-            ) = split_numerical_categorical(self.static_features)
+        (
+            self._static_reals,
+            self._static_cats,
+        ) = split_numerical_categorical(self.static_features)
 
         if self._static_reals is not None:
             self._static_reals = self._static_reals.astype(np.float32)
@@ -127,27 +126,27 @@ class PandasDataset:
 
     @property
     def num_feat_static_cat(self):
-        return 0 if self._static_cats is None else self._static_cats.shape[1]
+        if self._static_cats is None:
+            return 0
+        return self._static_cats.shape[1]
 
     @property
     def num_feat_static_real(self):
-        return 0 if self._static_reals is None else self._static_reals.shape[1]
+        if self._static_reals is None:
+            return 0
+        return self._static_reals.shape[1]
 
     @property
     def num_feat_dynamic_real(self):
-        return (
-            0
-            if self.feat_dynamic_real is None
-            else len(self.feat_dynamic_real)
-        )
+        if self.feat_dynamic_real is None:
+            return 0
+        return len(self.feat_dynamic_real)
 
     @property
     def num_past_feat_dynamic_real(self):
-        return (
-            0
-            if self.past_feat_dynamic_real is None
-            else len(self.past_feat_dynamic_real)
-        )
+        if self.past_feat_dynamic_real is None:
+            return 0
+        return len(self.past_feat_dynamic_real)
 
     @property
     def cardinalities(self):
@@ -293,7 +292,7 @@ def remove_last_n(n: int, array: np.ndarray) -> np.ndarray:
 
 
 def split_numerical_categorical(
-    df: pd.DataFrame,
+    df: Optional[pd.DataFrame],
 ) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
     """
     Splits the given DataFrame into two: one containing numerical columns,
@@ -301,6 +300,9 @@ def split_numerical_categorical(
 
     Columns of other types are excluded.
     """
+    if df is None:
+        return None, None
+
     numerical = {}
     categorical = {}
 
