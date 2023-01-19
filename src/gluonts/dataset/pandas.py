@@ -123,6 +123,8 @@ class PandasDataset:
         if self._static_cats is not None:
             self._static_cats = category_to_int(self._static_cats)
 
+        self._data_entries = Map(self._pair_to_dataentry, self._pairs)
+
     @property
     def num_feat_static_cat(self):
         return 0 if self._static_cats is None else self._static_cats.shape[1]
@@ -154,21 +156,6 @@ class PandasDataset:
         return [
             max(self._static_cats[c]) + 1 for c in self._static_cats.columns
         ]
-
-    def __len__(self) -> int:
-        return len(self._pairs)
-
-    def __str__(self) -> str:
-        return (
-            f"PandasDataset<"
-            f"size={len(self)}, "
-            f"freq={self.freq}, "
-            f"num_dynamic_real={self.num_feat_dynamic_real}, "
-            f"num_past_dynamic_real={self.num_past_feat_dynamic_real}, "
-            f"num_static_real={self.num_feat_static_real}, "
-            f"num_static_cat={self.num_feat_static_cat}, "
-            f"cardinalities={self.cardinalities}>"
-        )
 
     def _pair_to_dataentry(self, pair) -> DataEntry:
         item_id, df = pair
@@ -224,10 +211,23 @@ class PandasDataset:
         return entry
 
     def __iter__(self):
-        for pair in self._pairs:
-            yield self._pair_to_dataentry(pair)
-
+        yield from self._data_entries
         self.unchecked = True
+
+    def __len__(self) -> int:
+        return len(self._data_entries)
+
+    def __str__(self) -> str:
+        return (
+            f"PandasDataset<"
+            f"size={len(self)}, "
+            f"freq={self.freq}, "
+            f"num_dynamic_real={self.num_feat_dynamic_real}, "
+            f"num_past_dynamic_real={self.num_past_feat_dynamic_real}, "
+            f"num_static_real={self.num_feat_static_real}, "
+            f"num_static_cat={self.num_feat_static_cat}, "
+            f"cardinalities={self.cardinalities}>"
+        )
 
     @classmethod
     def from_long_dataframe(
