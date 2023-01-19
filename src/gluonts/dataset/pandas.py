@@ -23,15 +23,6 @@ from toolz import first
 from gluonts.dataset.common import DataEntry
 from gluonts.itertools import SizedIterable
 
-# NOTE
-# - feat_static_real -> gone, use dedicated dataframe for static features
-# - feat_static_cat -> gone, same as above
-# - feat_dynamic_cat -> gone, too painful to do now, let's think about it later
-# - TODO have dtype somewhere?
-# - TODO have assertions for stuff being the right dtype?
-# - TODO benchmark
-# - TODO adjust tests, especially add tests for static features
-
 
 @dataclass
 class PandasDataset:
