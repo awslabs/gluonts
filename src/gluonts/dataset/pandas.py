@@ -31,7 +31,7 @@ class PandasDataset:
 
     This class is constructed with a collection of ``pandas.DataFrame``
     objects where each ``DataFrame`` is representing one time series.
-    A ``target`` and a ``timestamp`` columns are essential. Dynamic features
+    Both ``target`` and ``timestamp`` columns are essential. Dynamic features
     of a series can be specified with together with the series' ``DataFrame``,
     while static features can be specified in a separate ``DataFrame`` object
     via the ``static_features`` argument.
