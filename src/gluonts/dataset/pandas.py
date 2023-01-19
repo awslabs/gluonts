@@ -97,7 +97,7 @@ class PandasDataset:
     def __post_init__(self):
         if isinstance(self.dataframes, dict):
             self._pairs = self.dataframes.items()
-        elif isinstance(self.dataframes, (pd.DataFrame, pd.Series)):
+        elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
             self._pairs = [pair_with_item_id(self.dataframes)]
         else:
             assert isinstance(self.dataframes, SizedIterable)
@@ -109,7 +109,7 @@ class PandasDataset:
             assert (
                 self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
-            self.freq = infer_freq(infer_freq(first(self._pairs)[1].index))
+            self.freq = infer_freq(first(self._pairs)[1].index)
 
         if self.static_features is not None:
             (
@@ -156,7 +156,7 @@ class PandasDataset:
         ]
 
     def __len__(self) -> int:
-        return len(self.dataframes)
+        return len(self._pairs)
 
     def __str__(self) -> str:
         return (
@@ -194,13 +194,15 @@ class PandasDataset:
             )
 
         entry = {
-            "item_id": item_id,
             "start": df.index[0],
             "target": remove_last_n(
                 self.ignore_last_n_targets,
                 df[self.target].values.transpose(),
             ),
         }
+
+        if item_id is not None:
+            entry["item_id"] = item_id
 
         if self._static_cats is not None:
             entry["feat_static_cat"] = self._static_cats.loc[item_id].values

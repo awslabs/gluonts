@@ -211,9 +211,8 @@ def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):
         {
             "start": pd.Period(s.index[0], freq=freq),
             "target": s.values,
-            "item_id": k,
         }
-        for k, s in enumerate(series)
+        for s in series
     ]
 
     return dataset, expected_entries
@@ -277,9 +276,8 @@ def _testcase_dataframes_without_index(
             "start": pd.Period(df["timestamp"][0], freq=freq),
             "target": df[target].values.transpose(),
             "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
-            "item_id": k,
         }
-        for k, df in enumerate(dataframes)
+        for df in dataframes
     ]
 
     return dataset, expected_entries
@@ -338,9 +336,8 @@ def _testcase_dataframes_with_index(
             "start": pd.Period(df.index[0], freq=freq),
             "target": df[target].values.transpose(),
             "feat_dynamic_real": df[feat_dynamic_real].values.transpose(),
-            "item_id": k,
         }
-        for k, df in enumerate(dataframes)
+        for df in dataframes
     ]
 
     return dataset, expected_entries
