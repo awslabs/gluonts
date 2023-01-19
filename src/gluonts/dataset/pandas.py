@@ -282,7 +282,7 @@ def infer_freq(index: pd.Index) -> str:
     return freq
 
 
-def remove_last_n(n: int, array: np.ndarray):
+def remove_last_n(n: int, array: np.ndarray) -> np.ndarray:
     """
     Return a new array with last ``n`` elements removed from the
     trailing axis, if ``n`` is positive, and the array itself otherwise.
@@ -292,7 +292,9 @@ def remove_last_n(n: int, array: np.ndarray):
     return array[..., :-n]
 
 
-def split_numerical_categorical(df: pd.DataFrame):
+def split_numerical_categorical(
+    df: pd.DataFrame,
+) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
     """
     Splits the given DataFrame into two: one containing numerical columns,
     the other containing categorical columns.
@@ -314,7 +316,7 @@ def split_numerical_categorical(df: pd.DataFrame):
     )
 
 
-def category_to_int(df: pd.DataFrame):
+def category_to_int(df: pd.DataFrame) -> pd.DataFrame:
     """
     Return a ``DataFrame`` with categorical columns replaced by integer codes.
 
