@@ -225,6 +225,8 @@ class PandasDataset:
         for pair in self._pairs:
             yield self._pair_to_dataentry(pair)
 
+        self.unchecked = True
+
     @classmethod
     def from_long_dataframe(
         cls, dataframe: pd.DataFrame, item_id: str, **kwargs
