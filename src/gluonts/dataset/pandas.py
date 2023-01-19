@@ -26,6 +26,47 @@ from gluonts.itertools import SizedIterable
 
 @dataclass
 class PandasDataset:
+    """
+    A dataset type based on ``pandas.DataFrame``.
+
+    This class is constructed with a collection of ``pandas.DataFrame``
+    objects where each ``DataFrame`` is representing one time series.
+    A ``target`` and a ``timestamp`` columns are essential. Dynamic features
+    of a series can be specified with together with the series' ``DataFrame``,
+    while static features can be specified in a separate ``DataFrame`` object
+    via the ``static_features`` argument.
+
+    Parameters
+    ----------
+    dataframes
+        Single ``pd.DataFrame``/``pd.Series`` or a collection as list or dict
+        containing at least ``timestamp`` and ``target`` values.
+        If a Dict is provided, the key will be the associated ``item_id``.
+    target
+        Name of the column that contains the ``target`` time series.
+        For multivariate targets, a list of column names should be provided.
+    timestamp
+        Name of the column that contains the timestamp information.
+    freq
+        Frequency of observations in the time series. Must be a valid pandas
+        frequency.
+    feat_dynamic_real
+        List of column names that contain dynamic real features.
+    static_features
+        ``pd.DataFrame`` containing static features for the series. The index
+        should contain the key of the series in the ``dataframes`` argument.
+    ignore_last_n_targets
+        For target and past dynamic features last ``ignore_last_n_targets``
+        elements are removed when iterating over the data set. This becomes
+        important when the predictor is called.
+    unchecked
+        Whether consistency checks on indexes should be skipped.
+        (Default: ``False``)
+    assume_sorted
+        Whether to assume that indexes are sorted by time, and skip sorting.
+        (Default: ``False``)
+    """
+
     dataframes: Union[
         pd.DataFrame,
         pd.Series,
@@ -40,7 +81,7 @@ class PandasDataset:
     freq: Optional[str] = None
     static_features: Optional[pd.DataFrame] = None
     ignore_last_n_targets: int = 0
-    unchecked: bool = True
+    unchecked: bool = False
     assume_sorted: bool = False
     _static_reals: Optional[pd.DataFrame] = None
     _static_cats: Optional[pd.DataFrame] = None
