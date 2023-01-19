@@ -230,7 +230,11 @@ class PandasDataset:
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls,
+        dataframe: pd.DataFrame,
+        item_id: str,
+        static_feature_columns: Optional[List[str]] = None,
+        **kwargs,
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe. A long dataframe
@@ -246,6 +250,8 @@ class PandasDataset:
         item_id
             Name of the column that, when grouped by, gives the different time
             series.
+        static_feature_columns
+            Columns containing static features.
         **kwargs
             Additional arguments. Same as of PandasDataset class.
 
@@ -256,7 +262,20 @@ class PandasDataset:
         """
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
-        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
+        if static_feature_columns is not None:
+            static_features = (
+                dataframe[[item_id] + static_feature_columns]
+                .drop_duplicates()
+                .set_index(item_id)
+            )
+            assert len(static_features) == len(dataframe[item_id].unique())
+        else:
+            static_features = None
+        return cls(
+            dataframes=dataframe.groupby(item_id),
+            static_features=static_features,
+            **kwargs,
+        )
 
 
 def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
