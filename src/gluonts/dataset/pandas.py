@@ -52,13 +52,15 @@ class PandasDataset:
         frequency.
     feat_dynamic_real
         List of column names that contain dynamic real features.
+    past_feat_dynamic_real
+        List of column names that contain dynamic real features only available
+        in the past.
     static_features
         ``pd.DataFrame`` containing static features for the series. The index
         should contain the key of the series in the ``dataframes`` argument.
     ignore_last_n_targets
         For target and past dynamic features last ``ignore_last_n_targets``
-        elements are removed when iterating over the data set. This becomes
-        important when the predictor is called.
+        elements are removed when iterating over the data set.
     unchecked
         Whether consistency checks on indexes should be skipped.
         (Default: ``False``)
@@ -77,6 +79,7 @@ class PandasDataset:
     ]
     target: Union[str, List[str]] = "target"  # TODO meh
     feat_dynamic_real: Optional[List[str]] = None
+    past_feat_dynamic_real: Optional[List[str]] = None
     timestamp: Optional[str] = None
     freq: Optional[str] = None
     static_features: Optional[pd.DataFrame] = None
@@ -129,6 +132,14 @@ class PandasDataset:
         )
 
     @property
+    def num_past_feat_dynamic_real(self):
+        return (
+            0
+            if self.past_feat_dynamic_real is None
+            else len(self.past_feat_dynamic_real)
+        )
+
+    @property
     def cardinalities(self):
         if self._static_cats is None:
             return []
@@ -145,6 +156,7 @@ class PandasDataset:
             f"size={len(self)}, "
             f"freq={self.freq}, "
             f"num_dynamic_real={self.num_feat_dynamic_real}, "
+            f"num_past_dynamic_real={self.num_past_feat_dynamic_real}, "
             f"num_static_real={self.num_feat_static_real}, "
             f"num_static_cat={self.num_feat_static_cat}, "
             f"cardinalities={self.cardinalities}>"
@@ -173,15 +185,13 @@ class PandasDataset:
                 "dataset with `PandasDataset.from_long_dataframe` instead."
             )
 
-        start = df.index[0]
-        target = df[self.target].values.transpose()
-        if self.ignore_last_n_targets > 0:
-            target = target[..., : -self.ignore_last_n_targets]
-
         entry = {
             "item_id": item_id,
-            "start": start,
-            "target": target,
+            "start": df.index[0],
+            "target": remove_last_n(
+                self.ignore_last_n_targets,
+                df[self.target].values.transpose(),
+            ),
         }
 
         if self._static_cats is not None:
@@ -194,6 +204,12 @@ class PandasDataset:
             entry["feat_dynamic_real"] = df[
                 self.feat_dynamic_real
             ].values.transpose()
+
+        if self.past_feat_dynamic_real is not None:
+            entry["past_feat_dynamic_real"] = remove_last_n(
+                self.ignore_last_n_targets,
+                df[self.past_feat_dynamic_real].values.transpose(),
+            )
 
         return entry
 
@@ -232,6 +248,16 @@ class PandasDataset:
         return cls(
             dataframes={k: v for k, v in dataframe.groupby(item_id)}, **kwargs
         )
+
+
+def remove_last_n(n: int, array: np.ndarray):
+    """
+    Return a new array with last ``n`` elements removed from the
+    trailing axis, if ``n`` is positive, and the array itself otherwise.
+    """
+    if n <= 0:
+        return array
+    return array[..., :-n]
 
 
 def infer_freq(index: pd.Index) -> str:
