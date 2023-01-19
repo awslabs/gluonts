@@ -21,7 +21,9 @@ import numpy as np
 class Aggregation:
     axis: Optional[int] = None
 
-    def step(self, values: np.ndarray) -> None:
+    def step(
+        self, values: np.ndarray, weights: Optional[np.ndarray] = None
+    ) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
@@ -43,7 +45,12 @@ class Sum(Aggregation):
 
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> None:
+    def step(
+        self, values: np.ndarray, weights: Optional[np.ndarray] = None
+    ) -> None:
+        if weights is not None:
+            values = values * weights
+
         summed_values = np.ma.sum(values, axis=self.axis)
 
         if self.axis is None or self.axis == 0:
@@ -80,7 +87,12 @@ class Mean(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: Optional[Union[int, np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> None:
+    def step(
+        self, values: np.ndarray, weights: Optional[np.ndarray] = None
+    ) -> None:
+        if weights is not None:
+            values = values * weights
+
         if self.axis is None or self.axis == 0:
             summed_values = np.ma.sum(values, axis=self.axis)
             if self.partial_result is None:
