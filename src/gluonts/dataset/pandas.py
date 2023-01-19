@@ -11,8 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Union, List, Optional
-from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Union, List, Optional, Tuple
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
 from gluonts.dataset.common import DataEntry
-from gluonts.itertools import SizedIterable
+from gluonts.itertools import SizedIterable, Map
 
 
 @dataclass
@@ -72,8 +72,10 @@ class PandasDataset:
     dataframes: Union[
         pd.DataFrame,
         pd.Series,
-        List[pd.DataFrame],
-        List[pd.Series],
+        Iterable[pd.DataFrame],
+        Iterable[pd.Series],
+        Iterable[Tuple[Any, pd.DataFrame]],
+        Iterable[Tuple[Any, pd.Series]],
         Dict[str, pd.DataFrame],
         Dict[str, pd.Series],
     ]
@@ -86,22 +88,28 @@ class PandasDataset:
     ignore_last_n_targets: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
+    _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
+        init=False
+    )
     _static_reals: Optional[pd.DataFrame] = None
     _static_cats: Optional[pd.DataFrame] = None
 
     def __post_init__(self):
         if isinstance(self.dataframes, dict):
-            pass
+            self._pairs = self.dataframes.items()
         elif isinstance(self.dataframes, (pd.DataFrame, pd.Series)):
-            self.dataframes = {0: self.dataframes}
-        elif isinstance(self.dataframes, SizedIterable):
-            self.dataframes = dict(enumerate(self.dataframes))
+            self._pairs = [pair_with_item_id(self.dataframes)]
+        else:
+            assert isinstance(self.dataframes, SizedIterable)
+            self._pairs = Map(pair_with_item_id, self.dataframes)
+
+        assert isinstance(self._pairs, SizedIterable)
 
         if self.freq is None:
             assert (
                 self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
-            self.freq = infer_freq(first(self.dataframes.items())[1].index)
+            self.freq = infer_freq(infer_freq(first(self._pairs)[1].index))
 
         if self.static_features is not None:
             (
@@ -214,7 +222,7 @@ class PandasDataset:
         return entry
 
     def __iter__(self):
-        for pair in self.dataframes.items():
+        for pair in self._pairs:
             yield self._pair_to_dataentry(pair)
 
     @classmethod
@@ -245,19 +253,15 @@ class PandasDataset:
         """
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
-        return cls(
-            dataframes={k: v for k, v in dataframe.groupby(item_id)}, **kwargs
-        )
+        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
 
 
-def remove_last_n(n: int, array: np.ndarray):
-    """
-    Return a new array with last ``n`` elements removed from the
-    trailing axis, if ``n`` is positive, and the array itself otherwise.
-    """
-    if n <= 0:
-        return array
-    return array[..., :-n]
+def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
+    if isinstance(obj, tuple) and len(obj) == 2:
+        return obj
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        return (None, obj)
+    raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
 def infer_freq(index: pd.Index) -> str:
@@ -272,6 +276,16 @@ def infer_freq(index: pd.Index) -> str:
         return freq[:-1]
 
     return freq
+
+
+def remove_last_n(n: int, array: np.ndarray):
+    """
+    Return a new array with last ``n`` elements removed from the
+    trailing axis, if ``n`` is positive, and the array itself otherwise.
+    """
+    if n <= 0:
+        return array
+    return array[..., :-n]
 
 
 def split_numerical_categorical(df: pd.DataFrame):
