@@ -142,9 +142,9 @@ class PandasDataset:
             )
 
         start = df.index[0]
-        target = df[self.target].values.transpose()[
-            ..., -self.ignore_last_n_targets :
-        ]
+        target = df[self.target].values.transpose()
+        if self.ignore_last_n_targets > 0:
+            target = target[..., : -self.ignore_last_n_targets]
 
         entry = {
             "item_id": item_id,
