@@ -229,14 +229,22 @@ def split_numerical_categorical(df: pd.DataFrame):
     )
 
 
-def category_to_int(df):
+def category_to_int(df: pd.DataFrame):
     """
-    Turns categorical columns from the given DataFrame into integer ones.
+    Return a ``DataFrame`` with categorical columns replaced by integer codes.
+
+    Codes are obtained via ``pd.Categorical.codes``, and range from 0 to N,
+    where N is the number of categories for the column of interest.
     """
-    for col in df.columns:
-        if df[col].dtype == "category":
-            df[col] = pd.Categorical(df[col]).codes
-    return df
+    data = {
+        col: (
+            pd.Categorical(df[col]).codes
+            if df[col].dtype == "category"
+            else df[col]
+        )
+        for col in df.columns
+    }
+    return pd.DataFrame(data=data, index=df.index)
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:
