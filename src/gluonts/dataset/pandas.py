@@ -79,7 +79,7 @@ class PandasDataset:
         Dict[str, pd.DataFrame],
         Dict[str, pd.Series],
     ]
-    target: Union[str, List[str]] = "target"  # TODO meh
+    target: Union[str, List[str]] = "target"
     feat_dynamic_real: Optional[List[str]] = None
     past_feat_dynamic_real: Optional[List[str]] = None
     timestamp: Optional[str] = None
