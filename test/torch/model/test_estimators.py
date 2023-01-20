@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import tempfile
+from functools import partial
 from itertools import islice
 from pathlib import Path
 
@@ -21,6 +22,11 @@ from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository.datasets import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
+from gluonts.torch.model.deep_npts import (
+    DeepNPTSEstimator,
+    DeepNPTSNetworkDiscrete,
+    DeepNPTSNetworkSmooth,
+)
 from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
@@ -61,6 +67,14 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
+        lambda dataset: DeepNPTSEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            context_length=2 * dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            epochs=2,
+        ),
     ],
 )
 def test_estimator_constant_dataset(estimator_constructor):
@@ -71,7 +85,6 @@ def test_estimator_constant_dataset(estimator_constructor):
     predictor = estimator.train(
         training_data=constant.train,
         validation_data=constant.train,
-        shuffle_buffer_length=5,
     )
 
     with tempfile.TemporaryDirectory() as td:
@@ -135,6 +148,54 @@ def test_estimator_constant_dataset(estimator_constructor):
             static_cardinalities=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
         ),
+        lambda freq, prediction_length: DeepNPTSEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            context_length=2 * prediction_length,
+            batch_norm=True,
+            network_type=partial(DeepNPTSNetworkDiscrete, use_softmax=True),
+            use_feat_static_cat=True,
+            cardinality=[2, 2],
+            num_feat_static_real=1,
+            num_feat_dynamic_real=0,
+            input_scaling=None,
+            dropout_rate=0.0,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            epochs=2,
+        ),
+        lambda freq, prediction_length: DeepNPTSEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            context_length=2 * prediction_length,
+            batch_norm=False,
+            network_type=partial(DeepNPTSNetworkDiscrete, use_softmax=False),
+            use_feat_static_cat=True,
+            cardinality=[2, 2],
+            num_feat_static_real=1,
+            num_feat_dynamic_real=0,
+            input_scaling="min_max_scaling",
+            dropout_rate=0.0,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            epochs=2,
+        ),
+        lambda freq, prediction_length: DeepNPTSEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            context_length=2 * prediction_length,
+            batch_norm=True,
+            network_type=DeepNPTSNetworkSmooth,
+            use_feat_static_cat=True,
+            cardinality=[2, 2],
+            num_feat_static_real=1,
+            num_feat_dynamic_real=0,
+            input_scaling="standard_normal_scaling",
+            dropout_rate=0.1,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            epochs=2,
+        ),
     ],
 )
 def test_estimator_with_features(estimator_constructor):
@@ -186,7 +247,6 @@ def test_estimator_with_features(estimator_constructor):
     predictor = estimator.train(
         training_data=training_dataset,
         validation_data=training_dataset,
-        shuffle_buffer_length=5,
     )
 
     with tempfile.TemporaryDirectory() as td:
