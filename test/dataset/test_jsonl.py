@@ -17,6 +17,7 @@ from pathlib import Path
 
 
 from gluonts.dataset.common import FileDataset
+from gluonts.dataset.jsonl import JsonLinesWriter, JsonLinesFile
 
 N = 3
 
@@ -43,3 +44,30 @@ def test_jsonlgz():
 
         assert len(FileDataset(path, freq="D")) == N
         assert len(list(FileDataset(path, freq="D"))) == N
+
+
+def test_jsonl_slice():
+    data = list(range(10))
+
+    with tempfile.TemporaryDirectory() as path:
+        tmp_file = Path(path) / "data.json"
+
+        JsonLinesWriter(use_gzip=False).write_to_file(data, tmp_file)
+
+        reader = JsonLinesFile(tmp_file)
+
+        assert len(reader) == len(data)
+        assert list(reader) == data
+
+        assert reader[0] == data[0]
+        assert reader[-1] == data[-1]
+        assert sum(reader) == sum(data)
+
+        assert list(reader[:5]) == data[:5]
+        assert len(reader[:5]) == len(data[:5])
+
+        assert list(reader[10:]) == data[10:]
+        assert len(reader[10:]) == len(data[10:])
+
+        assert list(reader[3:7]) == data[3:7]
+        assert len(reader[3:7]) == len(data[3:7])
