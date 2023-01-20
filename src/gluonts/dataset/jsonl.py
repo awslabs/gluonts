@@ -11,19 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from datetime import datetime
 import functools
 import gzip
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import cast, Optional, BinaryIO
 
 import numpy as np
 import pandas as pd
-from toolz import valmap
+from toolz import first, take, valmap
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
+from gluonts.util import lazy_property
 
 from . import Dataset, DatasetWriter
 
@@ -88,7 +89,7 @@ def _encode_json_period(arg: pd.Period):
     return str(arg)
 
 
-@dataclass
+@dataclass(frozen=True)
 class JsonLinesFile:
     """
     An iterable type that draws from a JSON Lines file.
@@ -108,16 +109,20 @@ class JsonLinesFile:
     }
 
     path: Path
+    start: int = 0
+    n: Optional[int] = None
 
     def open(self):
         if self.path.suffix == ".gz":
             return gzip.open(self.path)
 
-        return open(self.path, "rb")
+        return open(self.path, "rb", buffering=1024**2)
 
     def __iter__(self):
         with self.open() as jsonl_file:
-            for line_number, line in enumerate(jsonl_file):
+            jsonl_file.seek(self.start)
+
+            for line_number, line in take(self.n, enumerate(jsonl_file)):
                 try:
                     yield json.loads(line)
                 except ValueError:
@@ -126,15 +131,30 @@ class JsonLinesFile:
                     )
 
     def __len__(self):
-        # 1MB
-        BUF_SIZE = 1024**2
+        return len(self.line_starts)
+
+    @lazy_property
+    def line_starts(self):
+        lengths = [self.start]
 
         with self.open() as file_obj:
-            read_chunk = functools.partial(file_obj.read, BUF_SIZE)
-            file_len = sum(
-                chunk.count(b"\n") for chunk in iter(read_chunk, b"")
-            )
-            return file_len
+            file_obj.seek(self.start)
+
+            for line in take(self.n, file_obj):
+                lengths.append(len(line))
+
+        return np.cumsum(lengths[:-1])
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            starts = self.line_starts[idx]
+            if len(starts) == 0:
+                return JsonLinesFile(self.path, n=0)
+
+            return JsonLinesFile(self.path, start=starts[0], n=len(starts))
+
+        assert isinstance(idx, int)
+        return first(self[idx:])
 
 
 @dataclass
