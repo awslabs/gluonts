@@ -133,6 +133,9 @@ class PyTorchPredictor(Predictor):
     def deserialize(
         cls, path: Path, device: Optional[torch.device] = None
     ) -> "PyTorchPredictor":
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
