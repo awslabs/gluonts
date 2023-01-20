@@ -17,6 +17,7 @@ import torch
 from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
+from gluonts.torch.model.tft import TemporalFusionTransformerModel
 
 
 def construct_batch(module, batch_size=1):
@@ -82,6 +83,22 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
                 torch.float,
                 torch.float,
             ],
+        ),
+        (
+            TemporalFusionTransformerModel(
+                context_length=24,
+                prediction_length=12,
+                quantiles=[0.2, 0.25, 0.5, 0.9, 0.95],
+                d_past_feat_dynamic_real=[1],
+                d_feat_dynamic_real=[2, 5],
+                d_feat_static_real=[3, 1, 1],
+                c_past_feat_dynamic_cat=[2, 2, 2],
+                c_feat_dynamic_cat=[2],
+                c_feat_static_cat=[2, 2],
+            ),
+            4,
+            (4, 5, 12),  # (batch_size, len(quantiles), prediction_length)
+            torch.float,
         ),
     ],
 )

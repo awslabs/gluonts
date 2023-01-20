@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import os
+
 from pathlib import Path
 from typing import Dict, Optional, List, Iterator, Tuple
 
@@ -34,7 +34,8 @@ R_IS_INSTALLED = proc.wait() == 0
 try:
     import rpy2.robjects.packages as rpackages
     from rpy2 import rinterface, robjects
-    from rpy2.rinterface import RRuntimeError
+    from rpy2.rinterface_lib import callbacks
+    from rpy2.rinterface_lib.embedded import RRuntimeError
 except ImportError as e:
     rpy2_error_message = str(e)
     RPY2_IS_INSTALLED = False
@@ -104,21 +105,17 @@ class RBasePredictor(RepresentablePredictor):
 
         self._robjects = robjects
         self._rinterface = rinterface
+        self._rcallbacks = callbacks
         self._rinterface.initr()
         self._rpackages = rpackages
 
-        this_dir = os.path.dirname(os.path.realpath(__file__))
-        this_dir = this_dir.replace("\\", "/")  # for windows
-        r_files = [
-            n[:-2]
-            for n in os.listdir(f"{this_dir}/R/")
-            if n[-2:] == ".R" and n.startswith(r_file_prefix)
-        ]
+        this_dir = Path(__file__).resolve().parent.absolute()
+        this_dir = Path(f"{this_dir}".replace("\\", "/"))  # for windows
+        r_files = this_dir.rglob(f"{r_file_prefix}*.R")
 
-        for n in r_files:
+        for r_file in r_files:
             try:
-                path = Path(this_dir, "R", f"{n}.R")
-                robjects.r(f'source("{path}")'.replace("\\", "\\\\"))
+                robjects.r(f'source("{r_file}")'.replace("\\", "\\\\"))
             except RRuntimeError as er:
                 raise RRuntimeError(str(er) + USAGE_MESSAGE) from er
 
@@ -191,18 +188,17 @@ class RBasePredictor(RepresentablePredictor):
         f = save_to_buf if save_info else dont_save
 
         # save output from the R console in buf
+        consolewrite_print_backup = self._rcallbacks.consolewrite_print
+        consolewrite_warnerror_backup = self._rcallbacks.consolewrite_warnerror
 
-        self._rinterface.set_writeconsole_regular(f)
-        self._rinterface.set_writeconsole_warnerror(f)
+        self._rcallbacks.consolewrite_print = f
+        self._rcallbacks.consolewrite_warnerror = f
 
         forecast_dict = self._get_r_forecast(data=data, params=params)
 
-        self._rinterface.set_writeconsole_regular(
-            self._rinterface.consolePrint
-        )
-        self._rinterface.set_writeconsole_warnerror(
-            self._rinterface.consolePrint
-        )
+        self._rcallbacks.consolewrite_print = consolewrite_print_backup
+        self._rcallbacks.consolewrite_warnerror = consolewrite_warnerror_backup
+
         return forecast_dict, buf
 
     def _preprocess_data(self, data: Dict) -> Dict:
