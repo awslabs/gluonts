@@ -117,7 +117,7 @@ class DeepNPTSNetwork(nn.Module):
         num_time_features: int,
         batch_norm: bool = False,
         input_scaling: Optional[Union[Callable, str]] = None,
-        dropout_rate: Optional[float] = None,
+        dropout_rate: float = 0.0,
     ):
         super().__init__()
 
@@ -148,7 +148,7 @@ class DeepNPTSNetwork(nn.Module):
             modules += [nn.Linear(in_features, out_features), nn.ReLU()]
             if self.batch_norm:
                 modules.append(nn.BatchNorm1d(out_features))
-            if self.dropout_rate:
+            if self.dropout_rate > 0:
                 modules.append(nn.Dropout(self.dropout_rate))
 
         self.model = nn.Sequential(*modules)
@@ -209,17 +209,23 @@ class DeepNPTSNetwork(nn.Module):
 
 
 class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
-    """Extends `DeepNTPSNetwork` by implementing the output layer which
+    """
+    Extends `DeepNTPSNetwork` by implementing the output layer which
     converts the ouptuts from the base network into probabilities of length
     `context_length`. These probabilities together with the past values in the
     context window constitute the one-step-ahead forecast distribution.
     Specifically, the forecast is always one of the values observed in the
     context window with the corresponding predicted probability.
 
-    Parameters ---------- *args     Arguments to ``DeepNPTSNetwork``.
-    use_softmax     Flag indicating whether to use softmax or normalization for
-    converting the outputs of the base network     to probabilities. kwargs
-    Keyword arguments to ``DeepNPTSNetwork``.
+    Parameters
+    ----------
+    *args
+        Arguments to ``DeepNPTSNetwork``.
+    use_softmax
+        Flag indicating whether to use softmax or normalization for
+        converting the outputs of the base network to probabilities.
+    kwargs
+        Keyword arguments to ``DeepNPTSNetwork``.
     """
 
     @validated()
@@ -227,9 +233,7 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
         super().__init__(*args, **kwargs)
         self.use_softmax = use_softmax
         modules: List[nn.Module] = (
-            []
-            if self.dropout_rate is None
-            else [nn.Dropout(self.dropout_rate)]
+            [] if self.dropout_rate > 0 else [nn.Dropout(self.dropout_rate)]
         )
         modules.append(
             nn.Linear(self.num_hidden_nodes[-1], self.context_length)
@@ -264,7 +268,8 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 
 
 class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
-    """Extends `DeepNTPSNetwork` by implementing the output layer which
+    """
+    Extends `DeepNTPSNetwork` by implementing the output layer which
     converts the ouptuts from the base network into a smoothed mixture
     distribution. The components of the mixture are Gaussians centered around
     the observations in the context window. The mixing probabilities as well as
@@ -279,9 +284,7 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         modules = (
-            []
-            if self.dropout_rate is None
-            else [nn.Dropout(self.dropout_rate)]
+            [] if self.dropout_rate > 0 else [nn.Dropout(self.dropout_rate)]
         )
         modules += [
             nn.Linear(self.num_hidden_nodes[-1], self.context_length + 1),
@@ -315,9 +318,11 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
         )
 
 
-class DeepNPTSMultiStepPredictor(nn.Module):
-    """Implements multi-step prediction given a trained `DeepNPTSNewtork` model
-    that outputs one-step-ahead forecast distribution."""
+class DeepNPTSMultiStepNetwork(nn.Module):
+    """
+    Implements multi-step prediction given a trained `DeepNPTSNewtork` model
+    that outputs one-step-ahead forecast distribution.
+    """
 
     @validated()
     def __init__(
@@ -342,15 +347,26 @@ class DeepNPTSMultiStepPredictor(nn.Module):
     ):
         """Generates samples from the forecast distribution.
 
-        Parameters ---------- feat_static_cat     Shape (-1, num_features).
-        feat_static_real     Shape (-1, num_features). past_target     Shape
-        (-1, context_length). past_observed_values     Shape (-1,
-        context_length). past_time_feat     Shape (-1, context_length,
-        self.num_time_features). future_time_feat     Shape (-1,
-        prediction_length, self.num_time_features).  Returns -------
-        torch.Tensor     Tensor containing samples from the predicted
-        distribution.     Shape is (-1, self.num_parallel_samples,
-        self.prediction_length).
+        Parameters
+        ----------
+        feat_static_cat
+            Shape (-1, num_features).
+        feat_static_real
+            Shape (-1, num_features).
+        past_target
+            Shape (-1, context_length).
+        past_observed_values
+            Shape (-1, context_length).
+        past_time_feat
+            Shape (-1, context_length, self.num_time_features).
+        future_time_feat
+            Shape (-1, prediction_length, self.num_time_features).
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor containing samples from the predicted distribution.
+            Shape is (-1, self.num_parallel_samples, self.prediction_length).
         """
         # Blow up the initial `x` by the number of parallel samples required.
         # (batch_size * num_parallel_samples, context_length)
