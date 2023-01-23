@@ -328,10 +328,11 @@ estimator_with_features = DeepAREstimator(
 )
 ```
 
-Let's now generate single time series and multiple time series
-(as list and as long-dataframe).
+Let's now generate multiple time series, both as a dictionary of data frames,
+and as a single long data frame. We also generate a dedicated data frame of
+static features.
 Note we don't provide `freq` and `timestamp`, because they are automatically
-inferred from the index. We are also not passing the `target` argument, since
+inferred from the time index. We are also not passing the `target` argument, since
 it's default value is "target", which is the target column in our dataframes.
 
 
