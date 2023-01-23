@@ -271,7 +271,9 @@ class PandasDataset:
             assert len(static_features) == len(dataframe[item_id].unique())
         else:
             other_static_features = pd.DataFrame()
-        static_features = pd.concat([static_features, other_static_features], axis=1)
+        static_features = pd.concat(
+            [static_features, other_static_features], axis=1
+        )
         return cls(
             dataframes=dataframe.groupby(item_id),
             static_features=static_features,
