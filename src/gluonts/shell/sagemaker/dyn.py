@@ -60,6 +60,21 @@ class Installer:
             ]
         )
 
+    def install_requirement(self, path: Path):
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--target",
+                str(self.packages),
+                "--requirement",
+                str(path),
+            ]
+        )
+
     def install(self, path):
         if path.is_file():
             if tarfile.is_tarfile(path):
@@ -67,6 +82,9 @@ class Installer:
 
             elif zipfile.is_zipfile(path):
                 self.handle_archive(zipfile.ZipFile, path)
+
+            elif path.match("requirements*.txt"):
+                self.install_requirement(path)
 
             elif path.suffix == ".py":
                 self.copy_install(path)
