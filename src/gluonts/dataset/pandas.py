@@ -224,13 +224,19 @@ class PandasDataset:
         dataframe: pd.DataFrame,
         item_id: str,
         static_feature_columns: Optional[List[str]] = None,
+        static_features: pd.DataFrame = pd.DataFrame(),
         **kwargs,
     ) -> "PandasDataset":
         """
-        Construct ``PandasDataset`` out of a long dataframe. A long dataframe
-        uses the long format for each variable. Target time series values, for
-        example, are stacked on top of each other rather than side-by-side. The
-        same is true for other dynamic or categorical features.
+        Construct ``PandasDataset`` out of a long data frame.
+
+        A long dataframe contains time series data (both the target series and
+        covariates) about multiple items at once. An ``item_id`` column is used
+        to distinguish the items and ``group_by`` accordingly.
+
+        Static features can be included in the long data frame as well (with
+        constant value), or be given as a separate data frame indexed by the
+        ``item_id`` values.
 
         Parameters
         ----------
@@ -241,7 +247,11 @@ class PandasDataset:
             Name of the column that, when grouped by, gives the different time
             series.
         static_feature_columns
-            Columns containing static features.
+            Columns in ``dataframe`` containing static features.
+        static_features
+            Dedicated ``DataFrame`` for static features. If both ``static_features``
+            and ``static_feature_columns`` are specified, then the two sets of features
+            are appended together.
         **kwargs
             Additional arguments. Same as of PandasDataset class.
 
@@ -253,14 +263,15 @@ class PandasDataset:
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
         if static_feature_columns is not None:
-            static_features = (
+            other_static_features = (
                 dataframe[[item_id] + static_feature_columns]
                 .drop_duplicates()
                 .set_index(item_id)
             )
             assert len(static_features) == len(dataframe[item_id].unique())
         else:
-            static_features = pd.DataFrame()
+            other_static_features = pd.DataFrame()
+        static_features = pd.concat([static_features, other_static_features], axis=1)
         return cls(
             dataframes=dataframe.groupby(item_id),
             static_features=static_features,
