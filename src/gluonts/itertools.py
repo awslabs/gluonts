@@ -14,7 +14,7 @@
 import itertools
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import (
     Callable,
     Dict,
@@ -26,7 +26,6 @@ from typing import (
     Sequence,
     Tuple,
 )
-from dataclasses import dataclass, field
 
 from typing_extensions import Protocol, runtime_checkable
 
