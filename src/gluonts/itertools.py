@@ -193,7 +193,7 @@ class Map:
         return len(self.iterable)
 
     def __repr__(self):
-        return f"Map(data={self.iterable!r})"
+        return f"Map(iterable={self.iterable!r})"
 
 
 class Filter:
