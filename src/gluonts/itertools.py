@@ -14,6 +14,7 @@
 import itertools
 import math
 import random
+from dataclasses import dataclass
 from typing import (
     Callable,
     Dict,
@@ -181,10 +182,10 @@ class IterableSlice:
         yield from itertools.islice(self.iterable, self.length)
 
 
+@dataclass
 class Map:
-    def __init__(self, fn, iterable: SizedIterable):
-        self.fn = fn
-        self.iterable = iterable
+    fn: Callable
+    iterable: SizedIterable
 
     def __iter__(self):
         return map(self.fn, self.iterable)
@@ -196,10 +197,10 @@ class Map:
         return f"Map(iterable={self.iterable!r})"
 
 
+@dataclass
 class Filter:
-    def __init__(self, fn, iterable: SizedIterable):
-        self.fn = fn
-        self.iterable = iterable
+    fn: Callable
+    iterable: SizedIterable
 
     def __iter__(self):
         return filter(self.fn, self.iterable)
