@@ -143,8 +143,6 @@ class PandasDataset:
 
     @property
     def cardinalities(self):
-        if self._static_cats is None:
-            return []
         return [
             max(self._static_cats[c]) + 1 for c in self._static_cats.columns
         ]
