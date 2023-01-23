@@ -112,8 +112,12 @@ class PandasDataset:
             ), "You need to provide `freq` along with `timestamp`"
             self.freq = infer_freq(first(self._pairs)[1].index)
 
-        self._static_reals = self.static_features.select_dtypes("number").astype(self.dtype)
-        self._static_cats = category_to_int(self.static_features.select_dtypes("category"))
+        self._static_reals = self.static_features.select_dtypes(
+            "number"
+        ).astype(self.dtype)
+        self._static_cats = self.static_features.select_dtypes(
+            "category"
+        ).apply(lambda col: col.cat.codes)
 
         self._data_entries = Map(self._pair_to_dataentry, self._pairs)
 
@@ -297,24 +301,6 @@ def remove_last_n(n: int, array: np.ndarray) -> np.ndarray:
     if n <= 0:
         return array
     return array[..., :-n]
-
-
-def category_to_int(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Return a ``DataFrame`` with categorical columns replaced by integer codes.
-
-    Codes are obtained via ``pd.Categorical.codes``, and range from 0 to N,
-    where N is the number of categories for the column of interest.
-    """
-    data = {
-        col: (
-            pd.Categorical(df[col]).codes
-            if df[col].dtype == "category"
-            else df[col]
-        )
-        for col in df.columns
-    }
-    return pd.DataFrame(data=data, index=df.index)
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:
