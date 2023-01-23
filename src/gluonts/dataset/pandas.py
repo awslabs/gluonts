@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -84,15 +84,16 @@ class PandasDataset:
     past_feat_dynamic_real: Optional[List[str]] = None
     timestamp: Optional[str] = None
     freq: Optional[str] = None
-    static_features: Optional[pd.DataFrame] = None
+    static_features: pd.DataFrame = pd.DataFrame()
     ignore_last_n_targets: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
+    dtype: Type = np.float32
     _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
         init=False
     )
-    _static_reals: Optional[pd.DataFrame] = field(init=False)
-    _static_cats: Optional[pd.DataFrame] = field(init=False)
+    _static_reals: pd.DataFrame = field(init=False)
+    _static_cats: pd.DataFrame = field(init=False)
 
     def __post_init__(self):
         if isinstance(self.dataframes, dict):
@@ -111,30 +112,18 @@ class PandasDataset:
             ), "You need to provide `freq` along with `timestamp`"
             self.freq = infer_freq(first(self._pairs)[1].index)
 
-        (
-            self._static_reals,
-            self._static_cats,
-        ) = split_numerical_categorical(self.static_features)
-
-        if self._static_reals is not None:
-            self._static_reals = self._static_reals.astype(np.float32)
-
-        if self._static_cats is not None:
-            self._static_cats = category_to_int(self._static_cats)
+        self._static_reals = self.static_features.select_dtypes("number").astype(self.dtype)
+        self._static_cats = category_to_int(self.static_features.select_dtypes("category"))
 
         self._data_entries = Map(self._pair_to_dataentry, self._pairs)
 
     @property
     def num_feat_static_cat(self):
-        if self._static_cats is None:
-            return 0
-        return self._static_cats.shape[1]
+        return len(self._static_cats.columns)
 
     @property
     def num_feat_static_real(self):
-        if self._static_reals is None:
-            return 0
-        return self._static_reals.shape[1]
+        return len(self._static_reals.columns)
 
     @property
     def num_feat_dynamic_real(self):
@@ -190,10 +179,10 @@ class PandasDataset:
         if item_id is not None:
             entry["item_id"] = item_id
 
-        if self._static_cats is not None:
+        if self.num_feat_static_cat > 0:
             entry["feat_static_cat"] = self._static_cats.loc[item_id].values
 
-        if self._static_reals is not None:
+        if self.num_feat_static_real > 0:
             entry["feat_static_real"] = self._static_reals.loc[item_id].values
 
         if self.feat_dynamic_real is not None:
@@ -270,7 +259,7 @@ class PandasDataset:
             )
             assert len(static_features) == len(dataframe[item_id].unique())
         else:
-            static_features = None
+            static_features = pd.DataFrame()
         return cls(
             dataframes=dataframe.groupby(item_id),
             static_features=static_features,
@@ -308,33 +297,6 @@ def remove_last_n(n: int, array: np.ndarray) -> np.ndarray:
     if n <= 0:
         return array
     return array[..., :-n]
-
-
-def split_numerical_categorical(
-    df: Optional[pd.DataFrame],
-) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
-    """
-    Splits the given DataFrame into two: one containing numerical columns,
-    the other containing categorical columns.
-
-    Columns of other types are excluded.
-    """
-    if df is None:
-        return None, None
-
-    numerical = {}
-    categorical = {}
-
-    for col in df.columns:
-        if df[col].dtype == "category":
-            categorical[col] = df[col]
-        elif is_numeric_dtype(df[col]):
-            numerical[col] = df[col]
-
-    return (
-        pd.DataFrame.from_dict(numerical) if len(numerical) else None,
-        pd.DataFrame.from_dict(categorical) if len(categorical) else None,
-    )
 
 
 def category_to_int(df: pd.DataFrame) -> pd.DataFrame:
