@@ -192,9 +192,6 @@ class Map:
     def __len__(self):
         return len(self.iterable)
 
-    def __repr__(self):
-        return f"Map(iterable={self.iterable!r})"
-
 
 @dataclass
 class Filter:
@@ -203,9 +200,6 @@ class Filter:
 
     def __iter__(self):
         return filter(self.fn, self.iterable)
-
-    def __repr__(self):
-        return f"Filter({self.iterable!r})"
 
 
 def rows_to_columns(
