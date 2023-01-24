@@ -20,7 +20,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
 from gluonts.dataset.common import DataEntry
-from gluonts.itertools import Map, SizedIterable
+from gluonts.itertools import Map, StarMap, SizedIterable
 
 
 @dataclass
@@ -100,8 +100,7 @@ class PandasDataset:
             assert isinstance(self.dataframes, SizedIterable)
             pairs = Map(pair_with_item_id, self.dataframes)
 
-        assert isinstance(pairs, SizedIterable)
-        self._data_entries = Map(self._pair_to_dataentry, pairs)
+        self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
         if self.feat_dynamic_real is None:
             self.feat_dynamic_real = pd.DataFrame()
@@ -141,13 +140,7 @@ class PandasDataset:
     def num_past_feat_dynamic_real(self):
         return len(self.past_feat_dynamic_real)
 
-    @property
-    def cardinalities(self):
-        return (self._static_cats + 1).max(axis=1).values
-
-    def _pair_to_dataentry(self, pair) -> DataEntry:
-        item_id, df = pair
-
+    def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):
             df = df.to_frame(name=self.target)
 
@@ -260,6 +253,7 @@ class PandasDataset:
         """
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
+
         if static_feature_columns is not None:
             other_static_features = (
                 dataframe[[item_id] + static_feature_columns]
@@ -271,12 +265,12 @@ class PandasDataset:
             )
         else:
             other_static_features = pd.DataFrame()
-        static_features = pd.concat(
-            [static_features, other_static_features], axis=1
-        )
+
         return cls(
             dataframes=dataframe.groupby(item_id),
-            static_features=static_features,
+            static_features=pd.concat(
+                [static_features, other_static_features], axis=1
+            ),
             **kwargs,
         )
 
