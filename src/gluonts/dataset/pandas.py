@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -19,11 +18,11 @@ import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
+from gluonts import maybe
 from gluonts.dataset.common import DataEntry
 from gluonts.itertools import Map, StarMap, SizedIterable
 
 
-@dataclass
 class PandasDataset:
     """
     A dataset type based on ``pandas.DataFrame``.
@@ -68,61 +67,73 @@ class PandasDataset:
         (Default: ``False``)
     """
 
-    dataframes: Union[
-        pd.DataFrame,
-        pd.Series,
-        Iterable[pd.DataFrame],
-        Iterable[pd.Series],
-        Iterable[Tuple[Any, pd.DataFrame]],
-        Iterable[Tuple[Any, pd.Series]],
-        Dict[str, pd.DataFrame],
-        Dict[str, pd.Series],
-    ]
-    target: Union[str, List[str]] = "target"
-    feat_dynamic_real: Optional[List[str]] = None
-    past_feat_dynamic_real: Optional[List[str]] = None
-    timestamp: Optional[str] = None
-    freq: Optional[str] = None
-    static_features: pd.DataFrame = pd.DataFrame()
-    future_length: int = 0
-    unchecked: bool = False
-    assume_sorted: bool = False
-    dtype: Type = np.float32
-    _static_reals: pd.DataFrame = field(init=False)
-    _static_cats: pd.DataFrame = field(init=False)
-
-    def __post_init__(self):
-        if isinstance(self.dataframes, dict):
-            pairs = self.dataframes.items()
-        elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
-            pairs = [(None, self.dataframes)]
+    def __init__(
+        self,
+        dataframes: Union[
+            pd.DataFrame,
+            pd.Series,
+            Iterable[pd.DataFrame],
+            Iterable[pd.Series],
+            Iterable[Tuple[Any, pd.DataFrame]],
+            Iterable[Tuple[Any, pd.Series]],
+            Dict[str, pd.DataFrame],
+            Dict[str, pd.Series],
+        ],
+        target: Union[str, List[str]] = "target",
+        feat_dynamic_real: Optional[List[str]] = None,
+        past_feat_dynamic_real: Optional[List[str]] = None,
+        timestamp: Optional[str] = None,
+        freq: Optional[str] = None,
+        static_features: Optional[pd.DataFrame] = None,
+        future_length: int = 0,
+        unchecked: bool = False,
+        assume_sorted: bool = False,
+        dtype: Type = np.float32,
+    ):
+        if isinstance(dataframes, dict):
+            pairs = dataframes.items()
+        elif isinstance(dataframes, (pd.Series, pd.DataFrame)):
+            pairs = [(None, dataframes)]
         else:
-            assert isinstance(self.dataframes, SizedIterable)
-            pairs = Map(pair_with_item_id, self.dataframes)
+            assert isinstance(dataframes, SizedIterable)
+            pairs = Map(pair_with_item_id, dataframes)
 
         self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
-        if self.feat_dynamic_real is None:
-            self.feat_dynamic_real = pd.DataFrame()
-
-        if self.past_feat_dynamic_real is None:
-            self.past_feat_dynamic_real = pd.DataFrame()
-
-        if self.freq is None:
-            assert (
-                self.timestamp is None
-            ), "You need to provide `freq` along with `timestamp`"
-            self.freq = infer_freq(first(pairs)[1].index)
-
-        self._static_reals = (
-            self.static_features.select_dtypes("number").astype(self.dtype).T
+        self.feat_dynamic_real = maybe.unwrap_or_else(
+            feat_dynamic_real, pd.DataFrame
+        )
+        self.past_feat_dynamic_real = maybe.unwrap_or_else(
+            past_feat_dynamic_real, pd.DataFrame
         )
 
-        self._static_cats = (
-            self.static_features.select_dtypes("category")
+        if freq is None:
+            timestamp.expect(
+                "You need to provide `freq` along with `timestamp`"
+            )
+            self.freq = infer_freq(first(pairs)[1].index)
+        else:
+            self.freq = freq
+
+        static_features = maybe.unwrap_or_else(static_features, pd.DataFrame)
+
+        self._static_reals: pd.DataFrame = (
+            static_features.select_dtypes("number").astype(dtype).T
+        )
+
+        self._static_cats: pd.DataFrame = (
+            static_features.select_dtypes("category")
             .apply(lambda col: col.cat.codes)
+            .astype(dtype)
             .T
         )
+
+        self.target = target
+        self.timestamp = timestamp
+        self.future_length = future_length
+        self.unchecked = unchecked
+        self.assume_sorted = assume_sorted
+        self.dtype = dtype
 
     @property
     def num_feat_static_cat(self):
