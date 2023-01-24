@@ -1,0 +1,276 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+from dataclasses import dataclass
+from typing import List, Optional, Union, Iterable, Any
+
+import numpy as np
+import pandas as pd
+
+from statsforecast import StatsForecast
+from hierarchicalforecast.core import HierarchicalReconciliation
+from hierarchicalforecast.core import _build_fn_name
+
+from gluonts.core.component import validated
+from gluonts.dataset import DataEntry
+from gluonts.dataset.util import forecast_start
+from gluonts.model.predictor import RepresentablePredictor
+from gluonts.model.forecast import QuantileForecast
+from gluonts.ext.statsforecast import ModelConfig as _ModelConfig
+
+models_with_fitted_capability = [
+    "ADIDA",
+    "CrostonClassic",
+    "CrostonOptimized",
+    "CrostonSBA",
+    "IMAPA",
+    "SeasWA",
+    "TSB",
+    "WindowAverage",
+]
+
+
+def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
+    df = pd.DataFrame(entry["target"]).T
+    df.columns = S.index.tolist()
+    df.index = pd.date_range(
+        start=entry["start"].start_time,
+        periods=df.shape[0],
+        freq=entry["start"].freq,
+    )
+
+    df = unpivot(df)
+    df = df.set_index("unique_id")
+
+    return df
+
+
+def unpivot(frame: pd.DataFrame) -> pd.DataFrame:
+    n, k = frame.shape
+    return pd.DataFrame(
+        {
+            "unique_id": np.asarray(frame.columns).repeat(n),
+            "ds": np.tile(np.asarray(frame.index), k),
+            "y": frame.to_numpy().ravel("F"),
+        }
+    )
+
+
+def get_model_name(df: pd.DataFrame) -> Union[str, List[str]]:
+    df_columns = df.columns.to_list()
+    drop_cols = ["ds", "y"] if "y" in df_columns else ["ds"]
+    model_names = [x for x in df_columns if x not in drop_cols]
+
+    if len(model_names) == 1:
+        return model_names[0]
+
+    return model_names
+
+
+def format_reconciled_forecasts(
+    df: pd.DataFrame,
+    prediction_length: int,
+    fcst_col_name: str,
+    S: pd.DataFrame,
+):
+    target_dim = S.shape[0]
+
+    assert len(df) == target_dim * prediction_length
+
+    # we want rows to correspond to time and columns to forecasts
+    hier_forecasts = df.pivot(columns="ds", values=fcst_col_name)
+
+    # we want columns to follow the order of the rows of S
+    hier_forecasts = hier_forecasts.loc[S.index].T
+
+    # we want rows to be sorted according to time
+    hier_forecasts = hier_forecasts.sort_index()
+
+    return np.array(hier_forecasts)
+
+
+def keep_model_columns(df: pd.DataFrame, model_name: str) -> pd.DataFrame:
+    columns_to_keep = ["ds"]
+    columns_to_keep.extend([x for x in df.columns if model_name in x])
+
+    return df[columns_to_keep]
+
+
+def rename_model_columns(df: pd.DataFrame, model_name: str) -> pd.DataFrame:
+    mapper = {}
+    for e in df.columns:
+        if e == model_name:
+            mapper[e] = "mean"
+        else:
+            mapper[e] = e.replace(f"{model_name}-", "")
+
+    return df.rename(columns=mapper)
+
+
+def prune_fcst_df(
+    df: pd.DataFrame, base_reconciliation_model_name: str
+) -> pd.DataFrame:
+
+    df = keep_model_columns(df, base_reconciliation_model_name)
+    df = rename_model_columns(df, base_reconciliation_model_name)
+
+    return df
+
+
+@dataclass
+class ModelConfig(_ModelConfig):
+    n_jobs: Optional[int] = 1
+
+
+class HierarchicalForecastPredictor(RepresentablePredictor):
+    """
+    A predictor that wraps models from the `hierarchicalforecast`_ package.
+
+    .. hierarchicalforecast: https://github.com/Nixtla/hierarchicalforecast
+
+    Parameters
+    ----------
+    prediction_length
+        Prediction length for the model to use.
+    base_model
+        forecaster to use for base forecasts. Please refer to the documentation
+        of ``statsforecast`` for available options.
+        Example: AutoARIMA(season_length=season_length)
+    reconciler
+        forecast reconciliation method to use. Please see the documentation
+        of ``hierarchicalforecast`` for available options.
+        Example: BottomUp()
+    S
+        Summation or aggregation matrix.
+    tags
+        Each key is a level with values of tags associated to that level
+    intervals_method
+        method used to calculate prediction intervals.
+        Options are `normality`, `bootstrap`, `permbu`.
+    quantile_levels
+        Optional list of quantile levels that we want predictions for.
+        Note: this is only supported by specific types of models, such as
+        ``AutoARIMA``. By default this is ``None``, giving only the mean
+        prediction.
+    n_jobs
+        number of jobs used in the parallel processing, use -1 for all cores.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        prediction_length: int,
+        base_model: Any,
+        reconciler: Any,
+        S: Union[pd.DataFrame,Any],
+        tags: dict = {},
+        intervals_method: str = "normality",
+        quantile_levels: List[float] = None,
+        n_jobs: int = 1,
+    ) -> None:
+        super().__init__(prediction_length=prediction_length)
+
+        assert intervals_method in ["normality", "bootstrap", "permbu"]
+
+        self.S = S
+        self.tags = tags
+        self.config = ModelConfig(
+            quantile_levels=quantile_levels,
+            n_jobs=n_jobs,
+        )
+        self.models = [base_model]
+        self.hrec = HierarchicalReconciliation(reconcilers=[reconciler])
+        self.intervals_method = intervals_method
+        self.base_reconciliation_model_name = (
+            f"{repr(self.models[0])}/"
+            f"{_build_fn_name(self.hrec.reconcilers[0])}"
+        )
+
+        if repr(self.models[0]) in models_with_fitted_capability:
+            self.fitted = False
+        else:
+            self.fitted = True
+
+    def predict_item(self, entry: DataEntry) -> QuantileForecast:
+        kwargs = {}
+        if (
+            self.config.intervals is not None
+            and "forecast_proportions"
+            not in _build_fn_name(self.hrec.reconcilers[0])
+        ):
+            kwargs["level"] = self.config.intervals
+
+        Y_df = format_data_entry(entry, self.S)
+
+        # set up forecaster
+        forecaster = StatsForecast(
+            df=Y_df,
+            models=self.models,
+            freq=entry["start"].freq,
+            n_jobs=self.config.n_jobs,
+        )
+
+        # compute base forecasts
+        Y_hat_df = forecaster.forecast(
+            h=self.prediction_length, fitted=self.fitted, **kwargs
+        )
+
+        params = dict(
+            Y_hat_df=Y_hat_df,
+            S=self.S,
+            tags=self.tags,
+            intervals_method=self.intervals_method,
+            **kwargs,
+        )
+
+        if self.fitted:
+            params["Y_df"] = forecaster.forecast_fitted_values()
+        else:
+            params["Y_df"] = Y_df
+
+        # reconcile forecasts
+        Y_hat_df_rec = self.hrec.reconcile(**params)
+
+        # select relevant columns and rename
+        Y_hat_df_rec = prune_fcst_df(
+            Y_hat_df_rec, self.base_reconciliation_model_name
+        )
+
+        # if only mean fcst is returned, we take it as all requested quantiles
+        if len(Y_hat_df_rec.columns) == 2 and all(
+            Y_hat_df_rec.columns == ["ds", "mean"]
+        ):
+            fcst_col_names = ["mean"] * len(self.config.statsforecast_keys)
+        else:
+            fcst_col_names = self.config.statsforecast_keys
+
+        # prepare for QuantileForecast format
+        forecast_arrays = np.array(
+            [
+                format_reconciled_forecasts(
+                    df=Y_hat_df_rec,
+                    fcst_col_name=fcst_col_names[e],
+                    prediction_length=self.prediction_length,
+                    S=self.S,
+                )
+                for e, k in enumerate(self.config.statsforecast_keys)
+            ]
+        )
+
+        return QuantileForecast(
+            forecast_arrays=forecast_arrays,
+            forecast_keys=self.config.forecast_keys,
+            start_date=forecast_start(entry),
+            item_id=entry.get("item_id"),
+            info=entry.get("info"),
+        )
