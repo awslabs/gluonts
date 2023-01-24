@@ -356,7 +356,7 @@ class DateSplitter(AbstractBaseSplitter):
         label_slice = slice(base + offset, base + offset + prediction_length)
         assert (
             label_slice.stop <= entry[FieldName.TARGET].shape[-1]
-        ), "Date is too early to generate windows"
+        ), "Date is too late to generate windows"
         return (
             slice_data_entry(
                 entry, input_slice, prediction_length=prediction_length
