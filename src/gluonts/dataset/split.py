@@ -306,8 +306,12 @@ class OffsetSplitter(AbstractBaseSplitter):
         self, entry: DataEntry, prediction_length: int, offset: int = 0
     ) -> Tuple[DataEntry, DataEntry]:
         offset_ = self.offset + offset
-        if self.offset < 0 and offset_ >= 0:
-            offset_ += len(entry)
+
+        assert (-offset_ >= prediction_length and self.offset < 0) or (
+            offset_ + prediction_length <= entry[FieldName.TARGET].shape[-1]
+            and self.offset >= 0
+        ), "Offset too short to generate windows"
+
         if offset_ + prediction_length:
             input_slice = slice(None, offset_)
             label_slice = slice(offset_, offset_ + prediction_length)
@@ -350,6 +354,9 @@ class DateSplitter(AbstractBaseSplitter):
         base = periods_between(entry["start"], self.date)
         input_slice = slice(None, base + offset)
         label_slice = slice(base + offset, base + offset + prediction_length)
+        assert (
+            base + offset + prediction_length <= entry[FieldName.TARGET].shape[-1]
+        ), "Offset too short to generate windows"
         return (
             slice_data_entry(
                 entry, input_slice, prediction_length=prediction_length
