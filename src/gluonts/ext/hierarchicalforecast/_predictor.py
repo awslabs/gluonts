@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import List, Optional, Union, Iterable, Any
+from typing import List, Optional, Union, Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,7 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
 from gluonts.ext.statsforecast import ModelConfig as _ModelConfig
 
-models_with_fitted_capability = [
+models_without_fitted_capability = [
     "ADIDA",
     "CrostonClassic",
     "CrostonOptimized",
@@ -172,31 +172,35 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         prediction_length: int,
         base_model: Any,
         reconciler: Any,
-        S: Union[pd.DataFrame,Any],
-        tags: dict = {},
+        S: Union[pd.DataFrame, Any],
+        tags: Dict[str, Union[List, np.array]] = {},
         intervals_method: str = "normality",
-        quantile_levels: List[float] = None,
+        quantile_levels: Optional[List[float]] = None,
         n_jobs: int = 1,
+        model_params: dict = {},
+        reconciler_params: dict = {},
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
         assert intervals_method in ["normality", "bootstrap", "permbu"]
 
+        self.models = [base_model(**model_params)]
+        self.hrec = HierarchicalReconciliation(
+            reconcilers=[reconciler(**reconciler_params)]
+        )
         self.S = S
-        self.tags = tags
+        self.tags = {key: np.array(val) for key, val in tags.items()}
+        self.intervals_method = intervals_method
         self.config = ModelConfig(
             quantile_levels=quantile_levels,
             n_jobs=n_jobs,
         )
-        self.models = [base_model]
-        self.hrec = HierarchicalReconciliation(reconcilers=[reconciler])
-        self.intervals_method = intervals_method
         self.base_reconciliation_model_name = (
             f"{repr(self.models[0])}/"
             f"{_build_fn_name(self.hrec.reconcilers[0])}"
         )
 
-        if repr(self.models[0]) in models_with_fitted_capability:
+        if repr(self.models[0]) in models_without_fitted_capability:
             self.fitted = False
         else:
             self.fitted = True
@@ -246,7 +250,7 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
             Y_hat_df_rec, self.base_reconciliation_model_name
         )
 
-        # if only mean fcst is returned, we take it as all requested quantiles
+        # if only mean fcst is computed, we take it as all requested quantiles
         if len(Y_hat_df_rec.columns) == 2 and all(
             Y_hat_df_rec.columns == ["ds", "mean"]
         ):
