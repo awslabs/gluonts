@@ -12,11 +12,16 @@
 # permissions and limitations under the License.
 
 import logging
-from typing import Callable, Iterable, Optional
+import io
+import pickle
+from tempfile import TemporaryFile
+from dataclasses import dataclass, field
+from typing import cast, Callable, Iterable, Optional
 
 from pydantic import BaseModel
 
 from gluonts.dataset import DataBatch, Dataset
+from gluonts.env import env
 from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
 from gluonts.transform import AdhocTransform, Identity, Transformation
 
@@ -24,6 +29,60 @@ logger = logging.getLogger(__name__)
 
 
 DataLoader = Iterable[DataBatch]
+
+
+@dataclass
+class Cache:
+    dataset: Dataset
+    _cached: bool = False
+    batch_size: int = 1024
+
+    def _iter_write(self):
+
+        batch = []
+        for element in self.dataset:
+            yield element
+
+            batch.append(element)
+            if len(batch) == self.batch_size:
+                self.write(batch)
+
+        if batch:
+            self.write(batch)
+
+        self._cached = True
+
+    def _iter_cached(self):
+        raise NotImplementedError
+
+    def __iter__(self):
+        if not self._cached:
+            yield from self._iter_write()
+        else:
+            yield from self._iter_cached()
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+@dataclass
+class PickleCache(Cache):
+    file: io.IOBase = field(init=False)
+
+    def __post_init__(self):
+        self.file = TemporaryFile()
+
+    def write(self, batch):
+        pickle.dump(batch, self.file)
+
+    def _iter_cached(self):
+        self.file.seek(0)
+
+        while True:
+            try:
+                yield from pickle.load(self.file)
+            except EOFError:
+                return
 
 
 # TODO: the following are for backward compatibility
@@ -37,6 +96,7 @@ class Batch(Transformation, BaseModel):
         yield from batcher(data, self.batch_size)
 
 
+@env._inject(cache="cache_loader")
 def TrainDataLoader(
     dataset: Dataset,
     *,
@@ -45,6 +105,7 @@ def TrainDataLoader(
     stack_fn: Callable,
     num_batches_per_epoch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
+    cache: bool = False,
 ):
     """
     Construct an iterator of batches for training purposes.
@@ -86,10 +147,14 @@ def TrainDataLoader(
     Iterator[DataBatch]
         An iterator of batches.
     """
-    dataset: Dataset = Cyclic(dataset)
+
+    if cache:
+        dataset = PickleCache(dataset)
+
+    dataset = cast(Dataset, Cyclic(dataset))
 
     if shuffle_buffer_length:
-        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+        dataset = cast(Dataset, PseudoShuffled(dataset, shuffle_buffer_length))
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     transformed_dataset = transform.apply(dataset, is_train=True)
@@ -98,12 +163,14 @@ def TrainDataLoader(
     return IterableSlice(batches, num_batches_per_epoch)
 
 
+@env._inject(cache="cache_loader")
 def ValidationDataLoader(
     dataset: Dataset,
     *,
     transform: Transformation = Identity(),
     batch_size: int,
     stack_fn: Callable,
+    cache: bool = False,
 ):
     """
     Construct an iterator of batches for validation purposes.
@@ -127,6 +194,9 @@ def ValidationDataLoader(
     Iterable[DataBatch]
         An iterable sequence of batches.
     """
+
+    if cache:
+        dataset = PickleCache(dataset)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=True)
