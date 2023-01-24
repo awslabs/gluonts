@@ -57,8 +57,8 @@ class PandasDataset:
     static_features
         ``pd.DataFrame`` containing static features for the series. The index
         should contain the key of the series in the ``dataframes`` argument.
-    ignore_last_n_targets
-        For target and past dynamic features last ``ignore_last_n_targets``
+    future_length
+        For target and past dynamic features last ``future_length``
         elements are removed when iterating over the data set.
     unchecked
         Whether consistency checks on indexes should be skipped.
@@ -84,67 +84,66 @@ class PandasDataset:
     timestamp: Optional[str] = None
     freq: Optional[str] = None
     static_features: pd.DataFrame = pd.DataFrame()
-    ignore_last_n_targets: int = 0
+    future_length: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
     dtype: Type = np.float32
-    _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
-        init=False
-    )
     _static_reals: pd.DataFrame = field(init=False)
     _static_cats: pd.DataFrame = field(init=False)
 
     def __post_init__(self):
         if isinstance(self.dataframes, dict):
-            self._pairs = self.dataframes.items()
+            pairs = self.dataframes.items()
         elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
-            self._pairs = [pair_with_item_id(self.dataframes)]
+            pairs = [(None, self.dataframes)]
         else:
             assert isinstance(self.dataframes, SizedIterable)
-            self._pairs = Map(pair_with_item_id, self.dataframes)
+            pairs = Map(pair_with_item_id, self.dataframes)
 
-        assert isinstance(self._pairs, SizedIterable)
+        assert isinstance(pairs, SizedIterable)
+        self._data_entries = Map(self._pair_to_dataentry, pairs)
+
+        if self.feat_dynamic_real is None:
+            self.feat_dynamic_real = pd.DataFrame()
+
+        if self.past_feat_dynamic_real is None:
+            self.past_feat_dynamic_real = pd.DataFrame()
 
         if self.freq is None:
             assert (
                 self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
-            self.freq = infer_freq(first(self._pairs)[1].index)
+            self.freq = infer_freq(first(pairs)[1].index)
 
-        self._static_reals = self.static_features.select_dtypes(
-            "number"
-        ).astype(self.dtype)
-        self._static_cats = self.static_features.select_dtypes(
-            "category"
-        ).apply(lambda col: col.cat.codes)
+        self._static_reals = (
+            self.static_features.select_dtypes("number").astype(self.dtype).T
+        )
 
-        self._data_entries = Map(self._pair_to_dataentry, self._pairs)
+        self._static_cats = (
+            self.static_features.select_dtypes("category")
+            .apply(lambda col: col.cat.codes)
+            .T
+        )
 
     @property
     def num_feat_static_cat(self):
-        return len(self._static_cats.columns)
+        return len(self._static_cats)
 
     @property
     def num_feat_static_real(self):
-        return len(self._static_reals.columns)
+        return len(self._static_reals)
 
     @property
     def num_feat_dynamic_real(self):
-        if self.feat_dynamic_real is None:
-            return 0
         return len(self.feat_dynamic_real)
 
     @property
     def num_past_feat_dynamic_real(self):
-        if self.past_feat_dynamic_real is None:
-            return 0
         return len(self.past_feat_dynamic_real)
 
     @property
     def cardinalities(self):
-        return [
-            max(self._static_cats[c]) + 1 for c in self._static_cats.columns
-        ]
+        return (self._static_cats + 1).max(axis=1).values
 
     def _pair_to_dataentry(self, pair) -> DataEntry:
         item_id, df = pair
@@ -171,31 +170,29 @@ class PandasDataset:
 
         entry = {
             "start": df.index[0],
-            "target": remove_last_n(
-                self.ignore_last_n_targets,
-                df[self.target].values.transpose(),
-            ),
         }
+
+        target = df[self.target].values.T
+        target = target[: len(target) - self.future_length]
+        entry["target"] = target
 
         if item_id is not None:
             entry["item_id"] = item_id
 
-        if self.num_feat_static_cat > 0:
-            entry["feat_static_cat"] = self._static_cats.loc[item_id].values
+        if self.num_feat_static_cat:
+            entry["feat_static_cat"] = self._static_cats[item_id].values
 
-        if self.num_feat_static_real > 0:
-            entry["feat_static_real"] = self._static_reals.loc[item_id].values
+        if self.num_feat_static_real:
+            entry["feat_static_real"] = self._static_reals[item_id].values
 
-        if self.feat_dynamic_real is not None:
-            entry["feat_dynamic_real"] = df[
-                self.feat_dynamic_real
-            ].values.transpose()
+        if self.num_feat_dynamic_real:
+            entry["feat_dynamic_real"] = df[self.feat_dynamic_real].values.T
 
-        if self.past_feat_dynamic_real is not None:
-            entry["past_feat_dynamic_real"] = remove_last_n(
-                self.ignore_last_n_targets,
-                df[self.past_feat_dynamic_real].values.transpose(),
-            )
+        if self.num_past_feat_dynamic_real:
+            past_feat_dynamic_real = df[self.past_feat_dynamic_real].values.T
+            entry["past_feat_dynamic_real"] = past_feat_dynamic_real[
+                : len(past_feat_dynamic_real) - self.future_length
+            ]
 
         return entry
 
@@ -207,16 +204,17 @@ class PandasDataset:
         return len(self._data_entries)
 
     def __str__(self) -> str:
-        return (
-            f"PandasDataset<"
-            f"size={len(self)}, "
-            f"freq={self.freq}, "
-            f"num_dynamic_real={self.num_feat_dynamic_real}, "
-            f"num_past_dynamic_real={self.num_past_feat_dynamic_real}, "
-            f"num_static_real={self.num_feat_static_real}, "
-            f"num_static_cat={self.num_feat_static_cat}, "
-            f"cardinalities={self.cardinalities}>"
+        info = ", ".join(
+            [
+                f"size={len(self)}",
+                f"freq={self.freq}",
+                f"num_feat_dynamic_real={self.num_feat_dynamic_real}",
+                f"num_past_feat_dynamic_real={self.num_past_feat_dynamic_real}",
+                f"num_feat_static_real={self.num_feat_static_real}",
+                f"num_feat_static_cat={self.num_feat_static_cat}",
+            ]
         )
+        return f"PandasDataset<{info}>"
 
     @classmethod
     def from_long_dataframe(
@@ -303,16 +301,6 @@ def infer_freq(index: pd.Index) -> str:
         return freq[:-1]
 
     return freq
-
-
-def remove_last_n(n: int, array: np.ndarray) -> np.ndarray:
-    """
-    Return a new array with last ``n`` elements removed from the
-    trailing axis, if ``n`` is positive, and the array itself otherwise.
-    """
-    if n <= 0:
-        return array
-    return array[..., :-n]
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:
