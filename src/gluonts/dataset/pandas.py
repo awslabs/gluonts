@@ -268,7 +268,9 @@ class PandasDataset:
                 .drop_duplicates()
                 .set_index(item_id)
             )
-            assert len(other_static_features) == len(dataframe[item_id].unique())
+            assert len(other_static_features) == len(
+                dataframe[item_id].unique()
+            )
         else:
             other_static_features = pd.DataFrame()
         static_features = pd.concat(
