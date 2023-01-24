@@ -18,6 +18,15 @@ U = TypeVar("U")
 
 
 def expect(val: Optional[T], msg: str) -> T:
+    """
+    ::
+        >>> expect(1, "My message")
+        1
+        >>> expect(None, "My message")
+        Traceback (most recent call last):
+            ...
+        ValueError: My message
+    """
     if val is None:
         raise ValueError(msg)
 
@@ -25,6 +34,15 @@ def expect(val: Optional[T], msg: str) -> T:
 
 
 def do(val: Optional[T], fn: Callable[[T], U]) -> Optional[T]:
+    """
+    Apply `fn` to `val` then return `val`, if `val is not None.
+
+    ::
+        >>> do("a", print)
+        a
+        'a'
+        >>> do(None, print)
+    """
     if val is not None:
         fn(val)
 
@@ -32,12 +50,25 @@ def do(val: Optional[T], fn: Callable[[T], U]) -> Optional[T]:
 
 
 def map(val: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
+    """
+    ::
+        >>> map(1, lambda x: x + 1)
+        2
+        >>> map(None, lambda x: x + 1)
+    """
     return map_or(val, None, fn)
 
 
 def map_or(
     val: Optional[T], default: Optional[U], fn: Callable[[T], U]
 ) -> Optional[U]:
+    """
+    ::
+        >>> map_or(["x"], 0, len)
+        1
+        >>> map_or(None, 0, len)
+        0
+    """
     if val is None:
         return default
 
@@ -47,17 +78,40 @@ def map_or(
 def map_or_else(
     val: Optional[T], default_fn: Callable[[], U], fn: Callable[[T], U]
 ) -> Optional[U]:
+    """
+    ::
+        >>> map_or_else(1, list, lambda n: [n])
+        [1]
+        >>> map_or_else(None, list, lambda n: [n])
+        []
+    """
     if val is None:
-        return default
+        return default_fn()
 
     return fn(val)
 
 
 def unwrap(val: Optional[T]) -> T:
-    return expect("Trying to unwrap `None` value.")
+    """
+    ::
+        >>> unwrap(1)
+        1
+        >>> unwrap(None)
+        Traceback (most recent call last):
+            ...
+        ValueError: Trying to unwrap `None` value.
+    """
+    return expect(val, "Trying to unwrap `None` value.")
 
 
 def unwrap_or(val: Optional[T], default: T) -> T:
+    """
+    ::
+        >>> unwrap_or(1, 2)
+        1
+        >>> unwrap_or(None, 2)
+        2
+    """
     if val is None:
         return default
 
@@ -65,6 +119,13 @@ def unwrap_or(val: Optional[T], default: T) -> T:
 
 
 def unwrap_or_else(val: Optional[T], fn: Callable[[], T]) -> T:
+    """
+    ::
+        >>> unwrap_or_else([1, 2, 3], list)
+        [1, 2, 3]
+        >>> unwrap_or_else(None, list)
+        []
+    """
     if val is None:
         return fn()
 
