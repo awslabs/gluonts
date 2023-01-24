@@ -194,6 +194,18 @@ class Map:
 
 
 @dataclass
+class StarMap:
+    fn: Callable
+    iterable: SizedIterable
+
+    def __iter__(self):
+        return itertools.starmap(self.fn, self.iterable)
+
+    def __len__(self):
+        return len(self.iterable)
+
+
+@dataclass
 class Filter:
     fn: Callable
     iterable: SizedIterable
