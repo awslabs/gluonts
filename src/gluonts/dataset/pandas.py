@@ -103,9 +103,10 @@ class PandasDataset:
         self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
         if freq is None:
-            timestamp.expect(
-                "You need to provide `freq` along with `timestamp`"
-            )
+            assert (
+                timestamp is None
+            ), "You need to provide `freq` along with `timestamp`"
+
             self.freq = infer_freq(first(pairs)[1].index)
         else:
             self.freq = freq
@@ -133,20 +134,24 @@ class PandasDataset:
         self.past_feat_dynamic_real = past_feat_dynamic_real
 
     @property
-    def num_feat_static_cat(self):
+    def num_feat_static_cat(self) -> int:
         return len(self._static_cats)
 
     @property
-    def num_feat_static_real(self):
+    def num_feat_static_real(self) -> int:
         return len(self._static_reals)
 
     @property
-    def num_feat_dynamic_real(self):
-        return maybe.map_or(self.feat_dynamic_real, len, 0)
+    def num_feat_dynamic_real(self) -> int:
+        return maybe.map_or(self.feat_dynamic_real, 0, len)
 
     @property
-    def num_past_feat_dynamic_real(self):
-        return maybe.map_or(self.past_feat_dynamic_real, len, 0)
+    def num_past_feat_dynamic_real(self) -> int:
+        return maybe.map_or(self.past_feat_dynamic_real, 0, len)
+
+    @property
+    def static_cardinalities(self):
+        return self._static_cats.max(axis=1).value + 1
 
     def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):
@@ -187,6 +192,8 @@ class PandasDataset:
             entry["feat_static_real"] = self._static_reals[item_id].values
 
         if self.num_feat_dynamic_real:
+            print(self.num_feat_dynamic_real)
+            print(self.feat_dynamic_real)
             entry["feat_dynamic_real"] = df[self.feat_dynamic_real].values.T
 
         if self.num_past_feat_dynamic_real:
