@@ -306,10 +306,10 @@ class OffsetSplitter(AbstractBaseSplitter):
         self, entry: DataEntry, prediction_length: int, offset: int = 0
     ) -> Tuple[DataEntry, DataEntry]:
         offset_ = self.offset + offset
-
-        assert (-offset_ >= prediction_length and self.offset < 0) or (
+        if self.offset < 0:
+            offset_ += entry[FieldName.TARGET].shape[-1]
+        assert (
             offset_ + prediction_length <= entry[FieldName.TARGET].shape[-1]
-            and self.offset >= 0
         ), "Offset too short to generate windows"
 
         if offset_ + prediction_length:
