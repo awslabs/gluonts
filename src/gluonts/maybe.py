@@ -75,7 +75,7 @@ def map(self: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
     return map_or(self, None, fn)
 
 
-def map_or(self: Optional[T], default: Optional[U], fn: Callable[[T], U]) -> U:
+def map_or(self: Optional[T], default: U, fn: Callable[[T], U]) -> U:
     """
     ::
         >>> map_or(["x"], 0, len)
