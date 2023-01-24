@@ -11,7 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
+from __future__ import annotations
+
+from typing import Any, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -39,7 +41,7 @@ class PandasDataset:
     dataframes
         Single ``pd.DataFrame``/``pd.Series`` or a collection as list or dict
         containing at least ``timestamp`` and ``target`` values.
-        If a Dict is provided, the key will be the associated ``item_id``.
+        If a dict is provided, the key will be the associated ``item_id``.
     target
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
@@ -49,9 +51,9 @@ class PandasDataset:
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
     feat_dynamic_real
-        List of column names that contain dynamic real features.
+        list of column names that contain dynamic real features.
     past_feat_dynamic_real
-        List of column names that contain dynamic real features only available
+        list of column names that contain dynamic real features only available
         in the past.
     static_features
         ``pd.DataFrame`` containing static features for the series. The index
@@ -74,14 +76,14 @@ class PandasDataset:
             pd.Series,
             Iterable[pd.DataFrame],
             Iterable[pd.Series],
-            Iterable[Tuple[Any, pd.DataFrame]],
-            Iterable[Tuple[Any, pd.Series]],
-            Dict[str, pd.DataFrame],
-            Dict[str, pd.Series],
+            Iterable[tuple[Any, pd.DataFrame]],
+            Iterable[tuple[Any, pd.Series]],
+            dict[str, pd.DataFrame],
+            dict[str, pd.Series],
         ],
-        target: Union[str, List[str]] = "target",
-        feat_dynamic_real: Optional[List[str]] = None,
-        past_feat_dynamic_real: Optional[List[str]] = None,
+        target: Union[str, list[str]] = "target",
+        feat_dynamic_real: Optional[list[str]] = None,
+        past_feat_dynamic_real: Optional[list[str]] = None,
         timestamp: Optional[str] = None,
         freq: Optional[str] = None,
         static_features: Optional[pd.DataFrame] = None,
@@ -99,13 +101,6 @@ class PandasDataset:
             pairs = Map(pair_with_item_id, dataframes)
 
         self._data_entries = StarMap(self._pair_to_dataentry, pairs)
-
-        self.feat_dynamic_real = maybe.unwrap_or_else(
-            feat_dynamic_real, pd.DataFrame
-        )
-        self.past_feat_dynamic_real = maybe.unwrap_or_else(
-            past_feat_dynamic_real, pd.DataFrame
-        )
 
         if freq is None:
             timestamp.expect(
@@ -134,6 +129,8 @@ class PandasDataset:
         self.unchecked = unchecked
         self.assume_sorted = assume_sorted
         self.dtype = dtype
+        self.feat_dynamic_real = feat_dynamic_real
+        self.past_feat_dynamic_real = past_feat_dynamic_real
 
     @property
     def num_feat_static_cat(self):
@@ -145,11 +142,11 @@ class PandasDataset:
 
     @property
     def num_feat_dynamic_real(self):
-        return len(self.feat_dynamic_real)
+        return maybe.map_or(self.feat_dynamic_real, len, 0)
 
     @property
     def num_past_feat_dynamic_real(self):
-        return len(self.past_feat_dynamic_real)
+        return maybe.map_or(self.past_feat_dynamic_real, len, 0)
 
     def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):
@@ -225,7 +222,7 @@ class PandasDataset:
         cls,
         dataframe: pd.DataFrame,
         item_id: str,
-        static_feature_columns: Optional[List[str]] = None,
+        static_feature_columns: Optional[list[str]] = None,
         static_features: pd.DataFrame = pd.DataFrame(),
         **kwargs,
     ) -> "PandasDataset":
@@ -286,7 +283,7 @@ class PandasDataset:
         )
 
 
-def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
+def pair_with_item_id(obj: Union[tuple, pd.DataFrame, pd.Series]):
     if isinstance(obj, tuple) and len(obj) == 2:
         return obj
     if isinstance(obj, (pd.DataFrame, pd.Series)):
