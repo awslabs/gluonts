@@ -173,7 +173,7 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         base_model: Any,
         reconciler: Any,
         S: Union[pd.DataFrame, Any],
-        tags: Dict[str, Union[List, np.array]] = {},
+        tags: Dict[str, Union[List, np.ndarray]] = {},
         intervals_method: str = "normality",
         quantile_levels: Optional[List[float]] = None,
         n_jobs: int = 1,
