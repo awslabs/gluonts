@@ -40,6 +40,17 @@ models_without_fitted_capability = [
 ]
 
 
+def get_formatted_S(
+    _S: Union[List[List[int]], np.ndarray],
+    ts_names: List[Union[str, Any]],
+) -> pd.DataFrame:
+    S = np.array(_S)
+
+    return pd.DataFrame(
+        S, index=ts_names, columns=ts_names[S.shape[0] - S.shape[1] :]
+    )
+
+
 def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame(entry["target"]).T
     df.columns = S.index.tolist()
@@ -145,15 +156,17 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
     base_model
         forecaster to use for base forecasts. Please refer to the documentation
         of ``statsforecast`` for available options.
-        Example: AutoARIMA(season_length=season_length)
+        Example: AutoARIMA
     reconciler
         forecast reconciliation method to use. Please see the documentation
         of ``hierarchicalforecast`` for available options.
-        Example: BottomUp()
+        Example: BottomUp
     S
         Summation or aggregation matrix.
     tags
         Each key is a level with values of tags associated to that level
+    ts_names
+        ordered list with names of time series
     intervals_method
         method used to calculate prediction intervals.
         Options are `normality`, `bootstrap`, `permbu`.
@@ -164,6 +177,12 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         prediction.
     n_jobs
         number of jobs used in the parallel processing, use -1 for all cores.
+    model_params
+        dictionary with inputs parameters for base_model,
+        i.e. {"season_length": 2}
+    reconciler_params
+        dictionary with input parameters for reconciler,
+        i.e. {"method": "average_proportions"}
     """
 
     @validated()
@@ -172,8 +191,9 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         prediction_length: int,
         base_model: Any,
         reconciler: Any,
-        S: Union[pd.DataFrame, Any],
+        S: Union[List[List[int]], np.ndarray],
         tags: Dict[str, Union[List, np.ndarray]] = {},
+        ts_names: Optional[List[Union[str, Any]]] = None,
         intervals_method: str = "normality",
         quantile_levels: Optional[List[float]] = None,
         n_jobs: int = 1,
@@ -184,11 +204,21 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
 
         assert intervals_method in ["normality", "bootstrap", "permbu"]
 
+        if tags and ts_names:
+            assert set([x for values in tags.values() for x in values]) == set(
+                ts_names
+            ), "tags and ts_names must have the same set of ts names"
+
         self.models = [base_model(**model_params)]
         self.hrec = HierarchicalReconciliation(
             reconcilers=[reconciler(**reconciler_params)]
         )
-        self.S = S
+        self.ts_names = (
+            ts_names
+            if ts_names is not None
+            else [str(x) for x in range(len(S))]
+        )
+        self.S = get_formatted_S(S, ts_names)
         self.tags = {key: np.array(val) for key, val in tags.items()}
         self.intervals_method = intervals_method
         self.config = ModelConfig(
@@ -200,10 +230,9 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
             f"{_build_fn_name(self.hrec.reconcilers[0])}"
         )
 
-        if repr(self.models[0]) in models_without_fitted_capability:
-            self.fitted = False
-        else:
-            self.fitted = True
+        self.fitted = (
+            repr(self.models[0]) not in models_without_fitted_capability
+        )
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         kwargs = {}
