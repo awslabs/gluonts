@@ -92,6 +92,8 @@ class PandasDataset:
         assume_sorted: bool = False,
         dtype: Type = np.float32,
     ):
+        pairs: SizedIterable[tuple[Any, Any]]
+
         if isinstance(dataframes, dict):
             pairs = dataframes.items()
         elif isinstance(dataframes, (pd.Series, pd.DataFrame)):
