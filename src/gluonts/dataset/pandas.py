@@ -92,7 +92,7 @@ class PandasDataset:
         assume_sorted: bool = False,
         dtype: Type = np.float32,
     ):
-        pairs: SizedIterable[tuple[Any, Any]]
+        pairs: SizedIterable
 
         if isinstance(dataframes, dict):
             pairs = dataframes.items()
@@ -113,7 +113,9 @@ class PandasDataset:
         else:
             self.freq = freq
 
-        static_features = Maybe(static_features).unwrap_or_else(list)
+        static_features: pd.DataFrame = Maybe(static_features).unwrap_or_else(
+            pd.DataFrame
+        )
 
         self._static_reals: pd.DataFrame = (
             static_features.select_dtypes("number").astype(dtype).T
