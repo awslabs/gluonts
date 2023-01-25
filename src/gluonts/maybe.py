@@ -417,5 +417,5 @@ class Maybe(Generic[T]):
         """
         return xor(self.val, other)
 
-    def flatten(self: Maybe[Optional[T]]) -> Optional[T]:
+    def flatten(self: "Maybe[Optional[T]]") -> Optional[T]:
         return flatten(self.val)
