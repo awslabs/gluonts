@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field, InitVar
 from typing import Any, Iterable, Optional, Type, Union
 
 import numpy as np
@@ -25,6 +26,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.itertools import Map, StarMap, SizedIterable
 
 
+@dataclass
 class PandasDataset:
     """
     A dataset type based on ``pandas.DataFrame``.
@@ -69,9 +71,8 @@ class PandasDataset:
         (Default: ``False``)
     """
 
-    def __init__(
-        self,
-        dataframes: Union[
+    dataframes: InitVar[
+        Union[
             pd.DataFrame,
             pd.Series,
             Iterable[pd.DataFrame],
@@ -80,20 +81,23 @@ class PandasDataset:
             Iterable[tuple[Any, pd.Series]],
             dict[str, pd.DataFrame],
             dict[str, pd.Series],
-        ],
-        target: Union[str, list[str]] = "target",
-        feat_dynamic_real: Optional[list[str]] = None,
-        past_feat_dynamic_real: Optional[list[str]] = None,
-        timestamp: Optional[str] = None,
-        freq: Optional[str] = None,
-        static_features: Optional[pd.DataFrame] = None,
-        future_length: int = 0,
-        unchecked: bool = False,
-        assume_sorted: bool = False,
-        dtype: Type = np.float32,
-    ):
-        pairs: SizedIterable
+        ]
+    ]
+    target: Union[str, list[str]] = "target"
+    feat_dynamic_real: Optional[list[str]] = None
+    past_feat_dynamic_real: Optional[list[str]] = None
+    timestamp: Optional[str] = None
+    freq: Optional[str] = None
+    static_features: InitVar[Optional[pd.DataFrame]] = None
+    future_length: int = 0
+    unchecked: bool = False
+    assume_sorted: bool = False
+    dtype: Type = np.float32
+    _data_entries: SizedIterable = field(init=False)
+    _static_reals: pd.DataFrame = field(init=False)
+    _static_cats: pd.DataFrame = field(init=False)
 
+    def __post_init__(self, dataframes, static_features):
         if isinstance(dataframes, dict):
             pairs = dataframes.items()
         elif isinstance(dataframes, (pd.Series, pd.DataFrame)):
@@ -104,38 +108,23 @@ class PandasDataset:
 
         self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
-        if freq is None:
+        if self.freq is None:
             assert (
-                timestamp is None
+                self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
 
             self.freq = infer_freq(first(pairs)[1].index)
-        else:
-            self.freq = freq
 
-        static_features: pd.DataFrame = Maybe(static_features).unwrap_or_else(
-            pd.DataFrame
+        static_features = Maybe(static_features).unwrap_or_else(pd.DataFrame)
+        self._static_reals = (
+            static_features.select_dtypes("number").astype(self.dtype).T
         )
-
-        self._static_reals: pd.DataFrame = (
-            static_features.select_dtypes("number").astype(dtype).T
-        )
-
-        self._static_cats: pd.DataFrame = (
+        self._static_cats = (
             static_features.select_dtypes("category")
             .apply(lambda col: col.cat.codes)
-            .astype(dtype)
+            .astype(self.dtype)
             .T
         )
-
-        self.target = target
-        self.timestamp = timestamp
-        self.future_length = future_length
-        self.unchecked = unchecked
-        self.assume_sorted = assume_sorted
-        self.dtype = dtype
-        self.feat_dynamic_real = feat_dynamic_real
-        self.past_feat_dynamic_real = past_feat_dynamic_real
 
     @property
     def num_feat_static_cat(self) -> int:
