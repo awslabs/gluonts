@@ -20,7 +20,7 @@ import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
-from gluonts import maybe
+from gluonts.maybe import Maybe
 from gluonts.dataset.common import DataEntry
 from gluonts.itertools import Map, StarMap, SizedIterable
 
@@ -113,7 +113,7 @@ class PandasDataset:
         else:
             self.freq = freq
 
-        static_features = maybe.unwrap_or_else(static_features, pd.DataFrame)
+        static_features = Maybe(static_features).unwrap_or_else(list)
 
         self._static_reals: pd.DataFrame = (
             static_features.select_dtypes("number").astype(dtype).T
@@ -145,11 +145,11 @@ class PandasDataset:
 
     @property
     def num_feat_dynamic_real(self) -> int:
-        return maybe.map_or(self.feat_dynamic_real, 0, len)
+        return Maybe(self.feat_dynamic_real).map_or(len, 0)
 
     @property
     def num_past_feat_dynamic_real(self) -> int:
-        return maybe.map_or(self.past_feat_dynamic_real, 0, len)
+        return Maybe(self.past_feat_dynamic_real).map_or(len, 0)
 
     @property
     def static_cardinalities(self):
