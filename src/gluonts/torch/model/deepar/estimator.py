@@ -314,6 +314,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                         else []
                     ),
                 ),
+                AsNumpyArray(FieldName.FEAT_TIME, expected_ndim=2),
             ]
         )
 
