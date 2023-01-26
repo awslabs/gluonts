@@ -196,7 +196,7 @@ def doctest(doctest_namespace):
     doctest.ELLIPSIS_MARKER = "-etc-"
 
 
-requirements = set()
+collect_ignore = []
 
 
 def pytest_configure(config):
@@ -207,8 +207,10 @@ def pytest_configure(config):
     if not targets:
         targets.append(".")
 
+    requirements = set()
+
     for target in targets:
-        target = Path(target)
+        target = Path(target).resolve()
 
         if target.is_file():
             target = target.parent
@@ -230,10 +232,6 @@ def pytest_configure(config):
         except ValueError:
             pass
 
-
-def get_collect_ignores():
-    test_folder = Path(__file__).parent.resolve()
-
     old_path = sys.path
     sys.path = [
         path for path in sys.path if Path(path).resolve() != test_folder
@@ -247,19 +245,17 @@ def get_collect_ignores():
                 try:
                     __import__(requirement)
                 except ImportError:
-                    excludes.append(str(path.parent.relative_to(test_folder)))
+                    collect_ignore.append(
+                        str(path.parent.relative_to(test_folder))
+                    )
                     break
 
-    if excludes:
+    if collect_ignore:
         warnings.warn(
             f"Skipping tests because some packages are not installed: {excludes}"
         )
 
     sys.path = old_path
-    return excludes
-
-
-collect_ignore = get_collect_ignores()
 
 
 class AttrDict(dict):
