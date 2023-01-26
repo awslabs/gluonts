@@ -171,9 +171,9 @@ class PandasDataset:
             "start": df.index[0],
         }
 
-        target = df[self.target].values.T
+        target = df[self.target].values
         target = target[: len(target) - self.future_length]
-        entry["target"] = target
+        entry["target"] = target.T
 
         if item_id is not None:
             entry["item_id"] = item_id
@@ -185,15 +185,14 @@ class PandasDataset:
             entry["feat_static_real"] = self._static_reals[item_id].values
 
         if self.num_feat_dynamic_real:
-            print(self.num_feat_dynamic_real)
-            print(self.feat_dynamic_real)
             entry["feat_dynamic_real"] = df[self.feat_dynamic_real].values.T
 
         if self.num_past_feat_dynamic_real:
-            past_feat_dynamic_real = df[self.past_feat_dynamic_real].values.T
-            entry["past_feat_dynamic_real"] = past_feat_dynamic_real[
+            past_feat_dynamic_real = df[self.past_feat_dynamic_real].values
+            past_feat_dynamic_real = past_feat_dynamic_real[
                 : len(past_feat_dynamic_real) - self.future_length
             ]
+            entry["past_feat_dynamic_real"] = past_feat_dynamic_real.T
 
         return entry
 
