@@ -177,7 +177,7 @@ class HierarchicalTimeSeries:
         PandasDataset
             An instance of `PandasDataset`.
         """
-        ignore_last_n_targets = 0
+        future_length = 0
 
         if feat_dynamic_real is not None:
             assert (
@@ -205,7 +205,7 @@ class HierarchicalTimeSeries:
             feat_dynamic_real.columns = [
                 f"feat_dynamic_real_{col}" for col in feat_dynamic_real.columns
             ]
-            ignore_last_n_targets = len(feat_dynamic_real.index) - len(
+            future_length = len(feat_dynamic_real.index) - len(
                 self.ts_at_all_levels.index
             )
         else:
@@ -218,7 +218,7 @@ class HierarchicalTimeSeries:
             ),
             target=list(self.ts_at_all_levels.columns),
             feat_dynamic_real=list(feat_dynamic_real.columns),
-            ignore_last_n_targets=ignore_last_n_targets,
+            future_length=future_length,
         )
 
         return pandas_ds
