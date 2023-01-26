@@ -215,7 +215,10 @@ def pytest_configure(config):
         else:
             requirements.update(target.glob("**/require-packages.txt"))
 
-        if target.is_relative_to(test_folder):
+        try:
+            # .is_relative_to was only added in Py 3.9
+            target.relative_to(test_folder)
+
             while True:
                 require = target / "require-packages.txt"
                 if require.exists():
@@ -224,6 +227,8 @@ def pytest_configure(config):
                 if target == test_folder:
                     break
                 target = target.parent
+        except ValueError:
+            pass
 
 
 def get_collect_ignores():
