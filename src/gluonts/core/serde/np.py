@@ -28,7 +28,7 @@ def encode_np_dtype(v: np.dtype) -> Any:
     return {
         "__kind__": Kind.Instance,
         "class": "numpy.dtype",
-        "args": encode([v.name]),
+        "args": encode([v.descr[0][1]]),
     }
 
 
