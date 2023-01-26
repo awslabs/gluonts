@@ -53,9 +53,9 @@ class PandasDataset:
         Frequency of observations in the time series. Must be a valid pandas
         frequency.
     feat_dynamic_real
-        list of column names that contain dynamic real features.
+        List of column names that contain dynamic real features.
     past_feat_dynamic_real
-        list of column names that contain dynamic real features only available
+        List of column names that contain dynamic real features only available
         in the past.
     static_features
         ``pd.DataFrame`` containing static features for the series. The index
@@ -178,16 +178,16 @@ class PandasDataset:
         if item_id is not None:
             entry["item_id"] = item_id
 
-        if self.num_feat_static_cat:
+        if self.num_feat_static_cat > 0:
             entry["feat_static_cat"] = self._static_cats[item_id].values
 
-        if self.num_feat_static_real:
+        if self.num_feat_static_real > 0:
             entry["feat_static_real"] = self._static_reals[item_id].values
 
-        if self.num_feat_dynamic_real:
+        if self.num_feat_dynamic_real > 0:
             entry["feat_dynamic_real"] = df[self.feat_dynamic_real].values.T
 
-        if self.num_past_feat_dynamic_real:
+        if self.num_past_feat_dynamic_real > 0:
             past_feat_dynamic_real = df[self.past_feat_dynamic_real].values
             past_feat_dynamic_real = past_feat_dynamic_real[
                 : len(past_feat_dynamic_real) - self.future_length
@@ -212,6 +212,7 @@ class PandasDataset:
                 f"num_past_feat_dynamic_real={self.num_past_feat_dynamic_real}",
                 f"num_feat_static_real={self.num_feat_static_real}",
                 f"num_feat_static_cat={self.num_feat_static_cat}",
+                f"static_cardinalities={self.static_cardinalities}",
             ]
         )
         return f"PandasDataset<{info}>"
