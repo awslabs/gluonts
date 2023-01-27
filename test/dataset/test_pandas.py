@@ -200,7 +200,9 @@ def test_long_csv_3M():
             assert entry["start"].freqstr == "3M"
             assert entry["start"] == expected_entry["start"]
             assert entry["item_id"] == expected_entry["item_id"]
-            assert entry["feat_static_cat"] == expected_entry["feat_static_cat"]
+            assert (
+                entry["feat_static_cat"] == expected_entry["feat_static_cat"]
+            )
             assert np.allclose(entry["target"], expected_entry["target"])
 
 
