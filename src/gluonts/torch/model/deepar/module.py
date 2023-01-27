@@ -103,7 +103,7 @@ class DeepARModel(nn.Module):
         distr_output: DistributionOutput = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
-        default_scale: Optional[float] = None,
+        default_scale: float = 0.0,
         num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
@@ -138,9 +138,7 @@ class DeepARModel(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler = MeanScaler(
-                dim=-1, keepdim=True, default_scale=default_scale
-            )
+            self.scaler = MeanScaler(default_scale=default_scale)
         else:
             self.scaler = NOPScaler(dim=-1, keepdim=True)
         self.rnn_input_size = len(self.lags_seq) + self._number_of_features
