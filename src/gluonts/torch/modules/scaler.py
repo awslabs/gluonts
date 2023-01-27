@@ -68,7 +68,7 @@ class MeanScaler(nn.Module):
         # values conditionally.
         batch_sum = ts_sum.sum(dim=0)
         batch_observations = torch.clamp(num_observed.sum(0), min=1)
-        batch_scale = batch_sum / batch_observations.squeeze()
+        batch_scale = torch.squeeze(batch_sum / batch_observations)
 
         default_scale = torch.where(
             self.default_scale > 0.0,
