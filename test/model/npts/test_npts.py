@@ -19,8 +19,8 @@ import pytest
 
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.exceptions import GluonTSDataError
-from gluonts.ext.npts import KernelType, NPTSPredictor
-from gluonts.ext.npts._weighted_sampler import WeightedSampler
+from gluonts.model.npts import KernelType, NPTSPredictor
+from gluonts.model.npts._weighted_sampler import WeightedSampler
 
 
 def get_test_data(history_length: int, freq: str) -> pd.Series:
