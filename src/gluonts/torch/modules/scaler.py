@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, Optional
+from __future__ import annotations
 
 import torch
 import torch.nn as nn
@@ -40,59 +40,56 @@ class MeanScaler(nn.Module):
     @validated()
     def __init__(
         self,
-        dim: int,
-        keepdim: bool = False,
-        default_scale: Optional[float] = None,
+        dim: int = -1,
+        keepdim: bool = True,
+        default_scale: float = 0.0,
         minimum_scale: float = 1e-10,
     ):
         super().__init__()
         self.dim = dim
         self.keepdim = keepdim
         self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
-        if default_scale:
-            self.register_buffer("default_scale", torch.tensor(default_scale))
-        else:
-            self.register_buffer("default_scale", torch.tensor(0.0))
+        self.register_buffer("default_scale", torch.tensor(0.0))
 
     def forward(
-        self, data: torch.Tensor, weights: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # these will have shape (N, C)
-        total_weight = weights.sum(dim=self.dim)
-        weighted_sum = (data.abs() * weights).sum(dim=self.dim)
+        self, data: torch.Tensor, observed_indicator: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        # shape: (N, [C], T=1)
+        ts_sum = (data * observed_indicator).abs().sum(self.dim, keepdim=True)
+        num_observed = observed_indicator.sum(self.dim, keepdim=True)
 
-        # first compute a global scale per-dimension
-        total_observed = total_weight.sum(dim=0)
-        denominator = torch.max(
-            total_observed, torch.ones_like(total_observed)
-        )
-        if self.default_scale != 0.0:
-            default_scale = self.default_scale
-        else:
-            default_scale = weighted_sum.sum(dim=0) / denominator
+        scale = ts_sum / torch.clamp(num_observed, min=1)
 
-        # then compute a per-item, per-dimension scale
-        denominator = torch.max(total_weight, torch.ones_like(total_weight))
-        scale = weighted_sum / denominator
+        # Set default_scale for time-series which are all zeros.
+        # If `default_scale` is provided, we use it, otherwise we use the scale
+        # of the batch.
+        # Note: We want to support tracing and to remove branching we we always
+        # calculate the batch_scale. Also, using `where` allows us to set
+        # values conditionally.
+        batch_sum = ts_sum.sum(dim=0)
+        batch_observations = torch.clamp(num_observed.sum(0), min=1)
+        batch_scale = torch.squeeze(batch_sum / batch_observations)
 
-        # use per-batch scale when no element is observed
-        # or when the sequence contains only zeros
-        scale = (
-            torch.max(
-                self.minimum_scale,
-                torch.where(
-                    weighted_sum > torch.zeros_like(weighted_sum),
-                    scale,
-                    default_scale * torch.ones_like(total_weight),
-                ),
-            )
-            .detach()
-            .unsqueeze(dim=self.dim)
+        default_scale = torch.where(
+            self.default_scale > 0.0,
+            self.default_scale,
+            batch_scale,
         )
 
-        return data / scale, scale if self.keepdim else scale.squeeze(
-            dim=self.dim
+        # apply default scale where there are no observations
+        torch.where(
+            num_observed > 0,
+            scale,
+            default_scale,
         )
+
+        # ensure the scale is at least `self.minimum_scale`
+        scale = torch.clamp(scale, min=self.minimum_scale)
+
+        if not self.keepdim:
+            scale = scale.squeeze(dim=self.dim)
+
+        return data / scale, scale
 
 
 class NOPScaler(nn.Module):
@@ -110,14 +107,14 @@ class NOPScaler(nn.Module):
     """
 
     @validated()
-    def __init__(self, dim: int, keepdim: bool = False):
+    def __init__(self, dim: int = -1, keepdim: bool = False):
         super().__init__()
         self.dim = dim
         self.keepdim = keepdim
 
     def forward(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
             dim=self.dim,
             keepdim=self.keepdim,
@@ -143,7 +140,7 @@ class StdScaler(nn.Module):
 
     @validated()
     def __init__(
-        self, dim: int, keepdim: bool = False, minimum_scale: float = 1e-5
+        self, dim: int = -1, keepdim: bool = False, minimum_scale: float = 1e-5
     ):
         super().__init__()
         assert dim > 0, (
@@ -156,7 +153,7 @@ class StdScaler(nn.Module):
 
     def forward(
         self, data: torch.Tensor, weights: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert (
             data.shape == weights.shape
         ), "data and weights must have same shape"
