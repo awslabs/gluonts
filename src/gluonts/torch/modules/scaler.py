@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple, Optional
+from __future__ import annotations
 
 import torch
 import torch.nn as nn
@@ -53,7 +53,7 @@ class MeanScaler(nn.Module):
 
     def forward(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # shape: (N, [C], T=1)
         ts_sum = (data * observed_indicator).abs().sum(self.dim, keepdim=True)
         num_observed = observed_indicator.sum(self.dim, keepdim=True)
@@ -114,7 +114,7 @@ class NOPScaler(nn.Module):
 
     def forward(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
             dim=self.dim,
             keepdim=self.keepdim,
@@ -140,7 +140,7 @@ class StdScaler(nn.Module):
 
     @validated()
     def __init__(
-        self, dim: int, keepdim: bool = False, minimum_scale: float = 1e-5
+        self, dim: int = -1, keepdim: bool = False, minimum_scale: float = 1e-5
     ):
         super().__init__()
         assert dim > 0, (
@@ -153,7 +153,7 @@ class StdScaler(nn.Module):
 
     def forward(
         self, data: torch.Tensor, weights: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert (
             data.shape == weights.shape
         ), "data and weights must have same shape"
