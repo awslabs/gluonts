@@ -144,7 +144,7 @@ class PandasDataset:
 
     @property
     def static_cardinalities(self):
-        return self._static_cats.max(axis=1).value + 1
+        return self._static_cats.max(axis=1).values + 1
 
     def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):

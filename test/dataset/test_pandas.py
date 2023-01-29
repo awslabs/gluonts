@@ -164,40 +164,46 @@ def test_long_csv_3M():
         },
     ]
 
+    datasets = []
+
     with io.StringIO(data) as fp:
         df_long = pd.read_csv(fp)
         df_long["static_feat"] = df_long["static_feat"].astype("category")
-        ds = pandas.PandasDataset.from_long_dataframe(
-            df_long,
-            target="target",
-            item_id="item_id",
-            timestamp="timestamp",
-            freq="3M",
-            static_feature_columns=["static_feat"],
+        datasets.append(
+            pandas.PandasDataset.from_long_dataframe(
+                df_long,
+                target="target",
+                item_id="item_id",
+                timestamp="timestamp",
+                freq="3M",
+                static_feature_columns=["static_feat"],
+            )
         )
-    for entry, expected_entry in zip(ds, expected_entries):
-        assert entry["start"].freqstr == "3M"
-        assert entry["start"] == expected_entry["start"]
-        assert entry["item_id"] == expected_entry["item_id"]
-        assert entry["feat_static_cat"] == expected_entry["feat_static_cat"]
-        assert np.allclose(entry["target"], expected_entry["target"])
 
     with io.StringIO(data) as fp:
         df_long = pd.read_csv(fp, index_col="timestamp")
         df_long["static_feat"] = df_long["static_feat"].astype("category")
-        ds = pandas.PandasDataset.from_long_dataframe(
-            df_long,
-            target="target",
-            item_id="item_id",
-            freq="3M",
-            static_feature_columns=["static_feat"],
+        datasets.append(
+            pandas.PandasDataset.from_long_dataframe(
+                df_long,
+                target="target",
+                item_id="item_id",
+                freq="3M",
+                static_feature_columns=["static_feat"],
+            )
         )
-    for entry, expected_entry in zip(ds, expected_entries):
-        assert entry["start"].freqstr == "3M"
-        assert entry["start"] == expected_entry["start"]
-        assert entry["item_id"] == expected_entry["item_id"]
-        assert entry["feat_static_cat"] == expected_entry["feat_static_cat"]
-        assert np.allclose(entry["target"], expected_entry["target"])
+
+    for ds in datasets:
+        assert ds.static_cardinalities == np.array([3])
+        assert isinstance(str(ds), str)
+        for entry, expected_entry in zip(ds, expected_entries):
+            assert entry["start"].freqstr == "3M"
+            assert entry["start"] == expected_entry["start"]
+            assert entry["item_id"] == expected_entry["item_id"]
+            assert (
+                entry["feat_static_cat"] == expected_entry["feat_static_cat"]
+            )
+            assert np.allclose(entry["target"], expected_entry["target"])
 
 
 def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):
