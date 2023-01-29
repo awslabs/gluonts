@@ -189,9 +189,9 @@ class NBEATSEnsemblePredictor(Predictor):
             # default according to paper is median,
             # but we can also make use of not aggregating
             if self.aggregation_method == "median":
-                output = np.median(output, axis=0)
+                output = np.median(output, axis=0, keepdims=True)
             elif self.aggregation_method == "mean":
-                output = np.mean(output, axis=0)
+                output = np.mean(output, axis=0, keepdims=True)
             else:  # "none": do not aggregate
                 pass
 
