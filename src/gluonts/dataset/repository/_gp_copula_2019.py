@@ -32,7 +32,7 @@ from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository._util import metadata
-from gluonts.safe_extract import safe_extract
+from gluonts.util import safe_extract
 
 
 class GPCopulaDataset(NamedTuple):

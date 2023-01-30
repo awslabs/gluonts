@@ -15,7 +15,7 @@ import pytest
 from pathlib import Path
 from typing import Union
 
-from gluonts.safe_extract import is_within_directory
+from gluonts.util import is_within_directory
 
 
 @pytest.mark.parametrize(

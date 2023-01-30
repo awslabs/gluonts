@@ -13,7 +13,8 @@
 
 import copy
 from functools import lru_cache
-from typing import TYPE_CHECKING, TypeVar
+from pathlib import Path
+from typing import TYPE_CHECKING, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -66,3 +67,29 @@ else:
         introduced in Python 3.8.
         """
         return property(lru_cache(1)(method))
+
+
+def is_within_directory(
+    directory: Union[str, Path], target: Union[str, Path]
+) -> bool:
+    """
+    Check whether the ``target`` path is strictly within ``directory``.
+    """
+    abs_directory = Path(directory).absolute().resolve()
+    abs_target = Path(target).absolute().resolve()
+    return abs_directory in abs_target.parents
+
+
+def safe_extract(
+    tar, path: Path = Path("."), members=None, *, numeric_owner=False
+):
+    """
+    Safe wrapper around ``TarFile.extractall`` that checks all destination
+    files to be strictly within the given ``path``.
+    """
+    for member in tar.getmembers():
+        member_path = path / member.name
+        if not is_within_directory(path, member_path):
+            raise Exception("Attempted Path Traversal in Tar File")
+
+    tar.extractall(path, members, numeric_owner=numeric_owner)

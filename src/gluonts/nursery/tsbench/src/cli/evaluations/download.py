@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Optional
 import botocore
 import click
-from gluonts.safe_extract import safe_extract
+from gluonts.util import safe_extract
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import process_map
 from tsbench.analysis.utils import run_parallel

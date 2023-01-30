@@ -21,7 +21,7 @@ from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
 from gluonts.model import Predictor
-from gluonts.safe_extract import safe_extract
+from gluonts.util import safe_extract
 
 from . import sagemaker
 
