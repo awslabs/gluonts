@@ -27,6 +27,7 @@ from urllib import request
 from gluonts.dataset.common import FileDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository._util import metadata, save_to_file, to_dict
+from gluonts.util import safe_extractall
 
 
 class GPCopulaDataset(NamedTuple):
@@ -122,7 +123,7 @@ def download_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
     request.urlretrieve(ds_info.url, dataset_path / f"{ds_info.name}.tar.gz")
 
     with tarfile.open(dataset_path / f"{ds_info.name}.tar.gz") as tar:
-        tar.extractall(path=dataset_path)
+        safe_extractall(tar, path=dataset_path)
 
 
 def save_metadata(
