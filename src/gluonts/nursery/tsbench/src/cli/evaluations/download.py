@@ -27,6 +27,7 @@ from tsbench.evaluations import aws
 from tsbench.evaluations.aws import default_session
 from tsbench.evaluations.tracking.job import Job, load_jobs_from_analysis
 from ._main import evaluations
+from .utils.safe_extract import safe_extract
 
 
 @evaluations.command(short_help="Download evaluations to your file system.")
@@ -104,7 +105,7 @@ def _download_public_evaluations(
         file = Path(tmp) / "metrics.tar.gz"
         client.download_file(public_bucket, "metrics.tar.gz", str(file))
         with tarfile.open(file, mode="r:gz") as tar:
-            tar.extractall(evaluations_path)
+            safe_extract(tar, evaluations_path)
 
     # Then, optionally download the forecasts
     if include_forecasts:

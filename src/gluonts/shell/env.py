@@ -21,6 +21,7 @@ from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
 from gluonts.model import Predictor
+from gluonts.safe_extract import safe_extract
 
 from . import sagemaker
 
@@ -41,7 +42,7 @@ class TrainEnv(sagemaker.TrainEnv):
         if "model" in self.channels:
             path = self.channels.pop("model")
             with tarfile.open(path / "model.tar.gz") as targz:
-                targz.extractall(path=path)
+                safe_extract(targz, path)
             model = Predictor.deserialize(path)
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
