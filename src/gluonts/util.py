@@ -69,17 +69,6 @@ else:
         return property(lru_cache(1)(method))
 
 
-def is_within_directory(
-    directory: Union[str, Path], target: Union[str, Path]
-) -> bool:
-    """
-    Check whether the ``target`` path is strictly within ``directory``.
-    """
-    abs_directory = Path(directory).absolute().resolve()
-    abs_target = Path(target).absolute().resolve()
-    return abs_directory in abs_target.parents
-
-
 def safe_extract(
     tar, path: Path = Path("."), members=None, *, numeric_owner=False
 ):
@@ -87,9 +76,14 @@ def safe_extract(
     Safe wrapper around ``TarFile.extractall`` that checks all destination
     files to be strictly within the given ``path``.
     """
+    path = Path(path).resolve()
+
     for member in tar.getmembers():
-        member_path = path / member.name
-        if not is_within_directory(path, member_path):
-            raise Exception("Attempted Path Traversal in Tar File")
+        member_path = (path / member.name).resolve()
+
+        try:
+            member_path.relative_to(path)
+        except ValueError:
+            raise PermissionError(f"'{member.name}' extracts out of target.")
 
     tar.extractall(path, members, numeric_owner=numeric_owner)
