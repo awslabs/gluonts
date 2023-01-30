@@ -105,7 +105,7 @@ def _download_public_evaluations(
         file = Path(tmp) / "metrics.tar.gz"
         client.download_file(public_bucket, "metrics.tar.gz", str(file))
         with tarfile.open(file, mode="r:gz") as tar:
-            safe_extract(tar, evaluations_path)
+            safe_extractall(tar, evaluations_path)
 
     # Then, optionally download the forecasts
     if include_forecasts:

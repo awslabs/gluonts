@@ -12,9 +12,10 @@
 # permissions and limitations under the License.
 
 import copy
+import tarfile
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar
 
 T = TypeVar("T")
 
@@ -69,8 +70,12 @@ else:
         return property(lru_cache(1)(method))
 
 
-def safe_extract(
-    tar, path: Path = Path("."), members=None, *, numeric_owner=False
+def safe_extractall(
+    tar: tarfile.TarFile,
+    path: Path = Path("."),
+    members=None,
+    *,
+    numeric_owner=False,
 ):
     """
     Safe wrapper around ``TarFile.extractall`` that checks all destination
