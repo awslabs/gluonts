@@ -12,7 +12,9 @@
 # permissions and limitations under the License.
 
 import copy
+import tarfile
 from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
 T = TypeVar("T")
@@ -66,3 +68,36 @@ else:
         introduced in Python 3.8.
         """
         return property(lru_cache(1)(method))
+
+
+def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
+    """
+    Check that the content of ``tar`` will be extracted within ``path``
+    upon calling ``extractall``.
+
+    Raise a ``PermissionError`` if not.
+    """
+    path = Path(path).resolve()
+
+    for member in tar.getmembers():
+        member_path = (path / member.name).resolve()
+
+        try:
+            member_path.relative_to(path)
+        except ValueError:
+            raise PermissionError(f"'{member.name}' extracts out of target.")
+
+
+def safe_extractall(
+    tar: tarfile.TarFile,
+    path: Path = Path("."),
+    members=None,
+    *,
+    numeric_owner=False,
+):
+    """
+    Safe wrapper around ``TarFile.extractall`` that checks all destination
+    files to be strictly within the given ``path``.
+    """
+    will_extractall_into(tar, path)
+    tar.extractall(path, members, numeric_owner=numeric_owner)
