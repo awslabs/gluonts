@@ -119,6 +119,8 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         in which case these are automatically determined based on freq).
     lr
         Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay (default: ``1e-8``).
     dropout_rate
         Dropout regularization parameter (default: 0.1).
     patience
@@ -153,6 +155,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         past_dynamic_cardinalities: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         dropout_rate: float = 0.1,
         patience: int = 10,
         batch_size: int = 32,
@@ -195,6 +198,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
 
         # Training procedure
         self.lr = lr
+        self.weight_decay = weight_decay
         self.dropout_rate = dropout_rate
         self.patience = patience
         self.batch_size = batch_size
@@ -381,6 +385,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             model=model,
             lr=self.lr,
             patience=self.patience,
+            weight_decay=self.weight_decay,
         )
 
     def create_predictor(
