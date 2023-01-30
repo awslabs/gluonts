@@ -14,16 +14,18 @@
 
 import os
 from pathlib import Path
+from typing import Union
 
 
-def is_within_directory(directory: Path, target: Path) -> bool:
+def is_within_directory(
+    directory: Union[str, Path], target: Union[str, Path]
+) -> bool:
     """
-    Check whether the ``target`` path is under ``directory``.
+    Check whether the ``target`` path is strictly within ``directory``.
     """
-    abs_directory = directory.absolute().resolve()
-    abs_target = target.absolute().resolve()
-    prefix = os.path.commonpath([abs_directory, abs_target])
-    return prefix == str(abs_directory)
+    abs_directory = Path(directory).absolute().resolve()
+    abs_target = Path(target).absolute().resolve()
+    return abs_directory in abs_target.parents
 
 
 def safe_extract(
@@ -31,7 +33,7 @@ def safe_extract(
 ):
     """
     Safe wrapper around ``TarFile.extractall`` that checks all destination
-    files to be within the given ``path``.
+    files to be strictly within the given ``path``.
     """
     for member in tar.getmembers():
         member_path = path / member.name

@@ -13,6 +13,7 @@
 
 import pytest
 from pathlib import Path
+from typing import Union
 
 from gluonts.safe_extract import is_within_directory
 
@@ -20,17 +21,22 @@ from gluonts.safe_extract import is_within_directory
 @pytest.mark.parametrize(
     "directory, path, expected",
     [
-        (Path("a"), Path("a"), True),
-        (Path("a/b/c"), Path("a/b/c"), True),
-        (Path("./a/b/c"), Path("./a/b/c"), True),
-        (Path("../a/b/c"), Path("../a/b/c"), True),
-        (Path("a/b/c"), Path("a/b/c/d"), True),
-        (Path("./a"), Path("./a/b"), True),
-        (Path("../a/b"), Path("../a/b/c"), True),
-        (Path("a/b/c"), Path("a/b/c/../d"), False),
-        (Path("./a"), Path("./b"), False),
-        (Path("../a/b"), Path("../b/c"), False),
+        ("a/b/c", "a/b/c/d", True),
+        ("./a", "./a/b", True),
+        ("../a/b", "../a/b/c", True),
+        ("a/./b/c", "a/b/./c/d", True),
+        ("a/../b/c", "a/../b/c/d", True),
+        ("a", "a", False),
+        ("a/b/c", "a/b/c", False),
+        ("./a/b/c", "./a/b/c", False),
+        ("../a/b/c", "../a/b/c", False),
+        ("a/b/c", "a/b/c/../d", False),
+        ("./a", "./b", False),
+        ("../a/b", "../b/c", False),
+        ("a/../b/c", "a/b/../c/d", False),
     ],
 )
-def test_is_within_directory(directory: Path, path: Path, expected: bool):
+def test_is_within_directory(
+    directory: Union[str, Path], path: Union[str, Path], expected: bool
+):
     assert is_within_directory(directory=directory, target=path) == expected
