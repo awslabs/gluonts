@@ -150,3 +150,8 @@ def test_serde_method():
     m = serde.decode(serde.encode(x.m))
 
     assert m() == 42
+
+
+def test_np_str_dtype():
+    a = np.array(["foo"])
+    serde.decode(serde.encode(a.dtype)) == a.dtype
