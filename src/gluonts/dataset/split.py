@@ -310,7 +310,10 @@ class OffsetSplitter(AbstractBaseSplitter):
             offset_ += entry[FieldName.TARGET].shape[-1]
         assert (
             offset_ + prediction_length <= entry[FieldName.TARGET].shape[-1]
-        ), "Not enough data to generate some of the windows; try splitting data at an earlier offset"
+        ), (
+            "Not enough data to generate some of the windows; "
+            "try splitting data at an earlier offset"
+        )
 
         if offset_ + prediction_length:
             input_slice = slice(None, offset_)
@@ -354,9 +357,10 @@ class DateSplitter(AbstractBaseSplitter):
         base = periods_between(entry["start"], self.date)
         input_slice = slice(None, base + offset)
         label_slice = slice(base + offset, base + offset + prediction_length)
-        assert (
-            label_slice.stop <= entry[FieldName.TARGET].shape[-1]
-        ), "Not enough data to generate some of the windows; try splitting data at an earlier date"
+        assert label_slice.stop <= entry[FieldName.TARGET].shape[-1], (
+            "Not enough data to generate some of the windows; "
+            "try splitting data at an earlier date"
+        )
         return (
             slice_data_entry(
                 entry, input_slice, prediction_length=prediction_length
