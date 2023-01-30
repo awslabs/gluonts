@@ -31,6 +31,7 @@ from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
+from gluonts.util import safe_extractall
 
 from .defaults import (
     ENTRY_POINTS_FOLDER,
@@ -503,7 +504,7 @@ class GluonTSFramework(Framework):
         with self._s3fs.open(locations.model_archive, "rb") as stream:
             with tarfile.open(mode="r:gz", fileobj=stream) as archive:
                 with TemporaryDirectory() as temp_dir:
-                    archive.extractall(temp_dir)
+                    safe_extractall(archive, temp_dir)
                     predictor = Predictor.deserialize(Path(temp_dir))
 
         return predictor
