@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Optional
 import botocore
 import click
+from gluonts.safe_extract import safe_extract
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import process_map
 from tsbench.analysis.utils import run_parallel
@@ -27,7 +28,6 @@ from tsbench.evaluations import aws
 from tsbench.evaluations.aws import default_session
 from tsbench.evaluations.tracking.job import Job, load_jobs_from_analysis
 from ._main import evaluations
-from .utils.safe_extract import safe_extract
 
 
 @evaluations.command(short_help="Download evaluations to your file system.")

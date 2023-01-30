@@ -22,7 +22,7 @@ def is_within_directory(directory: Path, target: Path) -> bool:
     """
     abs_directory = directory.absolute().resolve()
     abs_target = target.absolute().resolve()
-    prefix = os.path.commonpath(abs_directory, abs_target)
+    prefix = os.path.commonpath([abs_directory, abs_target])
     return prefix == str(abs_directory)
 
 
