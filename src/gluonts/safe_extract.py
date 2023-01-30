@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 
-import os
 from pathlib import Path
 from typing import Union
 
