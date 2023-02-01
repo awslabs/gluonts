@@ -13,6 +13,7 @@
 
 from typing import List, Optional, Type
 import inspect
+import itertools
 
 import torch
 
