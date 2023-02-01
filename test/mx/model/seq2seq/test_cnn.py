@@ -37,7 +37,7 @@ def compute_causalconv1d(
 
     conv_x = np.zeros_like(x)
     # compute in a naive way.
-    for (t, xt) in enumerate(x):
+    for t, xt in enumerate(x):
         dial_offset = 0
         for i in reversed(range(len(kernels))):
             xt_lag = x[t - dial_offset] if t - dial_offset >= 0 else 0.0

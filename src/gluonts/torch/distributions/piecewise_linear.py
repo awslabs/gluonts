@@ -222,7 +222,6 @@ class PiecewiseLinearOutput(DistributionOutput):
         slopes: torch.Tensor,
         knot_spacings: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
         slopes_nn = torch.abs(slopes)
 
         knot_spacings_proj = F.softmax(knot_spacings, dim=-1)

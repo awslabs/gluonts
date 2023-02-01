@@ -132,7 +132,6 @@ class TabularEstimator(Estimator):
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
     ) -> TabularPredictor:
-
         kwargs_override = {}
 
         dfs = [

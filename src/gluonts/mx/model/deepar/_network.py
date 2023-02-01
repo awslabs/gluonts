@@ -439,7 +439,6 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         post_sequence,
         target_value,
     ):
-
         if i < subsequences_length - 1:
             imputed_sequence = F.concat(
                 pre_sequence, target_value, post_sequence, dim=1

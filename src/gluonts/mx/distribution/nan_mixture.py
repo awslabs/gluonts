@@ -51,7 +51,6 @@ class NanMixture(MixtureDistribution):
     def __init__(
         self, nan_prob: Tensor, distribution: Distribution, F=None
     ) -> None:
-
         F = getF(nan_prob)
 
         mixture_probs = F.stack(1 - nan_prob, nan_prob, axis=-1)

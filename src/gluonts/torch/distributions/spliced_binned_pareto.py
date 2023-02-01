@@ -322,7 +322,6 @@ class SplicedBinnedParetoOutput(DistributionOutput):
     ) -> Tuple[
         torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
     ]:
-
         logits = torch.abs(logits)
 
         upper_gp_xi = torch.abs(upper_gp_xi)

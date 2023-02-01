@@ -45,7 +45,6 @@ def loader_factory():
         is_train: bool = True,
         override_args: dict = None,
     ) -> Iterable[DataBatch]:
-
         if override_args is None:
             override_args = {}
 

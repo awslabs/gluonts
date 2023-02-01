@@ -76,7 +76,6 @@ class RForecastPredictor(RBasePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,
