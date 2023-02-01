@@ -56,7 +56,6 @@ class LSTMQueryEncoder(QueryEncoder):
     """
 
     def __init__(self, input_size: int, hidden_size: int, num_layers: int):
-
         super().__init__()
         self.encoder = nn.LSTM(
             input_size=input_size,
@@ -97,7 +96,6 @@ class TcnQueryEncoder(QueryEncoder):
         num_layers: int = 5,
         kernel_size: int = 2,
     ):
-
         super().__init__()
         if encoder:
             self.encoder = encoder

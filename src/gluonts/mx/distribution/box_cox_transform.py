@@ -208,7 +208,6 @@ class BoxCoxTransform(Bijection):
         )
 
     def log_abs_det_jac(self, z: Tensor, y: Tensor = None) -> Tensor:
-
         r"""
         Logarithm of the absolute value of the Jacobian determinant
         corresponding to the Box-Cox Transform is given by

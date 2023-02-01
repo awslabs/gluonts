@@ -124,7 +124,6 @@ class TCNBlock(torch.nn.Module):
         fwd_time: bool = True,
         final: bool = False,
     ):
-
         super().__init__()
 
         in_channels = int(in_channels)
@@ -224,7 +223,6 @@ class TCN(torch.nn.Module):
         bias: bool = True,
         fwd_time: bool = True,
     ):
-
         super().__init__()
 
         layers = int(layers)

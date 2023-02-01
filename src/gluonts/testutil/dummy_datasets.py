@@ -32,7 +32,6 @@ def make_dummy_datasets_with_features(
     num_feat_dynamic_real: int = 0,
     num_past_feat_dynamic_real: int = 0,
 ) -> Tuple[Dataset, Dataset]:
-
     data_iter_train = []
     data_iter_test = []
 

@@ -30,7 +30,6 @@ from gluonts.mx import SimpleFeedForwardEstimator
 
 
 def test_callbacklist():
-
     cb1 = TrainingHistory()
     cb2 = TerminateOnNaN()
     cb3 = TrainingHistory()
