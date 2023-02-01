@@ -151,7 +151,9 @@ class IterableDataset(torch.utils.data.IterableDataset):
         worker_total_num = torch.utils.data.get_worker_info().num_workers
         worker_id = torch.utils.data.get_worker_info().id
 
-        yield from itertools.islice(self.iterable, worker_id, None, worker_total_num)
+        yield from itertools.islice(
+            self.iterable, worker_id, None, worker_total_num
+        )
 
 
 def repeat_along_dim(a: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:
