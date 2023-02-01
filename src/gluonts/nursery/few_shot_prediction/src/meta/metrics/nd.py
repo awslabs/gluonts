@@ -17,7 +17,6 @@ from torchmetrics import Metric
 
 
 class NormalizedDeviation(Metric):
-
     # pylint: disable=arguments-differ
 
     def __init__(

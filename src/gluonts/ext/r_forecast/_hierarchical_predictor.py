@@ -114,7 +114,6 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         numcores: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,

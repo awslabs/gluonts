@@ -69,7 +69,6 @@ class MQF2Distribution(torch.distributions.Distribution):
         threshold_input: float = 100.0,
         validate_args: bool = False,
     ) -> None:
-
         self.picnn = picnn
         self.hidden_state = hidden_state
         self.prediction_length = prediction_length
@@ -326,7 +325,6 @@ class MQF2DistributionOutput(DistributionOutput):
         loc: Optional[torch.Tensor] = 0,
         scale: Optional[torch.Tensor] = None,
     ) -> MQF2Distribution:
-
         distr = self.distr_cls(
             picnn,
             hidden_state,

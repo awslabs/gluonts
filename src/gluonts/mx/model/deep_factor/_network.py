@@ -73,7 +73,6 @@ class DeepFactorNetworkBase(HybridBlock):
         feat_static_cat: Tensor,  # (batch_size, 1)
         time_feat: Tensor,  # (batch_size, history_length, num_features)
     ) -> Tuple[Tensor, Tensor]:  # both of size (batch_size, history_length, 1)
-
         cat, local_input = self.assemble_features(
             F, feat_static_cat, time_feat
         )
