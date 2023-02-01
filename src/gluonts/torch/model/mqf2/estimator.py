@@ -133,7 +133,6 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         threshold_input: float = 100.0,
         estimate_logdet: bool = False,
     ) -> None:
-
         assert (
             1 <= beta < 2
         ), "beta should be in [1,2) for energy score to be strictly proper"

@@ -32,6 +32,7 @@ def assert_shape_and_finite(x, shape):
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
+
 # The following files contain different sets of LDS parameters
 # (coefficients and noise terms) and observations, and the log-density
 # of the observations that were computed using pykalman

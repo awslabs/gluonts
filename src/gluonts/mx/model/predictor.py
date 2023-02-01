@@ -318,7 +318,6 @@ class RepresentableBlockPredictor(GluonPredictor):
         batch: Optional[DataBatch] = None,
         dataset: Optional[Dataset] = None,
     ) -> SymbolBlockPredictor:
-
         if batch is None:
             data_loader = InferenceDataLoader(
                 dataset,

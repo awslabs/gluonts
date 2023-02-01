@@ -337,7 +337,6 @@ class ConstantDataset(ArtificialDataset):
                     or self.is_promotions
                     or self.holidays
                 ):
-
                     num_steps = self.get_num_steps(i)
                     generated = self.compute_data_from_recipe(
                         num_steps, constant

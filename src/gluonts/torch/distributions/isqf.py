@@ -52,7 +52,6 @@ class ISQF(torch.distributions.Distribution):
         tol: float = 1e-4,
         validate_args: bool = False,
     ) -> None:
-
         self.num_qk, self.num_pieces = qk_y.shape[-1], spline_knots.shape[-1]
         self.spline_knots, self.spline_heights = spline_knots, spline_heights
         self.beta_l, self.beta_r = beta_l, beta_r

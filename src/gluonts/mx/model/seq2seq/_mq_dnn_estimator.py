@@ -179,7 +179,6 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
-
         assert (distr_output is None) or (quantiles is None)
         assert (
             prediction_length > 0
@@ -378,7 +377,6 @@ class MQRNNEstimator(ForkingSeq2SeqEstimator):
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
     ) -> None:
-
         assert (
             prediction_length > 0
         ), f"Invalid prediction length: {prediction_length}."

@@ -34,7 +34,6 @@ from gluonts.mx.util import (
 
 @pytest.mark.parametrize("vec", [[[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]]])
 def test_cumsum(vec) -> None:
-
     forward_cumsum = cumsum(mx.nd, mx.nd.array(vec)).asnumpy()
     np_forward_cumsum = np.cumsum(vec, axis=-1)
     assert np.all(forward_cumsum == np_forward_cumsum), (
