@@ -95,7 +95,6 @@ def test_deepvar(
     use_marginal_transformation,
     use_feat_dynamic_real,
 ):
-
     estimator = Estimator(
         num_cells=20,
         num_layers=1,

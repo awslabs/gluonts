@@ -137,7 +137,6 @@ class ForkingSequenceSplitter(FlatMapTransformation):
             pad_length_dec = max(0, -dec_len_diff)
 
             for ts_field in ts_fields_counter.keys():
-
                 # target is 1d, this ensures ts is always 2d
                 ts = np.atleast_2d(out[ts_field]).T
                 ts_len = ts.shape[1]

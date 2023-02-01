@@ -24,7 +24,6 @@ from gluonts.testutil.equality import assert_recursively_equal
 
 @pytest.fixture(params=[pd.date_range, pd.period_range])
 def my_series(request):
-
     idx = request.param("2021-01-01", freq="1D", periods=3)
     series = pd.Series(np.random.normal(size=3), index=idx)
     return series

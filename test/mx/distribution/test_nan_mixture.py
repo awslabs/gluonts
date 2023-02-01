@@ -172,7 +172,6 @@ def test_nan_mixture(
     assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
 
     for param in distr_params:
-
         assert np.allclose(
             distr_params[param].grad.asnumpy(), distr_params_grad[param]
         )
@@ -195,7 +194,6 @@ np_samples = np.where(
 
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_gaussian_inference() -> None:
-
     nmdo = NanMixtureOutput(GaussianOutput())
 
     args_proj = nmdo.get_args_proj()
@@ -250,7 +248,6 @@ cat_samples = np.where(
 
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_categorical_inference() -> None:
-
     nmdo = NanMixtureOutput(CategoricalOutput(3))
 
     args_proj = nmdo.get_args_proj()
@@ -311,7 +308,6 @@ cat_samples = np.where(
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_nanmixture_output(distribution_output, serialize_fn) -> None:
-
     nmdo = NanMixtureOutput(distribution_output)
 
     args_proj = nmdo.get_args_proj()

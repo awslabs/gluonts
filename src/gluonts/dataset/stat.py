@@ -173,7 +173,6 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
     with tqdm(enumerate(ts_dataset, start=1), total=len(ts_dataset)) as it:
         max_target_length = 0
         for num_time_series, ts in it:
-
             # TARGET
             target = ts[FieldName.TARGET]
             if target.ndim == 1:

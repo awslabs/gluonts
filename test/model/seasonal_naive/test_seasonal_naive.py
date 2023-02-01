@@ -85,7 +85,6 @@ def get_prediction(
 def test_predictor(
     data, expected_output, prediction_length, season_length, imputation_method
 ):
-
     prediction = get_prediction(
         data,
         prediction_length=prediction_length,

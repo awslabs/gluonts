@@ -98,7 +98,6 @@ def ts(
 
 class DatasetStatisticsTest(unittest.TestCase):
     def test_dataset_statistics(self) -> None:
-
         num_time_series = 3
         num_time_observations = 10
         num_feat_dynamic_real = 2
@@ -175,7 +174,6 @@ class DatasetStatisticsTest(unittest.TestCase):
         assert expected == found
 
     def test_dataset_histogram(self) -> None:
-
         # generates 2 ** N - 1 timeseries with constant increasing values
         N = 6
         n = 2**N - 1

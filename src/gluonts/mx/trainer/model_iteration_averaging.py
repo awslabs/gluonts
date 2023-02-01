@@ -24,7 +24,6 @@ from .callback import Callback
 
 
 class IterationAveragingStrategy:
-
     r"""
     The model averaging is based on paper
     "Stochastic Gradient Descent for Non-smooth Optimization: Convergence
@@ -254,7 +253,6 @@ class NTA(IterationAveragingStrategy):
 
 
 class Alpha_Suffix(IterationAveragingStrategy):
-
     r"""
     Implement Alpha Suffix model averaging.
     This method is based on paper "Making Gradient Descent Optimalfor Strongly

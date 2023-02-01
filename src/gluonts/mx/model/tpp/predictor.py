@@ -44,7 +44,6 @@ class PointProcessForecastGenerator(ForecastGenerator):
         freq: str,
         **kwargs,
     ) -> Iterator[Forecast]:
-
         for batch in inference_data_loader:
             inputs = [batch[k] for k in input_names]
 

@@ -84,7 +84,6 @@ def evaluate(dataset_name, estimator):
 
 
 if __name__ == "__main__":
-
     results = []
     for dataset_name in datasets:
         for estimator in estimators:

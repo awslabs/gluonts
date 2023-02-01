@@ -862,7 +862,6 @@ def test_ctsplitter_train_correct(point_process_dataset):
 
 
 def test_ctsplitter_train_correct_out_count(point_process_dataset):
-
     # produce new TPP data by shuffling existing TS instance
     def shuffle_iterator(num_duplications=5):
         for entry in point_process_dataset:
@@ -888,7 +887,6 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
 
 
 def test_ctsplitter_train_samples_correct_times(point_process_dataset):
-
     splitter = transform.ContinuousTimeInstanceSplitter(
         past_interval_length=1.25,
         future_interval_length=1.25,
