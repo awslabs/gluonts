@@ -148,8 +148,8 @@ class IterableDataset(torch.utils.data.IterableDataset):
         if worker_info is None:
             yield from self.iterable
         else:
-            worker_total_num = torch.utils.data.get_worker_info().num_workers
-            worker_id = torch.utils.data.get_worker_info().id
+            worker_total_num = worker_info.num_workers
+            worker_id = worker_info.id
 
             yield from itertools.islice(
                 self.iterable, worker_id, None, worker_total_num
