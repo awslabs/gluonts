@@ -113,6 +113,11 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+        monitor = (
+            "val_loss"
+            if self.trainer._data_connector._val_dataloader_source.is_defined()
+            else "train_loss"
+        )
 
         return {
             "optimizer": optimizer,
@@ -123,6 +128,6 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
                     factor=0.5,
                     patience=self.patience,
                 ),
-                "monitor": "train_loss",
+                "monitor": monitor,
             },
         }

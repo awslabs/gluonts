@@ -406,7 +406,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-
         total_interval_length = (
             data[self.end_field] - data[self.start_field]
         ) / self.freq
@@ -430,7 +429,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         }
 
         for future_start in sampling_times:
-
             r: DataEntry = dict()
 
             past_start = future_start - self.past_interval_length

@@ -147,7 +147,6 @@ class ProphetPredictor(RepresentablePredictor):
     def predict(
         self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
-
         params = self.prophet_params.copy()
         params.update(uncertainty_samples=num_samples)
 

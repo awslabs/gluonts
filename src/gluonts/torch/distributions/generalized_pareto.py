@@ -45,7 +45,6 @@ class GeneralizedPareto(Distribution):
     has_rsample = False
 
     def __init__(self, xi, beta, validate_args=None):
-
         self.xi, self.beta = broadcast_all(
             xi.squeeze(dim=-1), beta.squeeze(dim=-1)
         )
@@ -163,7 +162,6 @@ class GeneralizedParetoOutput(DistributionOutput):
         xi: torch.Tensor,
         beta: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         xi = torch.abs(xi)
         beta = torch.abs(beta)
 

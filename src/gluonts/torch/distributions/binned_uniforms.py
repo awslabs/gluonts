@@ -468,7 +468,6 @@ class BinnedUniformsOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, logits: torch.Tensor) -> torch.Tensor:
-
         logits = torch.abs(logits)
 
         return logits

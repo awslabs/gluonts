@@ -385,7 +385,6 @@ def test_mixture_logprob(
     values_outside_support: Tensor,
     distribution_output: DistributionOutput,
 ) -> None:
-
     assert np.all(
         ~np.isnan(distribution.log_prob(values_outside_support).asnumpy())
     ), f"{distribution} should return -inf log_probs instead of NaNs"

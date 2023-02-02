@@ -294,7 +294,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         count_nans: bool = False,
         **kwargs
     ):
-
         if one_hot_encode:
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)

@@ -198,7 +198,6 @@ def test_gamma_likelihood(concentration: float, rate: float) -> None:
 @pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("loc, scale,", [(1.0, 0.1)])
 def test_normal_likelihood(loc: float, scale: float):
-
     locs = torch.zeros((NUM_SAMPLES,)) + loc
     scales = torch.zeros((NUM_SAMPLES,)) + scale
 
@@ -229,7 +228,6 @@ def test_normal_likelihood(loc: float, scale: float):
 @pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("df, loc, scale,", [(6.0, 2.3, 0.7)])
 def test_studentT_likelihood(df: float, loc: float, scale: float):
-
     dfs = torch.zeros((NUM_SAMPLES,)) + df
     locs = torch.zeros((NUM_SAMPLES,)) + loc
     scales = torch.zeros((NUM_SAMPLES,)) + scale
