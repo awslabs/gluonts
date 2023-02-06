@@ -75,13 +75,25 @@ def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def unpivot(frame: pd.DataFrame) -> pd.DataFrame:
-    n, k = frame.shape
+def unpivot(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    unpivots data frame
+
+    The input dataframe has as index the time stamps
+    and columns per time series of the hierarchy.
+    We unpivot this so that the final dataframe has
+    three columns, i.e. "unique_id", "ds", and "y", where
+    1) "unique_id" has the name of the corresponding time series,
+    2) "ds" has the corresponding time stamps,
+    3) "y" has the actuals.
+    """
+
+    n, k = df.shape
     return pd.DataFrame(
         {
-            "unique_id": np.asarray(frame.columns).repeat(n),
-            "ds": np.tile(np.asarray(frame.index), k),
-            "y": frame.to_numpy().ravel("F"),
+            "unique_id": np.asarray(df.columns).repeat(n),
+            "ds": np.tile(np.asarray(df.index), k),
+            "y": df.to_numpy().ravel("F"),
         }
     )
 
