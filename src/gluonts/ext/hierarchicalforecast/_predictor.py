@@ -67,6 +67,7 @@ def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
     1) the index corresponds to the name of the time series,
     2) the columns 'ds'/'y' correspond to timestamps/actuals, respectively.
     """
+
     df = pd.DataFrame(entry["target"]).T
     df.columns = S.index.tolist()
     df.index = pd.date_range(
@@ -102,17 +103,6 @@ def unpivot(df: pd.DataFrame) -> pd.DataFrame:
             "y": df.to_numpy().ravel("F"),
         }
     )
-
-
-# def get_model_name(df: pd.DataFrame) -> Union[str, List[str]]:
-#     df_columns = df.columns.to_list()
-#     drop_cols = ["ds", "y"] if "y" in df_columns else ["ds"]
-#     model_names = [x for x in df_columns if x not in drop_cols]
-#
-#     if len(model_names) == 1:
-#         return model_names[0]
-#
-#     return model_names
 
 
 def format_reconciled_forecasts(
