@@ -218,7 +218,7 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
             if ts_names is not None
             else [str(x) for x in range(len(S))]
         )
-        self.S = get_formatted_S(S, ts_names)
+        self.S = get_formatted_S(S, self.ts_names)
         self.tags = {key: np.array(val) for key, val in tags.items()}
         self.intervals_method = intervals_method
         self.config = ModelConfig(
