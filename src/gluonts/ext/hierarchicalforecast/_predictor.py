@@ -98,15 +98,15 @@ def unpivot(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def get_model_name(df: pd.DataFrame) -> Union[str, List[str]]:
-    df_columns = df.columns.to_list()
-    drop_cols = ["ds", "y"] if "y" in df_columns else ["ds"]
-    model_names = [x for x in df_columns if x not in drop_cols]
-
-    if len(model_names) == 1:
-        return model_names[0]
-
-    return model_names
+# def get_model_name(df: pd.DataFrame) -> Union[str, List[str]]:
+#     df_columns = df.columns.to_list()
+#     drop_cols = ["ds", "y"] if "y" in df_columns else ["ds"]
+#     model_names = [x for x in df_columns if x not in drop_cols]
+#
+#     if len(model_names) == 1:
+#         return model_names[0]
+#
+#     return model_names
 
 
 def format_reconciled_forecasts(
@@ -153,8 +153,23 @@ def prune_fcst_df(
     df: pd.DataFrame, base_reconciliation_model_name: str
 ) -> pd.DataFrame:
 
-    df = keep_model_columns(df, base_reconciliation_model_name)
-    df = rename_model_columns(df, base_reconciliation_model_name)
+    # keep certain columns
+    columns_to_keep = ["ds"]
+    columns_to_keep.extend(
+        [x for x in df.columns if base_reconciliation_model_name in x]
+    )
+    df = df[columns_to_keep]
+
+    # rename columns
+    mapper = {
+        e: (
+            "mean"
+            if e == base_reconciliation_model_name
+            else e.replace(f"{base_reconciliation_model_name}-", "")
+        )
+        for e in df.columns
+    }
+    df = df.rename(columns=mapper)
 
     return df
 
