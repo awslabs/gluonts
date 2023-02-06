@@ -244,7 +244,7 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
             df=Y_df,
             models=self.models,
             freq=entry["start"].freq,
-            n_jobs=self.config.n_jobs,
+            n_jobs=self.n_jobs,
         )
 
         # compute base forecasts
