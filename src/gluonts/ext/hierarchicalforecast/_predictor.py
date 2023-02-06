@@ -131,24 +131,6 @@ def format_reconciled_forecasts(
     return np.array(hier_forecasts)
 
 
-def keep_model_columns(df: pd.DataFrame, model_name: str) -> pd.DataFrame:
-    columns_to_keep = ["ds"]
-    columns_to_keep.extend([x for x in df.columns if model_name in x])
-
-    return df[columns_to_keep]
-
-
-def rename_model_columns(df: pd.DataFrame, model_name: str) -> pd.DataFrame:
-    mapper = {}
-    for e in df.columns:
-        if e == model_name:
-            mapper[e] = "mean"
-        else:
-            mapper[e] = e.replace(f"{model_name}-", "")
-
-    return df.rename(columns=mapper)
-
-
 def prune_fcst_df(
     df: pd.DataFrame, base_reconciliation_model_name: str
 ) -> pd.DataFrame:
