@@ -26,7 +26,7 @@ from gluonts.dataset import DataEntry
 from gluonts.dataset.util import forecast_start
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
-from gluonts.ext.statsforecast import ModelConfig as _ModelConfig
+from gluonts.ext.statsforecast import ModelConfig
 
 models_without_fitted_capability = [
     "ADIDA",
@@ -138,11 +138,6 @@ def prune_fcst_df(
     return df
 
 
-@dataclass
-class ModelConfig(_ModelConfig):
-    n_jobs: Optional[int] = 1
-
-
 class HierarchicalForecastPredictor(RepresentablePredictor):
     """
     A predictor that wraps models from the `hierarchicalforecast`_ package.
@@ -221,15 +216,14 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         self.S = get_formatted_S(S, self.ts_names)
         self.tags = {key: np.array(val) for key, val in tags.items()}
         self.intervals_method = intervals_method
+        self.n_jobs = n_jobs
         self.config = ModelConfig(
             quantile_levels=quantile_levels,
-            n_jobs=n_jobs,
         )
         self.base_reconciliation_model_name = (
             f"{repr(self.models[0])}/"
             f"{_build_fn_name(self.hrec.reconcilers[0])}"
         )
-
         self.fitted = (
             repr(self.models[0]) not in models_without_fitted_capability
         )
