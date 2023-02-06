@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
 from typing import List, Optional, Union, Any, Dict
 
 import numpy as np
@@ -52,6 +51,16 @@ def get_formatted_S(
 
 
 def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
+    """
+    formats data entry as required by hierarchicalforecast.
+
+    entry is a dictionary with keys: 'start', 'item_id', 'target'.
+    entry['target'] is a np.narray with shape (num_ts, num_timestamps),
+    and each row corresponds to one time series of the hierarchy.
+    The goal is to reshape this DataEntry as a dataframe where:
+    1) the index corresponds to the name of the time series,
+    2) the columns 'ds'/'y' correspond to timestamps/actuals, respectively.
+    """
     df = pd.DataFrame(entry["target"]).T
     df.columns = S.index.tolist()
     df.index = pd.date_range(
