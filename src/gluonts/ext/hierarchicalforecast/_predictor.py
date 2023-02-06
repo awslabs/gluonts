@@ -130,7 +130,6 @@ def format_reconciled_forecasts(
 def prune_fcst_df(
     df: pd.DataFrame, base_reconciliation_model_name: str
 ) -> pd.DataFrame:
-
     # keep certain columns
     columns_to_keep = ["ds"]
     columns_to_keep.extend(
