@@ -41,7 +41,7 @@ models_without_fitted_capability = [
 
 def get_formatted_S(
     _S: Union[List[List[int]], np.ndarray],
-    ts_names: List[Union[str, Any]],
+    ts_names: List[str],
 ) -> pd.DataFrame:
     S = np.array(_S)
 
