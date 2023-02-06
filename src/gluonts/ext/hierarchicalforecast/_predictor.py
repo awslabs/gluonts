@@ -43,6 +43,12 @@ def get_formatted_S(
     _S: Union[List[List[int]], np.ndarray],
     ts_names: List[str],
 ) -> pd.DataFrame:
+    """
+    We format the summation matrix S as a dataframe,
+    where the index and columns have the
+    corresponding time series names.
+    """
+
     S = np.array(_S)
 
     return pd.DataFrame(
