@@ -276,16 +276,12 @@ class NPTSPredictor(RepresentablePredictor):
                 assert feat_dynamic_real.shape[1] == full_length
                 custom_features.append(feat_dynamic_real)
 
-            if self.use_default_time_features:
-                custom_features.append(
-                    [
-                        time_feature(full_periods)
-                        for time_feature in take(
-                            self.num_default_time_features,
-                            time_features_from_frequency_str(periods.freq),
-                        )
-                    ]
-                )
+            if self.use_default_time_features or feat_dynamic_real is None:
+                for time_feature in take(
+                    self.num_default_time_features,
+                    time_features_from_frequency_str(periods.freq),
+                ):
+                    custom_features.append(time_feature(full_periods))
 
         custom_features = np.vstack(custom_features) * self.feature_scale
 
