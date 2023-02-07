@@ -20,6 +20,7 @@ import pandas as pd
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts import zebras as zb
 
 
 def _linear_interpolation(
@@ -239,7 +240,7 @@ class Forecast:
     A abstract class representing predictions.
     """
 
-    start_date: pd.Period
+    start_date: zb.Period
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
@@ -262,12 +263,13 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def quantile_ts(self, q: Union[float, str]) -> pd.Series:
-        return pd.Series(index=self.index, data=self.quantile(q))
-
     @property
     def median(self) -> np.ndarray:
         return self.quantile(0.5)
+
+    @property
+    def index(self):
+        return self.start_date.periods(self.prediction_length)
 
     @property
     def freq(self):
@@ -338,12 +340,16 @@ class Forecast:
         i_p50 = len(percentiles_sorted) // 2
 
         p50_data = ps_data[i_p50]
-        p50_series = pd.Series(data=p50_data, index=self.index.to_timestamp())
+        p50_series = pd.Series(
+            data=p50_data, index=self.index.to_pandas().to_timestamp()
+        )
         p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
 
         if show_mean:
             mean_data = np.mean(self._sorted_samples, axis=0)
-            pd.Series(data=mean_data, index=self.index.to_timestamp()).plot(
+            pd.Series(
+                data=mean_data, index=self.index.to_pandas().to_timestamp()
+            ).plot(
                 color=color,
                 ls=":",
                 label=f"{label_prefix}mean",
@@ -355,7 +361,7 @@ class Forecast:
             ptile = percentiles_sorted[i]
             alpha = alpha_for_percentile(ptile)
             plt.fill_between(
-                self.index.to_timestamp(),
+                self.index.to_pandas().to_timestamp(),
                 ps_data[i],
                 ps_data[-i - 1],
                 facecolor=color,
@@ -367,7 +373,8 @@ class Forecast:
             # Hack to create labels for the error intervals. Doesn't actually
             # plot anything, because we only pass a single data point
             pd.Series(
-                data=p50_data[:1], index=self.index.to_timestamp()[:1]
+                data=p50_data[:1],
+                index=self.index.to_pandas().to_timestamp()[:1],
             ).plot(
                 color=color,
                 alpha=alpha,
@@ -378,16 +385,6 @@ class Forecast:
             )
         if output_file:
             plt.savefig(output_file)
-
-    @property
-    def index(self) -> pd.PeriodIndex:
-        if self._index is None:
-            self._index = pd.period_range(
-                self.start_date,
-                periods=self.prediction_length,
-                freq=self.start_date.freq,
-            )
-        return self._index
 
     def dim(self) -> int:
         """
@@ -441,7 +438,7 @@ class SampleForecast(Forecast):
     def __init__(
         self,
         samples: np.ndarray,
-        start_date: pd.Period,
+        start_date: zb.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -458,10 +455,6 @@ class SampleForecast(Forecast):
         self._dim = None
         self.item_id = item_id
         self.info = info
-
-        assert isinstance(
-            start_date, pd.Period
-        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
     @property
@@ -492,13 +485,6 @@ class SampleForecast(Forecast):
         if self._mean is None:
             self._mean = np.mean(self.samples, axis=0)
         return self._mean
-
-    @property
-    def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
-        return pd.Series(self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         q = Quantile.parse(q).value
@@ -595,15 +581,12 @@ class QuantileForecast(Forecast):
     def __init__(
         self,
         forecast_arrays: np.ndarray,
-        start_date: pd.Period,
+        start_date: zb.Period,
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
-        assert isinstance(
-            start_date, pd.Period
-        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
         # normalize keys
@@ -718,7 +701,9 @@ class QuantileForecast(Forecast):
             keys = self.forecast_keys
 
         for k, v in zip(keys, self.forecast_array):
-            pd.Series(data=v, index=self.index.to_timestamp()).plot(
+            pd.Series(
+                data=v, index=self.index.to_pandas().to_timestamp()
+            ).plot(
                 label=f"{label_prefix}q{k}",
                 *args,
                 **kwargs,

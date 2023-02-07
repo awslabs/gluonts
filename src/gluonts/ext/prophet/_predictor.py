@@ -21,6 +21,7 @@ from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts import zebras as zb
 
 try:
     from prophet import Prophet
@@ -59,7 +60,7 @@ class ProphetDataEntry(NamedTuple):
 
     train_length: int
     prediction_length: int
-    start: pd.Period
+    start: zb.Period
     target: np.ndarray
     feat_dynamic_real: List[np.ndarray]
 
@@ -68,11 +69,9 @@ class ProphetDataEntry(NamedTuple):
         return pd.DataFrame(
             data={
                 **{
-                    "ds": pd.period_range(
-                        start=self.start,
-                        periods=self.train_length,
-                        freq=self.start.freq,
-                    ).to_timestamp(),
+                    "ds": self.start.periods(self.train_length)
+                    .to_pandas()
+                    .to_timestamp(),
                     "y": self.target,
                 },
                 **{
@@ -83,8 +82,8 @@ class ProphetDataEntry(NamedTuple):
         )
 
     @property
-    def forecast_start(self) -> pd.Period:
-        return self.start + self.train_length * self.start.freq
+    def forecast_start(self) -> zb.Period:
+        return self.start + self.train_length
 
     @property
     def freq(self):

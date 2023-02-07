@@ -82,7 +82,6 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     def predict_item(self, item: DataEntry) -> Forecast:
         target = np.asarray(item[FieldName.TARGET], np.float32)
         len_ts = len(target)
-        forecast_start_time = forecast_start(item)
 
         assert (
             len_ts >= 1
@@ -106,6 +105,6 @@ class SeasonalNaivePredictor(RepresentablePredictor):
 
         return SampleForecast(
             samples=samples,
-            start_date=forecast_start_time,
+            start_date=forecast_start(item),
             item_id=item.get("item_id", None),
         )

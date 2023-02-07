@@ -21,6 +21,7 @@ from gluonts.evaluation import (
     aggregate_valid,
 )
 from gluonts.model.forecast import QuantileForecast, SampleForecast
+from gluonts import zebras as zb
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
 
@@ -87,31 +88,25 @@ def calculate_metrics(
     prediction_length = 3
     freq = "1D"
 
-    ts_start_dates = (
-        []
-    )  # starting date of each time series - can be different in general
+    # starting date of each time series - can be different in general
+    ts_start_dates = []
     pd_timeseries = []  # list of pandas.DataFrame
     samples = []  # list of forecast samples
     start_dates = []  # start date of the prediction range
-    for i in range(num_timeseries):
-        ts_start_dates.append(
-            pd.Period(
-                pd.Timestamp(year=2018, month=1, day=1, hour=1), freq=freq
-            )
-        )
-        index = pd.period_range(
-            ts_start_dates[i], periods=num_timestamps, freq=freq
-        )
 
-        pd_timeseries.append(ts_datastructure(timeseries[i], index=index))
+    for i in range(num_timeseries):
+        start = zb.period("2018-1-1 01:00", freq)
+        ts_start_dates.append(start)
+
+        index = start.periods(num_timestamps)
+
+        pd_timeseries.append(
+            ts_datastructure(timeseries[i], index=index.to_pandas())
+        )
         samples.append(
             forecaster(pd_timeseries[i], prediction_length, num_samples)
         )
-        start_dates.append(
-            pd.period_range(
-                ts_start_dates[i], periods=num_timestamps, freq=freq
-            )[-prediction_length]
-        )
+        start_dates.append(index[-prediction_length])
 
     # data iterator
     data_iter = input_type(data_iterator(pd_timeseries))
@@ -275,11 +270,8 @@ RES_M4 = [
 
 @pytest.mark.parametrize("timeseries, res", zip(TIMESERIES_M4, RES_M4))
 def test_MASE_sMAPE_M4(timeseries, res):
-    ts_datastructure = pd.Series
     evaluator = Evaluator(quantiles=QUANTILES)
-    agg_df, item_df = calculate_metrics(
-        timeseries, evaluator, ts_datastructure
-    )
+    agg_df, item_df = calculate_metrics(timeseries, evaluator, pd.Series)
 
     assert abs((agg_df["MASE"] - res["MASE"]) / res["MASE"]) < 0.001, (
         "Scores for the metric MASE do not match: "
@@ -644,14 +636,14 @@ def test_metrics_multivariate(
 def test_evaluation_with_QuantileForecast():
     start = "2012-01-11"
     target = [2.4, 1.0, 3.0, 4.4, 5.5, 4.9] * 11
-    index = pd.period_range(start=start, freq="1D", periods=len(target))
+    index = zb.periods(start, "1D", len(target)).to_pandas()
     ts = pd.Series(index=index, data=target)
 
     ev = Evaluator(quantiles=("0.1", "0.2", "0.5"), allow_nan_forecast=True)
 
     fcst = [
         QuantileForecast(
-            start_date=pd.Period("2012-01-11", freq="D"),
+            start_date=zb.period("2012-01-11", freq="D"),
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
         )
@@ -1095,16 +1087,14 @@ def test_aggregate_valid():
     series = [
         pd.Series(
             np.random.normal(24 + 6),
-            index=pd.date_range(
-                start="2022-12-31 00", periods=24 + 6, freq="H"
-            ),
+            index=zb.periods("2022-12-31 00", "H", 24 + 6),
         ).to_period()
         for _ in range(num_series)
     ]
     forecasts = [
         SampleForecast(
             samples=np.random.normal(size=(10, 6)),
-            start_date=pd.Period("2023-01-01 00", freq="H"),
+            start_date=zb.period("2023-01-01 00", freq="H"),
             item_id=str(item_id),
         )
         for item_id in range(num_series)

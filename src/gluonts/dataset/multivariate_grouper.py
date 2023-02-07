@@ -179,12 +179,13 @@ class MultivariateGrouper:
         )
 
     def _align_data_entry(self, data: DataEntry) -> np.ndarray:
+        assert self.first_timestamp is not None
+        assert self.last_timestamp is not None
+
         ts = self.to_ts(data)
         return ts.reindex(
-            pd.period_range(
-                start=self.first_timestamp,
-                end=self.last_timestamp,
-                freq=data[FieldName.START].freq,
+            self.first_timestamp.periods(
+                self.last_timestamp - self.first_timestamp + 1
             ),
             fill_value=self.train_fill_function(ts),
         ).values
@@ -236,9 +237,5 @@ class MultivariateGrouper:
     def to_ts(data: DataEntry) -> pd.Series:
         return pd.Series(
             data[FieldName.TARGET],
-            index=pd.period_range(
-                start=data[FieldName.START],
-                periods=len(data[FieldName.TARGET]),
-                freq=data[FieldName.START].freq,
-            ),
+            index=data[FieldName.START].periods(len(data[FieldName.TARGET])),
         )

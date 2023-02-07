@@ -317,17 +317,18 @@ class Evaluator:
         np.ndarray
             time series cut in the Forecast object dates
         """
-        assert forecast.index.intersection(time_series.index).equals(
-            forecast.index
+        forecast_index = forecast.index.to_pandas()
+        assert forecast_index.intersection(time_series.index).equals(
+            forecast_index
         ), (
             "Cannot extract prediction target since the index of forecast is"
             " outside the index of target\nIndex of forecast:"
-            f" {forecast.index}\n Index of target: {time_series.index}"
+            f" {forecast_index}\n Index of target: {time_series.index}"
         )
 
         # cut the time series using the dates of the forecast object
         return np.atleast_1d(
-            np.squeeze(time_series.loc[forecast.index].transpose())
+            np.squeeze(time_series.loc[forecast_index].transpose())
         )
 
     # This method is needed for the owa calculation. It extracts the training
@@ -348,9 +349,9 @@ class Evaluator:
         np.ndarray
             time series without the forecast dates
         """
-
-        assert forecast.index.intersection(time_series.index).equals(
-            forecast.index
+        forecast_index = forecast.index.to_pandas()
+        assert forecast_index.intersection(time_series.index).equals(
+            forecast_index
         ), (
             "Index of forecast is outside the index of target\nIndex of"
             f" forecast: {forecast.index}\n Index of target:"
@@ -360,9 +361,8 @@ class Evaluator:
         # Remove the prediction range
         # If the prediction range is not in the end of the time series,
         # everything after the prediction range is truncated
-        date_before_forecast = forecast.index[0] - forecast.freq
         return np.atleast_1d(
-            np.squeeze(time_series.loc[:date_before_forecast].transpose())
+            np.squeeze(time_series.loc[: forecast_index[0] - 1].transpose())
         )
 
     def get_metrics_per_ts(
@@ -390,12 +390,12 @@ class Evaluator:
 
         median_fcst = forecast.quantile(0.5)
         seasonal_error = calculate_seasonal_error(
-            past_data, forecast.start_date.freqstr, self.seasonality
+            past_data, forecast.start_date.freq, self.seasonality
         )
 
         metrics: Dict[str, Union[float, str, None]] = {
             "item_id": forecast.item_id,
-            "forecast_start": forecast.start_date,
+            "forecast_start": forecast.start_date,  # type: ignore
             "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
@@ -453,7 +453,7 @@ class Evaluator:
             from gluonts.ext.naive_2 import naive_2
 
             naive_median_forecast = naive_2(
-                past_data, len(pred_target), freq=forecast.start_date.freqstr
+                past_data, len(pred_target), freq=forecast.start_date.freq
             )
             metrics["sMAPE_naive2"] = smape(pred_target, naive_median_forecast)
             metrics["MASE_naive2"] = mase(

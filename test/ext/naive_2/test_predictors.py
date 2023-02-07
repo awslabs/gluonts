@@ -15,7 +15,6 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 from flaky import flaky
 from pydantic import PositiveInt
@@ -27,12 +26,13 @@ from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.ext.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+from gluonts import zebras as zb
 
 
 def generate_random_dataset(
     num_ts: int, start_time: str, freq: str, min_length: int, max_length: int
 ) -> Dataset:
-    start_timestamp = pd.Period(start_time, freq=freq)
+    start_timestamp = zb.period(start_time, freq=freq)
     for _ in range(num_ts):
         ts_length = np.random.randint(low=min_length, high=max_length)
         target = np.random.uniform(size=(ts_length,))

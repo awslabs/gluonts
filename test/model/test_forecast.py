@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from gluonts.model.forecast import (
@@ -21,11 +20,12 @@ from gluonts.model.forecast import (
     _linear_interpolation,
     ExponentialTailApproximation,
 )
+import gluonts.zebras as zb
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
 FREQ = "1D"
-START_DATE = pd.Period("2017 01-01 12:00", FREQ)
+START_DATE = zb.period("2017 01-01 12:00", FREQ)
 
 FORECASTS = {
     "QuantileForecast": QuantileForecast(
@@ -78,13 +78,13 @@ def test_forecast(name):
 def test_mean_only_forecast():
     forecast = QuantileForecast(
         forecast_arrays=np.ones(shape=(1, 12)),
-        start_date=pd.Period("2022-03-04 00", freq="H"),
+        start_date=zb.period("2022-03-04 00", freq="H"),
         forecast_keys=["mean"],
     )
 
     assert forecast.prediction_length == 12
     assert len(forecast.index) == 12
-    assert forecast.index[0] == pd.Period("2022-03-04 00", freq="H")
+    assert forecast.index[0] == zb.period("2022-03-04 00", freq="H")
 
     for level in [0.1, 0.5, 0.7]:
         assert np.isnan(forecast.quantile(level)).all()
@@ -98,13 +98,9 @@ def test_mean_only_forecast():
         (
             SampleForecast(
                 samples=np.random.normal(size=(100, 7, 3)),
-                start_date=pd.Period("2020-01-01 00:00:00", freq="2D"),
+                start_date=zb.period("2020-01-01 00:00:00", freq="2D"),
             ),
-            pd.period_range(
-                start=pd.Period("2020-01-01 00:00:00", freq="2D"),
-                periods=7,
-                freq="2D",
-            ),
+            zb.periods("2020-01-01", "2D", 7),
         ),
     ],
 )

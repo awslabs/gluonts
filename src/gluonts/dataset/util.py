@@ -22,14 +22,11 @@ def forecast_start(entry, time_axis: int = -1):
     return entry[FieldName.START] + entry[FieldName.TARGET].shape[time_axis]
 
 
-def period_index(entry: DataEntry, freq=None) -> pd.PeriodIndex:
-    if freq is None:
-        freq = entry[FieldName.START].freq
-
-    return pd.period_range(
-        start=entry[FieldName.START],
-        periods=entry[FieldName.TARGET].shape[-1],
-        freq=freq,
+def period_index(entry: DataEntry) -> pd.PeriodIndex:
+    return (
+        entry[FieldName.START]
+        .periods(entry[FieldName.TARGET].shape[-1])
+        .to_pandas()
     )
 
 
@@ -50,7 +47,4 @@ def to_pandas(entry: DataEntry, freq: Optional[str] = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    return pd.Series(
-        entry[FieldName.TARGET],
-        index=period_index(entry, freq=freq),
-    )
+    return pd.Series(entry[FieldName.TARGET], index=period_index(entry))

@@ -13,19 +13,18 @@
 
 # Third-party imports
 import numpy as np
-import pandas as pd
 import pytest
 import torch
 from torch.distributions import Uniform
 
 # First-party imports
 from gluonts.torch.model.forecast import DistributionForecast
-
+from gluonts import zebras as zb
 
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
 FREQ = "1D"
-START_DATE = pd.Period(pd.Timestamp(2017, 1, 1, 12), FREQ)
+START_DATE = zb.period("2017-1-1 12:00", FREQ)
 
 
 FORECASTS = {
@@ -91,13 +90,9 @@ def test_DistributionForecast():
                     low=torch.zeros(size=(5, 2)),
                     high=torch.ones(size=(5, 2)),
                 ),
-                start_date=pd.Period("2020-01-01 00:00:00", "W"),
+                start_date=zb.period("2020-01-01", "W"),
             ),
-            pd.period_range(
-                start="2020-01-01 00:00:00",
-                freq="W",
-                periods=5,
-            ),
+            zb.periods("2020-01-01", "W", 5),
         ),
     ],
 )

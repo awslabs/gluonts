@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any, Iterator
 
 import numpy as np
-import pandas as pd
 import pytest
 
 
@@ -29,6 +28,7 @@ from gluonts.dataset.common import (
     ListDataset,
 )
 from gluonts.dataset.jsonl import JsonLinesFile
+import gluonts.zebras as zb
 
 
 class Timer:
@@ -76,7 +76,6 @@ def load_file_dataset_cached(path: Path, freq: str) -> Iterator[Any]:
 
 def load_file_dataset_numpy(path: Path, freq: str) -> Iterator[Any]:
     for item in FileDataset(path, freq):
-        item["start"] = pd.Period(item["start"])
         item["target"] = np.array(item["target"])
         yield item
 
@@ -167,7 +166,7 @@ def test_loader_multivariate() -> None:
     )
 
     assert (ds[0]["target"] == [[1, 2, 3]]).all()
-    assert ds[0]["start"] == pd.Period("2014-09-07", freq="D")
+    assert ds[0]["start"] == zb.period("2014-09-07", freq="D")
 
     assert (ds[1]["target"] == [[-1, -2, 3], [2, 4, 81]]).all()
-    assert ds[1]["start"] == pd.Period("2014-09-07", freq="D")
+    assert ds[1]["start"] == zb.period("2014-09-07", freq="D")

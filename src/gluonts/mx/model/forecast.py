@@ -15,7 +15,6 @@ from typing import Dict, List, Optional, Union
 
 import mxnet as mx
 import numpy as np
-import pandas as pd
 from gluonts.core.component import validated
 from gluonts.model.forecast import (
     Forecast,
@@ -24,6 +23,7 @@ from gluonts.model.forecast import (
     SampleForecast,
 )
 from gluonts.mx.distribution import Distribution
+from gluonts import zebras as zb
 
 
 class DistributionForecast(Forecast):
@@ -54,7 +54,7 @@ class DistributionForecast(Forecast):
     def __init__(
         self,
         distribution: Distribution,
-        start_date: pd.Period,
+        start_date: zb.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -65,10 +65,6 @@ class DistributionForecast(Forecast):
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info
-
-        assert isinstance(
-            start_date, pd.Period
-        ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
         self._mean = None
@@ -83,13 +79,6 @@ class DistributionForecast(Forecast):
         else:
             self._mean = self.distribution.mean.asnumpy()
             return self._mean
-
-    @property
-    def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
-        return pd.Series(self.mean, index=self.index)
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value

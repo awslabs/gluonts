@@ -18,15 +18,14 @@ from typing import Iterator, List, Optional
 from toolz import first
 
 import numpy as np
-import pandas as pd
 from itertools import compress
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
-from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import log_once
 from gluonts.model.predictor import RepresentablePredictor
+from gluonts import zebras as zb
 
 from ._model import QRF, QRX, QuantileReg
 from ._preprocess import Cardinality, PreprocessOnlyLagFeatures
@@ -48,7 +47,7 @@ class RotbaumForecast(Forecast):
         self,
         models: List,
         featurized_data: List,
-        start_date: pd.Period,
+        start_date: zb.Period,
         prediction_length: int,
     ):
         self.models = models
@@ -203,8 +202,12 @@ class TreePredictor(RepresentablePredictor):
                 first(training_data)["past_feat_dynamic_real"][0]
             ) == len(first(training_data)["target"])
         assert self.freq is not None
+
         if first(training_data)["start"].freq is not None:
-            assert self.freq == next(iter(training_data))["start"].freq
+            assert zb.Freq.from_pandas(self.freq) == zb.Freq.from_pandas(
+                first(training_data)["start"].freq
+            )
+
         self.preprocess_object.preprocess_from_list(
             ts_list=list(training_data), change_internal_variables=True
         )
@@ -331,7 +334,7 @@ class TreePredictor(RepresentablePredictor):
             yield RotbaumForecast(
                 self.model_list,
                 [featurized_data],
-                start_date=forecast_start(ts),
+                start_date=ts["start"] + len(ts["target"]),
                 prediction_length=self.prediction_length,
             )
 

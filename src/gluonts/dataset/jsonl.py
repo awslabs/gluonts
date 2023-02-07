@@ -25,6 +25,7 @@ from toolz import first, take, valmap
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
 from gluonts.util import lazy_property
+import gluonts.zebras as zb
 
 from . import Dataset, DatasetWriter
 
@@ -85,8 +86,13 @@ def _encode_json_array(arg: np.ndarray):
 
 
 @encode_json.register(pd.Period)
-def _encode_json_period(arg: pd.Period):
+def _encode_json_pd_period(arg: pd.Period):
     return str(arg)
+
+
+@encode_json.register(zb.Period)
+def _encode_json_zb_period(arg: pd.Period):
+    return str(arg.to_numpy())
 
 
 @dataclass(frozen=True)

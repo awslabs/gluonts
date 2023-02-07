@@ -11,14 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List
+from typing import List
 
-import pandas as pd
 import numpy as np
 import pytest
 
 from gluonts.dataset.common import Dataset, ListDataset
-from gluonts.dataset.util import to_pandas
 from gluonts.transform.feature import AddTimeFeatures
 from gluonts.time_feature import (
     TimeFeature,
@@ -28,20 +26,14 @@ from gluonts.time_feature import (
 
 
 def compute_time_features(
-    entry: Dict,
+    entry: dict,
     time_features: List[TimeFeature],
     pred_length: int = 0,
     dtype=np.float32,
 ):
     assert pred_length >= 0
-    index = to_pandas(entry, freq=entry["start"].freq).index
 
-    if pred_length > 0:
-        index = index.union(
-            pd.period_range(
-                index[-1] + 1, index[-1] + pred_length, freq=index.freq
-            )
-        )
+    index = entry["start"].periods(entry["target"].shape[-1] + pred_length)
 
     feature_arrays = [feat(index) for feat in time_features]
     return np.vstack(feature_arrays).astype(dtype)

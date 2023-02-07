@@ -361,7 +361,7 @@ class AddTimeFeatures(MapTransformation):
             data[self.target_field], self.pred_length, is_train=is_train
         )
 
-        index = pd.period_range(start, periods=length, freq=start.freq)
+        index = start.periods(length)
 
         data[self.output_field] = np.vstack(
             [feat(index) for feat in self.date_features]

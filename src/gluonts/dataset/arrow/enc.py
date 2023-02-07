@@ -27,6 +27,7 @@ import pyarrow.parquet as pq
 
 from gluonts.dataset import Dataset, DatasetWriter
 from gluonts.itertools import batcher, rows_to_columns
+from gluonts import zebras as zb
 
 
 @dataclass
@@ -98,7 +99,12 @@ def _encode_py_to_arrow(val):
 
 
 @_encode_py_to_arrow.register
-def _encode_py_pd_preiod(val: pd.Period):
+def _encode_py_pd_period(val: pd.Period):
+    return val.to_timestamp()
+
+
+@_encode_py_to_arrow.register
+def _encode_py_zb_period(val: zb.Period):
     return val.to_timestamp()
 
 

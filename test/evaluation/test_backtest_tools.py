@@ -17,6 +17,7 @@ import pytest
 
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.trivial.identity import IdentityPredictor
+from gluonts import zebras as zb
 
 
 @pytest.mark.parametrize("freq", ["23min", "H", "17H", "9D", "3W", "5M"])
@@ -29,7 +30,7 @@ def test_make_evaluation_predictions_zero(freq):
     )
     dataset = [
         dict(
-            start=pd.Period("2010-01-01 00:00", freq=freq) + k,
+            start=zb.period("2010-01-01 00:00", freq=freq) + k,
             target=np.arange(start=k, stop=k + ts_length),
         )
         for k in range(10)
@@ -47,7 +48,7 @@ def test_make_evaluation_predictions_zero(freq):
         )
         assert isinstance(ts, pd.DataFrame)
         assert isinstance(ts.index, pd.PeriodIndex)
-        assert ts.index[0] == dataset[k]["start"]
+        assert ts.index[0] == dataset[k]["start"].to_pandas()
         assert ts.shape[0] == len(dataset[k]["target"])
         assert np.allclose(
             ts.iloc[:, 0].values, np.arange(start=k, stop=k + ts_length)

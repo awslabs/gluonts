@@ -18,7 +18,6 @@ import statsmodels.api as sm
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
-from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import get_seasonality
@@ -161,7 +160,6 @@ class Naive2Predictor(RepresentablePredictor):
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = item["target"]
         item_id = item.get("item_id", None)
-        forecast_start_time = forecast_start(item)
 
         assert (
             len(past_ts_data) >= 1
@@ -173,6 +171,6 @@ class Naive2Predictor(RepresentablePredictor):
 
         return SampleForecast(
             samples=samples,
-            start_date=forecast_start_time,
+            start_date=item["start"] + len(past_ts_data),
             item_id=item_id,
         )

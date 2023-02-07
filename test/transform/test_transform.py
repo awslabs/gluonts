@@ -35,6 +35,7 @@ from gluonts.transform import (
 )
 from gluonts.transform.convert import ToIntervalSizeFormat, erf, erfinv
 from gluonts.transform.feature import CountTrailingZeros
+import gluonts.zebras as zb
 
 FREQ = "1D"
 
@@ -42,8 +43,8 @@ TEST_VALUES = {
     "is_train": [True, False],
     "target": [np.zeros(0), np.random.rand(13), np.random.rand(100)],
     "start": [
-        pd.Period("2012-01-02", freq="1D"),
-        pd.Period("1994-02-19 20:01:02", freq="3D"),
+        zb.period("2012-01-02", freq="1D"),
+        zb.period("1994-02-19 20:01:02", freq="3D"),
     ],
     "use_prediction_features": [True, False],
     "allow_target_padding": [True, False],
@@ -151,9 +152,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     mat = res["myout"]
     expected_length = len(target) + (0 if is_train else pred_length)
     assert mat.shape == (2, expected_length)
-    tmp_idx = pd.period_range(
-        start=start, freq=start.freq, periods=expected_length
-    )
+    tmp_idx = start.periods(expected_length)
     assert np.alltrue(mat[0] == time_feature.day_of_week(tmp_idx))
     assert np.alltrue(mat[1] == time_feature.day_of_month(tmp_idx))
 
