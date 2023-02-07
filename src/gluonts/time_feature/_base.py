@@ -134,34 +134,14 @@ def week_of_year(index: zb.Periods) -> np.ndarray:
     """
     Week of year encoded as value between [-0.5, 0.5]
     """
-
-    # TODO:
-    # * pandas >= 1.1 does not support `.week`
-    # * pandas == 1.0 does not support `.isocalendar()`
-    # as soon as we drop support for `pandas == 1.0`, we should remove this
-    # try:
-    #     week = index.isocalendar().week
-    # except AttributeError:
-    #     week = index.week
-    # return (week.astype(float) - 1) / 52.0 - 0.5
-    return (index.week - 1) / 52.0 - 0.5
+    return week_of_year_index(index) / 52.0 - 0.5
 
 
 def week_of_year_index(index: zb.Periods) -> np.ndarray:
     """
     Week of year encoded as zero-based index, between 0 and 52.
     """
-
-    # TODO:
-    # * pandas >= 1.1 does not support `.week`
-    # * pandas == 1.0 does not support `.isocalendar()`
-    # as soon as we drop support for `pandas == 1.0`, we should remove this
-    # try:
-    #     week = index.isocalendar().week
-    # except AttributeError:
-    #     week = index.week
-    # return week.astype(float) - 1
-    return index.week
+    return index.week - 1
 
 
 class Constant(BaseModel):

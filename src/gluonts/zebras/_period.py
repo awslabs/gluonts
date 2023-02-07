@@ -138,36 +138,36 @@ class _BasePeriod:
 
     @property
     def year(self):
-        return self._astype("M8[Y]").astype(np.int16) + 1970
+        return self.data.astype("M8[Y]").astype(int) + 1970
 
     @property
     def month(self):
-        return self._astype("M8[M]").astype(np.int8) % 12 + 1
+        return self.data.astype("M8[M]").astype(int) % 12 + 1
 
     @property
     def day(self):
-        return (self.data - self._astype("M8[M]") + 1).astype(np.int8)
+        return (self.data - self.data.astype("M8[M]")).astype(int) + 1
 
     @property
     def hour(self):
-        return (self.data - self._astype("M8[D]")).astype(np.int8)
+        return (self.data - self.data.astype("M8[D]")).astype(int)
 
     @property
     def minute(self):
-        return (self.data - self._astype("M8[h]") + 1).astype(np.int8)
+        return (self.data - self.data.astype("M8[h]")).astype(int)
 
     @property
     def second(self):
-        return (self.data - self._astype("M8[m]")).astype(np.int8)
+        return (self.data - self.data.astype("M8[m]")).astype(int)
 
     @property
     def dayofweek(self):
-        return (self._astype("M8[D]").astype(int) - 4) % 7
+        return (self.data.astype("M8[D]").astype(int) - 4) % 7
 
     @property
     def dayofyear(self):
-        return (self._astype("M8[D]") - self._astype("M8[Y]")).astype(
-            np.int16
+        return (self.data.astype("M8[D]") - self.data.astype("M8[Y]")).astype(
+            int
         ) + 1
 
     @property
@@ -175,7 +175,10 @@ class _BasePeriod:
         # Note: In Python 3.9 `isocalendar()` returns a named tuple, but we
         # need to support 3.7 and 3.8, so we use index one for the week.
         return np.array(
-            [cal.isocalendar()[1] for cal in self._astype(datetime.datetime)]
+            [
+                cal.isocalendar()[1]
+                for cal in self.data.astype(datetime.datetime)
+            ]
         )
 
     @property
@@ -235,9 +238,6 @@ def _periods(start: np.datetime64, count: int, multiple: int) -> Periods:
 
 
 class Periods(_BasePeriod):
-    def _astype(self, ty):
-        return self.data.astype(ty)
-
     def first(self) -> Period:
         return self[0]
 
