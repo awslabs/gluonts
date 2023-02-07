@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.transform.feature import LastValueImputation, LeavesMissingValues
+import gluonts.zebras as zb
 
 FREQ = "D"
 START_DATE = "2023"
@@ -36,7 +36,7 @@ def get_prediction(
     )
     item = {
         "target": np.asarray(target),
-        "start": pd.Period(START_DATE, freq=FREQ),
+        "start": zb.period(START_DATE, freq=FREQ),
     }
     forecast = pred.predict_item(item)
 

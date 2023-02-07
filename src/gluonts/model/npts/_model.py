@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from gluonts.model.forecast import SampleForecast
+from gluonts import zebras as zb
 
 from ._weighted_sampler import WeightedSampler
 
@@ -112,7 +113,8 @@ class NPTS:
 
     @staticmethod
     def predict(
-        targets: pd.Series,
+        target: np.ndarray,
+        index: zb.Periods,
         prediction_length: int,
         sampling_weights_iterator: Iterator[np.ndarray],
         num_samples: int,
@@ -151,11 +153,11 @@ class NPTS:
 
         # samples shape: (num_samples, train_length + prediction_length)
         samples = np.tile(
-            A=np.concatenate((targets.values, np.zeros(prediction_length))),
+            A=np.concatenate((target, np.zeros(prediction_length))),
             reps=(num_samples, 1),
         )
 
-        train_length = len(targets)
+        train_length = len(target)
         for t, sampling_weights in enumerate(sampling_weights_iterator):
             samples_ix = WeightedSampler.sample(sampling_weights, num_samples)
             samples[:, train_length + t] = samples[
@@ -166,11 +168,9 @@ class NPTS:
         # of the prediction range, and the frequency of the time series.
         samples_pred_range = samples[:, train_length:]  # prediction range only
 
-        forecast_start = targets.index[-1] + 1 * targets.index.freq
-
         return SampleForecast(
             samples=samples_pred_range,
-            start_date=forecast_start,
+            start_date=index.last() + 1,
             item_id=item_id,
         )
 

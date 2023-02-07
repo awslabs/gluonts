@@ -16,6 +16,7 @@ from typing import Any, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from toolz import take
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -23,6 +24,7 @@ from gluonts.exceptions import GluonTSDataError
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.time_feature import time_features_from_frequency_str
+from gluonts import zebras as zb
 
 from ._model import NPTS
 
@@ -195,66 +197,19 @@ class NPTSPredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
         for data in dataset:
-            start = data["start"]
-            target = np.asarray(data["target"], np.float32)
-            index = pd.period_range(
-                start=start, freq=self.freq, periods=len(target)
-            )
-            item_id = data.get("item_id", None)
+            yield self.predict_item(data)
 
-            # Slice the time series until context_length or history length
-            # depending on which ever is minimum
-            train_length = min(len(target), self.context_length)
-            ts = pd.Series(index=index, data=target)[-train_length:]
+    def predict_item(self, item, num_samples: int = 100):
+        target = np.asarray(item["target"], np.float32)
 
-            custom_features: Optional[np.ndarray]
-            if "feat_dynamic_real" in data.keys():
-                custom_features = np.array(
-                    [
-                        dynamic_feature[
-                            -train_length - self.prediction_length :
-                        ]
-                        for dynamic_feature in data["feat_dynamic_real"]
-                    ]
-                )
-            else:
-                custom_features = None
+        # Slice the time series until context_length or history length
+        # depending on which ever is minimum
+        train_length = min(len(target), self.context_length)
+        past_target = target[-train_length:]
 
-            yield self.predict_time_series(
-                ts, num_samples, custom_features, item_id=item_id
-            )
+        index = item["start"].periods(train_length)
 
-    def predict_time_series(
-        self,
-        ts: pd.Series,
-        num_samples: int,
-        custom_features: Optional[np.ndarray] = None,
-        item_id: Optional[Any] = None,
-    ) -> SampleForecast:
-        """
-        Given a training time series, this method generates `Forecast` object
-        containing prediction samples for `prediction_length` time points.
-
-        The predictions are generated via weighted sampling where the weights
-        are determined by the `NPTSPredictor` kernel type and feature map.
-
-        Parameters
-        ----------
-        ts
-            training time series object
-        custom_features
-            custom features (covariates) to use
-        num_samples
-            number of samples to draw
-        item_id
-            item_id to identify the time series
-        Returns
-        -------
-        Forecast
-          A prediction for the supplied `ts` and `custom_features`.
-        """
-
-        if np.all(np.isnan(ts.values[-self.context_length :])):
+        if np.isnan(past_target).all():
             raise GluonTSDataError(
                 f"The last {self.context_length} positions of the target time "
                 "series are all NaN. Please increase the `context_length` "
@@ -263,9 +218,17 @@ class NPTSPredictor(RepresentablePredictor):
                 "least one non-NaN value."
             )
 
+        custom_features: Optional[np.ndarray]
+        if "feat_dynamic_real" in item:
+            custom_features = item["feat_dynamic_real"][
+                ..., -train_length - self.prediction_length :
+            ]
+        else:
+            custom_features = None
+
         # Get the features for both training and prediction ranges
         train_features, predict_features = self._get_features(
-            ts.index, self.prediction_length, custom_features
+            index, custom_features
         )
 
         # Compute weights for sampling for each time step `t` in the
@@ -273,109 +236,62 @@ class NPTSPredictor(RepresentablePredictor):
         sampling_weights_iterator = NPTS.compute_weights(
             train_features=train_features,
             pred_features=predict_features,
-            target_isnan_positions=np.argwhere(np.isnan(ts.values)),
+            target_isnan_positions=np.argwhere(np.isnan(past_target)),
             kernel=self.kernel,
             do_exp=self._is_exp_kernel(),
         )
 
-        # Generate forecasts
-        forecast = NPTS.predict(
-            targets=ts,
+        return NPTS.predict(
+            past_target,
+            index,
             prediction_length=self.prediction_length,
             sampling_weights_iterator=sampling_weights_iterator,
             num_samples=num_samples,
-            item_id=item_id,
+            item_id=item.get("item_id"),
         )
-
-        return forecast
 
     def _get_features(
         self,
-        train_index: pd.PeriodIndex,
-        prediction_length: int,
-        custom_features: Optional[np.ndarray] = None,
+        periods: zb.Periods,
+        feat_dynamic_real: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Internal method for computing default, (optional) seasonal features for
-        the training and prediction ranges given time index for the training
-        range and the prediction length.
+        train_length = len(periods)
 
-        Appends `custom_features` if provided.
-
-        Parameters
-        ----------
-        train_index
-            Pandas PeriodIndex
-        prediction_length
-            prediction length
-        custom_features
-            shape: (num_custom_features, train_length + pred_length)
-
-        Returns
-        -------
-        a tuple of (training, prediction) feature tensors
-            shape: (num_features, train_length/pred_length)
-        """
-
-        train_length = len(train_index)
-        full_time_index = pd.period_range(
-            train_index.min(),
-            periods=train_length + prediction_length,
-            freq=train_index.freq,
-        )
+        full_length = train_length + self.prediction_length
+        full_periods = periods.extend(self.prediction_length)
 
         # Default feature map for both seasonal and non-seasonal models.
         if self._is_exp_kernel():
-            # Default time index features: index of the time point
-            # [0, train_length + pred_length - 1]
-            features = np.expand_dims(
-                np.array(range(len(full_time_index))), axis=0
-            )
-
-            # Rescale time index features into the range: [-0.5, 0.5]
-            # similar to the seasonal features
-            # (see gluonts.time_feature)
-            features = features / (train_length + prediction_length - 1) - 0.5
+            # Age feature, scaled from -0.5 to 0.5
+            age_feature = np.linspace(-0.5, 0.5, full_length)
         else:
             # For uniform seasonal model we do not add time index features
-            features = np.empty((0, len(full_time_index)))
+            age_feature = np.empty(full_length)
+
+        custom_features = [np.empty(full_length)]
 
         # Add more features for seasonal variant
         if self.use_seasonal_model:
-            if custom_features is not None:
-                total_length = train_length + prediction_length
+            if feat_dynamic_real is not None:
+                assert feat_dynamic_real.ndim == 2
+                assert feat_dynamic_real.shape[1] == full_length
+                custom_features.append(feat_dynamic_real)
 
-                assert len(custom_features.shape) == 2, (
-                    "Custom features should be 2D-array where the rows "
-                    "represent features and columns the time points."
-                )
-
-                assert custom_features.shape[1] == total_length, (
-                    "For a seasonal model, feat_dynamic_real must be defined "
-                    "for both training and prediction ranges. They are only "
-                    f"provided for {custom_features.shape[1]} time steps "
-                    f"instead of {train_length + prediction_length} steps."
-                )
-
-                features = np.vstack(
-                    [features, self.feature_scale * custom_features]
-                )
-
-            if self.use_default_time_features or custom_features is None:
-                # construct seasonal features
-                seasonal_features_gen = time_features_from_frequency_str(
-                    full_time_index.freqstr
-                )
-                seasonal_features = [
-                    self.feature_scale * gen(full_time_index)
-                    for gen in seasonal_features_gen[
-                        : self.num_default_time_features
+            if self.use_default_time_features:
+                custom_features.append(
+                    [
+                        time_feature(full_periods)
+                        for time_feature in take(
+                            self.num_default_time_features,
+                            time_features_from_frequency_str(periods.freq),
+                        )
                     ]
-                ]
+                )
 
-                features = np.vstack([features, *seasonal_features])
+        custom_features = np.vstack(custom_features) * self.feature_scale
 
-        train_features = features[:, :train_length]
-        pred_features = features[:, train_length:]
-
-        return train_features, pred_features
+        return np.split(
+            np.vstack([age_feature, custom_features]),
+            [train_length],
+            axis=1,
+        )
