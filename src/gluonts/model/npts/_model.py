@@ -14,7 +14,6 @@
 from typing import Any, Callable, Iterator, List, Optional, cast
 
 import numpy as np
-import pandas as pd
 
 from gluonts.model.forecast import SampleForecast
 from gluonts import zebras as zb

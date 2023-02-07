@@ -12,10 +12,9 @@
 # permissions and limitations under the License.
 
 from enum import Enum
-from typing import Any, Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Tuple, Union
 
 import numpy as np
-import pandas as pd
 from toolz import take
 
 from gluonts.core.component import validated
