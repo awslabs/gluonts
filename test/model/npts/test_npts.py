@@ -286,6 +286,7 @@ def test_npts_forecaster(
     )
     targets_str = "seasons" if use_seasonal_model else "targets"
     seasonal_str = "seasonal" if use_seasonal_model else ""
+
     for t in range(pred_length):
         prev_seasons_ix = range(t, len(train_targets), num_seasons)
 

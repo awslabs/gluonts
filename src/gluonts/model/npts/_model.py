@@ -18,7 +18,38 @@ import numpy as np
 from gluonts.model.forecast import SampleForecast
 from gluonts import zebras as zb
 
-from ._weighted_sampler import WeightedSampler
+
+def weighted_sample(weights, num_samples):
+    """
+    Sample indices according to `weights`: `ix` is chosen with probability
+    `weights`[`ix`]
+
+    `weights` need not sum to 1.
+
+    :param weights:
+    :param num_samples:
+    :return:
+    """
+    assert all(weights >= 0.0), "Sampling weights must be non-negative"
+    # In the special case where all the weights are zeros, we want to
+    # sample all indices uniformly
+    weights = np.ones_like(weights) if sum(weights) == 0.0 else weights
+
+    cumsum_weights = np.cumsum(weights)
+
+    # Just for better readability.
+    total_weight = cumsum_weights[-1]
+
+    # Samples from the Uniform distribution: U(0, `total_weight`)
+    uniform_samples = total_weight * np.random.random(num_samples)
+
+    # Search for the last `ix` for each sample u ~ U(0, total weight)
+    # such that u <= `cumsum`[`ix`]
+    # This means `ix` is chosen with probability
+    # `cumsum`[`ix`] - `cumsum`[`ix` - 1] = weights[ix]
+    samples_ix = np.searchsorted(cumsum_weights, uniform_samples, side="left")
+
+    return samples_ix
 
 
 class NPTS:
@@ -64,15 +95,8 @@ class NPTS:
         iterator over sampling weights
         """
 
-        assert len(np.shape(train_features)) == 2, (
-            "Train features should be 2D-array where the rows represent "
-            "features and columns the time points."
-        )
-
-        assert len(np.shape(pred_features)) == 2, (
-            "Prediction features should be 2D-array where the rows represent "
-            "features and columns the time points."
-        )
+        assert train_features.ndim == 2
+        assert pred_features.ndim == 2
 
         train_length = train_features.shape[1]
         prediction_length = pred_features.shape[1]
@@ -158,7 +182,7 @@ class NPTS:
 
         train_length = len(target)
         for t, sampling_weights in enumerate(sampling_weights_iterator):
-            samples_ix = WeightedSampler.sample(sampling_weights, num_samples)
+            samples_ix = weighted_sample(sampling_weights, num_samples)
             samples[:, train_length + t] = samples[
                 np.arange(num_samples), samples_ix
             ]
