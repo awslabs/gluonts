@@ -20,7 +20,7 @@ import pytest
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.exceptions import GluonTSDataError
 from gluonts.model.npts import KernelType, NPTSPredictor
-from gluonts.model.npts._weighted_sampler import WeightedSampler
+from gluonts.model.npts._model import weighted_sample
 from gluonts import zebras as zb
 
 
@@ -635,7 +635,7 @@ def test_weighted_sampler(frac_zero_weights: float) -> None:
     weights[zeros_ix] = 0.0
 
     num_samples = 100_000
-    samples_ix = WeightedSampler.sample(weights, num_samples)
+    samples_ix = weighted_sample(weights, num_samples)
 
     # empirical probabilities for each index
     counts_ix, _ = np.histogram(samples_ix, bins=range(num_weights + 1))

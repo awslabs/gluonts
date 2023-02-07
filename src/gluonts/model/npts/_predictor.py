@@ -267,9 +267,9 @@ class NPTSPredictor(RepresentablePredictor):
             age_feature = np.linspace(-0.5, 0.5, full_length)
         else:
             # For uniform seasonal model we do not add time index features
-            age_feature = np.empty(full_length)
+            age_feature = np.empty((0, full_length))
 
-        custom_features = [np.empty(full_length)]
+        custom_features = [np.empty((0, full_length))]
 
         # Add more features for seasonal variant
         if self.use_seasonal_model:
