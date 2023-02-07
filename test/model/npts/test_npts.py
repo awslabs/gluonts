@@ -21,6 +21,7 @@ from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.exceptions import GluonTSDataError
 from gluonts.model.npts import KernelType, NPTSPredictor
 from gluonts.model.npts._weighted_sampler import WeightedSampler
+from gluonts import zebras as zb
 
 
 def get_test_data(history_length: int, freq: str) -> pd.Series:
@@ -242,7 +243,8 @@ def test_npts_forecaster(
         fraction of history length that should be used as context length
     """
 
-    train_ts = get_test_data(history_length=history_length, freq=freq)
+    target = np.arange(history_length)
+    index = zb.periods("2011-1-1", freq, history_length)
 
     # For seasonal variant we check the predictions of NPTS forecaster for
     # all seasons.
@@ -265,10 +267,7 @@ def test_npts_forecaster(
         use_seasonal_model=use_seasonal_model,
     )
 
-    dataset = ListDataset(
-        [{"start": str(train_ts.index[0]), "target": train_ts.values}],
-        freq=freq,
-    )
+    dataset = ListDataset([{"start": index[0], "target": target}], freq=freq)
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -276,14 +275,14 @@ def test_npts_forecaster(
     forecast = next(predictor.predict(dataset, num_samples=2000))
 
     train_targets = (
-        train_ts.values
+        target
         if context_length is None
-        else train_ts.values[-min(history_length, context_length) :]
+        else target[-min(history_length, context_length) :]
     )
     targets_outside_context = (
         None
         if context_length is None or context_length >= history_length
-        else train_ts.values[:context_length]
+        else target[:context_length]
     )
     targets_str = "seasons" if use_seasonal_model else "targets"
     seasonal_str = "seasonal" if use_seasonal_model else ""

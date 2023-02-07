@@ -196,7 +196,7 @@ class NPTSPredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
         for data in dataset:
-            yield self.predict_item(data)
+            yield self.predict_item(data, num_samples=num_samples)
 
     def predict_item(self, item, num_samples: int = 100):
         target = np.asarray(item["target"], np.float32)
