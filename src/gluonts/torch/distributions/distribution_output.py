@@ -239,7 +239,7 @@ class PoissonOutput(DistributionOutput):
     def domain_map(cls, rate: torch.Tensor):
         rate_pos = F.softplus(rate).clone()
         return (rate_pos.squeeze(-1),)
-    
+
     # Overwrites the parent class method. We cannot scale using the affine
     # transformation since Poisson should return integers. Instead we scale
     # the parameters.
