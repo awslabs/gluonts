@@ -193,9 +193,7 @@ class NPTSPredictor(RepresentablePredictor):
         return self.kernel_type == KernelType.exponential
 
     def predict(
-        self,
-        dataset: Dataset,
-        num_samples: int = 100,  # **kwargs
+        self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
         for data in dataset:
             yield self.predict_item(data, num_samples=num_samples)
