@@ -51,6 +51,7 @@ from gluonts.ev import (
     WeightedSumQuantileLoss,
     OWA,
 )
+from gluonts import zebras as zb
 
 
 @dataclass
@@ -118,8 +119,8 @@ def get_data_batches(predictor, test_data):
             info=[forecast.info],
         )
 
-        seasonality = get_seasonality(freq=forecast.start_date.freqstr)
-        freq = forecast.start_date.freqstr
+        freq = forecast.start_date.freq
+        seasonality = get_seasonality(freq)
         other_data = {
             "label": np.array([label["target"]]),
             "seasonal_error": np.array(

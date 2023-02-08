@@ -45,96 +45,22 @@ from __future__ import annotations
 
 import datetime
 import functools
-import re
 from dataclasses import dataclass, asdict
-from typing import Tuple
 
 import numpy as np
 from dateutil.parser import parse as du_parse
 
-from gluonts import maybe
-
-from gluonts.itertools import inverse
-
-NpFreq = Tuple[str, int]
+from ._freq import Freq
 
 
 def _is_number(value):
     return isinstance(value, (int, np.integer))
 
 
-def _canonical_freqstr(n: int, freq: str):
-    if n == 1:
-        return freq
-
-    return f"{n}{freq}"
-
-
-@dataclass
-class Freq:
-    np_freq: NpFreq
-    multiple: int
-
-    _freq_numpy_to_pandas = {
-        "Y": "Y",
-        "D": "D",
-        "W": "W",
-        "M": "M",
-        "h": "H",
-        "m": "T",
-        "s": "S",
-    }
-
-    _freq_pandas_to_numpy = dict(
-        inverse(_freq_numpy_to_pandas),
-        **{
-            "A": ("Y", 1),
-            "AS": ("Y", 1),
-            "YS": ("Y", 1),
-            "MS": ("M", 1),
-            "MIN": ("m", 1),
-            "Q": ("M", 3),
-        },
-    )
-
-    @property
-    def __init_passed_kwargs__(self):
-        return asdict(self)
-
-    @classmethod
-    def from_pandas(cls, freq):
-        if not isinstance(freq, str):
-            if hasattr(freq, "freqstr"):
-                freq = freq.freqstr
-            else:
-                raise ValueError(f"Invalid freq {freq}")
-
-        match = maybe.expect(
-            re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
-            f"Unsupported freq format {freq}",
-        )
-        groups = match.groupdict()
-
-        n = maybe.map_or(groups["n"], int, 1)
-        freq = groups["freq"].upper().split("-")[0]
-
-        return cls(cls._freq_pandas_to_numpy[freq], n)
-
-    def to_pandas(self) -> str:
-        if self.np_freq == ("M", 3):
-            return f"{self.multiple}Q"
-
-        np_name, np_multiple = self.np_freq
-
-        return _canonical_freqstr(
-            self.multiple, self._freq_numpy_to_pandas[np_name]
-        )
-
-
 @dataclass
 class _BasePeriod:
     data: np.datetime64
-    multiple: int
+    freq: Freq
 
     @property
     def year(self):
@@ -182,11 +108,6 @@ class _BasePeriod:
         )
 
     @property
-    def freq(self):
-        freq = Freq(np.datetime_data(self.data.dtype), self.multiple)
-        return freq.to_pandas()
-
-    @property
     def __init_passed_kwargs__(self):
         return asdict(self)
 
@@ -199,13 +120,15 @@ class _BasePeriod:
     def __add__(self, other):
         if _is_number(other):
             return self.__class__(
-                self.data + self.multiple * other, multiple=self.multiple
+                self.data + self.freq.multiple * other,
+                multiple=self.freq.multiple,
             )
 
     def __sub__(self, other):
         if _is_number(other):
             return self.__class__(
-                self.data - self.multiple * other, multiple=self.multiple
+                self.data - self.freq.multiple * other,
+                multiple=self.freq.multiple,
             )
         else:
             return self.data - other.data
@@ -216,12 +139,15 @@ class _BasePeriod:
 @functools.total_ordering
 class Period(_BasePeriod):
     def periods(self, count: int):
-        return _periods(self.data, count, self.multiple)
+        return Periods(
+            np.arange(self.data, count * self.freq.multiple),
+            self.freq,
+        )
 
     def to_pandas(self):
         import pandas as pd
 
-        return pd.Period(self.data, self.freq)
+        return pd.Period(self.data, self.freq.to_pandas())
 
     def to_timestamp(self):
         return self.data.astype(object)
@@ -233,15 +159,34 @@ class Period(_BasePeriod):
         return self.data < other.data
 
 
-def _periods(start: np.datetime64, count: int, multiple: int) -> Periods:
-    return Periods(np.arange(start, multiple * count, multiple), multiple)
+class BusinessDay(Period):
+    def __add__(self, other):
+        if _is_number(other):
+            return BusinessDay(
+                np.busday_offset(self.data, self.freq.multiple * other),
+                self.freq,
+            )
+
+    def periods(self, count: int):
+        periods = np.arange(
+            self.data,
+            np.busday_offset(self.data, count * self.freq.multiple),
+            self.freq.multiple,
+        )
+
+        return Periods(periods[np.is_busday(periods)], self.freq)
+
+    def __repr__(self):
+        return f"BusinessDay<{self.data}, {self.freq}>"
 
 
 class Periods(_BasePeriod):
-    def first(self) -> Period:
+    @property
+    def start(self) -> Period:
         return self[0]
 
-    def last(self) -> Period:
+    @property
+    def end(self) -> Period:
         return self[-1]
 
     def take(self, count: int) -> Periods:
@@ -251,40 +196,51 @@ class Periods(_BasePeriod):
         return self[-count:]
 
     def future(self, count: int) -> Periods:
-        return _periods(self.data[-1] + self.multiple, count, self.multiple)
+        return (self.end + 1).periods(count)
 
     def past(self, count: int) -> Periods:
-        return _periods(self.data[0] - count, count, self.multiple)
+        return (self.start - count).periods(count)
 
     def extend(self, count: int) -> Periods:
         return Periods(
             np.concatenate([self.data, self.future(count).data]),
-            multiple=self.multiple,
+            multiple=self.freq.multiple,
         )
 
     def to_pandas(self):
         import pandas as pd
 
         # older versions of pandas expect ns-datetime64
-        return pd.PeriodIndex(self.data.astype("M8[ns]"), freq=self.freq)
+        return pd.PeriodIndex(
+            self.data.astype("M8[ns]"), freq=self.freq.to_pandas()
+        )
 
     def intersection(self, other):
         return self.data[np.in1d(self, other)]
+
+    def index_of(self, period: Period):
+        idx = (period - self.start).astype(int)
+        assert 0 <= idx < len(self)
+
+        return idx
+
+    def cat(self, other):
+        return Periods(np.concatenate([self.data, other.data]), self.freq)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx) -> Periods:
         if _is_number(idx):
-            return Period(self.data[idx], multiple=self.multiple)
+            return Period(self.data[idx], self.freq)
 
-        return Periods(self.data[idx], multiple=self.multiple)
+        return Periods(self.data[idx], self.freq)
 
     def __eq__(self, other):
         if not isinstance(other, Periods):
             return False
 
-        return self.multiple == other.multiple and np.array_equal(
+        return self.freq.multiple == other.multiple and np.array_equal(
             self.data, other.data
         )
 
@@ -305,10 +261,10 @@ def period(data, freq=None) -> Period:
             ignoretz=True,
         )
 
-    return Period(
-        np.datetime64(data, freq.np_freq),
-        multiple=freq.multiple,
-    )
+    if freq.pd_freq == "B":
+        return BusinessDay(np.datetime64(data, freq.np_freq), freq)
+
+    return Period(np.datetime64(data, freq.np_freq), freq)
 
 
 def periods(start, freq, count: int) -> Period:

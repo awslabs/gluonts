@@ -13,10 +13,17 @@
 
 __all__ = [
     "Freq",
+    "freq",
     "Period",
     "Periods",
     "period",
     "periods",
+    "SplitFrame",
+    "split_frame",
+    "TimeFrame",
+    "time_frame",
 ]
 
-from ._period import period, Period, periods, Periods, Freq
+from ._freq import Freq, freq
+from ._period import period, Period, periods, Periods
+from ._timeframe import TimeFrame, time_frame, SplitFrame, split_frame

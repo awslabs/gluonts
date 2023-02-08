@@ -16,6 +16,7 @@ import logging
 import pandas as pd
 
 from gluonts.time_feature import norm_freq_str
+from gluonts import zebras as zb
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +40,10 @@ def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
     >>> get_seasonality("2H")
     12
     """
-    offset = pd.tseries.frequencies.to_offset(freq)
+    freq = zb.freq(freq)
+    base_seasonality = seasonalities.get(freq.pd_freq, 1)
 
-    base_seasonality = seasonalities.get(norm_freq_str(offset.name), 1)
-
-    seasonality, remainder = divmod(base_seasonality, offset.n)
+    seasonality, remainder = divmod(base_seasonality, freq.multiple)
     if not remainder:
         return seasonality
 
