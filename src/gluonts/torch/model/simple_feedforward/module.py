@@ -42,7 +42,7 @@ class SimpleFeedForwardModel(nn.Module):
     context_length
         Number of time steps prior to prediction time that the model.
     hidden_dimensions
-        Size of hidden layers in the feedforward network.
+        Size of hidden layers in the feed-forward network.
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.

@@ -186,7 +186,7 @@ class NTA(IterationAveragingStrategy):
         epochs
             The total number of epochs.
         n
-            The non-montone interval.
+            The non-monotone interval.
         maximize
             Whether to maximize or minimize the validation metric.
         eta
