@@ -5,6 +5,8 @@ line-length = 79
 minversion = "6.0"
 timeout = 60
 addopts = """
+    -v
+    --doctest-modules
     --ignore src/gluonts/block.py
     --ignore src/gluonts/distribution.py
     --ignore src/gluonts/kernels.py
@@ -12,7 +14,8 @@ addopts = """
     --ignore src/gluonts/trainer.py
 """
 doctest_optionflags = "NORMALIZE_WHITESPACE"
-
+testpaths = "test"
+filterwarnings = "ignore"
 
 [tool.ruff]
 line-length = 79
