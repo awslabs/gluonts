@@ -450,7 +450,7 @@ class AddAggregateLags(MapTransformation):
     agg_freq
         Aggregate frequency, i.e., the frequency of the aggregate time series.
     agg_lags
-        List of aggregate lags given in the aggregate frequncy. If some of them
+        List of aggregate lags given in the aggregate frequency. If some of them
         are invalid (need some of the last `prediction_length` values to be
         computed) they are ignored.
     agg_fun
