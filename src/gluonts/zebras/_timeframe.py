@@ -105,7 +105,7 @@ class TimeFrame:
         tr = functools.partial(tag, "tr")
 
         if self.index is not None:
-            index_th = ["index"]
+            index_th = [""]
         else:
             index_th = []
 
@@ -131,6 +131,8 @@ class TimeFrame:
                 {''.join(rows)}
             </tbody>
         </table>
+
+        {len(self)} rows × {len(self.columns)} columns
         """
 
     def add(self, name, value, tdim=None, replace=False):
@@ -144,6 +146,13 @@ class TimeFrame:
 
         result.columns[name] = value
         result.tdims[name] = tdim
+
+        return result
+
+    def remove(self, column):
+        result = self.copy()
+        result.columns.pop(column)
+        result.tdims.pop(column, None)
 
         return result
 
