@@ -356,7 +356,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         Returns
         -------------
         tuple
-            transformed time series, dictionary with transformation data (
+            Transformed time series, dictionary with transformation data (
             std, mean, number of lag features, and number of nans of
             count_nans)
         """
