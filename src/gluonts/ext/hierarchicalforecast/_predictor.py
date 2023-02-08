@@ -58,14 +58,14 @@ def get_formatted_S(
 
 def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
     """
-    formats data entry as required by hierarchicalforecast.
+    Format data entry as required by hierarchicalforecast.
 
-    entry is a dictionary with keys: 'start', 'item_id', 'target'.
-    entry['target'] is a np.narray with shape (num_ts, num_timestamps),
+    ``entry`` is a dictionary with keys: ``"start"``, ``"item_id"``, ``"target"``.
+    ``entry["target"]`` is a ``np.ndarray`` with shape ``(num_ts, num_timestamps)``,
     and each row corresponds to one time series of the hierarchy.
     The goal is to reshape this DataEntry as a dataframe where:
     1) the index corresponds to the name of the time series,
-    2) the columns 'ds'/'y' correspond to timestamps/actuals, respectively.
+    2) the columns ``"ds"`` and ``"y"`` correspond to timestamps and actuals, respectively.
     """
 
     df = pd.DataFrame(entry["target"]).T
@@ -84,15 +84,15 @@ def format_data_entry(entry: DataEntry, S: pd.DataFrame) -> pd.DataFrame:
 
 def unpivot(df: pd.DataFrame) -> pd.DataFrame:
     """
-    unpivots data frame
+    Unpivot data frame.
 
-    The input dataframe has as index the time stamps
-    and columns per time series of the hierarchy.
+    The input dataframe has as index the time stamps,
+    and one column per each time series of the hierarchy.
     We unpivot this so that the final dataframe has
-    three columns, i.e. "unique_id", "ds", and "y", where
-    1) "unique_id" has the name of the corresponding time series,
-    2) "ds" has the corresponding time stamps,
-    3) "y" has the actuals.
+    three columns, i.e. ``"unique_id"``, ``"ds"``, and ``"y"``, where
+    1) ``"unique_id"`` has the name of the corresponding time series,
+    2) ``"ds"`` has the corresponding time stamps,
+    3) ``"y"`` has the actuals.
     """
 
     n, k = df.shape
