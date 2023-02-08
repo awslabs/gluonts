@@ -348,7 +348,7 @@ class DeepARModel(nn.Module):
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         num_parallel_samples
-            How many future sampels to produce.
+            How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
         if num_parallel_samples is None:

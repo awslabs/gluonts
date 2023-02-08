@@ -58,7 +58,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     """
-    An estimator training a feedforward model for forecasting.
+    An estimator training a feed-forward model for forecasting.
 
     This class is uses the model defined in ``SimpleFeedForwardModel``,
     and wraps it into a ``SimpleFeedForwardLightningModule`` for training
@@ -73,7 +73,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         Number of time steps prior to prediction time that the model
         takes as inputs (default: ``10 * prediction_length``).
     hidden_dimensions
-        Size of hidden layers in the feedforward network
+        Size of hidden layers in the feed-forward network
         (default: ``[20, 20]``).
     lr
         Learning rate (default: ``1e-3``).
