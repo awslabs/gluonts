@@ -100,7 +100,7 @@ class FeatureEmbedder(nn.Module):
 class DeepNPTSNetwork(nn.Module):
     """Base class implementing a simple feed-forward neural network that takes
     in static and dynamic features and produces `num_hidden_nodes` independent
-    outptus. These outputs are then used by derived classes to construct the
+    outputs. These outputs are then used by derived classes to construct the
     forecast distribution for a single time step.
 
     Note that the dynamic features are just treated as independent features
@@ -211,7 +211,7 @@ class DeepNPTSNetwork(nn.Module):
 class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     """
     Extends `DeepNTPSNetwork` by implementing the output layer which
-    converts the ouptuts from the base network into probabilities of length
+    converts the outputs from the base network into probabilities of length
     `context_length`. These probabilities together with the past values in the
     context window constitute the one-step-ahead forecast distribution.
     Specifically, the forecast is always one of the values observed in the
@@ -270,7 +270,7 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     """
     Extends `DeepNTPSNetwork` by implementing the output layer which
-    converts the ouptuts from the base network into a smoothed mixture
+    converts the outputs from the base network into a smoothed mixture
     distribution. The components of the mixture are Gaussians centered around
     the observations in the context window. The mixing probabilities as well as
     the width of the Gaussians are predicted by the network.
@@ -320,7 +320,7 @@ class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
 
 class DeepNPTSMultiStepNetwork(nn.Module):
     """
-    Implements multi-step prediction given a trained `DeepNPTSNewtork` model
+    Implements multi-step prediction given a trained `DeepNPTSNetwork` model
     that outputs one-step-ahead forecast distribution.
     """
 
