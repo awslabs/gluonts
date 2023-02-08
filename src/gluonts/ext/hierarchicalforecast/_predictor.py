@@ -201,12 +201,12 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
         reconciler: Any,
         S: Union[List[List[int]], np.ndarray],
         tags: Dict[str, Union[List, np.ndarray]] = {},
-        ts_names: Optional[List[Union[str, Any]]] = None,
+        ts_names: Optional[List[str]] = None,
         intervals_method: str = "normality",
         quantile_levels: Optional[List[float]] = None,
         n_jobs: int = 1,
-        model_params: dict = {},
-        reconciler_params: dict = {},
+        model_params: Dict[str, Any] = {},
+        reconciler_params: Dict[str, Any] = {},
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
