@@ -257,7 +257,7 @@ class PandasDataset:
         Returns
         -------
         PandasDataset
-            Gluonts dataset based on ``pandas.DataFrame``s.
+            Dataset containing series data from the given long dataframe.
         """
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)

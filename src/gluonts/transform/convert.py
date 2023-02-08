@@ -591,7 +591,7 @@ class CDFtoGaussianTransform(MapTransformation):
         Returns
         -------
         quantiles
-            Empirical CDF quantiles in [0, 1] interval with winzorized cutoff.
+            Empirical CDF quantiles in [0, 1] interval with winsorized cutoff.
         """
         m = sorted_values.shape[0]
         quantiles = self._forward_transform(

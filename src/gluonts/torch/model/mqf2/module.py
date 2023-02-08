@@ -167,7 +167,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         Parameters
         ----------
         feat_static_cat
-            Static categorial features (batch_size, num_feat_static_cat)
+            Static categorical features (batch_size, num_feat_static_cat)
         feat_static_real
             Static real-valued features (batch_size, num_feat_static_real)
         past_time_feat

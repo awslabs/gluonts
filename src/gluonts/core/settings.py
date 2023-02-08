@@ -291,7 +291,7 @@ class Settings:
         raise KeyError(key)
 
     def __getattribute__(self, key):
-        # We check the key, to check whether we want to acces our chainmap
+        # We check the key, to check whether we want to access our chainmap
         # or handle it as a normal attribute.
         if key.startswith("_"):
             return super().__getattribute__(key)
@@ -367,7 +367,7 @@ class Settings:
         """
         Dependency injection.
 
-        This will inject values from settings if avaiable and not passed
+        This will inject values from settings if available and not passed
         directly::
 
             @settings._inject("foo")
