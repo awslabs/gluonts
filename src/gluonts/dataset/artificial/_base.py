@@ -250,7 +250,7 @@ class ConstantDataset(ArtificialDataset):
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
             # Add 1 time series at a time in the loop for different constant
-            # valus per time series
+            # values per time series
             num_timeseries=1,
         )
         generated = data.generate()

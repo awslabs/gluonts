@@ -240,6 +240,22 @@ class PoissonOutput(DistributionOutput):
         rate_pos = F.softplus(rate).clone()
         return (rate_pos.squeeze(-1),)
 
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since Poisson should return integers. Instead we scale
+    # the parameters.
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
+        (rate,) = distr_args
+
+        if scale is not None:
+            rate *= scale
+
+        return Poisson(rate=rate)
+
     @property
     def event_shape(self) -> Tuple:
         return ()

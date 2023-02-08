@@ -68,7 +68,7 @@ class Mean(Aggregation):
 
     `partial_result` represents one of two things, depending on the axis:
     Case 1 - axis 0 is aggregated (axis is None or 0):
-        First sum values acoording to axis and keep track of number of entries
+        First sum values according to axis and keep track of number of entries
         summed over (`n`) to divide by in the end.
 
     Case 2 - axis 0 is not being aggregated:

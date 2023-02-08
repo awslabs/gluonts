@@ -42,7 +42,7 @@ class HierarchicalTimeSeries:
         corresponding to the leaves of the hierarchy.
     S
         Summation or aggregation matrix whose ordering should be consistent
-        with the orderig of the columns of `ts_at_all_levels`.
+        with the ordering of the columns of `ts_at_all_levels`.
         In particular, the bottom `k x k` sub-matrix should be identity matrix,
         where `k` is the number of leaves of the hierarchy.
     """
@@ -109,7 +109,7 @@ class HierarchicalTimeSeries:
             corresponding to the leaves of the hierarchy.
         S
             Summation or aggregation matrix whose ordering should be consistent
-            with the orderig of the columns of `ts_at_all_levels`.
+            with the ordering of the columns of `ts_at_all_levels`.
             In particular, the bottom `k x k` sub-matrix should be an identity
             matrix, where `k` is the number of leaves of the hierarchy.
 
@@ -128,7 +128,7 @@ class HierarchicalTimeSeries:
             f"{ts_at_bottom_level.shape}."
         )
 
-        # Last `num_bottom_ts` rows contain the identity marix.
+        # Last `num_bottom_ts` rows contain the identity matrix.
         assert (S[num_agg_ts:, :] == np.eye(num_bottom_ts)).all(), (
             f"The last {num_bottom_ts} rows of aggregation matrix `S`"
             f" should contain Identity matrix."
@@ -168,7 +168,7 @@ class HierarchicalTimeSeries:
         ----------
         feat_dynamic_real
             A pandas dataframe containing dynamic features as columns.
-            Note that features of any (or all) time series in the hierachy
+            Note that features of any (or all) time series in the hierarchy
             can be passed here, since all time series are considered together
             as a single multivariate time series.
 
@@ -184,7 +184,7 @@ class HierarchicalTimeSeries:
                 self.ts_at_all_levels.index[0] == feat_dynamic_real.index[0]
             ), (
                 "The staring time point of dynamic features should match "
-                "with that of the hierarhical time series. "
+                "with that of the hierarchical time series. "
                 f"Start of `feat_dynamic_real`: "
                 f"{feat_dynamic_real.index[0]} and "
                 f"the start of hierarchical time series: "
@@ -194,7 +194,7 @@ class HierarchicalTimeSeries:
             assert feat_dynamic_real.index.intersection(
                 self.ts_at_all_levels.index
             ).equals(self.ts_at_all_levels.index), (
-                "Dynamic features should be provied for all time "
+                "Dynamic features should be provided for all time "
                 "points where the target is defined. "
                 f"Index of `feat_dynamic_real`: {feat_dynamic_real.index}, \n"
                 f"Index of `ts_at_all_levels` of `hts`: "

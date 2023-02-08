@@ -98,7 +98,7 @@ def _encode_py_to_arrow(val):
 
 
 @_encode_py_to_arrow.register
-def _encode_py_pd_preiod(val: pd.Period):
+def _encode_py_pd_period(val: pd.Period):
     return val.to_timestamp()
 
 
