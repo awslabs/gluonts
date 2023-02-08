@@ -92,7 +92,7 @@ class Patience:
 
     def step(self, metric_value: float) -> bool:
         if self.exceeded:
-            raise RuntimeError("Patience alread exceeded.")
+            raise RuntimeError("Patience already exceeded.")
 
         has_improved = self.objective.update(metric_value)
 

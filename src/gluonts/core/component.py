@@ -74,7 +74,7 @@ def equals(this: Any, that: Any) -> bool:
 
     In addition, the function dispatches to specialized implementations based
     on the type of the first argument, so the above conditions might be
-    sticter for certain types.
+    stricter for certain types.
 
     Parameters
     ----------
@@ -112,7 +112,7 @@ def equals_default_impl(this: Any, that: Any) -> bool:
 
     1. Their types match.
     2. If their initializer are :func:`validated`, their initializer arguments
-       are pairlise structurally equal.
+       are pairwise structurally equal.
     3. If their initializer are not :func:`validated`, they are referentially
        equal (i.e. ``this == that``).
 
