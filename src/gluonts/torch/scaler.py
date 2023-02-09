@@ -58,13 +58,9 @@ class MeanScaler(Scaler):
 
         scale = ts_sum / torch.clamp(num_observed, min=1)
 
+        # If `default_scale` is provided, we use it, otherwise we use the scale
+        # of the batch.
         if self.default_scale is not None:
-            # Set default_scale for time-series which are all zeros.
-            # If `default_scale` is provided, we use it, otherwise we use the scale
-            # of the batch.
-            # Note: We want to support tracing and to remove branching we we always
-            # calculate the batch_scale. Also, using `where` allows us to set
-            # values conditionally.
             batch_sum = ts_sum.sum(dim=0)
             batch_observations = torch.clamp(num_observed.sum(0), min=1)
             default_scale = torch.squeeze(batch_sum / batch_observations)
