@@ -62,7 +62,7 @@ class Chain(Transformation):
             elif isinstance(transformation, Chain):
                 transformations.extend(transformation.transformations)
             else:
-                assert isinstance(Transformation)
+                assert isinstance(transformation, Transformation)
                 transformations.append(transformation)
 
         self.transformations = transformations

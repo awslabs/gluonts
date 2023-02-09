@@ -32,6 +32,7 @@ from gluonts.transform import (
     LastValueImputation,
     MeanValueImputation,
     RollingMeanValueImputation,
+    Valmap,
 )
 from gluonts.transform.convert import ToIntervalSizeFormat, erf, erfinv
 from gluonts.transform.feature import CountTrailingZeros
@@ -1192,3 +1193,10 @@ def test_erfinv() -> None:
     # Text np
     y_np = erfinv(x)
     assert np.allclose(y_np, y_scipy, rtol=1e-3)
+
+
+def test_valmap():
+    data = [{"a": 1, "b": [2]}]
+
+    for entry in Valmap(str)(data, is_train=False):
+        assert entry == {"a": "1", "b": "[2]"}
