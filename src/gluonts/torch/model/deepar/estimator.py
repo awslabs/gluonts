@@ -20,7 +20,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import data_loader
 from gluonts.dataset.stat import calculate_dataset_statistics
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
 from gluonts.time_feature import (
     TimeFeature,
     time_features_from_frequency_str,
@@ -40,10 +39,8 @@ from gluonts.transform import (
     ValidationSplitSampler,
     TestSplitSampler,
     ExpectedNumInstanceSampler,
-    SelectFields,
     MissingValueImputation,
     DummyValueImputation,
-    Valmap,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
