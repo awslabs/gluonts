@@ -49,11 +49,11 @@ class MeanScaler(nn.Module):
         self.dim = dim
         self.keepdim = keepdim
         self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
-        self.register_buffer("default_scale", torch.tensor(0.0))
+        self.register_buffer("default_scale", torch.tensor(default_scale))
 
     def forward(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # shape: (N, [C], T=1)
         ts_sum = (data * observed_indicator).abs().sum(self.dim, keepdim=True)
         num_observed = observed_indicator.sum(self.dim, keepdim=True)
@@ -89,7 +89,9 @@ class MeanScaler(nn.Module):
         if not self.keepdim:
             scale = scale.squeeze(dim=self.dim)
 
-        return data / scale, scale
+        loc = torch.zeros_like(scale)
+
+        return data / scale, loc, scale
 
 
 class NOPScaler(nn.Module):
@@ -114,12 +116,13 @@ class NOPScaler(nn.Module):
 
     def forward(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
             dim=self.dim,
             keepdim=self.keepdim,
         )
-        return data, scale
+        loc = torch.zeros_like(scale)
+        return data, loc, scale
 
 
 class StdScaler(nn.Module):

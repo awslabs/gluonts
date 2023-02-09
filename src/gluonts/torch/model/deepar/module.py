@@ -246,7 +246,7 @@ class DeepARModel(nn.Module):
         """
         context = past_target[..., -self.context_length :]
         observed_context = past_observed_values[..., -self.context_length :]
-        _, scale = self.scaler(context, observed_context)
+        _, _, scale = self.scaler(context, observed_context)
 
         prior_input = past_target[..., : -self.context_length] / scale
         input = (
