@@ -131,13 +131,18 @@ def equals_default_impl(this: Any, that: Any) -> bool:
         return False
 
     if hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
-        this_args = getattr(this, "__init_args__")
-        that_args = getattr(that, "__init_args__")
-        return equals(this_args, that_args)
-    elif hasattr(this, "__init_passed_kwargs__") and hasattr(
+        return equals(
+            this.__init_args__,
+            that.__init_args__,
+        )
+
+    if hasattr(this, "__init_passed_kwargs__") and hasattr(
         that, "__init_passed_kwargs__"
     ):
-        return equals(this.__init_passed_kwargs__, that.__init_passed_kwargs__)
+        return equals(
+            this.__init_passed_kwargs__,
+            that.__init_passed_kwargs__,
+        )
 
     return this == that
 
