@@ -77,7 +77,7 @@ class MeanScaler(nn.Module):
         )
 
         # apply default scale where there are no observations
-        torch.where(
+        scale = torch.where(
             num_observed > 0,
             scale,
             default_scale,
