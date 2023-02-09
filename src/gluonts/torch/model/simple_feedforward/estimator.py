@@ -14,13 +14,12 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
+from gluonts.dataset.loader import data_loader
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
