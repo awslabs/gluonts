@@ -13,12 +13,20 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 
 
+class Scaler:
+    def __call__(
+        self, data: torch.Tensor, observed_indicator: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        raise NotImplementedError
+
+
 @dataclass
-class MeanScaler:
+class MeanScaler(Scaler):
     """
     Computes a scaling factor as the weighted average absolute value along
     dimension ``dim``, and scales the data accordingly.
@@ -38,7 +46,7 @@ class MeanScaler:
 
     dim: int = -1
     keepdim: bool = True
-    default_scale: float = 0.0
+    default_scale: Optional[float] = None
     minimum_scale: float = 1e-10
 
     def __call__(
@@ -50,21 +58,18 @@ class MeanScaler:
 
         scale = ts_sum / torch.clamp(num_observed, min=1)
 
-        # Set default_scale for time-series which are all zeros.
-        # If `default_scale` is provided, we use it, otherwise we use the scale
-        # of the batch.
-        # Note: We want to support tracing and to remove branching we we always
-        # calculate the batch_scale. Also, using `where` allows us to set
-        # values conditionally.
-        batch_sum = ts_sum.sum(dim=0)
-        batch_observations = torch.clamp(num_observed.sum(0), min=1)
-        batch_scale = torch.squeeze(batch_sum / batch_observations)
-
-        default_scale = torch.where(
-            self.default_scale > 0.0,
-            self.default_scale,
-            batch_scale,
-        )
+        if self.default_scale is not None:
+            # Set default_scale for time-series which are all zeros.
+            # If `default_scale` is provided, we use it, otherwise we use the scale
+            # of the batch.
+            # Note: We want to support tracing and to remove branching we we always
+            # calculate the batch_scale. Also, using `where` allows us to set
+            # values conditionally.
+            batch_sum = ts_sum.sum(dim=0)
+            batch_observations = torch.clamp(num_observed.sum(0), min=1)
+            default_scale = torch.squeeze(batch_sum / batch_observations)
+        else:
+            default_scale = torch.Tensor(self.default_scale)
 
         # apply default scale where there are no observations
         scale = torch.where(
@@ -87,7 +92,7 @@ class MeanScaler:
 
 
 @dataclass
-class NOPScaler:
+class NOPScaler(Scaler):
     """
     Assigns a scaling factor equal to 1 along dimension ``dim``, and therefore
     applies no scaling to the input data.
@@ -116,7 +121,7 @@ class NOPScaler:
 
 
 @dataclass
-class StdScaler:
+class StdScaler(Scaler):
     """
     Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
 
