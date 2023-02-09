@@ -311,6 +311,20 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             past_time_series_fields=past_ts_fields,
         )
 
+    def input_names(self):
+        input_names = list(TRAINING_INPUT_NAMES)
+
+        if not self.dynamic_cardinalities:
+            input_names.remove("feat_dynamic_cat")
+
+        if not self.past_dynamic_cardinalities:
+            input_names.remove("past_feat_dynamic_cat")
+
+        if not self.past_dynamic_dims:
+            input_names.remove("past_feat_dynamic_real")
+
+        return input_names
+
     def create_training_data_loader(
         self,
         data: Dataset,
@@ -326,7 +340,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             cycle=True,
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=self.input_names(),
             output_type=torch.tensor,
             num_batches_per_epoch=self.num_batches_per_epoch,
         )
@@ -343,7 +357,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         return data_loader(
             instances,
             batch_size=self.batch_size,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=self.input_names(),
             output_type=torch.tensor,
         )
 
