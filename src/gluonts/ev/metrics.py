@@ -24,12 +24,14 @@ from .stats import (
     error,
     absolute_error,
     absolute_label,
+    absolute_log_error,
     absolute_percentage_error,
     absolute_scaled_error,
     coverage,
     quantile_loss,
     scaled_interval_score,
     squared_error,
+    squared_log_error,
     symmetric_absolute_percentage_error,
 )
 
@@ -90,6 +92,36 @@ class MSE:
         return DirectEvaluator(
             name="MSE",
             stat=partial(squared_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis),
+        )
+
+
+@dataclass
+class MALE:
+    """Mean Absolute Log Error"""
+
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+        return DirectEvaluator(
+            name="MALE",
+            stat=partial(absolute_log_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis),
+        )
+
+
+@dataclass
+class MSLE:
+    """Mean Squared Log Error"""
+
+    forecast_type: str = "0.5"
+    # technically, the forecast type should be "geometric mean",
+    # but forecast objects do not provide this (for now)
+
+    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
+        return DirectEvaluator(
+            name="MSLE",
+            stat=partial(squared_log_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
 
@@ -225,6 +257,54 @@ class RMSE:
                 )
             },
             post_process=self.root_mean_squared_error,
+        )
+
+
+@dataclass
+class EMALE:
+    """Exponential Mean Absolute Log Error"""
+
+    forecast_type: str = "0.5"
+
+    @staticmethod
+    def exponential_mean_absolute_log_error(
+        mean_absolute_log_error: np.ndarray,
+    ) -> np.ndarray:
+        return np.exp(mean_absolute_log_error)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        return DerivedEvaluator(
+            name="EMALE",
+            evaluators={
+                "mean_absolute_log_error": MALE(
+                    forecast_type=self.forecast_type
+                )(axis=axis)
+            },
+            post_process=self.exponential_mean_absolute_log_error,
+        )
+
+
+@dataclass
+class ERMSLE:
+    """Exponential Root Mean Squared Log Error"""
+
+    forecast_type: str = "0.5"
+
+    @staticmethod
+    def exponential_root_mean_squared_log_error(
+        mean_squared_log_error: np.ndarray,
+    ) -> np.ndarray:
+        return np.exp(np.sqrt(mean_squared_log_error))
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
+        return DerivedEvaluator(
+            name="ERMSLE",
+            evaluators={
+                "mean_squared_log_error": MSLE(
+                    forecast_type=self.forecast_type
+                )(axis=axis)
+            },
+            post_process=self.exponential_root_mean_squared_log_error,
         )
 
 

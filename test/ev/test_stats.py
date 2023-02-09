@@ -15,12 +15,15 @@ import numpy as np
 
 from gluonts.ev import (
     absolute_error,
+    absolute_log_error,
     absolute_label,
     absolute_percentage_error,
     coverage,
     error,
+    log_error,
     quantile_loss,
     squared_error,
+    squared_log_error,
     symmetric_absolute_percentage_error,
     scaled_interval_score,
     absolute_scaled_error,
@@ -84,6 +87,36 @@ def test_squared_error():
             data = {"label": label, "mean": forecast}
             actual = squared_error(data, forecast_type="mean")
             expected = np.square(label - forecast)
+
+            np.testing.assert_almost_equal(actual, expected)
+
+
+def test_log_error():
+    for label in TIME_SERIES:
+        for forecast in TIME_SERIES:
+            data = {"label": label, "0.5": forecast}
+            actual = log_error(data, forecast_type="0.5")
+            expected = np.log(label / forecast)
+
+            np.testing.assert_almost_equal(actual, expected)
+
+
+def test_abs_log_error():
+    for label in TIME_SERIES:
+        for forecast in TIME_SERIES:
+            data = {"label": label, "0.5": forecast}
+            actual = absolute_log_error(data, forecast_type="0.5")
+            expected = np.abs(np.log(label / forecast))
+
+            np.testing.assert_almost_equal(actual, expected)
+
+
+def test_squared_log_error():
+    for label in TIME_SERIES:
+        for forecast in TIME_SERIES:
+            data = {"label": label, "0.5": forecast}
+            actual = squared_log_error(data, forecast_type="0.5")
+            expected = np.square(np.log(label / forecast))
 
             np.testing.assert_almost_equal(actual, expected)
 

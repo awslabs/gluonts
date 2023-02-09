@@ -36,6 +36,22 @@ def squared_error(
     return np.square(error(data, forecast_type))
 
 
+def log_error(data: Dict[str, np.ndarray], forecast_type: str) -> np.ndarray:
+    return np.log(data["label"] / data[forecast_type])
+
+
+def absolute_log_error(
+    data: Dict[str, np.ndarray], forecast_type: str
+) -> np.ndarray:
+    return np.abs(log_error(data, forecast_type))
+
+
+def squared_log_error(
+    data: Dict[str, np.ndarray], forecast_type: str
+) -> np.ndarray:
+    return np.square(log_error(data, forecast_type))
+
+
 def quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
     forecast_type = str(q)
     prediction = data[forecast_type]
