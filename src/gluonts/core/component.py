@@ -129,12 +129,17 @@ def equals_default_impl(this: Any, that: Any) -> bool:
     """
     if type(this) != type(that):
         return False
-    elif hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
+
+    if hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
         this_args = getattr(this, "__init_args__")
         that_args = getattr(that, "__init_args__")
         return equals(this_args, that_args)
-    else:
-        return this == that
+    elif hasattr(this, "__init_passed_kwargs__") and hasattr(
+        that, "__init_passed_kwargs__"
+    ):
+        return equals(this.__init_passed_kwargs__, that.__init_passed_kwargs__)
+
+    return this == that
 
 
 @equals.register(list)
