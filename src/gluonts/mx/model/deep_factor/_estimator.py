@@ -169,7 +169,7 @@ class DeepFactorEstimator(GluonEstimator):
 
     def create_transformation(self) -> Transformation:
         return Chain(
-            trans=[
+            [
                 AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
                 AddTimeFeatures(
                     start_field=FieldName.START,
