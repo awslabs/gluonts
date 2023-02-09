@@ -12,14 +12,13 @@
 # permissions and limitations under the License.
 
 from __future__ import annotations
+from dataclasses import dataclass
 
 import torch
-import torch.nn as nn
-
-from gluonts.core.component import validated
 
 
-class MeanScaler(nn.Module):
+@dataclass
+class MeanScaler:
     """
     Computes a scaling factor as the weighted average absolute value along
     dimension ``dim``, and scales the data accordingly.
@@ -37,21 +36,12 @@ class MeanScaler(nn.Module):
         minimum possible scale that is used for any item.
     """
 
-    @validated()
-    def __init__(
-        self,
-        dim: int = -1,
-        keepdim: bool = True,
-        default_scale: float = 0.0,
-        minimum_scale: float = 1e-10,
-    ):
-        super().__init__()
-        self.dim = dim
-        self.keepdim = keepdim
-        self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
-        self.register_buffer("default_scale", torch.tensor(default_scale))
+    dim: int = -1
+    keepdim: bool = True
+    default_scale: float = 0.0
+    minimum_scale: float = 1e-10
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # shape: (N, [C], T=1)
@@ -96,7 +86,8 @@ class MeanScaler(nn.Module):
         return scaled_data, loc, scale
 
 
-class NOPScaler(nn.Module):
+@dataclass
+class NOPScaler:
     """
     Assigns a scaling factor equal to 1 along dimension ``dim``, and therefore
     applies no scaling to the input data.
@@ -110,13 +101,10 @@ class NOPScaler(nn.Module):
         scale tensor, or suppress it.
     """
 
-    @validated()
-    def __init__(self, dim: int = -1, keepdim: bool = False):
-        super().__init__()
-        self.dim = dim
-        self.keepdim = keepdim
+    dim: int = -1
+    keepdim: bool = False
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
@@ -127,7 +115,8 @@ class NOPScaler(nn.Module):
         return data, loc, scale
 
 
-class StdScaler(nn.Module):
+@dataclass
+class StdScaler:
     """
     Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
 
@@ -143,20 +132,11 @@ class StdScaler(nn.Module):
         along dimension ``dim``.
     """
 
-    @validated()
-    def __init__(
-        self, dim: int = -1, keepdim: bool = False, minimum_scale: float = 1e-5
-    ):
-        super().__init__()
-        assert dim > 0, (
-            "Cannot compute scale along dim = 0 (batch dimension), please"
-            " provide dim > 0"
-        )
-        self.dim = dim
-        self.keepdim = keepdim
-        self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
+    dim: int = -1
+    keepdim: bool = False
+    minimum_scale: float = 1e-5
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, weights: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert (
