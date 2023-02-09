@@ -18,12 +18,11 @@ import torch
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled
+from gluonts.dataset.loader import data_loader
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.util import IterableDataset
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddConstFeature,
@@ -32,7 +31,6 @@ from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
     RemoveFields,
-    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
@@ -41,7 +39,6 @@ from gluonts.transform import (
 )
 from gluonts.transform.sampler import InstanceSampler
 from gluonts.transform.split import TFTInstanceSplitter
-from torch.utils.data import DataLoader
 
 from .lightning_module import TemporalFusionTransformerLightningModule
 from .module import TemporalFusionTransformerModel
@@ -317,48 +314,37 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     def create_training_data_loader(
         self,
         data: Dataset,
-        module: TemporalFusionTransformerLightningModule = None,
+        module: TemporalFusionTransformerLightningModule,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES, allow_missing=True)
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        instances = self._create_instance_splitter(module, "training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return data_loader(
+            instances,
+            cycle=True,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
         self,
         data: Dataset,
-        module: TemporalFusionTransformerLightningModule = None,
+        module: TemporalFusionTransformerLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES, allow_missing=True)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter(module, "validation").apply(
+            data, is_train=True
+        )
+        return data_loader(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
         )
 
     def create_lightning_module(

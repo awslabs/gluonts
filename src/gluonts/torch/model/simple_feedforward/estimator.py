@@ -33,9 +33,6 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     SelectFields,
 )
-from gluonts.torch.util import (
-    IterableDataset,
-)
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import (
@@ -207,27 +204,17 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        instances = self._create_instance_splitter(module, "training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return data_loader(
+            instances,
+            cycle=True,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
@@ -236,16 +223,14 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         module: SimpleFeedForwardLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter(module, "validation").apply(
+            data, is_train=True
+        )
+        return data_loader(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
         )
 
     def create_predictor(
