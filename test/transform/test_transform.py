@@ -371,7 +371,7 @@ def test_Transformation():
     pred_length = 10
 
     t = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,
@@ -440,7 +440,7 @@ def test_multi_dim_transformation(is_train):
     second_dim[0] = np.nan
 
     t = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,
@@ -532,20 +532,16 @@ def test_ExpectedNumInstanceSampler():
     pred_length = 1
     ds = make_dataset(N, train_length)
 
-    t = transform.Chain(
-        trans=[
-            transform.InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.ExpectedNumInstanceSampler(
-                    num_instances=4, min_future=pred_length
-                ),
-                past_length=train_length,
-                future_length=pred_length,
-            )
-        ]
+    t = transform.InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=transform.ExpectedNumInstanceSampler(
+            num_instances=4, min_future=pred_length
+        ),
+        past_length=train_length,
+        future_length=pred_length,
     )
 
     assert_serializable(t)
@@ -573,20 +569,16 @@ def test_BucketInstanceSampler():
 
     dataset_stats = calculate_dataset_statistics(ds)
 
-    t = transform.Chain(
-        trans=[
-            transform.InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.BucketInstanceSampler(
-                    scale_histogram=dataset_stats.scale_histogram
-                ),
-                past_length=train_length,
-                future_length=pred_length,
-            )
-        ]
+    t = transform.InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=transform.BucketInstanceSampler(
+            scale_histogram=dataset_stats.scale_histogram
+        ),
+        past_length=train_length,
+        future_length=pred_length,
     )
 
     assert_serializable(t)
@@ -666,15 +658,11 @@ def test_cdf_to_gaussian_transformation():
 
     ds = make_test_data()
 
-    t = transform.Chain(
-        trans=[
-            transform.CDFtoGaussianTransform(
-                target_field=FieldName.TARGET,
-                observed_values_field=FieldName.OBSERVED_VALUES,
-                max_context_length=20,
-                target_dim=2,
-            )
-        ]
+    t = transform.CDFtoGaussianTransform(
+        target_field=FieldName.TARGET,
+        observed_values_field=FieldName.OBSERVED_VALUES,
+        max_context_length=20,
+        target_dim=2,
     )
 
     for u in t(iter(ds), is_train=False):
@@ -736,12 +724,8 @@ def test_target_dim_indicator():
         one_dim_target=False,
     )
 
-    t = transform.Chain(
-        trans=[
-            transform.TargetDimIndicator(
-                target_field=FieldName.TARGET, field_name="target_dimensions"
-            )
-        ]
+    t = transform.TargetDimIndicator(
+        target_field=FieldName.TARGET, field_name="target_dimensions"
     )
 
     for data_entry in t(dataset, is_train=True):
