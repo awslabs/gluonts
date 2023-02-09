@@ -66,7 +66,7 @@ class Chain(Transformation):
                 transformations.append(transformation)
 
         self.transformations = transformations
-        self.__init_passed_kwargs__ = transformations
+        self.__init_passed_kwargs__ = {"transformations": transformations}
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
