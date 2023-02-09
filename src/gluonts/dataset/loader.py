@@ -14,11 +14,24 @@
 import logging
 from typing import Callable, Iterable, Optional
 
+import numpy as np
 from pydantic import BaseModel
 
 from gluonts.dataset import DataBatch, Dataset
-from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled, batcher
-from gluonts.transform import AdhocTransform, Identity, Transformation
+from gluonts.itertools import (
+    Cyclic,
+    IterableSlice,
+    PseudoShuffled,
+    batcher,
+    rows_to_columns,
+)
+from gluonts.transform import (
+    AdhocTransform,
+    Identity,
+    SelectFields,
+    Transformation,
+    Valmap,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +48,41 @@ class Batch(Transformation, BaseModel):
 
     def __call__(self, data, is_train):
         yield from batcher(data, self.batch_size)
+
+
+class Stack(Transformation, BaseModel):
+    def __call__(self, data, is_train):
+        for batch in data:
+            yield rows_to_columns(batch, np.array)
+
+
+def data_loader(
+    dataset: Dataset,
+    *,
+    batch_size: int,
+    output_type: Callable,
+    cycle: bool = False,
+    num_batches_per_epoch: Optional[int] = None,
+    shuffle_buffer_length: Optional[int] = None,
+    field_names: Optional[list] = None,
+):
+    if cycle:
+        dataset = Cyclic(dataset)
+
+    if shuffle_buffer_length:
+        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+
+    transform = Identity()
+
+    if field_names is not None:
+        transform += SelectFields(field_names)
+
+    transform += Batch(batch_size=batch_size)
+    transform += Stack()
+    transform += Valmap(output_type)
+
+    transformed_dataset = transform.apply(dataset, is_train=True)
+    return IterableSlice(transformed_dataset, num_batches_per_epoch)
 
 
 def TrainDataLoader(
@@ -95,6 +143,7 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     batches = iter(transformed_dataset)
+
     return IterableSlice(batches, num_batches_per_epoch)
 
 
