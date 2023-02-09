@@ -157,7 +157,7 @@ def test_chain():
     )
 
     assert equals(chain, clone(chain))
-    assert not equals(chain, clone(chain, {"trans": []}))
+    assert not equals(chain, clone(chain, {"transformations": []}))
 
     another_chain = transform.Chain(
         [
