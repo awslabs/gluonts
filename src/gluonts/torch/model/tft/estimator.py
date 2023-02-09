@@ -318,7 +318,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        instances = self._create_instance_splitter(module, "training").apply(
+        instances = self._create_instance_splitter("training").apply(
             data, is_train=True
         )
         return data_loader(
@@ -337,7 +337,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         module: TemporalFusionTransformerLightningModule,
         **kwargs,
     ) -> Iterable:
-        instances = self._create_instance_splitter(module, "validation").apply(
+        instances = self._create_instance_splitter("validation").apply(
             data, is_train=True
         )
         return data_loader(
