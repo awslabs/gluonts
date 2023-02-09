@@ -66,13 +66,19 @@ def data_loader(
     shuffle_buffer_length: Optional[int] = None,
     field_names: Optional[list] = None,
 ):
+    """
+    Prepare data to be passed to a network.
+
+
+    """
+
     if cycle:
         dataset = Cyclic(dataset)
 
     if shuffle_buffer_length:
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
 
-    transform = Identity()
+    transform: Transformation = Identity()
 
     if field_names is not None:
         transform += SelectFields(field_names)
