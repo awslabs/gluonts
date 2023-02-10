@@ -80,6 +80,27 @@ class Cyclic:
             if not at_least_one:
                 break
 
+    def stream(self):
+        """
+        Return a continuous stream of self that has no fixed start.
+
+        When re-iterating ``Cyclic`` it will yield elements from the start of
+        the passed ``iterable``. However, this is not always desired; e.g. in
+        training we want to treat training data as an infinite stream of
+        values and not start at the beginning of the dataset for each epoch.
+
+        >>> from toolz import take
+        >>> c = Cyclic([1, 2, 3, 4])
+        >>> assert list(take(5, c)) == [1, 2, 3, 4, 1]
+        >>> assert list(take(5, c)) == [1, 2, 3, 4, 1]
+
+        >>> s = Cyclic([1, 2, 3, 4]).stream()
+        >>> assert list(take(5, s)) == [1, 2, 3, 4, 1]
+        >>> assert list(take(5, s)) == [2, 3, 4, 1, 2]
+
+        """
+        return iter(self)
+
     def __len__(self) -> int:
         return len(self.iterable)
 
