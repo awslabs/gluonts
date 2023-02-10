@@ -43,7 +43,7 @@ def get_download_path() -> Path:
         default path to download datasets or models of gluon-ts.
         The path is $HOME/.gluon-ts/
     """
-    return Path.home() / ".gluon-ts"
+    return Path.home() / ".gluonts"
 
 
 dataset_recipes = {
