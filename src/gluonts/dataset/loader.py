@@ -60,7 +60,7 @@ def as_stacked_batches(
     dataset: Dataset,
     *,
     batch_size: int,
-    output_type: Callable,
+    output_type: Optional[Callable] = None,
     num_batches_per_epoch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     field_names: Optional[list] = None,
@@ -70,9 +70,7 @@ def as_stacked_batches(
 
     Input data is collected into batches of size ``batch_size`` and then
     columns are stacked on top of each other. In addition, the result is
-    wrapped in ``output_type``. This is needed since our pipelines generally
-    use ``numpy`` arrays, but networks expect framework specific data formats
-    (i.e. ``torch.tensor`` and ``mxnet.ndarray``).
+    wrapped in ``output_type`` if provided.
 
     If ``num_batches_per_epoch`` is provided, only those number of batches are
     effectively returned. This is especially useful for training when
@@ -95,7 +93,9 @@ def as_stacked_batches(
 
     transform += Batch(batch_size=batch_size)
     transform += Stack()
-    transform += Valmap(output_type)
+
+    if output_type is not None:
+        transform += Valmap(output_type)
 
     # Note: is_train needs to be provided but does not have an effect
     transformed_dataset = transform.apply(dataset, is_train=True)

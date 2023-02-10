@@ -219,7 +219,7 @@ def test_as_stacked_batches():
         {"x": np.arange(start, start + step)} for start in range(0, 100, step)
     ]
 
-    stream = as_stacked_batches(data, batch_size=2, output_type=np.array)
+    stream = as_stacked_batches(data, batch_size=2)
 
     for _ in range(3):
         batches = list(take(2, stream))
@@ -238,7 +238,7 @@ def test_as_stacked_batches_iter():
         ]
     )
 
-    stream = as_stacked_batches(data, batch_size=2, output_type=np.array)
+    stream = as_stacked_batches(data, batch_size=2)
 
     batches = list(take(2, stream))
     assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
@@ -262,9 +262,7 @@ def test_as_stacked_batches_iter_num_batches():
         ]
     )
 
-    stream = as_stacked_batches(
-        data, batch_size=2, output_type=np.array, num_batches_per_epoch=3
-    )
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
 
     batches = list(stream)
     assert len(batches) == 3
@@ -291,9 +289,7 @@ def test_as_stacked_batches_num_batches_iter_cycle():
         )
     )
 
-    stream = as_stacked_batches(
-        data, batch_size=2, output_type=np.array, num_batches_per_epoch=3
-    )
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
 
     batches = list(stream)
     assert len(batches) == 3
