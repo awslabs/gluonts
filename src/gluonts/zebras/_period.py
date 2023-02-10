@@ -121,14 +121,14 @@ class _BasePeriod:
         if _is_number(other):
             return self.__class__(
                 self.data + self.freq.multiple * other,
-                multiple=self.freq.multiple,
+                self.freq,
             )
 
     def __sub__(self, other):
         if _is_number(other):
             return self.__class__(
                 self.data - self.freq.multiple * other,
-                multiple=self.freq.multiple,
+                self.freq,
             )
         else:
             return self.data - other.data
@@ -189,7 +189,7 @@ class Periods(_BasePeriod):
     def end(self) -> Period:
         return self[-1]
 
-    def take(self, count: int) -> Periods:
+    def head(self, count: int) -> Periods:
         return self[:count]
 
     def tail(self, count: int) -> Periods:
@@ -201,10 +201,16 @@ class Periods(_BasePeriod):
     def past(self, count: int) -> Periods:
         return (self.start - count).periods(count)
 
+    def prepend(self, count: int) -> Periods:
+        return Periods(
+            np.concatenate([self.past(count).data, self.data]),
+            self.freq,
+        )
+
     def extend(self, count: int) -> Periods:
         return Periods(
             np.concatenate([self.data, self.future(count).data]),
-            multiple=self.freq.multiple,
+            self.freq,
         )
 
     def to_pandas(self):

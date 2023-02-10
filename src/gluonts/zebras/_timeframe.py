@@ -9,6 +9,7 @@ from toolz.curried import first, valmap
 from gluonts import maybe
 
 from ._period import Period, Periods
+from ._util import pad_axis
 
 
 @dataclass
@@ -34,6 +35,7 @@ class TimeFrame:
     static: dict
     tdims: dict
     default_tdim: int = -1
+    _pad: Optional[np.ndarray] = None
 
     def __post_init__(self):
         for column in self.columns:
@@ -48,6 +50,7 @@ class TimeFrame:
 
         assert (dims == self.length).all(), (dims, self.length)
         assert self.index is None or len(self.index) == self.length
+        assert self._pad is None or len(self._pad) == self.length
 
     def copy(self):
         return TimeFrame(
@@ -57,7 +60,17 @@ class TimeFrame:
             tdims=dict(self.tdims),
             default_tdim=self.default_tdim,
             length=self.length,
+            _pad=self._pad,
         )
+
+    def head(self, count: int) -> Periods:
+        return self[:count]
+
+    def tail(self, count: int) -> Periods:
+        if count is None:
+            return self
+
+        return self[-count:]
 
     def _cv(self, column):
         return AxisView(self.columns[column], self.tdims[column])
@@ -80,14 +93,51 @@ class TimeFrame:
             length=stop - start,
         )
 
-    def split(self, idx):
+    def split(self, idx, past_length=None, future_length=None, pad_value=0):
         if isinstance(idx, Period):
             idx = self.index.index_of(idx)
 
-        past = slice(None, idx)
-        future = slice(idx, None)
+        past = self[slice(None, idx)].tail(past_length)
+        future = self[slice(idx, None)].head(future_length)
 
-        return SplitFrame(past=self[past], future=self[future])
+        if past_length is not None:
+            if len(past) < past_length:
+                past = past.pad(pad_value, left=past_length - len(past))
+
+        if future_length is not None and len(future) < future_length:
+            future = future.pad(pad_value, right=future_length - len(future))
+
+        return SplitFrame(past, future)
+
+    def pad(self, value, left=0, right=0):
+        assert left >= 0 and right >= 0
+        result = self.copy()
+
+        result.columns = {
+            column: pad_axis(
+                self.columns[column],
+                axis=self.tdims[column],
+                left=left,
+                right=right,
+                value=value,
+            )
+            for column in self.columns
+        }
+        result.length += left + right
+
+        pad = np.zeros(len(result))
+        pad[:left] = 1
+        pad[len(result) - right :] = 1
+
+        if self._pad is not None:
+            pad[left : len(result) - right :] = self._pad
+
+        result._pad = pad
+
+        if self.index is not None:
+            result.index = self.index.prepend(left).extend(right)
+
+        return result
 
     def __len__(self):
         return self.length
@@ -166,6 +216,17 @@ class TimeFrame:
         assert len(index) == len(self)
         self.index = index
 
+    def as_dict(self, pad=None, static=True):
+        result = dict(self.columns)
+
+        if static:
+            result.update(self.static)
+
+        if pad is not None:
+            result[pad] = self._pad
+
+        return result
+
 
 @dataclass
 class SplitFrame:
@@ -208,15 +269,29 @@ class SplitFrame:
     def add_like(self, ref, name, data, tdim=-1):
         return self._view_of(ref)(name, data, tdim)
 
-    def flatten(self) -> dict:
-        return {
-            f"past_{name}": value
-            for name, value in self.past.columns.items()
-            ** {
-                f"future_{name}": value
-                for name, value in self.future.columns.items()
-            }
+    @property
+    def static(self):
+        return self.past.static
+
+    def as_dict(
+        self, past="past", future="future", pad=None, static=True
+    ) -> dict:
+        result = {
+            **{
+                f"{past}_{name}": value
+                for name, value in self.past.as_dict(pad, static=False).items()
+            },
+            **{
+                f"{future}_{name}": value
+                for name, value in self.future.as_dict(
+                    pad, static=False
+                ).items()
+            },
         }
+        if static:
+            result.update(self.static)
+
+        return result
 
     def c(self, name):
         past = self.past.columns.get(name)
