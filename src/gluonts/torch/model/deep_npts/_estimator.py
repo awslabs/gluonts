@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 from copy import deepcopy
-from typing import List, Optional, Callable, Union
+from typing import Dict, List, Optional, Callable, Union
 from functools import partial
 
 import torch
@@ -44,14 +44,14 @@ from gluonts.transform import (
 from ._network import (
     DeepNPTSNetwork,
     DeepNPTSNetworkDiscrete,
-    DeepNPTSMultiStepPredictor,
+    DeepNPTSMultiStepNetwork,
 )
 from .scaling import (
     min_max_scaling,
     standard_normal_scaling,
 )
 
-LOSS_SCALING_MAP = {
+LOSS_SCALING_MAP: Dict[str, Callable] = {
     "min_max_scaling": partial(min_max_scaling, dim=1, keepdim=False),
     "standard_normal_scaling": partial(
         standard_normal_scaling, dim=1, keepdim=False
@@ -129,8 +129,14 @@ class DeepNPTSEstimator(Estimator):
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
         input_scaling: Optional[Union[Callable, str]] = None,
-        dropout_rate: Optional[float] = None,
+        dropout_rate: float = 0.0,
         network_type: DeepNPTSNetwork = DeepNPTSNetworkDiscrete,
+        epochs: int = 100,
+        lr: float = 1e-5,
+        batch_size: int = 32,
+        num_batches_per_epoch: int = 100,
+        cache_data: bool = False,
+        loss_scaling: Optional[Union[str, Callable]] = None,
     ):
         assert (cardinality is not None) == use_feat_static_cat, (
             "You should set `cardinality` if and only if"
@@ -202,6 +208,17 @@ class DeepNPTSEstimator(Estimator):
         self.dropout_rate = dropout_rate
         self.batch_norm = batch_norm
         self.network_type = network_type
+
+        self.epochs = epochs
+        self.lr = lr
+        self.batch_size = batch_size
+        self.num_batches_per_epoch = num_batches_per_epoch
+        self.cache_data = cache_data
+        self.loss_scaling: Optional[Callable] = (
+            LOSS_SCALING_MAP[loss_scaling]
+            if isinstance(loss_scaling, str)
+            else loss_scaling
+        )
 
     def input_transform(self) -> Transformation:
         # Note: Any change here should be reflected in the
@@ -307,30 +324,19 @@ class DeepNPTSEstimator(Estimator):
 
     def train_model(
         self,
-        train_dataset: Dataset,
-        epochs: int,
-        lr: float = 1e-5,
-        batch_size: int = 32,
-        num_batches_per_epoch: int = 100,
+        training_data: Dataset,
         cache_data: bool = False,
-        loss_scaling: Optional[Union[Callable, str]] = None,
     ) -> DeepNPTSNetwork:
-        loss_scaling = (
-            LOSS_SCALING_MAP[loss_scaling]
-            if isinstance(loss_scaling, str)
-            else loss_scaling
-        )
-
         transformed_dataset = TransformedDataset(
-            train_dataset, self.input_transform()
+            training_data, self.input_transform()
         )
 
         data_loader = self.training_data_loader(
             transformed_dataset
             if not cache_data
             else Cached(transformed_dataset),
-            batch_size=batch_size,
-            num_batches_per_epoch=num_batches_per_epoch,
+            batch_size=self.batch_size,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
         net = self.network_type(
@@ -344,21 +350,22 @@ class DeepNPTSEstimator(Estimator):
             batch_norm=self.batch_norm,
         )
 
-        optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(net.parameters(), lr=self.lr)
 
         best_loss = float("inf")
-        for epoch_num in range(epochs):
+        for epoch_num in range(self.epochs):
             sum_epoch_loss = 0.0
             for batch_no, batch in enumerate(data_loader, start=1):
                 x = {k: batch[k] for k in self.features_fields}
                 y = batch[self.target_field]
 
                 predicted_distribution = net(**x)
-                scale = (
-                    loss_scaling(x[self.past_target_field])[1]
-                    if loss_scaling
-                    else 1
-                )
+
+                if self.loss_scaling is not None:
+                    scale = self.loss_scaling(x[self.past_target_field])[1]
+                else:
+                    scale = 1.0
+
                 loss = (-predicted_distribution.log_prob(y) / scale).mean()
 
                 optimizer.zero_grad()
@@ -373,17 +380,17 @@ class DeepNPTSEstimator(Estimator):
 
             print(
                 f"Loss for epoch {epoch_num}: "
-                f"{sum_epoch_loss / num_batches_per_epoch}"
+                f"{sum_epoch_loss / self.num_batches_per_epoch}"
             )
 
-        print(f"Best loss: {best_loss / num_batches_per_epoch}")
+        print(f"Best loss: {best_loss / self.num_batches_per_epoch}")
 
         return best_net
 
     def get_predictor(
-        self, net: torch.nn.Module, batch_size: int, device=torch.device("cpu")
+        self, net: torch.nn.Module, device=torch.device("cpu")
     ) -> PyTorchPredictor:
-        pred_net_multi_step = DeepNPTSMultiStepPredictor(
+        pred_net_multi_step = DeepNPTSMultiStepNetwork(
             net=net, prediction_length=self.prediction_length
         )
 
@@ -391,7 +398,7 @@ class DeepNPTSEstimator(Estimator):
             prediction_net=pred_net_multi_step,
             prediction_length=self.prediction_length,
             input_names=self.features_fields + self.prediction_features_field,
-            batch_size=batch_size,
+            batch_size=self.batch_size,
             input_transform=self.input_transform()
             + self.instance_splitter(TestSplitSampler(), is_train=False),
             device=device,
@@ -399,23 +406,13 @@ class DeepNPTSEstimator(Estimator):
 
     def train(
         self,
-        train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        epochs: int = 100,
-        lr: float = 1e-5,
-        batch_size: int = 32,
-        num_batches_per_epoch: int = 100,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
         cache_data: bool = False,
-        loss_scaling: Optional[Callable] = None,
     ) -> PyTorchPredictor:
         pred_net = self.train_model(
-            train_dataset=train_dataset,
-            epochs=epochs,
-            lr=lr,
-            batch_size=batch_size,
-            num_batches_per_epoch=num_batches_per_epoch,
+            training_data=training_data,
             cache_data=cache_data,
-            loss_scaling=loss_scaling,
         )
 
-        return self.get_predictor(pred_net, batch_size)
+        return self.get_predictor(pred_net)

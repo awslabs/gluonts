@@ -294,7 +294,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         count_nans: bool = False,
         **kwargs
     ):
-
         if one_hot_encode:
             assert cardinality != "ignore" or (
                 isinstance(cardinality, List)
@@ -349,7 +348,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         time_series_window: list
         subtract_mean: bool
             Whether or not to subtract the mean of the context window in the
-            feaurization process.
+            featurization process.
         count_nans: bool
             Whether or not to add as a feature the number of nan values in the
             context window.
@@ -357,7 +356,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         Returns
         -------------
         tuple
-            trasnformed time series, dictionary with transformation data (
+            Transformed time series, dictionary with transformation data (
             std, mean, number of lag features, and number of nans of
             count_nans)
         """

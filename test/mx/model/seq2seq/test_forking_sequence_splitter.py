@@ -111,7 +111,7 @@ def test_forking_sequence_with_features(is_train) -> None:
     num_age_feat = 1
 
     trans = transform.Chain(
-        trans=[
+        [
             transform.AddAgeFeature(
                 target_field=FieldName.TARGET,
                 output_field=FieldName.FEAT_AGE,

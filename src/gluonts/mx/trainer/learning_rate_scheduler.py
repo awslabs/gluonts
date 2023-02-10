@@ -92,7 +92,7 @@ class Patience:
 
     def step(self, metric_value: float) -> bool:
         if self.exceeded:
-            raise RuntimeError("Patience alread exceeded.")
+            raise RuntimeError("Patience already exceeded.")
 
         has_improved = self.objective.update(metric_value)
 
@@ -238,7 +238,6 @@ class LearningRateReduction(Callback):
         decay_factor: float = 0.5,
         min_lr: float = 0.0,
     ) -> None:
-
         assert (
             0 < decay_factor < 1
         ), "The value of `decay_factor` should be in the (0, 1) range"

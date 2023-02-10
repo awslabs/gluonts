@@ -132,7 +132,7 @@ def test_continuous_time_splitter():
 
 def test_chain():
     chain = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,
@@ -157,10 +157,10 @@ def test_chain():
     )
 
     assert equals(chain, clone(chain))
-    assert not equals(chain, clone(chain, {"trans": []}))
+    assert not equals(chain, clone(chain, {"transformations": []}))
 
     another_chain = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,

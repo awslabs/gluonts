@@ -128,7 +128,6 @@ class WaveNet(nn.HybridBlock):
         pred_length: int,
         **kwargs,
     ):
-
         super().__init__(**kwargs)
 
         self.dilation_depth = dilation_depth

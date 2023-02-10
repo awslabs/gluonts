@@ -24,7 +24,6 @@ from gluonts.testutil.equality import assert_recursively_equal
 
 @pytest.fixture(params=[pd.date_range, pd.period_range])
 def my_series(request):
-
     idx = request.param("2021-01-01", freq="1D", periods=3)
     series = pd.Series(np.random.normal(size=3), index=idx)
     return series
@@ -69,7 +68,6 @@ def long_dataset(long_dataframe):  # initialized with dict
         item_id="item",
         freq="1H",
         feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
     )
 
 
@@ -87,65 +85,10 @@ def test_LongDataFrameDataset_iter(long_dataset):
         assert "start" in i
         assert "target" in i
         assert "feat_dynamic_real" in i
-        assert "feat_static_cat" in i
 
 
 def test_LongDataFrameDataset_len(long_dataset):
     assert len(long_dataset) == 2
-
-
-def test_as_dataentry(long_dataframe):
-    df = long_dataframe.groupby("item").get_group("A")
-    dataentry = pandas.as_dataentry(
-        data=df,
-        target="target",
-        timestamp="time",
-        feat_dynamic_real=["dyn_real_1"],
-        feat_static_cat=["stat_cat_1"],
-    )
-    assert "start" in dataentry
-    assert "target" in dataentry
-    assert "feat_dynamic_real" in dataentry
-    assert "feat_static_cat" in dataentry
-
-
-def test_prepare_prediction_data():
-    assert np.all(
-        pandas.prepare_prediction_data(
-            {"target": np.arange(20)}, ignore_last_n_targets=5
-        )["target"]
-        == np.arange(15)
-    )
-
-
-def test_prepare_prediction_data_nested():
-    assert np.all(
-        pandas.prepare_prediction_data(
-            {"target": np.ones(shape=(3, 20))},
-            ignore_last_n_targets=5,
-        )["target"]
-        == np.ones(shape=(3, 15))
-    )
-
-
-def test_prepare_prediction_data_with_features():
-    res = pandas.prepare_prediction_data(
-        {
-            "start": pd.Period("2021-01-01", freq="1H"),
-            "target": np.array([1.0, 2.0, np.nan]),
-            "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
-            "past_feat_dynamic_real": np.array([[1.0, 2.0, np.nan]]),
-        },
-        ignore_last_n_targets=1,
-    )
-    expected = {
-        "start": pd.Period("2021-01-01", freq="1H"),
-        "target": np.array([1.0, 2.0]),
-        "feat_dynamic_real": np.array([[1.0, 2.0, 3.0]]),
-        "past_feat_dynamic_real": np.array([[1.0, 2.0]]),
-    }
-    for key in res:
-        assert np.all(res[key] == expected[key])
 
 
 def test_is_uniform_2H():
@@ -180,69 +123,86 @@ def test_infer_period2(my_dataframe):
 
 def test_long_csv_3M():
     data = (
-        "timestamp,item_id,target\n"
-        "2021-03,0,102\n"
-        "2022-07,1,138\n"
-        "2021-06,0,103\n"
-        "2021-11,2,227\n"
-        "2021-09,0,102\n"
-        "2021-12,0,99\n"
-        "2022-01,1,148\n"
-        "2022-05,2,229\n"
-        "2021-04,1,134\n"
-        "2022-04,1,117\n"
-        "2021-02,2,212\n"
-        "2021-05,2,225\n"
-        "2021-07,1,151\n"
-        "2021-08,2,221\n"
-        "2022-02,2,230\n"
-        "2021-10,1,144\n"
+        "timestamp,item_id,target,static_feat\n"
+        "2021-03,0,102,A\n"
+        "2022-07,1,138,B\n"
+        "2021-06,0,103,A\n"
+        "2021-11,2,227,C\n"
+        "2021-09,0,102,A\n"
+        "2021-12,0,99,A\n"
+        "2022-01,1,148,B\n"
+        "2022-05,2,229,C\n"
+        "2021-04,1,134,B\n"
+        "2022-04,1,117,B\n"
+        "2021-02,2,212,C\n"
+        "2021-05,2,225,C\n"
+        "2021-07,1,151,B\n"
+        "2021-08,2,221,C\n"
+        "2022-02,2,230,C\n"
+        "2021-10,1,144,B\n"
     )
 
     expected_entries = [
         {
             "start": pd.Period("2021-03", freq="3M"),
             "item_id": 0,
+            "feat_static_cat": np.array([0]),
             "target": np.array([102, 103, 102, 99]),
         },
         {
             "start": pd.Period("2021-04", freq="3M"),
             "item_id": 1,
+            "feat_static_cat": np.array([1]),
             "target": np.array([134, 151, 144, 148, 117, 138]),
         },
         {
             "start": pd.Period("2021-02", freq="3M"),
             "item_id": 2,
+            "feat_static_cat": np.array([2]),
             "target": np.array([212, 225, 221, 227, 230, 229]),
         },
     ]
 
-    with io.StringIO(data) as fp:
-        ds = pandas.PandasDataset.from_long_dataframe(
-            pd.read_csv(fp),
-            target="target",
-            item_id="item_id",
-            timestamp="timestamp",
-            freq="3M",
-        )
-    for entry, expected_entry in zip(ds, expected_entries):
-        assert entry["start"].freqstr == "3M"
-        assert entry["start"] == expected_entry["start"]
-        assert entry["item_id"] == expected_entry["item_id"]
-        assert np.allclose(entry["target"], expected_entry["target"])
+    datasets = []
 
     with io.StringIO(data) as fp:
-        ds = pandas.PandasDataset.from_long_dataframe(
-            pd.read_csv(fp, index_col="timestamp"),
-            target="target",
-            item_id="item_id",
-            freq="3M",
+        df_long = pd.read_csv(fp)
+        df_long["static_feat"] = df_long["static_feat"].astype("category")
+        datasets.append(
+            pandas.PandasDataset.from_long_dataframe(
+                df_long,
+                target="target",
+                item_id="item_id",
+                timestamp="timestamp",
+                freq="3M",
+                static_feature_columns=["static_feat"],
+            )
         )
-    for entry, expected_entry in zip(ds, expected_entries):
-        assert entry["start"].freqstr == "3M"
-        assert entry["start"] == expected_entry["start"]
-        assert entry["item_id"] == expected_entry["item_id"]
-        assert np.allclose(entry["target"], expected_entry["target"])
+
+    with io.StringIO(data) as fp:
+        df_long = pd.read_csv(fp, index_col="timestamp")
+        df_long["static_feat"] = df_long["static_feat"].astype("category")
+        datasets.append(
+            pandas.PandasDataset.from_long_dataframe(
+                df_long,
+                target="target",
+                item_id="item_id",
+                freq="3M",
+                static_feature_columns=["static_feat"],
+            )
+        )
+
+    for ds in datasets:
+        assert ds.static_cardinalities == np.array([3])
+        assert isinstance(str(ds), str)
+        for entry, expected_entry in zip(ds, expected_entries):
+            assert entry["start"].freqstr == "3M"
+            assert entry["start"] == expected_entry["start"]
+            assert entry["item_id"] == expected_entry["item_id"]
+            assert (
+                entry["feat_static_cat"] == expected_entry["feat_static_cat"]
+            )
+            assert np.allclose(entry["target"], expected_entry["target"])
 
 
 def _testcase_series(freq: str, index_type: Callable, dtype=np.float32):

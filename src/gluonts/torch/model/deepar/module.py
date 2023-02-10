@@ -103,7 +103,7 @@ class DeepARModel(nn.Module):
         distr_output: DistributionOutput = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
-        default_scale: Optional[float] = None,
+        default_scale: float = 0.0,
         num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
@@ -138,9 +138,7 @@ class DeepARModel(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler = MeanScaler(
-                dim=-1, keepdim=True, default_scale=default_scale
-            )
+            self.scaler = MeanScaler(default_scale=default_scale)
         else:
             self.scaler = NOPScaler(dim=-1, keepdim=True)
         self.rnn_input_size = len(self.lags_seq) + self._number_of_features
@@ -248,7 +246,7 @@ class DeepARModel(nn.Module):
         """
         context = past_target[..., -self.context_length :]
         observed_context = past_observed_values[..., -self.context_length :]
-        _, scale = self.scaler(context, observed_context)
+        _, _, scale = self.scaler(context, observed_context)
 
         prior_input = past_target[..., : -self.context_length] / scale
         input = (
@@ -350,7 +348,7 @@ class DeepARModel(nn.Module):
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         num_parallel_samples
-            How many future sampels to produce.
+            How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
         if num_parallel_samples is None:

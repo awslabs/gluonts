@@ -34,7 +34,6 @@ from gluonts.dataset.repository.datasets import get_dataset
 
 
 if __name__ == "__main__":
-
     dataset = get_dataset(dataset_name="electricity")
 
     estimator = DeepAREstimator(

@@ -34,7 +34,6 @@ class Scaler(nn.HybridBlock):
     """
 
     def __init__(self, keepdims: bool = False, axis: int = 1):
-
         super().__init__()
         self.keepdims = keepdims
         self.axis = axis

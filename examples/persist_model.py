@@ -24,7 +24,6 @@ from gluonts.mx.trainer import Trainer
 from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":
-
     dataset = get_dataset("exchange_rate")
 
     estimator = SimpleFeedForwardEstimator(

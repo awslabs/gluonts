@@ -78,7 +78,6 @@ def precision_recall_curve_per_ts(
     )
 
     for ix, th in enumerate(thresholds):
-
         if partial_filter is None:
             pred_labels = scores >= th
         else:

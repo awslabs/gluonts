@@ -1,6 +1,11 @@
 # Scientific Articles
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
+# 2023
+* [Guiding continuous operator learning through Physics-based boundary constraints](https://arxiv.org/pdf/2212.07477.pdf), *Nadim Saad, Gaurav Gupta, Shima Alizadeh, Danielle C. Maddix*, ICLR 2023
+* [Towards Robust Multivariate Time-Series Forecasting: Adversarial Attacks and Defense Mechanisms](https://arxiv.org/abs/2207.09572), *Linbo Liu, Youngsuk Park, Trong Nghia Hoang, Hilaf Hasson, Jun Huan*, ICLR 2023
+* Coherent Probabilistic Forecasting of Temporal Hierarchies, *Syama Sundar Rangapuram, Shubham Kapoor, Rajbir Singh Nirwan, Pedro Mercado, Yuyang Wang, Tim Januschowski, Michael Bohlke-Schneider*, AISTATS 2023
+* [But are you sure? An uncertainty-aware perspective on explainable AI](https://www.amazon.science/publications/but-are-you-sure-an-uncertainty-aware-perspective-on-explainable-ai), *Charlie Marx, Youngsuk Park, Hilaf Hasson, Yuyang Wang, Stefano Ermon, Jun Huan*, AISTATS 2023
 # 2022
 * [Domain Adaptation for Time Series Forecasting via Attention Sharing](https://arxiv.org/pdf/2102.06828.pdf), *Xiaoyong Jin, Youngsuk Park, Danielle C. Maddix, Hao Wang, Yuyang Wang*, ICML 2022
 * [Robust Probabilistic Time Series Forecasting](https://proceedings.mlr.press/v151/yoon22a/yoon22a.pdf), *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
