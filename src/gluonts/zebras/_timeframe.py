@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import functools
 from dataclasses import dataclass, replace
 from operator import methodcaller
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
-from toolz.curried import first, valmap
+from toolz import first, valmap, dissoc
 
 from gluonts import maybe
 
@@ -185,7 +187,7 @@ class TimeFrame:
         {len(self)} rows × {len(self.columns)} columns
         """
 
-    def add(self, name, value, tdim=None, replace=False):
+    def set(self, name, value, tdim=None, replace=False):
         assert replace or name not in self.columns
 
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
@@ -206,8 +208,31 @@ class TimeFrame:
 
         return result
 
-    def add_like(self, ref, name, data, tdim=-1):
-        return self.add(name, data, tdim)
+    def stack(
+        self,
+        columns: List[str],
+        into: str,
+        drop: bool = True,
+        replace: bool = False,
+    ) -> TimeFrame:
+        assert replace or into not in self.columns
+
+        assert len(set([self.tdims[column] for column in columns])) == 1
+
+        result = self.copy()
+
+        if drop:
+            result.columns = dissoc(result.columns, *columns)
+            result.tdims = dissoc(result.tdims, *columns)
+
+        return result.set(
+            into,
+            np.vstack([self.columns[column] for column in columns]),
+            replace=True,
+        )
+
+    def set_like(self, ref, name, data, tdim=-1, replace=False):
+        return self.set(name, data, tdim, replace)
 
     def c(self, name):
         return self.columns[name]
@@ -216,8 +241,11 @@ class TimeFrame:
         assert len(index) == len(self)
         self.index = index
 
-    def as_dict(self, pad=None, static=True):
+    def as_dict(self, prefix=None, pad=None, static=True):
         result = dict(self.columns)
+
+        if prefix is not None:
+            result = {prefix + key: value for key, value in result.items()}
 
         if static:
             result.update(self.static)
@@ -236,38 +264,43 @@ class SplitFrame:
     def __len__(self):
         return len(self.past) + len(self.future)
 
-    def add(self, name, data, tdim=-1):
+    def set(self, name, data, tdim=-1):
         view = AxisView(data, tdim)
         assert len(view) == len(self)
 
-        past = self.past.add(name, view[: len(self.past)], tdim)
-        future = self.future.add(name, view[len(self.past) :], tdim)
+        past = self.past.set(name, view[: len(self.past)], tdim)
+        future = self.future.set(name, view[len(self.past) :], tdim)
 
         return SplitFrame(past, future)
 
-    def add_past(self, name, data, tdim=-1):
-        return replace(self, past=self.past.add(name, data, tdim))
+    def set_past(self, name, data, tdim=-1, replace=False):
+        return replace(self, past=self.past.set(name, data, tdim, replace))
 
-    def add_future(self, name, data, tdim=-1):
-        return replace(self, future=self.future.add(name, data, tdim))
+    def set_future(self, name, data, tdim=-1, replace=False):
+        return replace(self, future=self.future.set(name, data, tdim, replace))
+
+    def shift(self, amount: int) -> SplitFrame:
+        assert self.past.columns.keys() == self.future.columns.keys()
+
+        ...
 
     def _view_of(self, column):
         is_past = column in self.past.columns
         is_future = column in self.future.columns
 
         if is_past and is_future:
-            return self.add
+            return self.set
 
         if is_past:
-            return self.add_past
+            return self.set_past
 
         if is_future:
-            return self.add_future
+            return self.set_future
 
         raise KeyError(f"Unknown column {column}.")
 
-    def add_like(self, ref, name, data, tdim=-1):
-        return self._view_of(ref)(name, data, tdim)
+    def set_like(self, ref, name, data, tdim=-1, replace=False):
+        return self._view_of(ref)(name, data, tdim, replace=False)
 
     @property
     def static(self):
