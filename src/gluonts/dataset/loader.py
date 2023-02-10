@@ -100,9 +100,7 @@ def as_stacked_batches(
     # Note: is_train needs to be provided but does not have an effect
     transformed_dataset = transform.apply(dataset, is_train=True)
     return IterableSlice(
-        # We wrap the dataset in `iter` so re-iteration does continue where
-        # the last iteration left off.
-        iter(transformed_dataset),
+        transformed_dataset,
         num_batches_per_epoch,
     )
 

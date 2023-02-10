@@ -221,6 +221,25 @@ def test_as_stacked_batches():
 
     stream = as_stacked_batches(data, batch_size=2, output_type=np.array)
 
+    for _ in range(3):
+        batches = list(take(2, stream))
+        assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+        assert np.array_equal(
+            batches[1]["x"], np.arange(20, 40).reshape(2, 10)
+        )
+
+
+def test_as_stacked_batches_iter():
+    step = 10
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
+
+    stream = as_stacked_batches(data, batch_size=2, output_type=np.array)
+
     batches = list(take(2, stream))
     assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
     assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
@@ -229,12 +248,19 @@ def test_as_stacked_batches():
     assert np.array_equal(batches[0]["x"], np.arange(40, 60).reshape(2, 10))
     assert np.array_equal(batches[1]["x"], np.arange(60, 80).reshape(2, 10))
 
+    batches = list(take(2, stream))
+    assert len(batches) == 1
+    assert np.array_equal(batches[0]["x"], np.arange(80, 100).reshape(2, 10))
 
-def test_as_stacked_batches_num_batches():
+
+def test_as_stacked_batches_iter_num_batches():
     step = 10
-    data = [
-        {"x": np.arange(start, start + step)} for start in range(0, 100, step)
-    ]
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
 
     stream = as_stacked_batches(
         data, batch_size=2, output_type=np.array, num_batches_per_epoch=3
@@ -254,13 +280,15 @@ def test_as_stacked_batches_num_batches():
     assert len(list(stream)) == 0
 
 
-def test_as_stacked_batches_num_batches_cycle():
+def test_as_stacked_batches_num_batches_iter_cycle():
     step = 10
-    data = Cyclic(
-        [
-            {"x": np.arange(start, start + step)}
-            for start in range(0, 100, step)
-        ]
+    data = iter(
+        Cyclic(
+            [
+                {"x": np.arange(start, start + step)}
+                for start in range(0, 100, step)
+            ]
+        )
     )
 
     stream = as_stacked_batches(
