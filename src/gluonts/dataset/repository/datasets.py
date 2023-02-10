@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import logging
-import os
 import shutil
 from functools import partial
 from pathlib import Path
