@@ -99,10 +99,7 @@ def as_stacked_batches(
 
     # Note: is_train needs to be provided but does not have an effect
     transformed_dataset = transform.apply(dataset, is_train=True)
-    return IterableSlice(
-        transformed_dataset,
-        num_batches_per_epoch,
-    )
+    return IterableSlice(transformed_dataset, num_batches_per_epoch)
 
 
 def TrainDataLoader(
