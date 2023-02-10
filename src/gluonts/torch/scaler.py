@@ -16,7 +16,7 @@ from typing import Optional
 
 import torch
 
-from gluonts.core.serde import dataclass
+from gluonts.core.component import validated
 
 
 class Scaler:
@@ -26,7 +26,6 @@ class Scaler:
         raise NotImplementedError
 
 
-@dataclass
 class MeanScaler(Scaler):
     """
     Computes a scaling factor as the weighted average absolute value along
@@ -45,10 +44,18 @@ class MeanScaler(Scaler):
         minimum possible scale that is used for any item.
     """
 
-    dim: int = -1
-    keepdim: bool = True
-    default_scale: Optional[float] = None
-    minimum_scale: float = 1e-10
+    @validated()
+    def __init__(
+        self,
+        dim: int = -1,
+        keepdim: bool = False,
+        default_scale: Optional[float] = None,
+        minimum_scale: float = 1e-10,
+    ) -> None:
+        self.dim = dim
+        self.keepdim = keepdim
+        self.default_scale = default_scale
+        self.minimum_scale = minimum_scale
 
     def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
@@ -88,7 +95,6 @@ class MeanScaler(Scaler):
         return scaled_data, loc, scale
 
 
-@dataclass
 class NOPScaler(Scaler):
     """
     Assigns a scaling factor equal to 1 along dimension ``dim``, and therefore
@@ -103,8 +109,14 @@ class NOPScaler(Scaler):
         scale tensor, or suppress it.
     """
 
-    dim: int = -1
-    keepdim: bool = False
+    @validated()
+    def __init__(
+        self,
+        dim: int = -1,
+        keepdim: bool = False,
+    ) -> None:
+        self.dim = dim
+        self.keepdim = keepdim
 
     def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
@@ -117,7 +129,6 @@ class NOPScaler(Scaler):
         return data, loc, scale
 
 
-@dataclass
 class StdScaler(Scaler):
     """
     Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
@@ -134,9 +145,16 @@ class StdScaler(Scaler):
         along dimension ``dim``.
     """
 
-    dim: int = -1
-    keepdim: bool = False
-    minimum_scale: float = 1e-5
+    @validated()
+    def __init__(
+        self,
+        dim: int = -1,
+        keepdim: bool = False,
+        minimum_scale: float = 1e-5,
+    ) -> None:
+        self.dim = dim
+        self.keepdim = keepdim
+        self.minimum_scale = minimum_scale
 
     def __call__(
         self, data: torch.Tensor, weights: torch.Tensor

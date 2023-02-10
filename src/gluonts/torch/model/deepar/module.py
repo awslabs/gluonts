@@ -138,7 +138,9 @@ class DeepARModel(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler: Scaler = MeanScaler(default_scale=default_scale)
+            self.scaler: Scaler = MeanScaler(
+                dim=-1, keepdim=True, default_scale=default_scale
+            )
         else:
             self.scaler = NOPScaler(dim=-1, keepdim=True)
         self.rnn_input_size = len(self.lags_seq) + self._number_of_features
