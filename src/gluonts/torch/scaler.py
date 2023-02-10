@@ -60,12 +60,12 @@ class MeanScaler(Scaler):
 
         # If `default_scale` is provided, we use it, otherwise we use the scale
         # of the batch.
-        if self.default_scale is not None:
+        if self.default_scale is None:
             batch_sum = ts_sum.sum(dim=0)
             batch_observations = torch.clamp(num_observed.sum(0), min=1)
             default_scale = torch.squeeze(batch_sum / batch_observations)
         else:
-            default_scale = torch.Tensor(self.default_scale)
+            default_scale = self.default_scale * torch.ones_like(scale)
 
         # apply default scale where there are no observations
         scale = torch.where(

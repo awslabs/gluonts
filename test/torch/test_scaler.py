@@ -15,7 +15,7 @@ import torch
 import numpy as np
 import pytest
 
-from gluonts.torch.modules import scaler
+from gluonts.torch import scaler
 
 test_cases = [
     (
