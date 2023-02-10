@@ -14,6 +14,7 @@
 import itertools
 import math
 import random
+from dataclasses import dataclass, field
 from typing import (
     Callable,
     Dict,
@@ -25,7 +26,6 @@ from typing import (
     Sequence,
     Tuple,
 )
-from dataclasses import dataclass, field
 
 from typing_extensions import Protocol, runtime_checkable
 
@@ -79,6 +79,27 @@ class Cyclic:
                 yield el
             if not at_least_one:
                 break
+
+    def stream(self):
+        """
+        Return a continuous stream of self that has no fixed start.
+
+        When re-iterating ``Cyclic`` it will yield elements from the start of
+        the passed ``iterable``. However, this is not always desired; e.g. in
+        training we want to treat training data as an infinite stream of
+        values and not start at the beginning of the dataset for each epoch.
+
+        >>> from toolz import take
+        >>> c = Cyclic([1, 2, 3, 4])
+        >>> assert list(take(5, c)) == [1, 2, 3, 4, 1]
+        >>> assert list(take(5, c)) == [1, 2, 3, 4, 1]
+
+        >>> s = Cyclic([1, 2, 3, 4]).stream()
+        >>> assert list(take(5, s)) == [1, 2, 3, 4, 1]
+        >>> assert list(take(5, s)) == [2, 3, 4, 1, 2]
+
+        """
+        return iter(self)
 
     def __len__(self) -> int:
         return len(self.iterable)
@@ -181,10 +202,10 @@ class IterableSlice:
         yield from itertools.islice(self.iterable, self.length)
 
 
+@dataclass
 class Map:
-    def __init__(self, fn, iterable: SizedIterable):
-        self.fn = fn
-        self.iterable = iterable
+    fn: Callable
+    iterable: SizedIterable
 
     def __iter__(self):
         return map(self.fn, self.iterable)
@@ -192,20 +213,26 @@ class Map:
     def __len__(self):
         return len(self.iterable)
 
-    def __repr__(self):
-        return f"Map(data={self.iterable!r})"
+
+@dataclass
+class StarMap:
+    fn: Callable
+    iterable: SizedIterable
+
+    def __iter__(self):
+        return itertools.starmap(self.fn, self.iterable)
+
+    def __len__(self):
+        return len(self.iterable)
 
 
+@dataclass
 class Filter:
-    def __init__(self, fn, iterable: SizedIterable):
-        self.fn = fn
-        self.iterable = iterable
+    fn: Callable
+    iterable: SizedIterable
 
     def __iter__(self):
         return filter(self.fn, self.iterable)
-
-    def __repr__(self):
-        return f"Filter({self.iterable!r})"
 
 
 def rows_to_columns(

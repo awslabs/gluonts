@@ -298,7 +298,6 @@ def generate_single_ts_with_features(date_range, item_id) -> pd.DataFrame:
     ts = generate_single_ts(date_range, item_id)
     T = ts.shape[0]
     # static features are constant for each series
-    ts["static_cat_1"] = np.random.randint(low=0, high=2) # high is exclusive
     ts["dynamic_real_1"] = np.random.normal(size=T)
     ts["dynamic_real_2"] = np.random.normal(size=T)
     # ... we can have as many static or dynamic features as we like
@@ -322,62 +321,51 @@ estimator_with_features = DeepAREstimator(
     freq=ds.freq,
     prediction_length=prediction_length,
     use_feat_dynamic_real=True,
+    use_feat_static_real=True,
     use_feat_static_cat=True,
-    cardinality=[2,],
+    cardinality=[3,],
     trainer=Trainer(epochs=1),
 )
 ```
 
-Let's now generate single time series and multiple time series
-(as list and as long-dataframe).
+Let's now generate multiple time series, both as a dictionary of data frames,
+and as a single long data frame. We also generate a dedicated data frame of
+static features.
 Note we don't provide `freq` and `timestamp`, because they are automatically
-inferred from the index. We are also not passing the `target` argument, since
+inferred from the time index. We are also not passing the `target` argument, since
 it's default value is "target", which is the target column in our dataframes.
 
 
 ```python
-single_ts = generate_single_ts_with_features(date_range, item_id=0)
-multiple_ts = [generate_single_ts_with_features(date_range, item_id=i) for i in range(N)]
-multiple_ts_long = pd.concat(multiple_ts)
-
-single_ts_dataset = PandasDataset(
-    single_ts,
-    feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
-    feat_static_cat=["static_cat_1"],
+multiple_ts = {i: generate_single_ts_with_features(date_range, item_id=i) for i in range(N)}
+static_features = pd.DataFrame(
+    {
+        "color": pd.Categorical(np.random.choice(["red", "green", "blue"], size=N)),
+        "height": np.random.normal(loc=100, scale=15, size=N),
+    },
+    index=list(multiple_ts.keys())
 )
+multiple_ts_long = pd.concat(multiple_ts.values())
+
 multiple_ts_dataset = PandasDataset(
     multiple_ts,
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
-    feat_static_cat=["static_cat_1"],
-)
-multiple_ts_dataset_dict = PandasDataset(
-    {i: _ts for i, _ts in enumerate(multiple_ts)},
-    feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
-    feat_static_cat=["static_cat_1"],
+    static_features=static_features,
 )
 # for long-dataset we use a different constructor and need a `item_id` column
 multiple_ts_long_dataset = PandasDataset.from_long_dataframe(
     multiple_ts_long,
     item_id="item_id",
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
-    feat_static_cat=["static_cat_1"],
+    static_features=static_features,
 )
 ```
 
 That's it! We can now call `train_and_predict` with all
 the datasets.
 
-
-```python
-train_and_predict(single_ts_dataset, estimator_with_features)
-```
-
 ```python
 train_and_predict(multiple_ts_dataset, estimator_with_features)
-```
-
-```python
-train_and_predict(multiple_ts_dataset_dict, estimator_with_features)
 ```
 
 ```python
@@ -399,13 +387,17 @@ a bunch of metrics for us
 
 
 ```python
-to_pandasdataset = lambda data: PandasDataset(
-    data,
+train = PandasDataset(
+    {item_id: df[:-prediction_length] for item_id, df in multiple_ts.items()},
     feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
-    feat_static_cat=["static_cat_1"],
+    static_features=static_features,
 )
-train = to_pandasdataset([ts.iloc[:-prediction_length, :] for ts in multiple_ts])
-test = to_pandasdataset(multiple_ts)
+
+test = PandasDataset(
+    multiple_ts,
+    feat_dynamic_real=["dynamic_real_1", "dynamic_real_2"],
+    static_features=static_features,
+)
 ```
 
 

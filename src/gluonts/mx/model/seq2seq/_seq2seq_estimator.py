@@ -124,7 +124,7 @@ class Seq2SeqEstimator(GluonEstimator):
 
     def create_transformation(self) -> transform.Transformation:
         return transform.Chain(
-            trans=[
+            [
                 transform.AsNumpyArray(
                     field=FieldName.TARGET, expected_ndim=1
                 ),

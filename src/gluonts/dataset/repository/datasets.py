@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import logging
-import os
 import shutil
 from functools import partial
 from pathlib import Path
@@ -41,15 +40,9 @@ def get_download_path() -> Path:
     -------
     Path
         default path to download datasets or models of gluon-ts.
-        The path is either $MXNET_HOME if the environment variable is defined
-        or /home/username/.mxnet/gluon-ts/
+        The path is $HOME/.gluonts/
     """
-    mxnet_home = os.environ.get("MXNET_HOME", None)
-
-    if mxnet_home is not None:
-        return Path(mxnet_home)
-
-    return Path.home() / ".mxnet" / "gluon-ts"
+    return Path.home() / ".gluonts"
 
 
 dataset_recipes = {

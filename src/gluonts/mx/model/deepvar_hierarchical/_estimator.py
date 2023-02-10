@@ -225,7 +225,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         batch_size: int = 32,
         **kwargs,
     ) -> None:
-
         # This implementation only works for multivariate Gaussian with
         # diagonal covariance and no transformation. Fixing them here upfront.
         # If the method is exteneded, then these can be passed as arguments of

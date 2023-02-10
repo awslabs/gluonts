@@ -324,7 +324,7 @@ class CanonicalInstanceSplitter(FlatMapTransformation):
 
 class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     """
-    Selects training instances by slicing "intervals" from a continous-time
+    Selects training instances by slicing "intervals" from a continuous-time
     process instantiation. Concretely, the input data is expected to describe
     an instantiation from a point (or jump) process, with the "target"
     identifying inter-arrival times and other features (marks), as described in
@@ -344,7 +344,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
       as these would typically not be available in TPP data.
 
     The target arrays are expected to have (2, T) layout where the first axis
-    corresponds to the (i) interarrival times between consecutive points, in
+    corresponds to the (i) inter-arrival times between consecutive points, in
     order and (ii) integer identifiers of marks (from
     {0, 1, ..., :code:`num_marks`}). The returned arrays will have (T, 2)
     layout.
@@ -406,7 +406,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-
         total_interval_length = (
             data[self.end_field] - data[self.start_field]
         ) / self.freq
@@ -418,7 +417,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
 
         ts = np.cumsum(ia_times)
         assert ts[-1] < total_interval_length, (
-            "Target interarrival times provided are inconsistent with "
+            "Target inter-arrival times provided are inconsistent with "
             "start and end timestamps."
         )
 
@@ -430,7 +429,6 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
         }
 
         for future_start in sampling_times:
-
             r: DataEntry = dict()
 
             past_start = future_start - self.past_interval_length

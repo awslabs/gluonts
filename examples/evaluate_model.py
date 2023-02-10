@@ -23,7 +23,6 @@ from gluonts.mx.trainer import Trainer
 
 
 if __name__ == "__main__":
-
     print(f"datasets available: {dataset_recipes.keys()}")
 
     # we pick m4_hourly as it only contains a few hundred time series

@@ -135,7 +135,6 @@ class LowrankGPOutput(DistributionOutput):
         self.dropout_rate = dropout_rate
 
     def get_args_proj(self, prefix: Optional[str] = None) -> ArgProj:
-
         return GPArgProj(
             rank=self.rank,
             mu_ratio=self.mu_ratio,

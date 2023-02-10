@@ -29,7 +29,6 @@ from .layers import (
 class TransformerEncoder(HybridBlock):
     @validated()
     def __init__(self, encoder_length: int, config: Dict, **kwargs) -> None:
-
         super().__init__(**kwargs)
 
         self.encoder_length = encoder_length
@@ -68,7 +67,6 @@ class TransformerEncoder(HybridBlock):
             )
 
     def hybrid_forward(self, F, data: Tensor) -> Tensor:
-
         """
         A transformer encoder block consists of a self-attention and a feed-
         forward layer with pre/post process blocks in between.

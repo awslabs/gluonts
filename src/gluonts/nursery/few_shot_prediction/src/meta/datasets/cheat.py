@@ -450,7 +450,6 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         quantiles: List[str],
         test: bool = False,
     ) -> List[Dict[str, float]]:
-
         metrics = []
 
         self.setup()

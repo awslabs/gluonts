@@ -492,7 +492,6 @@ class TemporalFusionTransformerPredictionNetwork(
         feat_static_real: Tensor,
         feat_static_cat: Tensor,
     ):
-
         (
             past_covariates,
             future_covariates,

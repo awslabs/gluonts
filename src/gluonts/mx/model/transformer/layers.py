@@ -124,7 +124,6 @@ class LayerNormalization(HybridBlock):
         eps: float = 1e-06,
         **kwargs,
     ) -> None:
-
         super().__init__(**kwargs)
 
         self.scale_init = scale_init
@@ -167,7 +166,6 @@ class InputLayer(HybridBlock):
     """
 
     def __init__(self, model_size: int = 64, **kwargs) -> None:
-
         super().__init__(**kwargs)
 
         self.model_size = model_size
@@ -202,7 +200,6 @@ class MultiHeadAttentionBase(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ) -> None:
-
         super().__init__(**kwargs)
 
         assert (
@@ -451,7 +448,6 @@ class TransformerFeedForward(HybridBlock):
         dropout: float = 0.0,
         **kwargs,
     ) -> None:
-
         super().__init__(**kwargs)
 
         self.inner_dim = inner_dim
@@ -503,7 +499,6 @@ class TransformerProcessBlock(HybridBlock):
     """
 
     def __init__(self, sequence: str, dropout: float, **kwargs) -> None:
-
         super().__init__(**kwargs)
 
         self.sequence = sequence
@@ -538,7 +533,6 @@ class TransformerProcessBlock(HybridBlock):
             ), "Residual connection not allowed if no previous value given."
 
         for step in self.sequence:
-
             if step == "r":
                 data = F.broadcast_add(data, prev)
 
