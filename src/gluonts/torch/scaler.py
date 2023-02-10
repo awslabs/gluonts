@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import Optional
 
 import torch
+
+from gluonts.core.serde import dataclass
 
 
 class Scaler:
