@@ -18,7 +18,8 @@ import torch
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import data_loader
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
@@ -332,12 +333,12 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
+        data = Cyclic(data).stream()
         instances = self._create_instance_splitter("training").apply(
             data, is_train=True
         )
-        return data_loader(
+        return as_stacked_batches(
             instances,
-            cycle=True,
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
             field_names=self.input_names(),

@@ -19,7 +19,8 @@ import pytorch_lightning as pl
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.dataset.loader import data_loader
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
@@ -203,12 +204,12 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
+        data = Cyclic(data).stream()
         instances = self._create_instance_splitter(module, "training").apply(
             data, is_train=True
         )
-        return data_loader(
+        return as_stacked_batches(
             instances,
-            cycle=True,
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
             field_names=TRAINING_INPUT_NAMES,
@@ -225,7 +226,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         instances = self._create_instance_splitter(module, "validation").apply(
             data, is_train=True
         )
-        return data_loader(
+        return as_stacked_batches(
             instances,
             batch_size=self.batch_size,
             field_names=TRAINING_INPUT_NAMES,
