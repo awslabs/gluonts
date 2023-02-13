@@ -174,8 +174,8 @@ class PyTorchLightningEstimator(Estimator):
 
         validation_data_loader = None
 
-        with env._let(max_idle_transforms=max(len(training_data), 100)):
-            if validation_data is not None:
+        if validation_data is not None:
+            with env._let(max_idle_transforms=max(len(validation_data), 100)):
                 transformed_validation_data = transformation.apply(
                     validation_data, is_train=True
                 )
