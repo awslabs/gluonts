@@ -355,7 +355,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         instances = self._create_instance_splitter("validation").apply(
             data, is_train=True
         )
-        return data_loader(
+        return as_stacked_batches(
             instances,
             batch_size=self.batch_size,
             field_names=self.input_names(),
