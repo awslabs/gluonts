@@ -148,7 +148,6 @@ class PyTorchLightningEstimator(Estimator):
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         from_predictor: Optional[PyTorchPredictor] = None,
-        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
@@ -168,7 +167,6 @@ class PyTorchLightningEstimator(Estimator):
             training_data_loader = self.create_training_data_loader(
                 transformed_training_data,
                 training_network,
-                num_workers=num_workers,
                 shuffle_buffer_length=shuffle_buffer_length,
             )
 
@@ -187,7 +185,6 @@ class PyTorchLightningEstimator(Estimator):
                 validation_data_loader = self.create_validation_data_loader(
                     transformed_validation_data,
                     training_network,
-                    num_workers=num_workers,
                 )
 
         training_network = self.create_lightning_module()
@@ -234,7 +231,6 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
@@ -243,7 +239,6 @@ class PyTorchLightningEstimator(Estimator):
         return self.train_model(
             training_data,
             validation_data,
-            num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
@@ -254,7 +249,6 @@ class PyTorchLightningEstimator(Estimator):
         predictor: Predictor,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
@@ -264,7 +258,6 @@ class PyTorchLightningEstimator(Estimator):
             training_data,
             validation_data,
             from_predictor=predictor,
-            num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
