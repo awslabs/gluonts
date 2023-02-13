@@ -199,7 +199,7 @@ class DistributionForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
-            outputs = predict_to_numpy(prediction_net, inputs)
+            outputs = prediction_net(*inputs.values())
 
             if output_transform:
                 log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
