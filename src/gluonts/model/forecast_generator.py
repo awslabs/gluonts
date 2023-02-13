@@ -115,7 +115,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = select(input_names, batch)
+            inputs = select(input_names, batch, ignore_missing=True)
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -152,7 +152,7 @@ class SampleForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = select(input_names, batch)
+            inputs = select(input_names, batch, ignore_missing=True)
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -198,7 +198,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = select(input_names, batch)
+            inputs = select(input_names, batch, ignore_missing=True)
             outputs = predict_to_numpy(prediction_net, inputs)
 
             if output_transform:
