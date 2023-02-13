@@ -176,7 +176,17 @@ class Constant(BaseModel):
 
 
 def norm_freq_str(freq_str: str) -> str:
-    return freq_str.split("-")[0]
+    base_freq = freq_str.split("-")[0]
+
+    # Pandas has start and end frequencies, e.g `AS` and `A` for yearly start
+    # and yearly end frequencies. We don't make that difference and instead
+    # rely only on the end frequencies which don't have the `S` prefix.
+    # Note: Secondly ("S") frequency exists, where we don't want to remove the
+    # "S"!
+    if len(base_freq) >= 2 and base_freq.endswith("S"):
+        return base_freq[:-1]
+
+    return base_freq
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
