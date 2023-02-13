@@ -255,6 +255,25 @@ class TimeFrame:
 
         return result
 
+    def cat(self, other):
+        assert self.columns.keys() == other.columns.keys()
+        assert self.tdims == other.tdims
+        assert maybe.xor(self.index, other.index) is None
+
+        copy = self.copy()
+        copy.length += len(other)
+        copy.columns = {
+            column: np.concatenate(
+                [self.columns[column], other.columns[column]],
+                axis=self.tdims[column],
+            )
+            for column in self.columns
+        }
+        if self.index is not None:
+            copy.index = np.concatenate([self.index, other.index])
+
+        return copy
+
 
 @dataclass
 class SplitFrame:
@@ -281,8 +300,15 @@ class SplitFrame:
 
     def shift(self, amount: int) -> SplitFrame:
         assert self.past.columns.keys() == self.future.columns.keys()
+        # TODO: look into shift left
+        assert amount >= 0
 
-        ...
+        sf = self.future.split(amount)
+
+        return SplitFrame(
+            past=self.past.cat(sf.past),
+            future=sf.future,
+        )
 
     def _view_of(self, column):
         is_past = column in self.past.columns
