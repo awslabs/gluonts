@@ -39,6 +39,10 @@ logger = logging.getLogger(__name__)
 DataLoader = Iterable[DataBatch]
 
 
+# TODO: the following are for backward compatibility
+# and could eventually be removed
+
+
 class Batch(Transformation, BaseModel):
     batch_size: int
 
@@ -52,12 +56,11 @@ class Stack(Transformation, BaseModel):
             yield rows_to_columns(batch, np.array)
 
 
-def data_loader(
+def as_stacked_batches(
     dataset: Dataset,
     *,
     batch_size: int,
-    output_type: Callable,
-    cycle: bool = False,
+    output_type: Optional[Callable] = None,
     num_batches_per_epoch: Optional[int] = None,
     shuffle_buffer_length: Optional[int] = None,
     field_names: Optional[list] = None,
@@ -67,13 +70,11 @@ def data_loader(
 
     Input data is collected into batches of size ``batch_size`` and then
     columns are stacked on top of each other. In addition, the result is
-    wrapped in ``output_type``. This is needed since our pipelines generally
-    use numpy arrays, but networks expect framework specific data formats
-    (i.e. ``torch.tensor`` and ``mxnet.ndarray``).
+    wrapped in ``output_type`` if provided.
 
     If ``num_batches_per_epoch`` is provided, only those number of batches are
-    effectively returned. This is useful in training in combination with
-    setting ``cycle`` to create a dataset independent definition of an epoch.
+    effectively returned. This is especially useful for training when
+    providing a cyclic dataset.
 
     To pseudo shuffle data, ``shuffle_buffer_length`` can be set to collect
     inputs into a buffer first, from which we then randomly sample.
@@ -81,9 +82,6 @@ def data_loader(
     Setting ``field_names`` will only consider those columns in the input data
     and discard all other values.
     """
-
-    if cycle:
-        dataset = Cyclic(dataset)
 
     if shuffle_buffer_length:
         dataset = PseudoShuffled(dataset, shuffle_buffer_length)
@@ -95,7 +93,9 @@ def data_loader(
 
     transform += Batch(batch_size=batch_size)
     transform += Stack()
-    transform += Valmap(output_type)
+
+    if output_type is not None:
+        transform += Valmap(output_type)
 
     # Note: is_train needs to be provided but does not have an effect
     transformed_dataset = transform.apply(dataset, is_train=True)
@@ -160,7 +160,6 @@ def TrainDataLoader(
     transformed_dataset = transform.apply(dataset, is_train=True)
 
     batches = iter(transformed_dataset)
-
     return IterableSlice(batches, num_batches_per_epoch)
 
 
