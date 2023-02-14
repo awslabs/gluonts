@@ -23,7 +23,7 @@ FREQS = ["S", "min", "T", "H", "D", "B", "W", "M", "QS", "Q", "AS", "A", "Y"]
 
 
 @pytest.mark.parametrize("freq", FREQS)
-def test_period_equal_pandas(freq):
+def test_freq_equal_pandas(freq):
     zb_freq = zb.freq(freq)
     pd_freq = to_offset(freq)
 
