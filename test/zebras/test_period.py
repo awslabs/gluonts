@@ -18,6 +18,7 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 from gluonts import zebras as zb
+from gluonts.core import serde
 
 FREQS = ["S", "min", "T", "H", "D", "B", "W", "M", "QS", "Q", "AS", "A", "Y"]
 
@@ -37,6 +38,13 @@ def test_freq_equal_pandas(freq):
 
 
 @pytest.mark.parametrize("freq", FREQS)
+def test_freq_serde(freq):
+    freq = zb.freq(freq)
+
+    assert freq == serde.decode(serde.encode(freq))
+
+
+@pytest.mark.parametrize("freq", FREQS)
 def test_periods_equal_pandas(freq):
     if freq != "S" and freq.endswith("S"):
         pytest.skip()
@@ -51,3 +59,11 @@ def test_periods_equal_pandas(freq):
     ps = zb.periods("2020", freq, 20)
 
     np.testing.assert_array_equal(pr, ps.to_pandas())
+
+
+@pytest.mark.parametrize("freq", FREQS)
+def test_periods_serde(freq):
+    ps = zb.periods("2020", freq, 20)
+
+    assert ps[0] == serde.decode(serde.encode(ps[0]))
+    assert ps == serde.decode(serde.encode(ps))

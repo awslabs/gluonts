@@ -45,10 +45,12 @@ from __future__ import annotations
 
 import datetime
 import functools
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 import numpy as np
 from dateutil.parser import parse as du_parse
+
+from gluonts.core import serde
 
 from ._freq import Freq
 
@@ -107,10 +109,6 @@ class _BasePeriod:
             ]
         )
 
-    @property
-    def __init_passed_kwargs__(self) -> dict:
-        return asdict(self)
-
     def to_numpy(self) -> np.datetime64:
         return self.data
 
@@ -139,6 +137,10 @@ class _BasePeriod:
 
 @functools.total_ordering
 class Period(_BasePeriod):
+    @property
+    def __init_passed_kwargs__(self) -> dict:
+        return {"data": self.data, "freq": self.freq}
+
     def periods(self, count: int):
         return Periods(
             self.freq.range(self.data, count),
@@ -226,9 +228,20 @@ class Periods(_BasePeriod):
         if not isinstance(other, Periods):
             return False
 
-        return self.freq.n == other.multiple and np.array_equal(
+        return self.freq.n == other.freq.n and np.array_equal(
             self.data, other.data
         )
+
+
+@serde.encode.register
+def _encode_zebras_periods(v: Periods):
+    return {
+        "__kind__": "instance",
+        "class": "gluonts.zebras.periods",
+        "kwargs": serde.encode(
+            {"start": v.start, "freq": str(v.freq), "count": len(v)}
+        ),
+    }
 
 
 def period(data, freq=None) -> Period:

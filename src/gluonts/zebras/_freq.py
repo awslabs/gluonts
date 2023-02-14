@@ -20,7 +20,6 @@ from typing import Tuple
 import numpy as np
 
 from gluonts import maybe
-from gluonts.core import serde
 
 NpFreq = Tuple[str, int]
 
@@ -72,6 +71,10 @@ _freq_pandas_to_numpy = dict(
 )
 
 
+def _canonical_name(name: str) -> str:
+    return {"MIN": "T", "Y": "A"}.get(name, name)
+
+
 @dataclass
 class Freq:
     """
@@ -99,6 +102,13 @@ class Freq:
     name: str
     n: int
 
+    def __post_init__(self):
+        self.name = _canonical_name(self.name)
+
+    @property
+    def __init_passed_kwargs__(self):
+        return {"name": self.name, "n": self.n}
+
     @property
     def np_freq(self) -> NpFreq:
         return _freq_pandas_to_numpy[self.name]
@@ -114,7 +124,7 @@ class Freq:
             if hasattr(freq, "freqstr"):
                 freq = freq.freqstr
             else:
-                raise ValueError(f"Invalid freq {freq}")
+                raise ValueError(f"Invalid freq {freq}: {type(freq)}")
 
         match = maybe.expect(
             re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
@@ -155,15 +165,6 @@ class Freq:
 
     def __str__(self) -> str:
         return _canonical_freqstr(self.n, self.name)
-
-
-@serde.encode.register
-def _encode_freq(v: Freq) -> dict:
-    return {
-        "__kind__": "instance",
-        "class": "gluonts.zebras.Freq.from_pandas",
-        "args": [v.to_pandas()],
-    }
 
 
 def freq(arg) -> Freq:
