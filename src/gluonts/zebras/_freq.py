@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, cast
 
 import numpy as np
 
@@ -148,7 +148,7 @@ class Freq:
 
         return start + self.n * count
 
-    def range(self, start: np.datetime64, count: int) -> np.datetime64:
+    def range(self, start: np.datetime64, count: int) -> np.ndarray:
         if self.name == "B":
             # We first collect all days, even non business days to then filter
             # for business days, of which we then take, each n-th.

@@ -46,6 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
+from typing import Any, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -59,9 +60,8 @@ def _is_number(value):
     return isinstance(value, (int, np.integer))
 
 
-@dataclass
 class _BasePeriod:
-    data: np.datetime64
+    data: Any
     freq: Freq
 
     @property
@@ -109,12 +109,6 @@ class _BasePeriod:
             ]
         )
 
-    def to_numpy(self) -> np.datetime64:
-        return self.data
-
-    def __array__(self) -> np.datetime64:
-        return self.data
-
     def __add__(self, other):
         if _is_number(other):
             return self.__class__(
@@ -136,7 +130,11 @@ class _BasePeriod:
 
 
 @functools.total_ordering
+@dataclass
 class Period(_BasePeriod):
+    data: np.datetime64
+    freq: Freq
+
     @property
     def __init_passed_kwargs__(self) -> dict:
         return {"data": self.data, "freq": self.freq}
@@ -159,10 +157,21 @@ class Period(_BasePeriod):
         return f"Period<{self.data}, {self.freq}>"
 
     def __lt__(self, other: Period) -> bool:
-        return self.data < other.data
+        # convert numpy.bool_ into bool
+        return cast(bool, self.data < other.data)
+
+    def to_numpy(self) -> np.datetime64:
+        return self.data
+
+    def __array__(self) -> np.datetime64:
+        return self.data
 
 
+@dataclass
 class Periods(_BasePeriod):
+    data: np.ndarray
+    freq: Freq
+
     @property
     def start(self) -> Period:
         return self[0]
@@ -218,7 +227,15 @@ class Periods(_BasePeriod):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx) -> Periods:
+    @overload
+    def __getitem__(self, idx: int) -> Period:
+        ...
+
+    @overload
+    def __getitem__(self, idx: slice) -> Periods:
+        ...
+
+    def __getitem__(self, idx):
         if _is_number(idx):
             return Period(self.data[idx], self.freq)
 
@@ -231,6 +248,12 @@ class Periods(_BasePeriod):
         return self.freq.n == other.freq.n and np.array_equal(
             self.data, other.data
         )
+
+    def to_numpy(self) -> np.ndarray:
+        return self.data
+
+    def __array__(self) -> np.ndarray:
+        return self.data
 
 
 @serde.encode.register
@@ -262,7 +285,7 @@ def period(data, freq=None) -> Period:
 
     if freq.name == "W":
         period = Period(np.datetime64(data, freq.np_freq), freq)
-        period.data -= period.dayofweek
+        period.data -= cast(int, period.dayofweek)
         return period
 
     return Period(np.datetime64(data, freq.np_freq), freq)
