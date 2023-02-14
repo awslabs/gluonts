@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Tuple, cast
+from typing import Tuple
 
 import numpy as np
 
