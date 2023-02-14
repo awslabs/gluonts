@@ -78,6 +78,31 @@ Using these frames, many existing classes in GluonTS such as
 ``InstanceSplitter`` become almost trivial, since all relevant information and
 behaviour is contained in frame objects.
 
+## Implementation
+
+``TimeFrame`` and ``SplitFrame`` are both immutable and operations like ``set``
+return copies. Frames have an optional index of type ``zebras.Periods`` and
+can carry additional ``metadata``.
+
+Values are generally split into two categories: Dynamic and static with respect
+to time. All dynamic values have the same length in the time-dimension, while
+static values are additional properties which don't have a time dimension.
+
+To keep track of which dimension tracks time, we use a ``tdims`` lookup, and
+``default_tdim = -1`` to determine what axes of the underlying data to slice.
+
+The optional ``metadata`` can also seen as static data, however, conceptually
+``metadata`` should not be used for values, but can be used to carry
+information such as ``item_id``. For example, ``metadata`` should be copied
+when doing predictions, while all other data should not.
+
+Additionally, there is a padding indicator to denote which values have been
+padded: We want to allow to force frames to a certain length, and pad values if
+needed.
+
+Both classes have easy to use constructors in ``zebras.time_frame`` and
+``zebras.split_frame``.
+
 ## Discussion
 
 ## Comparison with ``pandas.DataFrame``
