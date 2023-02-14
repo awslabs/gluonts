@@ -27,9 +27,9 @@ NpFreq = Tuple[str, int]
 def _canonical_freqstr(n: int, name: str) -> str:
     """Canonical name of frequency.
 
-    >>> _canonical_freqstr("X")
+    >>> _canonical_freqstr(1, "X")
     'X'
-    >>> _canonical_freqstr("3X")
+    >>> _canonical_freqstr(3, "X")
     '3X'
 
     This allows us to easily string compare frequencies
@@ -146,7 +146,12 @@ class Freq:
         if self.name == "B":
             return np.busday_offset(start, self.n * count)
 
-        return start + self.n * count
+        step = self.n
+
+        if self.name == "W":
+            step *= 7
+
+        return start + step * count
 
     def range(self, start: np.datetime64, count: int) -> np.ndarray:
         if self.name == "B":

@@ -45,6 +45,33 @@ def test_freq_serde(freq):
 
 
 @pytest.mark.parametrize("freq", FREQS)
+def test_period_equal_pandas(freq):
+    if freq != "S" and freq.endswith("S"):
+        pytest.skip()
+
+    pd_period = pd.Period("2020", freq=freq)
+    zb_period = zb.period("2020", freq)
+
+    assert pd_period == zb_period.to_pandas()
+    assert pd_period + 9 == (zb_period + 9).to_pandas()
+
+    freq = "7" + freq
+    pd_period = pd.Period("2020", freq=freq)
+    zb_period = zb.period("2020", freq)
+
+    assert pd_period == zb_period.to_pandas()
+    assert pd_period + 9 == (zb_period + 9).to_pandas()
+
+
+@pytest.mark.parametrize("freq", FREQS)
+def test_periods_serde(freq):
+    ps = zb.periods("2020", freq, 20)
+
+    assert ps[0] == serde.decode(serde.encode(ps[0]))
+    assert ps == serde.decode(serde.encode(ps))
+
+
+@pytest.mark.parametrize("freq", FREQS)
 def test_periods_equal_pandas(freq):
     if freq != "S" and freq.endswith("S"):
         pytest.skip()

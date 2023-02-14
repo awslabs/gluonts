@@ -148,7 +148,7 @@ class Period(_BasePeriod):
     def to_pandas(self):
         import pandas as pd
 
-        return pd.Period(self.data, self.freq.to_pandas())
+        return pd.Period(self.data.astype(object), self.freq.to_pandas())
 
     def to_timestamp(self):
         return self.data.astype(object)
@@ -178,27 +178,80 @@ class Periods(_BasePeriod):
 
     @property
     def end(self) -> Period:
+        """
+        Last timestamp.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.end == period("2021-12-31", "D")
+
+        """
+
         return self[-1]
 
     def head(self, count: int) -> Periods:
+        """
+        First ``count`` timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.head(5) == periods("2021-01-01", "D", 5)
+
+        """
+
         return self[:count]
 
     def tail(self, count: int) -> Periods:
+        """
+        Last ``count`` timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.tail(5) == periods("2021-12-27", "D", 5)
+
+        """
+
         return self[-count:]
 
     def future(self, count: int) -> Periods:
+        """
+        Next ``count`` timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.future(5) == periods("2022-01-01", "D", 5)
+
+        """
         return (self.end + 1).periods(count)
 
     def past(self, count: int) -> Periods:
+        """
+        Previous ``count`` timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.past(5) == periods("2020-12-27", "D", 5)
+
+        """
+
         return (self.start - count).periods(count)
 
     def prepend(self, count: int) -> Periods:
+        """
+        Copy which contains ``count`` past timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.prepend(5) == periods("2020-12-27", "D", 370)
+
+        """
         return Periods(
             np.concatenate([self.past(count).data, self.data]),
             self.freq,
         )
 
     def extend(self, count: int) -> Periods:
+        """
+        Copy which contains ``count`` future timestamps.
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.extend(5) == periods("2021", "D", 370)
+
+        """
         return Periods(
             np.concatenate([self.data, self.future(count).data]),
             self.freq,
@@ -213,16 +266,22 @@ class Periods(_BasePeriod):
         )
 
     def intersection(self, other):
+        # TODO: Is this needed?
         return self.data[np.in1d(self, other)]
 
     def index_of(self, period: Period):
+        """
+        Return the index of ``period``
+
+        >>> p = periods("2021", "D", 365)
+        >>> assert p.index_of(period("2021-02-01", "D")) == 31
+
+        """
+
         idx = (period - self.start).astype(int)
         assert 0 <= idx < len(self)
 
         return idx
-
-    def cat(self, other):
-        return Periods(np.concatenate([self.data, other.data]), self.freq)
 
     def __len__(self):
         return len(self.data)
