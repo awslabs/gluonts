@@ -36,6 +36,7 @@ class TimeFrame:
     length: int
     static: dict
     tdims: dict
+    metadata: Optional[dict] = None
     default_tdim: int = -1
     _pad: Optional[np.ndarray] = None
 
@@ -62,8 +63,33 @@ class TimeFrame:
             tdims=dict(self.tdims),
             default_tdim=self.default_tdim,
             length=self.length,
+            metadata=self.metadata,
             _pad=self._pad,
         )
+
+    def like(self, columns=None, static=None, tdims=None):
+        columns = maybe.unwrap_or(columns, {})
+        static = maybe.unwrap_or(static, {})
+        tdims = maybe.unwrap_or(tdims, {})
+
+        return TimeFrame(
+            columns=columns,
+            index=self.index,
+            static=static,
+            tdims=tdims,
+            default_tdim=self.default_tdim,
+            length=self.length,
+            metadata=self.metadata,
+            _pad=self._pad,
+        )
+
+    @property
+    def start(self):
+        return self[0]
+
+    @property
+    def end(self):
+        return self[-1]
 
     def head(self, count: int) -> Periods:
         return self[:count]
@@ -78,6 +104,9 @@ class TimeFrame:
         return AxisView(self.columns[column], self.tdims[column])
 
     def __getitem__(self, idx):
+        if isinstance(idx, str):
+            return self.c(idx)
+
         if isinstance(idx, int):
             return {column: self._cv(column)[idx] for column in self.columns}
 
@@ -93,6 +122,7 @@ class TimeFrame:
             tdims=self.tdims,
             default_tdim=self.default_tdim,
             length=stop - start,
+            metadata=self.metadata,
         )
 
     def split(self, idx, past_length=None, future_length=None, pad_value=0):
@@ -444,6 +474,7 @@ def time_frame(
     tdims=None,
     length=None,
     default_tdim=-1,
+    metadata=None,
 ):
     columns = maybe.unwrap_or_else(columns, dict)
     tdims = maybe.unwrap_or_else(tdims, dict)
@@ -468,6 +499,7 @@ def time_frame(
         tdims=tdims,
         length=length,
         default_tdim=default_tdim,
+        metadata=metadata,
     )
     if tf.index is None and start is not None:
         tf.reindex(start.periods(len(tf)))
