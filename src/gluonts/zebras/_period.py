@@ -170,13 +170,15 @@ class BusinessDay(Period):
             )
 
     def periods(self, count: int):
+        # We first collect all days, even non business days to then filter for
+        # business days, of which we then take, each freq.multiple one.
         periods = np.arange(
-            self.data,
-            np.busday_offset(self.data, count * self.freq.multiple),
-            self.freq.multiple,
+            self.data, np.busday_offset(self.data, count * self.freq.multiple)
         )
+        periods = periods[np.is_busday(periods)]
+        periods = periods[:: self.freq.multiple]
 
-        return Periods(periods[np.is_busday(periods)], self.freq)
+        return Periods(periods, self.freq)
 
     def __repr__(self):
         return f"BusinessDay<{self.data}, {self.freq}>"

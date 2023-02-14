@@ -46,8 +46,8 @@ def test_periods_equal_pandas(freq):
 
     np.testing.assert_array_equal(pr, ps.to_pandas())
 
-    # freq = "7" + freq
-    # zb_freq = zb.freq(freq)
-    # pd_freq = to_offset(freq)
+    freq = "7" + freq
+    pr = pd.period_range(start="2020", freq=freq, periods=20)
+    ps = zb.periods("2020", freq, 20)
 
-    # assert to_offset(zb_freq.to_pandas()) == pd_freq
+    np.testing.assert_array_equal(pr, ps.to_pandas())
