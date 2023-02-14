@@ -37,7 +37,9 @@ _freq_pandas_to_numpy = dict(
         "MS": ("M", 1),
         "MIN": ("m", 1),
         "Q": ("M", 3),
+        "QS": ("M", 3),
         "B": ("D", 1),
+        "W": ("D", 1),
     },
 )
 
@@ -46,7 +48,14 @@ _freq_pandas_to_numpy = dict(
 class Freq:
     np_freq: NpFreq
     pd_freq: str
-    multiple: int
+    _multiple: int
+
+    @property
+    def multiple(self):
+        if self.pd_freq == "W":
+            return self._multiple * 7
+
+        return self._multiple
 
     @classmethod
     def __get_validators__(cls):
@@ -76,7 +85,7 @@ class Freq:
         return cls(_freq_pandas_to_numpy[freq], freq, n)
 
     def to_pandas(self) -> str:
-        return _canonical_freqstr(self.multiple, self.pd_freq)
+        return _canonical_freqstr(self._multiple, self.pd_freq)
 
     def __str__(self):
         return self.to_pandas()

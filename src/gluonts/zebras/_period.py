@@ -140,7 +140,9 @@ class _BasePeriod:
 class Period(_BasePeriod):
     def periods(self, count: int):
         return Periods(
-            np.arange(self.data, count * self.freq.multiple),
+            np.arange(
+                self.data, count * self.freq.multiple, self.freq.multiple
+            ),
             self.freq,
         )
 
@@ -269,6 +271,10 @@ def period(data, freq=None) -> Period:
 
     if freq.pd_freq == "B":
         return BusinessDay(np.datetime64(data, freq.np_freq), freq)
+    elif freq.pd_freq == "W":
+        period = Period(np.datetime64(data, freq.np_freq), freq)
+        period.data -= period.dayofweek
+        return period
 
     return Period(np.datetime64(data, freq.np_freq), freq)
 
