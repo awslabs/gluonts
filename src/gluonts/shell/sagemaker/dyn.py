@@ -30,6 +30,8 @@ from functools import partial
 from pathlib import Path
 from typing import Optional
 
+from gluonts.util import safe_extractall
+
 
 class Installer:
     def __init__(self, packages):
@@ -78,10 +80,12 @@ class Installer:
     def install(self, path):
         if path.is_file():
             if tarfile.is_tarfile(path):
-                self.handle_archive(tarfile.open, path)
+                self.handle_archive(tarfile.open, safe_extractall, path)
 
             elif zipfile.is_zipfile(path):
-                self.handle_archive(zipfile.ZipFile, path)
+                self.handle_archive(
+                    zipfile.ZipFile, zipfile.ZipFile.extractall, path
+                )
 
             elif path.match("requirements*.txt"):
                 self.install_requirement(path)
@@ -98,14 +102,14 @@ class Installer:
                 for subpath in path.iterdir():
                     self.install(subpath)
 
-    def handle_archive(self, open_fn, path):
+    def handle_archive(self, open_fn, extractall_fn, path):
         with open_fn(path) as archive:
             tempdir = tempfile.mkdtemp()
             self.cleanups.append(
                 partial(shutil.rmtree, tempdir, ignore_errors=True)
             )
 
-            archive.extractall(tempdir)
+            extractall_fn(archive, tempdir)
             self.install(Path(tempdir))
 
 
