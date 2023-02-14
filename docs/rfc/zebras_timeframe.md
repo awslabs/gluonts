@@ -53,6 +53,40 @@ def map_transform(self, data: DataEntry) -> DataEntry:
 Here, we don't need to know about ``target``, ``pred_length`` or ``is_train``
 since we can just ask ``data`` about its length directly.
 
+---
+
+When doing predictions, we currently need to handle cross cutting concerns
+which are not core to making predictions. For example, we currently manually
+track ``item_id`` as a field to indicate identity. However, ``item_id`` does
+not impact how we make forecast and therefore adds noise. Further, we also need
+to handle time information such as the start date of a generated forecast:
+
+```py
+# class: ConstantValuePredictor
+def predict_item(self, item: DataEntry) -> SampleForecast:
+    samples_shape = self.num_samples, self.prediction_length
+    samples = np.full(samples_shape, self.value)
+
+    return SampleForecast(
+        samples=samples,
+        start_date=forecast_start(item),
+        item_id=item.get("item_id"),
+    )
+```
+
+Using a more structured approach, we can concentrate on the core functionality:
+
+```py
+def predict_item(self, past, future):
+    samples_shape = self.num_samples, self.prediction_length
+    samples = np.full(samples_shape, self.value)
+
+    return future.like({"samples": samples})
+```
+
+Here, ``future.like`` copies metadata such as ``item_id`` for us and also
+handles tracking of time internally.
+
 
 ## Proposal
 
