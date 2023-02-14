@@ -14,13 +14,13 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
@@ -32,9 +32,6 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
-)
-from gluonts.torch.util import (
-    IterableDataset,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -58,7 +55,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     """
-    An estimator training a feedforward model for forecasting.
+    An estimator training a feed-forward model for forecasting.
 
     This class is uses the model defined in ``SimpleFeedForwardModel``,
     and wraps it into a ``SimpleFeedForwardLightningModule`` for training
@@ -73,7 +70,7 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         Number of time steps prior to prediction time that the model
         takes as inputs (default: ``10 * prediction_length``).
     hidden_dimensions
-        Size of hidden layers in the feedforward network
+        Size of hidden layers in the feed-forward network
         (default: ``[20, 20]``).
     lr
         Learning rate (default: ``1e-3``).
@@ -207,27 +204,17 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        data = Cyclic(data).stream()
+        instances = self._create_instance_splitter(module, "training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return as_stacked_batches(
+            instances,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
@@ -236,16 +223,14 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         module: SimpleFeedForwardLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter(module, "validation").apply(
+            data, is_train=True
+        )
+        return as_stacked_batches(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
         )
 
     def create_predictor(

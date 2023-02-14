@@ -23,6 +23,7 @@ __all__ = [
     "BucketInstanceSampler",
     "CanonicalInstanceSplitter",
     "cdf_to_gaussian_forward_transform",
+    "Valmap",
     "CDFtoGaussianTransform",
     "Chain",
     "ConcatFeatures",
@@ -86,6 +87,7 @@ from .convert import (
     TargetDimIndicator,
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
+    Valmap,
 )
 from .feature import (
     AddAgeFeature,

@@ -246,7 +246,7 @@ class DeepARModel(nn.Module):
         """
         context = past_target[..., -self.context_length :]
         observed_context = past_observed_values[..., -self.context_length :]
-        _, scale = self.scaler(context, observed_context)
+        _, _, scale = self.scaler(context, observed_context)
 
         prior_input = past_target[..., : -self.context_length] / scale
         input = (
@@ -348,7 +348,7 @@ class DeepARModel(nn.Module):
             (Optional) tensor of dynamic real features in the past,
             shape: ``(batch_size, prediction_length, num_feat_dynamic_real)``.
         num_parallel_samples
-            How many future sampels to produce.
+            How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
         if num_parallel_samples is None:

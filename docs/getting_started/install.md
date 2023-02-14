@@ -25,7 +25,7 @@ For production usage, we suggest restricting the version when installing
 GluonTS:
 
 ```sh
-pip install gluonts==0.10.*
+pip install gluonts==0.12.*
 ```
 ````
 
@@ -47,7 +47,7 @@ When installing a package, they are passed via ``[...]`` after the package
 name, but before the version specifier:
 
 ```sh
-pip install some-package[extra-1,extra-2]==version
+pip install "some-package[extra-1,extra-2]==version"
 ````
 
 We make extensive use of optional dependencies in GluonTS to keep the amount of
@@ -61,7 +61,7 @@ offer the ``arrow``-extra, which installs the required packages and can be
 simply enabled using:
 
 ```sh
-pip install gluonts[arrow]
+pip install "gluonts[arrow]"
 ````
 
 ### Models
@@ -78,7 +78,7 @@ to be installed as well.
 Both required dependencies are included in the ``torch``-extra:
 
 ```sh
-pip install gluonts[torch]
+pip install "gluonts[torch]"
 ````
 
 
@@ -88,7 +88,7 @@ MXNet based models require a version of ``mxnet`` to be installed.
 
 ```{note}
 
-MXNet provives different package for CPU and GPU usages. Please refer to its
+MXNet provides different package for CPU and GPU usages. Please refer to its
 [documentation](https://mxnet.apache.org/versions/1.9.1/get_started?) to
 select the right version fitting your use-case.
 
@@ -97,7 +97,7 @@ select the right version fitting your use-case.
 The ``mxnet``-extra will install a CPU-only version:
 
 ```sh
-pip install gluonts[mxnet]
+pip install "gluonts[mxnet]"
 
 ````
 
@@ -115,22 +115,20 @@ install the `forecast` package:
 R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
 ```
 
-In addition, we require rpy2 to be installed:
+You will also need to install ``R``-extra dependencies with:
 
 ```sh
-pip install 'rpy2>=2.9.*,<3.*'
+pip install "gluonts[R]"
 ````
 
 ##### Prophet
 
 The [Prophet](https://facebook.github.io/prophet/) forecasting library is
 available via `gluonts.model.prophet` and requires the ``prophet`` package to
-be installed.
-
-The ``prophet``-extra also depends on it:
+be installed. You can get it by installing the ``prophet``-extra:
 
 ```sh
-pip install gluonts[prophet]
+pip install "gluonts[prophet]"
 ```
 
 
@@ -166,7 +164,7 @@ To utilise these, either install the ``pyarrow`` package or use the
 ``arrow``-extra:
 
 ```sh
-pip install gluonts[arrow]
+pip install "gluonts[arrow]"
 ```
 
 ### Other
@@ -177,5 +175,5 @@ The ``shell`` module offers integration with Amazon SageMaker and is available
 through:
 
 ```sh
-pip install gluonts[shell]
+pip install "gluonts[shell]"
 ```

@@ -22,16 +22,19 @@ from typing import Dict, Any, List
 
 import numpy as np
 import pytest
+from toolz import take
 
 from gluonts.core.component import equals
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import DataEntry, DataBatch, FileDataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.itertools import Cyclic
 from gluonts.dataset.loader import (
     Batch,
     TrainDataLoader,
     ValidationDataLoader,
     InferenceDataLoader,
+    as_stacked_batches,
 )
 from gluonts.transform import (
     InstanceSampler,
@@ -208,3 +211,100 @@ def test_inference_data_loader(dataset_context):
 def test_equals_batch():
     assert equals(Batch(batch_size=10), Batch(batch_size=10))
     assert not equals(Batch(batch_size=10), Batch(batch_size=100))
+
+
+def test_as_stacked_batches():
+    step = 10
+    data = [
+        {"x": np.arange(start, start + step)} for start in range(0, 100, step)
+    ]
+
+    stream = as_stacked_batches(data, batch_size=2)
+
+    for _ in range(3):
+        batches = list(take(2, stream))
+        assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+        assert np.array_equal(
+            batches[1]["x"], np.arange(20, 40).reshape(2, 10)
+        )
+
+
+def test_as_stacked_batches_iter():
+    step = 10
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
+
+    stream = as_stacked_batches(data, batch_size=2)
+
+    batches = list(take(2, stream))
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+
+    batches = list(take(2, stream))
+    assert np.array_equal(batches[0]["x"], np.arange(40, 60).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(60, 80).reshape(2, 10))
+
+    batches = list(take(2, stream))
+    assert len(batches) == 1
+    assert np.array_equal(batches[0]["x"], np.arange(80, 100).reshape(2, 10))
+
+
+def test_as_stacked_batches_iter_num_batches():
+    step = 10
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
+
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(40, 60).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 2
+    assert np.array_equal(batches[0]["x"], np.arange(60, 80).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(80, 100).reshape(2, 10))
+
+    assert len(list(stream)) == 0
+
+
+def test_as_stacked_batches_num_batches_iter_cycle():
+    step = 10
+    data = iter(
+        Cyclic(
+            [
+                {"x": np.arange(start, start + step)}
+                for start in range(0, 100, step)
+            ]
+        )
+    )
+
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(40, 60).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(60, 80).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(80, 100).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(0, 20).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(40, 60).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(60, 80).reshape(2, 10))

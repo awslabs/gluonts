@@ -34,7 +34,7 @@ class HybridContext:
         The network whose hybrid mode has to be modified within the enclosing
         context.
     hybridize
-        A boolean flag inidicating whether the hybrid mode should be set or
+        A boolean flag indicating whether the hybrid mode should be set or
         not.
     kwargs
         A dictionary of optional arguments to pass to the `hybridize()` call

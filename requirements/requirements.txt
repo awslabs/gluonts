@@ -6,5 +6,3 @@ toolz~=0.10
 
 # used for Protocol, can be removed once Python 3.8 is required
 typing-extensions~=4.0
-
-dataclasses

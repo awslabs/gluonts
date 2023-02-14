@@ -12,10 +12,10 @@
 # permissions and limitations under the License.
 
 import abc
+from dataclasses import dataclass
 from typing import Callable, Iterable, Iterator, List
 
-from gluonts.core.component import equals
-from gluonts.core.component import validated
+from gluonts.core.component import equals, validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.env import env
 
@@ -45,20 +45,28 @@ class Transformation(metaclass=abc.ABCMeta):
         return TransformedDataset(dataset, self, is_train=is_train)
 
 
+@dataclass
 class Chain(Transformation):
     """
     Chain multiple transformations together.
     """
 
-    @validated()
-    def __init__(self, trans: List[Transformation]) -> None:
-        self.transformations: List[Transformation] = []
-        for transformation in trans:
-            # flatten chains
-            if isinstance(transformation, Chain):
-                self.transformations.extend(transformation.transformations)
+    transformations: List[Transformation]
+
+    def __post_init__(self) -> None:
+        transformations = []
+
+        for transformation in self.transformations:
+            if isinstance(transformation, Identity):
+                continue
+            elif isinstance(transformation, Chain):
+                transformations.extend(transformation.transformations)
             else:
-                self.transformations.append(transformation)
+                assert isinstance(transformation, Transformation)
+                transformations.append(transformation)
+
+        self.transformations = transformations
+        self.__init_passed_kwargs__ = {"transformations": transformations}
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
