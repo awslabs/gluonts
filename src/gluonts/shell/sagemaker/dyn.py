@@ -33,10 +33,6 @@ from typing import Optional
 from gluonts.util import safe_extractall
 
 
-def extractall(archive: zipfile.ZipFile, path: Path):
-    archive.extractall(path)
-
-
 class Installer:
     def __init__(self, packages):
         self.packages = packages
@@ -87,7 +83,9 @@ class Installer:
                 self.handle_archive(tarfile.open, safe_extractall, path)
 
             elif zipfile.is_zipfile(path):
-                self.handle_archive(zipfile.ZipFile, extractall, path)
+                self.handle_archive(
+                    zipfile.ZipFile, zipfile.ZipFile.extractall, path
+                )
 
             elif path.match("requirements*.txt"):
                 self.install_requirement(path)
