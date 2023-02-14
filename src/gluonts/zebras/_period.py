@@ -120,16 +120,17 @@ class _BasePeriod:
     def __add__(self, other):
         if _is_number(other):
             return self.__class__(
-                self.data + self.freq.multiple * other,
+                self.freq.shift(self.data, other),
                 self.freq,
             )
 
     def __sub__(self, other):
         if _is_number(other):
             return self.__class__(
-                self.data - self.freq.multiple * other,
+                self.freq.shift(self.data, -other),
                 self.freq,
             )
+
         else:
             return self.data - other.data
 
@@ -140,9 +141,7 @@ class _BasePeriod:
 class Period(_BasePeriod):
     def periods(self, count: int):
         return Periods(
-            np.arange(
-                self.data, count * self.freq.multiple, self.freq.multiple
-            ),
+            self.freq.range(self.data, count),
             self.freq,
         )
 
@@ -159,29 +158,6 @@ class Period(_BasePeriod):
 
     def __lt__(self, other: Period):
         return self.data < other.data
-
-
-class BusinessDay(Period):
-    def __add__(self, other):
-        if _is_number(other):
-            return BusinessDay(
-                np.busday_offset(self.data, self.freq.multiple * other),
-                self.freq,
-            )
-
-    def periods(self, count: int):
-        # We first collect all days, even non business days to then filter for
-        # business days, of which we then take, each freq.multiple one.
-        periods = np.arange(
-            self.data, np.busday_offset(self.data, count * self.freq.multiple)
-        )
-        periods = periods[np.is_busday(periods)]
-        periods = periods[:: self.freq.multiple]
-
-        return Periods(periods, self.freq)
-
-    def __repr__(self):
-        return f"BusinessDay<{self.data}, {self.freq}>"
 
 
 class Periods(_BasePeriod):
@@ -250,7 +226,7 @@ class Periods(_BasePeriod):
         if not isinstance(other, Periods):
             return False
 
-        return self.freq.multiple == other.multiple and np.array_equal(
+        return self.freq.n == other.multiple and np.array_equal(
             self.data, other.data
         )
 
@@ -271,9 +247,7 @@ def period(data, freq=None) -> Period:
             ignoretz=True,
         )
 
-    if freq.pd_freq == "B":
-        return BusinessDay(np.datetime64(data, freq.np_freq), freq)
-    elif freq.pd_freq == "W":
+    if freq.name == "W":
         period = Period(np.datetime64(data, freq.np_freq), freq)
         period.data -= period.dayofweek
         return period

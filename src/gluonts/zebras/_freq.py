@@ -15,17 +15,30 @@ import re
 from dataclasses import dataclass, asdict
 from typing import Tuple
 
+import numpy as np
+
 from gluonts import maybe
 from gluonts.core import serde
 
 NpFreq = Tuple[str, int]
 
 
-def _canonical_freqstr(n: int, freq: str):
-    if n == 1:
-        return freq
+def _canonical_freqstr(n: int, name: str):
+    """Canonical name of frequency.
 
-    return f"{n}{freq}"
+    >>> _canonical_freqstr("X")
+    'X'
+    >>> _canonical_freqstr("3X")
+    '3X'
+
+    This allows us to easily string compare frequencies
+    (solves ``"1X" != "X"``).
+    """
+
+    if n == 1:
+        return name
+
+    return f"{n}{name}"
 
 
 _freq_numpy_to_pandas = {
@@ -59,24 +72,39 @@ _freq_pandas_to_numpy = dict(
 
 @dataclass
 class Freq:
-    np_freq: NpFreq
-    pd_freq: str
-    _multiple: int
+    """
+    A class representing frequencies, such as n-days.
+
+    Note: Use ``freq`` to construct instances of ``Freq``.
+
+    We use frequency aliases from pandas over frequency names defined by numpy.
+    For example, the name for minutely is either "min" or "T", while "m"
+    and "M" represent monthly frequencies. In contrast numpy uses "m" for
+    minutely and "M" for monthly. In addition, pandas defines some frequencies
+    which do not exist in numpy, for example quarterly frequencies.
+
+    However, internally we use ``numpy.datetime64`` objects and thus we must
+    support numpy's frequency names as well. To do this we generally use base
+    frequencies (multiple = 1), since numpy otherwise aligns timestamps for us
+    which we don't want.
+
+    Weekly frequency needs to be handled specially, since numpy counts the
+    number of weeks since Thu Jan 1 1970 and uses Thursday and aligns the
+    timestamp to Thursday. We therefore use daily frequency internally and
+    align to Monday.
+    """
+
+    name: str
+    n: int
 
     @property
-    def multiple(self):
-        if self.pd_freq == "W":
-            return self._multiple * 7
-
-        return self._multiple
+    def np_freq(self):
+        return _freq_pandas_to_numpy[self.name]
 
     @classmethod
     def __get_validators__(cls):
+        # pydantic support
         yield freq
-
-    @property
-    def __init_passed_kwargs__(self):
-        return asdict(self)
 
     @classmethod
     def from_pandas(cls, freq):
@@ -92,16 +120,39 @@ class Freq:
         )
         groups = match.groupdict()
 
+        name = groups["freq"].upper().split("-")[0]
         n = maybe.map_or(groups["n"], int, 1)
-        freq = groups["freq"].upper().split("-")[0]
 
-        return cls(_freq_pandas_to_numpy[freq], freq, n)
+        return cls(name, n)
 
     def to_pandas(self) -> str:
-        return _canonical_freqstr(self._multiple, self.pd_freq)
+        from pandas.tseries.frequencies import to_offset
+
+        return to_offset(str(self))
+
+    def shift(self, start, count):
+        if self.name == "B":
+            return np.busday_offset(data, self.n * count)
+
+        return data + self.n * count
+
+    def range(self, start, count):
+        if self.name == "B":
+            # We first collect all days, even non business days to then filter
+            # for business days, of which we then take, each n-th.
+            periods = np.arange(start, np.busday_offset(start, count * self.n))
+            periods = periods[np.is_busday(periods)]
+            return periods[:: self.n]
+
+        step = self.n
+
+        if self.name == "W":
+            step *= 7
+
+        return np.arange(start, count * step, step)
 
     def __str__(self):
-        return self.to_pandas()
+        return _canonical_freqstr(self.n, self.name)
 
 
 @serde.encode.register
