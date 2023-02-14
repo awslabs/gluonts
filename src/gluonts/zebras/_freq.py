@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
@@ -127,16 +127,16 @@ class Freq:
 
         return cls(name, n)
 
-    def to_pandas(self) -> "pandas.Period":
+    def to_pandas(self):
         from pandas.tseries.frequencies import to_offset
 
         return to_offset(str(self))
 
     def shift(self, start: np.datetime64, count: int) -> np.datetime64:
         if self.name == "B":
-            return np.busday_offset(data, self.n * count)
+            return np.busday_offset(start, self.n * count)
 
-        return data + self.n * count
+        return start + self.n * count
 
     def range(self, start: np.datetime64, count: int) -> np.datetime64:
         if self.name == "B":
