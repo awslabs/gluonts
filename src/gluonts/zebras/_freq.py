@@ -23,7 +23,7 @@ from gluonts.core import serde
 NpFreq = Tuple[str, int]
 
 
-def _canonical_freqstr(n: int, name: str):
+def _canonical_freqstr(n: int, name: str) -> str:
     """Canonical name of frequency.
 
     >>> _canonical_freqstr("X")
@@ -98,7 +98,7 @@ class Freq:
     n: int
 
     @property
-    def np_freq(self):
+    def np_freq(self) -> NpFreq:
         return _freq_pandas_to_numpy[self.name]
 
     @classmethod
@@ -107,7 +107,7 @@ class Freq:
         yield freq
 
     @classmethod
-    def from_pandas(cls, freq):
+    def from_pandas(cls, freq) -> Freq:
         if not isinstance(freq, str):
             if hasattr(freq, "freqstr"):
                 freq = freq.freqstr
@@ -125,18 +125,18 @@ class Freq:
 
         return cls(name, n)
 
-    def to_pandas(self) -> str:
+    def to_pandas(self) -> "pandas.Period":
         from pandas.tseries.frequencies import to_offset
 
         return to_offset(str(self))
 
-    def shift(self, start, count):
+    def shift(self, start: np.datetime64, count: int) -> np.datetime64:
         if self.name == "B":
             return np.busday_offset(data, self.n * count)
 
         return data + self.n * count
 
-    def range(self, start, count):
+    def range(self, start: np.datetime64, count: int) -> np.datetime64:
         if self.name == "B":
             # We first collect all days, even non business days to then filter
             # for business days, of which we then take, each n-th.
@@ -151,12 +151,12 @@ class Freq:
 
         return np.arange(start, count * step, step)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return _canonical_freqstr(self.n, self.name)
 
 
 @serde.encode.register
-def _encode_freq(v: Freq):
+def _encode_freq(v: Freq) -> dict:
     return {
         "__kind__": "instance",
         "class": "gluonts.zebras.Freq.from_pandas",

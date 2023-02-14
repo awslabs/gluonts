@@ -63,41 +63,41 @@ class _BasePeriod:
     freq: Freq
 
     @property
-    def year(self):
+    def year(self) -> np.ndarray:
         return self.data.astype("M8[Y]").astype(int) + 1970
 
     @property
-    def month(self):
+    def month(self) -> np.ndarray:
         return self.data.astype("M8[M]").astype(int) % 12 + 1
 
     @property
-    def day(self):
+    def day(self) -> np.ndarray:
         return (self.data - self.data.astype("M8[M]")).astype(int) + 1
 
     @property
-    def hour(self):
+    def hour(self) -> np.ndarray:
         return (self.data - self.data.astype("M8[D]")).astype(int)
 
     @property
-    def minute(self):
+    def minute(self) -> np.ndarray:
         return (self.data - self.data.astype("M8[h]")).astype(int)
 
     @property
-    def second(self):
+    def second(self) -> np.ndarray:
         return (self.data - self.data.astype("M8[m]")).astype(int)
 
     @property
-    def dayofweek(self):
+    def dayofweek(self) -> np.ndarray:
         return (self.data.astype("M8[D]").astype(int) - 4) % 7
 
     @property
-    def dayofyear(self):
+    def dayofyear(self) -> np.ndarray:
         return (self.data.astype("M8[D]") - self.data.astype("M8[Y]")).astype(
             int
         ) + 1
 
     @property
-    def week(self):
+    def week(self) -> np.ndarray:
         # Note: In Python 3.9 `isocalendar()` returns a named tuple, but we
         # need to support 3.7 and 3.8, so we use index one for the week.
         return np.array(
@@ -108,13 +108,13 @@ class _BasePeriod:
         )
 
     @property
-    def __init_passed_kwargs__(self):
+    def __init_passed_kwargs__(self) -> dict:
         return asdict(self)
 
-    def to_numpy(self):
+    def to_numpy(self) -> np.datetime64:
         return self.data
 
-    def __array__(self):
+    def __array__(self) -> np.datetime64:
         return self.data
 
     def __add__(self, other):
@@ -153,10 +153,10 @@ class Period(_BasePeriod):
     def to_timestamp(self):
         return self.data.astype(object)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Period<{self.data}, {self.freq}>"
 
-    def __lt__(self, other: Period):
+    def __lt__(self, other: Period) -> bool:
         return self.data < other.data
 
 
