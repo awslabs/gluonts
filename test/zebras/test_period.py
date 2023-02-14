@@ -27,13 +27,13 @@ def test_period_equal_pandas(freq):
     zb_freq = zb.freq(freq)
     pd_freq = to_offset(freq)
 
-    assert to_offset(zb_freq.to_pandas()) == pd_freq
+    assert zb_freq.to_pandas() == pd_freq
 
     freq = "7" + freq
     zb_freq = zb.freq(freq)
     pd_freq = to_offset(freq)
 
-    assert to_offset(zb_freq.to_pandas()) == pd_freq
+    assert zb_freq.to_pandas() == pd_freq
 
 
 @pytest.mark.parametrize("freq", FREQS)
