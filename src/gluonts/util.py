@@ -13,9 +13,6 @@
 
 import tarfile
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
-
-T = TypeVar("T")
 
 
 def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:

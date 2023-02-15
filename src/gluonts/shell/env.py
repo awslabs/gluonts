@@ -20,7 +20,6 @@ from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, ListDataset, MetaData
 from gluonts.model import forecast
-from gluonts.util import safe_extractall
 
 from . import sagemaker
 
