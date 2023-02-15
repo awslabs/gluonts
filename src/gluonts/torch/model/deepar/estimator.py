@@ -13,8 +13,6 @@
 
 from typing import List, Optional, Iterable, Dict, Any
 
-import numpy as np
-
 import torch
 from torch.utils.data import DataLoader
 
@@ -166,7 +164,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_CAT,
                     expected_ndim=1,
-                    dtype=np.long,
+                    dtype=int,
                 ),
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_REAL,

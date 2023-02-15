@@ -11,9 +11,41 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pkg_resources
+import tempfile
+import tarfile
+from pathlib import Path
+from typing import Optional
+
+import pytest
+
+from gluonts.util import will_extractall_into
 
 
-# def test_forecaster_entrypoints():
-#     for entry_point in pkg_resources.iter_entry_points("gluonts_forecasters"):
-#         entry_point.load()
+@pytest.mark.parametrize(
+    "arcname, expect_failure",
+    [
+        (None, False),
+        ("./file.txt", False),
+        ("/a/../file.txt", False),
+        ("/a/../../file.txt", True),
+        ("../file.txt", True),
+    ],
+)
+def test_will_extractall_into(arcname: Optional[str], expect_failure: bool):
+    with tempfile.TemporaryDirectory() as tempdir:
+        file_path = Path(tempdir) / "a" / "file.txt"
+        file_path.parent.mkdir(parents=True)
+        file_path.touch()
+
+        with tarfile.open(Path(tempdir) / "archive.tar.gz", "w:gz") as tar:
+            tar.add(file_path, arcname=arcname)
+
+        if expect_failure:
+            with pytest.raises(PermissionError):
+                with tarfile.open(
+                    Path(tempdir) / "archive.tar.gz", "r:gz"
+                ) as tar:
+                    will_extractall_into(tar, Path(tempdir) / "b")
+        else:
+            with tarfile.open(Path(tempdir) / "archive.tar.gz", "r:gz") as tar:
+                will_extractall_into(tar, Path(tempdir) / "b")
