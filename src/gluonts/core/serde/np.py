@@ -45,6 +45,15 @@ def encode_np_ndarray(v: np.ndarray) -> Any:
     }
 
 
+@encode.register
+def encode_np_datetime64(v: np.datetime64) -> Any:
+    return {
+        "__kind__": Kind.Instance,
+        "class": "numpy.datetime64",
+        "args": encode([v.astype(int), np.datetime_data(v)]),
+    }
+
+
 @encode.register(np.inexact)
 def encode_np_inexact(v: np.inexact):
     return float(v)
