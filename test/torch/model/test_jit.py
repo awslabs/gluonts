@@ -19,44 +19,41 @@ from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.tft import TemporalFusionTransformerModel
 
 
-def get_model_and_input(model):
-    return model, tuple(
-        [
-            torch.zeros(shape, dtype=model.input_types()[name])
-            for (name, shape) in model.input_shapes().items()
-        ]
-    )
-
-
 @pytest.mark.parametrize(
-    "model, input",
+    "model",
     [
-        get_model_and_input(
-            DeepARModel(
-                freq="1H",
-                context_length=10,
-                prediction_length=3,
-                num_feat_dynamic_real=1,
-                num_feat_static_real=1,
-                num_feat_static_cat=1,
-                cardinality=[2],
-                scaling=True,
-            )
+        DeepARModel(
+            freq="1H",
+            context_length=10,
+            prediction_length=3,
+            num_feat_dynamic_real=1,
+            num_feat_static_real=1,
+            num_feat_static_cat=1,
+            cardinality=[2],
+            scaling=True,
         ),
-        get_model_and_input(
-            TemporalFusionTransformerModel(
-                context_length=10,
-                prediction_length=3,
-            )
+        TemporalFusionTransformerModel(
+            context_length=10,
+            prediction_length=3,
+            c_feat_dynamic_cat=[2],
+            c_feat_static_cat=[2],
+            c_past_feat_dynamic_cat=[2],
         ),
     ],
 )
-def test_jit_trace(model, input):
-    torch.manual_seed(0)
-    output_1 = model(*input)
-    script_module = torch.jit.trace(model, input)
+def test_jit_trace(model):
+    zeros_input = tuple(
+        torch.zeros(shape, dtype=model.input_types()[name])
+        for (name, shape) in model.input_shapes().items()
+    )
+    script_module = torch.jit.trace(model, zeros_input)
+
+    ones_input = tuple(torch.ones_like(x) for x in zeros_input)
 
     torch.manual_seed(0)
-    output_2 = script_module(*input)
+    output_1 = model(*ones_input)
+
+    torch.manual_seed(0)
+    output_2 = script_module(*ones_input)
 
     assert (output_1 == output_2).all()
