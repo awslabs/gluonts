@@ -15,7 +15,7 @@ import torch
 import numpy as np
 import pytest
 
-from gluonts.torch.modules import scaler
+from gluonts.torch import scaler
 
 test_cases = [
     (
@@ -38,7 +38,7 @@ test_cases = [
                 [0.0] * 50,
             ]
         ),
-        torch.Tensor([1.0, 3.0, 1.5, 1e-10, 1.00396824]).unsqueeze(1),
+        torch.Tensor([1.0, 3.0, 1.5, 1e-10, 1.00396824]),
     ),
     (
         scaler.MeanScaler(default_scale=0.5),
@@ -60,10 +60,10 @@ test_cases = [
                 [0.0] * 50,
             ]
         ),
-        torch.Tensor([0.5, 3.0, 1.5, 1e-10, 0.5]).unsqueeze(1),
+        torch.Tensor([0.5, 3.0, 1.5, 1e-10, 0.5]),
     ),
     (
-        scaler.MeanScaler(keepdim=False),
+        scaler.MeanScaler(keepdim=True),
         torch.Tensor(
             [
                 [1.0] * 50,
@@ -82,7 +82,7 @@ test_cases = [
                 [0.0] * 50,
             ]
         ),
-        torch.Tensor([1.0, 3.0, 1.5, 1e-10, 1.00396824]),
+        torch.Tensor([1.0, 3.0, 1.5, 1e-10, 1.00396824]).unsqueeze(1),
     ),
     (
         scaler.MeanScaler(),
@@ -102,13 +102,13 @@ test_cases = [
                 [1.0] * 10 + [0.0] * 30 + [1.0] * 10,
             ]
         ),
-        torch.Tensor([135.0, 32.0, 73.00454712, 2.5e-2]).unsqueeze(1),
+        torch.Tensor([135.0, 32.0, 73.00454712, 2.5e-2]),
     ),
     (
         scaler.MeanScaler(),
         torch.randn(size=(5, 30)),
         torch.zeros(size=(5, 30)),
-        1e-10 * torch.ones(size=(5, 1)),
+        1e-10 * torch.ones(size=(5,)),
     ),
 ]
 
@@ -165,27 +165,3 @@ def test_nopscaler(target, observed):
     assert torch.allclose(torch.zeros(target.shape[:-1]), loc)
     assert torch.allclose(target, target_scaled)
     assert torch.allclose(torch.ones(target.shape[:-1]), scale)
-
-
-if __name__ == "__main__":
-    s = scaler.MeanScaler()
-    target = torch.Tensor(
-        [
-            [1.0] * 50,
-            [0.0] * 25 + [3.0] * 25,
-            [2.0] * 49 + [1.5] * 1,
-            [0.0] * 50,
-            [1.0] * 50,
-        ]
-    )
-    observed = torch.Tensor(
-        [
-            [1.0] * 50,
-            [0.0] * 25 + [1.0] * 25,
-            [0.0] * 49 + [1.0] * 1,
-            [1.0] * 50,
-            [0.0] * 50,
-        ]
-    )
-    expected = torch.Tensor([1.0, 3.0, 1.5, 1.00396824, 1.00396824])
-    s(target, observed)
