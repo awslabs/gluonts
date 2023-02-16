@@ -17,6 +17,14 @@ import torch
 
 from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.tft import TemporalFusionTransformerModel
+from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
+
+
+def all_equal(obj1, obj2):
+    if isinstance(obj1, tuple):
+        return all(all_equal(el1, el2) for el1, el2 in zip(obj1, obj2))
+    assert isinstance(obj1, torch.Tensor)
+    return (obj1 == obj2).all()
 
 
 @pytest.mark.parametrize(
@@ -39,6 +47,10 @@ from gluonts.torch.model.tft import TemporalFusionTransformerModel
             c_feat_static_cat=[2],
             c_past_feat_dynamic_cat=[2],
         ),
+        SimpleFeedForwardModel(
+            context_length=10,
+            prediction_length=3,
+        ),
     ],
 )
 def test_jit_trace(model):
@@ -56,4 +68,4 @@ def test_jit_trace(model):
     torch.manual_seed(0)
     output_2 = script_module(*ones_input)
 
-    assert (output_1 == output_2).all()
+    assert all_equal(output_1, output_2)
