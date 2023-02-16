@@ -29,7 +29,8 @@ def get_model_and_input(model):
 
 
 @pytest.mark.parametrize(
-    "model, input", [
+    "model, input",
+    [
         get_model_and_input(
             DeepARModel(
                 freq="1H",
@@ -48,7 +49,7 @@ def get_model_and_input(model):
                 prediction_length=3,
             )
         ),
-    ]
+    ],
 )
 def test_jit_trace(model, input):
     torch.manual_seed(0)
