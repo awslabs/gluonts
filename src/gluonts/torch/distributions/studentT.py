@@ -38,10 +38,7 @@ class StudentT(TorchStudentT):
         super().__init__(
             df=df, loc=loc, scale=scale, validate_args=validate_args
         )
-        df = self.df.detach().cpu().numpy()
-        loc = self.loc.detach().cpu().numpy()
-        scale = self.scale.detach().cpu().numpy()
-        self.scipy_student_t = ScipyStudentT(df=df, loc=loc, scale=scale)
+        self._scipy_student_t = None
 
     def cdf(self, value: torch.Tensor) -> torch.Tensor:
         if self._validate_args:
@@ -52,6 +49,16 @@ class StudentT(TorchStudentT):
     def icdf(self, value: torch.Tensor) -> torch.Tensor:
         result = self.scipy_student_t.ppf(value.detach().cpu().numpy())
         return torch.tensor(result, device=value.device, dtype=value.dtype)
+
+    @property
+    def scipy_student_t(self):
+        if self._scipy_student_t is None:
+            self._scipy_student_t = ScipyStudentT(
+                df=self.df.detach().cpu().numpy(),
+                loc=self.loc.detach().cpu().numpy(),
+                scale=self.scale.detach().cpu().numpy(),
+            )
+        return self._scipy_student_t
 
 
 class StudentTOutput(DistributionOutput):
