@@ -151,7 +151,9 @@ class PandasDataset:
             df = df.to_frame(name=self.target)
 
         if self.timestamp:
-            df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
+            df.index = pd.DatetimeIndex(df[self.timestamp]).to_period(
+                freq=self.freq
+            )
 
         if not isinstance(df.index, pd.PeriodIndex):
             df = df.to_period(freq=self.freq)
