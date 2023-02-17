@@ -138,14 +138,6 @@ def lagged_sequence_values(
     return torch.stack(lags_values, dim=-1)
 
 
-class IterableDataset(torch.utils.data.IterableDataset):
-    def __init__(self, iterable):
-        self.iterable = iterable
-
-    def __iter__(self):
-        yield from self.iterable
-
-
 def repeat_along_dim(a: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:
     """
     Repeat a tensor along a given dimension, using ``torch.repeat`` internally.

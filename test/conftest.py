@@ -57,6 +57,7 @@ def sine7():
         seq_length: int = 100,
         prediction_length: int = 10,
         nonnegative: bool = False,
+        bias: float = 0,
     ):
         x = np.arange(0, seq_length)
 
@@ -70,7 +71,7 @@ def sine7():
             if i == 3:
                 np.random.seed(0)
                 omega = np.random.uniform(0, np.pi)  # random phase shift
-            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
+            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega) + bias
 
         if nonnegative:
             b = abs(b)
