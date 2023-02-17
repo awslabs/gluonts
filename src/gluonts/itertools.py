@@ -26,8 +26,9 @@ from typing import (
     Sequence,
     Tuple,
 )
-
 from typing_extensions import Protocol, runtime_checkable
+
+from toolz import curry
 
 
 @runtime_checkable
@@ -371,3 +372,16 @@ def inverse(dct: Dict[K, V]) -> Dict[V, K]:
     Inverse a dictionary; keys become values and values become keys.
     """
     return {value: key for key, value in dct.items()}
+
+
+_no_default = object()
+
+
+@curry
+def pluck_attr(seq, name, default=_no_default):
+    """Get attribute ``name`` from elements in ``seq``."""
+
+    if default is _no_default:
+        return [getattr(el, name) for el in seq]
+
+    return [getattr(el, name, default) for el in seq]

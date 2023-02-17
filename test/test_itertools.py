@@ -14,6 +14,7 @@
 import itertools
 import pickle
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
@@ -31,6 +32,7 @@ from gluonts.itertools import (
     rows_to_columns,
     columns_to_rows,
     select,
+    pluck_attr,
     Map,
     StarMap,
     Filter,
@@ -157,3 +159,39 @@ def test_filter():
     applied = Filter(lambda n: n <= 2, data)
 
     assert list(applied) == [1, 2]
+
+
+def test_pluck_attr():
+    @dataclass
+    class X:
+        a: int
+        b: int
+
+    xs = [X(1, 2), X(3, 4)]
+
+    assert pluck_attr(xs, "a") == [1, 3]
+    assert pluck_attr(xs, "b") == [2, 4]
+
+    with pytest.raises(AttributeError):
+        assert pluck_attr(xs, "c")
+
+    assert pluck_attr(xs, "c", 4) == [4, 4]
+
+
+def test_pluck_attr_curry():
+    @dataclass
+    class X:
+        a: int
+        b: int
+
+    xs = [X(1, 2), X(3, 4)]
+
+    get = pluck_attr(xs)
+
+    assert get("a") == [1, 3]
+    assert get("b") == [2, 4]
+
+    with pytest.raises(AttributeError):
+        assert get("c")
+
+    assert get("c", 4) == [4, 4]
