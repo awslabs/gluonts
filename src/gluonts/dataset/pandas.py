@@ -189,7 +189,11 @@ class PandasDataset:
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls,
+        dataframe: pd.DataFrame,
+        item_id: str,
+        timestamp: Optional[str] = None,
+        **kwargs,
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe. A long dataframe
@@ -213,6 +217,9 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
+        if timestamp is not None:
+            dataframe.index = pd.to_datetime(dataframe[timestamp])
+
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)
