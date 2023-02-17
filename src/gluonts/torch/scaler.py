@@ -12,14 +12,21 @@
 # permissions and limitations under the License.
 
 from __future__ import annotations
+from typing import Optional
 
 import torch
-import torch.nn as nn
 
 from gluonts.core.component import validated
 
 
-class MeanScaler(nn.Module):
+class Scaler:
+    def __call__(
+        self, data: torch.Tensor, observed_indicator: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        raise NotImplementedError
+
+
+class MeanScaler(Scaler):
     """
     Computes a scaling factor as the weighted average absolute value along
     dimension ``dim``, and scales the data accordingly.
@@ -41,17 +48,16 @@ class MeanScaler(nn.Module):
     def __init__(
         self,
         dim: int = -1,
-        keepdim: bool = True,
-        default_scale: float = 0.0,
+        keepdim: bool = False,
+        default_scale: Optional[float] = None,
         minimum_scale: float = 1e-10,
-    ):
-        super().__init__()
+    ) -> None:
         self.dim = dim
         self.keepdim = keepdim
-        self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
-        self.register_buffer("default_scale", torch.tensor(default_scale))
+        self.default_scale = default_scale
+        self.minimum_scale = minimum_scale
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # shape: (N, [C], T=1)
@@ -60,21 +66,14 @@ class MeanScaler(nn.Module):
 
         scale = ts_sum / torch.clamp(num_observed, min=1)
 
-        # Set default_scale for time-series which are all zeros.
         # If `default_scale` is provided, we use it, otherwise we use the scale
         # of the batch.
-        # Note: We want to support tracing and to remove branching we we always
-        # calculate the batch_scale. Also, using `where` allows us to set
-        # values conditionally.
-        batch_sum = ts_sum.sum(dim=0)
-        batch_observations = torch.clamp(num_observed.sum(0), min=1)
-        batch_scale = torch.squeeze(batch_sum / batch_observations)
-
-        default_scale = torch.where(
-            self.default_scale > 0.0,
-            self.default_scale,
-            batch_scale,
-        )
+        if self.default_scale is None:
+            batch_sum = ts_sum.sum(dim=0)
+            batch_observations = torch.clamp(num_observed.sum(0), min=1)
+            default_scale = torch.squeeze(batch_sum / batch_observations)
+        else:
+            default_scale = self.default_scale * torch.ones_like(scale)
 
         # apply default scale where there are no observations
         scale = torch.where(
@@ -96,7 +95,7 @@ class MeanScaler(nn.Module):
         return scaled_data, loc, scale
 
 
-class NOPScaler(nn.Module):
+class NOPScaler(Scaler):
     """
     Assigns a scaling factor equal to 1 along dimension ``dim``, and therefore
     applies no scaling to the input data.
@@ -111,12 +110,15 @@ class NOPScaler(nn.Module):
     """
 
     @validated()
-    def __init__(self, dim: int = -1, keepdim: bool = False):
-        super().__init__()
+    def __init__(
+        self,
+        dim: int = -1,
+        keepdim: bool = False,
+    ) -> None:
         self.dim = dim
         self.keepdim = keepdim
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         scale = torch.ones_like(data).mean(
@@ -127,7 +129,7 @@ class NOPScaler(nn.Module):
         return data, loc, scale
 
 
-class StdScaler(nn.Module):
+class StdScaler(Scaler):
     """
     Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
 
@@ -145,18 +147,16 @@ class StdScaler(nn.Module):
 
     @validated()
     def __init__(
-        self, dim: int = -1, keepdim: bool = False, minimum_scale: float = 1e-5
-    ):
-        super().__init__()
-        assert dim > 0, (
-            "Cannot compute scale along dim = 0 (batch dimension), please"
-            " provide dim > 0"
-        )
+        self,
+        dim: int = -1,
+        keepdim: bool = False,
+        minimum_scale: float = 1e-5,
+    ) -> None:
         self.dim = dim
         self.keepdim = keepdim
-        self.register_buffer("minimum_scale", torch.tensor(minimum_scale))
+        self.minimum_scale = minimum_scale
 
-    def forward(
+    def __call__(
         self, data: torch.Tensor, weights: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         assert (

@@ -22,7 +22,7 @@ from gluonts.torch.distributions import (
     DistributionOutput,
     StudentTOutput,
 )
-from gluonts.torch.modules.scaler import MeanScaler, NOPScaler
+from gluonts.torch.scaler import Scaler, MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import (
@@ -138,7 +138,9 @@ class DeepARModel(nn.Module):
             embedding_dims=self.embedding_dimension,
         )
         if scaling:
-            self.scaler = MeanScaler(default_scale=default_scale)
+            self.scaler: Scaler = MeanScaler(
+                dim=-1, keepdim=True, default_scale=default_scale
+            )
         else:
             self.scaler = NOPScaler(dim=-1, keepdim=True)
         self.rnn_input_size = len(self.lags_seq) + self._number_of_features

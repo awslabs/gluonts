@@ -1,4 +1,4 @@
-name: StatsForecast tests
+name: Nixtla tests
 
 on: [push, pull_request]
 
@@ -25,6 +25,8 @@ jobs:
         pip install .
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-statsforecast.txt
+        pip install -r requirements/requirements-extras-hierarchicalforecast.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules test/ext/statsforecast
+        pytest -n2 --doctest-modules test/ext/hierarchicalforecast

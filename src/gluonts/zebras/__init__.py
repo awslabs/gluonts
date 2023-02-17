@@ -11,6 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._predictor import ModelConfig, HierarchicalForecastPredictor
+__all__ = [
+    "Freq",
+    "freq",
+    "Period",
+    "Periods",
+    "period",
+    "periods",
+]
 
-__all__ = ["ModelConfig", "HierarchicalForecastPredictor"]
+from ._freq import Freq, freq
+from ._period import period, Period, periods, Periods
