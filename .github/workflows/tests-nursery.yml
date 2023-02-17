@@ -13,6 +13,8 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
+    if: contains(github.event.pull_request.labels.*.name, 'pr:test-nursery')
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}

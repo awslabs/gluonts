@@ -72,6 +72,9 @@ dataset_recipes = {
     "solar_nips": partial(
         generate_gp_copula_dataset, dataset_name="solar_nips"
     ),
+    "wiki2000_nips": partial(
+        generate_gp_copula_dataset, dataset_name="wiki2000_nips"
+    ),
     "wiki-rolling_nips": partial(
         generate_gp_copula_dataset, dataset_name="wiki-rolling_nips"
     ),
