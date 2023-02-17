@@ -54,7 +54,7 @@ def test_custom_studentt_icdf(df, loc, scale, value):
     torch_dist = StudentT(df=df, loc=loc, scale=scale)
     scipy_dist = torch_dist.scipy_student_t
 
-    torch_cdf = torch_dist.icdf(torch.as_tensor(value))
-    scipy_cdf = scipy_dist.ppf(np.asarray(value))
+    torch_icdf = torch_dist.icdf(torch.as_tensor(value))
+    scipy_icdf = scipy_dist.ppf(np.asarray(value))
 
-    assert np.allclose(torch_cdf, scipy_cdf)
+    assert np.allclose(torch_icdf, scipy_icdf)
