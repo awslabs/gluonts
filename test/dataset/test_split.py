@@ -95,6 +95,21 @@ def test_time_series_slice():
             pd.Period("2021-01-01 11", "2H"),
             6,
         ),
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-02", freq="2D"),
+            0,
+        ),
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-04", freq="2D"),
+            1,
+        ),
+        (
+            pd.Period("2021-03-03 23:00", freq="30T"),
+            pd.Period("2021-03-03 03:29", freq="30T"),
+            0,
+        ),
     ],
 )
 def test_periods_between(start, end, count):
