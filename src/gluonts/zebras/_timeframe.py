@@ -1,22 +1,85 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 from __future__ import annotations
 
 import copy
-import functools
 import dataclasses
-from operator import methodcaller
-from typing import Optional, List
+from typing import Optional, List, NamedTuple
 
 import numpy as np
-from toolz import first, valmap, dissoc
+from toolz import first, valmap, dissoc, merge
 
 from gluonts import maybe
-from gluonts.itertools import rows_to_columns, pluck_attr
+from gluonts.itertools import pluck_attr
 
-from ._period import Period, Periods
-from ._util import pad_axis
+from ._period import Periods, Period, period
+from ._repr import html_table
+from ._util import AxisView, pad_axis
 
 
-def replace(obj, **kwargs):
+class Pad(NamedTuple):
+    left: int = 0
+    right: int = 0
+
+
+@dataclasses.dataclass
+class IndexView:
+    tf: TimeFrame
+
+    def __getitem__(self, idx):
+        if isinstance(idx, int):
+            idx = slice(idx, idx + 1)
+
+        assert isinstance(idx, slice)
+        left, right, step = idx.indices(len(self.tf))
+        assert step == 1
+
+        pad_left = max(0, self.tf._pad.left - left)
+        pad_right = max(0, self.tf._pad.right - right)
+
+        index = maybe.map(self.tf.index, lambda index: index[idx])
+        columns = {
+            column: self.tf.vt(column)[idx] for column in self.tf.columns
+        }
+
+        return _replace(
+            self.tf,
+            index=index,
+            columns=columns,
+            length=right - left,
+            _pad=Pad(pad_left, pad_right),
+        )
+
+
+@dataclasses.dataclass
+class TimeView:
+    tf: TimeFrame
+
+    def __getitem__(self, idx):
+        if isinstance(idx, Period):
+            idx = slice(idx, idx + 1)
+
+        assert isinstance(idx, slice)
+        assert idx.step is None or idx.step == 1
+
+        start = maybe.map(idx.start, self.tf.index_of)
+        stop = maybe.map(idx.stop, self.tf.index_of)
+
+        return IndexView(self.tf)[start:stop]
+
+
+def _replace(obj, **kwargs):
     """Copy and replace dataclass instance.
 
     Compared to ``dataclasses.replace`` this first creates a copy where each
@@ -31,41 +94,24 @@ def replace(obj, **kwargs):
 
 
 @dataclasses.dataclass
-class AxisView:
-    data: np.ndarray
-    axis: int
-
-    def __len__(self):
-        return self.data.shape[self.axis]
-
-    def __getitem__(self, index):
-        slices = [slice(None)] * self.data.ndim
-        slices[self.axis] = index
-
-        return self.data[tuple(slices)]
-
-
-@dataclasses.dataclass
 class TimeFrame:
     columns: dict
     index: Optional[Periods]
-    length: int
     static: dict
+    length: int
     tdims: dict
     metadata: Optional[dict] = None
     default_tdim: int = -1
-    _pad: Tuple[int, int] = (0, 0)
+    _pad: Pad = Pad()
 
     def __post_init__(self):
         for column in self.columns:
             self.tdims.setdefault(column, self.default_tdim)
 
-        dims = np.array(
-            [
-                self.columns[column].shape[self.tdims[column]]
-                for column in self.columns
-            ]
-        )
+        for column in self.columns:
+            assert len(self.vt(column)) == self.length
+
+        assert maybe.map_or(self.index, len, self.length) == self.length
 
     @property
     def start(self):
@@ -84,36 +130,26 @@ class TimeFrame:
 
         return self[-count:]
 
-    def _cv(self, column):
+    def vt(self, column):
+        """View of column with respect to time."""
+
         return AxisView(self.columns[column], self.tdims[column])
 
-    def __getitem__(self, idx):
-        if isinstance(idx, str):
-            return self.c(idx)
+    @property
+    def tx(self):
+        return TimeView(self)
 
-        if isinstance(idx, int):
-            return {column: self._cv(column)[idx] for column in self.columns}
+    @property
+    def ix(self):
+        return IndexView(self)
 
-        start, stop, step = idx.indices(len(self))
-        assert step == 1
-
-        columns = {column: self._cv(column)[idx] for column in self.columns}
-
-        return TimeFrame(
-            columns=columns,
-            index=maybe.map(self.index, methodcaller("__getitem__", idx)),
-            static=self.static,
-            tdims=self.tdims,
-            default_tdim=self.default_tdim,
-            length=stop - start,
-            metadata=self.metadata,
-        )
+    def __getitem__(self, col: str):
+        return self.columns[col]
 
     def pad(self, value, left=0, right=0):
         assert left >= 0 and right >= 0
-        result = self.copy()
 
-        result.columns = {
+        columns = {
             column: pad_axis(
                 self.columns[column],
                 axis=self.tdims[column],
@@ -123,38 +159,33 @@ class TimeFrame:
             )
             for column in self.columns
         }
-        result.length += left + right
+        length = self.length + left + right
+        pad_left = left + self._pad.left
+        pad_right = right + self._pad.right
 
-        result._pad = (left + self._pad[0], right + self._pad[1])
+        index = self.index
+        if index is not None:
+            index = self.index.prepend(left).extend(right)
 
-        if self.index is not None:
-            result.index = self.index.prepend(left).extend(right)
-
-        return result
-        assert (dims == self.length).all(), (dims, self.length)
-        assert self.index is None or len(self.index) == self.length
-
-    def like(self, columns=None, static=None, tdims=None):
-        columns = maybe.unwrap_or(columns, {})
-        static = maybe.unwrap_or(static, {})
-        tdims = maybe.unwrap_or(tdims, {})
-
-        return TimeFrame(
+        return _replace(
+            self,
             columns=columns,
-            index=self.index,
-            static=static,
-            tdims=tdims,
-            default_tdim=self.default_tdim,
-            length=self.length,
-            metadata=self.metadata,
-            _pad=self._pad,
+            index=index,
+            length=length,
+            _pad=(pad_left, pad_right),
         )
 
+    def index_of(self, period: Period):
+        assert self.index is not None
+
+        return self.index.index_of(period)
+
     def astype(self, type):
-        result = self.copy()
-        result.columns = valmap(type, self.columns)
-        result.static = valmap(type, self.static)
-        return result
+        return _replace(
+            self,
+            columns=valmap(type, self.columns),
+            static=valmap(type, self.static),
+        )
 
     def __len__(self):
         return self.length
@@ -164,97 +195,55 @@ class TimeFrame:
         return f"TimeFrame<size={len(self)}, columns=[{columns}]>"
 
     def _repr_html_(self):
-        def tag(name, data):
-            return f"<{name}>{data}</{name}>"
-
-        th = functools.partial(tag, "th")
-        td = functools.partial(tag, "td")
-        tr = functools.partial(tag, "tr")
+        columns = {}
 
         if self.index is not None:
-            index_th = [""]
-        else:
-            index_th = []
+            columns[""] = pluck_attr(self.index, "data")
 
-        thead = " ".join(list(map(th, index_th + list(self.columns))))
+        columns.update(self.columns)
 
-        rows = []
-        for idx in range(len(self)):
-            if self.index is not None:
-                index_td = [td(self.index[idx].data)]
-            else:
-                index_td = []
+        table = html_table(columns)
+        return table + f"{len(self)} rows × {len(self.columns)} columns"
 
-            rows.append(
-                tr(" ".join(index_td + list(map(td, self[idx].values()))))
-            )
-
-        return f"""
-        <table>
-            <thead>
-                {thead}
-            </thead>
-            <tbody>
-                {''.join(rows)}
-            </tbody>
-        </table>
-
-        {len(self)} rows × {len(self.columns)} columns
-        """
-
-    def set(self, name, value, tdim=None, replace=False):
-        assert replace or name not in self.columns
-
+    def set(self, name, value, tdim=None):
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
-        view = AxisView(value, tdim)
-        assert len(view) == len(self)
 
-        result = self.copy()
-
-        result.columns[name] = value
-        result.tdims[name] = tdim
-
-        return result
+        return _replace(
+            columns=merge(self.columns, {name: value}),
+            tdims=merge(self.tdims, {name: tdim}),
+        )
 
     def remove(self, column):
-        result = self.copy()
-        result.columns.pop(column)
-        result.tdims.pop(column, None)
-
-        return result
+        return _replace(
+            self,
+            columns=dissoc(self.columns, column),
+            tdims=dissoc(self.tdims, column),
+        )
 
     def stack(
         self,
         columns: List[str],
         into: str,
         drop: bool = True,
-        replace: bool = False,
     ) -> TimeFrame:
-        assert replace or into not in self.columns
-
+        # Ensure all tdims are the same.
+        # TODO: Can we make that work for different tdims? There might be a
+        # problem with what the resulting dimensions are.
         assert len(set([self.tdims[column] for column in columns])) == 1
 
-        result = self.copy()
-
         if drop:
-            result.columns = dissoc(result.columns, *columns)
-            result.tdims = dissoc(result.tdims, *columns)
+            columns = dissoc(self.columns, *columns)
+            tdims = dissoc(self.tdims, *columns)
+        else:
+            columns = self.columns
+            tdims = self.tdims
 
-        return result.set(
-            into,
-            np.vstack([self.columns[column] for column in columns]),
-            replace=True,
-        )
+        columns[into] = np.vstack([self.columns[column] for column in columns])
 
-    def set_like(self, ref, name, data, tdim=-1, replace=False):
-        return self.set(name, data, tdim, replace)
+        return _replace(self, columns=columns, tdims=tdims)
 
-    def c(self, name):
-        return self.columns[name]
-
-    def reindex(self, index):
-        assert len(index) == len(self)
-        self.index = index
+    def with_index(self, index):
+        return _replace(self, index=index)
 
     def as_dict(self, prefix=None, pad=None, static=True):
         result = dict(self.columns)
@@ -270,30 +259,12 @@ class TimeFrame:
 
         return result
 
-    def cat(self, other):
-        assert self.columns.keys() == other.columns.keys()
-        assert self.tdims == other.tdims
-        assert maybe.xor(self.index, other.index) is None
-
-        copy = self.copy()
-        copy.length += len(other)
-        copy.columns = {
-            column: np.concatenate(
-                [self.columns[column], other.columns[column]],
-                axis=self.tdims[column],
-            )
-            for column in self.columns
-        }
-        if self.index is not None:
-            copy.index = np.concatenate([self.index, other.index])
-
-        return copy
-
 
 def time_frame(
     columns=None,
     index=None,
     start=None,
+    freq=None,
     static=None,
     tdims=None,
     length=None,
@@ -326,6 +297,9 @@ def time_frame(
         metadata=metadata,
     )
     if tf.index is None and start is not None:
-        tf.reindex(start.periods(len(tf)))
+        if freq is not None:
+            start = period(start, freq)
+
+        return tf.with_index(start.periods(len(tf)))
 
     return tf
