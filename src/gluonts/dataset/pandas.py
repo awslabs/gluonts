@@ -151,7 +151,9 @@ class PandasDataset:
             df = df.to_frame(name=self.target)
 
         if self.timestamp:
-            df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
+            df.index = pd.DatetimeIndex(df[self.timestamp]).to_period(
+                freq=self.freq
+            )
 
         if not isinstance(df.index, pd.PeriodIndex):
             df = df.to_period(freq=self.freq)
@@ -222,6 +224,7 @@ class PandasDataset:
         cls,
         dataframe: pd.DataFrame,
         item_id: str,
+        timestamp: Optional[str] = None,
         static_feature_columns: Optional[list[str]] = None,
         static_features: pd.DataFrame = pd.DataFrame(),
         **kwargs,
@@ -259,6 +262,9 @@ class PandasDataset:
         PandasDataset
             Dataset containing series data from the given long dataframe.
         """
+        if timestamp is not None:
+            dataframe.index = pd.to_datetime(dataframe[timestamp])
+
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
 
