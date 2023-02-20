@@ -138,7 +138,9 @@ class PandasDataset:
             df = df.to_frame(name=self.target)
 
         if self.timestamp:
-            df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
+            df.index = pd.DatetimeIndex(df[self.timestamp]).to_period(
+                freq=self.freq
+            )
 
         if not self.assume_sorted:
             df.sort_index(inplace=True)
@@ -187,7 +189,11 @@ class PandasDataset:
 
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls,
+        dataframe: pd.DataFrame,
+        item_id: str,
+        timestamp: Optional[str] = None,
+        **kwargs,
     ) -> "PandasDataset":
         """
         Construct ``PandasDataset`` out of a long dataframe. A long dataframe
@@ -211,6 +217,9 @@ class PandasDataset:
         PandasDataset
             Gluonts dataset based on ``pandas.DataFrame``s.
         """
+        if timestamp is not None:
+            dataframe.index = pd.to_datetime(dataframe[timestamp])
+
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
         return cls(dataframes=dataframe.groupby(item_id), **kwargs)

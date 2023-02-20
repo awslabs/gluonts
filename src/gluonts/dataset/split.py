@@ -101,6 +101,8 @@ def periods_between(
         >>> periods_between(start, end)
         9
     """
+    if start > end:
+        return 0
     return ((end - start).n // start.freq.n) + 1
 
 
