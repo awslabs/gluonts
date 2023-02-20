@@ -44,21 +44,22 @@ else:
 
 USAGE_MESSAGE = """
 The RForecastPredictor is a thin wrapper for calling the R forecast package.
-In order to use it you need to install R and run
+In order to use it you need to install R and rpy2. You also need to install \
+specific R packages for univariate and/or hierarchical methods.
 
-pip install 'rpy2>=2.9.*,<3.*'
-
+For univariate methods, install:
 R -e 'install.packages(c("forecast", "nnfor"),\
 repos="https://cloud.r-project.org")'
+
+For hierarchical methods, install:
+R -e 'install.packages(c("hts"), repos="https://cloud.r-project.org")'
 """
 
 
 class RBasePredictor(RepresentablePredictor):
     """
     The `RBasePredictor` is a thin wrapper for calling R packages.
-    In order to use it you need to install R and run::
-
-        pip install 'rpy2>=2.9.*,<3.*'
+    In order to use it you need to install R and rpy2.
 
     Note that specific R packages need to be installed, depending
     on which wrapper one needs to run.
