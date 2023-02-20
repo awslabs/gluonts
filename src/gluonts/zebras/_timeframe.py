@@ -115,20 +115,20 @@ class TimeFrame:
 
     @property
     def start(self):
-        return self[0]
+        return self.ix[0]
 
     @property
     def end(self):
-        return self[-1]
+        return self.ix[-1]
 
     def head(self, count: int) -> Periods:
-        return self[:count]
+        return self.ix[:count]
 
     def tail(self, count: int) -> Periods:
         if count is None:
             return self
 
-        return self[-count:]
+        return self.ix[-count:]
 
     def vt(self, column):
         """View of column with respect to time."""
