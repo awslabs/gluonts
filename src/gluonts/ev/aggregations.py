@@ -19,7 +19,11 @@ import numpy as np
 
 @dataclass
 class Aggregation:
-    axis: Optional[int] = None
+    axis: Optional[Union[int, tuple]] = None
+
+    def __post_init__(self):
+        if isinstance(self.axis, int):
+            self.axis = (self.axis,)
 
     def step(self, values: np.ndarray) -> None:
         raise NotImplementedError
@@ -46,7 +50,7 @@ class Sum(Aggregation):
     def step(self, values: np.ndarray) -> None:
         summed_values = np.ma.sum(values, axis=self.axis)
 
-        if self.axis is None or self.axis == 0:
+        if self.axis is None or 0 in self.axis:
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
             self.partial_result += summed_values
@@ -56,7 +60,7 @@ class Sum(Aggregation):
             self.partial_result.append(summed_values)
 
     def get(self) -> np.ndarray:
-        if self.axis is None or self.axis == 0:
+        if self.axis is None or 0 in self.axis:
             return np.ma.copy(self.partial_result)
 
         return np.ma.concatenate(self.partial_result)
@@ -81,14 +85,14 @@ class Mean(Aggregation):
     n: Optional[Union[int, np.ndarray]] = None
 
     def step(self, values: np.ndarray) -> None:
-        if self.axis is None or self.axis == 0:
+        if self.axis is None or 0 in self.axis:
             summed_values = np.ma.sum(values, axis=self.axis)
             if self.partial_result is None:
                 self.partial_result = np.zeros(summed_values.shape)
                 if self.axis is None:
                     self.n = 0
                 else:
-                    self.n = np.zeros(values.shape[1:])
+                    self.n = np.zeros(summed_values.shape)
 
             self.partial_result += summed_values
             self.n += np.ma.count(values, axis=self.axis)
@@ -100,7 +104,7 @@ class Mean(Aggregation):
             self.partial_result.append(mean_values)
 
     def get(self) -> np.ndarray:
-        if self.axis is None or self.axis == 0:
+        if self.axis is None or 0 in self.axis:
             return self.partial_result / self.n
 
         return np.ma.concatenate(self.partial_result)
