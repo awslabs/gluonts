@@ -100,12 +100,8 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
         np.testing.assert_almost_equal(mean.get(), expected_result)
 
 
-@pytest.mark.parametrize(
-    "shape", [(4, 9, 5, 2)]
-)
-@pytest.mark.parametrize(
-    "axis", [None] + list(power_set([0, 1, 2, 3]))
-)
+@pytest.mark.parametrize("shape", [(4, 9, 5, 2)])
+@pytest.mark.parametrize("axis", [None] + list(power_set([0, 1, 2, 3])))
 def test_high_dim(shape: tuple, axis):
     batch_count = 3
 
