@@ -273,23 +273,26 @@ class TimeFrame:
 
     def stack(
         self,
-        columns: List[str],
+        select: List[str],
         into: str,
         drop: bool = True,
     ) -> TimeFrame:
         # Ensure all tdims are the same.
         # TODO: Can we make that work for different tdims? There might be a
         # problem with what the resulting dimensions are.
-        assert len(set([self.tdims[column] for column in columns])) == 1
+        tdims = set([self.tdims[column] for column in select])
+        assert len(tdims) == 1
+        tdim = first(tdims)
 
         if drop:
-            columns = dissoc(self.columns, *columns)
-            tdims = dissoc(self.tdims, *columns)
+            columns = dissoc(self.columns, *select)
+            tdims = dissoc(self.tdims, *select)
         else:
-            columns = self.columns
-            tdims = self.tdims
+            columns = dict(self.columns)
+            tdims = dict(self.tdims)
 
-        columns[into] = np.vstack([self.columns[column] for column in columns])
+        columns[into] = np.vstack([self.columns[column] for column in select])
+        tdims[into] = tdim
 
         return _replace(self, columns=columns, tdims=tdims)
 
