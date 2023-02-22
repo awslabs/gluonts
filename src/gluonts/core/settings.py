@@ -105,15 +105,6 @@ class LinkedList:
     """
     Simple linked list, where only elements controls removal of them.
 
-    This is needed to allow for behaviour like this:
-
-    >>> settings = Settings()
-    ...
-    ... with settings._let(x=1):
-    ...     settings._push(x=2)
-    ...
-    ... assert settings.x == 2
-
     When going out of a `let` block, the pushed environment should be destroyed
     and not just the last element of the stack.
     """
