@@ -18,10 +18,10 @@ import dataclasses
 from typing import Optional, List, NamedTuple
 
 import numpy as np
-from toolz import first, valmap, dissoc, merge
+from toolz import first, keymap, valmap, dissoc, merge, itemmap
 
 from gluonts import maybe
-from gluonts.itertools import pluck_attr
+from gluonts.itertools import pluck_attr, columns_to_rows, select
 
 from ._period import Periods, Period, period
 from ._repr import html_table
@@ -172,7 +172,7 @@ class TimeFrame:
             columns=columns,
             index=index,
             length=length,
-            _pad=(pad_left, pad_right),
+            _pad=Pad(pad_left, pad_right),
         )
 
     def index_of(self, period: Period):
@@ -180,11 +180,15 @@ class TimeFrame:
 
         return self.index.index_of(period)
 
-    def astype(self, type):
+    def astype(self, type, columns=None):
+        if columns is None:
+            columns = self.columns
+
         return _replace(
             self,
-            columns=valmap(type, self.columns),
-            static=valmap(type, self.static),
+            columns=valmap(
+                lambda col: col.astype(type), select(columns, self.columns)
+            ),
         )
 
     def __len__(self):
@@ -194,21 +198,68 @@ class TimeFrame:
         columns = ", ".join(self.columns)
         return f"TimeFrame<size={len(self)}, columns=[{columns}]>"
 
-    def _repr_html_(self):
+    def _table_columns(self):
         columns = {}
 
         if self.index is not None:
-            columns[""] = pluck_attr(self.index, "data")
+            index = pluck_attr(self.index, "data")
+            if len(self) > 10:
+                index = [*index[:5], "...", *index[-5:]]
 
-        columns.update(self.columns)
+            columns[""] = index
 
-        table = html_table(columns)
-        return table + f"{len(self)} rows × {len(self.columns)} columns"
+        def move_axis(data, name):
+            return np.moveaxis(data, self.tdims[name], 0)
+
+        if len(self) > 10:
+            head = self.head(5)
+            tail = self.tail(5)
+
+            columns.update(
+                {
+                    col: [
+                        *(move_axis(head[col], col)),
+                        "...",
+                        *(move_axis(tail[col], col)),
+                    ]
+                    for col in self.columns
+                }
+            )
+        else:
+            columns.update(
+                {
+                    name: move_axis(values, name)
+                    for name, values in self.columns.items()
+                }
+            )
+
+        return columns
+
+    def _repr_html_(self):
+        columns = self._table_columns()
+
+        html = [
+            html_table(columns),
+            f"{len(self)} rows × {len(self.columns)} columns",
+        ]
+
+        if self.static:
+            html.extend(
+                [
+                    "<h3>Static Data</h3>",
+                    html_table(
+                        {name: [val] for name, val in self.static.items()}
+                    ),
+                ]
+            )
+
+        return "\n".join(html)
 
     def set(self, name, value, tdim=None):
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
 
         return _replace(
+            self,
             columns=merge(self.columns, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
@@ -259,9 +310,174 @@ class TimeFrame:
 
         return result
 
+    def split(
+        self,
+        index,
+        past_length=None,
+        future_length=None,
+        pad_value=0.0,
+    ):
+        if not isinstance(index, (int, np.integer)):
+            index = self.index_of(index)
+
+        if past_length is None:
+            past_length = index
+
+        if future_length is None:
+            future_length = len(self) - index
+
+        pad_left = max(0, past_length - index)
+        pad_right = max(0, future_length - (len(self) - index))
+        self = self.pad(pad_value, pad_left, pad_right)
+
+        index += pad_left
+
+        def split_item(item):
+            name, data = item
+
+            tdim = self.tdims[name]
+            past, future = np.split(data, [index], axis=tdim)
+            past = AxisView(past, tdim)[-past_length:]
+            future = AxisView(future, tdim)[:future_length]
+            return name, (past, future)
+
+        past, future = columns_to_rows(itemmap(split_item, self.columns))
+
+        return SplitFrame(
+            _past=past,
+            _future=future,
+            index=self.index,
+            static=self.static,
+            past_length=past_length,
+            future_length=future_length,
+            tdims=self.tdims,
+            metadata=self.metadata,
+            _pad=self._pad,
+        )
+
+    def apply(self, fn, columns=None):
+        if columns is None:
+            columns = self.columns.keys()
+
+        return _replace(self, columns=valmap(fn, self.columns))
+
+
+@dataclasses.dataclass
+class SplitFrame:
+    _past: dict
+    _future: dict
+    index: Optional[Periods]
+    static: dict
+    past_length: int
+    future_length: int
+    tdims: dict
+    metadata: Optional[dict] = None
+    default_tdim: int = -1
+    _pad: Pad = Pad()
+
+    @property
+    def past(self):
+        return TimeFrame(
+            self._past,
+            index=maybe.map(
+                self.index, lambda index: index[: self.past_length]
+            ),
+            static=self.static,
+            length=self.past_length,
+            tdims=self.tdims,
+            metadata=self.metadata,
+            _pad=Pad(self._pad.left, 0),
+        )
+
+    @property
+    def future(self):
+        return TimeFrame(
+            self._future,
+            index=maybe.map(
+                self.index, lambda index: index[-self.future_length :]
+            ),
+            static=self.static,
+            length=self.future_length,
+            tdims=self.tdims,
+            metadata=self.metadata,
+            _pad=Pad(0, self._pad.right),
+        )
+
+    def __len__(self):
+        return self.past_length + self.future_length
+
+    def set(self, name, value, tdim=None):
+        tdim = maybe.unwrap_or(tdim, self.default_tdim)
+        assert value.shape[tdim] == len(self)
+
+        past, future = np.split(
+            value,
+            [self.past_length],
+            axis=tdim,
+        )
+
+        return _replace(
+            past=merge(self.past, {name: past}),
+            future=merge(self.future, {name: future}),
+            tdims=merge(self.tdims, {name: tdim}),
+        )
+
+    def set_past(self, name, value, tdim=None):
+        tdim = maybe.unwrap_or(tdim, self.default_tdim)
+        assert value.shape[tdim] == self.past_length
+
+        return _replace(
+            past=merge(self.past, {name: value}),
+            tdims=merge(self.tdims, {name: tdim}),
+        )
+
+    def remove(self, column):
+        return _replace(
+            self,
+            columns=dissoc(self.columns, column),
+            tdims=dissoc(self.tdims, column),
+        )
+
+    def _repr_html_(self):
+        past = self.past._table_columns()
+        future = self.future._table_columns()
+
+        length = max(len(first(past.values())), len(first(future.values())))
+
+        def pad(col):
+            to_pad = length - len(col)
+
+            return list(col) + [""] * to_pad
+
+        past = valmap(pad, past)
+        future = valmap(pad, future)
+
+        past = keymap(lambda key: f"past_{key}" if key else "past", past)
+        future = keymap(
+            lambda key: f"future_{key}" if key else "future", future
+        )
+
+        return html_table({**past, "|": ["|"] * length, **future})
+        # return "\n".join(
+
+        #     [
+        #         "<h3>past</h3>",
+        #         self.past._repr_html_(),
+        #         "<h3>future</h3>",
+        #         self.future._repr_html_(),
+        #     ]
+        # )
+
+    def as_dict(self):
+        past = keymap(lambda key: f"past_{key}", self._past)
+        future = keymap(lambda key: f"future_{key}", self._future)
+
+        return {**past, **future, **self.static}
+
 
 def time_frame(
     columns=None,
+    *,
     index=None,
     start=None,
     freq=None,
@@ -303,3 +519,91 @@ def time_frame(
         return tf.with_index(start.periods(len(tf)))
 
     return tf
+
+
+def split_frame(
+    full=None,
+    *,
+    past=None,
+    future=None,
+    past_length=None,
+    future_length=None,
+    metadata=None,
+    static=None,
+    start=None,
+    freq=None,
+    index=None,
+    tdims=None,
+    default_tdim=-1,
+):
+    full = valmap(np.array, maybe.unwrap_or_else(full, dict))
+    past = valmap(np.array, maybe.unwrap_or_else(past, dict))
+    future = valmap(np.array, maybe.unwrap_or_else(future, dict))
+    static = valmap(np.array, maybe.unwrap_or_else(static, dict))
+    tdims = maybe.unwrap_or_else(tdims, dict)
+
+    full_length = None
+
+    if full:
+        column = first(full)
+        full_length = full[column].shape[tdims.get(column, default_tdim)]
+
+    if past:
+        column = first(past)
+        past_length_ = past[column].shape[tdims.get(column, default_tdim)]
+
+        assert past_length is None or past_length == past_length_
+        past_length = past_length_
+
+    assert maybe.or_(past_length, future_length) is not None
+
+    if full:
+        column = first(full)
+        full_length = full[column].shape[tdims.get(column, default_tdim)]
+
+        assert full_length is None or full_length == full_length
+        full_length = full_length
+
+    if maybe.and_(past_length, future_length) is not None:
+        if full_length is not None:
+            assert full_length == past_length + future_length
+    elif past_length is not None:
+        assert full_length is not None
+
+        future_length = full_length - past_length
+    elif future_length is not None:
+        assert full_length is not None
+
+        past_length = full_length - future_length
+
+    # create copies to not mutate user provided dicts
+    past = dict(past)
+    future = dict(future)
+
+    for name, data in full.items():
+        tdim = tdims.get(name, default_tdim)
+        assert data.shape[tdim] == past_length + future_length
+
+        past_data, future_data = np.split(data, [past_length], axis=tdim)
+        past[name] = past_data
+        future[name] = future_data
+
+    sf = SplitFrame(
+        _past=past,
+        _future=future,
+        index=index,
+        static=static,
+        tdims=tdims,
+        past_length=past_length,
+        future_length=future_length,
+        default_tdim=default_tdim,
+        metadata=metadata,
+    )
+
+    if sf.index is None and start is not None:
+        if freq is not None:
+            start = period(start, freq)
+
+        return sf.with_index(start.periods(len(sf)))
+
+    return sf

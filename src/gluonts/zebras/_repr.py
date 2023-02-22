@@ -1,5 +1,6 @@
 from toolz import curry
 
+
 from gluonts.itertools import columns_to_rows
 
 
