@@ -166,7 +166,7 @@ class SpecialDateFeatureSet:
         ... )
         >>> import pandas as pd
         >>> sfs = SpecialDateFeatureSet([CHRISTMAS_EVE, CHRISTMAS_DAY])
-        >>> date_indices = pd.period_range(
+        >>> date_indices = pd.date_range(
         ...     start="2016-12-24",
         ...     end="2016-12-31",
         ...     freq='D'
@@ -220,9 +220,7 @@ class SpecialDateFeatureSet:
                 np.hstack(
                     [
                         self.kernel_function(
-                            SPECIAL_DATE_FEATURES[feat_name](
-                                index.to_timestamp()
-                            )
+                            SPECIAL_DATE_FEATURES[feat_name](index)
                         )
                         for index in dates
                     ]
