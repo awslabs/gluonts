@@ -20,9 +20,10 @@ __all__ = [
     "periods",
     "TimeFrame",
     "time_frame",
+    "SplitFrame",
+    "split_frame",
 ]
 
 from ._freq import Freq, freq
 from ._period import period, Period, periods, Periods
-from ._schema import Schema, Array
 from ._timeframe import time_frame, TimeFrame, split_frame, SplitFrame

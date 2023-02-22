@@ -463,15 +463,6 @@ class SplitFrame:
         )
 
         return html_table({**past, "|": ["|"] * length, **future})
-        # return "\n".join(
-
-        #     [
-        #         "<h3>past</h3>",
-        #         self.past._repr_html_(),
-        #         "<h3>future</h3>",
-        #         self.future._repr_html_(),
-        #     ]
-        # )
 
     def as_dict(self):
         past = keymap(lambda key: f"past_{key}", self._past)
