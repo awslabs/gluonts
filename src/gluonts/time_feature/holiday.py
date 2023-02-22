@@ -220,7 +220,9 @@ class SpecialDateFeatureSet:
                 np.hstack(
                     [
                         self.kernel_function(
-                            SPECIAL_DATE_FEATURES[feat_name](index)
+                            SPECIAL_DATE_FEATURES[feat_name](
+                                index.to_timestamp()
+                            )
                         )
                         for index in dates
                     ]

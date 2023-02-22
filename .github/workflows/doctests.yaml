@@ -24,6 +24,7 @@ jobs:
         python -m pip install -U pip
         pip install -e .
         pip install -r requirements/requirements-test.txt
+        pip install -r requirements/requirements-arrow.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules \
