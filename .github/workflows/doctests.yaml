@@ -33,5 +33,5 @@ jobs:
           src/gluonts/model \
           src/gluonts/time_feature \
           src/gluonts/zebras \
-          src/gluonts/maybe.py
+          src/gluonts/maybe.py \
           src/gluonts/itertools.py
