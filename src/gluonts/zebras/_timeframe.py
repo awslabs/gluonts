@@ -322,6 +322,8 @@ class TimeFrame:
     ):
         if not isinstance(index, (int, np.integer)):
             index = self.index_of(index)
+        elif index < 0:
+            index = len(self) + index
 
         if past_length is None:
             past_length = index
