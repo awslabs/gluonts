@@ -27,4 +27,4 @@ jobs:
       run: |
         pytest -n2 --doctest-modules \
           src/gluonts/core \
-          src/gluonts/itertools
+          src/gluonts/itertools.py
