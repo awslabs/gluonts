@@ -30,5 +30,8 @@ jobs:
         pytest -n2 --doctest-modules \
           src/gluonts/core \
           src/gluonts/dataset \
+          src/gluonts/model \
           src/gluonts/time_feature \
+          src/gluonts/zebras \
+          src/gluonts/maybe.py
           src/gluonts/itertools.py
