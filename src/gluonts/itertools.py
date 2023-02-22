@@ -391,6 +391,9 @@ def power_set(iterable):
     """
     Generate all possible subsets of the given iterable, as tuples.
 
+    >>> list(power_set(["a", "b"]))
+    [(), ('a',), ('b',), ('a', 'b')]
+    
     Adapted from https://docs.python.org/3/library/itertools.html#itertools-recipes
     """
     return itertools.chain.from_iterable(
