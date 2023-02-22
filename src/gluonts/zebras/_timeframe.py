@@ -109,7 +109,10 @@ class TimeFrame:
             self.tdims.setdefault(column, self.default_tdim)
 
         for column in self.columns:
-            assert len(self.vt(column)) == self.length
+            assert len(self.vt(column)) == self.length, (
+                f"Column {column!r} has incorrect length in time dimension. "
+                f"Expected: {len(self)}, got {len(self.vt(column))}."
+            )
 
         assert maybe.map_or(self.index, len, self.length) == self.length
 
@@ -270,6 +273,11 @@ class TimeFrame:
         assert name not in self.columns
 
         return _replace(self, static=merge(self.static, {name: value}))
+
+    def set_like(self, ref: str, column, value, tdim=None):
+        assert ref in self.columns
+
+        return self.set(column, value, tdim)
 
     def remove(self, column):
         return _replace(
@@ -434,12 +442,37 @@ class SplitFrame:
             tdims=merge(self.tdims, {name: tdim}),
         )
 
+    def set_like(self, ref: str, column, value, tdim=None):
+        is_past = ref in self._past
+        is_future = ref in self._future
+
+        if is_past:
+            if is_future:
+                return self.set(column, value, tdim)
+            else:
+                return self.set_past(column, value, tdim)
+        elif is_future:
+            return self.set_future(column, value, tdim)
+
+        raise KeyError(f"Ref {ref} is neither past nor future")
+
     def set_past(self, name, value, tdim=None):
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
         assert value.shape[tdim] == self.past_length
+        assert self.tdims.get(name, tdim) == tdim
 
         return _replace(
             past=merge(self.past, {name: value}),
+            tdims=merge(self.tdims, {name: tdim}),
+        )
+
+    def set_future(self, name, value, tdim=None):
+        tdim = maybe.unwrap_or(tdim, self.default_tdim)
+        assert value.shape[tdim] == self.future_length
+        assert self.tdims.get(name, tdim) == tdim
+
+        return _replace(
+            future=merge(self.future, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
 
