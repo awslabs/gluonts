@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Tuple
 
 import numpy as np
 

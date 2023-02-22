@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-from typing import Optional, List, NamedTuple
+from typing import Optional, List, NamedTuple, Union
 
 import numpy as np
 from toolz import first, keymap, valmap, dissoc, merge, itemmap
