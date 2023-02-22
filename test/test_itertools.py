@@ -33,6 +33,7 @@ from gluonts.itertools import (
     columns_to_rows,
     select,
     pluck_attr,
+    power_set,
     Map,
     StarMap,
     Filter,
@@ -195,3 +196,33 @@ def test_pluck_attr_curry():
         assert get("c")
 
     assert get("c", 4) == [4, 4]
+
+
+def test_power_set():
+    collection = list(range(4))
+    subsets = list(power_set(collection))
+
+    expected_subsets = [
+        (),
+        (0,),
+        (1,),
+        (2,),
+        (3,),
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (1, 2),
+        (1, 3),
+        (2, 3),
+        (0, 1, 2),
+        (0, 1, 3),
+        (0, 2, 3),
+        (1, 2, 3),
+        (0, 1, 2, 3),
+    ]
+
+    assert len(subsets) == 2 ** len(collection)
+    assert len(expected_subsets) == 2 ** len(collection)
+
+    for es in expected_subsets:
+        assert es in subsets

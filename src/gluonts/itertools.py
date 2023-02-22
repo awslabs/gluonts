@@ -385,3 +385,14 @@ def pluck_attr(seq, name, default=_no_default):
         return [getattr(el, name) for el in seq]
 
     return [getattr(el, name, default) for el in seq]
+
+
+def power_set(iterable):
+    """
+    Generate all possible subsets of the given iterable, as tuples.
+
+    Adapted from https://docs.python.org/3/library/itertools.html#itertools-recipes
+    """
+    return itertools.chain.from_iterable(
+        itertools.combinations(iterable, r) for r in range(len(iterable) + 1)
+    )
