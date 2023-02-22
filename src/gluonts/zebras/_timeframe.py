@@ -146,8 +146,16 @@ class TimeFrame:
     def ix(self):
         return IndexView(self)
 
-    def __getitem__(self, col: str):
-        return self.columns[col]
+    def __getitem__(self, idx: Union[int, str]):
+        if isinstance(idx, slice):
+            subtype = maybe.or_(idx.start, idx.stop)
+        else:
+            subtype = None
+
+        if isinstance(idx, int) or isinstance(subtype, int):
+            return self.ix[idx]
+
+        return self.columns[idx]
 
     def pad(self, value, left=0, right=0):
         assert left >= 0 and right >= 0
@@ -288,6 +296,12 @@ class TimeFrame:
 
     def remove_static(self, name):
         return _replace(self, static=dissoc(self.static, name))
+
+    def like(self, columns=None, static=None):
+        columns = maybe.unwrap_or(columns, {})
+        static = maybe.unwrap_or(static, {})
+
+        return _replace(self, columns=columns, static=static)
 
     def stack(
         self,
