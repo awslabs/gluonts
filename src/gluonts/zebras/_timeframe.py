@@ -256,6 +256,8 @@ class TimeFrame:
         return "\n".join(html)
 
     def set(self, name, value, tdim=None):
+        assert name not in self.static
+
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
 
         return _replace(
@@ -264,12 +266,20 @@ class TimeFrame:
             tdims=merge(self.tdims, {name: tdim}),
         )
 
+    def set_static(self, name, value):
+        assert name not in self.columns
+
+        return _replace(self, static=merge(self.static, {name: value}))
+
     def remove(self, column):
         return _replace(
             self,
             columns=dissoc(self.columns, column),
             tdims=dissoc(self.tdims, column),
         )
+
+    def remove_static(self, name):
+        return _replace(self, static=dissoc(self.static, name))
 
     def stack(
         self,
@@ -299,7 +309,7 @@ class TimeFrame:
     def with_index(self, index):
         return _replace(self, index=index)
 
-    def as_dict(self, prefix=None, pad=None, static=True):
+    def as_dict(self, prefix=None, static=True):
         result = dict(self.columns)
 
         if prefix is not None:
@@ -307,9 +317,6 @@ class TimeFrame:
 
         if static:
             result.update(self.static)
-
-        if pad is not None:
-            result[pad] = self._pad
 
         return result
 
