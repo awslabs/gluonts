@@ -283,8 +283,8 @@ class Periods(_BasePeriod):
                 np.datetime64(du_parse(period), self.freq.np_freq), self.freq
             )
 
-        idx = (period - self.start).astype(int)
-        assert 0 <= idx < len(self)
+        idx = (period - self.start).astype(int) // self.freq.step
+        assert 0 <= idx < len(self), idx
 
         return idx
 
