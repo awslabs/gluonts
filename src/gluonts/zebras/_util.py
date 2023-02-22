@@ -39,7 +39,7 @@ def pad_axis(
     `right` parameters.
     ::
         >>> pad_axis([1, 2, 3, 4], left=2, right=3)
-        array([0, 0, 1, 2, 3, 0, 0, 0])
+        array([0, 0, 1, 2, 3, 4, 0, 0, 0])
     """
     a = np.array(a)
 
