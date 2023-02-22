@@ -280,9 +280,9 @@ class TimeFrame:
         # Ensure all tdims are the same.
         # TODO: Can we make that work for different tdims? There might be a
         # problem with what the resulting dimensions are.
-        tdims = set([self.tdims[column] for column in select])
-        assert len(tdims) == 1
-        tdim = first(tdims)
+        all_tdims = set(self.tdims[column] for column in select)
+        assert len(all_tdims) == 1
+        tdim = first(all_tdims)
 
         if drop:
             columns = dissoc(self.columns, *select)

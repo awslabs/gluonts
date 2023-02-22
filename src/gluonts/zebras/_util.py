@@ -34,7 +34,7 @@ class AxisView:
 
 def pad_axis(
     a: np.ndarray, *, axis: int = 0, left: int = 0, right: int = 0, value=0
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Similar to ``np.pad``, but pads only a single axis using `left` and
     `right` parameters.
     ::
