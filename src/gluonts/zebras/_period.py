@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, cast, overload
+from typing import Any, Union, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -269,7 +269,7 @@ class Periods(_BasePeriod):
         # TODO: Is this needed?
         return self.data[np.in1d(self, other)]
 
-    def index_of(self, period: Period):
+    def index_of(self, period: Union[str, Period]):
         """
         Return the index of ``period``
 
@@ -353,9 +353,6 @@ def period(data, freq=None) -> Period:
         return period
 
     return Period(np.datetime64(data, freq.np_freq), freq)
-
-
-period_ = period
 
 
 def periods(start, freq, count: int) -> Period:
