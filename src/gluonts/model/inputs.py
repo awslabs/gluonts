@@ -22,7 +22,7 @@ from toolz import valmap
 
 @dataclass
 class Input:
-    shape: Tuple[int]
+    shape: Tuple[int, ...]
     dtype: Type
     required: bool = True
 
@@ -33,7 +33,7 @@ class InputDict(UserDict):
     zeros_fn: Callable
 
     @property
-    def shapes(self) -> Dict[str, Tuple[int]]:
+    def shapes(self) -> Dict[str, Tuple[int, ...]]:
         return valmap(attrgetter("shape"), self)
 
     @property
