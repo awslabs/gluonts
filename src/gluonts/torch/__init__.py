@@ -13,6 +13,7 @@
 
 __all__ = [
     "PyTorchLightningEstimator",
+    "PyTorchPredictor",
     "DeepNPTSEstimator",
     "DeepAREstimator",
     "MQF2MultiHorizonEstimator",
@@ -21,7 +22,8 @@ __all__ = [
 ]
 
 
-from .estimator import PyTorchLightningEstimator
+from .model.estimator import PyTorchLightningEstimator
+from .model.predictor import PyTorchPredictor
 
 from .model.deep_npts import DeepNPTSEstimator
 from .model.deepar import DeepAREstimator
