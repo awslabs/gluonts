@@ -378,35 +378,3 @@ class Localizer(Predictor):
             trained_pred = self.estimator.train([ts])
             logger.info(f"predicting for time series {i} / {len(dataset)}")
             yield from trained_pred.predict([ts], **kwargs)
-
-
-class FallbackPredictor(Predictor):
-    @classmethod
-    def from_predictor(
-        cls, base: RepresentablePredictor, **overrides
-    ) -> Predictor:
-        # Create predictor based on an existing predictor.
-        # This let's us create a MeanPredictor as a fallback on the fly.
-        return cls.from_hyperparameters(
-            **getattr(base, "__init_args__"), **overrides
-        )
-
-
-def fallback(fallback_cls: Type[FallbackPredictor]):
-    def decorator(predict_item):
-        @functools.wraps(predict_item)
-        def fallback_predict(self, item: DataEntry) -> Forecast:
-            try:
-                return predict_item(self, item)
-            except GluonTSException:
-                raise
-            except Exception:
-                logging.warning(
-                    f"Base predictor failed with: {traceback.format_exc()}"
-                )
-                fallback_predictor = fallback_cls.from_predictor(self)
-                return fallback_predictor.predict_item(item)
-
-        return fallback_predict
-
-    return decorator
