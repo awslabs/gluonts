@@ -242,17 +242,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
 
-
-def input_types(self) -> Dict[str, torch.dtype]:
-    return {
-        "feat_static_cat": torch.long,
-        "feat_static_real": torch.float,
-        "past_time_feat": torch.float,
-        "past_target": torch.float,
-        "past_observed_values": torch.float,
-        "future_time_feat": torch.float,
-    }
-
     def create_transformation(self) -> Transformation:
         remove_field_names = []
         if self.num_feat_static_real == 0:
