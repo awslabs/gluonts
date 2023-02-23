@@ -15,7 +15,6 @@ from collections import UserDict
 from dataclasses import dataclass
 from operator import attrgetter
 from typing import Callable, Dict, Type, Tuple
-from typing_extensions import Protocol, runtime_checkable
 
 from toolz import valmap
 
