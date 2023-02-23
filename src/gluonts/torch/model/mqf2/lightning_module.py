@@ -63,12 +63,8 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
-        self.example_input_array = tuple(
-            [
-                torch.zeros(shape, dtype=self.model.input_types()[name])
-                for (name, shape) in self.model.input_shapes().items()
-            ]
-        )
+        self.inputs = model.describe_inputs()
+        self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
         return self.model.forward(*args, **kwargs)

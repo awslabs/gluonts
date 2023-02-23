@@ -20,17 +20,6 @@ from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
 from gluonts.torch.model.tft import TemporalFusionTransformerModel
 
 
-def construct_batch(module, batch_size=1):
-    return tuple(
-        [
-            torch.zeros(shape, dtype=module.input_types()[name])
-            for (name, shape) in module.input_shapes(
-                batch_size=batch_size
-            ).items()
-        ]
-    )
-
-
 def assert_shapes_and_dtypes(tensors, shapes, dtypes):
     if isinstance(tensors, torch.Tensor):
         assert tensors.shape == shapes
@@ -103,6 +92,6 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
     ],
 )
 def test_module_smoke(module, batch_size, expected_shapes, expected_dtypes):
-    batch = construct_batch(module, batch_size=batch_size)
-    outputs = module(*batch)
+    batch = module.describe_inputs(batch_size).zeros()
+    outputs = module(**batch)
     assert_shapes_and_dtypes(outputs, expected_shapes, expected_dtypes)

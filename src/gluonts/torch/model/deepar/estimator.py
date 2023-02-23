@@ -45,10 +45,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import (
-    DistributionOutput,
-    StudentTOutput,
-)
+from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 from gluonts.transform.sampler import InstanceSampler
 
 from .module import DeepARModel

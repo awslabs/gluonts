@@ -13,6 +13,8 @@
 
 import pytest
 
+from toolz import valmap
+
 import torch
 
 from gluonts.torch.model.deepar import DeepARModel
@@ -54,18 +56,15 @@ def all_equal(obj1, obj2):
     ],
 )
 def test_jit_trace(model):
-    zeros_input = tuple(
-        torch.zeros(shape, dtype=model.input_types()[name])
-        for (name, shape) in model.input_shapes().items()
-    )
-    script_module = torch.jit.trace(model, zeros_input)
+    zeros_input = model.describe_inputs().zeros()
+    ones_input = valmap(torch.ones_like, zeros_input)
 
-    ones_input = tuple(torch.ones_like(x) for x in zeros_input)
+    script_module = torch.jit.trace(model, tuple(zeros_input.values()))
 
     torch.manual_seed(0)
-    output_1 = model(*ones_input)
+    output_1 = model(**ones_input)
 
     torch.manual_seed(0)
-    output_2 = script_module(*ones_input)
+    output_2 = script_module(**ones_input)
 
     assert all_equal(output_1, output_2)
