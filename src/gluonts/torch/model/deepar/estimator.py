@@ -45,10 +45,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import (
-    DistributionOutput,
-    StudentTOutput,
-)
+from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 from gluonts.transform.sampler import InstanceSampler
 
 from .module import DeepARModel
@@ -244,6 +241,17 @@ class DeepAREstimator(PyTorchLightningEstimator):
             "num_feat_static_cat": len(stats.feat_static_cat),
             "cardinality": [len(cats) for cats in stats.feat_static_cat],
         }
+
+
+def input_types(self) -> Dict[str, torch.dtype]:
+    return {
+        "feat_static_cat": torch.long,
+        "feat_static_real": torch.float,
+        "past_time_feat": torch.float,
+        "past_target": torch.float,
+        "past_observed_values": torch.float,
+        "future_time_feat": torch.float,
+    }
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []

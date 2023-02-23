@@ -31,6 +31,7 @@ from gluonts.torch.util import (
     unsqueeze_expand,
 )
 from gluonts.itertools import prod
+from gluonts.model import Input, InputDict
 
 
 class DeepARModel(nn.Module):
@@ -152,6 +153,45 @@ class DeepARModel(nn.Module):
             batch_first=True,
         )
 
+    def describe_inputs(self, batch_size=1) -> InputDict:
+        return InputDict(
+            {
+                "feat_static_cat": Input(
+                    shape=(batch_size, self.num_feat_static_cat),
+                    dtype=torch.long,
+                ),
+                "feat_static_real": Input(
+                    shape=(batch_size, self.num_feat_static_real),
+                    dtype=torch.float,
+                ),
+                "past_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self._past_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+                "past_target": Input(
+                    shape=(batch_size, self._past_length),
+                    dtype=torch.float,
+                ),
+                "past_observed_values": Input(
+                    shape=(batch_size, self._past_length),
+                    dtype=torch.float,
+                ),
+                "future_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self.prediction_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+            },
+            zeros_fn=torch.zeros,
+        )
+
     @property
     def _number_of_features(self) -> int:
         return (
@@ -164,34 +204,6 @@ class DeepARModel(nn.Module):
     @property
     def _past_length(self) -> int:
         return self.context_length + max(self.lags_seq)
-
-    def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
-        return {
-            "feat_static_cat": (batch_size, self.num_feat_static_cat),
-            "feat_static_real": (batch_size, self.num_feat_static_real),
-            "past_time_feat": (
-                batch_size,
-                self._past_length,
-                self.num_feat_dynamic_real,
-            ),
-            "past_target": (batch_size, self._past_length),
-            "past_observed_values": (batch_size, self._past_length),
-            "future_time_feat": (
-                batch_size,
-                self.prediction_length,
-                self.num_feat_dynamic_real,
-            ),
-        }
-
-    def input_types(self) -> Dict[str, torch.dtype]:
-        return {
-            "feat_static_cat": torch.long,
-            "feat_static_real": torch.float,
-            "past_time_feat": torch.float,
-            "past_target": torch.float,
-            "past_observed_values": torch.float,
-            "future_time_feat": torch.float,
-        }
 
     def unroll_lagged_rnn(
         self,
