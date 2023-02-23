@@ -25,4 +25,4 @@ __all__ = [
 from .estimator import Estimator, IncrementallyTrainable
 from .predictor import Predictor
 from .forecast import Forecast, SampleForecast, QuantileForecast
-from .inputs import Input, Inputs, InputSpec
+from .inputs import Input, InputSpec
