@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import functools
 import itertools
 import json
 import logging
@@ -21,7 +20,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
+from typing import TYPE_CHECKING, Callable, Iterator, Optional
 
 import numpy as np
 
@@ -30,7 +29,6 @@ from gluonts.core import fqname_for
 from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.exceptions import GluonTSException
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
