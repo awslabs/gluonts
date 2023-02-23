@@ -18,6 +18,9 @@ __all__ = [
     "Forecast",
     "SampleForecast",
     "QuantileForecast",
+    "Input",
+    "Inputs",
+    "InputDict",
 ]
 
 from .estimator import Estimator, IncrementallyTrainable
