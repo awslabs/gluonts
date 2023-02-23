@@ -31,7 +31,7 @@ from gluonts.torch.util import (
     unsqueeze_expand,
 )
 from gluonts.itertools import prod
-from gluonts.model import Input, InputDict
+from gluonts.model import Input, InputSpec
 
 
 class DeepARModel(nn.Module):
@@ -153,8 +153,8 @@ class DeepARModel(nn.Module):
             batch_first=True,
         )
 
-    def describe_inputs(self, batch_size=1) -> InputDict:
-        return InputDict(
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
             {
                 "feat_static_cat": Input(
                     shape=(batch_size, self.num_feat_static_cat),

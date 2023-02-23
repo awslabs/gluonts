@@ -28,7 +28,7 @@ class Input:
 
 
 @dataclass
-class InputDict(UserDict):
+class InputSpec(UserDict):
     data: Dict[str, Input]
     zeros_fn: Callable
 
@@ -45,9 +45,3 @@ class InputDict(UserDict):
             name: self.zeros_fn(input.shape, dtype=input.dtype)
             for name, input in self.items()
         }
-
-
-@runtime_checkable
-class Inputs(Protocol):
-    def describe_inputs(self, batch_size=1) -> InputDict:
-        ...

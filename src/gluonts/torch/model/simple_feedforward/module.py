@@ -17,7 +17,7 @@ import torch
 from torch import nn
 
 from gluonts.core.component import validated
-from gluonts.model import Input, InputDict
+from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 
 
@@ -92,8 +92,8 @@ class SimpleFeedForwardModel(nn.Module):
             self.hidden_dimensions[-1]
         )
 
-    def describe_inputs(self, batch_size=1) -> InputDict:
-        return InputDict(
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
             {
                 "context": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float

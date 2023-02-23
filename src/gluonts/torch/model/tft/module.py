@@ -17,7 +17,7 @@ import torch
 import torch.nn as nn
 
 from gluonts.core.component import validated
-from gluonts.model import Input, InputDict
+from gluonts.model import Input, InputSpec
 from gluonts.torch.modules.quantile_output import QuantileOutput
 from gluonts.torch.scaler import StdScaler
 from gluonts.torch.util import weighted_average
@@ -193,8 +193,8 @@ class TemporalFusionTransformerModel(nn.Module):
         self.output = QuantileOutput(quantiles=self.quantiles)
         self.output_proj = self.output.get_args_proj(in_features=self.d_hidden)
 
-    def describe_inputs(self, batch_size=1) -> InputDict:
-        return InputDict(
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
             {
                 "past_target": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float

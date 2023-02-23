@@ -19,11 +19,10 @@ __all__ = [
     "SampleForecast",
     "QuantileForecast",
     "Input",
-    "Inputs",
-    "InputDict",
+    "InputSpec",
 ]
 
 from .estimator import Estimator, IncrementallyTrainable
 from .predictor import Predictor
 from .forecast import Forecast, SampleForecast, QuantileForecast
-from .inputs import Input, Inputs, InputDict
+from .inputs import Input, Inputs, InputSpec
