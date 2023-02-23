@@ -113,6 +113,13 @@ class Freq:
     def np_freq(self) -> NpFreq:
         return _freq_pandas_to_numpy[self.name]
 
+    @property
+    def step(self):
+        if self.name == "W":
+            return self.n * 7
+
+        return self.n
+
     @classmethod
     def __get_validators__(cls):
         # pydantic support
@@ -146,12 +153,7 @@ class Freq:
         if self.name == "B":
             return np.busday_offset(start, self.n * count)
 
-        step = self.n
-
-        if self.name == "W":
-            step *= 7
-
-        return start + step * count
+        return start + self.step * count
 
     def range(self, start: np.datetime64, count: int) -> np.ndarray:
         if self.name == "B":
@@ -161,12 +163,7 @@ class Freq:
             periods = periods[np.is_busday(periods)]
             return periods[:: self.n]
 
-        step = self.n
-
-        if self.name == "W":
-            step *= 7
-
-        return np.arange(start, count * step, step)
+        return np.arange(start, count * self.step, self.step)
 
     def __str__(self) -> str:
         return _canonical_freqstr(self.n, self.name)
