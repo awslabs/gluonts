@@ -16,7 +16,6 @@ __all__ = [
     "PyTorchPredictor",
     "DeepNPTSEstimator",
     "DeepAREstimator",
-    "MQF2MultiHorizonEstimator",
     "SimpleFeedForwardEstimator",
     "TemporalFusionTransformerEstimator",
 ]
@@ -27,7 +26,6 @@ from .model.predictor import PyTorchPredictor
 
 from .model.deep_npts import DeepNPTSEstimator
 from .model.deepar import DeepAREstimator
-from .model.mqf2 import MQF2MultiHorizonEstimator
 from .model.simple_feedforward import SimpleFeedForwardEstimator
 from .model.tft import TemporalFusionTransformerEstimator
 
