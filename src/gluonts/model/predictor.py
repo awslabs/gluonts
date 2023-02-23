@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import functools
 import itertools
 import json
 import logging
@@ -21,7 +20,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional, Type
+from typing import TYPE_CHECKING, Callable, Iterator, Optional
 
 import numpy as np
 
@@ -30,7 +29,6 @@ from gluonts.core import fqname_for
 from gluonts.core.component import equals, from_hyperparameters, validated
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
-from gluonts.exceptions import GluonTSException
 from gluonts.model.forecast import Forecast
 
 if TYPE_CHECKING:  # avoid circular import
@@ -378,35 +376,3 @@ class Localizer(Predictor):
             trained_pred = self.estimator.train([ts])
             logger.info(f"predicting for time series {i} / {len(dataset)}")
             yield from trained_pred.predict([ts], **kwargs)
-
-
-class FallbackPredictor(Predictor):
-    @classmethod
-    def from_predictor(
-        cls, base: RepresentablePredictor, **overrides
-    ) -> Predictor:
-        # Create predictor based on an existing predictor.
-        # This let's us create a MeanPredictor as a fallback on the fly.
-        return cls.from_hyperparameters(
-            **getattr(base, "__init_args__"), **overrides
-        )
-
-
-def fallback(fallback_cls: Type[FallbackPredictor]):
-    def decorator(predict_item):
-        @functools.wraps(predict_item)
-        def fallback_predict(self, item: DataEntry) -> Forecast:
-            try:
-                return predict_item(self, item)
-            except GluonTSException:
-                raise
-            except Exception:
-                logging.warning(
-                    f"Base predictor failed with: {traceback.format_exc()}"
-                )
-                fallback_predictor = fallback_cls.from_predictor(self)
-                return fallback_predictor.predict_item(item)
-
-        return fallback_predict
-
-    return decorator
