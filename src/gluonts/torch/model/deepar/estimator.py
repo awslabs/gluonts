@@ -48,7 +48,6 @@ from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 from gluonts.transform.sampler import InstanceSampler
 
-from .module import DeepARModel
 from .lightning_module import DeepARLightningModule
 
 PREDICTION_INPUT_NAMES = [
