@@ -39,16 +39,19 @@ def test_deepar_modules(
     prediction_length = 6
     context_length = 12
 
-    model = DeepARModel(
-        freq="1H",
-        context_length=context_length,
-        prediction_length=prediction_length,
-        num_feat_dynamic_real=num_feat_dynamic_real,
-        num_feat_static_real=num_feat_static_real,
-        num_feat_static_cat=num_feat_static_cat,
-        cardinality=cardinality,
-        scaling=scaling,
+    lightning_module = DeepARLightningModule(
+        model_kwargs={
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "scaling": scaling,
+        }
     )
+    model = lightning_module.model
 
     # TODO uncomment the following
     # torch.jit.script(model)
@@ -140,8 +143,6 @@ def test_deepar_modules(
         future_target=future_target,
         future_observed_values=future_observed_values,
     )
-
-    lightning_module = DeepARLightningModule(model=model)
 
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()

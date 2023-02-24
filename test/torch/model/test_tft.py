@@ -42,17 +42,20 @@ def test_tft_modules(
     prediction_length = 6
     context_length = 12
 
-    model = TemporalFusionTransformerModel(
-        context_length=context_length,
-        prediction_length=prediction_length,
-        d_past_feat_dynamic_real=d_past_feat_dynamic_real,
-        c_past_feat_dynamic_cat=c_past_feat_dynamic_cat,
-        d_feat_dynamic_real=d_feat_dynamic_real,
-        c_feat_dynamic_cat=c_feat_dynamic_cat,
-        d_feat_static_real=d_feat_static_real,
-        c_feat_static_cat=c_feat_static_cat,
-        quantiles=quantiles,
+    lightning_module = TemporalFusionTransformerLightningModule(
+        {
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "d_past_feat_dynamic_real": d_past_feat_dynamic_real,
+            "c_past_feat_dynamic_cat": c_past_feat_dynamic_cat,
+            "d_feat_dynamic_real": d_feat_dynamic_real,
+            "c_feat_dynamic_cat": c_feat_dynamic_cat,
+            "d_feat_static_real": d_feat_static_real,
+            "c_feat_static_cat": c_feat_static_cat,
+            "quantiles": quantiles,
+        }
     )
+    model = lightning_module.model
 
     feat_static_cat = torch.zeros(
         batch_size, len(c_feat_static_cat), dtype=torch.long
@@ -132,8 +135,6 @@ def test_tft_modules(
         future_target=future_target,
         future_observed_values=future_observed_values,
     )
-
-    lightning_module = TemporalFusionTransformerLightningModule(model=model)
 
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()
