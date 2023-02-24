@@ -42,7 +42,6 @@ from gluonts.transform.sampler import InstanceSampler
 from gluonts.transform.split import TFTInstanceSplitter
 
 from .lightning_module import TemporalFusionTransformerLightningModule
-from .module import TemporalFusionTransformerModel
 
 PREDICTION_INPUT_NAMES = [
     "past_target",
@@ -365,28 +364,26 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     def create_lightning_module(
         self,
     ) -> TemporalFusionTransformerLightningModule:
-        kwargs = dict(
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            d_var=self.variable_dim,
-            d_hidden=self.hidden_dim,
-            num_heads=self.num_heads,
-            quantiles=self.quantiles,
-            d_past_feat_dynamic_real=self.past_dynamic_dims,
-            c_past_feat_dynamic_cat=self.past_dynamic_cardinalities,
-            d_feat_dynamic_real=[1] * max(len(self.time_features), 1)
-            + self.dynamic_dims,
-            c_feat_dynamic_cat=self.dynamic_cardinalities,
-            d_feat_static_real=self.static_dims or [1],
-            c_feat_static_cat=self.static_cardinalities or [1],
-            dropout_rate=self.dropout_rate,
-        )
-        model = TemporalFusionTransformerModel(**kwargs)
         return TemporalFusionTransformerLightningModule(
-            model=model,
             lr=self.lr,
             patience=self.patience,
             weight_decay=self.weight_decay,
+            model_kwargs={
+                "context_length": self.context_length,
+                "prediction_length": self.prediction_length,
+                "d_var": self.variable_dim,
+                "d_hidden": self.hidden_dim,
+                "num_heads": self.num_heads,
+                "quantiles": self.quantiles,
+                "d_past_feat_dynamic_real": self.past_dynamic_dims,
+                "c_past_feat_dynamic_cat": self.past_dynamic_cardinalities,
+                "d_feat_dynamic_real": [1] * max(len(self.time_features), 1)
+                + self.dynamic_dims,
+                "c_feat_dynamic_cat": self.dynamic_cardinalities,
+                "d_feat_static_real": self.static_dims or [1],
+                "c_feat_static_cat": self.static_cardinalities or [1],
+                "dropout_rate": self.dropout_rate,
+            },
         )
 
     def create_predictor(

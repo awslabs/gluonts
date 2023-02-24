@@ -17,7 +17,7 @@ from gluonts.torch.model.deepar.estimator import DeepAREstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
 from gluonts.torch.distributions import MQF2DistributionOutput
 
-from . import MQF2MultiHorizonLightningModule, MQF2MultiHorizonModel
+from . import MQF2MultiHorizonLightningModule
 
 from gluonts.core.component import validated
 from gluonts.time_feature import TimeFeature
@@ -184,35 +184,33 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         self.estimate_logdet = estimate_logdet
 
     def create_lightning_module(self) -> MQF2MultiHorizonLightningModule:
-        model = MQF2MultiHorizonModel(
-            freq=self.freq,
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            num_feat_dynamic_real=(
-                1 + self.num_feat_dynamic_real + len(self.time_features)
-            ),
-            num_feat_static_real=max(1, self.num_feat_static_real),
-            num_feat_static_cat=max(1, self.num_feat_static_cat),
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            num_layers=self.num_layers,
-            hidden_size=self.hidden_size,
-            distr_output=self.distr_output,
-            dropout_rate=self.dropout_rate,
-            lags_seq=self.lags_seq,
-            scaling=self.scaling,
-            num_parallel_samples=self.num_parallel_samples,
-            icnn_num_layers=self.icnn_num_layers,
-            icnn_hidden_size=self.icnn_hidden_size,
-            is_energy_score=self.is_energy_score,
-            threshold_input=self.threshold_input,
-            es_num_samples=self.es_num_samples,
-            estimate_logdet=self.estimate_logdet,
-        )
-
         return MQF2MultiHorizonLightningModule(
-            model=model,
             loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
+            model_kwargs={
+                "freq": self.freq,
+                "context_length": self.context_length,
+                "prediction_length": self.prediction_length,
+                "num_feat_dynamic_real": (
+                    1 + self.num_feat_dynamic_real + len(self.time_features)
+                ),
+                "num_feat_static_real": max(1, self.num_feat_static_real),
+                "num_feat_static_cat": max(1, self.num_feat_static_cat),
+                "cardinality": self.cardinality,
+                "embedding_dimension": self.embedding_dimension,
+                "num_layers": self.num_layers,
+                "hidden_size": self.hidden_size,
+                "distr_output": self.distr_output,
+                "dropout_rate": self.dropout_rate,
+                "lags_seq": self.lags_seq,
+                "scaling": self.scaling,
+                "num_parallel_samples": self.num_parallel_samples,
+                "icnn_num_layers": self.icnn_num_layers,
+                "icnn_hidden_size": self.icnn_hidden_size,
+                "is_energy_score": self.is_energy_score,
+                "threshold_input": self.threshold_input,
+                "es_num_samples": self.es_num_samples,
+                "estimate_logdet": self.estimate_logdet,
+            },
         )
