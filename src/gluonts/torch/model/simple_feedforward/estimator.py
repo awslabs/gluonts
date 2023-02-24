@@ -40,7 +40,6 @@ from gluonts.torch.distributions import (
     StudentTOutput,
 )
 
-from .module import SimpleFeedForwardModel
 from .lightning_module import SimpleFeedForwardLightningModule
 
 PREDICTION_INPUT_NAMES = [
@@ -158,18 +157,17 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         )
 
     def create_lightning_module(self) -> pl.LightningModule:
-        model = SimpleFeedForwardModel(
-            prediction_length=self.prediction_length,
-            context_length=self.context_length,
-            hidden_dimensions=self.hidden_dimensions,
-            distr_output=self.distr_output,
-            batch_norm=self.batch_norm,
-        )
         return SimpleFeedForwardLightningModule(
-            model=model,
             loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
+            model_kwargs={
+                "prediction_length": self.prediction_length,
+                "context_length": self.context_length,
+                "hidden_dimensions": self.hidden_dimensions,
+                "distr_output": self.distr_output,
+                "batch_norm": self.batch_norm,
+            },
         )
 
     def _create_instance_splitter(

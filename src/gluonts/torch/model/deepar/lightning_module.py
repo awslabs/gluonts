@@ -48,7 +48,7 @@ class DeepARLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: DeepARModel,
+        model_kwargs: dict,
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -56,7 +56,7 @@ class DeepARLightningModule(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = DeepARModel(**model_kwargs)
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay

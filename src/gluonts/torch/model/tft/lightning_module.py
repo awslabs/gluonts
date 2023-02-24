@@ -43,18 +43,18 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: TemporalFusionTransformerModel,
+        model_kwargs: dict,
         lr: float = 1e-3,
         patience: int = 10,
         weight_decay: float = 0.0,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = TemporalFusionTransformerModel(**model_kwargs)
         self.lr = lr
         self.patience = patience
         self.weight_decay = weight_decay
-        self.inputs = model.describe_inputs()
+        self.inputs = self.model.describe_inputs()
         self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
