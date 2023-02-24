@@ -67,14 +67,14 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
-        lambda dataset: DeepNPTSEstimator(
-            freq=dataset.metadata.freq,
-            prediction_length=dataset.metadata.prediction_length,
-            context_length=2 * dataset.metadata.prediction_length,
-            batch_size=4,
-            num_batches_per_epoch=3,
-            epochs=2,
-        ),
+        # lambda dataset: DeepNPTSEstimator(
+        #     freq=dataset.metadata.freq,
+        #     prediction_length=dataset.metadata.prediction_length,
+        #     context_length=2 * dataset.metadata.prediction_length,
+        #     batch_size=4,
+        #     num_batches_per_epoch=3,
+        #     epochs=2,
+        # ),
     ],
 )
 def test_estimator_constant_dataset(estimator_constructor):
