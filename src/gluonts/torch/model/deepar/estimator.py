@@ -374,33 +374,31 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
 
     def create_lightning_module(self) -> DeepARLightningModule:
-        model = DeepARModel(
-            freq=self.freq,
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            num_feat_dynamic_real=(
-                1 + self.num_feat_dynamic_real + len(self.time_features)
-            ),
-            num_feat_static_real=max(1, self.num_feat_static_real),
-            num_feat_static_cat=max(1, self.num_feat_static_cat),
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            num_layers=self.num_layers,
-            hidden_size=self.hidden_size,
-            distr_output=self.distr_output,
-            dropout_rate=self.dropout_rate,
-            lags_seq=self.lags_seq,
-            scaling=self.scaling,
-            default_scale=self.default_scale,
-            num_parallel_samples=self.num_parallel_samples,
-        )
-
         return DeepARLightningModule(
-            model=model,
             loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             patience=self.patience,
+            model_kwargs={
+                "freq": self.freq,
+                "context_length": self.context_length,
+                "prediction_length": self.prediction_length,
+                "num_feat_dynamic_real": (
+                    1 + self.num_feat_dynamic_real + len(self.time_features)
+                ),
+                "num_feat_static_real": max(1, self.num_feat_static_real),
+                "num_feat_static_cat": max(1, self.num_feat_static_cat),
+                "cardinality": self.cardinality,
+                "embedding_dimension": self.embedding_dimension,
+                "num_layers": self.num_layers,
+                "hidden_size": self.hidden_size,
+                "distr_output": self.distr_output,
+                "dropout_rate": self.dropout_rate,
+                "lags_seq": self.lags_seq,
+                "scaling": self.scaling,
+                "default_scale": self.default_scale,
+                "num_parallel_samples": self.num_parallel_samples,
+            },
         )
 
     def create_predictor(
