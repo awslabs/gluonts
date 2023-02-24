@@ -31,8 +31,8 @@ __all__ = [  # noqa
     "dump",
     "dumps",
     "load",
-    "loads",
     "bdump",
+    "loads",    
     "bdumps",
 ]
 
