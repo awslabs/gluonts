@@ -14,7 +14,9 @@
 import numpy as np
 
 
-def seasonal_error(time_series: np.ndarray, seasonality: int, time_axis=0) -> np.ndarray:
+def seasonal_error(
+    time_series: np.ndarray, seasonality: int, time_axis=0
+) -> np.ndarray:
     """The mean abs. difference of a time series, shifted by its seasonality.
 
     Some metrics use the seasonal error for normalization."""
@@ -25,6 +27,8 @@ def seasonal_error(time_series: np.ndarray, seasonality: int, time_axis=0) -> np
         seasonality = 1
 
     y_t = np.take(time_series, range(seasonality, time_length), axis=time_axis)
-    y_tm = np.take(time_series, range(time_length - seasonality), axis=time_axis)
+    y_tm = np.take(
+        time_series, range(time_length - seasonality), axis=time_axis
+    )
 
     return np.abs(y_t - y_tm).mean(axis=time_axis, keepdims=True)
