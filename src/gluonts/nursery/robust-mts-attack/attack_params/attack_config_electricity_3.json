@@ -1,0 +1,59 @@
+{
+    "factor":
+        2.0,
+    "max_norm":
+        0.5,
+    "sparsity": [
+        1,
+        3,
+        5,
+        7,
+        9
+    ],
+    "attack_items":[
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+    ],
+    "target_items": [
+        0
+    ],
+    "attack_idx": [
+        -1
+    ],
+    "n_iterations": 100,
+    "learning_rate": 0.01,
+    "tolerance": [
+        0.01,
+        0.02,
+        0.03,
+        0.04,
+        0.05,
+        0.06,
+        0.07
+    ],
+    "c": [
+        0.1
+    ],
+    "modes": [
+        "under",
+        "over"
+    ],
+    "sigmas": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5
+    ],
+    "sigma":
+        0.1,
+    "device":
+        "cuda"
+}

@@ -1,0 +1,53 @@
+{
+    "factor":
+        1.5,
+    "max_norm":
+        0.3,
+    "sparsity": [
+        1,
+        5,
+        9
+    ],
+    "attack_items":[
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+    ],
+    "target_items": [
+        0
+    ],
+    "attack_idx": [
+        -10
+    ],
+    "n_iterations": 200,
+    "learning_rate": 0.01,
+    "tolerance": [
+        0.01,
+        0.02,
+        0.03,
+        0.04,
+        0.05,
+        0.06,
+        0.07
+    ],
+    "c": [
+        0.1
+    ],
+    "modes": [
+        "under",
+        "over"
+    ],
+    "sigmas": [
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5
+    ]
+}
