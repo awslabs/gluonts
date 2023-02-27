@@ -91,7 +91,8 @@ handles tracking of time internally.
 ## Proposal
 
 We introduce two new data structures called ``TimeFrame`` and ``SplitFrame`` to
-replace our current dictionary based approach.
+replace our current dictionary based approach. In addition there are batched
+variants called ``BatchTimeFrame`` and ``BatchSplitFrame``.
 
 A ``TimeFrame`` consists of a time index and a set of time series, which all
 have the same length. A ``SplitFrame`` consists of two ``TimeFrame`` instances,
@@ -136,6 +137,20 @@ needed.
 
 Both classes have easy to use constructors in ``zebras.time_frame`` and
 ``zebras.split_frame``.
+
+### Batching
+
+Both ``TimeFrame`` and ``SplitFrame`` have batched versions called
+``BatchTimeFrame`` and ``BatchSplitFrame`` respectively.
+
+They can be constructed using ``zebras.batch``:
+
+```py
+btf = zb.batch([tf0, tf1, ...])
+```
+
+For batching all underlying frames need to have the same length. Columns are
+stacked, meaning that we store values in columns and not in rows.
 
 ## Discussion
 
