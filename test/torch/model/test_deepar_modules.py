@@ -174,6 +174,14 @@ def test_rnn_input(
         num_parallel_samples=num_samples,
     )
 
+    # Construct test batch of size 1, such that:
+    # - target values are increasing integers
+    # - there is one dynamic feature that is equal to the target
+    #
+    # Since scaling=False, this way we can compare lagged target
+    # values and dynamic feature and verify that the expected values
+    # are given as input to the RNN, at the expected time index.
+
     batch = {
         "feat_static_cat": torch.tensor([[0]], dtype=torch.int64),
         "feat_static_real": torch.tensor([[0.0]], dtype=torch.float32),
@@ -207,7 +215,7 @@ def test_rnn_input(
     )
 
     for idx, lag in enumerate(lags_seq):
-        assert torch.isclose(ref - lag, rnn_input[0, :, idx]).all()
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])
 
     # test with all future data
 
@@ -234,4 +242,4 @@ def test_rnn_input(
     )
 
     for idx, lag in enumerate(lags_seq):
-        assert torch.isclose(ref - lag, rnn_input[0, :, idx]).all()
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])
