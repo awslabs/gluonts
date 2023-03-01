@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-from typing import Optional, List, NamedTuple, Union
+from typing import Optional, List, NamedTuple, Union, TypeVar
+from typing_extensions import Literal
 
 import numpy as np
 from toolz import first, keymap, valmap, dissoc, merge, itemmap
@@ -26,6 +27,9 @@ from gluonts.itertools import pluck_attr, columns_to_rows, select
 from ._period import Periods, Period, period
 from ._repr import html_table
 from ._util import AxisView, pad_axis
+
+T = TypeVar("T")
+LeftOrRight = Literal["l", "r"]
 
 
 class Pad(NamedTuple):
@@ -157,17 +161,24 @@ class TimeFrame:
 
         return self.columns[idx]
 
-    def resize(self, length, pad_value, pad="l", skip="r"):
+    def resize(
+        self,
+        length: Optional[int],
+        pad_value: T = 0,
+        pad: LeftOrRight = "l",
+        skip: LeftOrRight = "r",
+    ) -> TimeFrame:
         """Force time frame to have length ``length``.
 
-        This pads or slices the time frame, depending on whether it's size is
+        This pads or slices the time frame, depending on whether its size is
         smaller or bigger than the required length.
 
         By default we pad values on the left, and skip on the right.
         """
-        assert skip in ("l", "r")
+        assert pad in LeftOrRight.__args__
+        assert skip in LeftOrRight.__args__
 
-        if len(self) == length:
+        if length is None or len(self) == length:
             return self
 
         if len(self) < length:
@@ -184,7 +195,7 @@ class TimeFrame:
         else:
             return self[: length - len(self)]
 
-    def pad(self, value, left=0, right=0):
+    def pad(self, value: T, left: int = 0, right: int = 0) -> TimeFrame:
         assert left >= 0 and right >= 0
 
         columns = {
@@ -213,12 +224,12 @@ class TimeFrame:
             _pad=Pad(pad_left, pad_right),
         )
 
-    def index_of(self, period: Period):
+    def index_of(self, period: Period) -> int:
         assert self.index is not None
 
         return self.index.index_of(period)
 
-    def astype(self, type, columns=None):
+    def astype(self, type: T, columns=None) -> TimeFrame:
         if columns is None:
             columns = self.columns
 
@@ -229,10 +240,10 @@ class TimeFrame:
             ),
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.length
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         columns = ", ".join(self.columns)
         return f"TimeFrame<size={len(self)}, columns=[{columns}]>"
 
@@ -551,7 +562,12 @@ class SplitFrame:
 
         return {**past, **future, **self.static}
 
-    def resize(self, past_length, future_length, pad_value=0.0):
+    def resize(
+        self,
+        past_length: Optional[int] = None,
+        future_length: Optional[int] = None,
+        pad_value: T = 0.0,
+    ) -> SplitFrame:
         return _replace(
             self,
             _past=self.past.resize(
