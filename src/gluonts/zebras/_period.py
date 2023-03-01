@@ -74,19 +74,27 @@ class _BasePeriod:
 
     @property
     def day(self) -> np.ndarray:
-        return (self.data - self.data.astype("M8[M]")).astype(int) + 1
+        return (self.data.astype("M8[D]") - self.data.astype("M8[M]")).astype(
+            int
+        ) + 1
 
     @property
     def hour(self) -> np.ndarray:
-        return (self.data - self.data.astype("M8[D]")).astype(int)
+        return (self.data.astype("M8[h]") - self.data.astype("M8[D]")).astype(
+            int
+        )
 
     @property
     def minute(self) -> np.ndarray:
-        return (self.data - self.data.astype("M8[h]")).astype(int)
+        return (self.data.astype("M8[m]") - self.data.astype("M8[h]")).astype(
+            int
+        )
 
     @property
     def second(self) -> np.ndarray:
-        return (self.data - self.data.astype("M8[m]")).astype(int)
+        return (self.data.astype("M8[s]") - self.data.astype("M8[m]")).astype(
+            int
+        )
 
     @property
     def dayofweek(self) -> np.ndarray:
