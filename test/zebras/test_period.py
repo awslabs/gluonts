@@ -94,3 +94,24 @@ def test_periods_serde(freq):
 
     assert ps[0] == serde.decode(serde.encode(ps[0]))
     assert ps == serde.decode(serde.encode(ps))
+
+
+@pytest.mark.parametrize("freq", FREQS)
+def test_periods_feature(freq):
+    if freq != "S" and freq.endswith("S"):
+        pytest.skip()
+
+    pr = pd.period_range(start="2020", freq=freq, periods=20)
+    ps = zb.periods("2020", freq, 20)
+
+    np.testing.assert_array_equal(pr.start_time.year, ps.year)
+    np.testing.assert_array_equal(pr.start_time.month, ps.month)
+    np.testing.assert_array_equal(pr.start_time.day, ps.day)
+
+    np.testing.assert_array_equal(pr.start_time.hour, ps.hour)
+    np.testing.assert_array_equal(pr.start_time.minute, ps.minute)
+    np.testing.assert_array_equal(pr.start_time.second, ps.second)
+
+    np.testing.assert_array_equal(pr.start_time.dayofweek, ps.dayofweek)
+    np.testing.assert_array_equal(pr.start_time.dayofyear, ps.dayofyear)
+    np.testing.assert_array_equal(pr.start_time.week, ps.week)
