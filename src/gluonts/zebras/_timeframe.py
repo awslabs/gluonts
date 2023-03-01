@@ -157,6 +157,32 @@ class TimeFrame:
 
         return self.columns[idx]
 
+    def resize(self, length, pad_value, pad="l", skip="r"):
+        """Force time frame to have length ``length``.
+
+        This pads or slices the time frame, depending on whether it's size is
+        smaller or bigger than the required length.
+
+        By default we pad values on the left, and skip on the right.
+        """
+        if len(self) == length:
+            return self
+
+        if len(self) < length:
+            left = right = 0
+            if pad == "l":
+                left = length - len(self)
+            else:
+                right = length - len(self)
+
+            return self.pad(pad_value, left=left, right=right)
+
+        skip = len(self) - length
+        if skip == "l":
+            return self[skip:]
+        else:
+            return self[:-skip]
+
     def pad(self, value, left=0, right=0):
         assert left >= 0 and right >= 0
 
@@ -523,6 +549,15 @@ class SplitFrame:
         future = keymap(lambda key: f"future_{key}", self._future)
 
         return {**past, **future, **self.static}
+
+    def resize(self, past_length, future_length, pad_value=0.0):
+        return _replace(
+            self,
+            _past=self.past.resize(past_length, pad="l", skip="l").columns,
+            _future=self.future.resize(
+                future_length, pad="r", skip="r"
+            ).columns,
+        )
 
 
 def time_frame(

@@ -75,3 +75,17 @@ def test_time_frame_split(split_index):
     assert len(sf.future) == 8
     assert np.array_equal(tf.static, sf.static)
     assert sf.metadata == {"x": 42}
+
+
+def test_time_frame_resize():
+    tf2 = tf.resize(15, pad_value=99)
+    assert len(tf2) == 15
+    assert (tf2["target"][:5] == 99).all()
+
+    tf2 = tf.resize(15, pad_value=99, pad="l")
+    assert len(tf2) == 15
+    assert (tf2["target"][:5] == 99).all()
+
+    tf2 = tf.resize(15, pad_value=99, pad="r")
+    assert len(tf2) == 15
+    assert (tf2["target"][-5:] == 99).all()
