@@ -182,7 +182,7 @@ class TimeFrame:
         if skip == "l":
             return self[len(self) - length :]
         else:
-            return self[: len(self) - length]
+            return self[: length - len(self)]
 
     def pad(self, value, left=0, right=0):
         assert left >= 0 and right >= 0
@@ -554,10 +554,14 @@ class SplitFrame:
     def resize(self, past_length, future_length, pad_value=0.0):
         return _replace(
             self,
-            _past=self.past.resize(past_length, pad="l", skip="l").columns,
-            _future=self.future.resize(
-                future_length, pad="r", skip="r"
+            _past=self.past.resize(
+                past_length, pad_value, pad="l", skip="l"
             ).columns,
+            past_length=maybe.unwrap_or(past_length, self.past_length),
+            _future=self.future.resize(
+                future_length, pad_value, pad="r", skip="r"
+            ).columns,
+            future_length=maybe.unwrap_or(future_length, self.future_length),
         )
 
 
