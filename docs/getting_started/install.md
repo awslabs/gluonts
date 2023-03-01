@@ -160,7 +160,7 @@ using [``PyArrow``](https://arrow.apache.org/docs/python/index.html).
 Further, [arrow's custom data formats](https://arrow.apache.org/docs/python/ipc.html)
 are also supported.
 
-To utilise these, either install the ``pyarrow`` package or use the
+To use these, either install the ``pyarrow`` package or use the
 ``arrow``-extra:
 
 ```sh
