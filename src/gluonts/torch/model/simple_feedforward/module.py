@@ -95,7 +95,7 @@ class SimpleFeedForwardModel(nn.Module):
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
             {
-                "context": Input(
+                "past_target": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float
                 ),
             },
@@ -104,10 +104,10 @@ class SimpleFeedForwardModel(nn.Module):
 
     def forward(
         self,
-        context: torch.Tensor,
+        past_target: torch.Tensor,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
-        scale = mean_abs_scaling(context)
-        scaled_context = context / scale
+        scale = mean_abs_scaling(past_target)
+        scaled_context = past_target / scale
         nn_out = self.nn(scaled_context)
         nn_out_reshaped = nn_out.reshape(
             -1, self.prediction_length, self.hidden_dimensions[-1]
