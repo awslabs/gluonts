@@ -165,6 +165,8 @@ class TimeFrame:
 
         By default we pad values on the left, and skip on the right.
         """
+        assert skip in ("l", "r")
+
         if len(self) == length:
             return self
 
@@ -177,11 +179,10 @@ class TimeFrame:
 
             return self.pad(pad_value, left=left, right=right)
 
-        skip = len(self) - length
         if skip == "l":
-            return self[skip:]
+            return self[len(self) - length :]
         else:
-            return self[:-skip]
+            return self[: len(self) - length]
 
     def pad(self, value, left=0, right=0):
         assert left >= 0 and right >= 0

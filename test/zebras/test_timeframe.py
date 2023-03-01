@@ -78,6 +78,7 @@ def test_time_frame_split(split_index):
 
 
 def test_time_frame_resize():
+    # lengthen
     tf2 = tf.resize(15, pad_value=99)
     assert len(tf2) == 15
     assert (tf2["target"][:5] == 99).all()
@@ -89,3 +90,16 @@ def test_time_frame_resize():
     tf2 = tf.resize(15, pad_value=99, pad="r")
     assert len(tf2) == 15
     assert (tf2["target"][-5:] == 99).all()
+
+    # shorten
+    tf2 = tf.resize(5, pad_value=99)
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5)).all()
+
+    tf2 = tf.resize(5, pad_value=99, skip="r")
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5)).all()
+
+    tf2 = tf.resize(5, pad_value=99, skip="l")
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5, 10)).all()
