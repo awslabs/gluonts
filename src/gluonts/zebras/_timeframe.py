@@ -149,7 +149,7 @@ class TimeFrame:
     def ix(self):
         return IndexView(self)
 
-    def __getitem__(self, idx: Union[int, str]):
+    def __getitem__(self, idx: Union[slice, int, str]):
         if isinstance(idx, slice):
             subtype = maybe.or_(idx.start, idx.stop)
         else:
