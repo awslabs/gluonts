@@ -75,3 +75,46 @@ def test_time_frame_split(split_index):
     assert len(sf.future) == 8
     assert np.array_equal(tf.static, sf.static)
     assert sf.metadata == {"x": 42}
+
+
+def test_time_frame_resize():
+    # lengthen
+    tf2 = tf.resize(15, pad_value=99)
+    assert len(tf2) == 15
+    assert (tf2["target"][:5] == 99).all()
+
+    tf2 = tf.resize(15, pad_value=99, pad="l")
+    assert len(tf2) == 15
+    assert (tf2["target"][:5] == 99).all()
+
+    tf2 = tf.resize(15, pad_value=99, pad="r")
+    assert len(tf2) == 15
+    assert (tf2["target"][-5:] == 99).all()
+
+    # shorten
+    tf2 = tf.resize(5, pad_value=99)
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5)).all()
+
+    tf2 = tf.resize(5, pad_value=99, skip="r")
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5)).all()
+
+    tf2 = tf.resize(5, pad_value=99, skip="l")
+    assert len(tf2) == 5
+    assert (tf2["target"] == np.arange(5, 10)).all()
+
+
+def test_split_frame_resize():
+    sf = tf.split(5)
+
+    sf2 = sf.resize(past_length=10, future_length=10, pad_value=99)
+    assert len(sf2) == 20
+
+    assert (sf2.past["target"][:5] == 99).all()
+    assert (sf2.future["target"][-5:] == 99).all()
+
+    sf2 = sf.resize(past_length=1, future_length=1, pad_value=99)
+
+    assert sf2.past["target"][0] == 4
+    assert sf2.future["target"][0] == 5
