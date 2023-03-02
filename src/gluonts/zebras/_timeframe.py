@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
-from typing import Optional, List, NamedTuple, Union, TypeVar
+from typing import Optional, List, NamedTuple, Union
 from typing_extensions import Literal
 
 import numpy as np
@@ -28,7 +28,6 @@ from ._period import Periods, Period, period
 from ._repr import html_table
 from ._util import AxisView, pad_axis
 
-T = TypeVar("T")
 LeftOrRight = Literal["l", "r"]
 
 
@@ -164,7 +163,7 @@ class TimeFrame:
     def resize(
         self,
         length: Optional[int],
-        pad_value: T = 0,
+        pad_value=0,
         pad: LeftOrRight = "l",
         skip: LeftOrRight = "r",
     ) -> TimeFrame:
@@ -175,8 +174,8 @@ class TimeFrame:
 
         By default we pad values on the left, and skip on the right.
         """
-        assert pad in LeftOrRight.__args__
-        assert skip in LeftOrRight.__args__
+        assert pad in ("l", "r")
+        assert skip in ("l", "r")
 
         if length is None or len(self) == length:
             return self
@@ -195,7 +194,7 @@ class TimeFrame:
         else:
             return self[: length - len(self)]
 
-    def pad(self, value: T, left: int = 0, right: int = 0) -> TimeFrame:
+    def pad(self, value, left: int = 0, right: int = 0) -> TimeFrame:
         assert left >= 0 and right >= 0
 
         columns = {
@@ -213,7 +212,7 @@ class TimeFrame:
         pad_right = right + self._pad.right
 
         index = self.index
-        if index is not None:
+        if self.index is not None:
             index = self.index.prepend(left).extend(right)
 
         return _replace(
@@ -229,7 +228,7 @@ class TimeFrame:
 
         return self.index.index_of(period)
 
-    def astype(self, type: T, columns=None) -> TimeFrame:
+    def astype(self, type, columns=None) -> TimeFrame:
         if columns is None:
             columns = self.columns
 
@@ -566,7 +565,7 @@ class SplitFrame:
         self,
         past_length: Optional[int] = None,
         future_length: Optional[int] = None,
-        pad_value: T = 0.0,
+        pad_value=0.0,
     ) -> SplitFrame:
         return _replace(
             self,
