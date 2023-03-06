@@ -101,6 +101,8 @@ def periods_between(
         >>> periods_between(start, end)
         9
     """
+    if start > end:
+        return 0
     return ((end - start).n // start.freq.n) + 1
 
 
@@ -204,31 +206,6 @@ def slice_data_entry(
     return sliced_entry
 
 
-@dataclass
-class TimeSeriesSlice:
-    entry: DataEntry
-    prediction_length: int = 0
-
-    def to_data_entry(self) -> DataEntry:
-        return self.entry
-
-    @property
-    def start(self) -> pd.Period:
-        return self.entry[FieldName.START]
-
-    @property
-    def end(self) -> pd.Period:
-        return self.start + len(self) - 1
-
-    def __len__(self) -> int:
-        return len(self.entry[FieldName.TARGET])
-
-    def __getitem__(self, slc: slice) -> DataEntry:
-        return slice_data_entry(
-            self.entry, slc, prediction_length=self.prediction_length
-        )
-
-
 class AbstractBaseSplitter(ABC):
     """
     Base class for all other splitter.
@@ -276,7 +253,9 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
-                    yield TimeSeriesSlice(test[0])[-max_history:], test[1]
+                    yield slice_data_entry(
+                        test[0], slice(-max_history, None)
+                    ), test[1]
                 else:
                     yield test[0], test[1]
 

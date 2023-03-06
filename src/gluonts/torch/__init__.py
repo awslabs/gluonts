@@ -11,12 +11,23 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+__all__ = [
+    "PyTorchLightningEstimator",
+    "PyTorchPredictor",
+    "DeepNPTSEstimator",
+    "DeepAREstimator",
+    "SimpleFeedForwardEstimator",
+    "TemporalFusionTransformerEstimator",
+]
 
 
-from pkgutil import extend_path
+from .model.estimator import PyTorchLightningEstimator
+from .model.predictor import PyTorchPredictor
 
-__path__ = extend_path(__path__, __name__)  # type: ignore
+from .model.deep_npts import DeepNPTSEstimator
+from .model.deepar import DeepAREstimator
+from .model.simple_feedforward import SimpleFeedForwardEstimator
+from .model.tft import TemporalFusionTransformerEstimator
 
 
 from . import prelude as _  # noqa

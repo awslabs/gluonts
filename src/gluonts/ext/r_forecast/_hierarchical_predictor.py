@@ -46,9 +46,9 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     Wrapper for calling the `R hts package
     <https://www.r-pkg.org/pkg/hts>`_.
 
-    In order to use it you need to install R and run
+    In order to use it you need to install R and rpy2. You also need the R `hts` package which
+    can be installed by running:
 
-        pip install rpy2
         R -e 'install.packages(c("hts"), repos="https://cloud.r-project.org")'
 
     Parameters

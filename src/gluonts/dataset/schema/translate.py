@@ -26,7 +26,7 @@ more flexibility in the input data::
 """
 
 import re
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, InitVar, field
 from itertools import chain
 from typing import Any, Dict, List, Union, Optional, ClassVar
 
@@ -325,7 +325,7 @@ class Translator:
     access (e.g. ``x.T``) and method invocation (e.g. ``y.transpose(1, 0)``).
     """
 
-    fields: Dict[str, Op]
+    fields: Dict[str, Op] = field(default_factory=dict)
     drop: bool = False
 
     @staticmethod

@@ -18,7 +18,7 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
+from gluonts.model.predictor import RepresentablePredictor
 
 
 class ConstantPredictor(RepresentablePredictor):
@@ -45,7 +45,7 @@ class ConstantPredictor(RepresentablePredictor):
         )
 
 
-class ConstantValuePredictor(RepresentablePredictor, FallbackPredictor):
+class ConstantValuePredictor(RepresentablePredictor):
     """
     A `Predictor` that always produces the same value as forecast.
 

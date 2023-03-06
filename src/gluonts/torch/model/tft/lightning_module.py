@@ -43,23 +43,19 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: TemporalFusionTransformerModel,
+        model_kwargs: dict,
         lr: float = 1e-3,
         patience: int = 10,
         weight_decay: float = 0.0,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = TemporalFusionTransformerModel(**model_kwargs)
         self.lr = lr
         self.patience = patience
         self.weight_decay = weight_decay
-        self.example_input_array = tuple(
-            [
-                torch.zeros(shape, dtype=self.model.input_types()[name])
-                for (name, shape) in self.model.input_shapes().items()
-            ]
-        )
+        self.inputs = self.model.describe_inputs()
+        self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -69,7 +65,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         Execute training step.
         """
         train_loss = self.model.loss(
-            **select(self.model.input_shapes(), batch, ignore_missing=True),
+            **select(self.inputs, batch, ignore_missing=True),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
         ).mean()
@@ -89,7 +85,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         Execute validation step.
         """
         val_loss = self.model.loss(
-            **select(self.model.input_shapes(), batch, ignore_missing=True),
+            **select(self.inputs, batch, ignore_missing=True),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
         ).mean()

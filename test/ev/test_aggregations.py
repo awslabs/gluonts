@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 
 from gluonts.ev import Mean, Sum
+from gluonts.itertools import power_set
 
 VALUE_STREAM = [
     [
@@ -99,26 +100,26 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
         np.testing.assert_almost_equal(mean.get(), expected_result)
 
 
-def test_high_dim():
-    shape = (4, 9, 5, 2)
+@pytest.mark.parametrize("shape", [(4, 9, 5, 2)])
+@pytest.mark.parametrize("axis", [None] + list(power_set([0, 1, 2, 3])))
+def test_high_dim(shape: tuple, axis):
     batch_count = 3
 
     value_stream = [np.random.random(shape) for _ in range(batch_count)]
     all_values = np.concatenate(value_stream)
 
-    for axis in [None, 0, 1, 2, 3]:
-        sum = Sum(axis=axis)
-        for values in value_stream:
-            sum.step(values)
+    sum = Sum(axis=axis)
+    for values in value_stream:
+        sum.step(values)
 
-        actual_sum = sum.get()
-        expected_sum = all_values.sum(axis=axis)
-        np.testing.assert_almost_equal(actual_sum, expected_sum)
+    actual_sum = sum.get()
+    expected_sum = all_values.sum(axis=axis)
+    np.testing.assert_almost_equal(actual_sum, expected_sum)
 
-        mean = Mean(axis=axis)
-        for values in value_stream:
-            mean.step(values)
+    mean = Mean(axis=axis)
+    for values in value_stream:
+        mean.step(values)
 
-        actual_mean = mean.get()
-        expected_mean = all_values.mean(axis=axis)
-        np.testing.assert_almost_equal(actual_mean, expected_mean)
+    actual_mean = mean.get()
+    expected_mean = all_values.mean(axis=axis)
+    np.testing.assert_almost_equal(actual_mean, expected_mean)

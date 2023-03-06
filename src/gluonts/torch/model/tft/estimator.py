@@ -18,12 +18,12 @@ import torch
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, IterableSlice, PseudoShuffled
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.util import IterableDataset
 from gluonts.transform import (
     AddObservedValuesIndicator,
     AddConstFeature,
@@ -32,7 +32,6 @@ from gluonts.transform import (
     Chain,
     ExpectedNumInstanceSampler,
     RemoveFields,
-    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
@@ -41,10 +40,8 @@ from gluonts.transform import (
 )
 from gluonts.transform.sampler import InstanceSampler
 from gluonts.transform.split import TFTInstanceSplitter
-from torch.utils.data import DataLoader
 
 from .lightning_module import TemporalFusionTransformerLightningModule
-from .module import TemporalFusionTransformerModel
 
 PREDICTION_INPUT_NAMES = [
     "past_target",
@@ -314,78 +311,79 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             past_time_series_fields=past_ts_fields,
         )
 
+    def input_names(self):
+        input_names = list(TRAINING_INPUT_NAMES)
+
+        if not self.dynamic_cardinalities:
+            input_names.remove("feat_dynamic_cat")
+
+        if not self.past_dynamic_cardinalities:
+            input_names.remove("past_feat_dynamic_cat")
+
+        if not self.past_dynamic_dims:
+            input_names.remove("past_feat_dynamic_real")
+
+        return input_names
+
     def create_training_data_loader(
         self,
         data: Dataset,
-        module: TemporalFusionTransformerLightningModule = None,
+        module: TemporalFusionTransformerLightningModule,
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES, allow_missing=True)
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        data = Cyclic(data).stream()
+        instances = self._create_instance_splitter("training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return as_stacked_batches(
+            instances,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=self.input_names(),
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
         self,
         data: Dataset,
-        module: TemporalFusionTransformerLightningModule = None,
+        module: TemporalFusionTransformerLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES, allow_missing=True)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter("validation").apply(
+            data, is_train=True
+        )
+        return as_stacked_batches(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=self.input_names(),
+            output_type=torch.tensor,
         )
 
     def create_lightning_module(
         self,
     ) -> TemporalFusionTransformerLightningModule:
-        kwargs = dict(
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            d_var=self.variable_dim,
-            d_hidden=self.hidden_dim,
-            num_heads=self.num_heads,
-            quantiles=self.quantiles,
-            d_past_feat_dynamic_real=self.past_dynamic_dims,
-            c_past_feat_dynamic_cat=self.past_dynamic_cardinalities,
-            d_feat_dynamic_real=[1] * max(len(self.time_features), 1)
-            + self.dynamic_dims,
-            c_feat_dynamic_cat=self.dynamic_cardinalities,
-            d_feat_static_real=self.static_dims or [1],
-            c_feat_static_cat=self.static_cardinalities or [1],
-            dropout_rate=self.dropout_rate,
-        )
-        model = TemporalFusionTransformerModel(**kwargs)
         return TemporalFusionTransformerLightningModule(
-            model=model,
             lr=self.lr,
             patience=self.patience,
             weight_decay=self.weight_decay,
+            model_kwargs={
+                "context_length": self.context_length,
+                "prediction_length": self.prediction_length,
+                "d_var": self.variable_dim,
+                "d_hidden": self.hidden_dim,
+                "num_heads": self.num_heads,
+                "quantiles": self.quantiles,
+                "d_past_feat_dynamic_real": self.past_dynamic_dims,
+                "c_past_feat_dynamic_cat": self.past_dynamic_cardinalities,
+                "d_feat_dynamic_real": [1] * max(len(self.time_features), 1)
+                + self.dynamic_dims,
+                "c_feat_dynamic_cat": self.dynamic_cardinalities,
+                "d_feat_static_real": self.static_dims or [1],
+                "c_feat_static_cat": self.static_cardinalities or [1],
+                "dropout_rate": self.dropout_rate,
+            },
         )
 
     def create_predictor(

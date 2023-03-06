@@ -30,3 +30,31 @@ def test_custom_studentt_logpdf_matches_scipy_student_logpdf(df, loc, scale):
     log_pdf_scipy = scipy_dist.logpdf(x.numpy())
 
     assert np.allclose(log_pdf_torch, log_pdf_scipy)
+
+
+@pytest.mark.parametrize("df", [0.5, 1.5, 2.4])
+@pytest.mark.parametrize("loc", [-3.0, 0.0])
+@pytest.mark.parametrize("scale", [0.1, 0.8, 2.3])
+@pytest.mark.parametrize("value", [0.1, 0.5, 0.9])
+def test_custom_studentt_cdf(df, loc, scale, value):
+    torch_dist = StudentT(df=df, loc=loc, scale=scale)
+    scipy_dist = torch_dist.scipy_student_t
+
+    torch_cdf = torch_dist.cdf(torch.as_tensor(value))
+    scipy_cdf = scipy_dist.cdf(np.asarray(value))
+
+    assert np.allclose(torch_cdf, scipy_cdf)
+
+
+@pytest.mark.parametrize("df", [0.5, 1.5, 2.4])
+@pytest.mark.parametrize("loc", [-3.0, 0.0])
+@pytest.mark.parametrize("scale", [0.1, 0.8, 2.3])
+@pytest.mark.parametrize("value", [0.1, 0.5, 0.9])
+def test_custom_studentt_icdf(df, loc, scale, value):
+    torch_dist = StudentT(df=df, loc=loc, scale=scale)
+    scipy_dist = torch_dist.scipy_student_t
+
+    torch_icdf = torch_dist.icdf(torch.as_tensor(value))
+    scipy_icdf = scipy_dist.ppf(np.asarray(value))
+
+    assert np.allclose(torch_icdf, scipy_icdf)

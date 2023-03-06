@@ -11,12 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Tuple, Optional
+from typing import List, Tuple, Optional
 
 import torch
 from torch import nn
 
 from gluonts.core.component import validated
+from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 
 
@@ -91,22 +92,22 @@ class SimpleFeedForwardModel(nn.Module):
             self.hidden_dimensions[-1]
         )
 
-    def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
-        return {
-            "context": (batch_size, self.context_length),
-        }
-
-    def input_types(self) -> Dict[str, torch.dtype]:
-        return {
-            "context": torch.float,
-        }
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
+            {
+                "past_target": Input(
+                    shape=(batch_size, self.context_length), dtype=torch.float
+                ),
+            },
+            torch.zeros,
+        )
 
     def forward(
         self,
-        context: torch.Tensor,
+        past_target: torch.Tensor,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
-        scale = mean_abs_scaling(context)
-        scaled_context = context / scale
+        scale = mean_abs_scaling(past_target)
+        scaled_context = past_target / scale
         nn_out = self.nn(scaled_context)
         nn_out_reshaped = nn_out.reshape(
             -1, self.prediction_length, self.hidden_dimensions[-1]

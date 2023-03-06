@@ -44,14 +44,14 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: SimpleFeedForwardModel,
+        model_kwargs: dict,
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = SimpleFeedForwardModel(**model_kwargs)
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay

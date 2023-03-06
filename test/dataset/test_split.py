@@ -20,7 +20,7 @@ from gluonts.dataset.split import (
     OffsetSplitter,
     periods_between,
     split,
-    TimeSeriesSlice,
+    slice_data_entry,
 )
 
 
@@ -33,23 +33,21 @@ def test_time_series_slice():
         ),
     }
 
-    tss = TimeSeriesSlice(entry)
-
-    entry_slice = tss[10:20]
+    entry_slice = slice_data_entry(entry, slice(10, 20))
     assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 10
     assert (entry_slice["target"] == np.arange(10, 20)).all()
     assert (
         entry_slice["feat_dynamic_real"] == np.array([np.arange(10, 20)])
     ).all()
 
-    entry_slice = tss[:-20]
+    entry_slice = slice_data_entry(entry, slice(None, -20))
     assert entry_slice["start"] == pd.Period("2021-02-03", "D")
     assert (entry_slice["target"] == np.arange(80)).all()
     assert (
         entry_slice["feat_dynamic_real"] == np.array([np.arange(80)])
     ).all()
 
-    entry_slice = tss[-20:]
+    entry_slice = slice_data_entry(entry, slice(-20, None))
     assert entry_slice["start"] == pd.Period("2021-02-03", "D") + 80
     assert (entry_slice["target"] == np.arange(80, 100)).all()
     assert (
@@ -94,6 +92,21 @@ def test_time_series_slice():
             pd.Period("2021-01-01 00", freq="2H"),
             pd.Period("2021-01-01 11", "2H"),
             6,
+        ),
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-02", freq="2D"),
+            0,
+        ),
+        (
+            pd.Period("2021-03-04", freq="2D"),
+            pd.Period("2021-03-04", freq="2D"),
+            1,
+        ),
+        (
+            pd.Period("2021-03-03 23:00", freq="30T"),
+            pd.Period("2021-03-03 03:29", freq="30T"),
+            0,
         ),
     ],
 )

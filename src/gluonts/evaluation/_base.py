@@ -571,15 +571,14 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    The MultivariateEvaluator class owns functionality for evaluating
-    multidimensional target arrays of shape (target_dimensionality,
-    prediction_length).
+    The MultivariateEvaluator class evaluates forecasts for multivariate or
+    multi-dimensional observations.
 
     Evaluations of individual dimensions will be stored with the corresponding
-    dimension prefix and contain the metrics calculated by only this dimension.
+    dimension prefix and contain metrics calculated only for this dimension.
     Metrics with the plain metric name correspond to metrics calculated over
     all dimensions.
-    Additionally, the user can provide additional aggregation functions that
+    Additionally, the user can provide custom aggregation functions that
     first aggregate the target and forecast over dimensions and then calculate
     the metric. These metrics will be prefixed with m_<aggregation_fun_name>_
 
@@ -758,6 +757,22 @@ class MultivariateEvaluator(Evaluator):
         fcst_iterator: Iterable[Forecast],
         num_series=None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
+        """Compute accuracy metrics for multivariate forecasts.
+
+        Parameters
+        ----------
+        ts_iterator
+            iterator over target time series. Each element of the iterator
+            must be a DataFrame with columns representing individual dimensions
+            of the multivariate time series and timestamps as index.
+        fcst_iterator
+            iterator over `Forecast` objects.
+
+        Returns
+        -------
+            Dict[str, float]
+                dictionary of forecast accuracy metrics.
+        """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 

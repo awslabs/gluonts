@@ -15,9 +15,11 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
+
 from gluonts.core.component import validated
+from gluonts.model import Input, InputSpec
 from gluonts.torch.modules.quantile_output import QuantileOutput
-from gluonts.torch.modules.scaler import StdScaler
+from gluonts.torch.scaler import StdScaler
 from gluonts.torch.util import weighted_average
 
 from .layers import (
@@ -191,33 +193,58 @@ class TemporalFusionTransformerModel(nn.Module):
         self.output = QuantileOutput(quantiles=self.quantiles)
         self.output_proj = self.output.get_args_proj(in_features=self.d_hidden)
 
-    def input_shapes(self, batch_size=1) -> Dict[str, Tuple[int, ...]]:
-        return {
-            "past_target": (batch_size, self.context_length),
-            "past_observed_values": (batch_size, self.context_length),
-            "feat_static_real": (batch_size, sum(self.d_feat_static_real)),
-            "feat_static_cat": (batch_size, len(self.c_feat_static_cat)),
-            "feat_dynamic_real": (
-                batch_size,
-                self.context_length + self.prediction_length,
-                sum(self.d_feat_dynamic_real),
-            ),
-            "feat_dynamic_cat": (
-                batch_size,
-                self.context_length + self.prediction_length,
-                len(self.c_feat_dynamic_cat),
-            ),
-            "past_feat_dynamic_real": (
-                batch_size,
-                self.context_length,
-                sum(self.d_past_feat_dynamic_real),
-            ),
-            "past_feat_dynamic_cat": (
-                batch_size,
-                self.context_length,
-                len(self.c_past_feat_dynamic_cat),
-            ),
-        }
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
+            {
+                "past_target": Input(
+                    shape=(batch_size, self.context_length), dtype=torch.float
+                ),
+                "past_observed_values": Input(
+                    shape=(batch_size, self.context_length), dtype=torch.float
+                ),
+                "feat_static_real": Input(
+                    shape=(batch_size, sum(self.d_feat_static_real)),
+                    dtype=torch.float,
+                ),
+                "feat_static_cat": Input(
+                    shape=(batch_size, len(self.c_feat_static_cat)),
+                    dtype=torch.long,
+                ),
+                "feat_dynamic_real": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length + self.prediction_length,
+                        sum(self.d_feat_dynamic_real),
+                    ),
+                    dtype=torch.float,
+                ),
+                "feat_dynamic_cat": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length + self.prediction_length,
+                        len(self.c_feat_dynamic_cat),
+                    ),
+                    dtype=torch.long,
+                ),
+                "past_feat_dynamic_real": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length,
+                        sum(self.d_past_feat_dynamic_real),
+                    ),
+                    dtype=torch.float,
+                ),
+                "past_feat_dynamic_cat": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length,
+                        len(self.c_past_feat_dynamic_cat),
+                    ),
+                    dtype=torch.long,
+                ),
+            },
+            torch.zeros,
+        )
 
     def input_types(self) -> Dict[str, torch.dtype]:
         return {

@@ -20,6 +20,7 @@ jobs:
         python -m pip install -U pip
         pip install .
         pip install click black mypy
+        pip install types-python-dateutil
     - name: Style and type checks
       run: |
         just black
