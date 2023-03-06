@@ -136,7 +136,7 @@ class SageMakerDeepARPredictor(Predictor):
 
         data_shapes = [
             mx.io.DataDesc(name=desc.name, shape=desc.shape)
-            for desc in self.config.data_shapes
+            for desc in config.data_shapes
         ]
         module.bind(
             data_shapes=data_shapes, label_shapes=None, for_training=False
