@@ -134,6 +134,14 @@ class SageMakerDeepARPredictor(Predictor):
             label_names=None,
         )
 
+        data_shapes = [
+            mx.io.DataDesc(name=desc.name, shape=desc.shape)
+            for desc in self.config.data_shapes
+        ]
+        module.bind(
+            data_shapes=data_shapes, label_shapes=None, for_training=False
+        )
+
         return SageMakerDeepARPredictor(module=module, config=config)
 
     def item_features(self, entry):
@@ -163,15 +171,6 @@ class SageMakerDeepARPredictor(Predictor):
         }
 
     def predict(self, data, batch_size=32):
-        if self.module._data_shapes is None:
-            data_shapes = [
-                mx.io.DataDesc(name=desc.name, shape=desc.shape)
-                for desc in self.config.data_shapes
-            ]
-            self.module.bind(
-                data_shapes=data_shapes, label_shapes=None, for_training=False
-            )
-
         data1, data2 = itertools.tee(data)
 
         inputs = map(self.pipeline, data1)
