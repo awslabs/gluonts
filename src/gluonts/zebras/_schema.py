@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Type
 
 import numpy as np
-from toolz import valfilter
+from toolz import valfilter, curry
 
 from ._timeframe import time_frame, split_frame
 
@@ -68,6 +68,7 @@ class Schema:
             for name, ty in self.static.items()
         }
 
+    @curry
     def load_timeframe(self, data: dict, start=None, freq=None):
         columns = {
             name: self._load(name, ty, data)
@@ -79,6 +80,7 @@ class Schema:
             columns, static=self._load_static(data), start=start, freq=freq
         )
 
+    @curry
     def load_splitframe(
         self, data: dict, future_length: int, start=None, freq=None
     ):
