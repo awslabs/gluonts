@@ -161,7 +161,7 @@ def test_recipe_dataset(recipe) -> None:
 
 @pytest.mark.parametrize("recipe", [BASE_RECIPE, lambda **kwargs: dict()])
 def test_generate(recipe) -> None:
-    start = pd.Timestamp("2014-01-01", freq="D")
+    start = pd.Period("2014-01-01", freq="D")
     result = take_as_list(
         iterator=generate(length=10, recipe=BASE_RECIPE, start=start), num=10
     )

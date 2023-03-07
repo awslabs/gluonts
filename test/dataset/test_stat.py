@@ -32,7 +32,7 @@ def make_dummy_dynamic_feat(target, num_features) -> np.ndarray:
 
 
 # default values for TimeSeries field
-start = pd.Timestamp("1985-01-02", freq="1D")
+start = pd.Period("1985-01-02", freq="1D")
 target = np.random.randint(0, 10, 20)
 fsc = [0, 1]
 fsr = [0.1, 0.2]
