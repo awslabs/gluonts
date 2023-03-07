@@ -86,8 +86,12 @@ class DistributionForecast(Forecast):
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value
-        device = self.distribution.mean.get_device()
-        return self.distribution.icdf(torch.tensor([level]).to(device)).cpu().numpy()
+        device = self.distribution.mean.device
+        return (
+            self.distribution.icdf(torch.tensor([level], device=device))
+            .cpu()
+            .numpy()
+        )
 
     def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
         return SampleForecast(

@@ -32,7 +32,6 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-import torch
 
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
@@ -257,9 +256,6 @@ class Evaluator:
             desc="Running evaluation",
         ) as it, np.errstate(divide="ignore", invalid="ignore"):
             if self.num_workers and not sys.platform == "win32":
-
-                if torch.cuda.is_available():
-                    torch.multiprocessing.set_start_method('spawn', force=True)
 
                 mp_pool = multiprocessing.Pool(
                     initializer=None, processes=self.num_workers
