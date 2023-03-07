@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from typing import Any, Union, cast, overload
 
 import numpy as np
-from dateutil.parser import parse as du_parse
+from dateutil.parser import parse as du_parse  # type: ignore
 
 from gluonts.core import serde
 

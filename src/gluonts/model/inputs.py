@@ -14,7 +14,7 @@
 from collections import UserDict
 from dataclasses import dataclass
 from operator import attrgetter
-from typing import Callable, Dict, Type, Tuple
+from typing import Any, Callable, Dict, Type, Tuple
 
 from toolz import valmap
 
@@ -22,7 +22,7 @@ from toolz import valmap
 @dataclass
 class Input:
     shape: Tuple[int, ...]
-    dtype: Type
+    dtype: Any
     required: bool = True
 
 
