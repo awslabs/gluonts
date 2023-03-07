@@ -244,11 +244,13 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         kwargs = {}
         if self.config.intervals is not None and all(
-            e not in _build_fn_name(self.hrec.reconcilers[0])
-            for e in [
-                "forecast_proportions",
-                "average_proportions",
-                "proportion_averages",
+            [
+                proportion not in _build_fn_name(self.hrec.reconcilers[0])
+                for proportion in [
+                    "forecast_proportions",
+                    "average_proportions",
+                    "proportion_averages",
+                ]
             ]
         ):
             kwargs["level"] = self.config.intervals
