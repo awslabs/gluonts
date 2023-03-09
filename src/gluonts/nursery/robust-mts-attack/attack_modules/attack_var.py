@@ -200,7 +200,6 @@ class Attack:
         self.model.dropout_rate = 0
         self.model.rnn.dropout = 0
         self.model.train()
-        self.max_pert_len = len(params.tolerance)
         self.max_norm = params.max_norm
 
     def attack_step(self, attack_module, optimizer, adv_target, ground_truth=None):

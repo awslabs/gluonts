@@ -1,4 +1,4 @@
-from gluonts.multivariate.datasets.dataset import electricity, exchange_rate, solar, traffic, wiki, taxi_30min
+from multivariate.datasets.dataset import electricity, exchange_rate, solar, traffic, wiki, taxi_30min
 
 DATASETS = ['electricity', 'exchange_rate', 'solar', 'traffic', 'wiki', 'taxi']
 

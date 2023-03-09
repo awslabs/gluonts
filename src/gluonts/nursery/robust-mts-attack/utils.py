@@ -59,13 +59,11 @@ class AttackResults:
                  batch,
                  perturbation,
                  true_future_target,
-                 tolerance,
                  attack_idx
                  ):
         self.batch = batch
         self.perturbation = perturbation
         self.true_future_target = true_future_target
-        self.tolerance = tolerance
         self.attack_idx = attack_idx
 
 
@@ -74,10 +72,7 @@ class Metrics:
     def __init__(self, mse, mape, ql, quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]):
         self.mse = mse
         self.mape = mape
-        # self.nd = nd
         self.ql = ql
-        # self.sigmas = sigmas
-        # self.tolerance = tolerance
         self.quantiles = quantiles
 
 
@@ -220,8 +215,6 @@ def calc_loss(attack_data, forecasts, attack_idx, target_items, quantiles=[0.1, 
         batch_size = true_future_target.shape[0]
 
         for attack_type in forecasts.keys():
-            # if attack_type == 'enumerate':
-            #     continue
             if (true_future_target[:, attack_idx][..., target_items] != 0).prod() == 0:
                 mape[attack_type][testset_idx: testset_idx + batch_size] = np.abs(forecasts[attack_type][i][:, :, attack_idx][..., target_items].mean(1) - true_future_target[:, attack_idx][..., target_items])
                 mse[attack_type][testset_idx: testset_idx + batch_size] =  (forecasts[attack_type][i][:, :, attack_idx][..., target_items].mean(1) - true_future_target[:, attack_idx][..., target_items]) ** 2

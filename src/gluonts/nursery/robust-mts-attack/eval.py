@@ -36,10 +36,8 @@ if __name__ == "__main__":
 
     ds = get_dataset(args.dataset, predictor.prediction_net.target_dim)
 
-    tolerance = params.tolerance
     max_norm = params.max_norm
     attack_idx = params.attack_idx
-    sigmas = params.sigmas
     target_items = params.target_items
     attack_items = params.attack_items
     sparsity = params.sparsity

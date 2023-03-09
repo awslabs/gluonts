@@ -96,7 +96,6 @@ def main():
             batch_res = AttackResults(batch=batch,
                                         perturbation=best_perturbation,
                                         true_future_target=future_target,
-                                        tolerance=params.tolerance,
                                         attack_idx=params.attack_idx)
 
             pickle.dump(batch_res, outp, pickle.HIGHEST_PROTOCOL)
