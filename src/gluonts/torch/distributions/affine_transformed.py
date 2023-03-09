@@ -63,10 +63,3 @@ class AffineTransformed(TransformedDistribution):
         Returns the standard deviation of the distribution.
         """
         return self.variance.sqrt()
-
-    @property
-    def device(self):
-        """
-        Returns the device of the mean tensor
-        """
-        return self.mean.deivce

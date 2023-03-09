@@ -81,13 +81,6 @@ class GeneralizedPareto(Distribution):
         return mu
 
     @property
-    def device(self):
-        """
-        Returns the device of the mean tensor
-        """
-        return self.mean.deivce
-
-    @property
     def variance(self):
         """
         Returns the variance of the distribution, of shape (*batch_shape,)
