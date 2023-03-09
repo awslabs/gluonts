@@ -53,7 +53,7 @@ class CategoricalFeatureInfo(pydantic.BaseModel):
 
 
 class MetaData(pydantic.BaseModel):
-    freq: str = pydantic.Field(..., alias="time_granularity")  # type: ignore
+    freq: str
     target: Optional[BasicFeatureInfo] = None
 
     feat_static_cat: List[CategoricalFeatureInfo] = []
