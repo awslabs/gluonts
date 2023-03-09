@@ -256,7 +256,6 @@ class Evaluator:
             desc="Running evaluation",
         ) as it, np.errstate(divide="ignore", invalid="ignore"):
             if self.num_workers and not sys.platform == "win32":
-
                 mp_pool = multiprocessing.Pool(
                     initializer=None, processes=self.num_workers
                 )
