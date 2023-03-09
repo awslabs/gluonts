@@ -7,7 +7,7 @@ This repository contains the source code for reproducing the experiment results 
 
 ## Requirements
 PyTorch (1.13.1)<br>
-GluonTS (available at https://github.com/mbohlkeschneider/gluon-ts/tree/mv_release)<br>
+gluonts (0.9.2) (available at https://github.com/mbohlkeschneider/gluon-ts/tree/mv_release)<br>
 pytorch-ts from [Zalando Research](https://github.com/zalandoresearch/pytorch-ts)
 
 ## Datasets
