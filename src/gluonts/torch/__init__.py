@@ -19,11 +19,9 @@ __all__ = [
     "SimpleFeedForwardEstimator",
     "TemporalFusionTransformerEstimator",
 ]
-
-
+import torch
 from .model.estimator import PyTorchLightningEstimator
 from .model.predictor import PyTorchPredictor
-
 from .model.deep_npts import DeepNPTSEstimator
 from .model.deepar import DeepAREstimator
 from .model.simple_feedforward import SimpleFeedForwardEstimator
@@ -31,3 +29,7 @@ from .model.tft import TemporalFusionTransformerEstimator
 
 
 from . import prelude as _  # noqa
+
+
+if torch.cuda.is_available():
+    torch.multiprocessing.set_start_method("spawn", force=True)
