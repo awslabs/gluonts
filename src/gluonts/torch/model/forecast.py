@@ -88,7 +88,7 @@ class DistributionForecast(Forecast):
         level = Quantile.parse(level).value
         return (
             self.distribution.icdf(
-                torch.tensor([level], device=self.distribution.mean.device)
+                torch.tensor([level], device=self.distribution.device)
             )
             .cpu()
             .numpy()

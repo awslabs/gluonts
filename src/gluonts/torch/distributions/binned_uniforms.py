@@ -130,6 +130,13 @@ class BinnedUniforms(Distribution):
         return torch.mean(bin_centres * self.bins_prob, dim=-1)
 
     @property
+    def device(self):
+        """
+        Returns the device of the mean tensor
+        """
+        return self.mean.deivce
+
+    @property
     def bins_prob(self):
         """
         Returns the probability of the observed point to be in each of the bins
