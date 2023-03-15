@@ -31,7 +31,7 @@ the dataset in its entirety.
 
 Training a global model can take a lot of time: up to hours, but sometimes even
 days. Thus, it is not feasible to train the model as part of the prediction
-request and it happens as a seperate "offline" step. In contrast, fitting a
+request and it happens as a separate "offline" step. In contrast, fitting a
 local model is usually much faster and is done "online" as part of the
 prediction.
 
