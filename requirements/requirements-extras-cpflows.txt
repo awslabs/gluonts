@@ -1,1 +1,1 @@
-git+https://github.com/KelvinKan/CP-Flow.git@package-specific-version
+git+https://github.com/lostella/CP-Flow.git@gluonts-dependency
