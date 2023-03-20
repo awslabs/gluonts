@@ -32,7 +32,7 @@ jobs:
         pip install -r requirements/requirements-docs.txt
         pip install -r requirements/requirements-mxnet.txt
         pip install -r requirements/requirements-pytorch.txt
-        pip install -r requirements/requirements-extras-rotbaum.txt
+        pip install -r requirements/requirements-rotbaum.txt
         pip install -r requirements/requirements-extras-statsforecast.txt
 
     - name: Install Pandoc
