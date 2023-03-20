@@ -15,6 +15,7 @@ import pytorch_lightning as pl
 import torch
 from gluonts.core.component import validated
 from gluonts.itertools import select
+from gluonts.torch.model.lightning_util import has_validation_loop
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from .module import TemporalFusionTransformerModel
@@ -114,9 +115,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
             weight_decay=self.weight_decay,
         )
         monitor = (
-            "val_loss"
-            if self.trainer._data_connector._val_dataloader_source.is_defined()
-            else "train_loss"
+            "val_loss" if has_validation_loop(self.trainer) else "train_loss"
         )
 
         return {
