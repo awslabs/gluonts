@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field, InitVar
 from typing import Any, Iterable, Optional, Type, Union
 
@@ -24,6 +25,8 @@ from toolz import first
 from gluonts.maybe import Maybe
 from gluonts.dataset.common import DataEntry
 from gluonts.itertools import Map, StarMap, SizedIterable
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -116,6 +119,18 @@ class PandasDataset:
             self.freq = infer_freq(first(pairs)[1].index)
 
         static_features = Maybe(static_features).unwrap_or_else(pd.DataFrame)
+
+        object_columns = static_features.select_dtypes(
+            "object"
+        ).columns.tolist()
+        if object_columns:
+            logger.warning(
+                f"Columns {object_columns} in static_features "
+                f"have 'object' as data type and will be ignored; "
+                f"consider setting this to 'category' using pd.DataFrame.astype, "
+                f"if you wish to use them as categorical columns."
+            )
+
         self._static_reals = (
             static_features.select_dtypes("number").astype(self.dtype).T
         )
