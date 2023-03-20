@@ -77,15 +77,23 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         ),
     ],
 )
-def test_estimator_constant_dataset(estimator_constructor):
+@pytest.mark.parametrize("use_validation_data", [False, True])
+def test_estimator_constant_dataset(
+    estimator_constructor, use_validation_data: bool
+):
     constant = get_dataset("constant")
 
     estimator = estimator_constructor(constant)
 
-    predictor = estimator.train(
-        training_data=constant.train,
-        validation_data=constant.train,
-    )
+    if use_validation_data:
+        predictor = estimator.train(
+            training_data=constant.train,
+            validation_data=constant.train,
+        )
+    else:
+        predictor = estimator.train(
+            training_data=constant.train,
+        )
 
     with tempfile.TemporaryDirectory() as td:
         predictor.serialize(Path(td))
