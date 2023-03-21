@@ -1,0 +1,29 @@
+name: Style and type checks
+
+on: [push, pull_request]
+
+jobs:
+  style-type-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: extractions/setup-just@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.7'
+    - name: Install dependencies
+      run: |
+        python -m pip install -U pip
+        pip install .
+        pip install click black mypy
+        pip install types-python-dateutil
+    - name: Style and type checks
+      run: |
+        just black
+        just mypy
+    - name: Check license headers
+      run: just license

@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "gluonts-zebras"
+version = "0.1"
+description = ""
+authors = ["GluonTS DEV <gluon-ts-dev@amazon.com>"]
+readme = "README.md"
+
+packages = [
+    { include = "gluonts/zebras", from = "src" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.24.2"
+python-dateutil = "^2.8.2"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.2.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
