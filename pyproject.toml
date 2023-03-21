@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 gluonts = "^0.12"
 numpy = "^1.16"
 python-dateutil = "^2.8"
