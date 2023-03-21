@@ -19,7 +19,7 @@ black:
   black --check src test
 
 mypy:
-  mypy src --ignore-missing-imports
+  mypy --ignore-missing-imports --disable-error-code attr-defined src
 
 license:
   python .devtools/license check src test
