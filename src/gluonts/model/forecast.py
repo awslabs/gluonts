@@ -20,11 +20,15 @@ import pandas as pd
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts.util import lazy_property
 
 
 def _linear_interpolation(
     xs: np.ndarray, ys: np.ndarray, x: float
 ) -> np.ndarray:
+    # TODO: This currently also extrapolates if `x` is out of range/
+    # Do we want this?
+
     assert sorted(xs) == xs
     assert len(xs) == len(ys)
     assert len(xs) >= 2
@@ -43,6 +47,20 @@ def _linear_interpolation(
     dy = y_high - y_low
 
     return y_low + (x - x_low) / dx * dy
+
+
+def _fast_quantile(data: np.ndarray, q: float, axis: int) -> np.ndarray:
+    """Fast Quantile, assumes that data is sorted along axis `axis`."""
+
+    idx, fraction = divmod(q * (data.shape[axis] - 1), 1)
+    idx = int(idx)
+
+    left = data.take(idx, axis=axis)
+    if not fraction:
+        return left
+
+    right = data.take(idx + 1, axis=axis)
+    return left + (right - left) * fraction
 
 
 class ExponentialTailApproximation:
@@ -67,13 +85,14 @@ class ExponentialTailApproximation:
         y_coord: List[np.ndarray],
         tol: float = 1e-8,
     ) -> None:
-        self.x_coord = x_coord
-        assert sorted(self.x_coord) == self.x_coord
-        self.y_coord = y_coord
-        self.num_points = len(self.x_coord)
+        assert sorted(x_coord) == x_coord
         assert (
-            self.num_points >= 2
+            len(x_coord) >= 2
         ), "Need at least two points for exponential approximation."
+
+        self.x_coord = x_coord
+        self.y_coord = y_coord
+
         self.tol = tol
         (
             self.beta_inv_left,
@@ -262,9 +281,6 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def quantile_ts(self, q: Union[float, str]) -> pd.Series:
-        return pd.Series(index=self.index, data=self.quantile(q))
-
     @property
     def median(self) -> np.ndarray:
         return self.quantile(0.5)
@@ -379,15 +395,13 @@ class Forecast:
         if output_file:
             plt.savefig(output_file)
 
-    @property
+    @lazy_property
     def index(self) -> pd.PeriodIndex:
-        if self._index is None:
-            self._index = pd.period_range(
-                self.start_date,
-                periods=self.prediction_length,
-                freq=self.start_date.freq,
-            )
-        return self._index
+        return pd.period_range(
+            self.start_date,
+            periods=self.prediction_length,
+            freq=self.start_date.freq,
+        )
 
     def dim(self) -> int:
         """
@@ -443,67 +457,42 @@ class SampleForecast(Forecast):
         samples: np.ndarray,
         start_date: pd.Period,
         item_id: Optional[str] = None,
-        info: Optional[Dict] = None,
+        info: Optional[dict] = None,
     ) -> None:
-        assert isinstance(
-            samples, np.ndarray
-        ), "samples should be a numpy array"
-        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+        assert samples.ndim == 2 or samples.ndim == 3, (
             "samples should be a 2-dimensional or 3-dimensional array."
-            " Dimensions found: {}".format(len(np.shape(samples)))
+            f" Dimensions found: {samples.ndim}"
         )
         self.samples = samples
-        self._sorted_samples_value = None
-        self._mean = None
-        self._dim = None
-        self.item_id = item_id
-        self.info = info
-
-        assert isinstance(
-            start_date, pd.Period
-        ), "start_date should be a pandas Period object"
         self.start_date = start_date
-
-    @property
-    def _sorted_samples(self):
-        if self._sorted_samples_value is None:
-            self._sorted_samples_value = np.sort(self.samples, axis=0)
-        return self._sorted_samples_value
-
-    @property
-    def num_samples(self):
-        """
-        The number of samples representing the forecast.
-        """
-        return self.samples.shape[0]
+        self.info = info
+        self.item_id = item_id
 
     @property
     def prediction_length(self):
-        """
-        Time length of the forecast.
-        """
         return self.samples.shape[1]
 
-    @property
+    @lazy_property
     def mean(self) -> np.ndarray:
         """
         Forecast mean.
         """
-        if self._mean is None:
-            self._mean = np.mean(self.samples, axis=0)
-        return self._mean
-
-    @property
-    def mean_ts(self) -> pd.Series:
-        """
-        Forecast mean, as a pandas.Series object.
-        """
-        return pd.Series(self.mean, index=self.index)
+        return np.mean(self.samples, axis=0)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
-        q = Quantile.parse(q).value
-        sample_idx = int(np.round((self.num_samples - 1) * q))
-        return self._sorted_samples[sample_idx, :]
+        return _fast_quantile(
+            self._sorted_samples,
+            q=Quantile.parse(q).value,
+            axis=0,
+        )
+
+    @property
+    def is_univariate(self):
+        return self.samples.ndim == 2
+
+    @lazy_property
+    def _sorted_samples(self):
+        return np.sort(self.samples, axis=0)
 
     def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
@@ -529,6 +518,7 @@ class SampleForecast(Forecast):
         else:
             # Aggregate over target dimension axis
             samples = agg_fun(self.samples, axis=2)
+
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
@@ -537,16 +527,10 @@ class SampleForecast(Forecast):
         )
 
     def dim(self) -> int:
-        if self._dim is None:
-            if len(self.samples.shape) == 2:
-                # univariate target
-                # shape: (num_samples, prediction_length)
-                self._dim = 1
-            else:
-                # multivariate target
-                # shape: (num_samples, prediction_length, target_dim)
-                self._dim = self.samples.shape[2]
-        return self._dim
+        if self.is_univariate:
+            return 1
+
+        return self.samples.shape[2]
 
     def __repr__(self):
         return ", ".join(
