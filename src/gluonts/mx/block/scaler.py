@@ -295,4 +295,5 @@ class NOPScaler(Scaler):
         Tensor
             shape (N, C), identically equal to 1.
         """
-        return F.ones_like(data).mean(axis=self.axis)
+        _ones = F.ones_like(data) * F.ones_like(observed_indicator)
+        return _ones.mean(axis=self.axis)
