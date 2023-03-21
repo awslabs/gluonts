@@ -10,9 +10,10 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-numpy = "^1.24.2"
-python-dateutil = "^2.8.2"
+python = "^3.7"
+gluonts = { git = "https://github.com/awslabs/gluonts.git" }
+numpy = "^1.16"
+python-dateutil = "^2.8"
 
 
 [tool.poetry.group.test.dependencies]
@@ -21,3 +22,6 @@ pytest = "^7.2.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 79
