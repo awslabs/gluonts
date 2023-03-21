@@ -16,7 +16,7 @@
 # under the License.
 
 black:
-  black --check src test examples
+  black --check src test
 
 mypy:
   mypy src --ignore-missing-imports
