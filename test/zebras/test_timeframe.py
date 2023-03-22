@@ -15,7 +15,7 @@ import pytest
 
 import numpy as np
 
-from gluonts import zebras as zb
+import zebras as zb
 
 
 target = np.arange(10)

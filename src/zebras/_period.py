@@ -332,7 +332,7 @@ class Periods(_BasePeriod):
 def _encode_zebras_periods(v: Periods):
     return {
         "__kind__": "instance",
-        "class": "gluonts.zebras.periods",
+        "class": "zebras.periods",
         "kwargs": serde.encode(
             {"start": v.start, "freq": str(v.freq), "count": len(v)}
         ),
