@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+from operator import itemgetter
 from typing import Optional, List, NamedTuple, Union
 from typing_extensions import Literal
 
@@ -26,7 +27,7 @@ from gluonts.itertools import pluck_attr, columns_to_rows, select
 
 from ._period import Periods, Period, period
 from ._repr import html_table
-from ._util import AxisView, pad_axis
+from ._util import AxisView, pad_axis, _replace
 
 LeftOrRight = Literal["l", "r"]
 
@@ -35,34 +36,19 @@ class Pad(NamedTuple):
     left: int = 0
     right: int = 0
 
+    def extend(self, left, right):
+        return Pad(
+            left=max(0, self.left + left),
+            right=max(0, self.right + right),
+        )
+
 
 @dataclasses.dataclass
-class IndexView:
-    tf: TimeFrame
+class ILoc:
+    tb: TimeBase
 
     def __getitem__(self, idx):
-        if isinstance(idx, int):
-            idx = slice(idx, idx + 1)
-
-        assert isinstance(idx, slice)
-        left, right, step = idx.indices(len(self.tf))
-        assert step == 1
-
-        pad_left = max(0, self.tf._pad.left - left)
-        pad_right = max(0, self.tf._pad.right - right)
-
-        index = maybe.map(self.tf.index, lambda index: index[idx])
-        columns = {
-            column: self.tf.vt(column)[idx] for column in self.tf.columns
-        }
-
-        return _replace(
-            self.tf,
-            index=index,
-            columns=columns,
-            length=right - left,
-            _pad=Pad(pad_left, pad_right),
-        )
+        return self.tb._slice_tdim(idx)
 
 
 @dataclasses.dataclass
@@ -70,95 +56,43 @@ class TimeView:
     tf: TimeFrame
 
     def __getitem__(self, idx):
-        if isinstance(idx, Period):
-            idx = slice(idx, idx + 1)
-
         assert isinstance(idx, slice)
         assert idx.step is None or idx.step == 1
 
         start = maybe.map(idx.start, self.tf.index_of)
         stop = maybe.map(idx.stop, self.tf.index_of)
 
-        return IndexView(self.tf)[start:stop]
+        return ILoc(self.tf)[start:stop]
 
 
-def _replace(obj, **kwargs):
-    """Copy and replace dataclass instance.
+class TimeBase:
+    def _slice_tdim(self, idx):
+        raise NotImplementedError
 
-    Compared to ``dataclasses.replace`` this first creates a copy where each
-    field in the object is copied. Thus, each field of the returned object is
-    different from the source object.
-    """
+    @property
+    def iloc(self):
+        return ILoc(self)
 
-    clone = object.__new__(obj.__class__)
-    clone.__dict__ = valmap(copy.copy, obj.__dict__)
-
-    return dataclasses.replace(clone, **kwargs)
-
-
-@dataclasses.dataclass
-class TimeFrame:
-    columns: dict
-    index: Optional[Periods]
-    static: dict
-    length: int
-    tdims: dict
-    metadata: Optional[dict] = None
-    default_tdim: int = -1
-    _pad: Pad = Pad()
-
-    def __post_init__(self):
-        for column in self.columns:
-            self.tdims.setdefault(column, self.default_tdim)
-
-        for column in self.columns:
-            assert len(self.vt(column)) == self.length, (
-                f"Column {column!r} has incorrect length in time dimension. "
-                f"Expected: {len(self)}, got {len(self.vt(column))}."
-            )
-
-        assert maybe.map_or(self.index, len, self.length) == self.length
+    @property
+    def loc(self):
+        return TimeView(self)
 
     @property
     def start(self):
-        return self.ix[0]
+        return self.iloc[0]
 
     @property
     def end(self):
-        return self.ix[-1]
+        return self.iloc[-1]
 
     def head(self, count: int) -> Periods:
-        return self.ix[:count]
+        return self.iloc[:count]
 
     def tail(self, count: int) -> Periods:
         if count is None:
             return self
 
-        return self.ix[-count:]
-
-    def vt(self, column):
-        """View of column with respect to time."""
-
-        return AxisView(self.columns[column], self.tdims[column])
-
-    @property
-    def tx(self):
-        return TimeView(self)
-
-    @property
-    def ix(self):
-        return IndexView(self)
-
-    def __getitem__(self, idx: Union[slice, int, str]):
-        if isinstance(idx, slice):
-            subtype = maybe.or_(idx.start, idx.stop)
-        else:
-            subtype = None
-
-        if isinstance(idx, int) or isinstance(subtype, int):
-            return self.ix[idx]
-
-        return self.columns[idx]
+        return self.iloc[-count:]
 
     def resize(
         self,
@@ -190,9 +124,282 @@ class TimeFrame:
             return self.pad(pad_value, left=left, right=right)
 
         if skip == "l":
-            return self[len(self) - length :]
+            return self.iloc[len(self) - length :]
         else:
-            return self[: length - len(self)]
+            return self.iloc[: length - len(self)]
+
+    def index_of(self, period: Period) -> int:
+        assert self.index is not None
+
+        return self.index.index_of(period)
+
+    def __getitem__(self, idx: Union[slice, int, str]):
+        if isinstance(idx, int):
+            subtype = idx
+        else:
+            assert isinstance(idx, slice)
+            subtype = maybe.or_(idx.start, idx.stop)
+
+        if subtype is None:
+            return self
+
+        elif isinstance(subtype, int):
+            return self.iloc[idx]
+
+        elif isinstance(subtype, Period):
+            return self.loc[idx]
+
+        raise RuntimeError(f"Unsupported type {subtype}.")
+
+    def with_index(self, index):
+        return _replace(self, index=index)
+
+
+@dataclasses.dataclass(eq=False)
+class TimeSeries(TimeBase):
+    values: np.ndarray
+    index: Optional[Periods] = None
+    name: Optional[str] = None
+    tdim: int = -1
+    metadata: Optional[dict] = None
+    _pad: Pad = Pad()
+
+    def __eq__(self, other):
+        return self.values == other
+
+    def __array__(self):
+        return self.values
+
+    def __len__(self):
+        return self.values.shape[self.tdim]
+
+    def _slice_tdim(self, idx):
+        if isinstance(idx, int):
+            return AxisView(self.values, self.tdim)[idx]
+
+        start, stop, step = idx.indices(len(self))
+        assert step == 1
+
+        return _replace(
+            self,
+            values=AxisView(self.values, self.tdim)[idx],
+            index=maybe.map(self.index, itemgetter(idx)),
+            _pad=self._pad.extend(-start, stop - len(self)),
+        )
+
+    def pad(self, value, left: int = 0, right: int = 0) -> TimeSeries:
+        assert left >= 0 and right >= 0
+
+        values = pad_axis(
+            self.values,
+            axis=self.tdim,
+            left=left,
+            right=right,
+            value=value,
+        )
+
+        index = self.index
+        if self.index is not None:
+            index = self.index.prepend(left).extend(right)
+
+        return _replace(
+            self,
+            values=values,
+            index=index,
+            _pad=self._pad.extend(left, right),
+        )
+
+    @classmethod
+    def batch(cls, xs: List[TimeSeries], into=None):
+        for series in xs:
+            assert type(series) == TimeSeries
+
+        pluck = pluck_attr(xs)
+
+        tdims = set(pluck("tdim"))
+        assert len(tdims) == 1
+        tdim = first(tdims)
+        if tdim >= 0:
+            # We insert a new axis at the front, so if tdim is counting from
+            # the left (tdim is positive) we need to shift by one to the right.
+            tdim += 1
+
+        values = np.stack(pluck("values"))
+        if into is not None:
+            values = into(values)
+
+        return BatchTimeSeries(
+            values=values,
+            tdim=tdim,
+            index=pluck("index"),
+            name=pluck("name"),
+            metadata=pluck("metadata"),
+            _pad=pluck("_pad"),
+        )
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+
+        if self.index is None:
+            plt.plot(self.values)
+        else:
+            plt.plot(self.index, self.values)
+
+
+@dataclasses.dataclass
+class BatchTimeSeries(TimeBase):
+    values: np.ndarray
+    index: List[Optional[Periods]]
+    name: List[Optional[str]]
+    tdim: int
+    metadata: List[Optional[dict]]
+    _pad: List[Pad]
+
+    def _slice_tdim(self, idx):
+        start, stop, step = idx.indices(len(self))
+        assert step == 1
+
+        def calc_pad(pad):
+            pad_left = max(0, pad.left - start)
+            pad_right = max(0, pad.right + stop + 1 - len(self) - pad_left)
+
+            return Pad(pad_left, pad_right)
+
+        return _replace(
+            self,
+            values=AxisView(self.values, self.tdim)[idx],
+            index=[maybe.map(index, itemgetter(idx)) for index in self.index],
+            _pad=list(map(calc_pad, self._pad)),
+        )
+
+    @property
+    def batch_size(self):
+        return len(self.values)
+
+    def __len__(self):
+        return self.values.shape[self.tdim]
+
+    def __array__(self):
+        return self.values
+
+    @property
+    def items(self):
+        return TimeSeriesItems(self)
+
+    def pad(self, value, left: int = 0, right: int = 0) -> TimeSeries:
+        assert left >= 0 and right >= 0
+
+        values = pad_axis(
+            self.values,
+            axis=self.tdim,
+            left=left,
+            right=right,
+            value=value,
+        )
+
+        def extend_index(index):
+            return index.prepend(left).extend(right)
+
+        return _replace(
+            self,
+            values=values,
+            index=[maybe.map(index_, extend_index) for index_ in self.index],
+            _pad=[pad.extend(left, right) for pad in self._pad],
+        )
+
+
+@dataclasses.dataclass(repr=False)
+class TimeSeriesItems:
+    data: BatchTimeSeries
+
+    def __len__(self):
+        return self.data.batch_size
+
+    def __getitem__(self, idx):
+        tdim = self.data.tdim
+
+        if isinstance(idx, int):
+            cls = TimeSeries
+            if tdim > 0:
+                tdim -= 1
+        else:
+            cls = BatchTimeSeries
+
+        return cls(
+            values=self.data.values[idx],
+            index=self.data.index[idx],
+            name=self.data.name[idx],
+            metadata=self.data.metadata[idx],
+            _pad=self.data._pad[idx],
+            tdim=tdim,
+        )
+
+
+@dataclasses.dataclass
+class TimeFrame(TimeBase):
+    columns: dict
+    index: Optional[Periods]
+    static: dict
+    length: int
+    tdims: dict
+    metadata: Optional[dict] = None
+    default_tdim: int = -1
+    _pad: Pad = Pad()
+
+    def __post_init__(self):
+        for column in self.columns:
+            self.tdims.setdefault(column, self.default_tdim)
+
+        for column in self.columns:
+            assert len(self._time_view(column)) == self.length, (
+                f"Column {column!r} has incorrect length in time dimension. "
+                f"Expected: {len(self)}, got {len(self._time_view(column))}."
+            )
+
+        assert maybe.map_or(self.index, len, self.length) == self.length, (
+            len(self.index),
+            self.length,
+        )
+
+    def _time_view(self, column):
+        """View of column with respect to time."""
+
+        return AxisView(self.columns[column], self.tdims[column])
+
+    def _slice_tdim(self, idx):
+        start, stop, step = idx.indices(len(self))
+        assert step == 1
+
+        pad_left = max(0, self._pad.left - start)
+        pad_right = max(0, self._pad.right + stop + 1 - len(self) - pad_left)
+
+        return _replace(
+            self,
+            columns={
+                column: self._time_view(column)[idx] for column in self.columns
+            },
+            index=maybe.map(self.index, itemgetter(idx)),
+            length=stop - start,
+            _pad=Pad(pad_left, pad_right),
+        )
+
+    def __getitem__(self, idx: Union[slice, int, str]):
+        if isinstance(idx, slice):
+            subtype = maybe.or_(idx.start, idx.stop)
+        else:
+            subtype = None
+
+        if isinstance(idx, int) or isinstance(subtype, int):
+            return self.iloc[idx]
+
+        return TimeSeries(
+            self.columns[idx],
+            index=self.index,
+            tdim=self.tdims[idx],
+            metadata=self.metadata,
+            name=idx,
+            _pad=self._pad,
+        )
 
     def pad(self, value, left: int = 0, right: int = 0) -> TimeFrame:
         assert left >= 0 and right >= 0
@@ -223,11 +430,6 @@ class TimeFrame:
             _pad=Pad(pad_left, pad_right),
         )
 
-    def index_of(self, period: Period) -> int:
-        assert self.index is not None
-
-        return self.index.index_of(period)
-
     def astype(self, type, columns=None) -> TimeFrame:
         if columns is None:
             columns = self.columns
@@ -238,9 +440,6 @@ class TimeFrame:
                 lambda col: col.astype(type), select(columns, self.columns)
             ),
         )
-
-    def __len__(self) -> int:
-        return self.length
 
     def __repr__(self) -> str:
         columns = ", ".join(self.columns)
@@ -365,9 +564,6 @@ class TimeFrame:
 
         return _replace(self, columns=columns, tdims=tdims)
 
-    def with_index(self, index):
-        return _replace(self, index=index)
-
     def as_dict(self, prefix=None, static=True):
         result = dict(self.columns)
 
@@ -397,6 +593,13 @@ class TimeFrame:
         if future_length is None:
             future_length = len(self) - index
 
+        if self.index is None:
+            new_index = None
+        else:
+            new_index = (
+                self.index.start + (len(self) - index - past_length)
+            ).periods(past_length + future_length)
+
         pad_left = max(0, past_length - index)
         pad_right = max(0, future_length - (len(self) - index))
         self = self.pad(pad_value, pad_left, pad_right)
@@ -414,10 +617,15 @@ class TimeFrame:
 
         past, future = columns_to_rows(itemmap(split_item, self.columns))
 
+        # past_index = self.index[:past_length]
+        # future_index = self.index[past_length:]
+        # new_index = past_index.prepend(pad_left).tail(past_length).extend(future_length)
+        # future_index.extend(pad_right).head(future_length)
+
         return SplitFrame(
             _past=past,
             _future=future,
-            index=self.index,
+            index=new_index,
             static=self.static,
             past_length=past_length,
             future_length=future_length,
@@ -431,6 +639,9 @@ class TimeFrame:
             columns = self.columns.keys()
 
         return _replace(self, columns=valmap(fn, self.columns))
+
+    def __len__(self) -> int:
+        return self.length
 
 
 @dataclasses.dataclass
@@ -567,6 +778,15 @@ class SplitFrame:
         future_length: Optional[int] = None,
         pad_value=0.0,
     ) -> SplitFrame:
+        index = self.index
+
+        past_length = maybe.unwrap_or(past_length, self.past_length)
+        future_length = maybe.unwrap_or(future_length, self.future_length)
+
+        if index is not None:
+            start = index[0] + (self.past_length + past_length)
+            index = start.periods(past_length + future_length)
+
         return _replace(
             self,
             _past=self.past.resize(
@@ -577,7 +797,11 @@ class SplitFrame:
                 future_length, pad_value, pad="r", skip="r"
             ).columns,
             future_length=maybe.unwrap_or(future_length, self.future_length),
+            index=index,
         )
+
+    def with_index(self, index):
+        return _replace(self, index=index)
 
 
 def time_frame(
@@ -624,6 +848,28 @@ def time_frame(
         return tf.with_index(start.periods(len(tf)))
 
     return tf
+
+
+def time_series(
+    values,
+    *,
+    index=None,
+    start=None,
+    freq=None,
+    tdim=-1,
+    metadata=None,
+):
+    values = np.array(values)
+
+    ts = TimeSeries(values, index=index, tdim=tdim, metadata=metadata)
+
+    if ts.index is None and start is not None:
+        if freq is not None:
+            start = period(start, freq)
+
+        return ts.with_index(start.periods(len(ts)))
+
+    return ts
 
 
 def split_frame(

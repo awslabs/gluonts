@@ -22,8 +22,17 @@ __all__ = [
     "time_frame",
     "SplitFrame",
     "split_frame",
+    "time_series",
+    "TimeSeries",
 ]
 
 from ._freq import Freq, freq
 from ._period import period, Period, periods, Periods
-from ._timeframe import time_frame, TimeFrame, split_frame, SplitFrame
+from ._timeframe import (
+    time_frame,
+    TimeFrame,
+    split_frame,
+    SplitFrame,
+    time_series,
+    TimeSeries,
+)
