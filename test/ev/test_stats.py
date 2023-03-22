@@ -107,7 +107,7 @@ def test_coverage():
             q = 0.9
             data = {"label": label, str(q): forecast}
             actual = coverage(data, q=q)
-            expected = label < forecast
+            expected = label <= forecast
 
             np.testing.assert_almost_equal(actual, expected)
 
