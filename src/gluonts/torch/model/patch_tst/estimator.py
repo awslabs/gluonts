@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Iterable, Dict, Any
+from typing import Optional, Iterable, Dict, Any
 
 import torch
 import pytorch_lightning as pl
@@ -35,10 +35,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import (
-    DistributionOutput,
-    StudentTOutput,
-)
+from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 
 from .lightning_module import PatchTSTLightningModule
 
@@ -234,9 +231,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
-            time_series_fields=[
-                FieldName.OBSERVED_VALUES,
-            ],
+            time_series_fields=[FieldName.OBSERVED_VALUES],
             dummy_value=self.distr_output.value_in_support,
         )
 
