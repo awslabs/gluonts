@@ -21,6 +21,7 @@ from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
+from gluonts.torch.util import unsqueeze_expand
 
 
 def make_linear_layer(dim_in, dim_out):
@@ -131,7 +132,8 @@ class PatchTSTModel(nn.Module):
             self.padding_patch_layer = nn.ReplicationPad1d((0, self.stride))
             self.patch_num += 1
 
-        self.patch_proj = make_linear_layer(patch_len, d_model)
+        # project from patch_len + 2 features (loc and scale) to d_model
+        self.patch_proj = make_linear_layer(patch_len + 2, d_model)
 
         self.positional_encoding = SinusoidalPositionalEmbedding(
             self.patch_num, d_model
@@ -185,12 +187,22 @@ class PatchTSTModel(nn.Module):
         # do patching
         if self.padding_patch == "end":
             past_target_scaled = self.padding_patch_layer(past_target_scaled)
-        past_target_scaled = past_target_scaled.unfold(
+        past_target_patches = past_target_scaled.unfold(
             dimension=1, size=self.patch_len, step=self.stride
         )
 
+        # add loc and scale to past_target_patches as additional features
+        log_abs_loc = loc.abs().log1p()
+        log_scale = scale.log()
+        expanded_static_feat = unsqueeze_expand(
+            torch.cat([log_abs_loc, log_scale], dim=-1),
+            dim=1,
+            size=past_target_patches.shape[1],
+        )
+        inputs = torch.cat((past_target_patches, expanded_static_feat), dim=-1)
+
         # project patches
-        enc_in = self.patch_proj(past_target_scaled)
+        enc_in = self.patch_proj(inputs)
         embed_pos = self.positional_encoding(enc_in.size())
 
         # transformer encoder with positional encoding
