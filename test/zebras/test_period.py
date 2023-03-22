@@ -17,8 +17,9 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-from gluonts import zebras as zb
 from gluonts.core import serde
+
+import zebras as zb
 
 FREQS = ["S", "min", "T", "H", "D", "B", "W", "M", "QS", "Q", "AS", "A", "Y"]
 

@@ -6,7 +6,7 @@ authors = ["GluonTS DEV <gluon-ts-dev@amazon.com>"]
 readme = "README.md"
 
 packages = [
-    { include = "gluonts/zebras", from = "src" },
+    { include = "zebras", from = "src" },
 ]
 
 [tool.poetry.dependencies]
