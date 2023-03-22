@@ -40,8 +40,7 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
     @staticmethod
     def _init_weight(out: nn.Parameter) -> nn.Parameter:
         """
-        Identical to the XLM create_sinusoidal_embeddings except features are not interleaved. The cos features are in
-        the 2nd half of the vector. [dim // 2:]
+        Features are not interleaved. The cos features are in the 2nd half of the vector. [dim // 2:]
         """
         n_pos, dim = out.shape
         position_enc = np.array(
@@ -52,6 +51,7 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
         )
         # set early to avoid an error in pytorch-1.8+
         out.requires_grad = False
+
         sentinel = dim // 2 if dim % 2 == 0 else (dim // 2) + 1
         out[:, 0:sentinel] = torch.FloatTensor(np.sin(position_enc[:, 0::2]))
         out[:, sentinel:] = torch.FloatTensor(np.cos(position_enc[:, 1::2]))
@@ -83,13 +83,9 @@ class PatchTSTModel(nn.Module):
         Number of time points to predict.
     context_length
         Number of time steps prior to prediction time that the model.
-    hidden_dimensions
-        Size of hidden layers in the feed-forward network.
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
-    batch_norm
-        Whether to apply batch normalization. Default: ``False``.
     """
 
     @validated()
