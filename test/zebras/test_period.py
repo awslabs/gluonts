@@ -65,11 +65,10 @@ def test_period_equal_pandas(freq):
 
 
 @pytest.mark.parametrize("freq", FREQS)
-def test_periods_serde(freq):
-    ps = zb.periods("2020", freq, 20)
+def test_period_serde(freq):
+    p = zb.period("2020", freq)
 
-    assert ps[0] == serde.decode(serde.encode(ps[0]))
-    assert ps == serde.decode(serde.encode(ps))
+    assert p == serde.decode(serde.encode(p))
 
 
 @pytest.mark.parametrize("freq", FREQS)
