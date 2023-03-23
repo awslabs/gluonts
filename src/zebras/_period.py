@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import datetime
 import functools
+import re
 from dataclasses import dataclass
 from typing import Any, Union, cast, overload
 
@@ -341,8 +342,10 @@ def _encode_zebras_periods(v: Periods):
 
 def period(data, freq=None) -> Period:
     if hasattr(data, "freqstr") and freq is None:
+        freqstr = data.freqstr
         freq = Freq.from_pandas(data.freqstr)
     else:
+        freqstr = freq
         freq = Freq.from_pandas(freq)
 
     if isinstance(data, Period):
@@ -357,10 +360,29 @@ def period(data, freq=None) -> Period:
 
     if freq.name == "W":
         period = Period(np.datetime64(data, freq.np_freq), freq)
-        period.data -= cast(int, period.dayofweek)
+        if re.match(r"W-\w{3}", freqstr):
+            weekday_offset = get_weekday_offset(freqstr)
+        else:
+            weekday_offset = 0
+        period.data -= (cast(int, period.dayofweek) - weekday_offset) % 7
         return period
 
     return Period(np.datetime64(data, freq.np_freq), freq)
+
+
+def get_weekday_offset(freqstr):
+    day_offsets = {
+        "MON": 0,
+        "TUE": 1,
+        "WED": 2,
+        "THU": 3,
+        "FRI": 4,
+        "SAT": 5,
+        "SUN": 6,
+    }
+
+    day = re.findall(r"W-\w{3}", freqstr)[0].split("-")[1]
+    return day_offsets[day]
 
 
 def periods(start, freq, count: int) -> Period:
