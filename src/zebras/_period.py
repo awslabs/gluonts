@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, Union, cast, overload
+from typing import Any, Union, Optional, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -339,7 +339,21 @@ def _encode_zebras_periods(v: Periods):
     }
 
 
-def period(data, freq=None) -> Period:
+def period(data: Union[Period, str], freq: Optional[str] = None) -> Period:
+    """Creates a zebras.Period object that represents a period of time.
+
+    Parameters
+    ----------
+    data
+        The time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq, optional
+        The frequency of the period, e.g, "H" for hourly, by default None.
+
+    Returns
+    -------
+        A zebras.Period object.
+    """
     if hasattr(data, "freqstr") and freq is None:
         freq = Freq.from_pandas(data.freqstr)
     else:
@@ -363,5 +377,22 @@ def period(data, freq=None) -> Period:
     return Period(np.datetime64(data, freq.np_freq), freq)
 
 
-def periods(start, freq, count: int) -> Period:
+def periods(start: Union[Period, str], freq: str, count: int) -> Period:
+    """Creates a zebras.Periods object that represents multiple consecutive
+    periods of time.
+
+    Parameters
+    ----------
+    start
+        The starting time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq
+        The frequency of the period, e.g, "H" for hourly.
+    count
+        The number of periods.
+
+    Returns
+    -------
+        A zebras.Periods object.
+    """
     return period(start, freq).periods(count)
