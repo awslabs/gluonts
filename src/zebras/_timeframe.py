@@ -16,7 +16,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 from operator import itemgetter
-from typing import Optional, List, NamedTuple, Union
+from typing import Optional, List, NamedTuple, Union, Collection, Dict, Any
 from typing_extensions import Literal
 
 import numpy as np
@@ -805,17 +805,56 @@ class SplitFrame:
 
 
 def time_frame(
-    columns=None,
+    columns: Optional[Dict[str, Collection]] = None,
     *,
-    index=None,
-    start=None,
-    freq=None,
-    static=None,
-    tdims=None,
-    length=None,
-    default_tdim=-1,
-    metadata=None,
+    index: Optional[Periods] = None,
+    start: Optional[Union[Period, str]] = None,
+    freq: Optional[str] = None,
+    static: Optional[Dict[str, Any]] = None,
+    tdims: Optional[Dict[str, int]] = None,
+    length: Optional[int] = None,
+    default_tdim: int = -1,
+    metadata: Optional[Dict] = None,
 ):
+    """Create a `zebras.TimeFrame` object that represents one
+    or more time series.
+
+    Parameters
+    ----------
+    columns, optional
+        A dictionary where keys are strings representing column names and
+        values are sequences (e.g., list, numpy arrays). All columns must have
+        the same length in the time dimension, by default None
+    index, optional
+        A `zebras.Periods` object representing timestamps.
+        Must have the same length as the columns, by default None
+    start, optional
+        The start time represented by a string (e.g., "2023-01-01"),
+        or a `zebras.Period` object. An index will be constructed using
+        this start time and the specificed frequency, by default None
+    freq, optional
+        The frequency of the period, e.g, "H" for hourly, by default None
+    static, optional
+        A dictionary of static-in-time features, by default None
+    tdims, optional
+        A dictionary specifying the time dimension for each column. The keys
+        should match those in `columns`. If unspecified for a column,
+        the `default_tdim` is used, by default None
+    length, optional
+        The length (in time) of the TimeFrame, by default None
+    default_tdim, optional
+        The default time dimension, by default -1
+    metadata, optional
+        A dictionary of metadata associated with the TimeFrame, by default None
+
+    Returns
+    -------
+        A `zebras.TimeFrame` object.
+    """
+    assert (
+        index is None or start is None
+    ), "Both index and start cannot be specified."
+
     columns = maybe.unwrap_or_else(columns, dict)
     tdims = maybe.unwrap_or_else(tdims, dict)
     static = maybe.unwrap_or_else(static, dict)
@@ -830,7 +869,7 @@ def time_frame(
             column = first(columns)
             length = columns[column].shape[tdims.get(column, default_tdim)]
         else:
-            raise ValueError("Cannot infer length.")
+            length = 0
 
     tf = TimeFrame(
         columns=columns,
@@ -851,14 +890,39 @@ def time_frame(
 
 
 def time_series(
-    values,
+    values: Collection,
     *,
-    index=None,
-    start=None,
-    freq=None,
-    tdim=-1,
-    metadata=None,
+    index: Optional[Periods] = None,
+    start: Optional[Union[Period, str]] = None,
+    freq: Optional[str] = None,
+    tdim: int = -1,
+    metadata: Optional[Dict] = None,
 ):
+    """Create a `zebras.TimeSeries` object that represents a time series.
+
+    Parameters
+    ----------
+    values
+        A sequence (e.g., list, numpy arrays) representing the values
+        of the time series.
+    index, optional
+        A `zebras.Periods` object representing timestamps.
+        Must have the same length as the `values`, by default None
+    start, optional
+        The start time represented by a string (e.g., "2023-01-01"),
+        or a `zebras.Period` object. An index will be constructed using
+        this start time and the specificed frequency, by default None
+    freq, optional
+        The frequency of the period, e.g, "H" for hourly, by default None
+    tdim, optional
+        The time dimension in `values`, by default -1
+    metadata, optional
+        A dictionary of metadata associated with the time series, by default None
+
+    Returns
+    -------
+        A `zebras.TimeSeries` object.
+    """
     values = np.array(values)
 
     ts = TimeSeries(values, index=index, tdim=tdim, metadata=metadata)
