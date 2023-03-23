@@ -43,7 +43,7 @@ def test_custom_neg_bin_cdf(total_count, probs, value):
     torch_cdf = torch_dist.cdf(torch.as_tensor(value)).numpy()
     scipy_cdf = scipy_dist.cdf(np.asarray(value))
 
-    assert np.allclose(torch_cdf, scipy_cdf, rtol=1e-4)
+    assert np.allclose(torch_cdf, scipy_cdf)
 
 
 @pytest.mark.parametrize("probs", [0.1, 0.5, 0.8])
