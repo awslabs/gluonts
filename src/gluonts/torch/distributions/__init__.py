@@ -18,7 +18,6 @@ from .distribution_output import (
     BetaOutput,
     DistributionOutput,
     GammaOutput,
-    NegativeBinomialOutput,
     NormalOutput,
     PoissonOutput,
 )
@@ -29,6 +28,7 @@ from .implicit_quantile_network import (
 )
 from .isqf import ISQF, ISQFOutput
 from .mqf2 import MQF2Distribution, MQF2DistributionOutput
+from .negative_binomial import NegativeBinomialOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
 from .spliced_binned_pareto import (
     SplicedBinnedPareto,
