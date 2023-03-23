@@ -35,7 +35,7 @@ def test_custom_neg_bin_logpdf_matches_scipy_neg_bin_logpdf(
 
 @pytest.mark.parametrize("probs", [0.1, 0.5, 0.8])
 @pytest.mark.parametrize("total_count", [3, 7, 100])
-@pytest.mark.parametrize("value", [11, 5, 9])
+@pytest.mark.parametrize("value", [11.0, 5.0, 9.0])
 def test_custom_neg_bin_cdf(total_count, probs, value):
     torch_dist = NegativeBinomial(total_count=total_count, probs=probs)
     scipy_dist = torch_dist.scipy_nbinom

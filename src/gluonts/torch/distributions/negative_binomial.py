@@ -19,7 +19,7 @@ from torch.distributions import Distribution
 from torch.distributions import NegativeBinomial as TorchNegativeBinomial
 
 from gluonts.util import lazy_property
-from scipy.stats import nbinom as ScipyNegativeBinomial
+from scipy.stats import nbinom
 
 
 from .distribution_output import DistributionOutput
@@ -58,7 +58,7 @@ class NegativeBinomial(TorchNegativeBinomial):
 
     @lazy_property
     def scipy_nbinom(self):
-        return ScipyNegativeBinomial(
+        return nbinom(
             n=self.total_count.detach().cpu().numpy(),
             p=1.0 - self.probs.detach().cpu().numpy(),
         )
