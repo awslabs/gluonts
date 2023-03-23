@@ -298,7 +298,7 @@ class Evaluator:
                 if col not in ["item_id", "forecast_start"]
             }
         )
-
+        # metrics_per_ts = metrics_per_ts[metrics_per_ts.seasonal_error > 0]
         return self.get_aggregate_metrics(metrics_per_ts)
 
     @staticmethod
@@ -399,13 +399,13 @@ class Evaluator:
             "MSE": mse(pred_target, mean_fcst)
             if mean_fcst is not None
             else None,
-            "abs_error": abs_error(pred_target, median_fcst),
+            "abs_error": abs_error(pred_target, mean_fcst),
             "abs_target_sum": abs_target_sum(pred_target),
             "abs_target_mean": abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
-            "MASE": mase(pred_target, median_fcst, seasonal_error),
-            "MAPE": mape(pred_target, median_fcst),
-            "sMAPE": smape(pred_target, median_fcst),
+            "MASE": mase(pred_target, mean_fcst, seasonal_error),
+            "MAPE": mape(pred_target, mean_fcst),
+            "sMAPE": smape(pred_target, mean_fcst),
         }
         metrics["ND"] = cast(float, metrics["abs_error"]) / cast(
             float, metrics["abs_target_sum"]
