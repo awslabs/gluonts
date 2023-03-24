@@ -442,6 +442,7 @@ class SampleForecast(Forecast):
         self,
         samples: np.ndarray,
         start_date: pd.Period,
+        quantiles: Optional[Dict] = None,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
@@ -453,11 +454,13 @@ class SampleForecast(Forecast):
             " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = samples
+        self.quantiles = quantiles
         self._sorted_samples_value = None
         self._mean = None
         self._dim = None
         self.item_id = item_id
         self.info = info
+        self.use_sample = False if self.quantiles else True
 
         assert isinstance(
             start_date, pd.Period
@@ -489,9 +492,13 @@ class SampleForecast(Forecast):
         """
         Forecast mean.
         """
-        if self._mean is None:
-            self._mean = np.mean(self.samples, axis=0)
-        return self._mean
+        # return self.quantiles['mean']
+        if self.use_sample:
+            if self._mean is None:
+                self._mean = np.mean(self.samples, axis=0)
+            return self._mean
+        else:
+            return self.quantiles['mean']
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -501,9 +508,13 @@ class SampleForecast(Forecast):
         return pd.Series(self.mean, index=self.index)
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
-        q = Quantile.parse(q).value
-        sample_idx = int(np.round((self.num_samples - 1) * q))
-        return self._sorted_samples[sample_idx, :]
+
+        if self.use_sample:
+            q = Quantile.parse(q).value
+            sample_idx = int(np.round((self.num_samples - 1) * q))
+            return self._sorted_samples[sample_idx, :]
+        else:
+            return self.quantiles[str(q)]
 
     def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:
