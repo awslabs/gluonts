@@ -319,6 +319,7 @@ class RBasePredictor(RepresentablePredictor):
         self._warning_message()
 
         for data in dataset:
+            # print(f"currently processing {data['item_id']}")
             data = self._preprocess_data(data=data)
             params = self._override_params(
                 params=self.params.copy(),
