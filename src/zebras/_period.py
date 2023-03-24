@@ -66,7 +66,7 @@ class _BasePeriod:
 
     @property
     def freqstr(self) -> str:
-        return self.freq.name
+        return str(self.freq)
 
     @property
     def year(self) -> np.ndarray:
@@ -346,7 +346,7 @@ def _encode_zebras_periods(v: Periods):
 def period(
     data: Union[Period, str], freq: Optional[Union[Freq, str]] = None
 ) -> Period:
-    """Create a `zebras.Period` object that represents a period of time.
+    """Create a ``zebras.Period`` object that represents a period of time.
 
     Parameters
     ----------
@@ -358,15 +358,19 @@ def period(
 
     Returns
     -------
-        A `zebras.Period` object.
+        A ``zebras.Period`` object.
     """
     if freq is None:
         if hasattr(data, "freqstr"):
             freq = Freq.from_pandas(data.freqstr)
         else:
             raise ValueError("No frequency specified.")
+    elif isinstance(freq, Freq):
+        freq = freq
     elif isinstance(freq, str):
         freq = Freq.from_pandas(freq)
+    else:
+        raise ValueError(f"Unknown frequency type {type(freq)}.")
 
     if isinstance(data, Period):
         data = data.data
@@ -389,7 +393,7 @@ def period(
 def periods(
     start: Union[Period, str], freq: Union[Freq, str], count: int
 ) -> Period:
-    """Create a `zebras.Periods` object that represents multiple consecutive
+    """Create a ``zebras.Periods`` object that represents multiple consecutive
     periods of time.
 
     Parameters
@@ -404,6 +408,6 @@ def periods(
 
     Returns
     -------
-        A `zebras.Periods` object.
+        A ``zebras.Periods`` object.
     """
     return period(start, freq).periods(count)
