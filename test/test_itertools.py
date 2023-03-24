@@ -68,6 +68,7 @@ def test_pseudo_shuffled(data: Iterable) -> None:
     "data, expected_elements_per_iteration",
     [
         (Cached(range(4)), (list(range(4)),) * 5),
+        (PickleCached(range(4)), (list(range(4)),) * 5),
         (batcher(range(10), 3), ([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]], [])),
         (IterableSlice(range(10), 3), ([0, 1, 2],) * 5),
         (
