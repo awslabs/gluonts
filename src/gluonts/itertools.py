@@ -162,7 +162,7 @@ class PickleCached:
     """A caching wrapper for ``iterable`` using ``pickle`` to store cached
     values on disk.
 
-    See ``Cached`` for more information.
+    See :class:`Cached` for more information.
     """
 
     iterable: SizedIterable
