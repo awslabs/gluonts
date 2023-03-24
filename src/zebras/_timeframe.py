@@ -158,11 +158,23 @@ class TimeBase:
 @dataclasses.dataclass(eq=False)
 class TimeSeries(TimeBase):
     values: np.ndarray
+    length: int
     index: Optional[Periods] = None
     name: Optional[str] = None
     tdim: int = -1
     metadata: Optional[dict] = None
     _pad: Pad = Pad()
+
+    def __post_init__(self):
+        assert self.values.shape[self.tdim] == self.length, (
+            f"Values has incorrect length in time dimension. "
+            f"Expected: {len(self)}, got {self.values.shape[self.tdim]}."
+        )
+
+        assert maybe.map_or(self.index, len, self.length) == self.length, (
+            f"Index has incorrect length. "
+            f"Expected: {len(self)}, got {len(self.index)}."
+        )
 
     def __eq__(self, other):
         return self.values == other
@@ -171,7 +183,7 @@ class TimeSeries(TimeBase):
         return self.values
 
     def __len__(self):
-        return self.values.shape[self.tdim]
+        return self.length
 
     def _slice_tdim(self, idx):
         if isinstance(idx, int):
@@ -357,8 +369,8 @@ class TimeFrame(TimeBase):
             )
 
         assert maybe.map_or(self.index, len, self.length) == self.length, (
-            len(self.index),
-            self.length,
+            f"Index has incorrect length. "
+            f"Expected: {len(self)}, got {len(self.index)}."
         )
 
     def _time_view(self, column):
@@ -895,6 +907,7 @@ def time_series(
     index: Optional[Periods] = None,
     start: Optional[Union[Period, str]] = None,
     freq: Optional[str] = None,
+    length: Optional[int] = None,
     tdim: int = -1,
     metadata: Optional[Dict] = None,
 ):
@@ -914,6 +927,8 @@ def time_series(
         this start time and the specificed frequency, by default None
     freq, optional
         The frequency of the period, e.g, "H" for hourly, by default None
+    length, optional
+        The length (in time) of the TimeSeries, by default None
     tdim, optional
         The time dimension in `values`, by default -1
     metadata, optional
@@ -925,7 +940,15 @@ def time_series(
     """
     values = np.array(values)
 
-    ts = TimeSeries(values, index=index, tdim=tdim, metadata=metadata)
+    if length is None:
+        if index is not None:
+            length = len(index)
+        else:
+            length = values.shape[tdim]
+
+    ts = TimeSeries(
+        values, length=length, index=index, tdim=tdim, metadata=metadata
+    )
 
     if ts.index is None and start is not None:
         if freq is not None:
