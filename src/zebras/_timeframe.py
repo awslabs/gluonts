@@ -749,7 +749,10 @@ class SplitFrame:
         past = self.past._table_columns()
         future = self.future._table_columns()
 
-        length = max(len(first(past.values())), len(first(future.values())))
+        length = max(
+            len(first(past.values())) if past else 0,
+            len(first(future.values())) if future else 0,
+        )
 
         def pad(col):
             to_pad = length - len(col)
