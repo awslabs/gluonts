@@ -13,8 +13,11 @@
 
 import itertools
 import math
+import pickle
 import random
+import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import (
     Callable,
     Dict,
@@ -152,6 +155,41 @@ class Cached:
 
     def __len__(self) -> int:
         return len(self.iterable)
+
+
+@dataclass
+class PickleCached:
+    """A caching wrapper for ``iterable`` using ``pickle`` to store cached
+    values on disk.
+
+    See :class:`Cached` for more information.
+    """
+
+    iterable: SizedIterable
+    cached: bool = False
+    _path: Path = field(
+        default_factory=lambda: Path(
+            tempfile.NamedTemporaryFile(delete=False).name
+        )
+    )
+
+    def __iter__(self):
+        if not self.cached:
+            with open(self._path, "wb") as tmpfile:
+                for batch in batcher(self.iterable, 16):
+                    pickle.dump(batch, tmpfile)
+                    yield from batch
+            self.cached = True
+        else:
+            with open(self._path, "rb") as tmpfile:
+                while True:
+                    try:
+                        yield from pickle.load(tmpfile)
+                    except EOFError:
+                        return
+
+    def __del__(self):
+        self._path.unlink()
 
 
 @dataclass
