@@ -26,6 +26,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
     Cached,
+    PickleCached,
     Cyclic,
     IterableSlice,
     PseudoShuffled,
