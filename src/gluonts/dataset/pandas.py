@@ -11,46 +11,42 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from copy import deepcopy
-from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    Iterator,
-    Iterable,
-    List,
-    Optional,
-    Union,
-    Tuple,
-)
+from __future__ import annotations
 
-import pandas as pd
+import logging
+from dataclasses import dataclass, field, InitVar
+from typing import Any, Iterable, Optional, Type, Union
+
 import numpy as np
+import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
-from gluonts.dataset.common import DataEntry, _as_period
-from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Map, SizedIterable
+from gluonts.maybe import Maybe
+from gluonts.dataset.common import DataEntry
+from gluonts.itertools import Map, StarMap, SizedIterable
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class PandasDataset:
     """
-    A pandas.DataFrame-based dataset type.
+    A dataset type based on ``pandas.DataFrame``.
 
-    This class is constructed with a collection of pandas.DataFrame-objects
-    where each ``DataFrame`` is representing one time series.
-    A ``target`` and a ``timestamp`` columns are essential. Furthermore,
-    static/dynamic real/categorical features can be specified.
+    This class is constructed with a collection of ``pandas.DataFrame``
+    objects where each ``DataFrame`` is representing one time series.
+    Both ``target`` and ``timestamp`` columns are essential. Dynamic features
+    of a series can be specified with together with the series' ``DataFrame``,
+    while static features can be specified in a separate ``DataFrame`` object
+    via the ``static_features`` argument.
 
     Parameters
     ----------
     dataframes
         Single ``pd.DataFrame``/``pd.Series`` or a collection as list or dict
         containing at least ``timestamp`` and ``target`` values.
-        If a Dict is provided, the key will be the associated ``item_id``.
+        If a dict is provided, the key will be the associated ``item_id``.
     target
         Name of the column that contains the ``target`` time series.
         For multivariate targets, a list of column names should be provided.
@@ -61,19 +57,15 @@ class PandasDataset:
         frequency.
     feat_dynamic_real
         List of column names that contain dynamic real features.
-    feat_dynamic_cat
-        List of column names that contain dynamic categorical features.
-    feat_static_real
-        List of column names that contain static real features.
-    feat_static_cat
-        List of column names that contain static categorical features.
     past_feat_dynamic_real
-        List of column names that contain dynamic real features only for the
-        history.
-    ignore_last_n_targets
-        For target and past dynamic features last ``ignore_last_n_targets``
-        elements are removed when iterating over the data set. This becomes
-        important when the predictor is called.
+        List of column names that contain dynamic real features only available
+        in the past.
+    static_features
+        ``pd.DataFrame`` containing static features for the series. The index
+        should contain the key of the series in the ``dataframes`` argument.
+    future_length
+        For target and past dynamic features last ``future_length``
+        elements are removed when iterating over the data set.
     unchecked
         Whether consistency checks on indexes should be skipped.
         (Default: ``False``)
@@ -82,70 +74,109 @@ class PandasDataset:
         (Default: ``False``)
     """
 
-    dataframes: Union[
-        pd.DataFrame,
-        pd.Series,
-        Iterable[pd.DataFrame],
-        Iterable[pd.Series],
-        Iterable[Tuple[Any, pd.DataFrame]],
-        Iterable[Tuple[Any, pd.Series]],
-        Dict[str, pd.DataFrame],
-        Dict[str, pd.Series],
+    dataframes: InitVar[
+        Union[
+            pd.DataFrame,
+            pd.Series,
+            Iterable[pd.DataFrame],
+            Iterable[pd.Series],
+            Iterable[tuple[Any, pd.DataFrame]],
+            Iterable[tuple[Any, pd.Series]],
+            dict[str, pd.DataFrame],
+            dict[str, pd.Series],
+        ]
     ]
-    target: Union[str, List[str]] = "target"
+    target: Union[str, list[str]] = "target"
+    feat_dynamic_real: Optional[list[str]] = None
+    past_feat_dynamic_real: Optional[list[str]] = None
     timestamp: Optional[str] = None
     freq: Optional[str] = None
-    feat_dynamic_real: List[str] = field(default_factory=list)
-    feat_dynamic_cat: List[str] = field(default_factory=list)
-    feat_static_real: List[str] = field(default_factory=list)
-    feat_static_cat: List[str] = field(default_factory=list)
-    past_feat_dynamic_real: List[str] = field(default_factory=list)
-    ignore_last_n_targets: int = 0
+    static_features: InitVar[Optional[pd.DataFrame]] = None
+    future_length: int = 0
     unchecked: bool = False
     assume_sorted: bool = False
-    _pairs: Iterable[Tuple[Any, Union[pd.Series, pd.DataFrame]]] = field(
-        init=False
-    )
+    dtype: Type = np.float32
+    _data_entries: SizedIterable = field(init=False)
+    _static_reals: pd.DataFrame = field(init=False)
+    _static_cats: pd.DataFrame = field(init=False)
 
-    def __post_init__(self) -> None:
-        if isinstance(self.target, list) and len(self.target) == 1:
-            self.target = self.target[0]
-
-        if isinstance(self.dataframes, dict):
-            self._pairs = self.dataframes.items()
-        elif isinstance(self.dataframes, (pd.Series, pd.DataFrame)):
-            self._pairs = [pair_with_item_id(self.dataframes)]
+    def __post_init__(self, dataframes, static_features):
+        if isinstance(dataframes, dict):
+            pairs = dataframes.items()
+        elif isinstance(dataframes, (pd.Series, pd.DataFrame)):
+            pairs = [(None, dataframes)]
         else:
-            assert isinstance(self.dataframes, SizedIterable)
-            self._pairs = Map(pair_with_item_id, self.dataframes)
+            assert isinstance(dataframes, SizedIterable)
+            pairs = Map(pair_with_item_id, dataframes)
 
-        assert isinstance(self._pairs, SizedIterable)
+        self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
         if self.freq is None:
             assert (
                 self.timestamp is None
             ), "You need to provide `freq` along with `timestamp`"
-            self.freq = infer_freq(first(self._pairs)[1].index)
 
-        self._data_entries = Map(self._pair_to_dataentry, self._pairs)
+            self.freq = infer_freq(first(pairs)[1].index)
 
-    def _pair_to_dataentry(
-        self, pair: Tuple[Any, Union[pd.Series, pd.DataFrame]]
-    ) -> DataEntry:
-        item_id, df = pair
+        static_features = Maybe(static_features).unwrap_or_else(pd.DataFrame)
 
+        object_columns = static_features.select_dtypes(
+            "object"
+        ).columns.tolist()
+        if object_columns:
+            logger.warning(
+                f"Columns {object_columns} in static_features "
+                f"have 'object' as data type and will be ignored; "
+                f"consider setting this to 'category' using pd.DataFrame.astype, "
+                f"if you wish to use them as categorical columns."
+            )
+
+        self._static_reals = (
+            static_features.select_dtypes("number").astype(self.dtype).T
+        )
+        self._static_cats = (
+            static_features.select_dtypes("category")
+            .apply(lambda col: col.cat.codes)
+            .astype(self.dtype)
+            .T
+        )
+
+    @property
+    def num_feat_static_cat(self) -> int:
+        return len(self._static_cats)
+
+    @property
+    def num_feat_static_real(self) -> int:
+        return len(self._static_reals)
+
+    @property
+    def num_feat_dynamic_real(self) -> int:
+        return Maybe(self.feat_dynamic_real).map_or(len, 0)
+
+    @property
+    def num_past_feat_dynamic_real(self) -> int:
+        return Maybe(self.past_feat_dynamic_real).map_or(len, 0)
+
+    @property
+    def static_cardinalities(self):
+        return self._static_cats.max(axis=1).values + 1
+
+    def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):
             df = df.to_frame(name=self.target)
 
         if self.timestamp:
-            df.index = pd.PeriodIndex(df[self.timestamp], freq=self.freq)
+            df.index = pd.DatetimeIndex(df[self.timestamp]).to_period(
+                freq=self.freq
+            )
+
+        if not isinstance(df.index, pd.PeriodIndex):
+            df = df.to_period(freq=self.freq)
 
         if not self.assume_sorted:
             df.sort_index(inplace=True)
 
         if not self.unchecked:
-            if not isinstance(df.index, pd.PeriodIndex):
-                df = df.to_period(freq=self.freq)
             assert is_uniform(df.index), (
                 "Dataframe index is not uniformly spaced. "
                 "If your dataframe contains data from multiple series in the "
@@ -153,44 +184,76 @@ class PandasDataset:
                 "dataset with `PandasDataset.from_long_dataframe` instead."
             )
 
-        data_entry = as_dataentry(
-            data=df,
-            target=self.target,
-            feat_dynamic_real=self.feat_dynamic_real,
-            feat_dynamic_cat=self.feat_dynamic_cat,
-            feat_static_real=self.feat_static_real,
-            feat_static_cat=self.feat_static_cat,
-            past_feat_dynamic_real=self.past_feat_dynamic_real,
-        )
+        entry = {
+            "start": df.index[0],
+        }
+
+        target = df[self.target].values
+        target = target[: len(target) - self.future_length]
+        entry["target"] = target.T
 
         if item_id is not None:
-            data_entry["item_id"] = item_id
+            entry["item_id"] = item_id
 
-        data_entry["start"] = _as_period(data_entry["start"], self.freq)
-        return data_entry
+        if self.num_feat_static_cat > 0:
+            entry["feat_static_cat"] = self._static_cats[item_id].values
 
-    def __iter__(self) -> Iterator[DataEntry]:
-        for entry in self._data_entries:
-            if self.ignore_last_n_targets:
-                entry = prepare_prediction_data(
-                    entry, self.ignore_last_n_targets
-                )
-            yield entry
+        if self.num_feat_static_real > 0:
+            entry["feat_static_real"] = self._static_reals[item_id].values
 
+        if self.num_feat_dynamic_real > 0:
+            entry["feat_dynamic_real"] = df[self.feat_dynamic_real].values.T
+
+        if self.num_past_feat_dynamic_real > 0:
+            past_feat_dynamic_real = df[self.past_feat_dynamic_real].values
+            past_feat_dynamic_real = past_feat_dynamic_real[
+                : len(past_feat_dynamic_real) - self.future_length
+            ]
+            entry["past_feat_dynamic_real"] = past_feat_dynamic_real.T
+
+        return entry
+
+    def __iter__(self):
+        yield from self._data_entries
         self.unchecked = True
 
     def __len__(self) -> int:
         return len(self._data_entries)
 
+    def __str__(self) -> str:
+        info = ", ".join(
+            [
+                f"size={len(self)}",
+                f"freq={self.freq}",
+                f"num_feat_dynamic_real={self.num_feat_dynamic_real}",
+                f"num_past_feat_dynamic_real={self.num_past_feat_dynamic_real}",
+                f"num_feat_static_real={self.num_feat_static_real}",
+                f"num_feat_static_cat={self.num_feat_static_cat}",
+                f"static_cardinalities={self.static_cardinalities}",
+            ]
+        )
+        return f"PandasDataset<{info}>"
+
     @classmethod
     def from_long_dataframe(
-        cls, dataframe: pd.DataFrame, item_id: str, **kwargs
+        cls,
+        dataframe: pd.DataFrame,
+        item_id: str,
+        timestamp: Optional[str] = None,
+        static_feature_columns: Optional[list[str]] = None,
+        static_features: pd.DataFrame = pd.DataFrame(),
+        **kwargs,
     ) -> "PandasDataset":
         """
-        Construct ``PandasDataset`` out of a long dataframe. A long dataframe
-        uses the long format for each variable. Target time series values, for
-        example, are stacked on top of each other rather than side-by-side. The
-        same is true for other dynamic or categorical features.
+        Construct ``PandasDataset`` out of a long data frame.
+
+        A long dataframe contains time series data (both the target series and
+        covariates) about multiple items at once. An ``item_id`` column is used
+        to distinguish the items and ``group_by`` accordingly.
+
+        Static features can be included in the long data frame as well (with
+        constant value), or be given as a separate data frame indexed by the
+        ``item_id`` values.
 
         Parameters
         ----------
@@ -200,20 +263,48 @@ class PandasDataset:
         item_id
             Name of the column that, when grouped by, gives the different time
             series.
+        static_feature_columns
+            Columns in ``dataframe`` containing static features.
+        static_features
+            Dedicated ``DataFrame`` for static features. If both ``static_features``
+            and ``static_feature_columns`` are specified, then the two sets of features
+            are appended together.
         **kwargs
             Additional arguments. Same as of PandasDataset class.
 
         Returns
         -------
         PandasDataset
-            Gluonts dataset based on ``pandas.DataFrame``s.
+            Dataset containing series data from the given long dataframe.
         """
+        if timestamp is not None:
+            dataframe.index = pd.to_datetime(dataframe[timestamp])
+
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
             dataframe.index = pd.to_datetime(dataframe.index)
-        return cls(dataframes=dataframe.groupby(item_id), **kwargs)
+
+        if static_feature_columns is not None:
+            other_static_features = (
+                dataframe[[item_id] + static_feature_columns]
+                .drop_duplicates()
+                .set_index(item_id)
+            )
+            assert len(other_static_features) == len(
+                dataframe[item_id].unique()
+            )
+        else:
+            other_static_features = pd.DataFrame()
+
+        return cls(
+            dataframes=dataframe.groupby(item_id),
+            static_features=pd.concat(
+                [static_features, other_static_features], axis=1
+            ),
+            **kwargs,
+        )
 
 
-def pair_with_item_id(obj: Union[Tuple, pd.DataFrame, pd.Series]):
+def pair_with_item_id(obj: Union[tuple, pd.DataFrame, pd.Series]):
     if isinstance(obj, tuple) and len(obj) == 2:
         return obj
     if isinstance(obj, (pd.DataFrame, pd.Series)):
@@ -233,111 +324,6 @@ def infer_freq(index: pd.Index) -> str:
         return freq[:-1]
 
     return freq
-
-
-def extract_dynamic_array(
-    df: pd.DataFrame, col_names: Union[str, Collection[str]]
-) -> np.ndarray:
-    return df[col_names].values.transpose()
-
-
-def extract_static_array(
-    df: pd.DataFrame, col_names: Union[str, Collection[str]]
-) -> np.ndarray:
-    if isinstance(col_names, str):
-        return df[col_names].values[:1]
-    return df[col_names].values[0, :]
-
-
-def as_dataentry(
-    data: pd.DataFrame,
-    target: Union[str, List[str]],
-    timestamp: Optional[str] = None,
-    feat_dynamic_real: List[str] = [],
-    feat_dynamic_cat: List[str] = [],
-    feat_static_real: List[str] = [],
-    feat_static_cat: List[str] = [],
-    past_feat_dynamic_real: List[str] = [],
-) -> DataEntry:
-    """
-    Convert a single time series (uni- or multi-variate) that is given in a
-    pandas.DataFrame format to a DataEntry.
-
-    Parameters
-    ----------
-    data
-        pandas.DataFrame containing at least ``timestamp``, ``target`` and
-        ``item_id`` columns.
-    target
-        Name of the column that contains the ``target`` time series.
-        For multivariate targets ``target`` is expecting a list of column
-        names.
-    timestamp
-        Name of the column that contains the timestamp information.
-        If ``None`` the index of ``data`` is assumed to be the time.
-    feat_dynamic_real
-        List of column names that contain dynamic real features.
-    feat_dynamic_cat
-        List of column names that contain dynamic categorical features.
-    feat_static_real
-        List of column names that contain static real features.
-    feat_static_cat
-        List of column names that contain static categorical features.
-    past_feat_dynamic_real
-        List of column names that contain dynamic real features only for
-        the history.
-
-    Returns
-    -------
-    DataEntry
-        A dictionary with at least ``target`` and ``start`` field.
-    """
-    start = data.loc[:, timestamp].iloc[0] if timestamp else data.index[0]
-    dataentry = {FieldName.START: start}
-
-    dataentry[FieldName.TARGET] = extract_dynamic_array(data, target)
-
-    if len(feat_dynamic_real) > 0:
-        dataentry[FieldName.FEAT_DYNAMIC_REAL] = extract_dynamic_array(
-            data, feat_dynamic_real
-        )
-    if len(feat_dynamic_cat) > 0:
-        dataentry[FieldName.FEAT_DYNAMIC_CAT] = extract_dynamic_array(
-            data, feat_dynamic_cat
-        )
-    if len(past_feat_dynamic_real) > 0:
-        dataentry[FieldName.PAST_FEAT_DYNAMIC_REAL] = extract_dynamic_array(
-            data, past_feat_dynamic_real
-        )
-    if len(feat_static_real) > 0:
-        dataentry[FieldName.FEAT_STATIC_REAL] = extract_static_array(
-            data, feat_static_real
-        )
-    if len(feat_static_cat) > 0:
-        dataentry[FieldName.FEAT_STATIC_CAT] = extract_static_array(
-            data, feat_static_cat
-        )
-
-    return dataentry
-
-
-def prepare_prediction_data(
-    dataentry: DataEntry, ignore_last_n_targets: int
-) -> DataEntry:
-    """
-    Remove ``ignore_last_n_targets`` values from ``target`` and
-    ``past_feat_dynamic_real``.  Works in univariate and multivariate case.
-
-        >>> prepare_prediction_data(
-        >>>    {"target": np.array([1., 2., 3., 4.])}, ignore_last_n_targets=2
-        >>> )
-        {'target': array([1., 2.])}
-    """
-    entry = deepcopy(dataentry)
-    for fname in [FieldName.TARGET, FieldName.PAST_FEAT_DYNAMIC_REAL]:
-        if fname in entry:
-            entry[fname] = entry[fname][..., :-ignore_last_n_targets]
-    return entry
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:

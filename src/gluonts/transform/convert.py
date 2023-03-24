@@ -11,9 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional, Tuple, Type
+from typing import Callable, Iterator, List, Optional, Tuple, Type
 
 import numpy as np
+from toolz import valmap
 
 from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.dataset.common import DataEntry
@@ -100,6 +101,15 @@ def erfinv(x: np.ndarray) -> np.ndarray:
         p = c + p * w
 
     return p * x
+
+
+class Valmap(SimpleTransformation):
+    @validated()
+    def __init__(self, fn: Callable) -> None:
+        self.fn = fn
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        return valmap(self.fn, data)
 
 
 class AsNumpyArray(SimpleTransformation):
@@ -591,7 +601,7 @@ class CDFtoGaussianTransform(MapTransformation):
         Returns
         -------
         quantiles
-            Empirical CDF quantiles in [0, 1] interval with winzorized cutoff.
+            Empirical CDF quantiles in [0, 1] interval with winsorized cutoff.
         """
         m = sorted_values.shape[0]
         quantiles = self._forward_transform(

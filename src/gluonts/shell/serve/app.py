@@ -18,18 +18,61 @@ import signal
 import time
 import traceback
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, List, NamedTuple, Tuple
+from typing import Callable, Iterable, List, NamedTuple, Set, Tuple
+from typing_extensions import Literal
 
 from flask import Flask, Response, jsonify, request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.jsonl import encode_json
-from gluonts.model.forecast import Config as ForecastConfig
+from gluonts.model.forecast import Forecast, Quantile
 from gluonts.shell.util import forecaster_type_by_name
 
 
 logger = logging.getLogger("gluonts.serve")
+
+
+OutputType = Literal["mean", "samples", "quantiles"]
+
+
+class ForecastConfig(BaseModel):
+    num_samples: int = Field(100, alias="num_eval_samples")
+    output_types: Set[OutputType] = {"quantiles", "mean"}
+    # FIXME: validate list elements
+    quantiles: List[str] = ["0.1", "0.5", "0.9"]
+
+    class Config:
+        allow_population_by_field_name = True
+        # store additional fields
+        extra = "allow"
+
+    def as_json_dict(self, forecast: Forecast) -> dict:
+        result = {}
+
+        if "mean" in self.output_types:
+            result["mean"] = forecast.mean.tolist()
+
+        if "quantiles" in self.output_types:
+            quantiles = map(Quantile.parse, self.quantiles)
+
+            result["quantiles"] = {
+                quantile.name: forecast.quantile(quantile.value).tolist()
+                for quantile in quantiles
+            }
+
+        if "samples" in self.output_types:
+            samples = getattr(forecast, "samples", None)
+            if samples is not None:
+                samples = samples.tolist()
+
+            result["samples"] = samples
+
+            valid_length = getattr(forecast, "valid_length", None)
+            if valid_length is not None:
+                result["valid_length"] = valid_length.tolist()
+
+        return result
 
 
 class InferenceRequest(BaseModel):
@@ -105,7 +148,7 @@ def handle_predictions(predictor, instances, configuration):
     )
 
     predictions = [
-        forecast.as_json_dict(configuration) for forecast in forecasts
+        configuration.as_json_dict(forecast) for forecast in forecasts
     ]
 
     log_throughput(instances, forecasts.timings)
@@ -157,7 +200,7 @@ def make_predictions(predictor, dataset, configuration):
 
     for forecast in forecast_iter:
         end = time.time()
-        prediction = forecast.as_json_dict(configuration)
+        prediction = configuration.as_json_dict(forecast)
 
         if DEBUG:
             prediction["debug"] = {"timing": end - start}

@@ -39,16 +39,19 @@ def test_deepar_modules(
     prediction_length = 6
     context_length = 12
 
-    model = DeepARModel(
-        freq="1H",
-        context_length=context_length,
-        prediction_length=prediction_length,
-        num_feat_dynamic_real=num_feat_dynamic_real,
-        num_feat_static_real=num_feat_static_real,
-        num_feat_static_cat=num_feat_static_cat,
-        cardinality=cardinality,
-        scaling=scaling,
+    lightning_module = DeepARLightningModule(
+        model_kwargs={
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "scaling": scaling,
+        }
     )
+    model = lightning_module.model
 
     # TODO uncomment the following
     # torch.jit.script(model)
@@ -141,7 +144,102 @@ def test_deepar_modules(
         future_observed_values=future_observed_values,
     )
 
-    lightning_module = DeepARLightningModule(model=model)
-
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()
+
+
+@pytest.mark.parametrize(
+    "prediction_length, context_length, lags_seq",
+    [
+        (1, 5, [1, 10, 15]),
+        (1, 5, [3, 6, 9, 10]),
+        (2, 5, [1, 2, 7]),
+        (2, 5, [2, 3, 4, 6]),
+        (4, 5, [1, 5, 9, 11]),
+        (4, 5, [7, 8, 13, 14]),
+    ],
+)
+def test_rnn_input(
+    prediction_length: int, context_length: int, lags_seq: List[int]
+):
+    num_samples = 10
+    history_length = max(lags_seq) + context_length - 1
+
+    model = DeepARModel(
+        freq="D",
+        prediction_length=prediction_length,
+        context_length=context_length,
+        lags_seq=lags_seq,
+        scaling=False,
+        num_parallel_samples=num_samples,
+    )
+
+    # Construct test batch of size 1, such that:
+    # - target values are increasing integers
+    # - there is one dynamic feature that is equal to the target
+    #
+    # Since scaling=False, this way we can compare lagged target
+    # values and dynamic feature and verify that the expected values
+    # are given as input to the RNN, at the expected time index.
+
+    batch = {
+        "feat_static_cat": torch.tensor([[0]], dtype=torch.int64),
+        "feat_static_real": torch.tensor([[0.0]], dtype=torch.float32),
+        "past_time_feat": torch.arange(
+            history_length, dtype=torch.float32
+        ).view(1, history_length, 1),
+        "past_target": torch.arange(history_length, dtype=torch.float32).view(
+            1, history_length
+        ),
+        "past_observed_values": torch.arange(
+            history_length, dtype=torch.float32
+        ).view(1, history_length),
+    }
+
+    # test with no future_target (only one step prediction)
+
+    batch["future_time_feat"] = torch.arange(
+        history_length,
+        history_length + 1,
+        dtype=torch.float32,
+    ).view(1, 1, 1)
+
+    rnn_input, scale, _ = model.prepare_rnn_input(**batch)
+
+    assert (scale == 1.0).all()
+
+    ref = torch.arange(
+        history_length - context_length + 1,
+        history_length + 1,
+        dtype=torch.float32,
+    )
+
+    for idx, lag in enumerate(lags_seq):
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])
+
+    # test with all future data
+
+    batch["future_time_feat"] = torch.arange(
+        history_length,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    ).view(1, prediction_length, 1)
+
+    batch["future_target"] = torch.arange(
+        history_length,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    ).view(1, prediction_length)
+
+    rnn_input, scale, _ = model.prepare_rnn_input(**batch)
+
+    assert (scale == 1.0).all()
+
+    ref = torch.arange(
+        history_length - context_length + 1,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    )
+
+    for idx, lag in enumerate(lags_seq):
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])

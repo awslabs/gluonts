@@ -257,7 +257,7 @@ def _dataclass(
 
         if eventual_fields:
             eventual_kwargs = {
-                key: Eventual(getattr(validated_model, key, EVENTUAL))
+                key: Eventual(input_kwargs.get(key, EVENTUAL))
                 for key in eventual_fields
             }
 
@@ -271,19 +271,14 @@ def _dataclass(
 
             init_kwargs.update(eventual_kwargs)
 
-        object.__setattr__(
-            self,
-            "__init_kwargs__",
-            init_kwargs,
-        )
+        self.__init_kwargs__ = init_kwargs
 
-        object.__setattr__(
-            self,
-            "__init_passed_kwargs__",
-            {
-                key: value
-                for key, value in select(input_kwargs, init_kwargs).items()
-            },
+        self.__init_passed_kwargs__ = select(
+            input_kwargs,
+            init_kwargs,
+            # We want to ignore additional kwargs passed, which are not used by
+            # the class.
+            ignore_missing=True,
         )
 
         orig_init(self, **init_kwargs)

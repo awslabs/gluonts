@@ -15,7 +15,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.evaluation import Evaluator, MultivariateEvaluator
+from gluonts.evaluation import (
+    Evaluator,
+    MultivariateEvaluator,
+    aggregate_valid,
+)
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -426,7 +430,9 @@ INPUT_TYPE = [list, list, list, iter, iter, list]
 )
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=None)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=None, allow_nan_forecast=True
+    )
     agg_metrics, _ = calculate_metrics(
         timeseries,
         evaluator,
@@ -450,7 +456,9 @@ def test_metrics(timeseries, res, has_nans, input_type):
 def test_metrics_mp(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
     # Default will be multiprocessing evaluator
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=4, allow_nan_forecast=True
+    )
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
@@ -639,7 +647,7 @@ def test_evaluation_with_QuantileForecast():
     index = pd.period_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
-    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"))
+    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"), allow_nan_forecast=True)
 
     fcst = [
         QuantileForecast(
@@ -869,6 +877,7 @@ def test_custom_eval_fn(
     evaluator = Evaluator(
         quantiles=QUANTILES,
         custom_eval_fn={eval_name: [eval_fn, agg_str, fcst_type]},
+        allow_nan_forecast=True,
     )
 
     agg_metrics, item_metrics = calculate_metrics(
@@ -1079,3 +1088,28 @@ def test_metrics_multivariate_custom_eval_fn(
                 "Scores for the metric {} do not match: \nexpected: {} "
                 "\nobtained: {}".format(metric, res[metric], score)
             )
+
+
+def test_aggregate_valid():
+    num_series = 3
+    series = [
+        pd.Series(
+            np.random.normal(24 + 6),
+            index=pd.date_range(
+                start="2022-12-31 00", periods=24 + 6, freq="H"
+            ),
+        ).to_period()
+        for _ in range(num_series)
+    ]
+    forecasts = [
+        SampleForecast(
+            samples=np.random.normal(size=(10, 6)),
+            start_date=pd.Period("2023-01-01 00", freq="H"),
+            item_id=str(item_id),
+        )
+        for item_id in range(num_series)
+    ]
+    evaluator = Evaluator(
+        aggregation_strategy=aggregate_valid, num_workers=None
+    )
+    agg_metrics, item_metrics = evaluator(series, forecasts)

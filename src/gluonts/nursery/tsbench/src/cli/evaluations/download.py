@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Optional
 import botocore
 import click
+from gluonts.util import safe_extractall
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import process_map
 from tsbench.analysis.utils import run_parallel
@@ -104,7 +105,7 @@ def _download_public_evaluations(
         file = Path(tmp) / "metrics.tar.gz"
         client.download_file(public_bucket, "metrics.tar.gz", str(file))
         with tarfile.open(file, mode="r:gz") as tar:
-            tar.extractall(evaluations_path)
+            safe_extractall(tar, evaluations_path)
 
     # Then, optionally download the forecasts
     if include_forecasts:

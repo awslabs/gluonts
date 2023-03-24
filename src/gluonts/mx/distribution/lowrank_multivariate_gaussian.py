@@ -134,7 +134,6 @@ def mahalanobis_distance(
 def lowrank_log_likelihood(
     rank: int, mu: Tensor, D: Tensor, W: Tensor, x: Tensor
 ) -> Tensor:
-
     F = getF(mu)
 
     dim = F.ones_like(mu).sum(axis=-1).max()

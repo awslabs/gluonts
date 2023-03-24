@@ -257,7 +257,6 @@ class GluonTSDataModule(pl.LightningDataModule):
 
     def generate(self) -> None:
         if not self.root.exists():
-
             self.root.mkdir(parents=True)
 
             # Download data and move to our own managed directory

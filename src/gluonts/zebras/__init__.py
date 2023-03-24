@@ -11,17 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.ext.npts import NPTSPredictor
+__all__ = [
+    "Freq",
+    "freq",
+    "Period",
+    "Periods",
+    "period",
+    "periods",
+    "TimeFrame",
+    "time_frame",
+    "SplitFrame",
+    "split_frame",
+]
 
-hyperparameters = dict(
-    kernel_type="uniform",
-    use_default_features=True,
-)
-
-
-def test_accuracy(accuracy_test):
-    accuracy_test(NPTSPredictor, hyperparameters, accuracy=0.0)
-
-
-def test_serialize(serialize_test):
-    serialize_test(NPTSPredictor, hyperparameters)
+from ._freq import Freq, freq
+from ._period import period, Period, periods, Periods
+from ._timeframe import time_frame, TimeFrame, split_frame, SplitFrame

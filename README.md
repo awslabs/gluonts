@@ -14,7 +14,7 @@ based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
 ## Installation
 
-GluonTS requires Python 3.6 or newer, and the easiest way to install it is via `pip`:
+GluonTS requires Python 3.7 or newer, and the easiest way to install it is via `pip`:
 
 ```bash
 # support for mxnet models, faster datasets
@@ -36,27 +36,35 @@ of data.
 
 
 ```py
+import pandas as pd
 import matplotlib.pyplot as plt
-from gluonts.dataset.util import to_pandas
 from gluonts.dataset.pandas import PandasDataset
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.split import split
 from gluonts.mx import DeepAREstimator, Trainer
 
-dataset = get_dataset("airpassengers")
+# Load data from a CSV file into a PandasDataset
+df = pd.read_csv(
+    "https://raw.githubusercontent.com/AileenNielsen/"
+    "TimeSeriesAnalysisWithPython/master/data/AirPassengers.csv",
+    index_col=0,
+    parse_dates=True,
+)
+dataset = PandasDataset(df, target="#Passengers")
 
-deepar = DeepAREstimator(prediction_length=12, freq="M", trainer=Trainer(epochs=5))
-model = deepar.train(dataset.train)
+# Train a DeepAR model on all data but the last 36 months
+training_data, test_gen = split(dataset, offset=-36)
+model = DeepAREstimator(
+    prediction_length=12, freq="M", trainer=Trainer(epochs=5)
+).train(training_data)
 
-# Make predictions
-true_values = to_pandas(list(dataset.test)[0])
-true_values.to_timestamp().plot(color="k")
+# Generate test instances and predictions for them
+test_data = test_gen.generate_instances(prediction_length=12, windows=3)
+forecasts = list(model.predict(test_data.input))
 
-prediction_input = PandasDataset([true_values[:-36], true_values[:-24], true_values[:-12]])
-predictions = model.predict(prediction_input)
-
-for color, prediction in zip(["green", "blue", "purple"], predictions):
-    prediction.plot(color=f"tab:{color}")
-
+# Plot predictions
+df["#Passengers"].plot(color="black")
+for forecast, color in zip(forecasts, ["green", "blue", "purple"]):
+    forecast.plot(color=f"tab:{color}")
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 

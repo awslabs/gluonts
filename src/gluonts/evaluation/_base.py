@@ -94,11 +94,45 @@ def aggregate_valid(
     If all metrics in a column of `metric_per_ts` are `nan` or `inf` the result
     will be `np.ma.masked` for that column.
     """
-    metric_per_ts = metric_per_ts.apply(np.ma.masked_invalid)
+    metric_per_ts = metric_per_ts.select_dtypes(include=[np.number]).apply(
+        np.ma.masked_invalid
+    )
     return {
         key: metric_per_ts[key].agg(agg, skipna=True)
         for key, agg in agg_funs.items()
     }
+
+
+def validate_forecast(
+    forecast: Forecast, quantiles: Iterable[Quantile]
+) -> bool:
+    """Validates a Forecast object by checking it for `NaN` values.
+    The supplied quantiles and mean (if available) are checked.
+
+    Parameters
+    ----------
+    forecast
+        The forecast object.
+    quantiles
+        List of strings of the form 'p10' or floats in [0, 1] with
+        the quantile levels.
+
+    Returns
+    -------
+        True, if the forecast's mean and quantiles have no `NaN` values,
+        else False.
+    """
+    try:
+        mean_fcst = getattr(forecast, "mean", None)
+    except NotImplementedError:
+        mean_fcst = None
+
+    valid = ~np.isnan(mean_fcst).any() if mean_fcst is not None else True
+    valid &= all(
+        ~np.isnan(forecast.quantile(q.value)).any() for q in quantiles
+    )
+
+    return valid
 
 
 class Evaluator:
@@ -148,11 +182,15 @@ class Evaluator:
     ignore_invalid_values
         Ignore `NaN` and `inf` values in the timeseries when calculating
         metrics.
-    aggregation_strategy:
+    aggregation_strategy
         Function for aggregating per timeseries metrics.
         Available options are:
         aggregate_valid | aggregate_all | aggregate_no_nan
         The default function is aggregate_no_nan.
+    allow_nan_forecast
+        Whether to allow `NaN` values in forecasts.
+        If False, raises an error when forecast contains `NaN` values.
+        Defaults to False.
     """
 
     default_quantiles = 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9
@@ -168,6 +206,7 @@ class Evaluator:
         chunk_size: int = 32,
         aggregation_strategy: Callable = aggregate_no_nan,
         ignore_invalid_values: bool = True,
+        allow_nan_forecast: bool = False,
     ) -> None:
         self.quantiles = tuple(map(Quantile.parse, quantiles))
         self.seasonality = seasonality
@@ -178,6 +217,7 @@ class Evaluator:
         self.chunk_size = chunk_size
         self.aggregation_strategy = aggregation_strategy
         self.ignore_invalid_values = ignore_invalid_values
+        self.allow_nan_forecast = allow_nan_forecast
 
     def __call__(
         self,
@@ -328,6 +368,14 @@ class Evaluator:
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
+        if not validate_forecast(forecast, self.quantiles):
+            if self.allow_nan_forecast:
+                logging.warning(
+                    "Forecast contains NaN values. Metrics may be incorrect."
+                )
+            else:
+                raise ValueError("Forecast contains NaN values.")
+
         pred_target = np.array(self.extract_pred_target(time_series, forecast))
         past_data = np.array(self.extract_past_data(time_series, forecast))
 
@@ -384,7 +432,7 @@ class Evaluator:
                         )
                     }
                 except Exception:
-                    logging.warning(f"Error occured when evaluating {k}.")
+                    logging.warning(f"Error occurred when evaluating {k}.")
                     val = {k: np.nan}
 
                 metrics.update(val)
@@ -415,10 +463,10 @@ class Evaluator:
         for quantile in self.quantiles:
             forecast_quantile = forecast.quantile(quantile.value)
 
-            metrics[quantile.loss_name] = quantile_loss(
+            metrics[f"QuantileLoss[{quantile}]"] = quantile_loss(
                 pred_target, forecast_quantile, quantile.value
             )
-            metrics[quantile.coverage_name] = coverage(
+            metrics[f"Coverage[{quantile}]"] = coverage(
                 pred_target, forecast_quantile
             )
 
@@ -444,8 +492,8 @@ class Evaluator:
             agg_funs["MASE_naive2"] = "mean"
 
         for quantile in self.quantiles:
-            agg_funs[quantile.loss_name] = "sum"
-            agg_funs[quantile.coverage_name] = "mean"
+            agg_funs[f"QuantileLoss[{quantile}]"] = "sum"
+            agg_funs[f"Coverage[{quantile}]"] = "mean"
 
         if self.custom_eval_fn is not None:
             for k, (_, agg_type, _) in self.custom_eval_fn.items():
@@ -466,24 +514,27 @@ class Evaluator:
         totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
 
         for quantile in self.quantiles:
-            totals[quantile.weighted_loss_name] = (
-                totals[quantile.loss_name] / totals["abs_target_sum"]
+            totals[f"wQuantileLoss[{quantile}]"] = (
+                totals[f"QuantileLoss[{quantile}]"] / totals["abs_target_sum"]
             )
 
         totals["mean_absolute_QuantileLoss"] = np.array(
-            [totals[quantile.loss_name] for quantile in self.quantiles]
+            [
+                totals[f"QuantileLoss[{quantile}]"]
+                for quantile in self.quantiles
+            ]
         ).mean()
 
         totals["mean_wQuantileLoss"] = np.array(
             [
-                totals[quantile.weighted_loss_name]
+                totals[f"wQuantileLoss[{quantile}]"]
                 for quantile in self.quantiles
             ]
         ).mean()
 
         totals["MAE_Coverage"] = np.mean(
             [
-                np.abs(totals[q.coverage_name] - np.array([q.value]))
+                np.abs(totals[f"Coverage[{quantile}]"] - np.array([q.value]))
                 for q in self.quantiles
             ]
         )
@@ -512,15 +563,14 @@ class Evaluator:
 
 class MultivariateEvaluator(Evaluator):
     """
-    The MultivariateEvaluator class owns functionality for evaluating
-    multidimensional target arrays of shape (target_dimensionality,
-    prediction_length).
+    The MultivariateEvaluator class evaluates forecasts for multivariate or
+    multi-dimensional observations.
 
     Evaluations of individual dimensions will be stored with the corresponding
-    dimension prefix and contain the metrics calculated by only this dimension.
+    dimension prefix and contain metrics calculated only for this dimension.
     Metrics with the plain metric name correspond to metrics calculated over
     all dimensions.
-    Additionally, the user can provide additional aggregation functions that
+    Additionally, the user can provide custom aggregation functions that
     first aggregate the target and forecast over dimensions and then calculate
     the metric. These metrics will be prefixed with m_<aggregation_fun_name>_
 
@@ -699,6 +749,22 @@ class MultivariateEvaluator(Evaluator):
         fcst_iterator: Iterable[Forecast],
         num_series=None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
+        """Compute accuracy metrics for multivariate forecasts.
+
+        Parameters
+        ----------
+        ts_iterator
+            iterator over target time series. Each element of the iterator
+            must be a DataFrame with columns representing individual dimensions
+            of the multivariate time series and timestamps as index.
+        fcst_iterator
+            iterator over `Forecast` objects.
+
+        Returns
+        -------
+            Dict[str, float]
+                dictionary of forecast accuracy metrics.
+        """
         ts_iterator = iter(ts_iterator)
         fcst_iterator = iter(fcst_iterator)
 

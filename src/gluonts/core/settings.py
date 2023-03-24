@@ -105,15 +105,6 @@ class LinkedList:
     """
     Simple linked list, where only elements controls removal of them.
 
-    This is needed to allow for behaviour like this:
-
-    >>> settings = Settings()
-    ...
-    ... with settings._let(x=1):
-    ...     settings._push(x=2)
-    ...
-    ... assert settings.x == 2
-
     When going out of a `let` block, the pushed environment should be destroyed
     and not just the last element of the stack.
     """
@@ -291,7 +282,7 @@ class Settings:
         raise KeyError(key)
 
     def __getattribute__(self, key):
-        # We check the key, to check whether we want to acces our chainmap
+        # We check the key, to check whether we want to access our chainmap
         # or handle it as a normal attribute.
         if key.startswith("_"):
             return super().__getattribute__(key)
@@ -367,7 +358,7 @@ class Settings:
         """
         Dependency injection.
 
-        This will inject values from settings if avaiable and not passed
+        This will inject values from settings if available and not passed
         directly::
 
             @settings._inject("foo")

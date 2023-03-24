@@ -50,7 +50,7 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: MQF2MultiHorizonModel,
+        model_kwargs: dict,
         loss: DistributionLoss = EnergyScore(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -58,17 +58,13 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = MQF2MultiHorizonModel(**model_kwargs)
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
-        self.example_input_array = tuple(
-            [
-                torch.zeros(shape, dtype=self.model.input_types()[name])
-                for (name, shape) in self.model.input_shapes().items()
-            ]
-        )
+        self.inputs = self.model.describe_inputs()
+        self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
         return self.model.forward(*args, **kwargs)

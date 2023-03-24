@@ -39,9 +39,9 @@ class RForecastPredictor(RBasePredictor):
     Wrapper for calling the `R forecast package
     <http://pkg.robjhyndman.com/forecast/>`_.
 
-    In order to use it you need to install R and run::
+    In order to use it you need to install R and rpy2. You also need the R `forecast` package which
+    can be installed by running:
 
-        pip install 'rpy2>=2.9.*,<3.*'
         R -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")' # noqa
 
     Parameters
@@ -76,7 +76,6 @@ class RForecastPredictor(RBasePredictor):
         trunc_length: Optional[int] = None,
         params: Optional[Dict] = None,
     ) -> None:
-
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,

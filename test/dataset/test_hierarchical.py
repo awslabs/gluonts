@@ -12,11 +12,10 @@
 # permissions and limitations under the License.
 
 
-# Third-party imports
 import numpy as np
 import pandas as pd
+from toolz.itertoolz import first
 
-# First-party imports
 import pytest
 from gluonts.dataset.hierarchical import HierarchicalTimeSeries
 
@@ -115,6 +114,7 @@ def test_hts_to_dataset(mode: str):
     S = np.vstack(([[1, 1, 1, 1], [1, 1, 0, 0], [0, 0, 1, 1]], np.eye(4)))
     hts = get_random_hts(S=S, periods=PERIODS, freq=FREQ)
 
+    num_bottom_ts = S.shape[1]
     num_features = 10
     num_future_time_steps = {
         "train": 0,
@@ -136,38 +136,19 @@ def test_hts_to_dataset(mode: str):
             ds = hts.to_dataset(feat_dynamic_real=features_df)
     else:
         ds = hts.to_dataset(feat_dynamic_real=features_df)
+        entry = first(ds)
 
-        # In both train and inference modes, the index of the target
-        # dataframe should be same as that of time features since we pad
-        # NaNs in inference mode.
-        assert (ds.dataframes.index == features_df.index).all(), (
-            "The index of target dataframe and the features dataframe "
-            "do not match!\n"
-            f"Index of target dataframe: {ds.dataframes.index}.\n"
-            f"Index of features dataframe: {features_df.index}."
-        )
+        assert entry["start"] == features_df.index[0]
 
         if mode == "train":
-            # There should be no NaN in the target dataframe after concatenating
-            # with the features dataframe since there are no future time steps.
-            assert not ds.dataframes.isnull().values.any(), (
-                "The target dataframe is incorrectly constructed and "
-                "contains NaNs."
+            entry["target"].shape == (num_bottom_ts, PERIODS)
+            entry["feat_dynamic_real"].shape == (num_features, PERIODS)
+        else:
+            entry["target"].shape == (
+                num_bottom_ts,
+                PERIODS + num_future_time_steps,
             )
-        elif mode == "inference":
-            assert ds.ignore_last_n_targets == num_future_time_steps, (
-                "The field `ignore_last_n_targets` is not correctly set "
-                "while creating the hierarchical dataset.\n"
-                f"Expected value: {num_future_time_steps}, "
-                f"Obtained: {ds.ignore_last_n_targets}."
-            )
-
-            # For each target column there would be `num_future_time_steps` NaNs.
-            num_nans_expected = len(ds.target) * num_future_time_steps
-            num_nans = ds.dataframes.isnull().values.sum()
-            assert num_nans == num_nans_expected, (
-                "The target dataframe is incorrectly constructed and "
-                "do not contain the correct number of NaNs. \n"
-                f"Expected no. of NaNs: {num_nans_expected}, "
-                f"Obtained: {num_nans}."
+            entry["feat_dynamic_real"].shape == (
+                num_features,
+                PERIODS + num_future_time_steps,
             )

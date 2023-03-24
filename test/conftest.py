@@ -57,6 +57,7 @@ def sine7():
         seq_length: int = 100,
         prediction_length: int = 10,
         nonnegative: bool = False,
+        bias: float = 0,
     ):
         x = np.arange(0, seq_length)
 
@@ -70,7 +71,7 @@ def sine7():
             if i == 3:
                 np.random.seed(0)
                 omega = np.random.uniform(0, np.pi)  # random phase shift
-            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega)
+            b[i, :] = amps[i] * np.sin(2 * np.pi * x * f + omega) + bias
 
         if nonnegative:
             b = abs(b)
@@ -196,8 +197,41 @@ def doctest(doctest_namespace):
     doctest.ELLIPSIS_MARKER = "-etc-"
 
 
-def get_collect_ignores():
+collect_ignore = []
+
+
+def pytest_configure(config):
     test_folder = Path(__file__).parent.resolve()
+
+    targets = config.getoption("file_or_dir")
+
+    if not targets:
+        targets.append(".")
+
+    requirements = set()
+
+    for target in targets:
+        target = Path(target).resolve()
+
+        if target.is_file():
+            target = target.parent
+        else:
+            requirements.update(target.glob("**/require-packages.txt"))
+
+        try:
+            # .is_relative_to was only added in Py 3.9
+            target.relative_to(test_folder)
+
+            while True:
+                require = target / "require-packages.txt"
+                if require.exists():
+                    requirements.add(require)
+
+                if target == test_folder:
+                    break
+                target = target.parent
+        except ValueError:
+            pass
 
     old_path = sys.path
     sys.path = [
@@ -206,25 +240,23 @@ def get_collect_ignores():
 
     excludes = []
 
-    for path in test_folder.glob("**/require-packages.txt"):
-        with path.open() as requirements:
-            for requirement in map(str.strip, requirements):
+    for path in requirements:
+        with path.open() as requirement:
+            for requirement in map(str.strip, requirement):
                 try:
                     __import__(requirement)
                 except ImportError:
-                    excludes.append(str(path.parent.relative_to(test_folder)))
+                    collect_ignore.append(
+                        str(path.parent.relative_to(test_folder))
+                    )
                     break
 
-    if excludes:
+    if collect_ignore:
         warnings.warn(
             f"Skipping tests because some packages are not installed: {excludes}"
         )
 
     sys.path = old_path
-    return excludes
-
-
-collect_ignore = get_collect_ignores()
 
 
 class AttrDict(dict):

@@ -28,7 +28,7 @@ def encode_np_dtype(v: np.dtype) -> Any:
     return {
         "__kind__": Kind.Instance,
         "class": "numpy.dtype",
-        "args": encode([v.name]),
+        "args": encode([v.descr[0][1]]),
     }
 
 
@@ -42,6 +42,15 @@ def encode_np_ndarray(v: np.ndarray) -> Any:
         "__kind__": Kind.Instance,
         "class": "numpy.array",  # use "array" ctor instead of "nparray" class
         "args": encode([v.tolist(), v.dtype]),
+    }
+
+
+@encode.register
+def encode_np_datetime64(v: np.datetime64) -> Any:
+    return {
+        "__kind__": Kind.Instance,
+        "class": "numpy.datetime64",
+        "args": encode([v.astype(int), np.datetime_data(v)]),
     }
 
 

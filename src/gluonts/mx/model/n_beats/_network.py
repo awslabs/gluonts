@@ -530,7 +530,6 @@ class NBEATSNetwork(mx.gluon.HybridBlock):
         future_target: Optional[Tensor],
         future_observed_values: Optional[Tensor],
     ):
-
         past_target, scale = self.scaler(past_target, past_observed_values)
 
         if len(self.net_blocks) == 1:  # if first block is also last block

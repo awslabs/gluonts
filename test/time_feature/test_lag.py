@@ -303,7 +303,6 @@ expected_lags["7D"] = expected_lags["1W"]
 
 
 def test_lags():
-
     freq_strs = [
         "4S",
         "min",

@@ -243,7 +243,8 @@ def cmdclass():
             super().make_release_tree(base_dir, files)
 
             write_version(
-                Path(base_dir) / package_root.relative_to(dist_root())
+                Path(base_dir)
+                / Path(__file__).parent.resolve().relative_to(dist_root())
             )
 
     return {"sdist": sdist, "build_py": build_py}

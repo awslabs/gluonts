@@ -32,6 +32,7 @@ from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.repository._util import metadata
+from gluonts.util import safe_extractall
 
 
 class GPCopulaDataset(NamedTuple):
@@ -87,14 +88,23 @@ datasets_info = {
     ),
     "wiki-rolling_nips": GPCopulaDataset(
         name="wiki-rolling_nips",
-        # That file lives on GitHub Large file storage (lfs). We need to use
-        # the exact link, otherwise it will only open the lfs pointer file.
+        # Direct link required for Github Large File Storage (LFS) file.
         url="https://github.com/awslabs/gluonts/raw/1553651ca1fca63a16e012b8927bd9ce72b8e79e/datasets/wiki-rolling_nips.tar.gz",
         num_series=9535,
         prediction_length=30,
         freq="D",
         rolling_evaluations=5,
-        max_target_dim=2000,
+        max_target_dim=None,
+    ),
+    "wiki2000_nips": GPCopulaDataset(
+        name="wiki2000_nips",
+        # Direct link required for Github Large File Storage (LFS) file.
+        url="https://github.com/awslabs/gluonts/raw/82d3038c9dd694584e8ec855a6b6ae2461dc92ef/datasets/wiki2000_nips.tar.gz",
+        num_series=2000,
+        prediction_length=30,
+        freq="D",
+        rolling_evaluations=5,
+        max_target_dim=None,
     ),
     "taxi_30min": GPCopulaDataset(
         name="taxi_30min",
@@ -140,7 +150,7 @@ def download_dataset(dataset_path: Path, ds_info: GPCopulaDataset):
     request.urlretrieve(ds_info.url, dataset_path / f"{ds_info.name}.tar.gz")
 
     with tarfile.open(dataset_path / f"{ds_info.name}.tar.gz") as tar:
-        tar.extractall(path=dataset_path)
+        safe_extractall(tar, path=dataset_path)
 
 
 def get_data(dataset_path: Path, ds_info: GPCopulaDataset):

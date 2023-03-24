@@ -14,26 +14,21 @@
 import numpy as np
 
 
-def seasonal_error(time_series: np.ndarray, seasonality: int) -> np.ndarray:
+def seasonal_error(
+    time_series: np.ndarray, seasonality: int, time_axis=0
+) -> np.ndarray:
     """The mean abs. difference of a time series, shifted by its seasonality.
 
     Some metrics use the seasonal error for normalization."""
 
-    if seasonality < time_series.shape[-1]:
-        forecast_freq = seasonality
-    else:
-        # edge case: the seasonal freq is larger than the length of ts
-        forecast_freq = 1
+    time_length = time_series.shape[time_axis]
 
-    if time_series.ndim == 1:
-        y_t = time_series[:-forecast_freq]
-        y_tm = time_series[forecast_freq:]
+    if seasonality > time_length:
+        seasonality = 1
 
-        return np.abs(y_t - y_tm).mean(keepdims=True)
-    else:
-        # multivariate case:
-        # time_series has shape (# of time stamps, # of variates)
-        y_t = time_series[:-forecast_freq, :]
-        y_tm = time_series[forecast_freq:, :]
+    y_t = np.take(time_series, range(seasonality, time_length), axis=time_axis)
+    y_tm = np.take(
+        time_series, range(time_length - seasonality), axis=time_axis
+    )
 
-        return np.abs(y_t - y_tm).mean(axis=0, keepdims=True)
+    return np.abs(y_t - y_tm).mean(axis=time_axis, keepdims=True)

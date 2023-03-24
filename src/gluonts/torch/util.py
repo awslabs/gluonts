@@ -120,7 +120,7 @@ def lagged_sequence_values(
     assert max(indices) <= prior_sequence.shape[dim], (
         f"lags cannot go further than prior sequence length, found lag"
         f" {max(indices)} while prior sequence is only"
-        f"{prior_sequence.shape[dim]}-long"
+        f" {prior_sequence.shape[dim]}-long"
     )
 
     full_sequence = torch.cat((prior_sequence, sequence), dim=dim)
@@ -136,14 +136,6 @@ def lagged_sequence_values(
         )
 
     return torch.stack(lags_values, dim=-1)
-
-
-class IterableDataset(torch.utils.data.IterableDataset):
-    def __init__(self, iterable):
-        self.iterable = iterable
-
-    def __iter__(self):
-        yield from self.iterable
 
 
 def repeat_along_dim(a: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:

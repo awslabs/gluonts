@@ -18,6 +18,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from gluonts.core.component import validated
 from gluonts.itertools import select
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+from gluonts.torch.model.lightning_util import has_validation_loop
 
 from .module import DeepARModel
 
@@ -48,7 +49,7 @@ class DeepARLightningModule(pl.LightningModule):
     @validated()
     def __init__(
         self,
-        model: DeepARModel,
+        model_kwargs: dict,
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -56,17 +57,13 @@ class DeepARLightningModule(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = DeepARModel(**model_kwargs)
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
-        self.example_input_array = tuple(
-            [
-                torch.zeros(shape, dtype=self.model.input_types()[name])
-                for (name, shape) in self.model.input_shapes().items()
-            ]
-        )
+        self.inputs = self.model.describe_inputs()
+        self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
@@ -76,7 +73,7 @@ class DeepARLightningModule(pl.LightningModule):
         Execute training step.
         """
         train_loss = self.model.loss(
-            **select(self.model.input_shapes(), batch),
+            **select(self.inputs, batch),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
             loss=self.loss,
@@ -97,7 +94,7 @@ class DeepARLightningModule(pl.LightningModule):
         Execute validation step.
         """
         val_loss = self.model.loss(
-            **select(self.model.input_shapes(), batch),
+            **select(self.inputs, batch),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
             loss=self.loss,
@@ -118,6 +115,9 @@ class DeepARLightningModule(pl.LightningModule):
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+        monitor = (
+            "val_loss" if has_validation_loop(self.trainer) else "train_loss"
+        )
 
         return {
             "optimizer": optimizer,
@@ -128,6 +128,6 @@ class DeepARLightningModule(pl.LightningModule):
                     factor=0.5,
                     patience=self.patience,
                 ),
-                "monitor": "train_loss",
+                "monitor": monitor,
             },
         }

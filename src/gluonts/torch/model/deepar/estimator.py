@@ -14,12 +14,13 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
-from torch.utils.data import DataLoader
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
+from gluonts.dataset.stat import calculate_dataset_statistics
 from gluonts.time_feature import (
     TimeFeature,
     time_features_from_frequency_str,
@@ -39,20 +40,14 @@ from gluonts.transform import (
     ValidationSplitSampler,
     TestSplitSampler,
     ExpectedNumInstanceSampler,
-    SelectFields,
-)
-from gluonts.torch.util import (
-    IterableDataset,
+    MissingValueImputation,
+    DummyValueImputation,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import (
-    DistributionOutput,
-    StudentTOutput,
-)
+from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 from gluonts.transform.sampler import InstanceSampler
 
-from .module import DeepARModel
 from .lightning_module import DeepARLightningModule
 
 PREDICTION_INPUT_NAMES = [
@@ -123,6 +118,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         (default: ``NegativeLogLikelihood()``).
     scaling
         Whether to automatically scale the target values (default: true).
+    default_scale
+        Default scale that is applied if the context length window is
+        completely unobserved. If not set, the scale in this case will be
+        the mean scale in the batch.
     lags_seq
         Indices of the lagged target values to use as inputs of the RNN
         (default: None, in which case these are automatically determined
@@ -167,11 +166,13 @@ class DeepAREstimator(PyTorchLightningEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
+        default_scale: float = 0.0,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
+        imputation_method: Optional[MissingValueImputation] = None,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
@@ -205,6 +206,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         )
         self.embedding_dimension = embedding_dimension
         self.scaling = scaling
+        self.default_scale = default_scale
         self.lags_seq = lags_seq
         self.time_features = (
             time_features
@@ -216,12 +218,28 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
+        self.imputation_method = (
+            imputation_method
+            if imputation_method is not None
+            else DummyValueImputation(self.distr_output.value_in_support)
+        )
+
         self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
         self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
+
+    @classmethod
+    def derive_auto_fields(cls, train_iter):
+        stats = calculate_dataset_statistics(train_iter)
+
+        return {
+            "num_feat_dynamic_real": stats.num_feat_dynamic_real,
+            "num_feat_static_cat": len(stats.feat_static_cat),
+            "cardinality": [len(cats) for cats in stats.feat_static_cat],
+        }
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
@@ -264,6 +282,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,
+                    imputation_method=self.imputation_method,
                 ),
                 AddTimeFeatures(
                     start_field=FieldName.START,
@@ -287,6 +306,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                         else []
                     ),
                 ),
+                AsNumpyArray(FieldName.FEAT_TIME, expected_ndim=2),
             ]
         )
 
@@ -323,27 +343,17 @@ class DeepAREstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        data = Cyclic(data).stream()
+        instances = self._create_instance_splitter(module, "training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return as_stacked_batches(
+            instances,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
@@ -352,45 +362,42 @@ class DeepAREstimator(PyTorchLightningEstimator):
         module: DeepARLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter(module, "validation").apply(
+            data, is_train=True
+        )
+        return as_stacked_batches(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
         )
 
     def create_lightning_module(self) -> DeepARLightningModule:
-        model = DeepARModel(
-            freq=self.freq,
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            num_feat_dynamic_real=(
-                1 + self.num_feat_dynamic_real + len(self.time_features)
-            ),
-            num_feat_static_real=max(1, self.num_feat_static_real),
-            num_feat_static_cat=max(1, self.num_feat_static_cat),
-            cardinality=self.cardinality,
-            embedding_dimension=self.embedding_dimension,
-            num_layers=self.num_layers,
-            hidden_size=self.hidden_size,
-            distr_output=self.distr_output,
-            dropout_rate=self.dropout_rate,
-            lags_seq=self.lags_seq,
-            scaling=self.scaling,
-            num_parallel_samples=self.num_parallel_samples,
-        )
-
         return DeepARLightningModule(
-            model=model,
             loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             patience=self.patience,
+            model_kwargs={
+                "freq": self.freq,
+                "context_length": self.context_length,
+                "prediction_length": self.prediction_length,
+                "num_feat_dynamic_real": (
+                    1 + self.num_feat_dynamic_real + len(self.time_features)
+                ),
+                "num_feat_static_real": max(1, self.num_feat_static_real),
+                "num_feat_static_cat": max(1, self.num_feat_static_cat),
+                "cardinality": self.cardinality,
+                "embedding_dimension": self.embedding_dimension,
+                "num_layers": self.num_layers,
+                "hidden_size": self.hidden_size,
+                "distr_output": self.distr_output,
+                "dropout_rate": self.dropout_rate,
+                "lags_seq": self.lags_seq,
+                "scaling": self.scaling,
+                "default_scale": self.default_scale,
+                "num_parallel_samples": self.num_parallel_samples,
+            },
         )
 
     def create_predictor(

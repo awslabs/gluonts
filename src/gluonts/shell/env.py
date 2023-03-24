@@ -20,7 +20,8 @@ from typing import Dict, Optional, Union
 from toolz import valmap
 
 from gluonts.dataset.common import Dataset, FileDataset, MetaData
-from gluonts.model import forecast, Predictor
+from gluonts.model import Predictor
+from gluonts.util import safe_extractall
 
 from . import sagemaker
 
@@ -41,7 +42,7 @@ class TrainEnv(sagemaker.TrainEnv):
         if "model" in self.channels:
             path = self.channels.pop("model")
             with tarfile.open(path / "model.tar.gz") as targz:
-                targz.extractall(path=path)
+                safe_extractall(targz, path)
             model = Predictor.deserialize(path)
 
         file_dataset = partial(FileDataset, freq=self.hyperparameters["freq"])
@@ -63,7 +64,9 @@ class ServeEnv(sagemaker.ServeEnv):
         sagemaker.ServeEnv.__init__(self, *args, **kwargs)
 
         if self.sagemaker_batch:
-            self.batch_config = forecast.Config.parse_raw(
+            from .serve.app import ForecastConfig
+
+            self.batch_config = ForecastConfig.parse_raw(
                 os.environ["INFERENCE_CONFIG"]
             )
         else:

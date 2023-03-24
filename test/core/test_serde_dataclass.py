@@ -78,3 +78,27 @@ def test_dataclass_inheritance():
     b = B(x=3)
     assert b.x == 3
     assert b.z == 4
+
+
+def test_dataclass_eventual():
+    @serde.dataclass
+    class X:
+        y: int = serde.EVENTUAL
+
+        def __eventually__(self, y):
+            y.set_default(3)
+
+    x1 = X(y=1)
+    assert x1.y == 1
+
+    x2 = X()
+    assert x2.y == 3
+
+
+def test_dataclass_additional_args():
+    @serde.dataclass
+    class X:
+        y: int
+
+    # passing additional values should not fail
+    X(y=1, z=2)

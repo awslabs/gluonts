@@ -34,7 +34,6 @@ class Scaler(nn.HybridBlock):
     """
 
     def __init__(self, keepdims: bool = False, axis: int = 1):
-
         super().__init__()
         self.keepdims = keepdims
         self.axis = axis
@@ -296,4 +295,4 @@ class NOPScaler(Scaler):
         Tensor
             shape (N, C), identically equal to 1.
         """
-        return F.ones_like(data).mean(axis=self.axis)
+        return F.ones_like(observed_indicator).mean(axis=self.axis)

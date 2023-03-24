@@ -20,6 +20,7 @@ import numpy as np
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.itertools import select
 from gluonts.dataset.loader import DataLoader
 from gluonts.model.forecast import Forecast, QuantileForecast, SampleForecast
 
@@ -48,7 +49,7 @@ def log_once(msg):
 # numpy conversion differently, use a dispatching function to prevent needing
 # a ForecastGenerators for each framework
 @singledispatch
-def predict_to_numpy(prediction_net, args) -> np.ndarray:
+def predict_to_numpy(prediction_net, kwargs) -> np.ndarray:
     raise NotImplementedError
 
 
@@ -114,7 +115,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
+            inputs = select(input_names, batch, ignore_missing=True)
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -151,7 +152,7 @@ class SampleForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
+            inputs = select(input_names, batch, ignore_missing=True)
             outputs = predict_to_numpy(prediction_net, inputs)
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
@@ -197,8 +198,8 @@ class DistributionForecastGenerator(ForecastGenerator):
         **kwargs
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
-            inputs = [batch[k] for k in input_names]
-            outputs = prediction_net(*inputs)
+            inputs = select(input_names, batch, ignore_missing=True)
+            outputs = prediction_net(*inputs.values())
 
             if output_transform:
                 log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)

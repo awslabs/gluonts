@@ -54,7 +54,6 @@ from .model.n_beats import (
 )
 
 from .model.renewal import DeepRenewalProcessEstimator
-from .model.san import SelfAttentionEstimator
 from .model.seq2seq import (
     MQCNNEstimator,
     MQRNNEstimator,

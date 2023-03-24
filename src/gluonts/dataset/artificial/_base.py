@@ -168,24 +168,26 @@ class ConstantDataset(ArtificialDataset):
         metadata = MetaData(
             freq=self.freq.freqstr,
             feat_static_cat=[
-                {
-                    "name": "feat_static_cat_000",
-                    "cardinality": str(self.num_timeseries),
-                }
+                CategoricalFeatureInfo(
+                    name="feat_static_cat_000",
+                    cardinality=str(self.num_timeseries),
+                )
             ],
-            feat_static_real=[{"name": "feat_static_real_000"}],
+            feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
             prediction_length=self.prediction_length,
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
                 freq=self.freq.freqstr,
                 feat_static_cat=[
-                    {
-                        "name": "feat_static_cat_000",
-                        "cardinality": str(self.num_timeseries),
-                    }
+                    CategoricalFeatureInfo(
+                        name="feat_static_cat_000",
+                        cardinality=str(self.num_timeseries),
+                    )
                 ],
-                feat_static_real=[{"name": "feat_static_real_000"}],
+                feat_static_real=[
+                    BasicFeatureInfo(name="feat_static_real_000")
+                ],
                 feat_dynamic_real=[
                     BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
                 ],
@@ -250,7 +252,7 @@ class ConstantDataset(ArtificialDataset):
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
             # Add 1 time series at a time in the loop for different constant
-            # valus per time series
+            # values per time series
             num_timeseries=1,
         )
         generated = data.generate()
@@ -337,7 +339,6 @@ class ConstantDataset(ArtificialDataset):
                     or self.is_promotions
                     or self.holidays
                 ):
-
                     num_steps = self.get_num_steps(i)
                     generated = self.compute_data_from_recipe(
                         num_steps, constant
@@ -810,7 +811,7 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
             ],
             feat_static_cat=[
                 CategoricalFeatureInfo(
-                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                    name=FieldName.FEAT_STATIC_CAT, cardinality="10"
                 )
             ],
             feat_dynamic_real=[

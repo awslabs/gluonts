@@ -34,8 +34,8 @@ from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(nn.Module)
-def _(prediction_net: nn.Module, args) -> np.ndarray:
-    return prediction_net(*args).cpu().numpy()
+def _(prediction_net: nn.Module, kwargs) -> np.ndarray:
+    return prediction_net(**kwargs).cpu().numpy()
 
 
 class PyTorchPredictor(Predictor):
@@ -133,6 +133,9 @@ class PyTorchPredictor(Predictor):
     def deserialize(
         cls, path: Path, device: Optional[torch.device] = None
     ) -> "PyTorchPredictor":
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
         # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
