@@ -175,15 +175,15 @@ class PickleCached:
     def __iter__(self):
         if not self.cached:
             with open(self._path, "wb") as tmpfile:
-                for entry in self.iterable:
-                    pickle.dump(entry, tmpfile)
-                    yield entry
+                for batch in batcher(self.iterable, 16):
+                    pickle.dump(batch, tmpfile)
+                    yield from batch
             self.cached = True
         else:
             with open(self._path, "rb") as tmpfile:
                 while True:
                     try:
-                        yield pickle.load(tmpfile)
+                        yield from pickle.load(tmpfile)
                     except EOFError:
                         return
 
