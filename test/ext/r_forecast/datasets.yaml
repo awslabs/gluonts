@@ -1,0 +1,289 @@
+uber_weather_1item:
+    tts_key: '../test/ext/r_forecast/uber_weather.csv'
+    tts_columns: ['item_id', 'timestamp', 'target_value']
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+uber_weather_2items:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'uber-weather/raw_data/csv_files/uber-weather_2_items_features_TTS.csv'
+    rts_key: 'uber-weather/raw_data/csv_files/uber-weather_2_items_features_RTS.csv'
+    tts_columns: ['item_id', 'timestamp', 'target_value']
+    rts_columns: ['item_id', 'timestamp']
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+       ]
+    }
+    rts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+everlane:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'everlane/raw_data/csv_files/everlane_TTS.csv'
+    rts_key: 'everlane/raw_data/csv_files/everlane_RTS.csv'
+    tts_columns: ['item_id', 'timestamp', 'target_value']
+    rts_columns: ['item_id', 'timestamp']
+    freq: 'D'
+    prediction_length: 14
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+    tts_schema: {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+      ]
+    }
+    rts_schema: {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+Kaggle_retail:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'Kaggle_retail/raw_data/csv_files/kaggle_retail_TTS.csv'
+    im_key: 'Kaggle_retail/raw_data/csv_files/kaggle_retail_IM.csv'
+    tts_columns: ['timestamp', 'item_id', 'target_value']
+    im_columns: ['item_id']
+    freq: 'D'
+    prediction_length: 14
+    prediction_types: [ '0.1', '0.5', '0.9', 'mean']
+    tts_schema: {
+       "Attributes":[
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+       ]
+    }
+    im_schema: {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          }
+       ]
+    }
+uber_weather:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'uber-weather/raw_data/csv_files/uber-weather_TTS.csv'
+    rts_key: 'uber-weather/raw_data/csv_files/uber-weather_RTS.csv'
+    tts_columns: ['item_id', 'timestamp', 'target_value']
+    rts_columns: ['item_id', 'timestamp']
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+       ]
+    }
+    rts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+electricity:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'electricity/raw_data/csv_files/electricity_TTS.csv'
+    tts_columns: ['item_id', 'timestamp', 'target_value']
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+       ]
+    }
+covid_death:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'covid_death/raw_data/csv_files/covid_death.csv'
+    tts_columns: ['target_value', 'item_id', 'timestamp']
+    freq: 'D'
+    prediction_length: 30
+    prediction_types: ['0.1', '0.5', '0.9', 'mean']
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          },
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+solar:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'solar/raw_data/csv_files/solar_TTS.csv'
+    tts_columns: ['target_value', 'item_id', 'timestamp']
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean'] 
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          },
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+
+osaka_gas:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'osaka_gas/raw_data/csv_files/osaka_gas_TTS.csv'
+    rts_key: 'osaka_gas/raw_data/csv_files/osaka_gas_RTS.csv'
+    tts_columns: ["item_id", "timestamp", "target_value"]
+    rts_columns: ["item_id", "timestamp"]
+    freq: 'H'
+    prediction_length: 168
+    prediction_types: ['0.1', '0.5', '0.9', 'mean'] 
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          },
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          }
+       ]
+    }
+    rts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }       
+kdd_2018:
+    bucket: 'af-benchmarking-datasets'
+    tts_key: 'kdd_2018/raw_data/csv_files/kdd_2018_TTS.csv'
+    tts_columns: ["target_value", "item_id", "timestamp"]
+    freq: 'H'
+    prediction_length: 28
+    prediction_types: ['0.1', '0.5', '0.9', 'mean'] 
+    tts_schema : {
+       "Attributes":[
+          {
+             "AttributeName":"target_value",
+             "AttributeType":"float"
+          },
+          {
+             "AttributeName":"item_id",
+             "AttributeType":"string"
+          },
+          {
+             "AttributeName":"timestamp",
+             "AttributeType":"timestamp"
+          }
+       ]
+    }
+
+
+
+
+    
+
+
+
+
