@@ -341,10 +341,10 @@ def _encode_zebras_periods(v: Periods):
 
 def period(data, freq=None) -> Period:
     if hasattr(data, "freqstr") and freq is None:
-        freqstr = data.freqstr
+        freqstr, _ = Freq.freq_name_n(data.freqstr)
         freq = Freq.from_pandas(data.freqstr)
     else:
-        freqstr = freq
+        freqstr, _ = Freq.freq_name_n(freq)
         freq = Freq.from_pandas(freq)
 
     if isinstance(data, Period):

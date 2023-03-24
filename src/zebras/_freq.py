@@ -150,6 +150,16 @@ class Freq:
         return day_offsets[day]
 
     @classmethod
+    def freq_name_n(cls, freq: str) -> [str, int]:
+        match = maybe.expect(
+            re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
+            f"Unsupported freq format {freq}",
+        )
+        groups = match.groupdict()
+
+        return groups["freq"], maybe.map_or(groups["n"], int, 1)
+
+    @classmethod
     def from_pandas(cls, freq) -> Freq:
         if not isinstance(freq, str):
             if hasattr(freq, "freqstr"):
@@ -157,14 +167,8 @@ class Freq:
             else:
                 raise ValueError(f"Invalid freq {freq}: {type(freq)}")
 
-        match = maybe.expect(
-            re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
-            f"Unsupported freq format {freq}",
-        )
-        groups = match.groupdict()
-
-        name = groups["freq"].upper().split("-")[0]
-        n = maybe.map_or(groups["n"], int, 1)
+        name, n = cls.freq_name_n(freq)
+        name = name.upper().split("-")[0]
 
         return cls(name, n)
 

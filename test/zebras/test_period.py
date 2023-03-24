@@ -148,6 +148,13 @@ def test_periods_feature(freq):
                 ["2023-03-18", "2023-03-25", "2023-04-01", "2023-04-08"]
             ).astype(np.datetime64),
         ),
+        (
+            "2023-03-19",
+            "2W-SAT",
+            np.array(
+                ["2023-03-18", '2023-04-01', '2023-04-15', '2023-04-29']
+            ).astype(np.datetime64),
+        ),
     ],
 )
 def test_weekly_weekday_period(data, freq, result):
