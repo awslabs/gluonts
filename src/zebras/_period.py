@@ -341,8 +341,10 @@ def _encode_zebras_periods(v: Periods):
 
 def period(data, freq=None) -> Period:
     if hasattr(data, "freqstr") and freq is None:
+        freqstr = data.freqstr
         freq = Freq.from_pandas(data.freqstr)
     else:
+        freqstr = freq
         freq = Freq.from_pandas(freq)
 
     if isinstance(data, Period):
@@ -357,7 +359,8 @@ def period(data, freq=None) -> Period:
 
     if freq.name == "W":
         period = Period(np.datetime64(data, freq.np_freq), freq)
-        period.data -= cast(int, period.dayofweek)
+        weekday_offset = Freq.get_weekday_offset(freqstr)
+        period.data -= (cast(int, period.dayofweek) - weekday_offset) % 7
         return period
 
     return Period(np.datetime64(data, freq.np_freq), freq)
