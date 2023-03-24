@@ -195,6 +195,7 @@ class TimeSeries(TimeBase):
         return _replace(
             self,
             values=AxisView(self.values, self.tdim)[idx],
+            length=stop - start,
             index=maybe.map(self.index, itemgetter(idx)),
             _pad=self._pad.extend(-start, stop - len(self)),
         )
@@ -406,6 +407,7 @@ class TimeFrame(TimeBase):
 
         return TimeSeries(
             self.columns[idx],
+            length=len(self._time_view(idx)),
             index=self.index,
             tdim=self.tdims[idx],
             metadata=self.metadata,
