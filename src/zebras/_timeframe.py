@@ -828,7 +828,7 @@ def time_frame(
     default_tdim: int = -1,
     metadata: Optional[Dict] = None,
 ):
-    """Create a `zebras.TimeFrame` object that represents one
+    """Create a ``zebras.TimeFrame`` object that represents one
     or more time series.
 
     Parameters
@@ -838,11 +838,11 @@ def time_frame(
         values are sequences (e.g., list, numpy arrays). All columns must have
         the same length in the time dimension, by default None
     index, optional
-        A `zebras.Periods` object representing timestamps.
+        A ``zebras.Periods`` object representing timestamps.
         Must have the same length as the columns, by default None
     start, optional
         The start time represented by a string (e.g., "2023-01-01"),
-        or a `zebras.Period` object. An index will be constructed using
+        or a ``zebras.Period`` object. An index will be constructed using
         this start time and the specificed frequency, by default None
     freq, optional
         The frequency of the period, e.g, "H" for hourly, by default None
@@ -861,7 +861,7 @@ def time_frame(
 
     Returns
     -------
-        A `zebras.TimeFrame` object.
+        A ``zebras.TimeFrame`` object.
     """
     assert (
         index is None or start is None
@@ -911,7 +911,7 @@ def time_series(
     tdim: int = -1,
     metadata: Optional[Dict] = None,
 ):
-    """Create a `zebras.TimeSeries` object that represents a time series.
+    """Create a ``zebras.TimeSeries`` object that represents a time series.
 
     Parameters
     ----------
@@ -919,11 +919,11 @@ def time_series(
         A sequence (e.g., list, numpy arrays) representing the values
         of the time series.
     index, optional
-        A `zebras.Periods` object representing timestamps.
+        A ``zebras.Periods`` object representing timestamps.
         Must have the same length as the `values`, by default None
     start, optional
         The start time represented by a string (e.g., "2023-01-01"),
-        or a `zebras.Period` object. An index will be constructed using
+        or a ``zebras.Period`` object. An index will be constructed using
         this start time and the specificed frequency, by default None
     freq, optional
         The frequency of the period, e.g, "H" for hourly, by default None
@@ -936,7 +936,7 @@ def time_series(
 
     Returns
     -------
-        A `zebras.TimeSeries` object.
+        A ``zebras.TimeSeries`` object.
     """
     values = np.array(values)
 
