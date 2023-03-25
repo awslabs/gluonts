@@ -130,34 +130,27 @@ def test_periods_feature(freq):
         (
             "2023-03-19",
             "W-SUN",
-            np.array(
-                ["2023-03-19", "2023-03-26", "2023-04-02", "2023-04-09"]
-            ).astype(np.datetime64),
+            ["2023-03-19", "2023-03-26", "2023-04-02", "2023-04-09"],
         ),
         (
             "2023-03-17",
             "W-SUN",
-            np.array(
-                ["2023-03-12", "2023-03-19", "2023-03-26", "2023-04-02"]
-            ).astype(np.datetime64),
+            ["2023-03-12", "2023-03-19", "2023-03-26", "2023-04-02"],
         ),
         (
             "2023-03-19",
             "W-SAT",
-            np.array(
-                ["2023-03-18", "2023-03-25", "2023-04-01", "2023-04-08"]
-            ).astype(np.datetime64),
+            ["2023-03-18", "2023-03-25", "2023-04-01", "2023-04-08"],
         ),
         (
             "2023-03-19",
             "2W-SAT",
-            np.array(
-                ["2023-03-18", "2023-04-01", "2023-04-15", "2023-04-29"]
-            ).astype(np.datetime64),
+            ["2023-03-18", "2023-04-01", "2023-04-15", "2023-04-29"],
         ),
     ],
 )
 def test_weekly_weekday_period(data, freq, result):
     np.testing.assert_array_equal(
-        zb.period(data, freq).periods(4).data, result
+        zb.period(data, freq).periods(4).data,
+        np.array(result).astype(np.datetime64),
     )

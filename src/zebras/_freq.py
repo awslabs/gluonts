@@ -85,6 +85,20 @@ def _canonical_name(name: str) -> str:
     return {"MIN": "T", "Y": "A"}.get(name, name)
 
 
+def get_weekday_offset(freqstr):
+    if freqstr.upper() == "W":
+        return 0
+
+    assert (
+        len(freqstr) == 5
+        and freqstr[:2] == "W-"
+        and freqstr[2:] in day_offsets
+    ), "Supported options of freqstr are W-SUN, W-MON, W-TUE, W-WED, W-THU, W-FRI and W-SAT."
+
+    day = freqstr.split("-")[1]
+    return day_offsets[day]
+
+
 @dataclass
 class Freq:
     """
@@ -134,20 +148,6 @@ class Freq:
     def __get_validators__(cls):
         # pydantic support
         yield freq
-
-    @classmethod
-    def get_weekday_offset(cls, freqstr):
-        if freqstr.upper() == "W":
-            return 0
-
-        assert (
-            len(freqstr) == 5
-            and freqstr[:2] == "W-"
-            and freqstr[2:] in list(day_offsets.keys())
-        ), "Supported options of freqstr are W-SUN, W-MON, W-TUE, W-WED, W-THU, W-FRI and W-SAT."
-
-        day = freqstr.split("-")[1]
-        return day_offsets[day]
 
     @classmethod
     def freq_name_n(cls, freq: str) -> [str, int]:

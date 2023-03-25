@@ -53,7 +53,7 @@ from dateutil.parser import parse as du_parse
 
 from gluonts.core import serde
 
-from ._freq import Freq
+from ._freq import Freq, get_weekday_offset
 
 
 def _is_number(value):
@@ -359,7 +359,7 @@ def period(data, freq=None) -> Period:
 
     if freq.name == "W":
         period = Period(np.datetime64(data, freq.np_freq), freq)
-        weekday_offset = Freq.get_weekday_offset(freqstr)
+        weekday_offset = get_weekday_offset(freqstr)
         period.data -= (cast(int, period.dayofweek) - weekday_offset) % 7
         return period
 
