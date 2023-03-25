@@ -362,15 +362,15 @@ def period(
     """
     if freq is None:
         if hasattr(data, "freqstr"):
-            freqstr = data.freqstr
+            freqstr, _ = Freq.freq_name_n(data.freqstr)
             freq = Freq.from_pandas(data.freqstr)
         else:
             raise ValueError("No frequency specified.")
     elif isinstance(freq, Freq):
-        freqstr = freq.name
+        freqstr, _ = Freq.freq_name_n(freq.name)
         freq = freq
     elif isinstance(freq, str):
-        freqstr = freq
+        freqstr, _ = Freq.freq_name_n(freq)
         freq = Freq.from_pandas(freq)
     else:
         raise ValueError(f"Unknown frequency type {type(freq)}.")
