@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, Union, cast, overload
+from typing import Any, Union, Optional, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -63,6 +63,10 @@ def _is_number(value):
 class _BasePeriod:
     data: Any
     freq: Freq
+
+    @property
+    def freqstr(self) -> str:
+        return str(self.freq)
 
     @property
     def year(self) -> np.ndarray:
@@ -339,13 +343,37 @@ def _encode_zebras_periods(v: Periods):
     }
 
 
-def period(data, freq=None) -> Period:
-    if hasattr(data, "freqstr") and freq is None:
-        freqstr, _ = Freq.freq_name_n(data.freqstr)
-        freq = Freq.from_pandas(data.freqstr)
-    else:
-        freqstr, _ = Freq.freq_name_n(freq)
+def period(
+    data: Union[Period, str], freq: Optional[Union[Freq, str]] = None
+) -> Period:
+    """Create a ``zebras.Period`` object that represents a period of time.
+
+    Parameters
+    ----------
+    data
+        The time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq, optional
+        The frequency of the period, e.g, "H" for hourly, by default None.
+
+    Returns
+    -------
+        A ``zebras.Period`` object.
+    """
+    if freq is None:
+        if hasattr(data, "freqstr"):
+            freqstr = data.freqstr
+            freq = Freq.from_pandas(data.freqstr)
+        else:
+            raise ValueError("No frequency specified.")
+    elif isinstance(freq, Freq):
+        freqstr = freq.name
+        freq = freq
+    elif isinstance(freq, str):
+        freqstr = freq
         freq = Freq.from_pandas(freq)
+    else:
+        raise ValueError(f"Unknown frequency type {type(freq)}.")
 
     if isinstance(data, Period):
         data = data.data
@@ -366,5 +394,24 @@ def period(data, freq=None) -> Period:
     return Period(np.datetime64(data, freq.np_freq), freq)
 
 
-def periods(start, freq, count: int) -> Period:
+def periods(
+    start: Union[Period, str], freq: Union[Freq, str], count: int
+) -> Period:
+    """Create a ``zebras.Periods`` object that represents multiple consecutive
+    periods of time.
+
+    Parameters
+    ----------
+    start
+        The starting time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq
+        The frequency of the period, e.g, "H" for hourly.
+    count
+        The number of periods.
+
+    Returns
+    -------
+        A ``zebras.Periods`` object.
+    """
     return period(start, freq).periods(count)
