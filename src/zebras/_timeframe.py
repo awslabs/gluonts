@@ -199,7 +199,6 @@ class TimeSeries(TimeBase):
         return _replace(
             self,
             values=AxisView(self.values, self.tdim)[idx],
-            # length=stop - start,
             index=maybe.map(self.index, itemgetter(idx)),
             _pad=self._pad.extend(-start, stop - len(self)),
         )
