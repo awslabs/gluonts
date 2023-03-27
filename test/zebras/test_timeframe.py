@@ -31,6 +31,19 @@ tf = zb.time_frame(
 )
 
 
+def test_time_series():
+    ts = zb.time_series(target, index=index, name="target", metadata={"x": 42})
+    assert len(ts) == len(target)
+    assert (ts == target).all()
+
+    assert len(ts) == 10
+    assert len(ts[:4]) == 4
+    assert len(ts[-4:]) == 4
+
+    assert ts.metadata == {"x": 42}
+    assert ts.name == "target"
+
+
 def test_time_frame():
     assert len(tf) == 10
     assert len(tf[:4]) == 4

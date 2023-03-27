@@ -33,6 +33,16 @@ LeftOrRight = Literal["l", "r"]
 
 
 class Pad(NamedTuple):
+    """Indicator for padded values.
+
+    >>> ts = time_series([1, 2, 3]).pad(0, left=2, right=2)
+    >>> assert len(ts == 7)
+    >>> assert list(ts) == [0, 0, 1, 2, 3, 0, 0]
+    >>> assert ts._pad.left == 2
+    >>> assert ts._pad.right == 2
+
+    """
+
     left: int = 0
     right: int = 0
 
@@ -158,7 +168,6 @@ class TimeBase:
 @dataclasses.dataclass(eq=False)
 class TimeSeries(TimeBase):
     values: np.ndarray
-    length: int
     index: Optional[Periods] = None
     name: Optional[str] = None
     tdim: int = -1
@@ -166,13 +175,8 @@ class TimeSeries(TimeBase):
     _pad: Pad = Pad()
 
     def __post_init__(self):
-        assert self.values.shape[self.tdim] == self.length, (
-            f"Values has incorrect length in time dimension. "
-            f"Expected: {len(self)}, got {self.values.shape[self.tdim]}."
-        )
-
-        assert maybe.map_or(self.index, len, self.length) == self.length, (
-            f"Index has incorrect length. "
+        assert maybe.map_or(self.index, len, len(self)) == len(self), (
+            "Index has incorrect length. "
             f"Expected: {len(self)}, got {len(self.index)}."
         )
 
@@ -183,7 +187,7 @@ class TimeSeries(TimeBase):
         return self.values
 
     def __len__(self):
-        return self.length
+        return self.values.shape[self.tdim]
 
     def _slice_tdim(self, idx):
         if isinstance(idx, int):
@@ -195,7 +199,7 @@ class TimeSeries(TimeBase):
         return _replace(
             self,
             values=AxisView(self.values, self.tdim)[idx],
-            length=stop - start,
+            # length=stop - start,
             index=maybe.map(self.index, itemgetter(idx)),
             _pad=self._pad.extend(-start, stop - len(self)),
         )
@@ -407,7 +411,6 @@ class TimeFrame(TimeBase):
 
         return TimeSeries(
             self.columns[idx],
-            length=len(self._time_view(idx)),
             index=self.index,
             tdim=self.tdims[idx],
             metadata=self.metadata,
@@ -912,8 +915,8 @@ def time_series(
     index: Optional[Periods] = None,
     start: Optional[Union[Period, str]] = None,
     freq: Optional[str] = None,
-    length: Optional[int] = None,
     tdim: int = -1,
+    name: Optional[str] = None,
     metadata: Optional[Dict] = None,
 ):
     """Create a ``zebras.TimeSeries`` object that represents a time series.
@@ -932,10 +935,11 @@ def time_series(
         this start time and the specificed frequency, by default None
     freq, optional
         The frequency of the period, e.g, "H" for hourly, by default None
-    length, optional
-        The length (in time) of the TimeSeries, by default None
     tdim, optional
         The time dimension in `values`, by default -1
+    name: optional
+        A description for the time series. This will be the column names when
+        returned from a ``TimeFrame``.
     metadata, optional
         A dictionary of metadata associated with the time series, by default None
 
@@ -945,14 +949,12 @@ def time_series(
     """
     values = np.array(values)
 
-    if length is None:
-        if index is not None:
-            length = len(index)
-        else:
-            length = values.shape[tdim]
-
     ts = TimeSeries(
-        values, length=length, index=index, tdim=tdim, metadata=metadata
+        values,
+        index=index,
+        tdim=tdim,
+        name=name,
+        metadata=metadata,
     )
 
     if ts.index is None and start is not None:
