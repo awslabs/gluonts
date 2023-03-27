@@ -28,6 +28,6 @@ __all__ = [
 
 from ._freq import Freq, freq
 from ._period import period, Period, periods, Periods
-from ._split_Frame import split_frame, SplitFrame
+from ._split_frame import split_frame, SplitFrame
 from ._timeframe import time_frame, TimeFrame
 from ._time_series import time_series, TimeSeries
