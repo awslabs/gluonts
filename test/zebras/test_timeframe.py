@@ -49,6 +49,7 @@ def test_time_frame():
     assert len(tf[:4]) == 4
     assert len(tf[-4:]) == 4
 
+    assert tf["target"].name == "target"
     assert np.array_equal(tf["target"], target)
     assert np.array_equal(tf["feat"], feat)
 
