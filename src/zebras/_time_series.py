@@ -159,7 +159,6 @@ class BatchTimeSeries(TimeBase):
     def __array__(self):
         return self.values
 
-    @property
     def items(self):
         return TimeSeriesItems(self)
 

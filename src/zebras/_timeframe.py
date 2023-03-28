@@ -372,6 +372,9 @@ class BatchTimeFrame:
     def batch_size(self):
         return len(self.index)
 
+    def __len__(self):
+        return self.length
+
     def like(self, columns=None, static=None, tdims=None):
         columns = maybe.unwrap_or(columns, {})
         static = maybe.unwrap_or(static, {})
