@@ -88,8 +88,8 @@ class TimeSeries(TimeBase):
             _pad=self._pad.extend(left, right),
         )
 
-    @classmethod
-    def _batch(cls, xs: List[TimeSeries]):
+    @staticmethod
+    def _batch(xs: List[TimeSeries]) -> BatchTimeSeries:
         for series in xs:
             assert type(series) == TimeSeries
 

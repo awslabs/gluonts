@@ -309,7 +309,7 @@ class TimeFrame(TimeBase):
             name, data = item
 
             tdim = self.tdims[name]
-            past, future = np.split(data, [index], axis=tdim)
+            past, future = np.split(data, [index], tdim)
             past = AxisView(past, tdim)[-past_length:]
             future = AxisView(future, tdim)[:future_length]
             return name, (past, future)
@@ -337,7 +337,8 @@ class TimeFrame(TimeBase):
     def __len__(self) -> int:
         return self.length
 
-    def _batch(self, xs):
+    @staticmethod
+    def _batch(xs: List[TimeFrame]) -> BatchTimeFrame:
         # TODO: Check
         ref = xs[0]
         pluck = pluck_attr(xs)
@@ -516,6 +517,6 @@ def time_frame(
     return tf
 
 
-# We defer importing `TimeSeries` to avoid circular imports.
+# We defer these imports to avoid circular imports.
 from ._time_series import BatchTimeSeries, TimeSeries  # noqa
 from ._split_frame import SplitFrame  # noqa

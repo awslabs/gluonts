@@ -59,3 +59,22 @@ def test_batch_time_frame():
     assert batched.batch_size == 2
 
     tf0x, tf1x = batched.items()
+
+
+def test_batch_split_frame():
+    sf0 = zb.time_frame(
+        {"x": [1, 2, 3]},
+        start="2020",
+        freq="D",
+        metadata={"item_id": 0},
+    ).split(1, past_length=4, future_length=3)
+    sf1 = zb.time_frame({"x": [4, 5, 6]}).split(
+        1, past_length=4, future_length=3
+    )
+
+    batched = zb.batch([sf0, sf1])
+
+    assert len(batched) == 7
+    assert batched.batch_size == 2
+
+    sf0x, sf1x = batched.items()

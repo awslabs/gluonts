@@ -191,9 +191,10 @@ class SplitFrame:
     def with_index(self, index):
         return _replace(self, index=index)
 
-    def _batch(self, xs):
-        ref = xs[0]
-        pluck = pluck_attr(xs)
+    @staticmethod
+    def _batch(split_frames: List[SplitFrame]) -> BatchSplitFrame:
+        ref = split_frames[0]
+        pluck = pluck_attr(split_frames)
 
         return BatchSplitFrame(
             _past=rows_to_columns(pluck("_past"), np.stack),
@@ -223,6 +224,9 @@ class BatchSplitFrame:
     @property
     def batch_size(self):
         return len(self.index)
+
+    def __len__(self):
+        return self.past_length + self.future_length
 
     @property
     def past(self):
@@ -378,6 +382,6 @@ def split_frame(
     return sf
 
 
-# We defer importing `TimeSeries` to avoid circular imports.
+# We defer these imports to avoid circular imports.
 from ._time_series import TimeSeries  # noqa
 from ._timeframe import BatchTimeFrame, TimeFrame  # noqa
