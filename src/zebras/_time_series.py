@@ -89,7 +89,7 @@ class TimeSeries(TimeBase):
         )
 
     @classmethod
-    def batch(cls, xs: List[TimeSeries], into=None):
+    def _batch(cls, xs: List[TimeSeries]):
         for series in xs:
             assert type(series) == TimeSeries
 
@@ -104,8 +104,6 @@ class TimeSeries(TimeBase):
             tdim += 1
 
         values = np.stack(pluck("values"))
-        if into is not None:
-            values = into(values)
 
         return BatchTimeSeries(
             values=values,

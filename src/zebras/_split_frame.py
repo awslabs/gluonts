@@ -14,12 +14,14 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Optional
+from operator import itemgetter
+from typing import Optional, List
 
 import numpy as np
 from toolz import first, keymap, valmap, dissoc, merge
 
 from gluonts import maybe
+from gluonts.itertools import pluck_attr, rows_to_columns
 
 from ._base import Pad
 from ._period import Periods, period
@@ -189,6 +191,104 @@ class SplitFrame:
     def with_index(self, index):
         return _replace(self, index=index)
 
+    def _batch(self, xs):
+        ref = xs[0]
+        pluck = pluck_attr(xs)
+
+        return BatchSplitFrame(
+            _past=rows_to_columns(pluck("_past"), np.stack),
+            _future=rows_to_columns(pluck("_future"), np.stack),
+            index=pluck("index"),
+            static=rows_to_columns(pluck("static"), np.stack),
+            past_length=ref.past_length,
+            future_length=ref.future_length,
+            tdims=ref.tdims,
+            metadata=pluck("metadata"),
+            _pad=pluck("_pad"),
+        )
+
+
+@dataclasses.dataclass
+class BatchSplitFrame:
+    _past: dict
+    _future: dict
+    index: List[Optional[Periods]]
+    static: dict
+    past_length: int
+    future_length: int
+    tdims: dict
+    metadata: List[Optional[dict]]
+    _pad: List[Pad]
+
+    @property
+    def batch_size(self):
+        return len(self.index)
+
+    @property
+    def past(self):
+        return BatchTimeFrame(
+            columns=self._past,
+            static=self.static,
+            length=self.past_length,
+            index=[
+                maybe.map(index, itemgetter(slice(None, self.past_length)))
+                for index in self.index
+            ],
+            tdims=self.tdims,
+            metadata=self.metadata,
+            _pad=self._pad,
+        )
+
+    @property
+    def future(self):
+        return BatchTimeFrame(
+            columns=self._future,
+            static=self.static,
+            length=self.future_length,
+            index=[
+                maybe.map(index, itemgetter(slice(self.past_length, None)))
+                for index in self.index
+            ],
+            tdims=self.tdims,
+            metadata=self.metadata,
+            _pad=self._pad,
+        )
+
+    def items(self):
+        return BatchSplitFrameItems(self)
+
+    def as_dict(self):
+        return SplitFrame.as_dict(self)
+
+
+@dataclasses.dataclass(repr=False)
+class BatchSplitFrameItems:
+    data: BatchSplitFrame
+
+    def __len__(self):
+        return self.data.batch_size
+
+    def __getitem__(self, idx):
+        tdims = self.data.tdims
+
+        if isinstance(idx, int):
+            cls = SplitFrame
+            tdims = valmap(lambda tdim: tdim - 1 if tdim >= 0 else tdim, tdims)
+        else:
+            cls = BatchSplitFrame
+
+        return cls(
+            _past=valmap(itemgetter(idx), self.data._past),
+            _future=valmap(itemgetter(idx), self.data._future),
+            index=self.data.index[idx],
+            static=valmap(itemgetter(idx), self.data.static),
+            tdims=tdims,
+            metadata=self.data.metadata[idx],
+            _pad=self.data._pad[idx],
+            past_length=self.data.past_length,
+            future_length=self.data.future_length,
+        )
+
 
 def split_frame(
     full=None,
@@ -280,4 +380,4 @@ def split_frame(
 
 # We defer importing `TimeSeries` to avoid circular imports.
 from ._time_series import TimeSeries  # noqa
-from ._timeframe import TimeFrame  # noqa
+from ._timeframe import BatchTimeFrame, TimeFrame  # noqa

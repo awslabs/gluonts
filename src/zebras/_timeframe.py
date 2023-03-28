@@ -21,7 +21,12 @@ import numpy as np
 from toolz import first, valmap, dissoc, merge, itemmap
 
 from gluonts import maybe
-from gluonts.itertools import pluck_attr, columns_to_rows, select
+from gluonts.itertools import (
+    pluck_attr,
+    columns_to_rows,
+    rows_to_columns,
+    select,
+)
 
 from ._base import Pad, TimeBase
 from ._period import Periods, Period, period
@@ -332,6 +337,96 @@ class TimeFrame(TimeBase):
     def __len__(self) -> int:
         return self.length
 
+    def _batch(self, xs):
+        # TODO: Check
+        ref = xs[0]
+        pluck = pluck_attr(xs)
+
+        tdims = valmap(
+            lambda tdim: tdim + 1 if tdim >= 0 else tdim,
+            ref.tdims,
+        )
+
+        return BatchTimeFrame(
+            columns=rows_to_columns(pluck("columns"), np.stack),
+            index=pluck("index"),
+            static=rows_to_columns(pluck("static"), np.stack),
+            length=ref.length,
+            tdims=tdims,
+            metadata=pluck("metadata"),
+            _pad=pluck("_pad"),
+        )
+
+
+@dataclasses.dataclass
+class BatchTimeFrame:
+    columns: dict
+    index: Collection[Optional[Periods]]
+    static: dict
+    length: int
+    tdims: dict
+    metadata: Collection[Optional[dict]]
+    _pad: Collection[Pad]
+
+    @property
+    def batch_size(self):
+        return len(self.index)
+
+    def like(self, columns=None, static=None, tdims=None):
+        columns = maybe.unwrap_or(columns, {})
+        static = maybe.unwrap_or(static, {})
+
+        tdims = maybe.unwrap_or(tdims, {})
+        for name in columns:
+            tdims.setdefault(name, -1)
+
+        return _replace(
+            self, columns=columns, index=self.index, static=static, tdims=tdims
+        )
+
+    def items(self):
+        return BatchTimeFrameItems(self)
+
+    def __getitem__(self, name):
+        return BatchTimeSeries(
+            self.columns[name],
+            index=self.index,
+            tdim=self.tdims[name],
+            metadata=self.metadata,
+            name=name,
+            _pad=self._pad,
+        )
+
+    def as_dict(self, prefix=None, static=True):
+        return TimeFrame.as_dict(self, prefix, static)
+
+
+@dataclasses.dataclass(repr=False)
+class BatchTimeFrameItems:
+    data: BatchTimeFrame
+
+    def __len__(self):
+        return self.data.batch_size
+
+    def __getitem__(self, idx):
+        tdims = self.data.tdims
+
+        if isinstance(idx, int):
+            cls = TimeFrame
+            tdims = valmap(lambda tdim: tdim - 1 if tdim >= 0 else tdim, tdims)
+        else:
+            cls = BatchTimeFrame
+
+        return cls(
+            columns=valmap(itemgetter(idx), self.data.columns),
+            index=self.data.index[idx],
+            static=valmap(itemgetter(idx), self.data.static),
+            tdims=tdims,
+            metadata=self.data.metadata[idx],
+            _pad=self.data._pad[idx],
+            length=self.data.length,
+        )
+
 
 def time_frame(
     columns: Optional[Dict[str, Collection]] = None,
@@ -419,5 +514,5 @@ def time_frame(
 
 
 # We defer importing `TimeSeries` to avoid circular imports.
-from ._time_series import TimeSeries  # noqa
+from ._time_series import BatchTimeSeries, TimeSeries  # noqa
 from ._split_frame import SplitFrame  # noqa
