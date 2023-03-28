@@ -39,10 +39,7 @@ from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 
 from .lightning_module import PatchTSTLightningModule
 
-PREDICTION_INPUT_NAMES = [
-    "past_target",
-    "past_observed_values",
-]
+PREDICTION_INPUT_NAMES = ["past_target", "past_observed_values"]
 
 TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
     "future_target",
