@@ -27,6 +27,8 @@ __all__ = [
     "time_series",
     "BatchTimeSeries",
     "TimeSeries",
+    "Schema",
+    "Field",
 ]
 
 from typing import TypeVar
@@ -36,7 +38,7 @@ from ._period import period, Period, periods, Periods
 from ._split_frame import split_frame, SplitFrame, BatchSplitFrame
 from ._timeframe import time_frame, TimeFrame, BatchTimeFrame
 from ._time_series import time_series, TimeSeries, BatchTimeSeries
-
+from ._schema import Field, Schema
 
 Batchable = TypeVar("Batchable", TimeSeries, TimeFrame, SplitFrame)
 
