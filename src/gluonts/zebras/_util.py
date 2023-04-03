@@ -11,12 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
+import copy
+import dataclasses
 
 import numpy as np
 
+from toolz import valmap
 
-@dataclass
+
+@dataclasses.dataclass
 class AxisView:
     data: np.ndarray
     axis: int
@@ -45,3 +48,17 @@ def pad_axis(
     pad_width = [(0, 0)] * a.ndim
     pad_width[axis] = (left, right)
     return np.pad(a, pad_width, constant_values=value)
+
+
+def _replace(obj, **kwargs):
+    """Copy and replace dataclass instance.
+
+    Compared to ``dataclasses.replace`` this first creates a copy where each
+    field in the object is copied. Thus, each field of the returned object is
+    different from the source object.
+    """
+
+    clone = object.__new__(obj.__class__)
+    clone.__dict__ = valmap(copy.copy, obj.__dict__)
+
+    return dataclasses.replace(clone, **kwargs)

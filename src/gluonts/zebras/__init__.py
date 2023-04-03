@@ -18,12 +18,42 @@ __all__ = [
     "Periods",
     "period",
     "periods",
+    "BatchTimeFrame",
     "TimeFrame",
     "time_frame",
+    "BatchSplitFrame",
     "SplitFrame",
     "split_frame",
+    "time_series",
+    "BatchTimeSeries",
+    "TimeSeries",
+    "Schema",
+    "Field",
 ]
+
+from typing import TypeVar
 
 from ._freq import Freq, freq
 from ._period import period, Period, periods, Periods
-from ._timeframe import time_frame, TimeFrame, split_frame, SplitFrame
+from ._split_frame import split_frame, SplitFrame, BatchSplitFrame
+from ._timeframe import time_frame, TimeFrame, BatchTimeFrame
+from ._time_series import time_series, TimeSeries, BatchTimeSeries
+from ._schema import Field, Schema
+
+Batchable = TypeVar("Batchable", TimeSeries, TimeFrame, SplitFrame)
+
+
+def batch(xs: list):
+    assert xs, "Passed data cannot be empty."
+    types = set(map(type, xs))
+    assert (
+        len(types) == 1
+    ), "All values need to be of same type, got: " + ", ".join(
+        f"'{ty.__name__}'" for ty in types
+    )
+    ty = types.pop()
+    assert ty in set(
+        Batchable.__constraints__
+    ), f"Unsupported type: '{ty.__name__}'"
+
+    return ty._batch(xs)
