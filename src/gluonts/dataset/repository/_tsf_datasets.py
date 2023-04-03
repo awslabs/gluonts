@@ -142,6 +142,46 @@ datasets = {
         file_name="weather_dataset.zip",
         record="4654822",
     ),
+    "australian_electricity_demand": Dataset(
+        file_name="australian_electricity_demand_dataset.zip",
+        record="4659727",
+    ),
+    "electricity_hourly": Dataset(
+        file_name="electricity_hourly_dataset.zip",
+        record="4656140",
+    ),
+    "electricity_weekly": Dataset(
+        file_name="electricity_weekly_dataset.zip",
+        record="4656141",
+    ),
+    "rideshare_without_missing": Dataset(
+        file_name="rideshare_dataset_without_missing_values.zip",
+        record="5122232",
+    ),
+    "saugeenday": Dataset(
+        file_name="saugeenday_dataset.zip",
+        record="4656058",
+    ),
+    "solar_10_minutes": Dataset(
+        file_name="solar_10_minutes_dataset.zip",
+        record="4656144",
+    ),
+    "solar_weekly": Dataset(
+        file_name="solar_weekly_dataset.zip",
+        record="4656151",
+    ),
+    "sunspot_without_missing": Dataset(
+        file_name="sunspot_dataset_without_missing_values.zip",
+        record="4654722",
+    ),
+    "temperature_rain_without_missing": Dataset(
+        file_name="temperature_rain_dataset_without_missing_values.zip",
+        record="5129091",
+    ),
+    "vehicle_trips_without_missing": Dataset(
+        file_name="vehicle_trips_dataset_without_missing_values.zip",
+        record="5122537",
+    ),
 }
 
 
