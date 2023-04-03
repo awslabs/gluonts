@@ -146,7 +146,6 @@ def get_dataset(
     src_eval_size: int,
     tgt_eval_size: int,
 ):
-
     src_dataset = BenchmarkDataset.create_dataset(
         dataset=src_name,
         freq=_freqs[src_name],

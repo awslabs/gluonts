@@ -58,17 +58,14 @@ def _orjson():
             fp.write(b"\n")
 
     return {
-        "variant": (
-        "orjson",
-       
+        "variant": "orjson",
         "load": load,
-            "loads": orjson.loads,
-                "dumps": dumps,
-            "dump": dump,
+        "loads": orjson.loads,
+        "dumps": dumps,
+        "dump": dump,
         "bdump": bdump,
         "bdumps": orjson.dumps,
-        },
-    )
+    }
 
 
 def _ujson():

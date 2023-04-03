@@ -64,7 +64,6 @@ def persist_evaluation(
 
 
 if __name__ == "__main__":
-
     for dataset_name in datasets:
         for Estimator in Estimators:
             dataset = get_dataset(

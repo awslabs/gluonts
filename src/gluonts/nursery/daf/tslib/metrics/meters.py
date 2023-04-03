@@ -296,4 +296,4 @@ class RootMeanSquareDeviationMeter(MeanDeviationMeter):
             warnings.warn("Cumulative base is 0. " "Inf is returned.")
             return float("inf")
         else:
-            return self._cum_deviation ** 0.5 / self._cum_base ** 0.5
+            return self._cum_deviation**0.5 / self._cum_base**0.5
