@@ -384,4 +384,4 @@ def split_frame(
 
 # We defer these imports to avoid circular imports.
 from ._time_series import TimeSeries  # noqa
-from ._timeframe import BatchTimeFrame, TimeFrame  # noqa
+from ._time_frame import BatchTimeFrame, TimeFrame  # noqa

@@ -22,7 +22,7 @@ from gluonts.itertools import partition
 
 from ._freq import Freq
 from ._period import Period
-from ._timeframe import time_frame, TimeFrame
+from ._time_frame import time_frame, TimeFrame
 from ._split_frame import split_frame, SplitFrame
 
 """
