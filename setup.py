@@ -24,12 +24,18 @@ ROOT = Path(__file__).parent
 # freezing of the versions.
 
 
-def get_version_cmdclass(version_file):
+def get_version_cmdclass(version_file) -> dict:
     with open(version_file) as fobj:
         code = fobj.read()
 
     globals_ = {"__file__": str(version_file)}
     exec(code, globals_)
+
+    # When `_version.py` is replaced, it should still contain `__version__`,
+    # but no longer "cmdclass".
+    if not "cmdclass" in globals_:
+        assert "__version__" in globals_
+        return {}
 
     return globals_["cmdclass"]()
 
