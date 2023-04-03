@@ -109,7 +109,9 @@ class TransformerEstimator(PyTorchEstimator):
         self.train_sampler = ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
-        self.validation_sampler = ValidationSplitSampler(min_future=prediction_length)
+        self.validation_sampler = ValidationSplitSampler(
+            min_future=prediction_length
+        )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = [
@@ -127,13 +129,19 @@ class TransformerEstimator(PyTorchEstimator):
                 else []
             )
             + (
-                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
                 if not self.use_feat_static_real
                 else []
             )
             + [
                 AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=np.long
+                    field=FieldName.FEAT_STATIC_CAT,
+                    expected_ndim=1,
+                    dtype=np.long,
                 ),
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_REAL,
@@ -200,7 +208,6 @@ class TransformerEstimator(PyTorchEstimator):
     def create_training_network(
         self, device: torch.device
     ) -> TransformerTrainingNetwork:
-
         training_network = TransformerTrainingNetwork(
             input_size=self.input_size,
             num_heads=self.num_heads,
@@ -228,7 +235,6 @@ class TransformerEstimator(PyTorchEstimator):
         trained_network: TransformerTrainingNetwork,
         device: torch.device,
     ) -> Predictor:
-
         prediction_network = TransformerPredictionNetwork(
             input_size=self.input_size,
             num_heads=self.num_heads,

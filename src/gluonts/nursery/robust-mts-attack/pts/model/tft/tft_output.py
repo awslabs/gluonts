@@ -23,7 +23,9 @@ class QuantileLoss(nn.Module):
             else quantile_weights
         )
 
-    def forward(self, y_true: torch.Tensor, y_pred: torch.Tensor, sample_weight=None):
+    def forward(
+        self, y_true: torch.Tensor, y_pred: torch.Tensor, sample_weight=None
+    ):
         if self.num_quantiles > 1:
             y_pred_all = torch.chunk(y_pred, self.num_quantiles, dim=-1)
         else:
@@ -59,7 +61,9 @@ class ProjectParams(nn.Module):
     @validated()
     def __init__(self, in_features, num_quantiles):
         super().__init__()
-        self.projection = nn.Linear(in_features=in_features, out_features=num_quantiles)
+        self.projection = nn.Linear(
+            in_features=in_features, out_features=num_quantiles
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.projection(x)

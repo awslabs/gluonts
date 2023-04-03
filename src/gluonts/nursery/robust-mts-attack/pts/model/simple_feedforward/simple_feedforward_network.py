@@ -68,11 +68,15 @@ class SimpleFeedForwardNetworkBase(nn.Module):
             if self.batch_normalization:
                 modules.append(nn.BatchNorm1d(units))
         if len(dims) == 1:
-            modules.append(nn.Linear(context_length, dims[-1] * prediction_length))
+            modules.append(
+                nn.Linear(context_length, dims[-1] * prediction_length)
+            )
         else:
             modules.append(nn.Linear(dims[-2], dims[-1] * prediction_length))
         modules.append(
-            LambdaLayer(lambda o: torch.reshape(o, (-1, prediction_length, dims[-1])))
+            LambdaLayer(
+                lambda o: torch.reshape(o, (-1, prediction_length, dims[-1]))
+            )
         )
         self.mlp = nn.Sequential(*modules)
 
@@ -84,7 +88,9 @@ class SimpleFeedForwardNetworkBase(nn.Module):
         # (batch_size, seq_len, target_dim) and (batch_size, seq_len, target_dim)
         scaled_target, target_scale = self.scaler(
             past_target,
-            torch.ones_like(past_target),  # TODO: pass the actual observed here
+            torch.ones_like(
+                past_target
+            ),  # TODO: pass the actual observed here
         )
 
         mlp_outputs = self.mlp(scaled_target)
@@ -108,7 +114,9 @@ class SimpleFeedForwardTrainingNetwork(SimpleFeedForwardNetworkBase):
 
 class SimpleFeedForwardPredictionNetwork(SimpleFeedForwardNetworkBase):
     @validated()
-    def __init__(self, num_parallel_samples: int = 100, *args, **kwargs) -> None:
+    def __init__(
+        self, num_parallel_samples: int = 100, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.num_parallel_samples = num_parallel_samples
 

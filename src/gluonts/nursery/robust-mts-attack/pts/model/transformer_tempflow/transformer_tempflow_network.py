@@ -40,7 +40,9 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         self.history_length = history_length
         self.scaling = scaling
 
-        assert len(set(lags_seq)) == len(lags_seq), "no duplicated lags allowed!"
+        assert len(set(lags_seq)) == len(
+            lags_seq
+        ), "no duplicated lags allowed!"
         lags_seq.sort()
         self.lags_seq = lags_seq
 
@@ -90,7 +92,9 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         # mask
         self.register_buffer(
             "tgt_mask",
-            self.transformer.generate_square_subsequent_mask(prediction_length),
+            self.transformer.generate_square_subsequent_mask(
+                prediction_length
+            ),
         )
 
     @staticmethod
@@ -134,7 +138,9 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         for lag_index in indices:
             begin_index = -lag_index - subsequences_length
             end_index = -lag_index if lag_index > 0 else None
-            lagged_values.append(sequence[:, begin_index:end_index, ...].unsqueeze(1))
+            lagged_values.append(
+                sequence[:, begin_index:end_index, ...].unsqueeze(1)
+            )
         return torch.cat(lagged_values, dim=1).permute(0, 2, 3, 1)
 
     def create_network_input(
@@ -246,11 +252,15 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         repeated_index_embeddings = (
             index_embeddings.unsqueeze(1)
             .expand(-1, subsequences_length, -1, -1)
-            .reshape((-1, subsequences_length, self.target_dim * self.embed_dim))
+            .reshape(
+                (-1, subsequences_length, self.target_dim * self.embed_dim)
+            )
         )
 
         # (batch_size, sub_seq_len, input_dim)
-        inputs = torch.cat((input_lags, repeated_index_embeddings, time_feat), dim=-1)
+        inputs = torch.cat(
+            (input_lags, repeated_index_embeddings, time_feat), dim=-1
+        )
 
         return inputs, scale, index_embeddings
 
@@ -367,7 +377,9 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         if self.dequantize:
             future_target_cdf += torch.rand_like(future_target_cdf)
 
-        distr_args = self.distr_args(decoder_output=dec_output.permute(1, 0, 2))
+        distr_args = self.distr_args(
+            decoder_output=dec_output.permute(1, 0, 2)
+        )
         # likelihoods = -self.flow.log_prob(target, distr_args).unsqueeze(-1)
         loss = -self.flow.log_prob(future_target_cdf, distr_args).unsqueeze(-1)
 
@@ -446,7 +458,9 @@ class TransformerTempFlowPredictionNetwork(TransformerTempFlowTrainingNetwork):
         """
 
         def repeat(tensor, dim=0):
-            return tensor.repeat_interleave(repeats=self.num_parallel_samples, dim=dim)
+            return tensor.repeat_interleave(
+                repeats=self.num_parallel_samples, dim=dim
+            )
 
         # blows-up the dimension of each tensor to
         # batch_size * self.num_sample_paths for increasing parallelism
@@ -455,7 +469,9 @@ class TransformerTempFlowPredictionNetwork(TransformerTempFlowTrainingNetwork):
         repeated_scale = repeat(scale)
         if self.scaling:
             self.flow.scale = repeated_scale
-        repeated_target_dimension_indicator = repeat(target_dimension_indicator)
+        repeated_target_dimension_indicator = repeat(
+            target_dimension_indicator
+        )
         repeated_enc_out = repeat(enc_out, dim=1)
 
         future_samples = []
@@ -498,10 +514,13 @@ class TransformerTempFlowPredictionNetwork(TransformerTempFlowTrainingNetwork):
             )
 
             dec_output = self.transformer.decoder(
-                self.decoder_input(dec_input).permute(1, 0, 2), repeated_enc_out
+                self.decoder_input(dec_input).permute(1, 0, 2),
+                repeated_enc_out,
             )
 
-            distr_args = self.distr_args(decoder_output=dec_output.permute(1, 0, 2))
+            distr_args = self.distr_args(
+                decoder_output=dec_output.permute(1, 0, 2)
+            )
 
             # (batch_size, 1, target_dim)
             new_samples = self.flow.sample(cond=distr_args)
@@ -580,7 +599,9 @@ class TransformerTempFlowPredictionNetwork(TransformerTempFlowTrainingNetwork):
             target_dimension_indicator=target_dimension_indicator,
         )
 
-        enc_out = self.transformer.encoder(self.encoder_input(inputs).permute(1, 0, 2))
+        enc_out = self.transformer.encoder(
+            self.encoder_input(inputs).permute(1, 0, 2)
+        )
 
         return self.sampling_decoder(
             past_target_cdf=past_target_cdf,

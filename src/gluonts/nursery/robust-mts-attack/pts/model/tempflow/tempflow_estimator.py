@@ -34,7 +34,10 @@ from pts.feature import (
 from pts.model.utils import get_module_forward_input_names
 from pts.model import PyTorchEstimator
 
-from .tempflow_network import TempFlowTrainingNetwork, TempFlowPredictionNetwork
+from .tempflow_network import (
+    TempFlowTrainingNetwork,
+    TempFlowPredictionNetwork,
+)
 
 
 class TempFlowEstimator(PyTorchEstimator):
@@ -146,7 +149,9 @@ class TempFlowEstimator(PyTorchEstimator):
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME],
                 ),
-                SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_STATIC_CAT, value=[0]
+                ),
                 TargetDimIndicator(
                     field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,
@@ -185,7 +190,9 @@ class TempFlowEstimator(PyTorchEstimator):
             )
         )
 
-    def create_training_network(self, device: torch.device) -> TempFlowTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> TempFlowTrainingNetwork:
         return TempFlowTrainingNetwork(
             input_size=self.input_size,
             target_dim=self.target_dim,

@@ -60,12 +60,13 @@ class IndependentDistributionOutput(DistributionOutput):
     def distribution(
         self, distr_args, scale: Optional[torch.Tensor] = None
     ) -> Distribution:
-
         distr = self.independent(self.distr_cls(*distr_args))
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
 
 class NormalOutput(IndependentDistributionOutput):
@@ -268,7 +269,9 @@ class StudentTMixtureOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -286,7 +289,11 @@ class PiecewiseLinearOutput(DistributionOutput):
         ), "num_pieces should be an integer larger than 1"
 
         self.num_pieces = num_pieces
-        self.args_dim = {"gamma": 1, "slopes": num_pieces, "knot_spacings": num_pieces}
+        self.args_dim = {
+            "gamma": 1,
+            "slopes": num_pieces,
+            "knot_spacings": num_pieces,
+        }
 
     @classmethod
     def domain_map(cls, gamma, slopes, knot_spacings):
@@ -342,7 +349,9 @@ class NormalMixtureOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -367,12 +376,14 @@ class LowRankMultivariateNormalOutput(DistributionOutput):
 
     def domain_map(self, loc, cov_factor, cov_diag):
         diag_bias = (
-            self.inv_softplus(self.sigma_init ** 2) if self.sigma_init > 0.0 else 0.0
+            self.inv_softplus(self.sigma_init**2)
+            if self.sigma_init > 0.0
+            else 0.0
         )
 
         shape = cov_factor.shape[:-1] + (self.dim, self.rank)
         cov_factor = cov_factor.reshape(shape)
-        cov_diag = F.softplus(cov_diag + diag_bias) + self.sigma_minimum ** 2
+        cov_diag = F.softplus(cov_diag + diag_bias) + self.sigma_minimum**2
 
         return loc, cov_factor, cov_diag
 
@@ -400,9 +411,9 @@ class MultivariateNormalOutput(DistributionOutput):
         shape = scale.shape[:-1] + (d, d)
         scale = scale.reshape(shape)
 
-        scale_diag = F.softplus(scale * torch.eye(d, device=device)) * torch.eye(
-            d, device=device
-        )
+        scale_diag = F.softplus(
+            scale * torch.eye(d, device=device)
+        ) * torch.eye(d, device=device)
 
         mask = torch.tril(torch.ones_like(scale), diagonal=-1)
         scale_tril = (scale * mask) + scale_diag
@@ -418,7 +429,9 @@ class MultivariateNormalOutput(DistributionOutput):
         if scale is None:
             return distr
         else:
-            return TransformedDistribution(distr, [AffineTransform(loc=0, scale=scale)])
+            return TransformedDistribution(
+                distr, [AffineTransform(loc=0, scale=scale)]
+            )
 
     @property
     def event_shape(self) -> Tuple:
@@ -553,7 +566,6 @@ class ImplicitQuantileOutput(IndependentDistributionOutput):
         distr_args,
         scale: Optional[torch.Tensor] = None,
     ) -> ImplicitQuantile:
-
         args_proj = self.get_args_proj(self.in_features)
         implicit_quantile_function = args_proj.proj.eval()
         distr = self.distr_cls(

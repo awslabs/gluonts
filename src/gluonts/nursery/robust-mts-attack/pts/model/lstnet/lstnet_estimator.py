@@ -59,7 +59,9 @@ class LSTNetEstimator(PyTorchEstimator):
         self.horizon = horizon
         self.prediction_length = prediction_length
 
-        self.future_length = horizon if horizon is not None else prediction_length
+        self.future_length = (
+            horizon if horizon is not None else prediction_length
+        )
         self.context_length = context_length
         self.channels = channels
         self.kernel_size = kernel_size
@@ -74,14 +76,18 @@ class LSTNetEstimator(PyTorchEstimator):
         self.train_sampler = ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=self.future_length
         )
-        self.validation_sampler = ValidationSplitSampler(min_future=self.future_length)
+        self.validation_sampler = ValidationSplitSampler(
+            min_future=self.future_length
+        )
 
         self.dtype = dtype
 
     def create_transformation(self) -> Transformation:
         return Chain(
             trans=[
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=2, dtype=self.dtype),
+                AsNumpyArray(
+                    field=FieldName.TARGET, expected_ndim=2, dtype=self.dtype
+                ),
                 AddObservedValuesIndicator(
                     target_field=FieldName.TARGET,
                     output_field=FieldName.OBSERVED_VALUES,

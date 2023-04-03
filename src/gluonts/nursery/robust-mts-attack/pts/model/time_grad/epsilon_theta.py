@@ -9,7 +9,9 @@ class DiffusionEmbedding(nn.Module):
     def __init__(self, dim, proj_dim, max_steps=500):
         super().__init__()
         self.register_buffer(
-            "embedding", self._build_embedding(dim, max_steps), persistent=False
+            "embedding",
+            self._build_embedding(dim, max_steps),
+            persistent=False,
         )
         self.projection1 = nn.Linear(dim * 2, proj_dim)
         self.projection2 = nn.Linear(proj_dim, proj_dim)
@@ -45,13 +47,17 @@ class ResidualBlock(nn.Module):
         self.conditioner_projection = nn.Conv1d(
             1, 2 * residual_channels, 1, padding=2, padding_mode="circular"
         )
-        self.output_projection = nn.Conv1d(residual_channels, 2 * residual_channels, 1)
+        self.output_projection = nn.Conv1d(
+            residual_channels, 2 * residual_channels, 1
+        )
 
         nn.init.kaiming_normal_(self.conditioner_projection.weight)
         nn.init.kaiming_normal_(self.output_projection.weight)
 
     def forward(self, x, conditioner, diffusion_step):
-        diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)
+        diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(
+            -1
+        )
         conditioner = self.conditioner_projection(conditioner)
 
         y = x + diffusion_step
@@ -111,7 +117,9 @@ class EpsilonTheta(nn.Module):
                 for i in range(residual_layers)
             ]
         )
-        self.skip_projection = nn.Conv1d(residual_channels, residual_channels, 3)
+        self.skip_projection = nn.Conv1d(
+            residual_channels, residual_channels, 3
+        )
         self.output_projection = nn.Conv1d(residual_channels, 1, 3)
 
         nn.init.kaiming_normal_(self.input_projection.weight)
@@ -129,7 +137,9 @@ class EpsilonTheta(nn.Module):
             x, skip_connection = layer(x, cond_up, diffusion_step)
             skip.append(skip_connection)
 
-        x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(len(self.residual_layers))
+        x = torch.sum(torch.stack(skip), dim=0) / math.sqrt(
+            len(self.residual_layers)
+        )
         x = self.skip_projection(x)
         x = F.leaky_relu(x, 0.4)
         x = self.output_projection(x)

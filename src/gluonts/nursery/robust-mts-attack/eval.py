@@ -8,20 +8,46 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from datasets import DATASETS, get_dataset
-from utils import Metrics, Params, calc_loss, load_pickle, change_device, smoothed_inference, PREDICTION_INPUT_NAMES
+from utils import (
+    Metrics,
+    Params,
+    calc_loss,
+    load_pickle,
+    change_device,
+    smoothed_inference,
+    PREDICTION_INPUT_NAMES,
+)
 from gluonts.model.predictor import Predictor
 from pathlib import Path
 from read_pickle import create_table
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('model_path', type=str, help='path to model checkpoint')
-    parser.add_argument('--attack_result', type=str, help='path to the attack result')
-    parser.add_argument('--dataset', type=str, default='electricity', choices=DATASETS)
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='cpu or cuda w/ number specified')
-    parser.add_argument('--tol', type=float, default=3.0)
-    parser.add_argument('--attack_params_path', type=str, required=True, help='path to json file containing attack parameters')
-    parser.add_argument('--rs', action='store_true', help='whether to use randomized smoothing')
+    parser.add_argument(
+        "model_path", type=str, help="path to model checkpoint"
+    )
+    parser.add_argument(
+        "--attack_result", type=str, help="path to the attack result"
+    )
+    parser.add_argument(
+        "--dataset", type=str, default="electricity", choices=DATASETS
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="cpu or cuda w/ number specified",
+    )
+    parser.add_argument("--tol", type=float, default=3.0)
+    parser.add_argument(
+        "--attack_params_path",
+        type=str,
+        required=True,
+        help="path to json file containing attack parameters",
+    )
+    parser.add_argument(
+        "--rs", action="store_true", help="whether to use randomized smoothing"
+    )
 
     args = parser.parse_args()
 
@@ -50,47 +76,63 @@ if __name__ == "__main__":
     prediction_length = net.prediction_length
     target_dim = net.target_dim
 
-    forecasts_keys = ['no attack'] + [str(k) for k in sparsity]
+    forecasts_keys = ["no attack"] + [str(k) for k in sparsity]
     forecasts = {key: [] for key in forecasts_keys}
-    
+
     for i in tqdm(range(len(attack_data))):
         batch = attack_data[i].batch
         batch = change_device(batch, device)
-        tol = batch['past_target_cdf'].abs().max() * args.tol
-        ground_truth = torch.Tensor(attack_data[i].true_future_target).to(device)
+        tol = batch["past_target_cdf"].abs().max() * args.tol
+        ground_truth = torch.Tensor(attack_data[i].true_future_target).to(
+            device
+        )
         with torch.no_grad():
-            '''
+            """
             Clean data
-            '''
-            inputs = dict([(key, batch[key]) for key in PREDICTION_INPUT_NAMES]) 
+            """
+            inputs = dict(
+                [(key, batch[key]) for key in PREDICTION_INPUT_NAMES]
+            )
             if args.rs:
-                outputs = smoothed_inference(batch, batch["past_target_cdf"], net, params.sigma, device)
+                outputs = smoothed_inference(
+                    batch, batch["past_target_cdf"], net, params.sigma, device
+                )
             else:
                 outputs = net(**inputs).detach().cpu().numpy()
-            forecasts['no attack'].append(outputs)
+            forecasts["no attack"].append(outputs)
             del inputs, outputs
             torch.cuda.empty_cache()
-            '''
+            """
             Sparse attacked data
-            '''
-            perturbation = attack_data[i].perturbation['dense']
+            """
+            perturbation = attack_data[i].perturbation["dense"]
             batch_size = perturbation.shape[0]
             for k in sparsity:
                 perturbation_tensor = change_device(perturbation, device)
                 for idx in range(perturbation_tensor.shape[-1]):
                     if idx not in params.attack_items:
                         perturbation_tensor[:, :, idx] = 0
-                top_k_idx = perturbation_tensor.abs().sum(1).argsort(dim=-1, descending=True)
+                top_k_idx = (
+                    perturbation_tensor.abs()
+                    .sum(1)
+                    .argsort(dim=-1, descending=True)
+                )
                 for each_batch in range(batch_size):
                     for idx in range(perturbation_tensor.shape[-1]):
-                        if (idx not in top_k_idx[each_batch][:k]):
+                        if idx not in top_k_idx[each_batch][:k]:
                             perturbation_tensor[each_batch, :, idx] = 0
-                attacked_past_target = change_device(batch["past_target_cdf"], device) * (1 + perturbation_tensor)
-                attacked_inputs = dict([(key, batch[key]) for key in PREDICTION_INPUT_NAMES])
-                attacked_inputs['past_target_cdf'] = attacked_past_target
+                attacked_past_target = change_device(
+                    batch["past_target_cdf"], device
+                ) * (1 + perturbation_tensor)
+                attacked_inputs = dict(
+                    [(key, batch[key]) for key in PREDICTION_INPUT_NAMES]
+                )
+                attacked_inputs["past_target_cdf"] = attacked_past_target
 
                 if args.rs:
-                    outputs = smoothed_inference(batch, attacked_past_target, net, params.sigma, device)
+                    outputs = smoothed_inference(
+                        batch, attacked_past_target, net, params.sigma, device
+                    )
                 else:
                     outputs = net(**attacked_inputs).detach().cpu().numpy()
                 forecasts[str(k)].append(outputs)
@@ -99,24 +141,28 @@ if __name__ == "__main__":
                 torch.cuda.empty_cache()
 
     with torch.no_grad():
-        mse, mape, ql = calc_loss(attack_data, forecasts, attack_idx=attack_idx, target_items=target_items)
+        mse, mape, ql = calc_loss(
+            attack_data,
+            forecasts,
+            attack_idx=attack_idx,
+            target_items=target_items,
+        )
         for key in ql.keys():
             ql[key] = ql[key].mean(0)
         metrics = Metrics(mse=mse, mape=mape, ql=ql)
 
     if not args.rs:
-        if not os.path.exists('./metrics'):
-            os.makedirs('./metrics')
+        if not os.path.exists("./metrics"):
+            os.makedirs("./metrics")
         with open("./metrics/" + filename, "wb") as outp:
             pickle.dump(metrics, outp, pickle.HIGHEST_PROTOCOL)
             pickle_path = "./metrics/" + filename
     else:
-        if not os.path.exists('./metrics_rs'):
-            os.makedirs('./metrics_rs')
+        if not os.path.exists("./metrics_rs"):
+            os.makedirs("./metrics_rs")
         with open("./metrics_rs/" + filename, "wb") as outp:
             pickle.dump(metrics, outp, pickle.HIGHEST_PROTOCOL)
             pickle_path = "./metrics_rs/" + filename
 
     print(pickle_path)
     create_table(pickle_path)
-

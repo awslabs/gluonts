@@ -28,7 +28,9 @@ class FeatureProjector(nn.Module):
         self._projector = nn.ModuleList(
             [
                 nn.Linear(in_features=in_feature, out_features=out_features)
-                for in_feature, out_features in zip(self.feature_dims, embedding_dims)
+                for in_feature, out_features in zip(
+                    self.feature_dims, embedding_dims
+                )
             ]
         )
 
@@ -42,16 +44,22 @@ class FeatureProjector(nn.Module):
 
         return [
             proj(real_feature_slice)
-            for proj, real_feature_slice in zip(self._projector, real_feature_slices)
+            for proj, real_feature_slice in zip(
+                self._projector, real_feature_slices
+            )
         ]
 
 
 class FeatureEmbedder(BaseFeatureEmbedder):
     def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
-        concat_features = super(FeatureEmbedder, self).forward(features=features)
+        concat_features = super(FeatureEmbedder, self).forward(
+            features=features
+        )
 
         if self.__num_features > 1:
-            features = torch.chunk(concat_features, self.__num_features, dim=-1)
+            features = torch.chunk(
+                concat_features, self.__num_features, dim=-1
+            )
         else:
             features = [concat_features]
 
@@ -90,7 +98,9 @@ class GatedResidualNetwork(nn.Module):
         else:
             if d_output != d_input:
                 self.add_skip = True
-                self.skip_proj = nn.Linear(in_features=d_input, out_features=d_output)
+                self.skip_proj = nn.Linear(
+                    in_features=d_input, out_features=d_output
+                )
             else:
                 self.add_skip = False
 
@@ -145,7 +155,9 @@ class VariableSelectionNetwork(nn.Module):
         )
 
     def forward(
-        self, variables: List[torch.Tensor], static: Optional[torch.Tensor] = None
+        self,
+        variables: List[torch.Tensor],
+        static: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         flatten = torch.cat(variables, dim=-1)
         if static is not None:
@@ -153,7 +165,9 @@ class VariableSelectionNetwork(nn.Module):
         weight = self.weight_network(flatten, static)
         weight = torch.softmax(weight.unsqueeze(-2), dim=-1)
 
-        var_encodings = [net(var) for var, net in zip(variables, self.variable_network)]
+        var_encodings = [
+            net(var) for var, net in zip(variables, self.variable_network)
+        ]
         var_encodings = torch.stack(var_encodings, dim=-1)
 
         var_encodings = torch.sum(var_encodings * weight, dim=-1)
@@ -181,7 +195,9 @@ class TemporalFusionEncoder(nn.Module):
             GatedLinearUnit(nonlinear=False),
         )
         if d_input != d_hidden:
-            self.skip_proj = nn.Linear(in_features=d_input, out_features=d_hidden)
+            self.skip_proj = nn.Linear(
+                in_features=d_input, out_features=d_hidden
+            )
             self.add_skip = True
         else:
             self.add_skip = False
@@ -255,9 +271,9 @@ class TemporalFusionDecoder(nn.Module):
     def _generate_subsequent_mask(
         target_length: int, source_length: int
     ) -> torch.Tensor:
-        mask = (torch.triu(torch.ones(source_length, target_length)) == 1).transpose(
-            0, 1
-        )
+        mask = (
+            torch.triu(torch.ones(source_length, target_length)) == 1
+        ).transpose(0, 1)
         mask = (
             mask.float()
             .masked_fill(mask == 0, float("-inf"))
@@ -268,7 +284,9 @@ class TemporalFusionDecoder(nn.Module):
     def forward(
         self, x: torch.Tensor, static: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
-        static = static.repeat((1, self.context_length + self.prediction_length, 1))
+        static = static.repeat(
+            (1, self.context_length + self.prediction_length, 1)
+        )
 
         skip = x[:, self.context_length :, ...]
         x = self.enrich(x, static)

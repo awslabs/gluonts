@@ -7,7 +7,6 @@ from gluonts.dataset.common import ListDataset, DataEntry, Dataset
 
 
 class Grouper:
-
     # todo the contract of this grouper is missing from the documentation, what it does when, how it pads values etc
     def __init__(
         self,
@@ -31,9 +30,8 @@ class Grouper:
         return self._group_all(dataset)
 
     def _group_all(self, dataset: Dataset) -> Dataset:
-
         if self.align_data:
-            funcs = {'target': self._align_data_entry}
+            funcs = {"target": self._align_data_entry}
 
         if self.num_test_dates is None:
             grouped_dataset = self._prepare_train_data(dataset, funcs)
@@ -43,11 +41,11 @@ class Grouper:
 
     def to_ts(self, data: DataEntry):
         return pd.Series(
-            data['target'],
+            data["target"],
             index=pd.date_range(
-                start=data['start'],
-                periods=len(data['target']),
-                freq=data['start'].freq,
+                start=data["start"],
+                periods=len(data["target"]),
+                freq=data["start"].freq,
             ),
         )
 
@@ -55,15 +53,15 @@ class Grouper:
         d = data.copy()
         # fill target invidually if we want to fill all of them, we should use a dataframe
         ts = self.to_ts(data)
-        d['target'] = ts.reindex(
+        d["target"] = ts.reindex(
             pd.date_range(
                 start=self.first_timestamp,
                 end=self.last_timestamp,
-                freq=d['start'].freq,
+                freq=d["start"].freq,
             ),
             fill_value=ts.mean(),
         )
-        d['start'] = self.first_timestamp
+        d["start"] = self.first_timestamp
         return d
 
     def _preprocess(self, dataset: Dataset) -> None:
@@ -76,19 +74,20 @@ class Grouper:
             3) Calculating groups
         """
         for data in dataset:
-            timestamp = data['start']
+            timestamp = data["start"]
             self.first_timestamp = min(self.first_timestamp, timestamp)
 
             self.frequency = (
                 timestamp.freq if self.frequency is None else self.frequency
             )
             self.last_timestamp = max(
-                self.last_timestamp, timestamp + len(data['target']) * self.frequency
+                self.last_timestamp,
+                timestamp + len(data["target"]) * self.frequency,
             )
 
             # todo
             self.max_target_length = max(
-                self.max_target_length, len(data['target'])
+                self.max_target_length, len(data["target"])
             )
         logging.info(
             f"first/last timestamp found: {self.first_timestamp}/{self.last_timestamp}"
@@ -107,12 +106,12 @@ class Grouper:
             grouped_data[key] = np.array(grouped_entry)
         if self.max_target_dimension is not None:
             # targets are often sorted by incr amplitude, use the last one when restricted number is asked
-            grouped_data['target'] = grouped_data['target'][
+            grouped_data["target"] = grouped_data["target"][
                 -self.max_target_dimension :, :
             ]
-        grouped_data['item_id'] = "all_items"
-        grouped_data['start'] = self.first_timestamp
-        grouped_data['feat_static_cat'] = [0]
+        grouped_data["item_id"] = "all_items"
+        grouped_data["start"] = self.first_timestamp
+        grouped_data["feat_static_cat"] = [0]
         return ListDataset(
             [grouped_data], freq=self.frequency, one_dim_target=False
         )
@@ -126,7 +125,7 @@ class Grouper:
                 pd.date_range(
                     start=self.first_timestamp,
                     end=ts.index[-1],
-                    freq=data['start'].freq,
+                    freq=data["start"].freq,
                 ),
                 fill_value=0.0,
             )
@@ -143,16 +142,16 @@ class Grouper:
             assert (
                 len(set([len(x) for x in dataset_at_test_date])) == 1
             ), "all test time-series should have the same length"
-            grouped_data['target'] = np.array(
+            grouped_data["target"] = np.array(
                 list(dataset_at_test_date), dtype=np.float32
             )
             if self.max_target_dimension is not None:
-                grouped_data['target'] = grouped_data['target'][
+                grouped_data["target"] = grouped_data["target"][
                     -self.max_target_dimension :, :
                 ]
-            grouped_data['item_id'] = "all_items"
-            grouped_data['start'] = self.first_timestamp
-            grouped_data['feat_static_cat'] = [0]
+            grouped_data["item_id"] = "all_items"
+            grouped_data["start"] = self.first_timestamp
+            grouped_data["feat_static_cat"] = [0]
             all_entries.append(grouped_data)
 
         return ListDataset(

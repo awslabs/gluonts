@@ -53,7 +53,9 @@ class NBEATSEstimator:
         self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = (
-            context_length if context_length is not None else 2 * prediction_length
+            context_length
+            if context_length is not None
+            else 2 * prediction_length
         )
         # num_stacks has to be handled separately because other arguments have to match its length
         self.num_stacks = num_stacks
@@ -105,7 +107,9 @@ class NBEATSEstimator:
         self.train_sampler = ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
-        self.validation_sampler = ValidationSplitSampler(min_future=prediction_length)
+        self.validation_sampler = ValidationSplitSampler(
+            min_future=prediction_length
+        )
 
     def _validate_nbeats_argument(
         self,
@@ -116,7 +120,9 @@ class NBEATSEstimator:
         invalidation_message,
     ):
         # set default value if applicable
-        new_value = argument_value if argument_value is not None else default_value
+        new_value = (
+            argument_value if argument_value is not None else default_value
+        )
 
         # check whether dimension of argument matches num_stack dimension
         assert len(new_value) == 1 or len(new_value) == self.num_stacks, (
@@ -176,7 +182,9 @@ class NBEATSEstimator:
             time_series_fields=[FieldName.OBSERVED_VALUES],
         )
 
-    def create_training_network(self, device: torch.device) -> NBEATSTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> NBEATSTrainingNetwork:
         return NBEATSTrainingNetwork(
             prediction_length=self.prediction_length,
             context_length=self.context_length,

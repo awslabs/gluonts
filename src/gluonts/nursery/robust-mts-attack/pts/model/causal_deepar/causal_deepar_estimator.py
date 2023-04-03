@@ -88,7 +88,9 @@ class CausalDeepAREstimator(PyTorchEstimator):
         self.use_feat_dynamic_cat = use_feat_dynamic_cat
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
-        self.cardinality = cardinality if cardinality and use_feat_static_cat else [1]
+        self.cardinality = (
+            cardinality if cardinality and use_feat_static_cat else [1]
+        )
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None
@@ -98,7 +100,9 @@ class CausalDeepAREstimator(PyTorchEstimator):
         self.lags_seq = (
             lags_seq
             if lags_seq is not None
-            else get_lags_for_frequency(freq_str=freq, lag_ub=self.context_length)
+            else get_lags_for_frequency(
+                freq_str=freq, lag_ub=self.context_length
+            )
         )
         self.time_features = (
             time_features
@@ -113,7 +117,9 @@ class CausalDeepAREstimator(PyTorchEstimator):
         self.train_sampler = ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
         )
-        self.validation_sampler = ValidationSplitSampler(min_future=prediction_length)
+        self.validation_sampler = ValidationSplitSampler(
+            min_future=prediction_length
+        )
 
     def create_transformation(self) -> Transformation:
         remove_field_names = []
@@ -132,7 +138,11 @@ class CausalDeepAREstimator(PyTorchEstimator):
                 else []
             )
             + (
-                [SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])]
+                [
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                ]
                 if not self.use_feat_static_real
                 else []
             )

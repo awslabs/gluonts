@@ -78,7 +78,6 @@ class MeanScaler(Scaler):
     def compute_scale(
         self, data: torch.Tensor, observed_indicator: torch.Tensor
     ) -> torch.Tensor:
-
         if self.time_first:
             dim = 1
         else:
@@ -90,7 +89,9 @@ class MeanScaler(Scaler):
 
         # first compute a global scale per-dimension
         total_observed = num_observed.sum(dim=0)
-        denominator = torch.max(total_observed, torch.ones_like(total_observed))
+        denominator = torch.max(
+            total_observed, torch.ones_like(total_observed)
+        )
         default_scale = sum_observed.sum(dim=0) / denominator
 
         # then compute a per-item, per-dimension scale

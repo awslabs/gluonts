@@ -12,7 +12,6 @@ import tarfile
 from gluonts.dataset.common import Dataset, load_datasets
 from gluonts.dataset.repository.datasets import (
     default_dataset_path,
-
 )
 
 
@@ -32,9 +31,9 @@ def pivot_dataset(dataset):
     ds_list = list(dataset)
     return [
         {
-            'item': '0',
-            'start': ds_list[0]['start'],
-            'target': np.vstack([d['target'] for d in ds_list]),
+            "item": "0",
+            "start": ds_list[0]["start"],
+            "target": np.vstack([d["target"] for d in ds_list]),
         }
     ]
 
@@ -63,9 +62,9 @@ def make_dataset(
     start = pd.Timestamp(start, freq)
 
     train_ds = [
-        {'item': '0', 'start': start, 'target': values[:, :-prediction_length]}
+        {"item": "0", "start": start, "target": values[:, :-prediction_length]}
     ]
-    test_ds = [{'item': '0', 'start': start, 'target': values}]
+    test_ds = [{"item": "0", "start": start, "target": values}]
 
     return MultivariateDatasetInfo(
         name="custom",
@@ -98,11 +97,12 @@ def make_multivariate_dataset(
 
     metadata, train_ds, test_ds = load_datasets(
         metadata=default_dataset_path / dataset_name,
-        train=default_dataset_path / dataset_name / 'train',
-        test=default_dataset_path / dataset_name / 'test',
+        train=default_dataset_path / dataset_name / "train",
+        test=default_dataset_path / dataset_name / "test",
     )
     dim = len(train_ds) if max_target_dim is None else max_target_dim
     from multivariate.datasets.grouper import Grouper
+
     grouper_train = Grouper(max_target_dim=dim)
     grouper_test = Grouper(
         align_data=False, num_test_dates=num_test_dates, max_target_dim=dim
@@ -236,6 +236,5 @@ datasets = OrderedDict(
     ]
 )
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     extract_dataset("electricity_nips")

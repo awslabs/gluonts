@@ -91,7 +91,7 @@ class TransformerTempFlowEstimator(PyTorchEstimator):
 
         self.num_parallel_samples = num_parallel_samples
         self.dropout_rate = dropout_rate
-        
+
         self.use_feat_dynamic_real = use_feat_dynamic_real
 
         self.flow_type = flow_type
@@ -132,7 +132,7 @@ class TransformerTempFlowEstimator(PyTorchEstimator):
         remove_field_names = [FieldName.FEAT_DYNAMIC_CAT]
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-        
+
         return Chain(
             [
                 RemoveFields(field_names=remove_field_names),
@@ -166,7 +166,9 @@ class TransformerTempFlowEstimator(PyTorchEstimator):
                         else []
                     ),
                 ),
-                SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_STATIC_CAT, value=[0]
+                ),
                 TargetDimIndicator(
                     field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,

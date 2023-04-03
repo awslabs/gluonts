@@ -11,12 +11,13 @@ from torch.utils.data import DataLoader
 
 from gluonts.core.component import validated
 
-def requires_grad_(model:torch.nn.Module, requires_grad:bool) -> None:
+
+def requires_grad_(model: torch.nn.Module, requires_grad: bool) -> None:
     for param in model.parameters():
         param.requires_grad_(requires_grad)
 
-def change_device(var, device):
 
+def change_device(var, device):
     if isinstance(var, torch.Tensor):
         if var.device == "cpu":
             var.to(device)
@@ -32,6 +33,7 @@ def change_device(var, device):
         return var
 
     return torch.from_numpy(var).float().to(device)
+
 
 class Trainer:
     @validated()
@@ -63,7 +65,9 @@ class Trainer:
         validation_iter: Optional[DataLoader] = None,
     ) -> None:
         optimizer = Adam(
-            net.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+            net.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
         )
 
         lr_scheduler = OneCycleLR(
@@ -109,7 +113,9 @@ class Trainer:
 
                     loss.backward()
                     if self.clip_gradient is not None:
-                        nn.utils.clip_grad_norm_(net.parameters(), self.clip_gradient)
+                        nn.utils.clip_grad_norm_(
+                            net.parameters(), self.clip_gradient
+                        )
 
                     optimizer.step()
                     lr_scheduler.step()
@@ -122,9 +128,10 @@ class Trainer:
             if validation_iter is not None:
                 cumm_epoch_loss_val = 0.0
                 with tqdm(validation_iter, total=total, colour="green") as it:
-
                     for batch_no, data_entry in enumerate(it, start=1):
-                        inputs = [v.to(self.device) for v in data_entry.values()]
+                        inputs = [
+                            v.to(self.device) for v in data_entry.values()
+                        ]
                         with torch.no_grad():
                             output = net(*inputs)
                         if isinstance(output, (list, tuple)):
@@ -157,8 +164,8 @@ class Trainer_adv(Trainer):
     def __init__(
         self,
         sparse_net,
-        noise_sd = 0.1,
-        clamp = False,
+        noise_sd=0.1,
+        clamp=False,
         epochs: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
@@ -188,9 +195,15 @@ class Trainer_adv(Trainer):
         validation_iter: Optional[DataLoader] = None,
     ) -> None:
         optimizer = Adam(
-            net.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+            net.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
         )
-        optimizer_adv = Adam(self.sparse_net.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        optimizer_adv = Adam(
+            self.sparse_net.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
+        )
 
         lr_scheduler = OneCycleLR(
             optimizer,
@@ -210,13 +223,23 @@ class Trainer_adv(Trainer):
             with tqdm(train_iter, total=total) as it:
                 for batch_no, data_entry in enumerate(it, start=1):
                     # train sparse net
-                    self.sparse_net.zero_grad()                    
-                    inputs = {key: data_entry[key].to(self.device) for key in data_entry.keys()}
-                    shapes = data_entry['past_target_cdf'].shape
-                    delta = self.sparse_net(data_entry['past_target_cdf'].to(self.device), n_sample=100).view(shapes)
+                    self.sparse_net.zero_grad()
+                    inputs = {
+                        key: data_entry[key].to(self.device)
+                        for key in data_entry.keys()
+                    }
+                    shapes = data_entry["past_target_cdf"].shape
+                    delta = self.sparse_net(
+                        data_entry["past_target_cdf"].to(self.device),
+                        n_sample=100,
+                    ).view(shapes)
                     if self.clamp:
-                        delta = torch.clamp(delta, max=self.sparse_net.max_norm*data_entry['past_target_cdf'].abs().max())
-                    inputs['past_target_cdf'] += delta 
+                        delta = torch.clamp(
+                            delta,
+                            max=self.sparse_net.max_norm
+                            * data_entry["past_target_cdf"].abs().max(),
+                        )
+                    inputs["past_target_cdf"] += delta
                     output = net(**inputs)
                     mu, target = output[2], output[-1]
                     loss_sparse = -loss_function(mu, target)
@@ -225,10 +248,16 @@ class Trainer_adv(Trainer):
 
                     # train forecasting model
                     net.zero_grad()
-                    perturbed_inputs = {key: data_entry[key].to(self.device) for key in data_entry.keys()}
-                    shapes = data_entry['past_target_cdf'].shape
-                    delta = self.sparse_net(data_entry['past_target_cdf'].to(self.device), n_sample=100).view(shapes)
-                    perturbed_inputs['past_target_cdf'] += delta
+                    perturbed_inputs = {
+                        key: data_entry[key].to(self.device)
+                        for key in data_entry.keys()
+                    }
+                    shapes = data_entry["past_target_cdf"].shape
+                    delta = self.sparse_net(
+                        data_entry["past_target_cdf"].to(self.device),
+                        n_sample=100,
+                    ).view(shapes)
+                    perturbed_inputs["past_target_cdf"] += delta
                     output = net(**perturbed_inputs)
 
                     if isinstance(output, (list, tuple)):
@@ -247,7 +276,9 @@ class Trainer_adv(Trainer):
 
                     loss.backward()
                     if self.clip_gradient is not None:
-                        nn.utils.clip_grad_norm_(net.parameters(), self.clip_gradient)
+                        nn.utils.clip_grad_norm_(
+                            net.parameters(), self.clip_gradient
+                        )
 
                     optimizer.step()
                     lr_scheduler.step()
@@ -261,9 +292,10 @@ class Trainer_adv(Trainer):
             if validation_iter is not None:
                 cumm_epoch_loss_val = 0.0
                 with tqdm(validation_iter, total=total, colour="green") as it:
-
                     for batch_no, data_entry in enumerate(it, start=1):
-                        inputs = [v.to(self.device) for v in data_entry.values()]
+                        inputs = [
+                            v.to(self.device) for v in data_entry.values()
+                        ]
                         with torch.no_grad():
                             output = net(*inputs)
                         if isinstance(output, (list, tuple)):

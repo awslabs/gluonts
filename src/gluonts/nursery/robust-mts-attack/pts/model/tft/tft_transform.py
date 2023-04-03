@@ -69,7 +69,6 @@ class TFTInstanceSplitter(InstanceSplitter):
         past_time_series_fields: List[str] = [],
         dummy_value: float = 0.0,
     ) -> None:
-
         super().__init__(
             target_field=target_field,
             is_pad_field=is_pad_field,
@@ -90,7 +89,9 @@ class TFTInstanceSplitter(InstanceSplitter):
         self.observed_value_field = observed_value_field
         self.past_ts_fields = past_time_series_fields
 
-    def flatmap_transform(self, data: DataEntry, is_train: bool) -> Iterator[DataEntry]:
+    def flatmap_transform(
+        self, data: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
         pl = self.future_length
         lt = self.lead_time
         target = data[self.target_field]
@@ -115,7 +116,9 @@ class TFTInstanceSplitter(InstanceSplitter):
                         fill_value=self.dummy_value,
                         dtype=d[field].dtype,
                     )
-                    past_piece = np.concatenate([pad_block, d[field][..., :i]], axis=-1)
+                    past_piece = np.concatenate(
+                        [pad_block, d[field][..., :i]], axis=-1
+                    )
                 future_piece = d[field][..., (i + lt) : (i + lt + pl)]
                 if field in self.ts_fields:
                     piece = np.concatenate([past_piece, future_piece], axis=-1)
@@ -136,5 +139,7 @@ class TFTInstanceSplitter(InstanceSplitter):
             if pad_length > 0:
                 pad_indicator[:pad_length] = 1
             d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = shift_timestamp(d[self.start_field], i + lt)
+            d[self.forecast_start_field] = shift_timestamp(
+                d[self.start_field], i + lt
+            )
             yield d

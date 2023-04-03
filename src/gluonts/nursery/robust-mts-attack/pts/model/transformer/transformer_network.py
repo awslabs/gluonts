@@ -47,7 +47,9 @@ class TransformerNetwork(nn.Module):
         self.embedding_dimension = embedding_dimension
         self.distr_output = distr_output
 
-        assert len(set(lags_seq)) == len(lags_seq), "no duplicated lags allowed!"
+        assert len(set(lags_seq)) == len(
+            lags_seq
+        ), "no duplicated lags allowed!"
         lags_seq.sort()
 
         self.lags_seq = lags_seq
@@ -84,7 +86,9 @@ class TransformerNetwork(nn.Module):
         # mask
         self.register_buffer(
             "tgt_mask",
-            self.transformer.generate_square_subsequent_mask(prediction_length),
+            self.transformer.generate_square_subsequent_mask(
+                prediction_length
+            ),
         )
 
     @staticmethod
@@ -156,7 +160,9 @@ class TransformerNetwork(nn.Module):
         else:
             time_feat = torch.cat(
                 (
-                    past_time_feat[:, self.history_length - self.context_length :, ...],
+                    past_time_feat[
+                        :, self.history_length - self.context_length :, ...
+                    ],
                     future_time_feat,
                 ),
                 dim=1,
@@ -204,11 +210,17 @@ class TransformerNetwork(nn.Module):
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
         input_lags = lags_scaled.reshape(
-            (-1, subsequences_length, len(self.lags_seq) * prod(self.target_shape))
+            (
+                -1,
+                subsequences_length,
+                len(self.lags_seq) * prod(self.target_shape),
+            )
         )
 
         # (batch_size, sub_seq_len, input_dim)
-        inputs = torch.cat((input_lags, time_feat, repeated_static_feat), dim=-1)
+        inputs = torch.cat(
+            (input_lags, time_feat, repeated_static_feat), dim=-1
+        )
 
         return inputs, scale, static_feat
 
@@ -362,24 +374,33 @@ class TransformerPredictionNetwork(TransformerNetwork):
 
             # (batch_size * num_samples, 1, prod(target_shape) * num_lags + num_time_features + num_static_features)
             dec_input = torch.cat(
-                (input_lags, repeated_time_feat[:, k : k + 1, :], repeated_static_feat),
+                (
+                    input_lags,
+                    repeated_time_feat[:, k : k + 1, :],
+                    repeated_static_feat,
+                ),
                 dim=-1,
             )
 
             dec_output = self.transformer.decoder(
-                self.decoder_input(dec_input).permute(1, 0, 2), repeated_enc_out
+                self.decoder_input(dec_input).permute(1, 0, 2),
+                repeated_enc_out,
             )
 
             distr_args = self.proj_dist_args(dec_output.permute(1, 0, 2))
 
             # compute likelihood of target given the predicted parameters
-            distr = self.distr_output.distribution(distr_args, scale=repeated_scale)
+            distr = self.distr_output.distribution(
+                distr_args, scale=repeated_scale
+            )
 
             # (batch_size * num_samples, 1, *target_shape)
             new_samples = distr.sample()
 
             # (batch_size * num_samples, seq_len, *target_shape)
-            repeated_past_target = torch.cat((repeated_past_target, new_samples), dim=1)
+            repeated_past_target = torch.cat(
+                (repeated_past_target, new_samples), dim=1
+            )
             future_samples.append(new_samples)
 
         # reset cache of the decoder
@@ -432,7 +453,9 @@ class TransformerPredictionNetwork(TransformerNetwork):
         )
 
         # pass through encoder
-        enc_out = self.transformer.encoder(self.encoder_input(inputs).permute(1, 0, 2))
+        enc_out = self.transformer.encoder(
+            self.encoder_input(inputs).permute(1, 0, 2)
+        )
 
         return self.sampling_decoder(
             past_target=past_target,

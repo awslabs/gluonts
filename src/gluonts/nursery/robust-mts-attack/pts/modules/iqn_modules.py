@@ -26,7 +26,9 @@ class ImplicitQuantileModule(nn.Module):
 
     def forward(self, input_data, tau):
         embedded_tau = self.quantile_layer(tau)
-        new_input_data = input_data * (torch.ones_like(embedded_tau) + embedded_tau)
+        new_input_data = input_data * (
+            torch.ones_like(embedded_tau) + embedded_tau
+        )
         return self.output_layer(new_input_data).squeeze(-1)
 
 

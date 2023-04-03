@@ -137,9 +137,14 @@ class CausalDeepARNetwork(nn.Module):
         future_target: Optional[
             torch.Tensor
         ] = None,  # (batch_size, prediction_length, *target_shape)
-    ) -> Tuple[torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor]:
-
-        if future_time_feat is None or future_target is None or future_control is None:
+    ) -> Tuple[
+        torch.Tensor, Union[torch.Tensor, List], torch.Tensor, torch.Tensor
+    ]:
+        if (
+            future_time_feat is None
+            or future_target is None
+            or future_control is None
+        ):
             time_feat = past_time_feat[
                 :, self.history_length - self.context_length :, ...
             ]
@@ -150,7 +155,9 @@ class CausalDeepARNetwork(nn.Module):
         else:
             time_feat = torch.cat(
                 (
-                    past_time_feat[:, self.history_length - self.context_length :, ...],
+                    past_time_feat[
+                        :, self.history_length - self.context_length :, ...
+                    ],
                     future_time_feat,
                 ),
                 dim=1,
@@ -196,7 +203,9 @@ class CausalDeepARNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                scale.log() if len(self.target_shape) == 0 else scale.squeeze(1).log(),
+                scale.log()
+                if len(self.target_shape) == 0
+                else scale.squeeze(1).log(),
                 control_scale.log()
                 if len(self.target_shape) == 0
                 else control_scale.squeeze(1).log(),
@@ -216,16 +225,25 @@ class CausalDeepARNetwork(nn.Module):
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
         input_lags = lags_scaled.reshape(
-            (-1, subsequences_length, len(self.lags_seq) * prod(self.target_shape))
+            (
+                -1,
+                subsequences_length,
+                len(self.lags_seq) * prod(self.target_shape),
+            )
         )
 
         input_control_lags = control_lags_scaled.reshape(
-            (-1, subsequences_length, len(self.lags_seq) * prod(self.target_shape))
+            (
+                -1,
+                subsequences_length,
+                len(self.lags_seq) * prod(self.target_shape),
+            )
         )
 
         # (batch_size, sub_seq_len, input_dim)
         inputs = torch.cat(
-            (input_lags, input_control_lags, time_feat, repeated_static_feat), dim=-1
+            (input_lags, input_control_lags, time_feat, repeated_static_feat),
+            dim=-1,
         )
 
         # unroll encoder
@@ -268,7 +286,9 @@ class CausalDeepARTrainingNetwork(CausalDeepARNetwork):
 
         control = torch.cat(
             (
-                past_control[:, self.history_length - self.context_length :, ...],
+                past_control[
+                    :, self.history_length - self.context_length :, ...
+                ],
                 future_control,
             ),
             dim=1,
@@ -279,7 +299,9 @@ class CausalDeepARTrainingNetwork(CausalDeepARNetwork):
         )
 
         return (
-            self.control_output.distribution(control_dist_args, scale=control_scale),
+            self.control_output.distribution(
+                control_dist_args, scale=control_scale
+            ),
             self.distr_output.distribution(distr_args, scale=scale),
         )
 
@@ -296,7 +318,6 @@ class CausalDeepARTrainingNetwork(CausalDeepARNetwork):
         past_control: torch.Tensor,
         future_control: torch.Tensor,
     ) -> torch.Tensor:
-
         control_distr, distr = self.distribution(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
@@ -314,7 +335,9 @@ class CausalDeepARTrainingNetwork(CausalDeepARNetwork):
         # (batch_size, seq_len, *target_shape)
         target = torch.cat(
             (
-                past_target[:, self.history_length - self.context_length :, ...],
+                past_target[
+                    :, self.history_length - self.context_length :, ...
+                ],
                 future_target,
             ),
             dim=1,
@@ -322,7 +345,9 @@ class CausalDeepARTrainingNetwork(CausalDeepARNetwork):
 
         control = torch.cat(
             (
-                past_control[:, self.history_length - self.context_length :, ...],
+                past_control[
+                    :, self.history_length - self.context_length :, ...
+                ],
                 future_control,
             ),
             dim=1,
@@ -453,7 +478,9 @@ class CausalDeepARPredictionNetwork(CausalDeepARNetwork):
             # (batch_size * num_samples, 1, *target_shape, num_lags)
             lags_scaled = lags / repeated_scale.unsqueeze(-1)
 
-            control_lags_scaled = control_lags / repeated_control_scale.unsqueeze(-1)
+            control_lags_scaled = (
+                control_lags / repeated_control_scale.unsqueeze(-1)
+            )
 
             # from (batch_size * num_samples, 1, *target_shape, num_lags)
             # to (batch_size * num_samples, 1, prod(target_shape) * num_lags)
@@ -478,7 +505,9 @@ class CausalDeepARPredictionNetwork(CausalDeepARNetwork):
 
             # output shape: (batch_size * num_samples, 1, num_cells)
             # state shape: (batch_size * num_samples, num_cells)
-            rnn_outputs, repeated_states = self.rnn(decoder_input, repeated_states)
+            rnn_outputs, repeated_states = self.rnn(
+                decoder_input, repeated_states
+            )
 
             control_dist_args = self.proj_control_args(rnn_outputs)
             control_distr = self.control_output.distribution(
@@ -487,21 +516,29 @@ class CausalDeepARPredictionNetwork(CausalDeepARNetwork):
 
             new_control_sample = control_distr.sample()
             control = repeated_future_control[:, k : k + 1]
-            control[control != control] = new_control_sample[control != control]
-            repeated_past_control = torch.cat((repeated_past_control, control), dim=1)
+            control[control != control] = new_control_sample[
+                control != control
+            ]
+            repeated_past_control = torch.cat(
+                (repeated_past_control, control), dim=1
+            )
 
             distr_args = self.proj_distr_args(
                 torch.cat((rnn_outputs, control.unsqueeze(-1)), dim=-1)
             )
 
             # compute likelihood of target given the predicted parameters
-            distr = self.distr_output.distribution(distr_args, scale=repeated_scale)
+            distr = self.distr_output.distribution(
+                distr_args, scale=repeated_scale
+            )
 
             # (batch_size * num_samples, 1, *target_shape)
             new_samples = distr.sample()
 
             # (batch_size * num_samples, seq_len, *target_shape)
-            repeated_past_target = torch.cat((repeated_past_target, new_samples), dim=1)
+            repeated_past_target = torch.cat(
+                (repeated_past_target, new_samples), dim=1
+            )
             future_samples.append(new_samples)
 
         # (batch_size * num_samples, prediction_length, *target_shape)

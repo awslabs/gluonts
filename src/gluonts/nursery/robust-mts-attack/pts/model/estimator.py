@@ -14,6 +14,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.model.estimator import Estimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import SelectFields, Transformation
+
 # from gluonts.support.util import maybe_len
 
 from pts import Trainer
@@ -27,6 +28,7 @@ def maybe_len(obj) -> Optional[int]:
     except (NotImplementedError, AttributeError):
         return None
 
+
 class TrainOutput(NamedTuple):
     transformation: Transformation
     trained_net: nn.Module
@@ -36,7 +38,10 @@ class TrainOutput(NamedTuple):
 class PyTorchEstimator(Estimator):
     @validated()
     def __init__(
-        self, trainer: Trainer, lead_time: int = 0, dtype: np.dtype = np.float32
+        self,
+        trainer: Trainer,
+        lead_time: int = 0,
+        dtype: np.dtype = np.float32,
     ) -> None:
         super().__init__(lead_time=lead_time)
         self.trainer = trainer
@@ -111,7 +116,9 @@ class PyTorchEstimator(Estimator):
         input_names = get_module_forward_input_names(trained_net)
 
         with env._let(max_idle_transforms=maybe_len(training_data) or 0):
-            training_instance_splitter = self.create_instance_splitter("training")
+            training_instance_splitter = self.create_instance_splitter(
+                "training"
+            )
         training_iter_dataset = TransformedIterableDataset(
             dataset=training_data,
             transform=transformation
@@ -150,7 +157,9 @@ class PyTorchEstimator(Estimator):
         input_names = get_module_forward_input_names(trained_net)
 
         with env._let(max_idle_transforms=maybe_len(training_data) or 0):
-            training_instance_splitter = self.create_instance_splitter("training")
+            training_instance_splitter = self.create_instance_splitter(
+                "training"
+            )
         training_iter_dataset = TransformedIterableDataset(
             dataset=training_data,
             transform=transformation
@@ -170,11 +179,13 @@ class PyTorchEstimator(Estimator):
             worker_init_fn=self._worker_init_fn,
             **kwargs,
         )
-        
+
         validation_data_loader = None
         if validation_data is not None:
             with env._let(max_idle_transforms=maybe_len(validation_data) or 0):
-                validation_instance_splitter = self.create_instance_splitter("validation")
+                validation_instance_splitter = self.create_instance_splitter(
+                    "validation"
+                )
             validation_iter_dataset = TransformedIterableDataset(
                 dataset=validation_data,
                 transform=transformation

@@ -1,10 +1,14 @@
 import torch
-from torch.distributions import Distribution, TransformedDistribution, AffineTransform
+from torch.distributions import (
+    Distribution,
+    TransformedDistribution,
+    AffineTransform,
+)
 
 
 class ImplicitQuantile(Distribution):
     arg_constraints = {}
-    
+
     def __init__(
         self,
         implicit_quantile_function,
@@ -19,7 +23,8 @@ class ImplicitQuantile(Distribution):
         self.input_data = nn_output
 
         super(ImplicitQuantile, self).__init__(
-            batch_shape=self.predicted_quantiles.shape, validate_args=validate_args
+            batch_shape=self.predicted_quantiles.shape,
+            validate_args=validate_args,
         )
 
     @torch.no_grad()
@@ -53,7 +58,8 @@ class ImplicitQuantile(Distribution):
     @staticmethod
     def quantile_loss(quantile_forecast, target, tau):
         return torch.abs(
-            (quantile_forecast - target) * ((target <= quantile_forecast).float() - tau)
+            (quantile_forecast - target)
+            * ((target <= quantile_forecast).float() - tau)
         )
 
 
@@ -64,7 +70,9 @@ class TransformedImplicitQuantile(TransformedDistribution):
     def log_prob(self, x):
         scale = 1.0
         for transform in reversed(self.transforms):
-            assert isinstance(transform, AffineTransform), "Not an AffineTransform"
+            assert isinstance(
+                transform, AffineTransform
+            ), "Not an AffineTransform"
             x = transform.inv(x)
             scale *= transform.scale
         p = self.base_dist.log_prob(x)

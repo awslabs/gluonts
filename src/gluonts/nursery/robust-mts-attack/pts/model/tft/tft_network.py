@@ -157,7 +157,9 @@ class TemporalFusionTransformerNetwork(nn.Module):
             [[i / 10, 1.0 - i / 10] for i in range(1, (num_outputs + 1) // 2)],
             [0.5],
         )
-        self.output = QuantileOutput(input_size=embed_dim, quantiles=self.quantiles)
+        self.output = QuantileOutput(
+            input_size=embed_dim, quantiles=self.quantiles
+        )
         self.output_proj = self.output.get_quantile_proj()
         self.loss = self.output.get_loss()
 
@@ -175,8 +177,10 @@ class TemporalFusionTransformerNetwork(nn.Module):
         obs = past_target * past_observed_values
         count = past_observed_values.sum(dim=1, keepdim=True)
         offset = obs.sum(1, keepdim=True) / (count + self.normalize_eps)
-        scale = torch.sum(obs ** 2, 1, keepdim=True) / (count + self.normalize_eps)
-        scale = torch.sqrt(scale - offset ** 2)
+        scale = torch.sum(obs**2, 1, keepdim=True) / (
+            count + self.normalize_eps
+        )
+        scale = torch.sqrt(scale - offset**2)
 
         past_target = (past_target - offset) / (scale + self.normalize_eps)
         past_target = past_target.unsqueeze(-1)
@@ -254,14 +258,18 @@ class TemporalFusionTransformerNetwork(nn.Module):
         encoding = self.temporal_encoder(
             ctx_input, tgt_input, [c_h.unsqueeze(0), c_c.unsqueeze(0)]
         )
-        decoding = self.temporal_decoder(encoding, c_enrichment, past_observed_values)
+        decoding = self.temporal_decoder(
+            encoding, c_enrichment, past_observed_values
+        )
 
         preds = self.output_proj(decoding)
 
         return preds
 
 
-class TemporalFusionTransformerTrainingNetwork(TemporalFusionTransformerNetwork):
+class TemporalFusionTransformerTrainingNetwork(
+    TemporalFusionTransformerNetwork
+):
     def forward(
         self,
         past_target: torch.Tensor,
@@ -306,7 +314,9 @@ class TemporalFusionTransformerTrainingNetwork(TemporalFusionTransformerNetwork)
         return loss.mean()
 
 
-class TemporalFusionTransformerPredictionNetwork(TemporalFusionTransformerNetwork):
+class TemporalFusionTransformerPredictionNetwork(
+    TemporalFusionTransformerNetwork
+):
     def forward(
         self,
         past_target: torch.Tensor,

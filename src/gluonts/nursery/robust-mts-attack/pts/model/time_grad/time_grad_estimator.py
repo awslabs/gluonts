@@ -32,7 +32,10 @@ from pts.feature import (
 from pts.model import PyTorchEstimator
 from pts.model.utils import get_module_forward_input_names
 
-from .time_grad_network import TimeGradTrainingNetwork, TimeGradPredictionNetwork
+from .time_grad_network import (
+    TimeGradTrainingNetwork,
+    TimeGradPredictionNetwork,
+)
 
 
 class TimeGradEstimator(PyTorchEstimator):
@@ -147,7 +150,9 @@ class TimeGradEstimator(PyTorchEstimator):
                     output_field=FieldName.FEAT_TIME,
                     input_fields=[FieldName.FEAT_TIME],
                 ),
-                SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_STATIC_CAT, value=[0]
+                ),
                 TargetDimIndicator(
                     field_name="target_dimension_indicator",
                     target_field=FieldName.TARGET,
@@ -186,7 +191,9 @@ class TimeGradEstimator(PyTorchEstimator):
             )
         )
 
-    def create_training_network(self, device: torch.device) -> TimeGradTrainingNetwork:
+    def create_training_network(
+        self, device: torch.device
+    ) -> TimeGradTrainingNetwork:
         return TimeGradTrainingNetwork(
             input_size=self.input_size,
             target_dim=self.target_dim,

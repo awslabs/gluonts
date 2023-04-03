@@ -67,7 +67,9 @@ class GaussianDiffusion(nn.Module):
             if beta_schedule == "linear":
                 betas = np.linspace(1e-4, beta_end, diff_steps)
             elif beta_schedule == "quad":
-                betas = np.linspace(1e-4 ** 0.5, beta_end ** 0.5, diff_steps) ** 2
+                betas = (
+                    np.linspace(1e-4**0.5, beta_end**0.5, diff_steps) ** 2
+                )
             elif beta_schedule == "const":
                 betas = beta_end * np.ones(diff_steps)
             elif beta_schedule == "jsd":  # 1/T, 1/(T-1), 1/(T-2), ..., 1
@@ -92,21 +94,29 @@ class GaussianDiffusion(nn.Module):
 
         self.register_buffer("betas", to_torch(betas))
         self.register_buffer("alphas_cumprod", to_torch(alphas_cumprod))
-        self.register_buffer("alphas_cumprod_prev", to_torch(alphas_cumprod_prev))
+        self.register_buffer(
+            "alphas_cumprod_prev", to_torch(alphas_cumprod_prev)
+        )
 
         # calculations for diffusion q(x_t | x_{t-1}) and others
-        self.register_buffer("sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod)))
         self.register_buffer(
-            "sqrt_one_minus_alphas_cumprod", to_torch(np.sqrt(1.0 - alphas_cumprod))
+            "sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod))
         )
         self.register_buffer(
-            "log_one_minus_alphas_cumprod", to_torch(np.log(1.0 - alphas_cumprod))
+            "sqrt_one_minus_alphas_cumprod",
+            to_torch(np.sqrt(1.0 - alphas_cumprod)),
         )
         self.register_buffer(
-            "sqrt_recip_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod))
+            "log_one_minus_alphas_cumprod",
+            to_torch(np.log(1.0 - alphas_cumprod)),
         )
         self.register_buffer(
-            "sqrt_recipm1_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod - 1))
+            "sqrt_recip_alphas_cumprod",
+            to_torch(np.sqrt(1.0 / alphas_cumprod)),
+        )
+        self.register_buffer(
+            "sqrt_recipm1_alphas_cumprod",
+            to_torch(np.sqrt(1.0 / alphas_cumprod - 1)),
         )
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
@@ -114,7 +124,9 @@ class GaussianDiffusion(nn.Module):
             betas * (1.0 - alphas_cumprod_prev) / (1.0 - alphas_cumprod)
         )
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
-        self.register_buffer("posterior_variance", to_torch(posterior_variance))
+        self.register_buffer(
+            "posterior_variance", to_torch(posterior_variance)
+        )
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
         self.register_buffer(
             "posterior_log_variance_clipped",
@@ -122,12 +134,16 @@ class GaussianDiffusion(nn.Module):
         )
         self.register_buffer(
             "posterior_mean_coef1",
-            to_torch(betas * np.sqrt(alphas_cumprod_prev) / (1.0 - alphas_cumprod)),
+            to_torch(
+                betas * np.sqrt(alphas_cumprod_prev) / (1.0 - alphas_cumprod)
+            ),
         )
         self.register_buffer(
             "posterior_mean_coef2",
             to_torch(
-                (1.0 - alphas_cumprod_prev) * np.sqrt(alphas) / (1.0 - alphas_cumprod)
+                (1.0 - alphas_cumprod_prev)
+                * np.sqrt(alphas)
+                / (1.0 - alphas_cumprod)
             ),
         )
 
@@ -142,7 +158,9 @@ class GaussianDiffusion(nn.Module):
     def q_mean_variance(self, x_start, t):
         mean = extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
         variance = extract(1.0 - self.alphas_cumprod, t, x_start.shape)
-        log_variance = extract(self.log_one_minus_alphas_cumprod, t, x_start.shape)
+        log_variance = extract(
+            self.log_one_minus_alphas_cumprod, t, x_start.shape
+        )
         return mean, variance, log_variance
 
     def predict_start_from_noise(self, x_t, t, noise):
@@ -160,7 +178,11 @@ class GaussianDiffusion(nn.Module):
         posterior_log_variance_clipped = extract(
             self.posterior_log_variance_clipped, t, x_t.shape
         )
-        return posterior_mean, posterior_variance, posterior_log_variance_clipped
+        return (
+            posterior_mean,
+            posterior_variance,
+            posterior_log_variance_clipped,
+        )
 
     def p_mean_variance(self, x, cond, t, clip_denoised: bool):
         x_recon = self.predict_start_from_noise(
@@ -170,9 +192,11 @@ class GaussianDiffusion(nn.Module):
         if clip_denoised:
             x_recon.clamp_(-1.0, 1.0)
 
-        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
-            x_start=x_recon, x_t=x, t=t
-        )
+        (
+            model_mean,
+            posterior_variance,
+            posterior_log_variance,
+        ) = self.q_posterior(x_start=x_recon, x_t=x, t=t)
         return model_mean, posterior_variance, posterior_log_variance
 
     @torch.no_grad()
@@ -183,8 +207,13 @@ class GaussianDiffusion(nn.Module):
         )
         noise = noise_like(x.shape, device, repeat_noise)
         # no noise when t == 0
-        nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
-        return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
+        nonzero_mask = (1 - (t == 0).float()).reshape(
+            b, *((1,) * (len(x.shape) - 1))
+        )
+        return (
+            model_mean
+            + nonzero_mask * (0.5 * model_log_variance).exp() * noise
+        )
 
     @torch.no_grad()
     def p_sample_loop(self, shape, cond):
@@ -206,7 +235,9 @@ class GaussianDiffusion(nn.Module):
             # TODO reshape cond to (B*T, 1, -1)
         else:
             shape = sample_shape
-        x_hat = self.p_sample_loop(shape, cond)  # TODO reshape x_hat to (B,T,-1)
+        x_hat = self.p_sample_loop(
+            shape, cond
+        )  # TODO reshape x_hat to (B,T,-1)
 
         if self.scale is not None:
             x_hat *= self.scale
@@ -235,7 +266,8 @@ class GaussianDiffusion(nn.Module):
 
         return (
             extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
-            + extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
+            + extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape)
+            * noise
         )
 
     def p_losses(self, x_start, cond, t, noise=None):
@@ -261,9 +293,15 @@ class GaussianDiffusion(nn.Module):
 
         B, T, _ = x.shape
 
-        time = torch.randint(0, self.num_timesteps, (B * T,), device=x.device).long()
+        time = torch.randint(
+            0, self.num_timesteps, (B * T,), device=x.device
+        ).long()
         loss = self.p_losses(
-            x.reshape(B * T, 1, -1), cond.reshape(B * T, 1, -1), time, *args, **kwargs
+            x.reshape(B * T, 1, -1),
+            cond.reshape(B * T, 1, -1),
+            time,
+            *args,
+            **kwargs
         )
 
         return loss

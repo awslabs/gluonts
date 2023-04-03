@@ -102,7 +102,9 @@ class PiecewiseLinear(Distribution):
         # slope_l0 can be zero in which case a_tilde = 0.
         # The following is to circumvent an issue where the
         # backward() returns nans when slope_l0 is zero in the where
-        slope_l0_nz = torch.where(slope_l0 == 0.0, torch.ones_like(x), slope_l0)
+        slope_l0_nz = torch.where(
+            slope_l0 == 0.0, torch.ones_like(x), slope_l0
+        )
 
         a_tilde = torch.where(
             slope_l0 == 0.0,
@@ -127,7 +129,11 @@ class PiecewiseLinear(Distribution):
             + 2 * max_a_tilde_knots * knot_positions
         )
 
-        return (2 * a_tilde - 1) * x + (1 - 2 * a_tilde) * gamma + (b * coeff).sum(-1)
+        return (
+            (2 * a_tilde - 1) * x
+            + (1 - 2 * a_tilde) * gamma
+            + (b * coeff).sum(-1)
+        )
 
 
 class TransformedPiecewiseLinear(TransformedDistribution):
@@ -138,7 +144,9 @@ class TransformedPiecewiseLinear(TransformedDistribution):
         scale = 1.0
 
         for transform in reversed(self.transforms):
-            assert isinstance(transform, AffineTransform), "Not an AffineTransform"
+            assert isinstance(
+                transform, AffineTransform
+            ), "Not an AffineTransform"
             x = transform.inv(x)
             scale *= transform.scale
 
