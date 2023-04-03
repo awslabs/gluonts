@@ -129,16 +129,18 @@ def infer_file_type(path):
     return None
 
 
-def _glob(path: Path, pattern="*", levels=1):
+def _glob(path: Path, pattern="*", levels=None):
+    if levels == 0:
+        return
+
+    yield from path.glob(pattern)
+
     if levels is not None:
         levels -= 1
 
-    for subpath in path.glob(pattern):
+    for subpath in path.iterdir():
         if subpath.is_dir():
-            if levels != 0:
-                yield from _glob(subpath, pattern, levels)
-        else:
-            yield subpath
+            yield from _glob(subpath, pattern, levels)
 
 
 def FileDataset(
