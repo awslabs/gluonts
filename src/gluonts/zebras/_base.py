@@ -30,6 +30,7 @@ LeftOrRight = Literal["l", "r"]
 class Pad(NamedTuple):
     """Indicator for padded values.
 
+    >>> from gluonts.zebras import time_series
     >>> ts = time_series([1, 2, 3]).pad(0, left=2, right=2)
     >>> assert len(ts == 7)
     >>> assert list(ts) == [0, 0, 1, 2, 3, 0, 0]

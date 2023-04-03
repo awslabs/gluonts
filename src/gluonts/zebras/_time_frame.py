@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 from operator import itemgetter
-from typing import cast, Optional, List, Union, Collection, Dict, Any, Mapping
+from typing import cast, Optional, List, Union, Collection, Any, Mapping
 
 import numpy as np
 from toolz import first, valmap, dissoc, merge, itemmap
