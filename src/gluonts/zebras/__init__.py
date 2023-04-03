@@ -36,7 +36,7 @@ from typing import TypeVar
 from ._freq import Freq, freq
 from ._period import period, Period, periods, Periods
 from ._split_frame import split_frame, SplitFrame, BatchSplitFrame
-from ._timeframe import time_frame, TimeFrame, BatchTimeFrame
+from ._time_frame import time_frame, TimeFrame, BatchTimeFrame
 from ._time_series import time_series, TimeSeries, BatchTimeSeries
 from ._schema import Field, Schema
 
