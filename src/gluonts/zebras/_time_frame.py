@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 from operator import itemgetter
-from typing import Optional, List, Union, Collection, Dict, Any
+from typing import cast, Optional, List, Union, Collection, Dict, Any, Mapping
 
 import numpy as np
 from toolz import first, valmap, dissoc, merge, itemmap
@@ -29,6 +29,7 @@ from gluonts.itertools import (
 )
 
 from ._base import Pad, TimeBase
+from ._freq import Freq
 from ._period import Periods, Period, period
 from ._repr import html_table
 from ._util import AxisView, pad_axis, _replace
@@ -90,6 +91,8 @@ class TimeFrame(TimeBase):
 
         if isinstance(idx, int) or isinstance(subtype, int):
             return self.iloc[idx]
+
+        assert isinstance(idx, str)
 
         return TimeSeries(
             self.columns[idx],
@@ -349,9 +352,9 @@ class TimeFrame(TimeBase):
         )
 
         return BatchTimeFrame(
-            columns=rows_to_columns(pluck("columns"), np.stack),
+            columns=rows_to_columns(pluck("columns"), np.stack),  # type: ignore
             index=pluck("index"),
-            static=rows_to_columns(pluck("static"), np.stack),
+            static=rows_to_columns(pluck("static"), np.stack),  # type: ignore
             length=ref.length,
             tdims=tdims,
             metadata=pluck("metadata"),
@@ -433,16 +436,16 @@ class BatchTimeFrameItems:
 
 
 def time_frame(
-    columns: Optional[Dict[str, Collection]] = None,
+    columns: Optional[Mapping[str, Collection]] = None,
     *,
     index: Optional[Periods] = None,
     start: Optional[Union[Period, str]] = None,
-    freq: Optional[str] = None,
-    static: Optional[Dict[str, Any]] = None,
-    tdims: Optional[Dict[str, int]] = None,
+    freq: Optional[Union[str, Freq]] = None,
+    static: Optional[Mapping[str, Any]] = None,
+    tdims: Optional[Mapping[str, int]] = None,
     length: Optional[int] = None,
     default_tdim: int = -1,
-    metadata: Optional[Dict] = None,
+    metadata: Optional[Mapping] = None,
 ):
     """Create a ``zebras.TimeFrame`` object that represents one
     or more time series.
@@ -503,14 +506,16 @@ def time_frame(
         columns=columns,
         index=index,
         static=static,
-        tdims=tdims,
+        tdims=cast(dict, tdims),
         length=length,
         default_tdim=default_tdim,
-        metadata=metadata,
+        metadata=cast(Optional[dict], metadata),
     )
     if tf.index is None and start is not None:
         if freq is not None:
             start = period(start, freq)
+        else:
+            assert isinstance(start, Period)
 
         return tf.with_index(start.periods(len(tf)))
 

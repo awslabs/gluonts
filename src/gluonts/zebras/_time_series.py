@@ -265,6 +265,8 @@ def time_series(
     if ts.index is None and start is not None:
         if freq is not None:
             start = period(start, freq)
+        else:
+            assert isinstance(start, Period)
 
         return ts.with_index(start.periods(len(ts)))
 

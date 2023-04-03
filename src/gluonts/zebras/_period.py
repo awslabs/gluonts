@@ -372,22 +372,27 @@ def period(
     else:
         raise ValueError(f"Unknown frequency type {type(freq)}.")
 
-    if isinstance(data, Period):
-        data = data.data
+    data_: Any
 
-    if isinstance(data, str):
-        data = du_parse(
+    if isinstance(data, Period):
+        data_ = data.data
+
+    elif isinstance(data, str):
+        data_ = du_parse(
             data,
             default=datetime.datetime(1970, 1, 1),
             ignoretz=True,
         )
+    else:
+        # TODO: should we add a check?
+        data_ = data
 
     if freq.name == "W":
-        period = Period(np.datetime64(data, freq.np_freq), freq)
+        period = Period(np.datetime64(data_, freq.np_freq), freq)
         period.data -= cast(int, period.dayofweek)
         return period
 
-    return Period(np.datetime64(data, freq.np_freq), freq)
+    return Period(np.datetime64(data_, freq.np_freq), freq)
 
 
 def periods(

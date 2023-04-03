@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Optional, NamedTuple, Union
+from typing import Any, Optional, NamedTuple, Union
 from typing_extensions import Literal
 
 
@@ -71,7 +71,15 @@ class TimeView:
 
 
 class TimeBase:
+    index: Any
+
     def _slice_tdim(self, idx):
+        raise NotImplementedError
+
+    def __len__(self):
+        raise NotImplementedError
+
+    def pad(self, value, left: int = 0, right: int = 0) -> TimeBase:
         raise NotImplementedError
 
     @property
@@ -139,6 +147,8 @@ class TimeBase:
         return self.index.index_of(period)
 
     def __getitem__(self, idx: Union[slice, int, str]):
+        subtype: Optional[int]
+
         if isinstance(idx, int):
             subtype = idx
         else:

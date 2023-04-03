@@ -197,10 +197,10 @@ class SplitFrame:
         pluck = pluck_attr(split_frames)
 
         return BatchSplitFrame(
-            _past=rows_to_columns(pluck("_past"), np.stack),
-            _future=rows_to_columns(pluck("_future"), np.stack),
+            _past=rows_to_columns(pluck("_past"), np.stack),  # type: ignore
+            _future=rows_to_columns(pluck("_future"), np.stack),  # type: ignore
             index=pluck("index"),
-            static=rows_to_columns(pluck("static"), np.stack),
+            static=rows_to_columns(pluck("static"), np.stack),  # type: ignore
             past_length=ref.past_length,
             future_length=ref.future_length,
             tdims=ref.tdims,

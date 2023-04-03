@@ -53,7 +53,7 @@ def batch(xs: list):
     )
     ty = types.pop()
     assert ty in set(
-        Batchable.__constraints__
+        Batchable.__constraints__  # type: ignore
     ), f"Unsupported type: '{ty.__name__}'"
 
-    return ty._batch(xs)
+    return ty._batch(xs)  # type: ignore

@@ -182,7 +182,7 @@ class Schema:
         start: Optional[Union[Period, str]] = None,
         freq: Optional[Union[Freq, str]] = None,
     ) -> SplitFrame:
-        past_fields, full_fields = partition(
+        past_fields, full_fields = partition(  # type: ignore
             self.columns.items(), lambda item: item[1].past_only
         )
         past = {
