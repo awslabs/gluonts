@@ -201,6 +201,46 @@ dataset_recipes = {
         generate_uber_dataset, uber_freq="Hourly", prediction_length=24
     ),
     "airpassengers": partial(generate_airpassengers_dataset),
+    "australian_electricity_demand": partial(
+        generate_forecasting_dataset,
+        dataset_name="australian_electricity_demand",
+    ),
+    "electricity_hourly": partial(
+        generate_forecasting_dataset,
+        dataset_name="electricity_hourly",
+    ),
+    "electricity_weekly": partial(
+        generate_forecasting_dataset,
+        dataset_name="electricity_weekly",
+    ),
+    "rideshare_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="rideshare_without_missing",
+    ),
+    "saugeenday": partial(
+        generate_forecasting_dataset,
+        dataset_name="saugeenday",
+    ),
+    "solar_10_minutes": partial(
+        generate_forecasting_dataset,
+        dataset_name="solar_10_minutes",
+    ),
+    "solar_weekly": partial(
+        generate_forecasting_dataset,
+        dataset_name="solar_weekly",
+    ),
+    "sunspot_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="sunspot_without_missing",
+    ),
+    "temperature_rain_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="temperature_rain_without_missing",
+    ),
+    "vehicle_trips_without_missing": partial(
+        generate_forecasting_dataset,
+        dataset_name="vehicle_trips_without_missing",
+    ),
 }
 
 
