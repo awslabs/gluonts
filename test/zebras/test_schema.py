@@ -21,20 +21,18 @@ import zebras as zb
 schema = zb.Schema(
     {
         "target": zb.Field(ndim=1, tdim=0, past_only=True),
-        "time_feat": zb.Field(
-            ndim=2, tdim=-1, past_only=True, preprocess=np.atleast_2d
-        ),
-        "static": zb.Field(ndim=1, preprocess=np.atleast_1d),
+        "time_feat": zb.Field(ndim=2, tdim=-1, preprocess=np.atleast_2d),
+        "static_feat": zb.Field(ndim=1, preprocess=np.atleast_1d),
     }
 )
 
 
 def test_schema_timeframe():
     xs = [1, 2, 3, 4, 5]
-    row = {"target": xs, "time_feat": xs, "static": 1}
+    row = {"target": xs, "time_feat": xs, "static_feat": 1}
     schema.load_timeframe(row)
 
-    row = {"target": xs, "time_feat": [xs, xs], "static": [1]}
+    row = {"target": xs, "time_feat": [xs, xs], "static_feat": [1]}
     schema.load_timeframe(row)
 
 
@@ -46,4 +44,25 @@ def test_schema_timeframe_missing():
         schema.load_timeframe({})
 
     with pytest.raises(Exception):
+        schema.load_timeframe(row)
+
+
+def test_schema_slitframe():
+    short = [1, 2, 3, 4, 5]
+    long = [1, 2, 3, 4, 5, 6, 7, 8]
+    row = {"target": short, "time_feat": long, "static_feat": 1}
+    schema.load_splitframe(row)
+
+    row = {"target": short, "time_feat": [long, long], "static_feat": [1]}
+    schema.load_splitframe(row)
+
+
+def test_schema_splitframe_error():
+    xs = [1, 2, 3, 4, 5]
+
+    with pytest.raises(Exception):
+        schema.load_splitframe({})
+
+    with pytest.raises(Exception):
+        row = {"target": xs, "time_feat": xs}
         schema.load_timeframe(row)

@@ -129,7 +129,11 @@ class Schema:
         )
 
     def load_splitframe(
-        self, data: dict, future_length: int, start=None, freq=None
+        self,
+        data: dict,
+        future_length: Optional[int] = None,
+        start=None,
+        freq=None,
     ):
         past_fields, full_fields = partition(
             self.columns.items(), lambda item: item[1].past_only
