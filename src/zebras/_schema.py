@@ -13,15 +13,39 @@
 
 
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Optional, Union, Type, Dict
 
 import numpy as np
 from toolz import valfilter
 
 from gluonts.itertools import partition
 
-from ._timeframe import time_frame
-from ._split_frame import split_frame
+from ._freq import Freq
+from ._period import Period
+from ._timeframe import time_frame, TimeFrame
+from ._split_frame import split_frame, SplitFrame
+
+"""
+This module provides tooling to extract ``zebras.TimeFrame`` and
+``zebras.SplitFrame`` instances from Python dictionaries::
+
+    schema = zebras.Schema(...)
+    tf = schema.load_timeframe(raw_dict)
+
+    sf = schema.load_splitframe(raw_dict)
+
+The idea is to define expected types and shapes for each field (column) using
+``zebras.Field`` and then wrap them in a ``zebras.Schema``:
+
+    schema = zebras.Schema({
+        "target": Field(ndim=1, tdim=0, past_only=True),
+        "time_feat": zebras.Field(ndim=2, tdim=-1),
+        "static_feat": zebras.Field(ndim=1),
+
+    })
+
+See the documentation of ``Field`` on how to configure the columns of a schema.
+"""
 
 
 @dataclass
@@ -45,8 +69,8 @@ class Field:
         the past range when loading ``zebras.SplitFrame``. The value is ignored
         for static fields.
     required
-        When set, the field has to be in the user data. Otherwise ``default``
-        is used as a fallback value.
+        When set to true, the field has to be in the user data. Otherwise
+        ``default`` is used as a fallback value.
     internal
         Allows to ignore user provided data when set, and instead ``default``
         is always used as the value.
@@ -55,7 +79,7 @@ class Field:
         set to true.
     preprocess, optional
         This function is called on the value before validating the value. For
-        example, one can set ``preprocess = np.astleast_2d`` to also allow
+        example, one can set ``preprocess = np.atleast_2d`` to also allow
         one dimensional arrays as input even when ``ndim = 2``.
     """
 
@@ -68,15 +92,23 @@ class Field:
     default: Any = None
     preprocess: Optional[Callable] = None
 
-    def validate(self, value):
+    def validate(self, value: Any, name: str) -> np.ndarray:
         value = np.array(value, dtype=self.dtype)
 
         if self.ndim is not None:
-            assert value.ndim == self.ndim
+            assert value.ndim == self.ndim, (
+                f"Field {name} has incorrect number of dimensions. "
+                f"Expected ndim = {self.ndim}, got: {value.ndim}"
+            )
 
         return value
 
-    def load_from(self, dct, name):
+    def load_from(self, dct: dict, name: str) -> np.ndarray:
+        """Load field ``name`` from ``dct`` and apply validation.
+
+        Note: We do the lookup of the value in this function, since the field
+        can be optional.
+        """
         if self.internal:
             value = self.default
 
@@ -92,30 +124,45 @@ class Field:
         if self.preprocess is not None:
             return self.preprocess(value)
 
-        value = self.validate(value)
+        value = self.validate(value, name)
 
         return value
 
 
+Fields = Dict[str, Field]
+
+
 @dataclass
 class Schema:
-    fields: dict
+    fields: Fields
 
     @property
-    def static(self):
+    def static(self) -> Fields:
+        """Return only fields that are static (where ``tdim`` is ``None``)."""
         return valfilter(lambda field: field.tdim is None, self.fields)
 
     @property
-    def columns(self):
+    def columns(self) -> Fields:
+        """Return time series fields (where ``tdim`` is defined)."""
+
         return valfilter(lambda field: field.tdim is not None, self.fields)
 
-    def _load_static(self, data):
+    def _load_static(self, data: Dict[str, Any]) -> Dict[str, np.ndarray]:
+        """Helper to load static data from ``data``.
+
+        Used by ``load_timeframe`` and ``load_splitframe``.
+        """
         return {
             name: field.load_from(data, name)
             for name, field in self.static.items()
         }
 
-    def load_timeframe(self, data: dict, start=None, freq=None):
+    def load_timeframe(
+        self,
+        data: Dict[str, Any],
+        start: Optional[Union[Period, str]] = None,
+        freq: Optional[Union[Freq, str]] = None,
+    ) -> TimeFrame:
         columns = {
             name: field.load_from(data, name)
             for name, field in self.columns.items()
@@ -130,11 +177,11 @@ class Schema:
 
     def load_splitframe(
         self,
-        data: dict,
+        data: Dict[str, Any],
         future_length: Optional[int] = None,
-        start=None,
-        freq=None,
-    ):
+        start: Optional[Union[Period, str]] = None,
+        freq: Optional[Union[Freq, str]] = None,
+    ) -> SplitFrame:
         past_fields, full_fields = partition(
             self.columns.items(), lambda item: item[1].past_only
         )
