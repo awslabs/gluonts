@@ -65,6 +65,16 @@ def _orjson():
         "dump": dump,
         "bdump": bdump,
         "bdumps": orjson.dumps,
+        },
+    )
+    return {
+        "variant": "orjson",
+        "load": load,
+        "loads": orjson.loads,
+        "dumps": dumps,
+        "dump": dump,
+        "bdump": bdump,
+        "bdumps": orjson.dumps,
     }
 
 
