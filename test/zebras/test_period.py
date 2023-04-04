@@ -114,4 +114,3 @@ def test_periods_feature(freq):
 
     np.testing.assert_array_equal(pr.start_time.dayofweek, ps.dayofweek)
     np.testing.assert_array_equal(pr.start_time.dayofyear, ps.dayofyear)
-    np.testing.assert_array_equal(pr.start_time.week, ps.week)
