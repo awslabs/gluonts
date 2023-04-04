@@ -42,6 +42,12 @@ except ImportError as e:
 else:
     RPY2_IS_INSTALLED = True
 
+fourier_frequency_low_periods = 4
+fourier_ratio_threshold_low_periods = 18
+fourier_frequency_high_periods = 52
+fourier_ratio_threshold_high_periods = 2
+fourier_order = 4
+
 USAGE_MESSAGE = """
 The RForecastPredictor is a thin wrapper for calling the R forecast package.
 In order to use it you need to install R and rpy2. You also need to install \
@@ -318,6 +324,29 @@ class RBasePredictor(RepresentablePredictor):
         """
         self._warning_message()
 
+        len_ts = len(dataset[0]['target'])
+        freq = dataset[0]['start'].freq
+        period = get_seasonality(freq)
+
+        fourier_ratio = len_ts / period
+        fourier = False
+        if ((period > fourier_frequency_low_periods and fourier_ratio > fourier_ratio_threshold_low_periods) or
+                (period >= fourier_frequency_high_periods and fourier_ratio > fourier_ratio_threshold_high_periods)):
+            fourier = True
+            K = min(fourier_order, np.floor(period / 2))
+            xreg_full = []
+            for k in range(1, K + 1):
+                xreg_full.append(np.sin(2 * np.pi * k / period * np.arange(1, len_ts + self.prediction_length + 1)))
+                xreg_full.append(np.cos(2 * np.pi * k / period * np.arange(1, len_ts + self.prediction_length + 1)))
+            xreg_full = np.transpose(np.array(xreg_full, dtype=np.float32))
+            xreg = xreg_full[:-self.prediction_length, :]
+            xreg_future = xreg_full[-self.prediction_length:, :]
+
+        if self.method_name == 'arima' and fourier:
+            self.params["seasonal"] = False
+            self.params["xreg"] = xreg
+            self.params["xreg_future"] = xreg_future
+
         for data in dataset:
             # print(f"currently processing {data['item_id']}")
             data = self._preprocess_data(data=data)
@@ -326,7 +355,6 @@ class RBasePredictor(RepresentablePredictor):
                 num_samples=num_samples,
                 intervals=intervals,
             )
-
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )
