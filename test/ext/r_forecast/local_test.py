@@ -4,9 +4,6 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path[0] = '/Users/linmen/Desktop/gluonts/src'
-sys.path = [i for i in sys.path if 'autogluon' not in i]
-
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.evaluation import Evaluator, backtest_metrics, make_evaluation_predictions
 from gluonts.model.predictor import ParallelizedPredictor
