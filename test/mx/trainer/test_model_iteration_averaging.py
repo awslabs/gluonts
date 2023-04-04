@@ -35,7 +35,7 @@ def initialize_model() -> nn.HybridBlock:
     prediction_length = 24
     freq = "1H"
     custom_dataset = np.zeros(shape=(N, T))
-    start = pd.Timestamp(
+    start = pd.Period(
         "01-01-2019", freq=freq
     )  # can be different for each time series
     train_ds = ListDataset(
