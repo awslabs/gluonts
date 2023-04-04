@@ -24,8 +24,8 @@ from . import RBasePredictor
 
 R_FILE_PREFIX = "univariate"
 
-UNIVARIATE_SAMPLE_FORECAST_METHODS = ["ets", "arima"]
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar"]
+UNIVARIATE_SAMPLE_FORECAST_METHODS = []
+UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "ets", "arima"]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
     UNIVARIATE_SAMPLE_FORECAST_METHODS
@@ -233,7 +233,6 @@ class RForecastPredictor(RBasePredictor):
                 )
             else:
                 samples = np.array(forecast_dict["samples"])
-                quantiles = forecast_dict["quantiles"]
 
             expected_shape = (
                 num_samples,
@@ -242,13 +241,10 @@ class RForecastPredictor(RBasePredictor):
             assert (
                 samples.shape == expected_shape
             ), f"Expected shape {expected_shape} but found {samples.shape}"
-            print(f"samples is {samples}")
-            print(f"quantiles is {quantiles}")
 
             return SampleForecast(
                 samples,
                 start_date=forecast_start_date,
-                quantiles = quantiles,
                 info=info,
                 item_id=item_id,
             )
