@@ -316,11 +316,11 @@ class RBasePredictor(RepresentablePredictor):
 
         """
         self._warning_message()
-
+        print(f"params is {self.params}")
         for data in dataset:
 
             if self.method_name == 'arima':
-                target_len = len(data['target'])
+                target_len = data['target'].shape[0]
                 freq = data['start'].freq
                 self.params = fourier_time_features(target_len, freq, self.prediction_length)(self.params)
 
