@@ -24,8 +24,8 @@ from . import RBasePredictor
 
 R_FILE_PREFIX = "univariate"
 
-UNIVARIATE_SAMPLE_FORECAST_METHODS = ["ets", "arima"]
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar"]
+UNIVARIATE_SAMPLE_FORECAST_METHODS = []
+UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "ets", "arima"]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
     UNIVARIATE_SAMPLE_FORECAST_METHODS
@@ -105,7 +105,7 @@ class RForecastPredictor(RBasePredictor):
     def get_levels(self, quantiles: List[float]): ## code_diff
         percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
         levels = [
-            int(percentage_level * 100) for percentage_level in percentage_levels
+            round(percentage_level * 100) for percentage_level in percentage_levels
         ]
         return sorted(zip(levels, quantiles))
 
@@ -140,21 +140,21 @@ class RForecastPredictor(RBasePredictor):
             # convenience of asserting and debugging.
             upper_quantiles = [
                 str(from_interval_to_level(interval, side="upper"))
-                for interval in params["levels"]
+                for interval in params["intervals"]
             ]
 
             lower_quantiles = [
                 str(from_interval_to_level(interval, side="lower"))
-                for interval in params["levels"]
+                for interval in params["intervals"]
             ]
 
             # Median forecasts would be available at two places:
             # Lower 0 and Higher 0 (0-prediction interval)
             forecast_dict["quantiles"] = dict(
                 zip(
-                    lower_quantiles + upper_quantiles[1:],
+                    lower_quantiles + upper_quantiles,
                     forecast_dict["lower_quantiles"]
-                    + forecast_dict["upper_quantiles"][1:],
+                    + forecast_dict["upper_quantiles"],
                 )
             )
 
@@ -184,9 +184,11 @@ class RForecastPredictor(RBasePredictor):
             params["output_types"] = ["quantiles", "mean"]
             if intervals is None:
                 # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
-                params["intervals"] = list(range(0, 100, 10))
+                # intervals = [*set(list(range(0, 100, 10)) + self.params['levels'])]  
+                # params["intervals"] = np.sort(intervals).tolist()
+                params["intervals"] = np.sort(self.params['levels']).tolist()
             else:
-                params["intervals"] = np.sort(intervals).tolist()
+                params["intervals"] = np.sort(intervals + self.params['levels']).tolist()
 
         return params
 
