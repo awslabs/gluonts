@@ -98,7 +98,24 @@ class RForecastPredictor(RBasePredictor):
         if params is not None:
             self.params.update(params)
 
+        if "quantiles" in params["output_types"]:
+            levels_info = self.get_levels(params["quantiles"])
+            params["levels"] = [level for level, quantile in levels_info]
+
+    def get_levels(self, quantiles: List[float]): ## code_diff
+        percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
+        levels = [
+            int(percentage_level * 100) for percentage_level in percentage_levels
+        ]
+        return sorted(zip(levels, quantiles))
+
     def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
+
+        # converts np.array to matrix/vector in r, only when fourier is used. numpy2ri should not be activated for any other cases
+        if "xreg" in params:    
+            import rpy2.robjects.numpy2ri
+            rpy2.robjects.numpy2ri.activate()
+
         make_ts = self._stats_pkg.ts
         r_params = self._robjects.vectors.ListVector(params)
         vec = self._robjects.FloatVector(data["target"])
@@ -123,12 +140,12 @@ class RForecastPredictor(RBasePredictor):
             # convenience of asserting and debugging.
             upper_quantiles = [
                 str(from_interval_to_level(interval, side="upper"))
-                for interval in params["intervals"]
+                for interval in params["levels"]
             ]
 
             lower_quantiles = [
                 str(from_interval_to_level(interval, side="lower"))
-                for interval in params["intervals"]
+                for interval in params["levels"]
             ]
 
             # Median forecasts would be available at two places:
