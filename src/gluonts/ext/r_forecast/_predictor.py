@@ -23,8 +23,7 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.time_feature import get_seasonality
-
+from gluonts.time_feature import get_seasonality, fourier_time_features
 # https://stackoverflow.com/questions/25329955/check-if-r-is-installed-from-python
 from subprocess import Popen, PIPE
 
@@ -319,13 +318,18 @@ class RBasePredictor(RepresentablePredictor):
         self._warning_message()
 
         for data in dataset:
+
+            if self.method_name == 'arima':
+                target_len = len(data['target'])
+                freq = data['start'].freq
+                self.params = fourier_time_features(target_len, freq, self.prediction_length)(self.params)
+
             data = self._preprocess_data(data=data)
             params = self._override_params(
                 params=self.params.copy(),
                 num_samples=num_samples,
                 intervals=intervals,
             )
-
             forecast_dict, console_output = self._run_r_forecast(
                 data, params, save_info=save_info
             )

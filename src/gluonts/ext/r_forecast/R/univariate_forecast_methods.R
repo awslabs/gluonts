@@ -3,15 +3,22 @@ loadNamespace("forecast")
 handleForecast <- function(model, params) {
     outputs = list()
     output_types = params$output_types
+
+    if (("xreg_future" %in% names(params)) & ("xreg" %in% names(model))) {
+    regressor_future = params$xreg_future
+    } else {
+    regressor_future = NULL
+    }
     if ("samples" %in% output_types) {
-        outputs$samples <- lapply(1:params$num_samples, function(n) { simulate(model, params$prediction_length) } )
+        outputs$samples <- lapply(1:params$num_samples, function(n) { simulate(model, params$prediction_length, xreg = regressor_future)})
     }
     if("quantiles" %in% output_types) {
-        f_matrix <- forecast::forecast(model, h=params$prediction_length, level=unlist(params$levels))$upper
-        outputs$quantiles <- split(f_matrix, col(f_matrix))
+        f_matrix <- forecast::forecast(model, h=params$prediction_length, xreg = regressor_future, level=unlist(params$levels))
+        outputs$upper_quantiles <- split(f_matrix$upper, col(f_matrix$upper))
+        outputs$lower_quantiles <- split(f_matrix$lower, col(f_matrix$lower))
     }
     if("mean" %in% output_types) {
-        outputs$mean <- forecast::forecast(model, h=params$prediction_length)$mean
+        outputs$mean <- forecast::forecast(model, h=params$prediction_length, xreg = regressor_future)$mean 
     }
     outputs
 }
@@ -52,12 +59,17 @@ handlePointForecast <- function(forecasts, params) {
 
 
 arima <- function(ts, params) {
+    if ('xreg' %in% names(params)) {
+    model <- forecast::auto.arima(ts, trace=TRUE, xreg = params$xreg, seasonal = params$seasonal)
+    } else {
     model <- forecast::auto.arima(ts, trace=TRUE)
+    }
     handleForecast(model, params)
 }
 
 ets <- function(ts, params) {
-    model <- forecast::ets(ts, additive.only=TRUE)
+
+    model <- forecast::ets(ts, additive.only=TRUE) 
     handleForecast(model, params)
 }
 
