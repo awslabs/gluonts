@@ -92,8 +92,8 @@ def sine7():
         Y = S @ b
 
         # Indices and timestamps
-        index = pd.date_range(
-            start=pd.Timestamp("2020-01-01", freq="D"),
+        index = pd.period_range(
+            start=pd.Period("2020-01-01", freq="D"),
             periods=Y.shape[1],
             freq="D",
         )
