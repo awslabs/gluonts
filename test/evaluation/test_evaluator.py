@@ -94,11 +94,7 @@ def calculate_metrics(
     samples = []  # list of forecast samples
     start_dates = []  # start date of the prediction range
     for i in range(num_timeseries):
-        ts_start_dates.append(
-            pd.Period(
-                pd.Timestamp(year=2018, month=1, day=1, hour=1), freq=freq
-            )
-        )
+        ts_start_dates.append(pd.Period("2018-01-01 01:00:00", freq=freq))
         index = pd.period_range(
             ts_start_dates[i], periods=num_timestamps, freq=freq
         )
