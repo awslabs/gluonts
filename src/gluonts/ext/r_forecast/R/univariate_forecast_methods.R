@@ -13,7 +13,7 @@ handleForecast <- function(model, params) {
         outputs$samples <- lapply(1:params$num_samples, function(n) { simulate(model, params$prediction_length, xreg = regressor_future)})
     }
     if("quantiles" %in% output_types) {
-        f_matrix <- forecast::forecast(model, h=params$prediction_length, xreg = regressor_future, level=unlist(params$levels))
+        f_matrix <- forecast::forecast(model, h=params$prediction_length, xreg = regressor_future, level=unlist(params$intervals))
         outputs$upper_quantiles <- split(f_matrix$upper, col(f_matrix$upper))
         outputs$lower_quantiles <- split(f_matrix$lower, col(f_matrix$lower))
     }
