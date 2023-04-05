@@ -15,7 +15,7 @@ import logging
 
 import pandas as pd
 
-from gluonts.time_feature import norm_freq_str
+import gluonts.time_feature as tf
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 
-    base_seasonality = seasonalities.get(norm_freq_str(offset.name), 1)
+    base_seasonality = seasonalities.get(tf.norm_freq_str(offset.name), 1)
 
     seasonality, remainder = divmod(base_seasonality, offset.n)
     if not remainder:

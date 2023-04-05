@@ -18,7 +18,7 @@ import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 from pydantic import BaseModel
-
+import gluonts.time_feature as tf
 
 TimeFeature = Callable[[pd.PeriodIndex], np.ndarray]
 
@@ -163,6 +163,31 @@ def week_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
         week = index.week
     return week.astype(float).values - 1
 
+class fourier_time_features:
+
+    fourier_frequency_low_periods = 4
+    fourier_ratio_threshold_low_periods = 18
+    fourier_frequency_high_periods = 52
+    fourier_ratio_threshold_high_periods = 2
+    fourier_order = 4
+    def __init__(self, target_len, freq, prediction_length):
+        self.target_len = target_len
+        self.freq = freq
+        self.prediction_length = prediction_length
+    def __call__(self, params):
+        period = tf.get_seasonality(self.freq)
+        fourier_ratio = np.divide(self.target_len, period)
+        lower_cond = period > self.fourier_frequency_low_periods and fourier_ratio > self.fourier_ratio_threshold_low_periods
+        higher_end = period >= self.fourier_frequency_high_periods and fourier_ratio > self.fourier_ratio_threshold_high_periods
+        if lower_cond or higher_end:
+            K = min(self.fourier_order, np.floor(period/2))
+            time_index = np.arange(1, self.target_len + self.prediction_length + 1)
+            discrete_steps = [k * 2.0 * np.pi / period * time_index for k in range(1, K + 1)]
+            xreg = np.transpose(np.vstack([np.sin(discrete_steps), np.cos(discrete_steps)]))
+            fourier_params = {'seasonal': False, 'xreg': xreg[:-self.prediction_length, :], 'xreg_future': xreg[-self.prediction_length:, :]}
+            params.update(fourier_params)
+
+        return params
 
 class Constant(BaseModel):
     """
