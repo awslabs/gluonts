@@ -1,20 +1,34 @@
 loadNamespace("forecast")
 
-handleForecast <- function(model, params) {
+fourier.frequency.low.periods <- 4
+fourier.ratio.threshold.low.periods <- 18
+fourier.frequency.high.periods <- 52
+fourier.ratio.threshold.high.periods <- 2
+fourier.order <- 4
+
+handleForecast <- function(model, params, xreg = NULL) {
+
     outputs = list()
     output_types = params$output_types
+
+    if (!("xreg" %in% names(model))){
+        xreg = NULL
+    }
+
     if ("samples" %in% output_types) {
-        outputs$samples <- lapply(1:params$num_samples, function(n) { simulate(model, params$prediction_length) } )
+        outputs$samples <- lapply(1:params$num_samples, function(n) { simulate(model, params$prediction_length, xreg = xreg) } )
     }
     if("quantiles" %in% output_types) {
-        f_matrix <- forecast::forecast(model, h=params$prediction_length, level=unlist(params$levels))$upper
-        outputs$quantiles <- split(f_matrix, col(f_matrix))
+        f_matrix <- forecast::forecast(model, h=params$prediction_length, xreg = xreg, level=unlist(params$intervals))
+        outputs$upper_quantiles <- split(f_matrix$upper, col(f_matrix$upper))
+        outputs$lower_quantiles <- split(f_matrix$lower, col(f_matrix$lower))
     }
     if("mean" %in% output_types) {
-        outputs$mean <- forecast::forecast(model, h=params$prediction_length)$mean
+        outputs$mean <- forecast::forecast(model, h=params$prediction_length, xreg = xreg)$mean
     }
     outputs
 }
+
 
 handleQuantileForecast <- function(forecasts, params) {
     outputs = list()
@@ -54,6 +68,35 @@ handlePointForecast <- function(forecasts, params) {
 arima <- function(ts, params) {
     model <- forecast::auto.arima(ts, trace=TRUE)
     handleForecast(model, params)
+}
+
+
+fourier.arima <- function(ts, params){
+    period <- frequency(ts)
+    len_ts <- length(ts)
+    fourier_ratio <- len_ts / period
+    if ((period > fourier.frequency.low.periods
+        && fourier_ratio > fourier.ratio.threshold.low.periods)
+        || (period >= fourier.frequency.high.periods
+        && fourier_ratio > fourier.ratio.threshold.high.periods)) {
+        # When the period is high, auto.arima becomes unstable
+        # per Rob's suggestion, we use Fourier series instead
+        # cf. https://robjhyndman.com/hyndsight/longseasonality/
+        params$fourier <- TRUE
+    }
+
+    if(!is.null(params$fourier) && params$fourier == TRUE) {
+        K <- min(fourier.order, floor(frequency(ts) / 2))
+        seasonal <- FALSE
+        xreg <- forecast::fourier(ts, K=K)
+        model <- forecast::auto.arima(ts, seasonal = seasonal, xreg = xreg, trace=TRUE)
+
+        xreg <- forecast::fourier(ts, K=K, h=params$prediction_length)
+        handleForecast(model, params, xreg)
+    } else{
+        model <- forecast::auto.arima(ts, trace=TRUE)
+        handleForecast(model, params)
+    }
 }
 
 ets <- function(ts, params) {
