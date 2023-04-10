@@ -11,6 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import get_dataset, get_download_path
+from gluonts.dataset.repository.datasets import (
+    get_dataset,
+    get_download_path,
+    dataset_names,
+)
 
-__all__ = ["get_dataset", "get_download_path"]
+__all__ = ["get_dataset", "get_download_path", "dataset_names"]
