@@ -24,8 +24,8 @@ from . import RBasePredictor
 
 R_FILE_PREFIX = "univariate"
 
-UNIVARIATE_SAMPLE_FORECAST_METHODS = []
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "ets", "arima", "fourier.arima"]
+UNIVARIATE_SAMPLE_FORECAST_METHODS = ["ets", "arima"]
+UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "fourier.arima"]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
     UNIVARIATE_SAMPLE_FORECAST_METHODS
@@ -98,9 +98,9 @@ class RForecastPredictor(RBasePredictor):
         if params is not None:
             self.params.update(params)
 
-        if "quantiles" in params["output_types"]:
-            levels_info = self.get_levels(params["quantiles"])
-            params["intervals"] = [level for level, quantile in levels_info]
+        if "quantiles" in self.params["output_types"]:
+            levels_info = self.get_levels(self.params["quantiles"])
+            self.params["intervals"] = [level for level, quantile in levels_info]
 
     def get_levels(self, quantiles: List[float]): ## code_diff
         percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
