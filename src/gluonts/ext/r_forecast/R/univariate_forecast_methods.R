@@ -1,11 +1,5 @@
 loadNamespace("forecast")
 
-fourier.frequency.low.periods <- 4
-fourier.ratio.threshold.low.periods <- 18
-fourier.frequency.high.periods <- 52
-fourier.ratio.threshold.high.periods <- 2
-fourier.order <- 4
-
 handleForecast <- function(model, params, xreg = NULL) {
 
     outputs = list()
@@ -72,6 +66,13 @@ arima <- function(ts, params) {
 
 
 fourier.arima <- function(ts, params){
+
+    fourier.frequency.low.periods <- 4
+    fourier.ratio.threshold.low.periods <- 18
+    fourier.frequency.high.periods <- 52
+    fourier.ratio.threshold.high.periods <- 2
+    fourier.order <- 4
+
     period <- frequency(ts)
     len_ts <- length(ts)
     fourier_ratio <- len_ts / period
