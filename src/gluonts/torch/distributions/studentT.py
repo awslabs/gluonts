@@ -67,7 +67,8 @@ class StudentTOutput(DistributionOutput):
     def domain_map(
         cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
     ):
-        scale = F.softplus(scale)
+        epsilon = torch.finfo(scale.dtype).eps
+        scale = F.softplus(scale).clamp_min(epsilon)
         df = 2.0 + F.softplus(df)
         return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
