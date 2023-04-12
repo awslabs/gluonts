@@ -301,14 +301,56 @@ def split_frame(
     future=None,
     past_length=None,
     future_length=None,
-    metadata=None,
     static=None,
+    index=None,
     start=None,
     freq=None,
-    index=None,
     tdims=None,
+    metadata=None,
     default_tdim=-1,
 ):
+    """Create a ``zebras.SplitFrame`` where columns can either be `past`,
+    `future` or `full`, which spans both past and future.
+
+    ``past_length`` and ``future_length`` is derived from the input data if
+    possible or default to ``0`` in case no respective data is available. It is
+    possible to set these values explicitly for enforcing consistency or to
+    provide a length even though no time series spans that range.
+
+    Parameters
+    ----------
+    full, optional
+        Time series columns that span past and future.
+    past, optional
+        Time series columns that are past only.
+    future, optional
+        Time series columns that are future only.
+    past_length, optional
+        Set length of the past section, derived from data if not provided.
+    future_length, optional
+        Set length of the future section, derived from data if not provided.
+    static, optional
+        Values that are independent of time.
+    index, optional
+        A ``zebras.Periods`` object representing timestamps.
+        Must have the same length as full range.
+    start, optional
+        The start time represented by a string (e.g., "2023-01-01"),
+        or a ``zebras.Period`` object. An index will be constructed using
+        this start time and the specified frequency
+    freq, optional
+        The frequency to use for constructing the index.
+    tdims, optional
+        A dictionary specifying the time dimension for each column, this
+        applies to past, future and full.
+    default_tdim, optional
+        The default time dimension, by default -1
+    metadata, optional
+        A dictionary of metadata associated with the TimeFrame, by default None
+    Returns
+    -------
+        A ``zebras.SplitFrame`` object.
+    """
     full = valmap(np.array, maybe.unwrap_or_else(full, dict))
     past = valmap(np.array, maybe.unwrap_or_else(past, dict))
     future = valmap(np.array, maybe.unwrap_or_else(future, dict))

@@ -462,7 +462,7 @@ def time_frame(
     start, optional
         The start time represented by a string (e.g., "2023-01-01"),
         or a ``zebras.Period`` object. An index will be constructed using
-        this start time and the specificed frequency, by default None
+        this start time and the specified frequency, by default None
     freq, optional
         The frequency of the period, e.g, "H" for hourly, by default None
     static, optional
