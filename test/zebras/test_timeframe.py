@@ -15,8 +15,7 @@ import pytest
 
 import numpy as np
 
-from gluonts import zebras as zb
-
+import gluonts.zebras as zb
 
 target = np.arange(10)
 feat = np.arange(20).reshape(2, 10)
@@ -31,11 +30,25 @@ tf = zb.time_frame(
 )
 
 
+def test_time_series():
+    ts = zb.time_series(target, index=index, name="target", metadata={"x": 42})
+    assert len(ts) == len(target)
+    assert (ts == target).all()
+
+    assert len(ts) == 10
+    assert len(ts[:4]) == 4
+    assert len(ts[-4:]) == 4
+
+    assert ts.metadata == {"x": 42}
+    assert ts.name == "target"
+
+
 def test_time_frame():
     assert len(tf) == 10
     assert len(tf[:4]) == 4
     assert len(tf[-4:]) == 4
 
+    assert tf["target"].name == "target"
     assert np.array_equal(tf["target"], target)
     assert np.array_equal(tf["feat"], feat)
 
