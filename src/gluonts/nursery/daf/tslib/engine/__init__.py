@@ -11,10 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
-)
 
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+from .trainer import Trainer
+from .evaluator import Evaluator
+from .hyperopt import HyperOptManager

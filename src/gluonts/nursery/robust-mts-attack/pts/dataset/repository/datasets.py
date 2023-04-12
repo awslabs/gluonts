@@ -11,10 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
-)
+from functools import partial
 
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+from gluonts.dataset.repository.datasets import dataset_recipes
+
+from ._m5 import generate_pts_m5_dataset
+
+dataset_recipes["pts_m5"] = partial(
+    generate_pts_m5_dataset, pandas_freq="D", prediction_length=28
+)

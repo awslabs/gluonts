@@ -11,10 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
-)
 
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+from .timeseries import TimeSeries, TimeSeriesCorpus
+from .windows import WindowsDataset
+from .forecasting import ForecastingDataset
+from .loader import MetaDataset
+
+
+__all__ = [
+    "TimeSeries",
+    "TimeSeriesCorpus",
+    "WindowsDataset",
+    "ForecastingDataset",
+    "MetaDataset",
+]

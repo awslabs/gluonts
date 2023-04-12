@@ -11,10 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
-)
+from pkgutil import extend_path
 
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+from pkg_resources import get_distribution, DistributionNotFound
+
+from .trainer import Trainer, Trainer_adv
+
+__path__ = extend_path(__path__, __name__)  # type: ignore
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = "0.0.0-unknown"

@@ -11,10 +11,5 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
-)
-
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+from .deepar_estimator import DeepAREstimator
+from .deepar_network import DeepARNetwork, DeepARTrainingNetwork

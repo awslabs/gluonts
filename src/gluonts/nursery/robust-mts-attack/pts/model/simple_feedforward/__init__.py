@@ -11,10 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.dataset.repository.datasets import (
-    get_dataset,
-    get_download_path,
-    dataset_names,
+from .simple_feedforward_estimator import SimpleFeedForwardEstimator
+from .simple_feedforward_network import (
+    SimpleFeedForwardTrainingNetwork,
+    SimpleFeedForwardPredictionNetwork,
 )
-
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
