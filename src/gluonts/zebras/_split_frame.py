@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 from operator import itemgetter
 from typing import Optional, List
 
@@ -41,6 +42,13 @@ class SplitFrame:
     metadata: Optional[dict] = None
     default_tdim: int = -1
     _pad: Pad = Pad()
+
+    def __post_init__(self):
+        for column in itertools.chain(self._past, self._future):
+            self.tdims.setdefault(column, self.default_tdim)
+
+        # this triggers checks for past_length and future_length
+        _, _ = self.past, self.future
 
     @property
     def past(self):
@@ -357,39 +365,50 @@ def split_frame(
     static = valmap(np.array, maybe.unwrap_or_else(static, dict))
     tdims = maybe.unwrap_or_else(tdims, dict)
 
-    full_length = None
-
-    if full:
-        column = first(full)
-        full_length = full[column].shape[tdims.get(column, default_tdim)]
-
-    if past:
+    # Resolve `past_length` and `future_length` if not directly set from
+    # provided data. If no data is passed for either field, the value is still
+    # `None` after this.
+    if past_length is None and past:
         column = first(past)
-        past_length_ = past[column].shape[tdims.get(column, default_tdim)]
+        past_length = past[column].shape[tdims.get(column, default_tdim)]
 
-        assert past_length is None or past_length == past_length_
-        past_length = past_length_
-
-    assert maybe.or_(past_length, future_length) is not None
+    if future_length is None and future:
+        column = first(future)
+        future_length = future[column].shape[tdims.get(column, default_tdim)]
 
     if full:
         column = first(full)
         full_length = full[column].shape[tdims.get(column, default_tdim)]
 
-        assert full_length is None or full_length == full_length
-        full_length = full_length
+        if maybe.or_(past_length, future_length) is None:
+            raise ValueError(
+                "Cannot determine past and future length if only "
+                "`full` is provided."
+            )
+    # No data and no lengths are passed
+    elif maybe.or_(past_length, future_length) is None:
+        past_length = 0
+        future_length = 0
+        full_length = 0
+    else:
+        # If past_length and/or future_length is provided, but no `full` data
+        # is given, then we first resolve past and future length and then just
+        # calculate full_length later.
+        full_length = None
 
-    if maybe.and_(past_length, future_length) is not None:
-        if full_length is not None:
-            assert full_length == past_length + future_length
-    elif past_length is not None:
-        assert full_length is not None
-
-        future_length = full_length - past_length
-    elif future_length is not None:
-        assert full_length is not None
-
-        past_length = full_length - future_length
+    if past_length is None:
+        past_length = maybe.map_or(
+            full_length,
+            lambda fl: fl - future_length,
+            0,
+        )
+    elif future_length is None:
+        future_length = maybe.map_or(
+            full_length,
+            lambda fl: fl - past_length,
+            0,
+        )
+    full_length = past_length + future_length
 
     # create copies to not mutate user provided dicts
     past = dict(past)
@@ -397,7 +416,7 @@ def split_frame(
 
     for name, data in full.items():
         tdim = tdims.get(name, default_tdim)
-        assert data.shape[tdim] == past_length + future_length
+        assert data.shape[tdim] == full_length
 
         past_data, future_data = np.split(data, [past_length], axis=tdim)
         past[name] = past_data

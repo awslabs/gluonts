@@ -133,6 +133,9 @@ class BatchTimeSeries(TimeBase):
     _pad: List[Pad]
 
     def _slice_tdim(self, idx):
+        if isinstance(idx, int):
+            return AxisView(self.values, self.tdim)[idx]
+
         start, stop, step = idx.indices(len(self))
         assert step == 1
 

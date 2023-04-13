@@ -400,7 +400,7 @@ class BatchTimeFrame:
             index=self.index,
             tdim=self.tdims[name],
             metadata=self.metadata,
-            name=name,
+            name=[name] * self.batch_size,
             _pad=self._pad,
         )
 
