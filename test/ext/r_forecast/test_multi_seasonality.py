@@ -19,7 +19,6 @@ from gluonts.dataset.common import ListDataset
 from gluonts.ext.r_forecast import RForecastPredictor
 from gluonts.evaluation import Evaluator, backtest_metrics, make_evaluation_predictions
 
-
 freq = 'H'
 period = 24
 
@@ -36,7 +35,6 @@ dataset = ListDataset(
     freq=freq,
 )
 params = dict(freq=freq, prediction_length=24*7, period=period, params={"quantiles": [0.50, 0.10, 0.90], "output_types": ["samples", "mean", "quantiles"]})
-
 
 @pytest.mark.parametrize(
     "method",
@@ -67,7 +65,6 @@ def test_arima(method: str):
     agg_metrics, _ = Evaluator(quantiles=[0.1, 0.5, 0.9])(tss, forecasts)
     assert isinstance(agg_metrics, dict)
     assert "MAPE" in agg_metrics.keys()
-
 
 def compare_arimas():
 
