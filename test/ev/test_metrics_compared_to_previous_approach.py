@@ -35,6 +35,8 @@ from gluonts.ev import (
     MAPE,
     MASE,
     MSE,
+    MALE,
+    MSLE,
     MSIS,
     SMAPE,
     Coverage,
@@ -45,6 +47,8 @@ from gluonts.ev import (
     ND,
     NRMSE,
     RMSE,
+    EMALE,
+    ERMSLE,
     MAECoverage,
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
@@ -158,6 +162,8 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         *(SumQuantileLoss(q=quantile.value) for quantile in quantiles),
         mean_absolute_label,
         MSE(),
+        MALE(),
+        MSLE(),
         MASE(),
         MAPE(),
         SMAPE(),
@@ -168,6 +174,8 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         RMSE(),
         NRMSE(),
         ND(),
+        EMALE(),
+        ERMSLE(),
         *(WeightedSumQuantileLoss(q=quantile.value) for quantile in quantiles),
         MeanSumQuantileLoss([quantile.value for quantile in quantiles]),
         MeanWeightedSumQuantileLoss(
@@ -237,10 +245,18 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         "MAE_Coverage": aggregated_metrics["MAE_coverage"],
     }
 
-    for metric_name in ["MSE", "MASE", "MAPE", "sMAPE", "MSIS"]:
+    for metric_name in [
+        "MSE",
+        "MALE",
+        "MSLE",
+        "MASE",
+        "MAPE",
+        "sMAPE",
+        "MSIS",
+    ]:
         all_metrics[metric_name] = np.ma.mean(item_metrics[metric_name])
 
-    for metric_name in ["RMSE", "NRMSE", "ND", "OWA"]:
+    for metric_name in ["RMSE", "NRMSE", "ND", "EMALE", "ERMSLE", "OWA"]:
         all_metrics[metric_name] = aggregated_metrics[metric_name]
 
     return all_metrics

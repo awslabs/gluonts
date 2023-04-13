@@ -42,10 +42,12 @@ from .metrics import (
     abs_target_sum,
     calculate_seasonal_error,
     coverage,
+    male,
     mape,
     mase,
     mse,
     msis,
+    msle,
     quantile_loss,
     smape,
 )
@@ -400,6 +402,8 @@ class Evaluator:
             if mean_fcst is not None
             else None,
             "abs_error": abs_error(pred_target, median_fcst),
+            "MALE": male(pred_target, median_fcst),
+            "MSLE": msle(pred_target, median_fcst),
             "abs_target_sum": abs_target_sum(pred_target),
             "abs_target_mean": abs_target_mean(pred_target),
             "seasonal_error": seasonal_error,
@@ -479,6 +483,8 @@ class Evaluator:
         agg_funs = {
             "MSE": "mean",
             "abs_error": "sum",
+            "MALE": "mean",
+            "MSLE": "mean",
             "abs_target_sum": "sum",
             "abs_target_mean": "mean",
             "seasonal_error": "mean",
@@ -512,6 +518,8 @@ class Evaluator:
         totals["RMSE"] = np.sqrt(totals["MSE"])
         totals["NRMSE"] = totals["RMSE"] / totals["abs_target_mean"]
         totals["ND"] = totals["abs_error"] / totals["abs_target_sum"]
+        totals["EMALE"] = np.exp(totals["MALE"])
+        totals["ERMSLE"] = np.exp(np.sqrt(totals["MSLE"]))
 
         for quantile in self.quantiles:
             totals[f"wQuantileLoss[{quantile}]"] = (

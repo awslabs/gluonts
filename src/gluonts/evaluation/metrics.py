@@ -72,6 +72,24 @@ def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
     return np.sum(np.abs(target - forecast))
 
 
+def male(target: np.ndarray, forecast: np.ndarray) -> float:
+    r"""
+    .. math::
+
+        male = mean(|\log(Y / \hat{Y})|)
+    """
+    return np.mean(np.abs(np.log(target / forecast)))
+
+
+def msle(target: np.ndarray, forecast: np.ndarray) -> float:
+    r"""
+    .. math::
+
+        msle = mean(\log(Y / \hat{Y})^2)
+    """
+    return np.mean(np.square(np.log(target / forecast)))
+
+
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
     r"""
     .. math::
