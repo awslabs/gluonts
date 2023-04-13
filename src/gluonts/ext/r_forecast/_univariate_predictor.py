@@ -92,16 +92,18 @@ class RForecastPredictor(RBasePredictor):
         self._r_method = self._robjects.r[method_name]
         self.params = {
             "prediction_length": self.prediction_length,
-            "output_types": ["samples"],
+            "output_types": ["samples"] if method_name in UNIVARIATE_SAMPLE_FORECAST_METHODS else ["quantiles"] if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS else ["mean"],
             "frequency": self.period,
         }
+        params["output_types"] = list(params["output_types"] if "output_types" in params else list()) + self.params["output_types"]
+
         if params is not None:
             self.params.update(params)
 
         if "quantiles" in self.params["output_types"]:
             levels_info = self.get_levels(self.params["quantiles"])
             self.params["intervals"] = [level for level, quantile in levels_info]
-
+        
     def get_levels(self, quantiles: List[float]): ## code_diff
         percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
         levels = [
@@ -179,9 +181,9 @@ class RForecastPredictor(RBasePredictor):
             params["output_types"] = ["quantiles", "mean"]
             if intervals is None:
                 # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05, and other quantiles provided as inputs
-                intervals = [*set(list(range(0, 100, 10)) + self.params['intervals'])] 
+                intervals = [*set(list(range(0, 100, 10)) + self.params['intervals'] if "intervals" in self.params else list())] 
             else:
-                intervals = [*set(intervals + self.params['intervals'])] 
+                intervals = [*set(intervals + self.params['intervals'] if "intervals" in self.params else list())] 
             params["intervals"] = np.sort(intervals).tolist() 
 
         return params
