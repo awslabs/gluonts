@@ -34,6 +34,7 @@ def test_time_series():
     ts = zb.time_series(target, index=index, name="target", metadata={"x": 42})
     assert len(ts) == len(target)
     assert (ts == target).all()
+    assert ts.tdim
 
     assert len(ts) == 10
     assert len(ts[:4]) == 4
@@ -47,6 +48,7 @@ def test_time_frame():
     assert len(tf) == 10
     assert len(tf[:4]) == 4
     assert len(tf[-4:]) == 4
+    assert tf.tdims
 
     assert tf["target"].name == "target"
     assert np.array_equal(tf["target"], target)
@@ -60,12 +62,14 @@ def test_time_frame():
     assert "target" not in tf2.columns
     assert "feat" not in tf2.columns
     assert tf2.metadata == {"x": 42}
+    assert tf2.tdims
 
     tf3 = tf.like({"foo": np.full(10, 7)})
     assert tf3.columns["foo"].shape == (10,)
     assert "target" not in tf3.columns
     assert "feat" not in tf3.columns
     assert tf3.metadata == {"x": 42}
+    assert tf3.tdims
 
 
 @pytest.mark.parametrize("split_index", [4, -6, index[4]])
@@ -75,6 +79,7 @@ def test_time_frame_split(split_index):
     assert len(sf.past) == 4
     assert len(sf.future) == 6
     assert sf.metadata == {"x": 42}
+    assert sf.tdims
 
     sf = tf.split(split_index, past_length=2, future_length=2)
     assert len(sf) == 4
@@ -82,12 +87,14 @@ def test_time_frame_split(split_index):
     assert len(sf.future) == 2
     assert np.array_equal(tf.static, sf.static)
     assert sf.metadata == {"x": 42}
+    assert sf.tdims
 
     sf = tf.split(split_index, past_length=5, future_length=8)
     assert len(sf.past) == 5
     assert len(sf.future) == 8
     assert np.array_equal(tf.static, sf.static)
     assert sf.metadata == {"x": 42}
+    assert sf.tdims
 
 
 def test_time_frame_resize():
@@ -131,3 +138,21 @@ def test_split_frame_resize():
 
     assert sf2.past["target"][0] == 4
     assert sf2.future["target"][0] == 5
+
+
+def test_split_frame_empty():
+    sf = zb.split_frame()
+
+    assert len(sf) == 0
+    assert len(sf.past) == 0
+    assert len(sf.future) == 0
+
+    sf = zb.split_frame(past={"x": [1, 2, 3]})
+    assert len(sf) == 3
+    assert len(sf.past) == 3
+    assert len(sf.future) == 0
+
+    sf = zb.split_frame(future={"x": [1, 2, 3]})
+    assert len(sf) == 3
+    assert len(sf.past) == 0
+    assert len(sf.future) == 3
