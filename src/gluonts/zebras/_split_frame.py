@@ -48,8 +48,7 @@ class SplitFrame:
             self.tdims.setdefault(column, self.default_tdim)
 
         # this triggers checks for past_length and future_length
-        self.past
-        self.future
+        _, _ = self.past, self.future
 
     @property
     def past(self):
@@ -392,6 +391,9 @@ def split_frame(
         future_length = 0
         full_length = 0
     else:
+        # If past_length and/or future_length is provided, but no `full` data
+        # is given, then we first resolve past and future length and then just
+        # calculate full_length later.
         full_length = None
 
     if past_length is None:
