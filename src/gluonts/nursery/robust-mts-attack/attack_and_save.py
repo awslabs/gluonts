@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 import pickle
 import numpy as np
 import os
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 from attack_modules.attack_var import Attack
 from datasets import DATASETS, get_dataset
 from utils import (

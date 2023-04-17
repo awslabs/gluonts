@@ -20,7 +20,7 @@ import pytest
 from gluonts.dataset.common import FileDataset
 from gluonts.dataset.arrow import ArrowWriter, ParquetWriter
 from gluonts.dataset.jsonl import JsonLinesWriter
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7), reason="Requires PyArrow v8.")
