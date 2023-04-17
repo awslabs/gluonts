@@ -106,7 +106,7 @@ def evaluate_forecasts_raw(
     - ``None`` (default) aggregates across all dimensions
     - ``0`` aggregates across the dataset
     - ``1`` aggregates across the first data dimension (time, in the univariate setting)
-    - ``2`` aggregates across the target dimension (time, in the multivariate setting)
+    - ``2`` aggregates across the second data dimension (time, in the multivariate setting)
 
     Return results as a dictionary.
     """
@@ -177,7 +177,7 @@ def evaluate_forecasts(
     - ``None`` (default) aggregates across all dimensions
     - ``0`` aggregates across the dataset
     - ``1`` aggregates across the first data dimension (time, in the univariate setting)
-    - ``2`` aggregates across the target dimension (time, in the multivariate setting)
+    - ``2`` aggregates across the second data dimension (time, in the multivariate setting)
 
     Return results as a Pandas ``DataFrame``.
     """
@@ -229,7 +229,7 @@ def evaluate_model(
     - ``None`` (default) aggregates across all dimensions
     - ``0`` aggregates across the dataset
     - ``1`` aggregates across the first data dimension (time, in the univariate setting)
-    - ``2`` aggregates across the target dimension (time, in the multivariate setting)
+    - ``2`` aggregates across the second data dimension (time, in the multivariate setting)
 
     Return results as a Pandas ``DataFrame``.
     """
