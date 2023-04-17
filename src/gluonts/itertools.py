@@ -338,7 +338,7 @@ def roundrobin(*iterables):
 
 
 def partition(
-    it: Iterator[T], fn: Callable[[T], bool]
+    it: Iterable[T], fn: Callable[[T], bool]
 ) -> Tuple[List[T], List[T]]:
     """
     Partition `it` into two lists given predicate `fn`.
