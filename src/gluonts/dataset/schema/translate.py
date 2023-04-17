@@ -128,7 +128,7 @@ class TokenStream:
         "PAREN_OPEN": one_of("[("),
         "PARAN_CLOSE": one_of("])"),
         "NUMBER": r"\-?\d+",
-        "NAME": r"\w+",
+        "NAME": r"(?:\w|#)+",
         "WHITESPACE": r"\s+",
         "INVALID": r".+",
     }

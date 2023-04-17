@@ -211,7 +211,7 @@ class TimeFrame(TimeBase):
 
         try:
             index = Periods.from_pandas(df.index)
-        except Exception as err:
+        except Exception:
             index = None
 
         return cls(
