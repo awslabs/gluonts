@@ -13,7 +13,6 @@
 
 from datetime import datetime
 from distutils.util import strtobool
-import multiprocessing as mp
 from types import SimpleNamespace
 from typing import Dict
 
@@ -113,7 +112,7 @@ class TSFReader:
             assert self.target_name not in self.meta.columns
             self.meta.columns[self.target_name] = None
 
-            data = self._read_data_section(lines)
+            data = list(map(self._read_data, lines))
 
             return self.meta, data
 
@@ -126,10 +125,6 @@ class TSFReader:
                 return True
 
         return False
-
-    def _read_data_section(self, lines):
-        with mp.Pool() as pool:
-            return pool.map(self._read_data, lines)
 
     def _read_data(self, line):
         parts = line.split(":")
