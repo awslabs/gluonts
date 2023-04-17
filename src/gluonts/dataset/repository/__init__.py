@@ -13,8 +13,8 @@
 
 from gluonts.dataset.repository.datasets import (
     get_dataset,
-    get_download_path,
+    default_dataset_path,
     dataset_names,
 )
 
-__all__ = ["get_dataset", "get_download_path", "dataset_names"]
+__all__ = ["get_dataset", "default_dataset_path", "dataset_names"]
