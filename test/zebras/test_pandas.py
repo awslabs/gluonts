@@ -20,14 +20,18 @@ from pandas.tseries.frequencies import to_offset
 import gluonts.zebras as zb
 
 
+@pytest.mark.parametrize("from_pandas", [zb.from_pandas, zb.Freq.from_pandas])
 @pytest.mark.parametrize("n", [1, 2, 3])
 @pytest.mark.parametrize("freq", ["H", "D", "W"])
-def test_pandas_freq(n, freq):
+def test_pandas_freq(from_pandas, n, freq):
     pd_freq = to_offset(f"{n} {freq}")
-    assert to_offset(str(zb.Freq.from_pandas(pd_freq))) == pd_freq
+    assert to_offset(str(from_pandas(pd_freq))) == pd_freq
 
 
-def test_pandas_dataframe():
+@pytest.mark.parametrize(
+    "from_pandas", [zb.from_pandas, zb.TimeFrame.from_pandas]
+)
+def test_pandas_dataframe(from_pandas):
     df = pd.DataFrame(
         {"x": [1, 2, 3]},
         index=pd.date_range(start="2020", periods=3, freq="H"),
