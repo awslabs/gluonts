@@ -15,7 +15,7 @@
 This example show how to intialize the network with parameters from a model that was previously trained.
 """
 
-from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
+from gluonts.dataset.repository import get_dataset, dataset_recipes
 from gluonts.evaluation import backtest_metrics, Evaluator
 from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
