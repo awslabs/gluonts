@@ -23,7 +23,7 @@ from pathlib import Path
 
 import tarfile
 from gluonts.dataset.common import Dataset, load_datasets
-from gluonts.dataset.repository.datasets import (
+from gluonts.dataset.repository import (
     default_dataset_path,
 )
 

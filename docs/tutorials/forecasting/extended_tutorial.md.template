@@ -37,13 +37,13 @@ GluonTS comes with a number of available datasets.
 
 
 ```python
-from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
+from gluonts.dataset.repository import get_dataset, dataset_names
 from gluonts.dataset.util import to_pandas
 ```
 
 
 ```python
-print(f"Available datasets: {list(dataset_recipes.keys())}")
+print(f"Available datasets: {dataset_names}")
 ```
 
 To download one of the built-in datasets, simply call `get_dataset` with one of the above names. GluonTS can re-use the saved dataset so that it does not need to be downloaded again the next time around.
