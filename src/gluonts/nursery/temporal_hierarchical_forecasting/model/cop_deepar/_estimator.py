@@ -33,7 +33,6 @@ from gluonts.mx.distribution import GaussianOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
-from gluonts.itertools import maybe_len
 from gluonts.mx.util import copy_parameters
 from gluonts.time_feature import (
     get_lags_for_frequency,
@@ -271,10 +270,9 @@ class COPDeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self.base_estimator._create_instance_splitter(
-                "training"
-            )
+        instance_splitter = self.base_estimator._create_instance_splitter(
+            "training"
+        )
 
         return TrainDataLoader(
             dataset=data,
@@ -294,10 +292,9 @@ class COPDeepAREstimator(GluonEstimator):
         **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
-        with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self.base_estimator._create_instance_splitter(
-                "validation"
-            )
+        instance_splitter = self.base_estimator._create_instance_splitter(
+            "validation"
+        )
         return ValidationDataLoader(
             dataset=data,
             transform=instance_splitter
