@@ -344,8 +344,8 @@ class TimeFrame(TimeBase):
     def rolsplit(
         self,
         index,
-        distance: int = 1,
         *,
+        distance: int = 1,
         past_length: Optional[int] = None,
         future_length: Optional[int] = None,
         n: Optional[int] = None,
