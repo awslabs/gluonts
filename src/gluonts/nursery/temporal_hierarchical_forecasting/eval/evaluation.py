@@ -23,6 +23,7 @@ from gluonts.nursery.temporal_hierarchical_forecasting.utils.gluonts_helper impo
 def evaluate_predictor(
     predictor: Predictor,
     test_dataset: Dataset,
+    freq: str,
     metrics: List[str] = ["mean_wQuantileLoss"],
     evaluate_all_levels: bool = False,
 ):
@@ -55,11 +56,11 @@ def evaluate_predictor(
         forecast_at_all_levels_it=forecast_it,
         test_ts_at_all_levels_it=get_ts_at_all_levels(
             ts_it=test_ts_it,
-            temporal_hierarchy=TEMPORAL_HIERARCHIES[predictor.freq],
+            temporal_hierarchy=TEMPORAL_HIERARCHIES[freq],
             prediction_length=predictor.prediction_length,
-            target_temporal_hierarchy=TEMPORAL_HIERARCHIES[predictor.freq],
+            target_temporal_hierarchy=TEMPORAL_HIERARCHIES[freq],
         ),
-        temporal_hierarchy=TEMPORAL_HIERARCHIES[predictor.freq],
+        temporal_hierarchy=TEMPORAL_HIERARCHIES[freq],
         evaluator=evaluator,
         metrics=metrics,
     )

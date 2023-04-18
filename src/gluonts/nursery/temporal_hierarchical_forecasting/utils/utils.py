@@ -230,7 +230,7 @@ def unpack_forecasts(
     temporal_hierarchy: TemporalHierarchy,
     target_temporal_hierarchy: TemporalHierarchy,
     num_samples: int = 100,
-) -> [Iterator[SampleForecast], Iterator[pd.Series]]:
+) -> Iterator[SampleForecast]:
     """
 
     :param forecast_at_all_levels_it:
@@ -262,13 +262,15 @@ def unpack_forecasts(
         ):
             end_ix = start_ix + num_nodes
 
-            forecast_start_date = forecast.start_date
+            forecast_start_date = pd.Period(
+                str(forecast.start_date),
+                freq=(agg_multiple * forecast.start_date.freq).freqstr,
+            )
             agg_forecast = SampleForecast(
                 samples=samples_at_all_levels[..., start_ix:end_ix].reshape(
                     num_samples, -1
                 ),
                 start_date=forecast_start_date,
-                freq=(agg_multiple * forecast.start_date.freq).freqstr,
                 item_id=forecast.item_id,
                 info=forecast.info,
             )
@@ -305,7 +307,7 @@ def get_ts_at_all_levels(
                 # For example if you aggregate 5-minutes data, that starts at 00:10, to hourly then the index of hourly
                 # data will be 00:10, 01:10, 02:10, ...
                 agg_ts_start_date = ts.index[0]
-                agg_ts_index = pd.date_range(
+                agg_ts_index = pd.period_range(
                     start=agg_ts_start_date,
                     periods=len(agg_ts_values),
                     freq=(agg_multiple * ts.index[0].freq).freqstr,
