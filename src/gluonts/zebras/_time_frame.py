@@ -204,6 +204,24 @@ class TimeFrame(TimeBase):
 
         return "\n".join(html)
 
+    @classmethod
+    def from_pandas(cls, df):
+        """Turn ``pandas.DataFrame`` into ``TimeFrame``."""
+        import pandas as pd
+
+        try:
+            index = Periods.from_pandas(df.index)
+        except Exception:
+            index = None
+
+        return cls(
+            columns=valmap(pd.Series.to_numpy, dict(df.items())),
+            index=index,
+            static=None,
+            length=len(df),
+            tdims={name: -1 for name in df.columns},
+        )
+
     def set(self, name, value, tdim=None):
         assert name not in self.static
 
