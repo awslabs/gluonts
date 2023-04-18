@@ -178,3 +178,15 @@ def test_split_frame_empty():
     assert len(sf) == 3
     assert len(sf.past) == 0
     assert len(sf.future) == 3
+
+
+def test_rename():
+    tf2 = tf.rename({"a": "target"}, b="feat")
+
+    assert tf2.columns.keys() == {"a", "b"}
+
+    tf2 = tf.rename_static({"x": "static"})
+    assert tf2.static.keys() == {"x"}
+
+    tf2 = tf.rename_static(x="static")
+    assert tf2.static.keys() == {"x"}

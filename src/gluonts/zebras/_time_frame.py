@@ -267,6 +267,32 @@ class TimeFrame(TimeBase):
 
         return _replace(self, columns=columns, static=static)
 
+    def rename(self, mapping=None, **kwargs):
+        if mapping is None:
+            mapping = {}
+        mapping.update(kwargs)
+
+        columns = dict(self.columns)
+        tdims = dict(self.tdims)
+
+        for target, source in mapping.items():
+            columns[target] = columns.pop(source)
+            tdims[target] = tdims.pop(source)
+
+        return _replace(self, columns=columns, tdims=tdims)
+
+    def rename_static(self, mapping=None, **kwargs):
+        if mapping is None:
+            mapping = {}
+        mapping.update(kwargs)
+
+        static = dict(self.static)
+
+        for target, source in mapping.items():
+            static[target] = static.pop(source)
+
+        return _replace(self, static=static)
+
     def stack(
         self,
         select: List[str],
