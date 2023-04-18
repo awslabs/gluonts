@@ -315,7 +315,7 @@ class Periods(_BasePeriod):
             )
 
         idx = (period - self.start).astype(int) // self.freq.step
-        assert 0 <= idx < len(self), idx
+        assert 0 <= idx <= len(self), idx
 
         return idx
 

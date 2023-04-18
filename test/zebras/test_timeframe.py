@@ -103,11 +103,20 @@ def test_time_frame_split_out_of_bounds():
     assert len(tf.split(0).past) == 0
     assert len(tf.split(len(tf)).future) == 0
 
+    assert len(tf.split(tf.index.start).past) == 0
+    assert len(tf.split(tf.index.start + len(tf)).future) == 0
+
     with pytest.raises(ValueError):
         tf.split(len(tf) + 1)
 
+    with pytest.raises(Exception):
+        tf.split(tf.index.start + len(tf) + 1)
+
     with pytest.raises(ValueError):
         tf.split(-(len(tf) + 1))
+
+    with pytest.raises(Exception):
+        tf.split(tf.index.start - 1)
 
 
 def test_time_frame_resize():
