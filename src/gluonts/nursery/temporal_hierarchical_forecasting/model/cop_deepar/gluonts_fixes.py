@@ -74,11 +74,9 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
     `InferenceDataLoader` in the `predict` function.
     """
 
-    BlockType = mx.gluon.HybridBlock
-
     def __init__(
         self,
-        prediction_net: BlockType,
+        prediction_net: mx.gluon.HybridBlock,
         batch_size: int,
         prediction_length: int,
         freq: str,

@@ -136,7 +136,7 @@ class DeepAREstimatorForCOP(DeepAREstimator):
             dtype=dtype,
         )
         self.freq = freq
-        self.history_length = (
+        self.history_length: int = (
             history_length
             if history_length is not None
             else self.history_length

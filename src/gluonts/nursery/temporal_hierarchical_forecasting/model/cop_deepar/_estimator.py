@@ -109,7 +109,7 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
 
     @staticmethod
     def _get_time_features_agg_level(
-        forecast_start: str,
+        forecast_start: pd.Period,
         past_length_bottom_ts: int,
         agg_estimator: GluonEstimator,
     ) -> Tuple[np.ndarray, np.ndarray]:

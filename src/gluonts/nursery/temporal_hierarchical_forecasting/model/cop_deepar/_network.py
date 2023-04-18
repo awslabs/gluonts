@@ -248,7 +248,7 @@ class COPNetwork(mx.gluon.HybridBlock):
         scales: List,
     ) -> Distribution:
         distr_output = self.models[0].distr_output
-        distr_args_at_all_levels = {
+        distr_args_at_all_levels: Dict = {
             arg_name: [] for arg_name in distr_output.args_dim.keys()
         }
         scales_ls = []
@@ -369,7 +369,7 @@ class COPDeepARTrainingNetwork(COPNetwork):
         """
 
         if self.point_forecasts:
-            fixed_stds_at_all_levels_ls = []
+            fixed_stds_at_all_levels_ls: List = []
         embeddings_at_all_levels_ls = []
         target_at_all_levels_ls = []
         scale_ls = []
