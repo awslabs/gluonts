@@ -1,14 +1,12 @@
 from functools import partial
-from typing import Callable, Iterator, List, Optional, cast, Dict, Tuple
+from typing import Callable, Iterator, List, Optional
 from pathlib import Path
 
 import mxnet as mx
-from gluonts.mx.distribution.bijection import AffineTransformation
-from mxnet import gluon
 import numpy as np
 
 
-from gluonts.core.component import Type, validated
+from gluonts.core.component import Type
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
 from gluonts.mx.model.deepar import DeepAREstimator
@@ -21,16 +19,7 @@ from gluonts.model.forecast_generator import (
 )
 from gluonts.mx import Tensor
 from gluonts.mx.batchify import stack
-from gluonts.mx.distribution import (
-    DistributionOutput,
-    EmpiricalDistribution,
-    PiecewiseLinear,
-)
-from gluonts.mx.distribution.distribution_output import ArgProj
-from gluonts.mx.distribution.piecewise_linear import (
-    PiecewiseLinearOutput,
-    TransformedPiecewiseLinear,
-)
+from gluonts.mx.distribution import EmpiricalDistribution
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
 from gluonts.mx.util import import_repr_block
@@ -180,63 +169,6 @@ def create_prediction_network(
     )
 
 
-class ArgProjFixed(ArgProj):
-    def __init__(
-        self,
-        args_dim: Dict[str, int],
-        domain_map: Callable[..., Tuple[Tensor]],
-        dtype: Type = np.float32,
-        prefix: Optional[str] = None,
-        non_negative: bool = False,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            args_dim=args_dim,
-            domain_map=domain_map,
-            dtype=dtype,
-            prefix=prefix,
-            **kwargs,
-        )
-        self.non_negative = non_negative
-
-    # noinspection PyMethodOverriding,PyPep8Naming
-    def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
-        params_unbounded = [proj(x) for proj in self.proj]
-
-        # change: passed along `kwargs`
-        return self.domain_map(*params_unbounded, self.non_negative)
-
-
-class PiecewiseLinearOutputFixed(PiecewiseLinearOutput):
-    def get_args_proj(
-        self, non_negative: bool = False, prefix: Optional[str] = None
-    ) -> gluon.HybridBlock:
-        # change: call our own version of `ArgProj`.
-        return ArgProjFixed(
-            args_dim=self.args_dim,
-            domain_map=gluon.nn.HybridLambda(self.domain_map),
-            prefix=prefix,
-            dtype=self.dtype,
-            non_negative=non_negative,
-        )
-
-    @classmethod
-    def domain_map(
-        cls, F, gamma, slopes, knot_spacings, non_negative: bool = False
-    ):
-        # slopes of the pieces are non-negative
-        slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
-
-        # the spacing between the knots should be in [0, 1] and sum to 1
-        knot_spacings_proj = F.softmax(knot_spacings)
-
-        # change: non-negative check.
-        if non_negative:
-            gamma = F.Activation(data=gamma, act_type="softrelu")
-
-        return gamma.squeeze(axis=-1), slopes_proj, knot_spacings_proj
-
-
 class EmpiricalDistributionWithPointMetrics(EmpiricalDistribution):
     def mse(self, x: Tensor) -> Tensor:
         r"""
@@ -280,136 +212,3 @@ class EmpiricalDistributionWithPointMetrics(EmpiricalDistribution):
             return self.crps_univariate(x=x)
         else:
             return self.mse(x=x)
-
-
-# Gluonts `PiecewiseLinear` should have this implemented already.
-class PiecewiseLinearWithSampling(PiecewiseLinear):
-    def sample_rep(
-        self, num_samples: Optional[int] = None, dtype=float
-    ) -> Tensor:
-        return self.sample(num_samples=num_samples, dtype=dtype)
-
-
-class PiecewiseLinearVector(PiecewiseLinearWithSampling):
-    r"""
-    Piecewise linear distribution.
-
-    This class represents d-independent *quantile functions* (i.e., the inverse CDFs)
-    associated with some underlying distributions, as a continuous, non-decreasing,
-    piecewise linear functions defined in the [0, 1] interval:
-
-    .. math::
-        q(x; \gamma, b, d) = \gamma + \sum_{l=0}^L b_l (x_l - d_l)_+
-
-    where the input :math:`x \in [0,1]` and the parameters are
-
-    - :math:`\gamma`: intercept at 0
-    - :math:`b`: differences of the slopes in consecutive pieces
-    - :math:`d`: knot positions
-
-    Parameters
-    ----------
-    gamma
-        Tensor containing the intercepts at zero
-    slopes
-        Tensor containing the slopes of each linear piece.
-        All coefficients must be positive.
-        Shape: ``(*gamma.shape, num_pieces)``
-    knot_spacings
-        Tensor containing the spacings between knots in the splines.
-        All coefficients must be positive and sum to one on the last axis.
-        Shape: ``(*gamma.shape, num_pieces)``
-    F
-    """
-
-    is_reparameterizable = False
-
-    @validated()
-    def __init__(
-        self, gamma: Tensor, slopes: Tensor, knot_spacings: Tensor
-    ) -> None:
-        self.gamma = gamma
-        self.slopes = slopes.reshape(gamma.shape + (-1,))
-        self.knot_spacings = knot_spacings.reshape(gamma.shape + (-1,))
-
-        # Since most of the calculations are easily expressed in the original parameters, we transform the
-        # learned parameters back
-        self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
-            self.F, self.slopes, self.knot_spacings
-        )
-
-    def event_shape(self) -> Tuple:
-        return self.gamma.shape[-1:]
-
-    @property
-    def event_dim(self) -> int:
-        return 1
-
-
-class PiecewiseLinearVectorOutput(DistributionOutput):
-    distr_cls: type = PiecewiseLinearVector
-
-    @validated()
-    def __init__(self, num_pieces: int, dim: int) -> None:
-        super().__init__(self)
-        self.dim = dim
-
-        assert (
-            isinstance(num_pieces, int) and num_pieces > 1
-        ), "num_pieces should be an integer larger than 1"
-
-        self.num_pieces = num_pieces
-        self.args_dim = cast(
-            Dict[str, int],
-            {
-                "gamma": dim,
-                "slopes": dim * num_pieces,
-                "knot_spacings": dim * num_pieces,
-            },
-        )
-
-    @classmethod
-    def domain_map(
-        cls, F, gamma, slopes, knot_spacings, non_negative: bool = False
-    ):
-        # slopes of the pieces are non-negative
-        slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
-
-        # the spacing between the knots should be in [0, 1] and sum to 1
-        knot_spacings_proj = F.softmax(knot_spacings)
-
-        # change: non-negative check.
-        if non_negative:
-            gamma = F.Activation(data=gamma, act_type="softrelu")
-
-        return gamma, slopes_proj, knot_spacings_proj
-
-    def get_args_proj(
-        self, non_negative: bool = False, prefix: Optional[str] = None
-    ) -> gluon.HybridBlock:
-        # change: call our own version of `ArgProj`.
-        return ArgProjFixed(
-            args_dim=self.args_dim,
-            domain_map=gluon.nn.HybridLambda(self.domain_map),
-            prefix=prefix,
-            dtype=self.dtype,
-            non_negative=non_negative,
-        )
-
-    def distribution(
-        self,
-        distr_args,
-        loc: Optional[Tensor] = None,
-        scale: Optional[Tensor] = None,
-    ) -> PiecewiseLinear:
-        if scale is None:
-            return self.distr_cls(*distr_args)
-        else:
-            distr = self.distr_cls(*distr_args)
-            return TransformedPiecewiseLinear(
-                distr, [AffineTransformation(loc=loc, scale=scale)]
-            )
-
-    @property
-    def event_shape(self) -> Tuple:
-        return (self.dim,)
