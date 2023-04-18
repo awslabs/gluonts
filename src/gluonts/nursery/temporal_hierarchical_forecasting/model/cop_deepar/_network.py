@@ -77,7 +77,6 @@ class COPNetwork(mx.gluon.HybridBlock):
         naive_reconciliation: bool = False,
         prediction: bool = False,
         loss_function: str = "crps_univariate",
-        point_forecasts: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -90,7 +89,6 @@ class COPNetwork(mx.gluon.HybridBlock):
         self.do_reconciliation = do_reconciliation
         self.non_negative = non_negative
         self.loss_function = loss_function
-        self.point_forecasts = point_forecasts
         self.dtype = dtype
 
         A = constraint_mat(self.temporal_hierarchy.agg_mat)
@@ -603,10 +601,8 @@ class COPDeepARPredictionNetwork(COPNetwork):
             distr = model.distr_output.distribution(distr_args, scale=scale)
 
             # (batch_size * num_samples, 1, *target_shape)
-            if self.point_forecasts:
-                new_samples = distr.mean
-            else:
-                new_samples = distr.sample(dtype=self.dtype)
+
+            new_samples = distr.sample(dtype=self.dtype)
 
             # (batch_size * num_samples, seq_len, *target_shape)
             past_target = F.concat(past_target, new_samples, dim=1)

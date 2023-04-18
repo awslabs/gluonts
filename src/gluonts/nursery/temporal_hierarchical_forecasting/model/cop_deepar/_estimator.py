@@ -60,13 +60,6 @@ from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar._network
 )
 
 
-class GaussianFixedVarianceOutput(GaussianOutput):
-    @classmethod
-    def domain_map(cls, F, mu, sigma):
-        sigma = 1e-3 * F.ones_like(sigma)
-        return mu.squeeze(axis=-1), sigma.squeeze(axis=-1)
-
-
 class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
     @validated()
     def __init__(
@@ -178,7 +171,6 @@ class COPDeepAREstimator(GluonEstimator):
         lag_ub: int = 1200,
         num_samples_for_loss: int = 200,
         return_forecasts_at_all_levels: bool = False,
-        point_forecasts: bool = False,
         naive_reconciliation: bool = False,
         dtype: Type = np.float32,
     ) -> None:
@@ -213,12 +205,7 @@ class COPDeepAREstimator(GluonEstimator):
 
         assert self.base_estimator_type == DeepAREstimatorForCOP
 
-        self.point_forecasts = point_forecasts
-
-        if point_forecasts:
-            assert loss_function == "mse"
-            base_estimator_hps["distr_output"] = GaussianFixedVarianceOutput()
-        elif "distr_output" not in base_estimator_hps:
+        if "distr_output" not in base_estimator_hps:
             base_estimator_hps["distr_output"] = GaussianOutput()
 
         print(f"Distribution output: {base_estimator_hps['distr_output']}")
@@ -338,7 +325,6 @@ class COPDeepAREstimator(GluonEstimator):
             non_negative=self.non_negative,
             naive_reconciliation=self.naive_reconciliation,
             loss_function=self.loss_function,
-            point_forecasts=self.point_forecasts,
             dtype=self.dtype,
         )
 
@@ -360,7 +346,6 @@ class COPDeepAREstimator(GluonEstimator):
             non_negative=self.non_negative,
             naive_reconciliation=self.naive_reconciliation,
             return_forecasts_at_all_levels=self.return_forecasts_at_all_levels,
-            point_forecasts=self.point_forecasts,
             num_parallel_samples=self.base_estimator.num_parallel_samples,
             dtype=self.dtype,
         )
