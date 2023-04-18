@@ -45,24 +45,27 @@ from gluonts.time_feature import (
     get_lags_for_frequency,
     time_features_from_frequency_str,
 )
-from gluonts.transform import SelectFields, SimpleTransformation, Transformation
+from gluonts.transform import (
+    SelectFields,
+    SimpleTransformation,
+    Transformation,
+)
 
-from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar\
-    .gluonts_fixes import (
+from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.gluonts_fixes import (
     batchify_with_dict,
     LOSS_FUNCTIONS,
     RepresentableBlockPredictorBatchifyWithDict,
 )
 from gluonts.nursery.temporal_hierarchical_forecasting.utils.common import (
-    TEMPORAL_HIERARCHIES
+    TEMPORAL_HIERARCHIES,
 )
-from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar\
-    ._network import (
+from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar._network import (
     COPDeepARTrainingNetwork,
     COPDeepARPredictionNetwork,
 )
-from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar \
-    .deepar_fix import DeepAREstimatorForCOP
+from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.deepar_fix import (
+    DeepAREstimatorForCOP,
+)
 
 
 class GaussianFixedVarianceOutput(GaussianOutput):
@@ -73,7 +76,6 @@ class GaussianFixedVarianceOutput(GaussianOutput):
 
 
 class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
-
     @validated()
     def __init__(
         self,
@@ -87,8 +89,13 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
         past_length_bottom_ts = data[f"past_{FieldName.FEAT_TIME}"].shape[1]
 
         agg_features_dict = {}
-        for i, (agg_multiple, agg_estimator) in enumerate(zip(self.agg_multiples, self.agg_estimators)):
-            past_time_feat_agg, future_time_feat_agg = self._get_time_features_agg_level(
+        for i, (agg_multiple, agg_estimator) in enumerate(
+            zip(self.agg_multiples, self.agg_estimators)
+        ):
+            (
+                past_time_feat_agg,
+                future_time_feat_agg,
+            ) = self._get_time_features_agg_level(
                 forecast_start=data[FieldName.FORECAST_START],
                 past_length_bottom_ts=past_length_bottom_ts,
                 agg_estimator=agg_estimator,
@@ -109,7 +116,9 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
         start = forecast_start - past_length_bottom_ts
 
         freq = agg_estimator.freq
-        num_periods = agg_estimator.history_length + agg_estimator.prediction_length
+        num_periods = (
+            agg_estimator.history_length + agg_estimator.prediction_length
+        )
         full_date_range = pd.period_range(
             start,
             periods=num_periods,
@@ -124,11 +133,13 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
             ]
         ).T
 
-        age_feature = np.log10(2.0 + np.arange(num_periods, dtype=agg_estimator.dtype)).reshape((num_periods, 1))
+        age_feature = np.log10(
+            2.0 + np.arange(num_periods, dtype=agg_estimator.dtype)
+        ).reshape((num_periods, 1))
         full_time_feat = np.hstack((full_time_feat, age_feature))
 
-        past_time_feat = full_time_feat[:agg_estimator.history_length, :]
-        future_time_feat = full_time_feat[agg_estimator.history_length:, :]
+        past_time_feat = full_time_feat[: agg_estimator.history_length, :]
+        future_time_feat = full_time_feat[agg_estimator.history_length :, :]
 
         return past_time_feat, future_time_feat
 
@@ -196,8 +207,12 @@ class COPDeepAREstimator(GluonEstimator):
         assert loss_function in LOSS_FUNCTIONS
         self.loss_function = loss_function
 
-        self.context_length = base_estimator_hps.pop("context_length", prediction_length)
-        self.prediction_length = base_estimator_hps.pop("prediction_length", prediction_length)
+        self.context_length = base_estimator_hps.pop(
+            "context_length", prediction_length
+        )
+        self.prediction_length = base_estimator_hps.pop(
+            "prediction_length", prediction_length
+        )
         self.freq = base_estimator_hps.pop("freq", freq)
         self.dtype = dtype
 
@@ -248,7 +263,10 @@ class COPDeepAREstimator(GluonEstimator):
                     prediction_length=self.prediction_length // agg_multiple,
                     **base_estimator_hps_agg,
                     # Load more data at the bottom level so that enough lags are available for the aggregated levels.
-                    history_length=((self.context_length //agg_multiple) + max(lags_seq)) * 2,
+                    history_length=(
+                        (self.context_length // agg_multiple) + max(lags_seq)
+                    )
+                    * 2,
                 )
 
             self.estimators.append(estimator)
@@ -272,13 +290,19 @@ class COPDeepAREstimator(GluonEstimator):
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self.base_estimator._create_instance_splitter("training")
+            instance_splitter = self.base_estimator._create_instance_splitter(
+                "training"
+            )
 
         return TrainDataLoader(
             dataset=data,
-            transform=instance_splitter + self.agg_feature_adder + SelectFields(input_names),
+            transform=instance_splitter
+            + self.agg_feature_adder
+            + SelectFields(input_names),
             batch_size=self.batch_size,
-            stack_fn=partial(batchify_with_dict, ctx=self.trainer.ctx, dtype=self.dtype),
+            stack_fn=partial(
+                batchify_with_dict, ctx=self.trainer.ctx, dtype=self.dtype
+            ),
             **kwargs,
         )
 
@@ -289,12 +313,18 @@ class COPDeepAREstimator(GluonEstimator):
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         with env._let(max_idle_transforms=maybe_len(data) or 0):
-            instance_splitter = self.base_estimator._create_instance_splitter("validation")
+            instance_splitter = self.base_estimator._create_instance_splitter(
+                "validation"
+            )
         return ValidationDataLoader(
             dataset=data,
-            transform=instance_splitter + self.agg_feature_adder + SelectFields(input_names),
+            transform=instance_splitter
+            + self.agg_feature_adder
+            + SelectFields(input_names),
             batch_size=self.batch_size,
-            stack_fn=partial(batchify_with_dict, ctx=self.trainer.ctx, dtype=self.dtype),
+            stack_fn=partial(
+                batchify_with_dict, ctx=self.trainer.ctx, dtype=self.dtype
+            ),
         )
 
     def create_training_network(self) -> COPDeepARTrainingNetwork:
@@ -342,7 +372,9 @@ class COPDeepAREstimator(GluonEstimator):
 
         copy_parameters(trained_network, prediction_network)
         return RepresentableBlockPredictorBatchifyWithDict(
-            input_transform=transformation + prediction_splitter + self.agg_feature_adder,
+            input_transform=transformation
+            + prediction_splitter
+            + self.agg_feature_adder,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
             freq=self.freq,

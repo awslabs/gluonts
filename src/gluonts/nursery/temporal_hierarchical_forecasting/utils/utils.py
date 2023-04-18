@@ -34,7 +34,7 @@ class TemporalHierarchy:
 
     @property
     def _adj_mat(self):
-        '''
+        """
         Adjacency matrix for the temporal hierarchy.
 
         This is created in the following way:
@@ -46,17 +46,21 @@ class TemporalHierarchy:
             * This is made symmetric by adding `adj[t, s] = 1`.
 
         :return:
-        '''
+        """
         num_nodes_running_sum = np.cumsum(self.num_nodes_per_level)
 
         # for 15-min hierarchy: [[1, 2], [3, 4, 5, 6]] (we ignore the root).
         node_ix_level_wise = [
             list(range(i, j))
-            for i, j in zip(num_nodes_running_sum[:-1], num_nodes_running_sum[1:])
+            for i, j in zip(
+                num_nodes_running_sum[:-1], num_nodes_running_sum[1:]
+            )
         ]
 
         dest_ix = []
-        for n, nodes_ix in zip(self.num_nodes_per_level[:-1], node_ix_level_wise):
+        for n, nodes_ix in zip(
+            self.num_nodes_per_level[:-1], node_ix_level_wise
+        ):
             # split `node_ix` list into `n` equal parts;
             # this relies on the definition of temporal hierarchy: equal splits during disaggregation!
             # for 15-min hierarchy: [1, 2] --> [1, 2]; [3, 4, 5, 6] --> [3, 4], [5, 6]
@@ -77,8 +81,9 @@ class TemporalHierarchy:
         mat_accumulate = np.triu(self._adj_mat)
         mat_distribute = np.tril(self._adj_mat)
         col_sums = mat_distribute.sum(axis=0)
-        mat_distribute[:, col_sums > 0] = \
-            mat_distribute[:, col_sums > 0] / mat_distribute[:, col_sums > 0].sum(axis=0, keepdims=True)
+        mat_distribute[:, col_sums > 0] = mat_distribute[
+            :, col_sums > 0
+        ] / mat_distribute[:, col_sums > 0].sum(axis=0, keepdims=True)
         I = np.eye(mat_accumulate.shape[0])
 
         return (mat_accumulate + mat_distribute + I) / 3.0
@@ -91,7 +96,7 @@ class TemporalHierarchy:
             "standard",  # A
             "normalized",  # D^{-1} A, where D is the diagonal matrix of A
             "symmetric_normalized",  # D^{-1/2} A D^{-1/2}, D is the diagonal matrix of A
-            "hierarchical"
+            "hierarchical",
         ]
         if option == "standard":
             return self._adj_mat
@@ -116,11 +121,7 @@ class TemporalHierarchy:
             sqrt_D = np.diag(np.sqrt(A.sum(axis=1)))
             D_inv_sqrt = np.linalg.inv(sqrt_D)
             A_symmetric_normalized = np.matmul(
-                D_inv_sqrt,
-                np.matmul(
-                    A,
-                    D_inv_sqrt
-                )
+                D_inv_sqrt, np.matmul(A, D_inv_sqrt)
             )
             return A_symmetric_normalized
         if option == "symmetric_normalized_with_identity":
@@ -129,11 +130,7 @@ class TemporalHierarchy:
             sqrt_D = np.diag(np.sqrt(A_hat.sum(axis=1)))
             D_inv_sqrt = np.linalg.inv(sqrt_D)
             A_symmetric_normalized_with_identity = np.matmul(
-                D_inv_sqrt,
-                np.matmul(
-                    A_hat,
-                    D_inv_sqrt
-                )
+                D_inv_sqrt, np.matmul(A_hat, D_inv_sqrt)
             )
             return A_symmetric_normalized_with_identity
         if option == "hierarchical":
@@ -232,7 +229,7 @@ def unpack_forecasts(
     forecast_at_all_levels_it: Iterator[SampleForecast],
     temporal_hierarchy: TemporalHierarchy,
     target_temporal_hierarchy: TemporalHierarchy,
-    num_samples: int = 100,    
+    num_samples: int = 100,
 ) -> [Iterator[SampleForecast], Iterator[pd.Series]]:
     """
 
@@ -258,12 +255,18 @@ def unpack_forecasts(
         assert num_samples == forecast.num_samples
 
         start_ix = 0
-        for num_nodes, agg_freq, agg_multiple in zip(num_nodes_per_level, temporal_hierarchy.freq_strs, temporal_hierarchy.agg_multiples):
+        for num_nodes, agg_freq, agg_multiple in zip(
+            num_nodes_per_level,
+            temporal_hierarchy.freq_strs,
+            temporal_hierarchy.agg_multiples,
+        ):
             end_ix = start_ix + num_nodes
 
             forecast_start_date = forecast.start_date
             agg_forecast = SampleForecast(
-                samples=samples_at_all_levels[..., start_ix:end_ix].reshape(num_samples, -1),
+                samples=samples_at_all_levels[..., start_ix:end_ix].reshape(
+                    num_samples, -1
+                ),
                 start_date=forecast_start_date,
                 freq=(agg_multiple * forecast.start_date.freq).freqstr,
                 item_id=forecast.item_id,
@@ -285,14 +288,18 @@ def get_ts_at_all_levels(
     target_temporal_hierarchy: TemporalHierarchy,
 ):
     for ts in ts_it:
-        for agg_freq, agg_multiple in zip(temporal_hierarchy.freq_strs, temporal_hierarchy.agg_multiples):
+        for agg_freq, agg_multiple in zip(
+            temporal_hierarchy.freq_strs, temporal_hierarchy.agg_multiples
+        ):
 
             if agg_multiple in target_temporal_hierarchy.agg_multiples:
                 # We need to align the forecast start date for all aggregation levels.
                 # This is possible if the time series length is multiple of `prediction_length`.
-                ts = ts[- (len(ts) // prediction_length) * prediction_length:]
+                ts = ts[-(len(ts) // prediction_length) * prediction_length :]
 
-                agg_ts_values = ts.values.reshape(len(ts) // agg_multiple, agg_multiple).sum(axis=1)
+                agg_ts_values = ts.values.reshape(
+                    len(ts) // agg_multiple, agg_multiple
+                ).sum(axis=1)
 
                 # Start date is same for the aggregated frequency:
                 # For example if you aggregate 5-minutes data, that starts at 00:10, to hourly then the index of hourly

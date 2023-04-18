@@ -77,7 +77,7 @@ class COPNetwork(mx.gluon.HybridBlock):
         naive_reconciliation: bool = False,
         prediction: bool = False,
         loss_function: str = "crps_univariate",
-        point_forecasts:bool = False,
+        point_forecasts: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -95,7 +95,9 @@ class COPNetwork(mx.gluon.HybridBlock):
 
         A = constraint_mat(self.temporal_hierarchy.agg_mat)
         if naive_reconciliation:
-            M = utils.naive_reconcilation_mat(self.temporal_hierarchy.agg_mat, self.temporal_hierarchy.nodes)
+            M = utils.naive_reconcilation_mat(
+                self.temporal_hierarchy.agg_mat, self.temporal_hierarchy.nodes
+            )
         else:
             M = null_space_projection_mat(A)
         self.M, self.A = mx.nd.array(M), mx.nd.array(A)
@@ -108,7 +110,9 @@ class COPNetwork(mx.gluon.HybridBlock):
                 if not prediction:
                     self.network = estimator.create_training_network()
                 else:
-                    self.network = gluonts_fixes.create_prediction_network(estimator)
+                    self.network = gluonts_fixes.create_prediction_network(
+                        estimator
+                    )
 
                 self.register_child(self.network)
                 self.models.append(self.network)
@@ -119,7 +123,9 @@ class COPNetwork(mx.gluon.HybridBlock):
                     units=self.estimators[0].num_cells,
                     num_layers=len(self.temporal_hierarchy.agg_multiples) - 1,
                     adj_matrix=mx.nd.array(
-                        self.temporal_hierarchy.adj_mat(option=self.adj_mat_option)
+                        self.temporal_hierarchy.adj_mat(
+                            option=self.adj_mat_option
+                        )
                     ),
                     use_mlp=self.use_mlp,
                 )
@@ -147,17 +153,35 @@ class COPNetwork(mx.gluon.HybridBlock):
         agg_multiple = self.temporal_hierarchy.agg_multiples[agg_level]
 
         # Truncating the history length of the base time series to the nearest multiple.
-        base_history_length = (past_target.shape[1] // agg_multiple) * agg_multiple
+        base_history_length = (
+            past_target.shape[1] // agg_multiple
+        ) * agg_multiple
 
-        past_target_agg = utils.agg_series(
-            past_target.slice_axis(axis=1, begin=-base_history_length, end=None),
-            agg_multiple=agg_multiple
-        ).squeeze(axis=-1).slice_axis(axis=1, begin=-self.models[agg_level].history_length, end=None)
+        past_target_agg = (
+            utils.agg_series(
+                past_target.slice_axis(
+                    axis=1, begin=-base_history_length, end=None
+                ),
+                agg_multiple=agg_multiple,
+            )
+            .squeeze(axis=-1)
+            .slice_axis(
+                axis=1, begin=-self.models[agg_level].history_length, end=None
+            )
+        )
 
-        past_is_pad_agg = utils.agg_series(
-            past_is_pad.slice_axis(axis=1, begin=-base_history_length, end=None),
-            agg_multiple=agg_multiple
-        ).squeeze(axis=-1).slice_axis(axis=1, begin=-self.models[agg_level].history_length, end=None)
+        past_is_pad_agg = (
+            utils.agg_series(
+                past_is_pad.slice_axis(
+                    axis=1, begin=-base_history_length, end=None
+                ),
+                agg_multiple=agg_multiple,
+            )
+            .squeeze(axis=-1)
+            .slice_axis(
+                axis=1, begin=-self.models[agg_level].history_length, end=None
+            )
+        )
 
         past_is_pad_agg = mx.nd.where(
             past_is_pad_agg == 0.0,
@@ -165,10 +189,18 @@ class COPNetwork(mx.gluon.HybridBlock):
             mx.nd.ones_like(past_is_pad_agg),
         )
 
-        past_observed_values_agg = utils.agg_series(
-            past_observed_values.slice_axis(axis=1, begin=-base_history_length, end=None),
-            agg_multiple=agg_multiple
-        ).squeeze(axis=-1).slice_axis(axis=1, begin=-self.models[agg_level].history_length, end=None)
+        past_observed_values_agg = (
+            utils.agg_series(
+                past_observed_values.slice_axis(
+                    axis=1, begin=-base_history_length, end=None
+                ),
+                agg_multiple=agg_multiple,
+            )
+            .squeeze(axis=-1)
+            .slice_axis(
+                axis=1, begin=-self.models[agg_level].history_length, end=None
+            )
+        )
 
         past_observed_values_agg = mx.nd.where(
             # We sum observed values of base time series at `agg_multiple` time steps;
@@ -186,7 +218,9 @@ class COPNetwork(mx.gluon.HybridBlock):
             "past_observed_values": past_observed_values_agg,
         }
         if future_target is not None:
-            future_target_agg = utils.agg_series(future_target, agg_multiple=agg_multiple).squeeze(axis=-1)
+            future_target_agg = utils.agg_series(
+                future_target, agg_multiple=agg_multiple
+            ).squeeze(axis=-1)
 
             future_observed_values_agg = utils.agg_series(
                 future_observed_values, agg_multiple=agg_multiple
@@ -215,13 +249,14 @@ class COPNetwork(mx.gluon.HybridBlock):
     ) -> Distribution:
         distr_output = self.models[0].distr_output
         distr_args_at_all_levels = {
-            arg_name: []
-            for arg_name in distr_output.args_dim.keys()
+            arg_name: [] for arg_name in distr_output.args_dim.keys()
         }
         scales_ls = []
 
         start_ix = 0
-        for i, num_nodes in enumerate(self.temporal_hierarchy.num_nodes_per_level):
+        for i, num_nodes in enumerate(
+            self.temporal_hierarchy.num_nodes_per_level
+        ):
             end_ix = start_ix + num_nodes
             distr_args = self.models[i].proj_distr_args(
                 embeddings_at_all_levels[..., start_ix:end_ix, :]
@@ -254,7 +289,7 @@ class COPNetwork(mx.gluon.HybridBlock):
                     slopes=distr_at_all_levels.base_distribution.slopes,
                     knot_spacings=distr_at_all_levels.base_distribution.knot_spacings,
                 ),
-                transforms=distr_at_all_levels.transforms
+                transforms=distr_at_all_levels.transforms,
             )
 
         return distr_at_all_levels
@@ -265,12 +300,16 @@ class COPNetwork(mx.gluon.HybridBlock):
         num_samples: int,
     ):
         if num_samples == 1:
-            samples_at_all_levels = distr_at_all_levels.sample(num_samples=num_samples, dtype=self.dtype)
+            samples_at_all_levels = distr_at_all_levels.sample(
+                num_samples=num_samples, dtype=self.dtype
+            )
 
             # get rid of the redundant axis introduced by `sample`.
             samples_at_all_levels = samples_at_all_levels.squeeze(axis=0)
         else:
-            samples_at_all_levels = distr_at_all_levels.sample_rep(num_samples=num_samples, dtype=self.dtype)
+            samples_at_all_levels = distr_at_all_levels.sample_rep(
+                num_samples=num_samples, dtype=self.dtype
+            )
 
         return samples_at_all_levels
 
@@ -335,21 +374,29 @@ class COPDeepARTrainingNetwork(COPNetwork):
         target_at_all_levels_ls = []
         scale_ls = []
 
-        for i, agg_multiple in enumerate(self.temporal_hierarchy.agg_multiples):
+        for i, agg_multiple in enumerate(
+            self.temporal_hierarchy.agg_multiples
+        ):
             if agg_multiple != 1:
-                past_time_feat_agg = agg_features_dict[f"level_{i}"]["past_time_feat_agg"]
-                future_time_feat_agg = agg_features_dict[f"level_{i}"]["future_time_feat_agg"]
+                past_time_feat_agg = agg_features_dict[f"level_{i}"][
+                    "past_time_feat_agg"
+                ]
+                future_time_feat_agg = agg_features_dict[f"level_{i}"][
+                    "future_time_feat_agg"
+                ]
             else:
                 past_time_feat_agg = past_time_feat
                 future_time_feat_agg = future_time_feat
 
-            target_related_feat_agg = self.get_target_related_feat_at_agg_level(
-                agg_level=i,
-                past_target=past_target,
-                past_is_pad=past_is_pad,
-                past_observed_values=past_observed_values,
-                future_target=future_target,
-                future_observed_values=future_observed_values,
+            target_related_feat_agg = (
+                self.get_target_related_feat_at_agg_level(
+                    agg_level=i,
+                    past_target=past_target,
+                    past_is_pad=past_is_pad,
+                    past_observed_values=past_observed_values,
+                    future_target=future_target,
+                    future_observed_values=future_observed_values,
+                )
             )
 
             rnn_outputs, _, scale, _, _ = self.models[i].unroll_encoder(
@@ -367,7 +414,8 @@ class COPDeepARTrainingNetwork(COPNetwork):
             target = F.concat(
                 target_related_feat_agg["past_target"].slice_axis(
                     axis=1,
-                    begin=self.models[i].history_length - self.models[i].context_length,
+                    begin=self.models[i].history_length
+                    - self.models[i].context_length,
                     end=None,
                 ),
                 target_related_feat_agg["future_target"],
@@ -377,10 +425,20 @@ class COPDeepARTrainingNetwork(COPNetwork):
             # We reconcile blocks/windows of time steps: e.g., if we have 28 values of daily data, then we
             # reconcile 4 windows where each window has a length of 7 if number of leaves in the hierarchy is 7.
             window_size = self.temporal_hierarchy.num_leaves // agg_multiple
-            num_windows = (self.models[i].context_length + self.models[i].prediction_length) // window_size
+            num_windows = (
+                self.models[i].context_length
+                + self.models[i].prediction_length
+            ) // window_size
 
             embeddings_at_all_levels_ls.append(
-                rnn_outputs.reshape((rnn_outputs.shape[0], num_windows, -1, rnn_outputs.shape[-1]))
+                rnn_outputs.reshape(
+                    (
+                        rnn_outputs.shape[0],
+                        num_windows,
+                        -1,
+                        rnn_outputs.shape[-1],
+                    )
+                )
             )
 
             target_at_all_levels_ls.append(
@@ -389,13 +447,17 @@ class COPDeepARTrainingNetwork(COPNetwork):
 
         # Last dimension contains embeddings at all time-levels and message passing/aggregation can be done on it.
         # Shape: (bs, num_windows, total_num_time_steps_of_hierarchy, embedding_dim)
-        embeddings_at_all_levels = F.concat(*embeddings_at_all_levels_ls, dim=-2)
+        embeddings_at_all_levels = F.concat(
+            *embeddings_at_all_levels_ls, dim=-2
+        )
 
         if self.use_gnn:
             embeddings_at_all_levels = self.gnn(embeddings_at_all_levels)
 
         distr_at_all_levels = self._embeddings_to_distr(
-            F, embeddings_at_all_levels, scale_ls,
+            F,
+            embeddings_at_all_levels,
+            scale_ls,
         )
 
         target_at_all_levels = F.concat(*target_at_all_levels_ls, dim=-1)
@@ -409,12 +471,15 @@ class COPDeepARTrainingNetwork(COPNetwork):
             epoch_frac = epoch_no / self.epochs
 
             if epoch_frac > self.warmstart_epoch_frac:
-                print(f"epoch_frac: {epoch_frac}. Switching the loss function to CRPS")
+                print(
+                    f"epoch_frac: {epoch_frac}. Switching the loss function to CRPS"
+                )
                 self.loss_function = "crps_univariate"
 
         else:
             samples_at_all_levels = self._distr_to_samples(
-                distr_at_all_levels, num_samples=self.num_samples_for_loss,
+                distr_at_all_levels,
+                num_samples=self.num_samples_for_loss,
             )
 
             if self.do_reconciliation:
@@ -426,11 +491,13 @@ class COPDeepARTrainingNetwork(COPNetwork):
             else:
                 reconciled_samples_at_all_levels = samples_at_all_levels
 
-            loss = gluonts_fixes.EmpiricalDistributionWithPointMetrics(
-                samples=reconciled_samples_at_all_levels, event_dim=1
-            ).loss(
-                x=target_at_all_levels, loss_function=self.loss_function
-            ).expand_dims(axis=-1)
+            loss = (
+                gluonts_fixes.EmpiricalDistributionWithPointMetrics(
+                    samples=reconciled_samples_at_all_levels, event_dim=1
+                )
+                .loss(x=target_at_all_levels, loss_function=self.loss_function)
+                .expand_dims(axis=-1)
+            )
 
         return loss
 
@@ -441,7 +508,7 @@ class COPDeepARPredictionNetwork(COPNetwork):
         self,
         return_forecasts_at_all_levels: bool = False,
         num_parallel_samples: int = 100,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(prediction=True, **kwargs)
         self.return_forecasts_at_all_levels = return_forecasts_at_all_levels
@@ -502,9 +569,7 @@ class COPDeepARPredictionNetwork(COPNetwork):
             )
 
             # (batch_size * num_samples, 1, *target_shape, num_lags)
-            lags_scaled = F.broadcast_div(
-                lags, scale.expand_dims(axis=-1)
-            )
+            lags_scaled = F.broadcast_div(lags, scale.expand_dims(axis=-1))
 
             # from (batch_size * num_samples, 1, *target_shape, num_lags)
             # to (batch_size * num_samples, 1, prod(target_shape) * num_lags)
@@ -537,9 +602,7 @@ class COPDeepARPredictionNetwork(COPNetwork):
             distr_args = model.proj_distr_args(rnn_outputs)
 
             # compute likelihood of target given the predicted parameters
-            distr = model.distr_output.distribution(
-                distr_args, scale=scale
-            )
+            distr = model.distr_output.distribution(distr_args, scale=scale)
 
             # (batch_size * num_samples, 1, *target_shape)
             if self.point_forecasts:
@@ -548,23 +611,33 @@ class COPDeepARPredictionNetwork(COPNetwork):
                 new_samples = distr.sample(dtype=self.dtype)
 
             # (batch_size * num_samples, seq_len, *target_shape)
-            past_target = F.concat(
-                past_target, new_samples, dim=1
-            )
+            past_target = F.concat(past_target, new_samples, dim=1)
 
         # (batch_size * num_samples, prediction_length, *target_shape)
         rnn_outputs = F.concat(*rnn_outputs_ls, dim=1)
 
         return rnn_outputs, begin_states
 
-    def sampling_decoder(self, F, state_ls, scale_ls, static_feat_ls, past_target_ls, future_time_feat_agg_ls):
-        num_windows = self.prediction_length // self.temporal_hierarchy.num_leaves
+    def sampling_decoder(
+        self,
+        F,
+        state_ls,
+        scale_ls,
+        static_feat_ls,
+        past_target_ls,
+        future_time_feat_agg_ls,
+    ):
+        num_windows = (
+            self.prediction_length // self.temporal_hierarchy.num_leaves
+        )
         num_nodes_per_level = self.temporal_hierarchy.num_nodes_per_level
 
         reconciled_samples_at_all_levels_ls = []
         for j in range(num_windows):
             embeddings_at_all_levels_ls = []
-            for i, agg_multiple in enumerate(self.temporal_hierarchy.agg_multiples):
+            for i, agg_multiple in enumerate(
+                self.temporal_hierarchy.agg_multiples
+            ):
                 rnn_outputs, states = self._decode_one_window(
                     F=F,
                     model=self.models[i],
@@ -579,22 +652,29 @@ class COPDeepARPredictionNetwork(COPNetwork):
 
                 state_ls[i] = states
                 embeddings_at_all_levels_ls.append(
-                    rnn_outputs.reshape((rnn_outputs.shape[0], -1, rnn_outputs.shape[-1]))
+                    rnn_outputs.reshape(
+                        (rnn_outputs.shape[0], -1, rnn_outputs.shape[-1])
+                    )
                 )
 
             # Last dimension contains embeddings at all time-levels and message passing/aggregation can be done on it.
             # Shape: (bs, total_num_time_steps_of_hierarchy, embedding_dim)
-            embeddings_at_all_levels = F.concat(*embeddings_at_all_levels_ls, dim=-2)
+            embeddings_at_all_levels = F.concat(
+                *embeddings_at_all_levels_ls, dim=-2
+            )
 
             if self.use_gnn:
                 embeddings_at_all_levels = self.gnn(embeddings_at_all_levels)
 
             distr_at_all_levels = self._embeddings_to_distr(
-                F, embeddings_at_all_levels, scale_ls,
+                F,
+                embeddings_at_all_levels,
+                scale_ls,
             )
 
             samples_at_all_levels = self._distr_to_samples(
-                distr_at_all_levels, num_samples=1,
+                distr_at_all_levels,
+                num_samples=1,
             )
 
             if self.do_reconciliation:
@@ -606,29 +686,40 @@ class COPDeepARPredictionNetwork(COPNetwork):
             else:
                 reconciled_samples_at_all_levels = samples_at_all_levels
 
-            rec_err = coherency_error(A=self.A, samples=reconciled_samples_at_all_levels)
+            rec_err = coherency_error(
+                A=self.A, samples=reconciled_samples_at_all_levels
+            )
             print(f"Reconciliation error: {rec_err}")
 
             cumsum_nodes_per_level = np.cumsum([0] + num_nodes_per_level)
             for i in range(len(self.temporal_hierarchy.agg_multiples)):
                 # (batch_size * num_samples, seq_len, *target_shape)
-                reconciled_samples = reconciled_samples_at_all_levels.slice_axis(
-                    axis=-1,
-                    begin=cumsum_nodes_per_level[i],
-                    end=cumsum_nodes_per_level[i+1],
+                reconciled_samples = (
+                    reconciled_samples_at_all_levels.slice_axis(
+                        axis=-1,
+                        begin=cumsum_nodes_per_level[i],
+                        end=cumsum_nodes_per_level[i + 1],
+                    )
                 )
-                past_target_ls[i] = F.concat(past_target_ls[i], reconciled_samples, dim=1)
+                past_target_ls[i] = F.concat(
+                    past_target_ls[i], reconciled_samples, dim=1
+                )
 
             reconciled_samples_at_all_levels_ls.append(
                 reconciled_samples_at_all_levels.reshape(
-                    shape=(-1, self.num_parallel_samples, reconciled_samples_at_all_levels.shape[-1])
+                    shape=(
+                        -1,
+                        self.num_parallel_samples,
+                        reconciled_samples_at_all_levels.shape[-1],
+                    )
                 ).expand_dims(axis=-2)
             )
 
-        reconciled_samples_at_all_levels = F.concat(*reconciled_samples_at_all_levels_ls, dim=-2)
+        reconciled_samples_at_all_levels = F.concat(
+            *reconciled_samples_at_all_levels_ls, dim=-2
+        )
         print(reconciled_samples_at_all_levels.shape)
         return reconciled_samples_at_all_levels
-
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(
@@ -663,26 +754,40 @@ class COPDeepARPredictionNetwork(COPNetwork):
         """
 
         (
-            state_ls, scale_ls, static_feat_ls, past_target_ls, future_time_feat_agg_ls
-        ) = [], [], [], [], []
+            state_ls,
+            scale_ls,
+            static_feat_ls,
+            past_target_ls,
+            future_time_feat_agg_ls,
+        ) = ([], [], [], [], [])
 
-        for i, agg_multiple in enumerate(self.temporal_hierarchy.agg_multiples):
+        for i, agg_multiple in enumerate(
+            self.temporal_hierarchy.agg_multiples
+        ):
             if agg_multiple != 1:
-                past_time_feat_agg = agg_features_dict[f"level_{i}"]["past_time_feat_agg"]
-                future_time_feat_agg = agg_features_dict[f"level_{i}"]["future_time_feat_agg"]
+                past_time_feat_agg = agg_features_dict[f"level_{i}"][
+                    "past_time_feat_agg"
+                ]
+                future_time_feat_agg = agg_features_dict[f"level_{i}"][
+                    "future_time_feat_agg"
+                ]
             else:
                 past_time_feat_agg = past_time_feat
                 future_time_feat_agg = future_time_feat
 
-            target_related_feat_agg = self.get_target_related_feat_at_agg_level(
-                agg_level=i,
-                past_target=past_target,
-                past_is_pad=past_is_pad,
-                past_observed_values=past_observed_values,
+            target_related_feat_agg = (
+                self.get_target_related_feat_at_agg_level(
+                    agg_level=i,
+                    past_target=past_target,
+                    past_is_pad=past_is_pad,
+                    past_observed_values=past_observed_values,
+                )
             )
 
             # unroll the decoder in "prediction mode", i.e. with past data only
-            _, states, scale, static_feat, imputed_sequence = self.models[i].unroll_encoder(
+            _, states, scale, static_feat, imputed_sequence = self.models[
+                i
+            ].unroll_encoder(
                 F=F,
                 feat_static_cat=feat_static_cat,
                 feat_static_real=feat_static_real,
@@ -730,14 +835,22 @@ class COPDeepARPredictionNetwork(COPNetwork):
         if self.return_forecasts_at_all_levels:
             return reconciled_samples_at_all_levels
         else:
-            reconciled_samples_at_bottom_level = reconciled_samples_at_all_levels.slice_axis(
-                axis=-1,
-                begin=-self.temporal_hierarchy.num_leaves,
-                end=None,
+            reconciled_samples_at_bottom_level = (
+                reconciled_samples_at_all_levels.slice_axis(
+                    axis=-1,
+                    begin=-self.temporal_hierarchy.num_leaves,
+                    end=None,
+                )
             )
 
-            reconciled_samples_at_bottom_level = reconciled_samples_at_bottom_level.reshape(
-                (reconciled_samples_at_bottom_level.shape[0], reconciled_samples_at_bottom_level.shape[1], -1)
+            reconciled_samples_at_bottom_level = (
+                reconciled_samples_at_bottom_level.reshape(
+                    (
+                        reconciled_samples_at_bottom_level.shape[0],
+                        reconciled_samples_at_bottom_level.shape[1],
+                        -1,
+                    )
+                )
             )
 
             return reconciled_samples_at_bottom_level

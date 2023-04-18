@@ -10,19 +10,21 @@ from gluonts.dataset.field_names import FieldName
 def make_predictions(
     pred_input: Dataset, predictor, forecasts_at_all_levels: bool = False
 ):
-    predictor.prediction_net.return_forecasts_at_all_levels = \
+    predictor.prediction_net.return_forecasts_at_all_levels = (
         forecasts_at_all_levels
+    )
     forecast_it = predictor.predict(pred_input)
     return forecast_it
 
 
-def truncate_target(dataset: Dataset, prediction_length: int, lead_time: int = 0):
-
+def truncate_target(
+    dataset: Dataset, prediction_length: int, lead_time: int = 0
+):
     def _truncate(data: DataEntry):
         data = data.copy()
         target = data["target"]
         assert (
-                target.shape[-1] >= prediction_length
+            target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
         data["target"] = target[..., : -prediction_length - lead_time]
         return data
@@ -47,13 +49,13 @@ def to_dataframe_it(test):
     return map(_to_dataframe, test)
 
 
-def crps(forecast, actuals, levels: np.ndarray = (np.arange(10) / 10.0)[1:], weighted: bool = True):
-    quantiles = np.array(
-        [
-            forecast.quantile(level)
-            for level in levels
-        ]
-    )
+def crps(
+    forecast,
+    actuals,
+    levels: np.ndarray = (np.arange(10) / 10.0)[1:],
+    weighted: bool = True,
+):
+    quantiles = np.array([forecast.quantile(level) for level in levels])
 
     levels = np.expand_dims(levels, axis=-1)
 

@@ -21,9 +21,16 @@ from gluonts.model.forecast_generator import (
 )
 from gluonts.mx import Tensor
 from gluonts.mx.batchify import stack
-from gluonts.mx.distribution import DistributionOutput, EmpiricalDistribution, PiecewiseLinear
+from gluonts.mx.distribution import (
+    DistributionOutput,
+    EmpiricalDistribution,
+    PiecewiseLinear,
+)
 from gluonts.mx.distribution.distribution_output import ArgProj
-from gluonts.mx.distribution.piecewise_linear import PiecewiseLinearOutput, TransformedPiecewiseLinear
+from gluonts.mx.distribution.piecewise_linear import (
+    PiecewiseLinearOutput,
+    TransformedPiecewiseLinear,
+)
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
 from gluonts.mx.util import (
@@ -53,7 +60,8 @@ def batchify_with_dict(
             dtype=dtype,
             variable_length=variable_length,
             is_right_pad=is_right_pad,
-        ) if not isinstance(data[0][key], dict)
+        )
+        if not isinstance(data[0][key], dict)
         else batchify_with_dict(data=[item[key] for item in data])
         for key in data[0].keys()
     }
@@ -107,7 +115,9 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
             dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
-            stack_fn=partial(batchify_with_dict, ctx=self.ctx, dtype=self.dtype),
+            stack_fn=partial(
+                batchify_with_dict, ctx=self.ctx, dtype=self.dtype
+            ),
         )
         with mx.Context(self.ctx):
             yield from self.forecast_generator(
@@ -120,7 +130,7 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
 
     @classmethod
     def deserialize(
-            cls, path: Path, ctx: Optional[mx.Context] = None
+        cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "RepresentableBlockPredictorBatchifyWithDict":
         ctx = ctx if ctx is not None else get_mxnet_context()
 
@@ -144,12 +154,13 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
             return RepresentableBlockPredictorBatchifyWithDict(
                 input_transform=transform,
                 prediction_net=prediction_net,
-                batch_size=parameters['batch_size'],
-                freq=parameters['freq'],
-                prediction_length=parameters['prediction_length'],
-                ctx=parameters['ctx'],
-                dtype=parameters['dtype']
+                batch_size=parameters["batch_size"],
+                freq=parameters["freq"],
+                prediction_length=parameters["prediction_length"],
+                ctx=parameters["ctx"],
+                dtype=parameters["dtype"],
             )
+
 
 # Gluonts estimator should expose this function. Currently it has api for creating predictor but not prediction network!
 def create_prediction_network(
@@ -206,8 +217,9 @@ class ArgProjFixed(ArgProj):
 
 
 class PiecewiseLinearOutputFixed(PiecewiseLinearOutput):
-
-    def get_args_proj(self, non_negative: bool = False, prefix: Optional[str] = None) -> gluon.HybridBlock:
+    def get_args_proj(
+        self, non_negative: bool = False, prefix: Optional[str] = None
+    ) -> gluon.HybridBlock:
         # change: call our own version of `ArgProj`.
         return ArgProjFixed(
             args_dim=self.args_dim,
@@ -218,7 +230,9 @@ class PiecewiseLinearOutputFixed(PiecewiseLinearOutput):
         )
 
     @classmethod
-    def domain_map(cls, F, gamma, slopes, knot_spacings, non_negative: bool = False):
+    def domain_map(
+        cls, F, gamma, slopes, knot_spacings, non_negative: bool = False
+    ):
         # slopes of the pieces are non-negative
         slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
 
@@ -233,7 +247,6 @@ class PiecewiseLinearOutputFixed(PiecewiseLinearOutput):
 
 
 class EmpiricalDistributionWithPointMetrics(EmpiricalDistribution):
-
     def mse(self, x: Tensor) -> Tensor:
         r"""
         Compute the mean squared error (MSE) of `x` according to the empirical distribution.
@@ -267,7 +280,9 @@ class EmpiricalDistributionWithPointMetrics(EmpiricalDistribution):
 
         return mse
 
-    def loss(self, x: Tensor, loss_function:str = "crps_univariate") -> Tensor:
+    def loss(
+        self, x: Tensor, loss_function: str = "crps_univariate"
+    ) -> Tensor:
         assert loss_function in LOSS_FUNCTIONS
 
         if loss_function in "crps_univariate":
@@ -355,11 +370,17 @@ class PiecewiseLinearVectorOutput(DistributionOutput):
         self.num_pieces = num_pieces
         self.args_dim = cast(
             Dict[str, int],
-            {"gamma": dim, "slopes": dim * num_pieces, "knot_spacings": dim * num_pieces},
+            {
+                "gamma": dim,
+                "slopes": dim * num_pieces,
+                "knot_spacings": dim * num_pieces,
+            },
         )
 
     @classmethod
-    def domain_map(cls, F, gamma, slopes, knot_spacings, non_negative: bool = False):
+    def domain_map(
+        cls, F, gamma, slopes, knot_spacings, non_negative: bool = False
+    ):
         # slopes of the pieces are non-negative
         slopes_proj = F.Activation(data=slopes, act_type="softrelu") + 1e-4
 
@@ -372,7 +393,9 @@ class PiecewiseLinearVectorOutput(DistributionOutput):
 
         return gamma, slopes_proj, knot_spacings_proj
 
-    def get_args_proj(self, non_negative: bool = False, prefix: Optional[str] = None) -> gluon.HybridBlock:
+    def get_args_proj(
+        self, non_negative: bool = False, prefix: Optional[str] = None
+    ) -> gluon.HybridBlock:
         # change: call our own version of `ArgProj`.
         return ArgProjFixed(
             args_dim=self.args_dim,
@@ -398,4 +421,4 @@ class PiecewiseLinearVectorOutput(DistributionOutput):
 
     @property
     def event_shape(self) -> Tuple:
-        return (self.dim, )
+        return (self.dim,)

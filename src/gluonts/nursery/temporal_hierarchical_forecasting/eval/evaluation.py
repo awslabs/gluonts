@@ -7,14 +7,13 @@ from gluonts.evaluation import Evaluator
 from gluonts.model.predictor import Predictor
 
 from gluonts.nursery.temporal_hierarchical_forecasting.utils.common import (
-    TEMPORAL_HIERARCHIES
+    TEMPORAL_HIERARCHIES,
 )
 from gluonts.nursery.temporal_hierarchical_forecasting.utils.utils import (
     get_ts_at_all_levels,
     unpack_forecasts,
 )
-from gluonts.nursery.temporal_hierarchical_forecasting.utils.gluonts_helper \
-    import (
+from gluonts.nursery.temporal_hierarchical_forecasting.utils.gluonts_helper import (
     make_predictions,
     to_dataframe_it,
     truncate_target,
@@ -46,9 +45,8 @@ def evaluate_predictor(
             ts_iterator=test_ts_it,
             fcst_iterator=forecast_it,
         )
-        metrics_to_return =  {
-            metric_str: agg_metrics[metric_str]
-            for metric_str in metrics
+        metrics_to_return = {
+            metric_str: agg_metrics[metric_str] for metric_str in metrics
         }
         return metrics_to_return
 
@@ -95,7 +93,7 @@ def evaluate_forecasts_at_all_levels(
     metrics_to_return = {}
     for level in range(num_levels):
         agg_metrics_level, _ = evaluator.get_aggregate_metrics(
-            metrics_per_ts.iloc[level: None: num_levels]
+            metrics_per_ts.iloc[level:None:num_levels]
         )
 
         for metric_name in metrics:

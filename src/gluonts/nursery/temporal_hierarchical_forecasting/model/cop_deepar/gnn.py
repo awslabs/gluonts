@@ -4,7 +4,14 @@ from gluonts.mx import Tensor
 
 
 class GNN(mx.gluon.HybridBlock):
-    def __init__(self, units: int, num_layers: int, adj_matrix: Tensor, use_mlp: bool = True, **kwargs):
+    def __init__(
+        self,
+        units: int,
+        num_layers: int,
+        adj_matrix: Tensor,
+        use_mlp: bool = True,
+        **kwargs
+    ):
         super().__init__(**kwargs)
 
         self.units = units
@@ -14,7 +21,9 @@ class GNN(mx.gluon.HybridBlock):
 
         if self.use_mlp:
             with self.name_scope():
-                self.gnn_layer = mx.gluon.nn.Dense(units=self.units, flatten=False)
+                self.gnn_layer = mx.gluon.nn.Dense(
+                    units=self.units, flatten=False
+                )
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         # Do message passing for `num_layers` times with learnable weights.
