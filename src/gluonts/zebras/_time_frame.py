@@ -268,28 +268,40 @@ class TimeFrame(TimeBase):
         return _replace(self, columns=columns, static=static)
 
     def rename(self, mapping=None, **kwargs):
+        """Rename ``columns`` of ``TimeFrame``.
+
+        The keys in ``mapping`` denote the target column names, i.e.
+        ``rename({"target": "source"})``. For convenience one can use keyword
+        parameters (`.rename(target="source")).
+        """
         if mapping is None:
             mapping = {}
         mapping.update(kwargs)
 
-        columns = dict(self.columns)
-        tdims = dict(self.tdims)
+        columns = dissoc(self.columns, *mapping.values())
+        tdims = dissoc(self.tdims, *mapping.values())
 
         for target, source in mapping.items():
-            columns[target] = columns.pop(source)
-            tdims[target] = tdims.pop(source)
+            columns[target] = self.columns[source]
+            tdims[target] = self.tdims[source]
 
         return _replace(self, columns=columns, tdims=tdims)
 
     def rename_static(self, mapping=None, **kwargs):
+        """Rename ``static`` fields of ``TimeFrame``.
+
+        The keys in ``mapping`` denote the target column names, i.e.
+        ``rename({"target": "source"})``. For convenience one can use keyword
+        parameters (`.rename(target="source")).
+        """
         if mapping is None:
             mapping = {}
         mapping.update(kwargs)
 
-        static = dict(self.static)
+        static = dissoc(self.static, *mapping.values())
 
         for target, source in mapping.items():
-            static[target] = static.pop(source)
+            static[target] = self.static[source]
 
         return _replace(self, static=static)
 
