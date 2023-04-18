@@ -25,7 +25,7 @@ from gluonts.mx.model.deepvar_hierarchical._estimator import (
     null_space_projection_mat,
 )
 from gluonts.mx.model.deepvar_hierarchical._network import coherency_error
-from gluonts.mx.distribution import Distribution
+from gluonts.mx.distribution import Distribution, EmpiricalDistribution
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import TransformedPiecewiseLinear
 
@@ -490,10 +490,10 @@ class COPDeepARTrainingNetwork(COPNetwork):
                 reconciled_samples_at_all_levels = samples_at_all_levels
 
             loss = (
-                gluonts_fixes.EmpiricalDistributionWithPointMetrics(
+                EmpiricalDistribution(
                     samples=reconciled_samples_at_all_levels, event_dim=1
                 )
-                .loss(x=target_at_all_levels, loss_function=self.loss_function)
+                .loss(x=target_at_all_levels)
                 .expand_dims(axis=-1)
             )
 

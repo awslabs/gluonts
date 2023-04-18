@@ -17,15 +17,13 @@ from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
 )
-from gluonts.mx import Tensor
 from gluonts.mx.batchify import stack
-from gluonts.mx.distribution import EmpiricalDistribution
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
 from gluonts.mx.util import import_repr_block
 from gluonts.mx.context import get_mxnet_context
 
-LOSS_FUNCTIONS = ["crps_univariate", "mse", "nll"]
+LOSS_FUNCTIONS = ["crps_univariate", "nll"]
 
 
 def batchify_with_dict(
@@ -167,48 +165,3 @@ def create_prediction_network(
         minimum_scale=estimator.minimum_scale,
         impute_missing_values=estimator.impute_missing_values,
     )
-
-
-class EmpiricalDistributionWithPointMetrics(EmpiricalDistribution):
-    def mse(self, x: Tensor) -> Tensor:
-        r"""
-        Compute the mean squared error (MSE) of `x` according to the empirical distribution.
-
-        The last dimension of `x` specifies the "event dimension" of the target (= 1 for the univariate case).
-        For multivariate target, MSE scores are computed for each dimension separately and then their sum is returned.
-
-        Parameters
-        ----------
-        x
-            Tensor of ground truth with shape `(*batch_shape, *event_shape)`
-
-        Returns
-        -------
-        Tensor
-            MSE of shape `(*batch_shape, 1)`.
-        """
-        F = self.F
-        mean_forecast = self.mean
-
-        # mse shape: (*batch_shape, *event_shape)
-        mse = F.square(mean_forecast - x) / np.prod(x.shape)
-
-        # Sum the axis corresponding to the target (event) dimension.
-        if self.event_dim > 0:
-            # Total MSE: sum over all but the axes corresponding to the batch shape.
-            # Shape: `(*batch_shape)`
-            mse = F.sum(
-                mse, exclude=True, axis=list(range(0, len(self.batch_shape)))
-            )
-
-        return mse
-
-    def loss(
-        self, x: Tensor, loss_function: str = "crps_univariate"
-    ) -> Tensor:
-        assert loss_function in LOSS_FUNCTIONS
-
-        if loss_function in "crps_univariate":
-            return self.crps_univariate(x=x)
-        else:
-            return self.mse(x=x)
