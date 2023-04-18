@@ -384,7 +384,6 @@ class TimeFrame(TimeBase):
             # Ensure index is >= 0; (turn negative values into positive ones)
             index = len(self) + index
 
-        distance = maybe.unwrap_or(distance, future_length)
         for split_index in take(
             n,
             range(index, len(self) + 1 - distance, distance),
