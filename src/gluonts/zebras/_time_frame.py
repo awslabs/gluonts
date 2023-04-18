@@ -18,7 +18,7 @@ from operator import itemgetter
 from typing import cast, Optional, List, Union, Collection, Any, Mapping
 
 import numpy as np
-from toolz import first, valmap, dissoc, merge, itemmap
+from toolz import first, valmap, dissoc, merge, itemmap, take
 
 from gluonts import maybe
 from gluonts.itertools import (
@@ -340,6 +340,57 @@ class TimeFrame(TimeBase):
             result.update(self.static)
 
         return result
+
+    def rolsplit(
+        self,
+        index,
+        *,
+        distance: int = 1,
+        past_length: Optional[int] = None,
+        future_length: Optional[int] = None,
+        n: Optional[int] = None,
+        pad_value=0.0,
+    ):
+        """Create rolling split of past/future pairs.
+
+        Parameters
+        ----------
+        index
+            Starting index that denominates the cut off point from which splits
+            are generated.
+        distance
+            The distance by which pairs are shifted. Defaults to ``1``. To
+            avoid overlapping examples, ``distance`` has to be set to be at
+            least ``past_length``.
+        future_length, optional
+            Optionally enforce future length. Note that ``rolsplit`` will never
+            pad values in the future range.
+        past_length, optional
+            If provided, all pairs past will have ``past_length``, padded with
+            ``pad_value`` if needed.
+        n, optional
+            If provided, limits the number of pairs to ``n``.
+        pad_value
+            Value to pad past if needed, defaults to ``0.0``.
+
+        Returns
+        -------
+            A stream of ``zebras.SplitFrame`` objects.
+        """
+        if not isinstance(index, (int, np.integer)):
+            # If `index` is provided as timestamp we turn it into an integer.
+            index = self.index_of(index)
+        elif index < 0:
+            # Ensure index is >= 0; (turn negative values into positive ones)
+            index = len(self) + index
+
+        for split_index in take(
+            n,
+            range(index, len(self) + 1 - distance, distance),
+        ):
+            yield self.split(
+                split_index, past_length, future_length, pad_value
+            )
 
     def split(
         self,
