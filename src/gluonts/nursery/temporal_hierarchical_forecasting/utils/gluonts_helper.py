@@ -35,8 +35,7 @@ def to_dataframe_it(test):
         if freq is None:
             freq = entry[FieldName.START].freq
 
-        # Change this to `pd.period_range` to be consistent with the new gluonts version!
-        return pd.date_range(
+        return pd.period_range(
             start=entry[FieldName.START],
             periods=entry[FieldName.TARGET].shape[-1],
             freq=freq,

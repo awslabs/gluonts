@@ -134,6 +134,7 @@ class DeepAREstimatorForCOP(DeepAREstimator):
                          num_imputation_samples=num_imputation_samples,
                          batch_size=batch_size,
                          dtype=dtype)
+        self.freq = freq
         self.history_length = (
             history_length
             if history_length is not None

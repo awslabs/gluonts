@@ -46,7 +46,6 @@ from gluonts.time_feature import (
     time_features_from_frequency_str,
 )
 from gluonts.transform import SelectFields, SimpleTransformation, Transformation
-from gluonts.transform.split import shift_timestamp
 
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar\
     .gluonts_fixes import (
@@ -57,11 +56,13 @@ from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar\
 from gluonts.nursery.temporal_hierarchical_forecasting.utils.common import (
     TEMPORAL_HIERARCHIES
 )
-from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar import (
+from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar\
+    ._network import (
     COPDeepARTrainingNetwork,
     COPDeepARPredictionNetwork,
-    DeepAREstimatorForCOP,
 )
+from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar \
+    .deepar_fix import DeepAREstimatorForCOP
 
 
 class GaussianFixedVarianceOutput(GaussianOutput):
@@ -105,11 +106,11 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
         past_length_bottom_ts: int,
         agg_estimator: GluonEstimator,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        start = shift_timestamp(forecast_start, -past_length_bottom_ts)
+        start = forecast_start - past_length_bottom_ts
 
         freq = agg_estimator.freq
         num_periods = agg_estimator.history_length + agg_estimator.prediction_length
-        full_date_range = pd.date_range(
+        full_date_range = pd.period_range(
             start,
             periods=num_periods,
             freq=freq,
@@ -278,7 +279,6 @@ class COPDeepAREstimator(GluonEstimator):
             transform=instance_splitter + self.agg_feature_adder + SelectFields(input_names),
             batch_size=self.batch_size,
             stack_fn=partial(batchify_with_dict, ctx=self.trainer.ctx, dtype=self.dtype),
-            decode_fn=partial(as_in_context, ctx=self.trainer.ctx),
             **kwargs,
         )
 

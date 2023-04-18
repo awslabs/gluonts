@@ -11,8 +11,8 @@ import numpy as np
 from gluonts.core.component import Type, validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.model.deepar._network import DeepARPredictionNetwork
+from gluonts.mx.model.deepar import DeepAREstimator
+from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
 from gluonts.core.serde import load_json
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
@@ -87,7 +87,6 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
             prediction_net=prediction_net,
             batch_size=batch_size,
             prediction_length=prediction_length,
-            freq=freq,
             ctx=ctx,
             input_transform=input_transform,
             lead_time=lead_time,
@@ -115,7 +114,6 @@ class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
                 inference_data_loader=inference_data_loader,
                 prediction_net=self.prediction_net,
                 input_names=self.input_names,
-                freq=self.freq,
                 output_transform=self.output_transform,
                 num_samples=num_samples,
             )

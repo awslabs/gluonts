@@ -18,13 +18,13 @@ import numpy as np
 
 from gluonts.core.component import Type, validated
 from gluonts.itertools import prod
-from gluonts.model.deepar import DeepAREstimator
-from gluonts.model.deepar._network import DeepARPredictionNetwork
-from gluonts.model.deepvar_hierarchical._estimator import (
+from gluonts.mx.model.deepar import DeepAREstimator
+from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
+from gluonts.mx.model.deepvar_hierarchical._estimator import (
     constraint_mat,
     null_space_projection_mat,
 )
-from gluonts.model.deepvar_hierarchical._network import reconciliation_error
+from gluonts.mx.model.deepvar_hierarchical._network import coherency_error
 from gluonts.mx.distribution import Distribution
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import TransformedPiecewiseLinear
@@ -34,7 +34,6 @@ from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar import (
     gluonts_fixes,
     gnn,
 )
-from cop_forecasting.model.cop_deepar import gnn
 
 
 def reconcile_samples(
@@ -607,7 +606,7 @@ class COPDeepARPredictionNetwork(COPNetwork):
             else:
                 reconciled_samples_at_all_levels = samples_at_all_levels
 
-            rec_err = reconciliation_error(A=self.A, samples=reconciled_samples_at_all_levels)
+            rec_err = coherency_error(A=self.A, samples=reconciled_samples_at_all_levels)
             print(f"Reconciliation error: {rec_err}")
 
             cumsum_nodes_per_level = np.cumsum([0] + num_nodes_per_level)
