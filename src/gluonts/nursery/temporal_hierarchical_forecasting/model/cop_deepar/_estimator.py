@@ -13,7 +13,7 @@
 
 from copy import deepcopy
 from functools import partial
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from mxnet.gluon import HybridBlock
 import numpy as np
@@ -28,14 +28,8 @@ from gluonts.dataset.loader import (
     ValidationDataLoader,
 )
 from gluonts.env import env
-from gluonts.mx.model.deepar import DeepAREstimator
 from gluonts.model.predictor import Predictor
-from gluonts.mx.batchify import as_in_context
-from gluonts.mx.distribution import (
-    DistributionOutput,
-    GaussianOutput,
-    StudentTOutput,
-)
+from gluonts.mx.distribution import GaussianOutput
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import get_hybrid_forward_input_names
@@ -218,6 +212,9 @@ class COPDeepAREstimator(GluonEstimator):
 
         self.temporal_hierarchy = TEMPORAL_HIERARCHIES[self.freq]
         self.base_estimator_type = eval(base_estimator_name)
+
+        assert self.base_estimator_type == DeepAREstimatorForCOP
+
         self.point_forecasts = point_forecasts
 
         if point_forecasts:

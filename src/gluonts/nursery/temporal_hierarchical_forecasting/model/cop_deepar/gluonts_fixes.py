@@ -33,14 +33,7 @@ from gluonts.mx.distribution.piecewise_linear import (
 )
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.transform import Transformation
-from gluonts.mx.util import (
-    export_repr_block,
-    export_symb_block,
-    get_hybrid_forward_input_names,
-    hybrid_block_to_symbol_block,
-    import_repr_block,
-    import_symb_block,
-)
+from gluonts.mx.util import import_repr_block
 from gluonts.mx.context import get_mxnet_context
 
 LOSS_FUNCTIONS = ["crps_univariate", "mse", "nll"]

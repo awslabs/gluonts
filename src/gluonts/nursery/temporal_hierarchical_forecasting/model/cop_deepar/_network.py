@@ -368,8 +368,6 @@ class COPDeepARTrainingNetwork(COPNetwork):
 
         """
 
-        if self.point_forecasts:
-            fixed_stds_at_all_levels_ls: List = []
         embeddings_at_all_levels_ls = []
         target_at_all_levels_ls = []
         scale_ls = []
