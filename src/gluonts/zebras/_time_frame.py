@@ -104,6 +104,10 @@ class TimeFrame(TimeBase):
         )
 
     def pad(self, value, left: int = 0, right: int = 0) -> TimeFrame:
+        # Return `self` if no padding is needed.
+        if left == 0 and right == 0:
+            return self
+
         assert left >= 0 and right >= 0
 
         columns = {
@@ -153,7 +157,11 @@ class TimeFrame(TimeBase):
         if self.index is not None:
             index = pluck_attr(self.index, "data")
             if len(self) > 10:
-                index = [*index[:5], "...", *index[-5:]]
+                index = [
+                    *index[:5],
+                    f"[ ... {len(self) - 10} ... ]",
+                    *index[-5:],
+                ]
 
             columns[""] = index
 
@@ -168,7 +176,7 @@ class TimeFrame(TimeBase):
                 {
                     col: [
                         *(move_axis(head[col], col)),
-                        "...",
+                        f"[ ... {len(self) - 10} ... ]",
                         *(move_axis(tail[col], col)),
                     ]
                     for col in self.columns
@@ -303,27 +311,38 @@ class TimeFrame(TimeBase):
         pad_value=0.0,
     ):
         if not isinstance(index, (int, np.integer)):
+            # If `index` is provided as timestamp we turn it into an integer.
             index = self.index_of(index)
         elif index < 0:
+            # Ensure index is >= 0; (turn negative values into positive ones)
             index = len(self) + index
 
-        if past_length is None:
-            past_length = index
+        if not 0 <= index <= len(self):
+            raise ValueError(
+                "Split index out of bounds. Use `.resize(...)` or `.pad(...)` "
+                "to ensure `TimeFrame` is long enough."
+            )
 
-        if future_length is None:
-            future_length = len(self) - index
+        # If past_length is not provided, it will equal to `index`, since
+        # `len(tf.split(5).past) == 5`
+        past_length: int = maybe.unwrap_or(past_length, index)
+
+        # Same logic applies to future_length, except that we deduct from the
+        # right. (We can't use past_length, since it can be unequal to index).
+        future_length: int = maybe.unwrap_or(future_length, len(self) - index)
 
         if self.index is None:
             new_index = None
         else:
-            new_index = (
-                self.index.start + (len(self) - index - past_length)
-            ).periods(past_length + future_length)
+            start = self.index.start + (index - past_length)
+            new_index = start.periods(past_length + future_length)
 
         pad_left = max(0, past_length - index)
         pad_right = max(0, future_length - (len(self) - index))
         self = self.pad(pad_value, pad_left, pad_right)
 
+        # We need to shift the split index to the right, if we padded values
+        # on the left.
         index += pad_left
 
         def split_item(item):

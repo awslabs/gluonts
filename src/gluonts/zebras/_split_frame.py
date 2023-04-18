@@ -69,7 +69,7 @@ class SplitFrame:
         return TimeFrame(
             self._future,
             index=maybe.map(
-                self.index, lambda index: index[-self.future_length :]
+                self.index, lambda index: index[self.past_length :]
             ),
             static=self.static,
             length=self.future_length,
