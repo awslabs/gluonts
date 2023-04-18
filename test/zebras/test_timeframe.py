@@ -97,6 +97,28 @@ def test_time_frame_split(split_index):
     assert sf.tdims
 
 
+def test_time_frame_split_out_of_bounds():
+    # Check extreme cases work, where either past length or future length is
+    # empty.
+    assert len(tf.split(0).past) == 0
+    assert len(tf.split(len(tf)).future) == 0
+
+    assert len(tf.split(tf.index.start).past) == 0
+    assert len(tf.split(tf.index.start + len(tf)).future) == 0
+
+    with pytest.raises(ValueError):
+        tf.split(len(tf) + 1)
+
+    with pytest.raises(Exception):
+        tf.split(tf.index.start + len(tf) + 1)
+
+    with pytest.raises(ValueError):
+        tf.split(-(len(tf) + 1))
+
+    with pytest.raises(Exception):
+        tf.split(tf.index.start - 1)
+
+
 def test_time_frame_resize():
     # lengthen
     tf2 = tf.resize(15, pad_value=99)
