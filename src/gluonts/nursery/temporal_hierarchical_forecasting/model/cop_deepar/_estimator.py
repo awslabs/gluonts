@@ -47,6 +47,7 @@ from gluonts.transform import (
 
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.gluonts_fixes import (
     batchify_with_dict,
+    DeepAREstimatorForCOP,
     LOSS_FUNCTIONS,
     RepresentableBlockPredictorBatchifyWithDict,
 )
@@ -56,9 +57,6 @@ from gluonts.nursery.temporal_hierarchical_forecasting.utils.common import (
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar._network import (
     COPDeepARTrainingNetwork,
     COPDeepARPredictionNetwork,
-)
-from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.deepar_fix import (
-    DeepAREstimatorForCOP,
 )
 
 

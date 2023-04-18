@@ -6,22 +6,27 @@ import mxnet as mx
 import numpy as np
 
 
-from gluonts.core.component import Type
+from gluonts.core.component import Type, validated
+from gluonts.core.serde import load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
-from gluonts.mx.model.deepar import DeepAREstimator
-from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
-from gluonts.core.serde import load_json
 from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
 )
 from gluonts.mx.batchify import stack
-from gluonts.mx.model.predictor import RepresentableBlockPredictor
-from gluonts.transform import Transformation
-from gluonts.mx.util import import_repr_block
 from gluonts.mx.context import get_mxnet_context
+from gluonts.mx.distribution import DistributionOutput, StudentTOutput
+from gluonts.mx.model.deepar import DeepAREstimator
+from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
+from gluonts.mx.model.predictor import RepresentableBlockPredictor
+from gluonts.mx.trainer import Trainer
+from gluonts.mx.util import import_repr_block
+from gluonts.time_feature import TimeFeature
+from gluonts.transform import InstanceSampler, Transformation
+from gluonts.transform.feature import MissingValueImputation
+
 
 LOSS_FUNCTIONS = ["crps_univariate", "nll"]
 
@@ -165,3 +170,81 @@ def create_prediction_network(
         minimum_scale=estimator.minimum_scale,
         impute_missing_values=estimator.impute_missing_values,
     )
+
+
+# Hack to expose history_length to constructor to allow for proper
+# serialization
+class DeepAREstimatorForCOP(DeepAREstimator):
+    @validated()
+    def __init__(
+        self,
+        freq: str,
+        prediction_length: int,
+        trainer: Trainer = Trainer(),
+        context_length: Optional[int] = None,
+        num_layers: int = 2,
+        num_cells: int = 40,
+        cell_type: str = "lstm",
+        dropoutcell_type: str = "ZoneoutCell",
+        dropout_rate: float = 0.1,
+        use_feat_dynamic_real: bool = False,
+        use_feat_static_cat: bool = False,
+        use_feat_static_real: bool = False,
+        cardinality: Optional[List[int]] = None,
+        embedding_dimension: Optional[List[int]] = None,
+        distr_output: DistributionOutput = StudentTOutput(),
+        scaling: bool = True,
+        lags_seq: Optional[List[int]] = None,
+        time_features: Optional[List[TimeFeature]] = None,
+        num_parallel_samples: int = 100,
+        imputation_method: Optional[MissingValueImputation] = None,
+        train_sampler: Optional[InstanceSampler] = None,
+        validation_sampler: Optional[InstanceSampler] = None,
+        dtype: Type = np.float32,
+        alpha: float = 0.0,
+        beta: float = 0.0,
+        batch_size: int = 32,
+        default_scale: Optional[float] = None,
+        minimum_scale: float = 1e-10,
+        impute_missing_values: bool = False,
+        num_imputation_samples: int = 1,
+        history_length: Optional[int] = None,
+    ) -> None:
+        super().__init__(
+            freq=freq,
+            prediction_length=prediction_length,
+            trainer=trainer,
+            context_length=context_length,
+            num_layers=num_layers,
+            num_cells=num_cells,
+            cell_type=cell_type,
+            dropoutcell_type=dropoutcell_type,
+            dropout_rate=dropout_rate,
+            use_feat_dynamic_real=use_feat_dynamic_real,
+            use_feat_static_cat=use_feat_static_cat,
+            use_feat_static_real=use_feat_static_real,
+            cardinality=cardinality,
+            embedding_dimension=embedding_dimension,
+            distr_output=distr_output,
+            scaling=scaling,
+            lags_seq=lags_seq,
+            time_features=time_features,
+            num_parallel_samples=num_parallel_samples,
+            imputation_method=imputation_method,
+            train_sampler=train_sampler,
+            validation_sampler=validation_sampler,
+            alpha=alpha,
+            beta=beta,
+            default_scale=default_scale,
+            minimum_scale=minimum_scale,
+            impute_missing_values=impute_missing_values,
+            num_imputation_samples=num_imputation_samples,
+            batch_size=batch_size,
+            dtype=dtype,
+        )
+        self.freq = freq
+        self.history_length: int = (
+            history_length
+            if history_length is not None
+            else self.history_length
+        )
