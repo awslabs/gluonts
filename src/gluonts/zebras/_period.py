@@ -277,6 +277,25 @@ class Periods(_BasePeriod):
             self.data.astype("M8[ns]"), freq=self.freq.to_pandas()
         )
 
+    @classmethod
+    def from_pandas(cls, index):
+        """Turn ``pandas.PeriodIndex`` or ``pandas.DatetimeIndex`` into
+        ``Periods``.
+        """
+
+        import pandas as pd
+
+        if isinstance(index, pd.DatetimeIndex):
+            index = index.to_period()
+        else:
+            assert isinstance(index, pd.PeriodIndex)
+
+        freq = Freq.from_pandas(index.freqstr)
+        np_index = np.array(index.asi8, dtype=f"M8[{freq.np_freq[0]}]")
+        assert np.all(np.diff(np_index).astype(int) == freq.n)
+
+        return Periods(np_index, freq)
+
     def intersection(self, other):
         # TODO: Is this needed?
         return self.data[np.in1d(self, other)]

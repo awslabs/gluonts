@@ -57,3 +57,22 @@ def batch(xs: list):
     ), f"Unsupported type: '{ty.__name__}'"
 
     return ty._batch(xs)  # type: ignore
+
+
+def from_pandas(obj):
+    """Convert pandas offsets, date indices and data frames into ``zebras``
+    equivalents."""
+    import pandas as pd
+    from pandas.core.base import IndexOpsMixin
+    from pandas.tseries.offsets import BaseOffset
+
+    if isinstance(obj, pd.DataFrame):
+        return TimeFrame.from_pandas(obj)
+
+    if isinstance(obj, IndexOpsMixin):
+        return Periods.from_pandas(obj)
+
+    if isinstance(obj, BaseOffset):
+        return Freq.from_pandas(obj)
+
+    raise ValueError(f"Can not convert value of type {type(obj).__name__}")
