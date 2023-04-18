@@ -344,11 +344,11 @@ class TimeFrame(TimeBase):
     def rolsplit(
         self,
         index,
-        future_length,
+        distance: int = 1,
         *,
-        past_length=None,
-        distance=None,
-        n=None,
+        past_length: Optional[int] = None,
+        future_length: Optional[int] = None,
+        n: Optional[int] = None,
         pad_value=0.0,
     ):
         """Create rolling split of past/future pairs.
@@ -358,19 +358,20 @@ class TimeFrame(TimeBase):
         index
             Starting index that denominates the cut off point from which splits
             are generated.
-        future_length
-            All pairs share the same `future_length` and therefore the
-            parameter is required unlike in `.split`.
+        distance
+            The distance by which pairs are shifted. Defaults to ``1``. To
+            avoid overlapping examples, ``distance`` has to be set to be at
+            least ``past_length``.
+        future_length, optional
+            Optionally enforce future length. Note that ``rolsplit`` will never
+            pad values in the future range.
         past_length, optional
-            If provided, all pairs past will have `past_length`, padded with
-            `pad_value` if needed.
-        distance, optional
-            The distance by which pairs are shifted. Defaults to
-            `future_length` such that there is no overlap between futures.
+            If provided, all pairs past will have ``past_length``, padded with
+            ``pad_value`` if needed.
         n, optional
-            If provided, limits the number of pairs to `n`.
+            If provided, limits the number of pairs to ``n``.
         pad_value
-            Value to pad past if needed, defaults to `0.0`.
+            Value to pad past if needed, defaults to ``0.0``.
 
         Returns
         -------
