@@ -293,7 +293,6 @@ def get_ts_at_all_levels(
         for agg_freq, agg_multiple in zip(
             temporal_hierarchy.freq_strs, temporal_hierarchy.agg_multiples
         ):
-
             if agg_multiple in target_temporal_hierarchy.agg_multiples:
                 # We need to align the forecast start date for all aggregation levels.
                 # This is possible if the time series length is multiple of `prediction_length`.

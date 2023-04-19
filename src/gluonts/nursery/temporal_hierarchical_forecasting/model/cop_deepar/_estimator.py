@@ -173,7 +173,6 @@ class COPDeepAREstimator(GluonEstimator):
         naive_reconciliation: bool = False,
         dtype: Type = np.float32,
     ) -> None:
-
         super().__init__(trainer=trainer, dtype=dtype)
 
         self.use_gnn = use_gnn
@@ -228,7 +227,6 @@ class COPDeepAREstimator(GluonEstimator):
             # Hack to enforce correct serialization of lags_seq and history length
             # (only works when set in constructor).
             if agg_multiple != 1:
-
                 estimator = self.base_estimator_type(
                     freq=freq_str,
                     context_length=self.context_length // agg_multiple,
