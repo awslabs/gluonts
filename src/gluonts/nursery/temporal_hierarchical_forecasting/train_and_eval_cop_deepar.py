@@ -30,7 +30,7 @@ estimator = COPDeepAREstimator(
     base_estimator_name="DeepAREstimatorForCOP",
     base_estimator_hps={},
     trainer=Trainer(
-        epochs=1,
+        epochs=100,
         hybridize=False,
     ),
 )
