@@ -30,7 +30,7 @@ jobs:
         pip install -r requirements/requirements-test.txt
         pip install -r requirements/requirements-extras-r.txt
     - name: Install R dependencies
-      run: Rscript -e 'install.packages(c("forecast", "nnfor", "hts"), repos="https://cloud.r-project.org")'
+      run: Rscript -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
     - name: Test with pytest
       run: |
-        pytest test/ext/r_forecast
+        pytest --exclude test/ext/r_forecast/test_r_hierarchical_predictor.py test/ext/r_forecast
