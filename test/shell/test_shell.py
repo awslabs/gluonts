@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import json
+import logging
 import sys
 from typing import ContextManager
 
@@ -115,6 +116,8 @@ def test_listify_dataset(train_env: TrainEnv, listify_dataset):
 @pytest.mark.parametrize("listify_dataset", ["yes", "no"])
 @pytest.mark.parametrize("forecaster_type", [MeanPredictor])
 def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
+    caplog.set_level(logging.INFO)
+
     run_train_and_test(env=train_env, forecaster_type=forecaster_type)
 
     if forecaster_type == MeanPredictor:
@@ -124,7 +127,7 @@ def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
             if "local, wQuantileLoss" in line:
                 assert line.endswith("0.0")
             if "local, Coverage" in line:
-                assert line.endswith("0.0")
+                assert line.endswith("1.0")
             if "MASE" in line or "MSIS" in line:
                 assert line.endswith("nan")
             if "abs_target_sum" in line:
@@ -135,6 +138,7 @@ def test_train_shell(train_env: TrainEnv, caplog, forecaster_type) -> None:
 def test_server_shell(
     train_env: TrainEnv, static_server: "testutil.ServerFacade", caplog
 ) -> None:
+    caplog.set_level(logging.INFO)
     execution_parameters = static_server.execution_parameters()
 
     assert "BatchStrategy" in execution_parameters
@@ -178,6 +182,7 @@ def test_server_shell(
 def test_dynamic_shell(
     train_env: TrainEnv, dynamic_server: "testutil.ServerFacade", caplog
 ) -> None:
+    caplog.set_level(logging.INFO)
     execution_parameters = dynamic_server.execution_parameters()
 
     assert "BatchStrategy" in execution_parameters
@@ -224,6 +229,7 @@ def test_dynamic_batch_shell(
     dynamic_server: "testutil.ServerFacade",
     caplog,
 ) -> None:
+    caplog.set_level(logging.INFO)
     execution_parameters = dynamic_server.execution_parameters()
 
     assert "BatchStrategy" in execution_parameters
