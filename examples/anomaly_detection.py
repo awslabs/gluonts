@@ -30,7 +30,7 @@ from gluonts.mx import DeepAREstimator
 from gluonts.mx.util import get_hybrid_forward_input_names
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.batchify import batchify
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 
 
 if __name__ == "__main__":

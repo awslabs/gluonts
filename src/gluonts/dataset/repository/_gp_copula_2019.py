@@ -99,7 +99,7 @@ datasets_info = {
     "wiki2000_nips": GPCopulaDataset(
         name="wiki2000_nips",
         # Direct link required for Github Large File Storage (LFS) file.
-        url="https://github.com/awslabs/gluonts/raw/82d3038c9dd694584e8ec855a6b6ae2461dc92ef/datasets/wiki2000_nips.tar.gz",
+        url="https://github.com/awslabs/gluonts/raw/b89f203595183340651411a41eeb0ee60570a4d9/datasets/wiki2000_nips.tar.gz",
         num_series=2000,
         prediction_length=30,
         freq="D",

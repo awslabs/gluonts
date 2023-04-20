@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, Union, cast, overload
+from typing import Any, Union, Optional, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -63,6 +63,10 @@ def _is_number(value):
 class _BasePeriod:
     data: Any
     freq: Freq
+
+    @property
+    def freqstr(self) -> str:
+        return str(self.freq)
 
     @property
     def year(self) -> np.ndarray:
@@ -273,6 +277,25 @@ class Periods(_BasePeriod):
             self.data.astype("M8[ns]"), freq=self.freq.to_pandas()
         )
 
+    @classmethod
+    def from_pandas(cls, index):
+        """Turn ``pandas.PeriodIndex`` or ``pandas.DatetimeIndex`` into
+        ``Periods``.
+        """
+
+        import pandas as pd
+
+        if isinstance(index, pd.DatetimeIndex):
+            index = index.to_period()
+        else:
+            assert isinstance(index, pd.PeriodIndex)
+
+        freq = Freq.from_pandas(index.freqstr)
+        np_index = np.array(index.asi8, dtype=f"M8[{freq.np_freq[0]}]")
+        assert np.all(np.diff(np_index).astype(int) == freq.n)
+
+        return Periods(np_index, freq)
+
     def intersection(self, other):
         # TODO: Is this needed?
         return self.data[np.in1d(self, other)]
@@ -292,7 +315,7 @@ class Periods(_BasePeriod):
             )
 
         idx = (period - self.start).astype(int) // self.freq.step
-        assert 0 <= idx < len(self), idx
+        assert 0 <= idx <= len(self), idx
 
         return idx
 
@@ -339,29 +362,76 @@ def _encode_zebras_periods(v: Periods):
     }
 
 
-def period(data, freq=None) -> Period:
-    if hasattr(data, "freqstr") and freq is None:
-        freq = Freq.from_pandas(data.freqstr)
-    else:
+def period(
+    data: Union[Period, str], freq: Optional[Union[Freq, str]] = None
+) -> Period:
+    """Create a ``zebras.Period`` object that represents a period of time.
+
+    Parameters
+    ----------
+    data
+        The time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq, optional
+        The frequency of the period, e.g, "H" for hourly, by default None.
+
+    Returns
+    -------
+        A ``zebras.Period`` object.
+    """
+    if freq is None:
+        if hasattr(data, "freqstr"):
+            freq = Freq.from_pandas(data.freqstr)
+        else:
+            raise ValueError("No frequency specified.")
+    elif isinstance(freq, Freq):
+        freq = freq
+    elif isinstance(freq, str):
         freq = Freq.from_pandas(freq)
+    else:
+        raise ValueError(f"Unknown frequency type {type(freq)}.")
+
+    data_: Any
 
     if isinstance(data, Period):
-        data = data.data
+        data_ = data.data
 
-    if isinstance(data, str):
-        data = du_parse(
+    elif isinstance(data, str):
+        data_ = du_parse(
             data,
             default=datetime.datetime(1970, 1, 1),
             ignoretz=True,
         )
+    else:
+        # TODO: should we add a check?
+        data_ = data
 
     if freq.name == "W":
-        period = Period(np.datetime64(data, freq.np_freq), freq)
+        period = Period(np.datetime64(data_, freq.np_freq), freq)
         period.data -= cast(int, period.dayofweek)
         return period
 
-    return Period(np.datetime64(data, freq.np_freq), freq)
+    return Period(np.datetime64(data_, freq.np_freq), freq)
 
 
-def periods(start, freq, count: int) -> Period:
+def periods(
+    start: Union[Period, str], freq: Union[Freq, str], count: int
+) -> Period:
+    """Create a ``zebras.Periods`` object that represents multiple consecutive
+    periods of time.
+
+    Parameters
+    ----------
+    start
+        The starting time period represented by a string (e.g., "2023-01-01"),
+        or another Period object.
+    freq
+        The frequency of the period, e.g, "H" for hourly.
+    count
+        The number of periods.
+
+    Returns
+    -------
+        A ``zebras.Periods`` object.
+    """
     return period(start, freq).periods(count)

@@ -2,7 +2,7 @@ import torch
 
 import numpy as np
 
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 
 from gluonts.evaluation import Evaluator
 

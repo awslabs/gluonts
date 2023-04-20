@@ -25,7 +25,7 @@ from gluonts.torch.model.forecast import DistributionForecast
 QUANTILES = np.arange(1, 100) / 100
 SAMPLES = np.arange(101).reshape(101, 1) / 100
 FREQ = "1D"
-START_DATE = pd.Period(pd.Timestamp(2017, 1, 1, 12), FREQ)
+START_DATE = pd.Period("2017-01-01 12:00:00", FREQ)
 
 
 FORECASTS = {
