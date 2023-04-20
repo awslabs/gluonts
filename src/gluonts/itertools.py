@@ -241,6 +241,21 @@ class IterableSlice:
         yield from itertools.islice(self.iterable, self.length)
 
 
+class SizedIterableSlice(IterableSlice):
+    """
+    Same as ``IterableSlice`` but also supports `len()`:
+
+        >>> isl = SizedIterableSlice([1, 2, 3, 4, 5], 3)
+        >>> len(isl)
+        3
+    """
+
+    def __len__(self):
+        # NOTE: This works correctly only when self.iterable supports `len()`.
+        total_len = len(self.iterable)
+        return min(total_len, self.length)
+
+
 @dataclass
 class Map:
     fn: Callable
