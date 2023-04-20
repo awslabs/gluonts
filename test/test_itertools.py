@@ -128,6 +128,25 @@ def test_rows_to_columns(given, expected, wrapper):
     assert columns_to_rows(output) == given
 
 
+def test_iterable_slice():
+    def generator():
+        for i in range(10):
+            yield i
+
+    unsized_iter = generator()
+    sized_iter = list(range(10))
+
+    unsized_iter_slice = IterableSlice(unsized_iter, 5)
+    with pytest.raises(TypeError):
+        len(unsized_iter_slice)
+
+    sized_iter_slice = IterableSlice(sized_iter, 5)
+    assert len(sized_iter_slice) == 5
+
+    sized_iter_slice = IterableSlice(sized_iter, 15)
+    assert len(sized_iter_slice) == 10
+
+
 def test_select():
     d = {"a": 1, "b": 2, "c": 3}
 

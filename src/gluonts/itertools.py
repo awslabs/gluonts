@@ -240,6 +240,11 @@ class IterableSlice:
     def __iter__(self):
         yield from itertools.islice(self.iterable, self.length)
 
+    def __len__(self):
+        # NOTE: This works correctly only when self.iterable supports `len()`.
+        total_len = len(self.iterable)
+        return min(total_len, self.length)
+
 
 @dataclass
 class Map:
