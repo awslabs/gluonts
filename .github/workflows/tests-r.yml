@@ -31,7 +31,7 @@ jobs:
         pip install -r requirements/requirements-extras-r.txt
     - name: Install R dependencies
       run: |
-        sudo apt-get install libcurl-dev
+        sudo apt-get install libcurl4-openssl-dev
         Rscript -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
     - name: Test with pytest
       run: |
