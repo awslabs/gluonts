@@ -21,7 +21,6 @@ jobs:
         r-version: '3.5.3'
     - name: Install R dependencies
       run: |
-        sudo wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
         sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
         sudo apt-get install -y \
           libcairo-dev \
