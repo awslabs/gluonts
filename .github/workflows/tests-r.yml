@@ -28,9 +28,7 @@ jobs:
           libedit-dev \
           libnlopt-dev \
           libxml2-dev \
-          libcurl4-openssl-dev \
-          r-base \
-          r-base-dev
+          libcurl4-openssl-dev
         Rscript -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
