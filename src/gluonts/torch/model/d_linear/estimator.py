@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Iterable, Dict, Any
+from typing import Optional, Iterable, Dict, Any
 
 import torch
 import pytorch_lightning as pl
