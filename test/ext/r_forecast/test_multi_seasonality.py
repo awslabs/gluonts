@@ -66,7 +66,7 @@ def test_arima(method: str):
     assert isinstance(agg_metrics, dict)
     assert "MAPE" in agg_metrics.keys()
 
-def compare_arimas():
+def test_compare_arimas():
 
     def evaluate(predictor):
         forecast_it, ts_it = make_evaluation_predictions(
