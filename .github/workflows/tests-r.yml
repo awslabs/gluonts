@@ -31,7 +31,7 @@ jobs:
           libnlopt-dev \
           libxml2-dev \
           libcurl4-openssl-dev
-        Rscript -e 'install.packages(c("forecast", "nnfor"), repos="https://cloud.r-project.org")'
+        Rscript -e 'install.packages(c("forecast", "nnfor", "hts"), repos="https://cloud.r-project.org")'
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -44,4 +44,4 @@ jobs:
         pip install -r requirements/requirements-extras-r.txt
     - name: Test with pytest
       run: |
-        pytest --ignore test/ext/r_forecast/test_r_hierarchical_predictor.py test/ext/r_forecast
+        pytest -n2 test/ext/r_forecast
