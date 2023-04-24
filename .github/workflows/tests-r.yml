@@ -44,4 +44,4 @@ jobs:
         pip install -r requirements/requirements-extras-r.txt
     - name: Test with pytest
       run: |
-        pytest test/ext/r_forecast
+        pytest -n2 test/ext/r_forecast
