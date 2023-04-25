@@ -5,7 +5,7 @@ A callback is a function which gets called at one or more specific hook points d
 You can use predefined GluonTS callbacks like `TrainingHistory`, `ModelAveraging` or `TerminateOnNaN`, or you can implement your own callback.
 
 ```python
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 
 dataset = get_dataset("m4_hourly")
 prediction_length = dataset.metadata.prediction_length

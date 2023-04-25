@@ -81,7 +81,7 @@ def generate_m3_dataset(
     dataset_writer: DatasetWriter,
     prediction_length: Optional[int] = None,
 ):
-    from gluonts.dataset.repository.datasets import default_dataset_path
+    from gluonts.dataset.repository import default_dataset_path
 
     m3_xls_path = default_dataset_path / "M3C.xls"
     if not os.path.exists(m3_xls_path):
