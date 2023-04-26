@@ -2,7 +2,7 @@
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
 # 2023
-* [Learning Physical Models that Can Respect Conservation Laws](https://arxiv.org/pdf/2302.11002.pdf), *Derek Hansen, Danielle C. Maddix, Shima Alizadeh, Gaurav Gupta, Michal W. Mahoney*, ICML 2023
+* [Learning Physical Models that Can Respect Conservation Laws](https://arxiv.org/pdf/2302.11002.pdf), *Derek Hansen, Danielle C. Maddix, Shima Alizadeh, Gaurav Gupta, Michael W. Mahoney*, ICML 2023
 * Theoretical Guarantees of Learning Ensembling Strategies with Applications to Time Series Forecasting, *Hilaf Hasson, Danielle C. Maddix, Yuyang Wang, Gaurav Gupta, Youngsuk Park*, ICML 2023
 * [Guiding continuous operator learning through Physics-based boundary constraints](https://arxiv.org/pdf/2212.07477.pdf), *Nadim Saad, Gaurav Gupta, Shima Alizadeh, Danielle C. Maddix*, ICLR 2023
 * [Towards Robust Multivariate Time-Series Forecasting: Adversarial Attacks and Defense Mechanisms](https://arxiv.org/abs/2207.09572), *Linbo Liu, Youngsuk Park, Trong Nghia Hoang, Hilaf Hasson, Jun Huan*, ICLR 2023
