@@ -366,7 +366,12 @@ class Evaluator:
         )
 
     def get_base_metrics(
-            self, forecast: Forecast, pred_target, mean_fcst, median_fcst, seasonal_error
+        self,
+        forecast: Forecast,
+        pred_target,
+        mean_fcst,
+        median_fcst,
+        seasonal_error,
     ) -> Dict[str, Union[float, str, None]]:
         return {
             "item_id": forecast.item_id,
