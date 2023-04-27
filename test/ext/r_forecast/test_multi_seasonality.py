@@ -16,8 +16,16 @@ import pytest
 import matplotlib.pyplot as plt 
 from gluonts.core import serde
 from gluonts.dataset.common import ListDataset
-from gluonts.ext.r_forecast import RForecastPredictor
 from gluonts.evaluation import Evaluator, backtest_metrics, make_evaluation_predictions
+
+from gluonts.ext.r_forecast import (
+    RForecastPredictor, 
+    RHierarchicalForecastPredictor,
+    R_IS_INSTALLED,
+    RPY2_IS_INSTALLED,
+    SUPPORTED_HIERARCHICAL_METHODS,
+)
+
 
 # conditionally skip these tests if `R` and `rpy2` are not installed
 if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
