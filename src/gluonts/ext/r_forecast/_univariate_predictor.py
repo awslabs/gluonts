@@ -24,8 +24,8 @@ from . import RBasePredictor
 
 R_FILE_PREFIX = "univariate"
 
-UNIVARIATE_SAMPLE_FORECAST_METHODS = ["ets", "arima"]
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "fourier.arima"]
+UNIVARIATE_SAMPLE_FORECAST_METHODS = ["arima"]
+UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "fourier.arima", "ets"]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
     UNIVARIATE_SAMPLE_FORECAST_METHODS
@@ -92,16 +92,14 @@ class RForecastPredictor(RBasePredictor):
         self._r_method = self._robjects.r[method_name]
         self.params = {
             "prediction_length": self.prediction_length,
-            "output_types": ["samples"] if method_name in UNIVARIATE_SAMPLE_FORECAST_METHODS else ["quantiles"] if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS else ["mean"],
+            "output_types": ["samples"],
             "frequency": self.period,
         }
-        params["output_types"] = list(params["output_types"] if "output_types" in params else list()) + self.params["output_types"]
-        params["output_types"] = list(dict.fromkeys(params["output_types"]))
 
         if params is not None:
             self.params.update(params)
 
-        if "quantiles" in self.params["output_types"]:
+        if "quantiles" in self.params:
             levels_info = self.get_levels(self.params["quantiles"])
             self.params["intervals"] = [level for level, quantile in levels_info]
 
@@ -180,11 +178,13 @@ class RForecastPredictor(RBasePredictor):
             params["output_types"] = ["mean"]
         elif self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
             params["output_types"] = ["quantiles", "mean"]
+            params_intervals = self.params['intervals'] if "intervals" in self.params else list()
             if intervals is None:
                 # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05, and other quantiles provided as inputs
-                intervals = [*set(list(range(0, 100, 10)) + self.params['intervals'] if "intervals" in self.params else list())] 
+                intervals = list(range(0, 100, 10)) + params_intervals
             else:
-                intervals = [*set(intervals + self.params['intervals'] if "intervals" in self.params else list())] 
+                intervals = intervals + params_intervals
+            intervals = list(dict.fromkeys(intervals))
             params["intervals"] = np.sort(intervals).tolist() 
 
         return params
