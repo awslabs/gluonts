@@ -19,6 +19,11 @@ from gluonts.dataset.common import ListDataset
 from gluonts.ext.r_forecast import RForecastPredictor
 from gluonts.evaluation import Evaluator, backtest_metrics, make_evaluation_predictions
 
+# conditionally skip these tests if `R` and `rpy2` are not installed
+if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
+    skip_message = "Skipping test because `R` and `rpy2` are not installed!"
+    pytest.skip(skip_message, allow_module_level=True)
+    
 freq = 'H'
 period = 24
 
