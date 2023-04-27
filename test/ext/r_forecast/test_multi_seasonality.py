@@ -34,7 +34,7 @@ dataset = ListDataset(
     ],
     freq=freq,
 )
-params = dict(freq=freq, prediction_length=24*7, period=period, params={"quantiles": [0.50, 0.10, 0.90], "output_types": ["samples", "mean", "quantiles"]})
+params = dict(freq=freq, prediction_length=24*7, period=period, params={"quantiles": [0.50, 0.10, 0.90], "output_types": ["mean", "samples", "quantiles"]})
 
 @pytest.mark.parametrize(
     "method",
