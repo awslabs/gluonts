@@ -96,6 +96,7 @@ class RForecastPredictor(RBasePredictor):
             "frequency": self.period,
         }
         params["output_types"] = list(params["output_types"] if "output_types" in params else list()) + self.params["output_types"]
+        params["output_types"] = list(dict.fromkeys(params["output_types"]))
 
         if params is not None:
             self.params.update(params)
@@ -103,7 +104,7 @@ class RForecastPredictor(RBasePredictor):
         if "quantiles" in self.params["output_types"]:
             levels_info = self.get_levels(self.params["quantiles"])
             self.params["intervals"] = [level for level, quantile in levels_info]
-        
+
     def get_levels(self, quantiles: List[float]): ## code_diff
         percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
         levels = [
