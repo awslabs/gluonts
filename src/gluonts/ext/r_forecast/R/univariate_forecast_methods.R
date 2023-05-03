@@ -105,11 +105,6 @@ ets <- function(ts, params) {
     handleForecast(model, params)
 }
 
-quantile.ets <- function(ts, params) {
-    model <- forecast::ets(ts, additive.only=TRUE)
-    handleForecast(model, params)
-}
-
 croston <- function(ts, params) {
     forecasts <- forecast::croston(ts, h=params$prediction_length)
     handlePointForecast(forecasts, params)
