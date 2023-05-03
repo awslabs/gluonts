@@ -25,7 +25,7 @@ from . import RBasePredictor
 R_FILE_PREFIX = "univariate"
 
 UNIVARIATE_SAMPLE_FORECAST_METHODS = ["arima", "ets"]
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "fourier.arima", "quantile.ets"]
+UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar", "fourier.arima"]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
     UNIVARIATE_SAMPLE_FORECAST_METHODS
@@ -178,14 +178,11 @@ class RForecastPredictor(RBasePredictor):
             params["output_types"] = ["mean"]
         elif self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
             params["output_types"] = ["quantiles", "mean"]
-            params_intervals = self.params['intervals'] if "intervals" in self.params else list()
             if intervals is None:
-                # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05, and other quantiles provided as inputs
-                intervals = list(range(0, 100, 10)) + params_intervals
+                # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
+                params["intervals"] = list(range(0, 100, 10))
             else:
-                intervals = intervals + params_intervals
-            intervals = list(dict.fromkeys(intervals))
-            params["intervals"] = np.sort(intervals).tolist() 
+                params["intervals"] = np.sort(intervals).tolist()
 
         return params
 
