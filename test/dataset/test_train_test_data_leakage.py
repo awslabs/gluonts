@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 import pytest
-from gluonts.dataset.repository.datasets import dataset_names, get_dataset
+from gluonts.dataset.repository import dataset_names, get_dataset
 from gluonts.dataset.util import forecast_start
 
 

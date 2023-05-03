@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from gluonts.dataset.repository.datasets import get_dataset
+from gluonts.dataset.repository import get_dataset
 from gluonts.dataset.split import TestData, split
 from gluonts.ext.naive_2 import naive_2
 from gluonts.time_feature.seasonality import get_seasonality

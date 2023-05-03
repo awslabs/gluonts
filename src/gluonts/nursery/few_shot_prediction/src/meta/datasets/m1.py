@@ -54,7 +54,7 @@ def generate_m1_dataset(
     category: str,
     prediction_length: Optional[int] = None,
 ):
-    from gluonts.dataset.repository.datasets import default_dataset_path
+    from gluonts.dataset.repository import default_dataset_path
 
     m1_xls_path = default_dataset_path / "MC1001.xls"
     if not os.path.exists(m1_xls_path):

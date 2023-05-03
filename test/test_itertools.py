@@ -29,6 +29,7 @@ from gluonts.itertools import (
     PickleCached,
     Cyclic,
     IterableSlice,
+    SizedIterableSlice,
     PseudoShuffled,
     rows_to_columns,
     columns_to_rows,
@@ -126,6 +127,25 @@ def test_rows_to_columns(given, expected, wrapper):
     output = rows_to_columns(given, wrapper)
     assert_equal(output, expected)
     assert columns_to_rows(output) == given
+
+
+def test_sized_iterable_slice():
+    def generator():
+        for i in range(10):
+            yield i
+
+    unsized_iter = generator()
+    sized_iter = list(range(10))
+
+    unsized_iter_slice = SizedIterableSlice(unsized_iter, 5)
+    with pytest.raises(TypeError):
+        len(unsized_iter_slice)
+
+    sized_iter_slice = SizedIterableSlice(sized_iter, 5)
+    assert len(sized_iter_slice) == 5
+
+    sized_iter_slice = SizedIterableSlice(sized_iter, 15)
+    assert len(sized_iter_slice) == 10
 
 
 def test_select():

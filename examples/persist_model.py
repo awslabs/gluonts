@@ -17,7 +17,7 @@ This example shows how to serialize and deserialize a model
 import os
 import pprint
 
-from gluonts.dataset.repository.datasets import get_dataset, get_download_path
+from gluonts.dataset.repository import get_dataset, get_download_path
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
 from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer

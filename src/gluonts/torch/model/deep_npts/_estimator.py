@@ -17,6 +17,7 @@ from functools import partial
 
 import torch
 
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import DataLoader, TrainDataLoader
@@ -116,6 +117,7 @@ class DeepNPTSEstimator(Estimator):
         `DeepNPTSNetworkSmooth` (default: DeepNPTSNetworkDiscrete)
     """
 
+    @validated()
     def __init__(
         self,
         freq: str,
