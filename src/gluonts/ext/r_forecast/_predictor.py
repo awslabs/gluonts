@@ -15,7 +15,6 @@
 from pathlib import Path
 from typing import Dict, Optional, List, Iterator, Tuple
 
-import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
