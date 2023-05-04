@@ -17,10 +17,14 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.model.forecast import SampleForecast, QuantileForecast
+from gluonts.model.forecast import QuantileForecast
 
 from . import RBasePredictor
-from .util import unlist
+from .util import (
+    unlist,
+    quantile_to_interval_level,
+    interval_to_quantile_level,
+)
 
 
 UNIVARIATE_QUANTILE_FORECAST_METHODS = [
@@ -108,58 +112,40 @@ class RForecastPredictor(RBasePredictor):
             self.params["intervals"] = list(range(0, 100, 10))
 
         if "quantiles" in params:
-            levels_info = self.get_levels(params["quantiles"])
-            params["intervals"] = [level for level, quantile in levels_info]
+            intervals_info = [
+                quantile_to_interval_level(ql) for ql in params["quantiles"]
+            ]
+            params["intervals"] = sorted(
+                set([level for level, _ in intervals_info])
+            )
 
         self.params.update(params)
 
-    def get_levels(self, quantiles: List[float]):
-        percentage_levels = [2 * abs(0.5 - quantile) for quantile in quantiles]
-        levels = [
-            round(percentage_level * 100)
-            for percentage_level in percentage_levels
-        ]
-        return sorted(zip(levels, quantiles))
-
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
+    def _get_r_forecast(self, data: Dict) -> Dict:
         make_ts = self._stats_pkg.ts
-        r_params = self._robjects.vectors.ListVector(params)
+        r_params = self._robjects.vectors.ListVector(self.params)
         vec = self._robjects.FloatVector(data["target"])
         ts = make_ts(vec, frequency=self.period)
         forecast = self._r_method(ts, r_params)
 
         forecast_dict = dict(zip(forecast.names, map(unlist, list(forecast))))
 
-        if "quantiles" in forecast_dict or "upper_quantiles" in forecast_dict:
-
-            def from_interval_to_level(interval: int, side: str):
-                if side == "upper":
-                    level = 50 + interval / 2
-                elif side == "lower":
-                    level = 50 - interval / 2
-                else:
-                    raise ValueError
-                return level / 100
-
-            # Post-processing quantiles on then Python side for the
-            # convenience of asserting and debugging.
+        if "quantiles" in self.params["output_types"]:
             upper_quantiles = [
-                str(from_interval_to_level(interval, side="upper"))
-                for interval in params["intervals"]
+                str(interval_to_quantile_level(interval, side="upper"))
+                for interval in self.params["intervals"]
             ]
 
             lower_quantiles = [
-                str(from_interval_to_level(interval, side="lower"))
-                for interval in params["intervals"]
+                str(interval_to_quantile_level(interval, side="lower"))
+                for interval in self.params["intervals"]
             ]
 
-            # Median forecasts would be available at two places:
-            # Lower 0 and Higher 0 (0-prediction interval)
             forecast_dict["quantiles"] = dict(
                 zip(
-                    lower_quantiles + upper_quantiles[1:],
+                    lower_quantiles + upper_quantiles,
                     forecast_dict["lower_quantiles"]
-                    + forecast_dict["upper_quantiles"][1:],
+                    + forecast_dict["upper_quantiles"],
                 )
             )
 

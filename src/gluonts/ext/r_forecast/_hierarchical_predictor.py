@@ -158,8 +158,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
 
         self.is_hts = is_hts
 
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
-        r_params = self._robjects.vectors.ListVector(params)
+    def _get_r_forecast(self, data: Dict) -> Dict:
+        r_params = self._robjects.vectors.ListVector(self.params)
 
         # R methods take only bottom level time series and the
         # hierarchical (or grouping) structure in the form of
@@ -211,13 +211,13 @@ class RHierarchicalForecastPredictor(RBasePredictor):
                 list(forecast), (self.target_dim, self.prediction_length)
             ).transpose()
             hier_forecasts = np.tile(
-                hier_point_forecasts, (params["num_samples"], 1, 1)
+                hier_point_forecasts, (self.params["num_samples"], 1, 1)
             )
         else:
             hier_forecasts = np.reshape(
                 list(forecast),
                 (
-                    params["num_samples"],
+                    self.params["num_samples"],
                     self.prediction_length,
                     self.target_dim,
                 ),

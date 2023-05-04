@@ -128,7 +128,7 @@ class RBasePredictor(RepresentablePredictor):
         self.trunc_length = trunc_length
         self.save_info = save_info
 
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
+    def _get_r_forecast(self, data: Dict) -> Dict:
         """
         Get forecasts from an R method.
 
@@ -136,8 +136,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         data
             Dictionary containing the `target` time series.
-        params
-            Dictionary containing the hyper-parameters.
 
         Returns
         -------
@@ -147,9 +145,7 @@ class RBasePredictor(RepresentablePredictor):
         """
         raise NotImplementedError()
 
-    def _run_r_forecast(
-        self, data: Dict, params: Dict, save_info: bool
-    ) -> Tuple[Dict, List]:
+    def _run_r_forecast(self, data: Dict) -> Tuple[Dict, List]:
         """
         Run an R forecast method.
 
@@ -157,10 +153,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         data
             Dictionary containing the `target` time series.
-        params
-            Dictionary containing the hyper-parameters.
-        save_info
-            Should console output from R methods be saved?
 
         Returns
         -------
@@ -175,7 +167,7 @@ class RBasePredictor(RepresentablePredictor):
         def dont_save(x):
             pass
 
-        f = save_to_buf if save_info else dont_save
+        f = save_to_buf if self.save_info else dont_save
 
         # save output from the R console in buf
         consolewrite_print_backup = self._rcallbacks.consolewrite_print
@@ -184,7 +176,7 @@ class RBasePredictor(RepresentablePredictor):
         self._rcallbacks.consolewrite_print = f
         self._rcallbacks.consolewrite_warnerror = f
 
-        forecast_dict = self._get_r_forecast(data=data, params=params)
+        forecast_dict = self._get_r_forecast(data=data)
 
         self._rcallbacks.consolewrite_print = consolewrite_print_backup
         self._rcallbacks.consolewrite_warnerror = consolewrite_warnerror_backup
@@ -207,32 +199,6 @@ class RBasePredictor(RepresentablePredictor):
 
         """
         raise NotImplementedError()
-
-    def _override_params(
-        self,
-        params: Dict,
-        num_samples: int,
-        intervals: Optional[List] = None,
-    ) -> Dict:
-        """
-        Override default parameters depending on method type and with
-        parameters given at predict time.
-
-        Parameters
-        ----------
-        params
-            Dictionary containing all hyper-parameters.
-        num_samples
-            Number of samples to store in sample based forecast.
-        intervals
-            Prediction intervals for the quantile based forecast.
-
-        Returns
-        -------
-        Dict
-
-        """
-        return params
 
     def _warning_message(self) -> None:
         """
@@ -283,11 +249,8 @@ class RBasePredictor(RepresentablePredictor):
 
         for data in dataset:
             data = self._preprocess_data(data=data)
-            params = self.params.copy()
 
-            forecast_dict, console_output = self._run_r_forecast(
-                data, params, save_info=self.save_info
-            )
+            forecast_dict, console_output = self._run_r_forecast(data)
 
             info = (
                 {"console_output": "\n".join(console_output)}
