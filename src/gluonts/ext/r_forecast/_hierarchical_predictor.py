@@ -22,8 +22,6 @@ from gluonts.model.forecast import SampleForecast
 from . import RBasePredictor
 
 
-R_FILE_PREFIX = "hierarchical"
-
 HIERARCHICAL_POINT_FORECAST_METHODS = [
     "naive_bottom_up",
     "top_down_w_average_historical_proportions",
@@ -107,6 +105,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         fmethod: str,
         period: Optional[int] = None,
         trunc_length: Optional[int] = None,
+        save_info: bool = False,
         nonnegative: bool = False,
         level: Optional[int] = None,
         algorithm: Optional[str] = "cg",
@@ -119,7 +118,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             prediction_length=prediction_length,
             period=period,
             trunc_length=trunc_length,
-            r_file_prefix=R_FILE_PREFIX,
+            save_info=save_info,
+            r_file_prefix="hierarchical",
         )
 
         assert method_name in SUPPORTED_HIERARCHICAL_METHODS, (
@@ -237,12 +237,6 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             data["target"] = data["target"][:, -self.trunc_length :]
 
         return data
-
-    def _override_params(
-        self, params: Dict, num_samples: int, intervals: Optional[List] = None
-    ) -> Dict:
-        params["num_samples"] = num_samples
-        return params
 
     def _forecast_dict_to_obj(
         self,

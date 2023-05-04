@@ -17,13 +17,13 @@ from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
-from gluonts.model import SampleForecast, QuantileForecast
+from gluonts.model import QuantileForecast
 from gluonts.ext.r_forecast import (
     RForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    UNIVARIATE_QUANTILE_FORECAST_METHODS,
     SUPPORTED_UNIVARIATE_METHODS,
+    UNIVARIATE_POINT_FORECAST_METHODS,
 )
 
 
@@ -67,13 +67,8 @@ def test_forecasts(method_name):
     predictor = RForecastPredictor(**params)
     predictions = list(predictor.predict(train_dataset))
 
-    forecast_type = (
-        QuantileForecast
-        if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS
-        else SampleForecast
-    )
     assert all(
-        isinstance(prediction, forecast_type) for prediction in predictions
+        isinstance(prediction, QuantileForecast) for prediction in predictions
     )
 
     assert all(prediction.freq == freq for prediction in predictions)
@@ -88,7 +83,9 @@ def test_forecasts(method_name):
         for data, prediction in zip(train_dataset, predictions)
     )
 
-    evaluator = Evaluator()
+    evaluator = Evaluator(
+        allow_nan_forecast=method_name in UNIVARIATE_POINT_FORECAST_METHODS
+    )
     agg_metrics, item_metrics = backtest_metrics(
         test_dataset=test_dataset,
         predictor=predictor,

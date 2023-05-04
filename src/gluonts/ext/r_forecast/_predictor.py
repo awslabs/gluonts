@@ -94,6 +94,7 @@ class RBasePredictor(RepresentablePredictor):
         prediction_length: int,
         period: int = None,
         trunc_length: Optional[int] = None,
+        save_info: bool = False,
         r_file_prefix: str = "",
     ) -> None:
         super().__init__(prediction_length=prediction_length)
@@ -125,19 +126,7 @@ class RBasePredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.period = period if period is not None else get_seasonality(freq)
         self.trunc_length = trunc_length
-
-    def _unlist(self, l):
-        if (
-            type(l).__name__.endswith("Vector")
-            and type(l).__name__ != "ListVector"
-        ):
-            return [self._unlist(x) for x in l]
-        elif type(l).__name__ == "ListVector":
-            return [self._unlist(x) for x in l]
-        elif type(l).__name__ == "Matrix":
-            return np.array(l)
-        else:
-            return l
+        self.save_info = save_info
 
     def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
         """
@@ -259,7 +248,6 @@ class RBasePredictor(RepresentablePredictor):
     def _forecast_dict_to_obj(
         self,
         forecast_dict: Dict,
-        num_samples: int,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
         info: Dict,
@@ -271,8 +259,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         forecast_dict
             Dictionary containing `samples` or `quantiles`.
-        num_samples
-            Number of samples to keep in the forecast object.
         forecast_start_date
             Start date of the forecast.
         item_id
@@ -291,54 +277,26 @@ class RBasePredictor(RepresentablePredictor):
     def predict(
         self,
         dataset: Dataset,
-        num_samples: int = 100,
-        intervals: Optional[List] = None,
-        save_info: bool = False,
         **kwargs,
     ) -> Iterator[Forecast]:
-        """
-
-        Parameters
-        ----------
-        dataset
-            Dataset of all time series.
-        num_samples
-            Number of samples to store in sample based forecast.
-        intervals
-            Prediction intervals for the quantile based forecast.
-        save_info
-            Should console output from R methods be saved?
-        kwargs
-
-        Returns
-        -------
-        Iterator[Forecast]
-            Iterator over gluonts `Forecast` object.
-
-        """
         self._warning_message()
 
         for data in dataset:
             data = self._preprocess_data(data=data)
-            params = self._override_params(
-                params=self.params.copy(),
-                num_samples=num_samples,
-                intervals=intervals,
-            )
+            params = self.params.copy()
 
             forecast_dict, console_output = self._run_r_forecast(
-                data, params, save_info=save_info
+                data, params, save_info=self.save_info
             )
 
             info = (
                 {"console_output": "\n".join(console_output)}
-                if save_info
+                if self.save_info
                 else None
             )
 
             yield self._forecast_dict_to_obj(
                 forecast_dict=forecast_dict,
-                num_samples=num_samples,
                 forecast_start_date=forecast_start(data),
                 item_id=data.get("item_id", None),
                 info=info,
