@@ -139,6 +139,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         self.params = {
             "prediction_length": self.prediction_length,
             "output_types": ["samples"],
+            "num_samples": 100,
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
@@ -241,14 +242,17 @@ class RHierarchicalForecastPredictor(RBasePredictor):
     def _forecast_dict_to_obj(
         self,
         forecast_dict: Dict,
-        num_samples: int,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
         info: Dict,
     ) -> SampleForecast:
         samples = np.array(forecast_dict["samples"])
 
-        expected_shape = (num_samples, self.prediction_length, self.target_dim)
+        expected_shape = (
+            self.params["num_samples"],
+            self.prediction_length,
+            self.target_dim,
+        )
         assert (
             samples.shape == expected_shape
         ), f"Expected shape {expected_shape} but found {samples.shape}"

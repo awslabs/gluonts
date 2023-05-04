@@ -12,24 +12,15 @@
 # permissions and limitations under the License.
 
 import numpy as np
+import pandas as pd
 import pytest
-import matplotlib.pyplot as plt
-from gluonts.core import serde
-from gluonts.dataset.common import ListDataset
-from gluonts.evaluation import (
-    Evaluator,
-    backtest_metrics,
-    make_evaluation_predictions,
-)
 
+from gluonts.evaluation import Evaluator, make_evaluation_predictions
 from gluonts.ext.r_forecast import (
-    RForecastPredictor,
-    RHierarchicalForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    SUPPORTED_HIERARCHICAL_METHODS,
+    RForecastPredictor,
 )
-
 
 # conditionally skip these tests if `R` and `rpy2` are not installed
 if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
@@ -40,42 +31,40 @@ freq = "H"
 period = 24
 
 ## two weeks of data
-dataset = ListDataset(
-    data_iter=[
-        {
-            "start": "1990-01-01",
-            "target": np.array(
-                [
-                    item
-                    for i in range(70)
-                    for item in np.sin(
-                        2 * np.pi / period * np.arange(1, period + 1, 1)
-                    )
-                ]
-            )
-            + np.random.normal(0, 0.5, period * 70)
-            + np.array(
-                [
-                    item
-                    for i in range(10)
-                    for item in [0 for i in range(5 * 24)]
-                    + [8 for i in range(4)]
-                    + [0 for i in range(20)]
-                    + [8 for i in range(4)]
-                    + [0 for i in range(20)]
-                ]
-            ),
-        }
-    ],
-    freq=freq,
-)
+dataset = [
+    {
+        "start": pd.Period("1990-01-01 00", freq=freq),
+        "target": np.array(
+            [
+                item
+                for i in range(70)
+                for item in np.sin(
+                    2 * np.pi / period * np.arange(1, period + 1, 1)
+                )
+            ]
+        )
+        + np.random.normal(0, 0.5, period * 70)
+        + np.array(
+            [
+                item
+                for i in range(10)
+                for item in [0 for i in range(5 * 24)]
+                + [8 for i in range(4)]
+                + [0 for i in range(20)]
+                + [8 for i in range(4)]
+                + [0 for i in range(20)]
+            ]
+        ),
+    }
+]
+
 params = dict(
     freq=freq,
     prediction_length=24 * 7,
     period=period,
     params={
         "quantiles": [0.50, 0.10, 0.90],
-        "output_types": ["mean", "samples", "quantiles"],
+        "output_types": ["mean", "quantiles"],
     },
 )
 
@@ -90,13 +79,12 @@ params = dict(
 def test_arima(method: str):
     predictor = RForecastPredictor(**params, method_name=method)
 
-    act_fcst = next(predictor.predict(dataset))
-    act_fcst = next(predictor.predict(dataset))
-    exp_fcst = dataset[0]["target"][: period * 7]
+    forecast = list(predictor.predict(dataset))[0]
+    actual = dataset[0]["target"][: period * 7]
 
-    assert exp_fcst.shape == act_fcst.quantile(0.1).shape
-    assert exp_fcst.shape == act_fcst.quantile(0.5).shape
-    assert exp_fcst.shape == act_fcst.quantile(0.9).shape
+    assert actual.shape == forecast.quantile(0.1).shape
+    assert actual.shape == forecast.quantile(0.5).shape
+    assert actual.shape == forecast.quantile(0.9).shape
 
     forecast_it, ts_it = make_evaluation_predictions(
         dataset=dataset,

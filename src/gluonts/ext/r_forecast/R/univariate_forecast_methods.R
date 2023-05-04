@@ -22,7 +22,6 @@ handleModel <- function(model, params, xreg = NULL) {
     outputs
 }
 
-
 handleForecast <- function(forecasts, params) {
     outputs = list()
     output_types = params$output_types
@@ -42,15 +41,12 @@ handleForecast <- function(forecasts, params) {
     outputs
 }
 
-
 arima <- function(ts, params) {
     model <- forecast::auto.arima(ts, trace=TRUE)
     handleModel(model, params)
 }
 
-
 fourier.arima <- function(ts, params){
-
     fourier.frequency.low.periods <- 4
     fourier.ratio.threshold.low.periods <- 18
     fourier.frequency.high.periods <- 52
@@ -60,6 +56,7 @@ fourier.arima <- function(ts, params){
     period <- frequency(ts)
     len_ts <- length(ts)
     fourier_ratio <- len_ts / period
+
     if ((period > fourier.frequency.low.periods
         && fourier_ratio > fourier.ratio.threshold.low.periods)
         || (period >= fourier.frequency.high.periods
@@ -78,7 +75,7 @@ fourier.arima <- function(ts, params){
 
         xreg <- forecast::fourier(ts, K=K, h=params$prediction_length)
         handleModel(model, params, xreg)
-    } else{
+    } else {
         model <- forecast::auto.arima(ts, trace=TRUE)
         handleModel(model, params)
     }
