@@ -51,7 +51,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
     """
     An estimator training the PatchTST model for forecasting.
 
-    This class is uses the model defined in ``SimpleFeedForwardModel``,
+    This class uses the model defined in ``PatchTSTModel``,
     and wraps it into a ``PatchTSTLightningModule`` for training
     purposes: training is performed using PyTorch Lightning's ``pl.Trainer``
     class.
