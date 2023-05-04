@@ -2,12 +2,14 @@
 We encourage you to also check out the time series work by the group behind GluonTS, ordered chronographically.
 
 # 2023
+* [Learning Physical Models that Can Respect Conservation Laws](https://arxiv.org/pdf/2302.11002.pdf), *Derek Hansen, Danielle C. Maddix, Shima Alizadeh, Gaurav Gupta, Michael W. Mahoney*, ICML 2023
+* Theoretical Guarantees of Learning Ensembling Strategies with Applications to Time Series Forecasting, *Hilaf Hasson, Danielle C. Maddix, Yuyang Wang, Gaurav Gupta, Youngsuk Park*, ICML 2023
 * [Guiding continuous operator learning through Physics-based boundary constraints](https://arxiv.org/pdf/2212.07477.pdf), *Nadim Saad, Gaurav Gupta, Shima Alizadeh, Danielle C. Maddix*, ICLR 2023
 * [Towards Robust Multivariate Time-Series Forecasting: Adversarial Attacks and Defense Mechanisms](https://arxiv.org/abs/2207.09572), *Linbo Liu, Youngsuk Park, Trong Nghia Hoang, Hilaf Hasson, Jun Huan*, ICLR 2023
-* Coherent Probabilistic Forecasting of Temporal Hierarchies, *Syama Sundar Rangapuram, Shubham Kapoor, Rajbir Singh Nirwan, Pedro Mercado, Yuyang Wang, Tim Januschowski, Michael Bohlke-Schneider*, AISTATS 2023
+* [Coherent Probabilistic Forecasting of Temporal Hierarchies](https://www.amazon.science/publications/coherent-probabilistic-forecasting-of-temporal-hierarchies), *Syama Sundar Rangapuram, Shubham Kapoor, Rajbir Singh Nirwan, Pedro Mercado, Yuyang Wang, Tim Januschowski, Michael Bohlke-Schneider*, AISTATS 2023
 * [But are you sure? An uncertainty-aware perspective on explainable AI](https://www.amazon.science/publications/but-are-you-sure-an-uncertainty-aware-perspective-on-explainable-ai), *Charlie Marx, Youngsuk Park, Hilaf Hasson, Yuyang Wang, Stefano Ermon, Jun Huan*, AISTATS 2023
 # 2022
-* [Domain Adaptation for Time Series Forecasting via Attention Sharing](https://arxiv.org/pdf/2102.06828.pdf), *Xiaoyong Jin, Youngsuk Park, Danielle C. Maddix, Hao Wang, Yuyang Wang*, ICML 2022
+* [Domain Adaptation for Time Series Forecasting via Attention Sharing](https://proceedings.mlr.press/v162/jin22d/jin22d.pdf), *Xiaoyong Jin, Youngsuk Park, Danielle C. Maddix, Hao Wang, Yuyang Wang*, ICML 2022
 * [Robust Probabilistic Time Series Forecasting](https://proceedings.mlr.press/v151/yoon22a/yoon22a.pdf), *TaeHo Yoon, Youngsuk Park, Ernest Ryu, Yuyang Wang*, AISTATS 2022
 * [Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting](https://proceedings.mlr.press/v151/park22a/park22a.pdf), *Youngsuk Park, Danielle C. Maddix, Francois-Xavier Aubet, Kelvin Kan, Jan Gasthaus, Yuyang Wang*, AISTATS 2022
 * [Multivariate Quantile Function Forecaster](https://proceedings.mlr.press/v151/kan22a/kan22a.pdf), *Kelvin Kan , François-Xavier Aubet , Tim Januschowski, Youngsuk Park, Konstantinos Benidis, Lars Ruthotto, Jan Gasthaus*, AISTATS 2022

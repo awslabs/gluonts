@@ -365,6 +365,29 @@ class Evaluator:
             np.squeeze(time_series.loc[:date_before_forecast].transpose())
         )
 
+    def get_base_metrics(
+        self,
+        forecast: Forecast,
+        pred_target,
+        mean_fcst,
+        median_fcst,
+        seasonal_error,
+    ) -> Dict[str, Union[float, str, None]]:
+        return {
+            "item_id": forecast.item_id,
+            "forecast_start": forecast.start_date,
+            "MSE": mse(pred_target, mean_fcst)
+            if mean_fcst is not None
+            else None,
+            "abs_error": abs_error(pred_target, median_fcst),
+            "abs_target_sum": abs_target_sum(pred_target),
+            "abs_target_mean": abs_target_mean(pred_target),
+            "seasonal_error": seasonal_error,
+            "MASE": mase(pred_target, median_fcst, seasonal_error),
+            "MAPE": mape(pred_target, median_fcst),
+            "sMAPE": smape(pred_target, median_fcst),
+        }
+
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
@@ -393,20 +416,9 @@ class Evaluator:
             past_data, forecast.start_date.freqstr, self.seasonality
         )
 
-        metrics: Dict[str, Union[float, str, None]] = {
-            "item_id": forecast.item_id,
-            "forecast_start": forecast.start_date,
-            "MSE": mse(pred_target, mean_fcst)
-            if mean_fcst is not None
-            else None,
-            "abs_error": abs_error(pred_target, median_fcst),
-            "abs_target_sum": abs_target_sum(pred_target),
-            "abs_target_mean": abs_target_mean(pred_target),
-            "seasonal_error": seasonal_error,
-            "MASE": mase(pred_target, median_fcst, seasonal_error),
-            "MAPE": mape(pred_target, median_fcst),
-            "sMAPE": smape(pred_target, median_fcst),
-        }
+        metrics: Dict[str, Union[float, str, None]] = self.get_base_metrics(
+            forecast, pred_target, mean_fcst, median_fcst, seasonal_error
+        )
         metrics["ND"] = cast(float, metrics["abs_error"]) / cast(
             float, metrics["abs_target_sum"]
         )
