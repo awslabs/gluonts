@@ -68,7 +68,8 @@ class SeriesDecomp(nn.Module):
 
 class DLinearModel(nn.Module):
     """
-    Module implementing a feed-forward model for forecasting.
+    Module implementing a feed-forward model form the paper
+    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic forecasting.
 
     Parameters
     ----------
