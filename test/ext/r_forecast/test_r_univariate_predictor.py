@@ -51,21 +51,15 @@ def test_forecasts(method_name):
 
     dataset = datasets.get_dataset("constant")
 
-    (train_dataset, test_dataset, metadata) = (
-        dataset.train,
-        dataset.test,
-        dataset.metadata,
+    freq = dataset.metadata.freq
+    prediction_length = dataset.metadata.prediction_length
+
+    predictor = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        method_name=method_name,
     )
-
-    freq = metadata.freq
-    prediction_length = metadata.prediction_length
-
-    params = dict(
-        freq=freq, prediction_length=prediction_length, method_name=method_name
-    )
-
-    predictor = RForecastPredictor(**params)
-    predictions = list(predictor.predict(train_dataset))
+    predictions = list(predictor.predict(dataset.train))
 
     assert all(
         isinstance(prediction, QuantileForecast) for prediction in predictions
@@ -80,14 +74,14 @@ def test_forecasts(method_name):
 
     assert all(
         prediction.start_date == forecast_start(data)
-        for data, prediction in zip(train_dataset, predictions)
+        for data, prediction in zip(dataset.train, predictions)
     )
 
     evaluator = Evaluator(
         allow_nan_forecast=method_name in UNIVARIATE_POINT_FORECAST_METHODS
     )
     agg_metrics, item_metrics = backtest_metrics(
-        test_dataset=test_dataset,
+        test_dataset=dataset.test,
         predictor=predictor,
         evaluator=evaluator,
     )
@@ -95,14 +89,17 @@ def test_forecasts(method_name):
     assert agg_metrics["NRMSE"] < TOLERANCE
     assert agg_metrics["RMSE"] < TOLERANCE
 
-    trunc_length = prediction_length
-
-    predictor = RForecastPredictor(**params, trunc_length=trunc_length)
-    predictions = list(predictor.predict(train_dataset))
+    predictor = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        method_name=method_name,
+        trunc_length=prediction_length,
+    )
+    predictions = list(predictor.predict(dataset.train))
 
     assert all(
         prediction.start_date == to_pandas(data).index[-1] + 1
-        for data, prediction in zip(train_dataset, predictions)
+        for data, prediction in zip(dataset.train, predictions)
     )
 
 

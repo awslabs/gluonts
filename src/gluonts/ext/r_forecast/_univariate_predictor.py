@@ -69,8 +69,8 @@ class RForecastPredictor(RBasePredictor):
         with very long series).
     params
         Parameters to be used when calling the forecast method default.
-        Note that, as `output_type`, only 'samples' and `quantiles` (depending on the underlying R method)
-        are supported currently.
+        For `output_type`, 'mean' and `quantiles` are supported (depending
+        on the underlying R method).
     """
 
     @validated()
@@ -112,6 +112,9 @@ class RForecastPredictor(RBasePredictor):
             self.params["intervals"] = list(range(0, 100, 10))
 
         if "quantiles" in params:
+            assert (
+                "intervals" not in params
+            ), "Cannot specify both 'quantiles' and 'intervals'."
             intervals_info = [
                 quantile_to_interval_level(ql) for ql in params["quantiles"]
             ]
