@@ -93,7 +93,11 @@ def main():
         ),
     )
     parser.add_argument(
-        "--seed", type=int, default=0, metavar="S", help="random seed (default: 0)"
+        "--seed",
+        type=int,
+        default=0,
+        metavar="S",
+        help="random seed (default: 0)",
     )
     parser.add_argument(
         "--gamma",
@@ -304,7 +308,6 @@ def main():
             tensorboard_path=args.tensorboard_path,
             device=device,
         )
-
 
     # get model
     if args.model == "mlp":

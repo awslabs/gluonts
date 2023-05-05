@@ -220,7 +220,6 @@ def main():
     T0_evaluator.evaluate()
     print(T0_evaluator.metrics.test.value)
 
-
     DA_dataset = DomAdaptDataset.from_domains(src_dataset, tgt_dataset)
     T1 = S1.create_twin_estimator(
         tgt_dataset.d_data,
@@ -254,7 +253,9 @@ def main():
         **vars(args.train),
     )
     ADV_trainer.fit()
-    ADV_evaluator = AdversarialDomAdaptEvaluator.from_trainer(ADV_trainer, "best")
+    ADV_evaluator = AdversarialDomAdaptEvaluator.from_trainer(
+        ADV_trainer, "best"
+    )
     ADV_evaluator.evaluate()
     print(ADV_evaluator.metrics.test.value)
 
