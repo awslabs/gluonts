@@ -30,7 +30,7 @@ def get_lags_for_frequency(
     freq_str: str,
     lag_ub: int = 1200,
     num_lags: Optional[int] = None,
-    default_lags: List[int] = [1, 2, 3, 4, 5, 6, 7],
+    num_default_lags: int = 7,
 ) -> List[int]:
     """
     Generates a list of lags that that are appropriate for the given frequency
@@ -53,8 +53,8 @@ def get_lags_for_frequency(
     num_lags
         Maximum number of lags; by default all generated lags are returned.
 
-    default_lags
-        Lags that are always included in the output.
+    num_default_lags
+        The number of default lags; by default it is 7.
     """
 
     # Lags are target values at the same `season` (+/- delta) but in the
@@ -152,6 +152,6 @@ def get_lags_for_frequency(
     lags = [
         int(lag) for sub_list in lags for lag in sub_list if 7 < lag <= lag_ub
     ]
-    lags = default_lags + sorted(list(set(lags)))
+    lags = list(range(1, num_default_lags + 1)) + sorted(list(set(lags)))
 
     return lags[:num_lags]

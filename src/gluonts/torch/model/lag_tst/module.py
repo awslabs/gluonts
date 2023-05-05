@@ -116,7 +116,7 @@ class LagTSTModel(nn.Module):
         self.prediction_length = prediction_length
         self.context_length = context_length
         self.lags_seq = lags_seq or get_lags_for_frequency(
-            freq_str=freq, default_lags=[1]
+            freq_str=freq, num_default_lags=1
         )
         self.d_model = d_model
         self.distr_output = distr_output
