@@ -500,29 +500,34 @@ def group_traffic_cv(
     return True
 
 
-get_mixed_pattern(unit_length=24, num_duplicates=2000)
-group_traffic_cv(
-    num_ts=800,
-    num_groups=49,
-    context_length=72,
-    prediction_length=24,
-    file_name="traffic",
-)
-group_exchangerate_cv(
-    num_ts=8,
-    num_groups=32,
-    context_length=8,
-    prediction_length=1,
-    file_name="exchange_rate",
-)
-group_electricity_cv(
-    num_ts=300,
-    num_groups=70,
-    context_length=72,
-    prediction_length=24,
-    file_name="electricity",
-)
-print(
-    "Finished the preprocessing data, please verify ./dataset/ contains four"
-    " .csv files"
-)
+def main():
+    get_mixed_pattern(unit_length=24, num_duplicates=2000)
+    group_traffic_cv(
+        num_ts=800,
+        num_groups=49,
+        context_length=72,
+        prediction_length=24,
+        file_name="traffic",
+    )
+    group_exchangerate_cv(
+        num_ts=8,
+        num_groups=32,
+        context_length=8,
+        prediction_length=1,
+        file_name="exchange_rate",
+    )
+    group_electricity_cv(
+        num_ts=300,
+        num_groups=70,
+        context_length=72,
+        prediction_length=24,
+        file_name="electricity",
+    )
+    print(
+        "Finished the preprocessing data, please verify ./dataset/ contains four"
+        " .csv files"
+    )
+
+
+if __name__ == "__main__":
+    main()
