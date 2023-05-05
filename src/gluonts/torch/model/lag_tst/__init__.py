@@ -15,8 +15,4 @@ from .module import LagTSTModel
 from .lightning_module import LagTSTLightningModule
 from .estimator import LagTSTEstimator
 
-__all__ = [
-    "LagTSTModel",
-    "LagTSTLightningModule",
-    "LagTSTEstimator",
-]
+__all__ = ["LagTSTModel", "LagTSTLightningModule", "LagTSTEstimator"]
