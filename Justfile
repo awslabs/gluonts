@@ -21,6 +21,9 @@ MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
 docs: compile_notebooks
   make -C docs html # SPHINXOPTS=-W
 
+docs_skip_notebooks:
+  make -C docs html # SPHINXOPTS=-W
+
 clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 

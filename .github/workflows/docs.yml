@@ -39,9 +39,14 @@ jobs:
       run: |
         sudo apt-get install pandoc
 
+    - name: Compile notebooks
+      if: contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook')
+      run: |
+        just compile_notebooks
+
     - name: Build docs
       run: |
-        just docs
+        just docs_skip_notebooks
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
