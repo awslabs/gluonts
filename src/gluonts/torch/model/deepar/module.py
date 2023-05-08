@@ -235,7 +235,13 @@ class DeepARModel(nn.Module):
 
         time_feat = torch.cat(
             (
-                past_time_feat[..., -self.context_length + 1 :, :],
+                past_time_feat[
+                    ...,
+                    # Can't use negative indexing, since this would become 0
+                    # if `context_length == 0`.
+                    past_time_feat.shape[-2] - self.context_length + 1 :,
+                    :,
+                ],
                 future_time_feat,
             ),
             dim=-2,
