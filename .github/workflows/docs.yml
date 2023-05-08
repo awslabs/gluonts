@@ -39,7 +39,7 @@ jobs:
       run: |
         sudo apt-get install pandoc
 
-    - name: Build docs
+    - name: Set build mode
       run: |
         if [ ${{ contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook') }} ]; then
           DOCS_BUILD_MODE=skip
@@ -47,7 +47,9 @@ jobs:
           DOCS_BUILD_MODE=release
         fi
         echo "Running in '$DOCS_BUILD_MODE' mode"
-        just mode=$DOCS_BUILD_MODE docs
+
+    - name: Build docs
+      run: just mode=$DOCS_BUILD_MODE docs
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
