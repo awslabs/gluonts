@@ -46,7 +46,7 @@ jobs:
         else
           DOCS_BUILD_MODE=release
         fi
-      run: echo "Running in '$DOCS_BUILD_MODE' mode"
+        echo "Running in '$DOCS_BUILD_MODE' mode"
 
     - name: Build docs
       run: just mode=$DOCS_BUILD_MODE docs
