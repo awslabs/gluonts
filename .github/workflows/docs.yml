@@ -42,14 +42,14 @@ jobs:
     - name: Set build mode
       run: |
         if [ ${{ contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook') }} ]; then
-          MODE=skip
+          DOCS_BUILD_MODE=skip
         else
-          MODE=release
+          DOCS_BUILD_MODE=release
         fi
-      run: echo "Running in '$MODE' mode"
+      run: echo "Running in '$DOCS_BUILD_MODE' mode"
 
     - name: Build docs
-      run: just mode=skip docs
+      run: just mode=$DOCS_BUILD_MODE docs
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
