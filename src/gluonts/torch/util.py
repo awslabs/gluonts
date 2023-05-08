@@ -188,6 +188,29 @@ def slice_along_dim(a: torch.Tensor, dim: int, slice_: slice) -> torch.Tensor:
     return a[idx]
 
 
+def take_last(a: torch.Tensor, dim: int, qty: int) -> torch.Tensor:
+    """
+    Take last elements from a given tensor along a given dimension.
+
+    Parameters
+    ----------
+    a
+        Original tensor to slice.
+    dim
+        Dimension to slice over.
+    qty
+        Quantity of trailing elements to retain (non-negative).
+
+    Returns
+    -------
+    torch.Tensor
+        A tensor with the same size as the input one, except dimension
+        ``dim`` which has length equal to ``qty``.
+    """
+    assert qty >= 0
+    return slice_along_dim(a, dim, slice(a.shape[dim] - qty, None))
+
+
 def unsqueeze_expand(a: torch.Tensor, dim: int, size: int) -> torch.Tensor:
     """
     Unsqueeze a dimension and expand over it in one go.
