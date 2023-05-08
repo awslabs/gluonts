@@ -180,7 +180,10 @@ class RForecastPredictor(RBasePredictor):
         item_id: Optional[str],
         info: Dict,
     ) -> QuantileForecast:
-        stats_dict = {"mean": forecast_dict["mean"]}
+        stats_dict = {}
+
+        if "mean" in forecast_dict:
+            stats_dict["mean"] = forecast_dict["mean"]
         if "quantiles" in forecast_dict:
             stats_dict.update(forecast_dict["quantiles"])
 
@@ -193,4 +196,5 @@ class RForecastPredictor(RBasePredictor):
             forecast_keys=list(stats_dict.keys()),
             start_date=forecast_start_date,
             item_id=item_id,
+            info=info,
         )
