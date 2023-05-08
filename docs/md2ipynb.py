@@ -3,12 +3,10 @@ import re
 import sys
 import time
 import os
-from itertools import chain
 from pathlib import Path
 
 import black
 import click
-import jinja2
 import nbformat
 import notedown
 from nbclient import NotebookClient
@@ -16,23 +14,6 @@ from nbclient import NotebookClient
 from jinja2 import Environment
 
 env = Environment()
-
-
-def check_github_event(default):
-    if "GITHUB_EVENT_PATH" not in os.environ:
-        return default
-
-    with open(os.environ["GITHUB_EVENT_PATH"]) as infile:
-        event = json.load(infile)
-
-    if "pull_request" in event:
-        for label in event["pull_request"]["labels"]:
-            if label["name"] == "pr:docs-build-notebook":
-                return default
-
-        return "skip"
-
-    return default
 
 
 def run_notebook(text, kernel_name, timeout) -> str:
@@ -108,8 +89,6 @@ def convert(path, mode, kernel_name=None, timeout=40 * 60):
 @click.option("--kernel", "-k", help="Name of iPython kernel to use.")
 @click.option("--mode", "-m", default="release")
 def cli(paths, kernel, mode):
-    mode = check_github_event(mode)
-
     for file in map(Path, paths):
         convert(file, kernel_name=kernel, mode=mode)
 
