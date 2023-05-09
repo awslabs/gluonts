@@ -108,7 +108,7 @@ class RForecastPredictor(RBasePredictor):
         if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
             self.params["output_types"] = ["mean"]
         elif self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
-            self.params["output_types"] = ["quantiles", "mean"]
+            self.params["output_types"] = ["mean", "quantiles"]
             self.params["intervals"] = list(range(0, 100, 10))
 
         if "quantiles" in params:
@@ -123,6 +123,12 @@ class RForecastPredictor(RBasePredictor):
             )
 
         self.params.update(params)
+
+        # Always ask for the mean prediction to be given,
+        # since QuantileForecast will otherwise impute it
+        # using the median, which is undesired.
+        if "mean" not in self.params["output_types"]:
+            self.params["output_types"].append("mean")
 
     def _get_r_forecast(self, data: Dict) -> Dict:
         make_ts = self._stats_pkg.ts
@@ -180,10 +186,8 @@ class RForecastPredictor(RBasePredictor):
         item_id: Optional[str],
         info: Dict,
     ) -> QuantileForecast:
-        stats_dict = {}
+        stats_dict = {"mean": forecast_dict["mean"]}
 
-        if "mean" in forecast_dict:
-            stats_dict["mean"] = forecast_dict["mean"]
         if "quantiles" in forecast_dict:
             stats_dict.update(forecast_dict["quantiles"])
 
