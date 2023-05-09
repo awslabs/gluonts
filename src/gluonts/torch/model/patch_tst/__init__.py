@@ -11,8 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .module import PatchTSTModel
+from .module import PatchTSTModel, SinusoidalPositionalEmbedding
 from .lightning_module import PatchTSTLightningModule
 from .estimator import PatchTSTEstimator
 
-__all__ = ["PatchTSTModel", "PatchTSTLightningModule", "PatchTSTEstimator"]
+__all__ = [
+    "PatchTSTModel",
+    "PatchTSTLightningModule",
+    "PatchTSTEstimator",
+    "SinusoidalPositionalEmbedding",
+]

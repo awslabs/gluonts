@@ -13,8 +13,6 @@
 
 from typing import Tuple, Optional, List
 
-import numpy as np
-from pandas.tseries.frequencies import to_offset
 import torch
 from torch import nn
 
@@ -23,51 +21,9 @@ from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.util import unsqueeze_expand, lagged_sequence_values
-from gluonts.time_feature import get_lags_for_frequency, norm_freq_str
+from gluonts.time_feature import get_lags_for_frequency
 from gluonts.torch.model.simple_feedforward import make_linear_layer
-
-
-class SinusoidalPositionalEmbedding(nn.Embedding):
-    """This module produces sinusoidal positional embeddings of any length."""
-
-    def __init__(self, num_positions: int, embedding_dim: int) -> None:
-        super().__init__(num_positions, embedding_dim)
-        self.weight = self._init_weight(self.weight)
-
-    @staticmethod
-    def _init_weight(out: nn.Parameter) -> nn.Parameter:
-        """
-        Features are not interleaved. The cos features are in the 2nd half of the vector. [dim // 2:]
-        """
-        n_pos, dim = out.shape
-        position_enc = np.array(
-            [
-                [pos / np.power(10000, 2 * (j // 2) / dim) for j in range(dim)]
-                for pos in range(n_pos)
-            ]
-        )
-        # set early to avoid an error in pytorch-1.8+
-        out.requires_grad = False
-
-        sentinel = dim // 2 if dim % 2 == 0 else (dim // 2) + 1
-        out[:, 0:sentinel] = torch.FloatTensor(np.sin(position_enc[:, 0::2]))
-        out[:, sentinel:] = torch.FloatTensor(np.cos(position_enc[:, 1::2]))
-        out.detach_()
-        return out
-
-    @torch.no_grad()
-    def forward(
-        self, input_ids_shape: torch.Size, past_key_values_length: int = 0
-    ) -> torch.Tensor:
-        """`input_ids_shape` is expected to be [bsz x seqlen x ...]."""
-        _, seq_len = input_ids_shape[:2]
-        positions = torch.arange(
-            past_key_values_length,
-            past_key_values_length + seq_len,
-            dtype=torch.long,
-            device=self.weight.device,
-        )
-        return super().forward(positions)
+from gluonts.torch.model.patch_tst import SinusoidalPositionalEmbedding
 
 
 class LagTSTModel(nn.Module):
