@@ -73,7 +73,7 @@ class LagTSTLightningModule(pl.LightningModule):
 
         return (
             self.loss(distr, target) * observed_target
-        ).sum() / torch.maximum(torch.tensor(1.0), observed_target.sum())
+        ).sum() / observed_target.sum().clamp_min(1.0)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """

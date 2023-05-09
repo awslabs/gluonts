@@ -20,13 +20,7 @@ from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
-
-
-def make_linear_layer(dim_in, dim_out):
-    lin = nn.Linear(dim_in, dim_out)
-    torch.nn.init.uniform_(lin.weight, -0.07, 0.07)
-    torch.nn.init.zeros_(lin.bias)
-    return lin
+from gluonts.torch.model.simple_feedforward import make_linear_layer
 
 
 class MovingAvg(nn.Module):
