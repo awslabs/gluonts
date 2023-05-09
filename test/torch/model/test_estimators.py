@@ -30,6 +30,9 @@ from gluonts.torch.model.deep_npts import (
 from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.torch.model.d_linear import DLinearEstimator
+from gluonts.torch.model.patch_tst import PatchTSTEstimator
+from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
@@ -69,6 +72,19 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
+        lambda dataset: DLinearEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: LagTSTEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            freq=dataset.metadata.freq,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
         lambda dataset: TemporalFusionTransformerEstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
@@ -83,6 +99,13 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             batch_size=4,
             num_batches_per_epoch=3,
             epochs=2,
+        ),
+        lambda dataset: PatchTSTEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            patch_len=16,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
         ),
     ],
 )
