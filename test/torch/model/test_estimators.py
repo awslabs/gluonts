@@ -51,6 +51,15 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             loss=NegativeLogLikelihood(beta=0.1),
             scaling=False,
         ),
+        lambda dataset: DeepAREstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            context_length=1,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+            scaling=False,
+        ),
         lambda dataset: MQF2MultiHorizonEstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
