@@ -15,7 +15,6 @@
 from pathlib import Path
 from typing import Dict, Optional, List, Iterator, Tuple
 
-import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
@@ -94,6 +93,7 @@ class RBasePredictor(RepresentablePredictor):
         prediction_length: int,
         period: int = None,
         trunc_length: Optional[int] = None,
+        save_info: bool = False,
         r_file_prefix: str = "",
     ) -> None:
         super().__init__(prediction_length=prediction_length)
@@ -125,21 +125,9 @@ class RBasePredictor(RepresentablePredictor):
         self.prediction_length = prediction_length
         self.period = period if period is not None else get_seasonality(freq)
         self.trunc_length = trunc_length
+        self.save_info = save_info
 
-    def _unlist(self, l):
-        if (
-            type(l).__name__.endswith("Vector")
-            and type(l).__name__ != "ListVector"
-        ):
-            return [self._unlist(x) for x in l]
-        elif type(l).__name__ == "ListVector":
-            return [self._unlist(x) for x in l]
-        elif type(l).__name__ == "Matrix":
-            return np.array(l)
-        else:
-            return l
-
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
+    def _get_r_forecast(self, data: Dict) -> Dict:
         """
         Get forecasts from an R method.
 
@@ -147,8 +135,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         data
             Dictionary containing the `target` time series.
-        params
-            Dictionary containing the hyper-parameters.
 
         Returns
         -------
@@ -158,9 +144,7 @@ class RBasePredictor(RepresentablePredictor):
         """
         raise NotImplementedError()
 
-    def _run_r_forecast(
-        self, data: Dict, params: Dict, save_info: bool
-    ) -> Tuple[Dict, List]:
+    def _run_r_forecast(self, data: Dict) -> Tuple[Dict, List]:
         """
         Run an R forecast method.
 
@@ -168,10 +152,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         data
             Dictionary containing the `target` time series.
-        params
-            Dictionary containing the hyper-parameters.
-        save_info
-            Should console output from R methods be saved?
 
         Returns
         -------
@@ -186,7 +166,7 @@ class RBasePredictor(RepresentablePredictor):
         def dont_save(x):
             pass
 
-        f = save_to_buf if save_info else dont_save
+        f = save_to_buf if self.save_info else dont_save
 
         # save output from the R console in buf
         consolewrite_print_backup = self._rcallbacks.consolewrite_print
@@ -195,7 +175,7 @@ class RBasePredictor(RepresentablePredictor):
         self._rcallbacks.consolewrite_print = f
         self._rcallbacks.consolewrite_warnerror = f
 
-        forecast_dict = self._get_r_forecast(data=data, params=params)
+        forecast_dict = self._get_r_forecast(data=data)
 
         self._rcallbacks.consolewrite_print = consolewrite_print_backup
         self._rcallbacks.consolewrite_warnerror = consolewrite_warnerror_backup
@@ -219,32 +199,6 @@ class RBasePredictor(RepresentablePredictor):
         """
         raise NotImplementedError()
 
-    def _override_params(
-        self,
-        params: Dict,
-        num_samples: int,
-        intervals: Optional[List] = None,
-    ) -> Dict:
-        """
-        Override default parameters depending on method type and with
-        parameters given at predict time.
-
-        Parameters
-        ----------
-        params
-            Dictionary containing all hyper-parameters.
-        num_samples
-            Number of samples to store in sample based forecast.
-        intervals
-            Prediction intervals for the quantile based forecast.
-
-        Returns
-        -------
-        Dict
-
-        """
-        return params
-
     def _warning_message(self) -> None:
         """
         Prints warning messages (once per whole dataset), e.g., if default
@@ -259,7 +213,6 @@ class RBasePredictor(RepresentablePredictor):
     def _forecast_dict_to_obj(
         self,
         forecast_dict: Dict,
-        num_samples: int,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
         info: Dict,
@@ -271,8 +224,6 @@ class RBasePredictor(RepresentablePredictor):
         ----------
         forecast_dict
             Dictionary containing `samples` or `quantiles`.
-        num_samples
-            Number of samples to keep in the forecast object.
         forecast_start_date
             Start date of the forecast.
         item_id
@@ -291,54 +242,23 @@ class RBasePredictor(RepresentablePredictor):
     def predict(
         self,
         dataset: Dataset,
-        num_samples: int = 100,
-        intervals: Optional[List] = None,
-        save_info: bool = False,
         **kwargs,
     ) -> Iterator[Forecast]:
-        """
-
-        Parameters
-        ----------
-        dataset
-            Dataset of all time series.
-        num_samples
-            Number of samples to store in sample based forecast.
-        intervals
-            Prediction intervals for the quantile based forecast.
-        save_info
-            Should console output from R methods be saved?
-        kwargs
-
-        Returns
-        -------
-        Iterator[Forecast]
-            Iterator over gluonts `Forecast` object.
-
-        """
         self._warning_message()
 
         for data in dataset:
             data = self._preprocess_data(data=data)
-            params = self._override_params(
-                params=self.params.copy(),
-                num_samples=num_samples,
-                intervals=intervals,
-            )
 
-            forecast_dict, console_output = self._run_r_forecast(
-                data, params, save_info=save_info
-            )
+            forecast_dict, console_output = self._run_r_forecast(data)
 
             info = (
                 {"console_output": "\n".join(console_output)}
-                if save_info
+                if self.save_info
                 else None
             )
 
             yield self._forecast_dict_to_obj(
                 forecast_dict=forecast_dict,
-                num_samples=num_samples,
                 forecast_start_date=forecast_start(data),
                 item_id=data.get("item_id", None),
                 info=info,
