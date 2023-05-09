@@ -57,6 +57,8 @@ fourier.arima <- function(ts, params){
     len_ts <- length(ts)
     fourier_ratio <- len_ts / period
 
+    fourier <- FALSE
+
     if ((period > fourier.frequency.low.periods
         && fourier_ratio > fourier.ratio.threshold.low.periods)
         || (period >= fourier.frequency.high.periods
@@ -64,10 +66,10 @@ fourier.arima <- function(ts, params){
         # When the period is high, auto.arima becomes unstable
         # per Rob's suggestion, we use Fourier series instead
         # cf. https://robjhyndman.com/hyndsight/longseasonality/
-        params$fourier <- TRUE
+        fourier <- TRUE
     }
 
-    if(!is.null(params$fourier) && params$fourier == TRUE) {
+    if (fourier == TRUE) {
         K <- min(fourier.order, floor(frequency(ts) / 2))
         seasonal <- FALSE
         xreg <- forecast::fourier(ts, K=K)
