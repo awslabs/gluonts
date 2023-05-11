@@ -278,9 +278,7 @@ class DeepARModel(nn.Module):
                 dim=-2,
             )
             if future_time_feat is not None
-            else take_last(
-                past_time_feat, dim=-2, num=self.context_length - 1
-            ),
+            else take_last(past_time_feat, dim=-2, num=self.context_length - 1)
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
