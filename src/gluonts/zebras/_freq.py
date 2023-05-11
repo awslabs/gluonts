@@ -24,7 +24,7 @@ from gluonts import maybe
 NpFreq = Tuple[str, int]
 
 
-def _canonical_freqstr(n: int, name: str, suffix: Optional[str]) -> str:
+def _canonical_freqstr(n: int, name: str, suffix: Optional[str] = None) -> str:
     """Canonical name of frequency.
 
     >>> _canonical_freqstr(1, "X")

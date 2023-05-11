@@ -420,7 +420,9 @@ def period(
 
     if freq.name == "W":
         period = Period(np.datetime64(data_, freq.np_freq), freq)
-        weekday_offset = maybe.map_or(freq.suffix, weekday_offsets.get, 0)
+        weekday_offset = maybe.map_or(
+            freq.suffix, weekday_offsets.__getitem__, 0
+        )
         period.data -= (cast(int, period.dayofweek) - weekday_offset) % 7
         return period
 
