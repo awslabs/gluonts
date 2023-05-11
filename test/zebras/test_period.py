@@ -118,7 +118,7 @@ def test_periods_feature(freq):
 
 
 @pytest.mark.parametrize(
-    "data, freq, result",
+    "date, freq, result",
     [
         (
             "2023-03-19",
@@ -145,10 +145,15 @@ def test_periods_feature(freq):
             "2W-SAT",
             ["2023-03-18", "2023-04-01", "2023-04-15", "2023-04-29"],
         ),
+        (
+            "2023-03-17",
+            "2W-SAT",
+            ["2023-03-11", "2023-03-25", "2023-04-08", "2023-04-22"],
+        ),
     ],
 )
-def test_weekly_weekday_period(data, freq, result):
+def test_weekly_weekday_period(date, freq, result):
     np.testing.assert_array_equal(
-        zb.period(data, freq).periods(4).data,
+        zb.period(date, freq).periods(4).data,
         np.array(result).astype(np.datetime64),
     )
