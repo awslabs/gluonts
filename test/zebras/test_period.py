@@ -115,3 +115,40 @@ def test_periods_feature(freq):
     np.testing.assert_array_equal(pr.start_time.dayofweek, ps.dayofweek)
     np.testing.assert_array_equal(pr.start_time.dayofyear, ps.dayofyear)
     np.testing.assert_array_equal(pr.start_time.isocalendar().week, ps.week)
+
+
+@pytest.mark.parametrize(
+    "data, freq, result",
+    [
+        (
+            "2023-03-19",
+            "W",
+            ["2023-03-13", "2023-03-20", "2023-03-27", "2023-04-03"],
+        ),
+        (
+            "2023-03-19",
+            "W-SUN",
+            ["2023-03-19", "2023-03-26", "2023-04-02", "2023-04-09"],
+        ),
+        (
+            "2023-03-17",
+            "W-SUN",
+            ["2023-03-12", "2023-03-19", "2023-03-26", "2023-04-02"],
+        ),
+        (
+            "2023-03-19",
+            "W-SAT",
+            ["2023-03-18", "2023-03-25", "2023-04-01", "2023-04-08"],
+        ),
+        (
+            "2023-03-19",
+            "2W-SAT",
+            ["2023-03-18", "2023-04-01", "2023-04-15", "2023-04-29"],
+        ),
+    ],
+)
+def test_weekly_weekday_period(data, freq, result):
+    np.testing.assert_array_equal(
+        zb.period(data, freq).periods(4).data,
+        np.array(result).astype(np.datetime64),
+    )

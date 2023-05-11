@@ -52,8 +52,20 @@ import numpy as np
 from dateutil.parser import parse as du_parse
 
 from gluonts.core import serde
+from gluonts import maybe
 
 from ._freq import Freq
+
+
+weekday_offsets = {
+    "MON": 0,
+    "TUE": 1,
+    "WED": 2,
+    "THU": 3,
+    "FRI": 4,
+    "SAT": 5,
+    "SUN": 6,
+}
 
 
 def _is_number(value):
@@ -408,7 +420,8 @@ def period(
 
     if freq.name == "W":
         period = Period(np.datetime64(data_, freq.np_freq), freq)
-        period.data -= cast(int, period.dayofweek)
+        weekday_offset = maybe.map_or(freq.suffix, weekday_offsets.get, 0)
+        period.data -= (cast(int, period.dayofweek) - weekday_offset) % 7
         return period
 
     return Period(np.datetime64(data_, freq.np_freq), freq)

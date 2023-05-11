@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 
@@ -24,17 +24,22 @@ from gluonts import maybe
 NpFreq = Tuple[str, int]
 
 
-def _canonical_freqstr(n: int, name: str) -> str:
+def _canonical_freqstr(n: int, name: str, suffix: Optional[str]) -> str:
     """Canonical name of frequency.
 
     >>> _canonical_freqstr(1, "X")
     'X'
     >>> _canonical_freqstr(3, "X")
     '3X'
+    >>> _canonical_freqstr(3, "X", "Y")
+    '3X-Y'
 
     This allows us to easily string compare frequencies
     (solves ``"1X" != "X"``).
     """
+
+    if suffix:
+        name = f"{name}-{suffix}"
 
     if n == 1:
         return name
@@ -101,6 +106,7 @@ class Freq:
 
     name: str
     n: int
+    suffix: Optional[str] = None
 
     def __post_init__(self):
         self.name = _canonical_name(self.name)
@@ -134,15 +140,22 @@ class Freq:
                 raise ValueError(f"Invalid freq {freq}: {type(freq)}")
 
         match = maybe.expect(
-            re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
+            re.match(
+                r"(?P<n>\d+)?\s*(?P<freq>\w+)(?P<suffix>\-\w+)?",
+                freq.upper(),
+            ),
             f"Unsupported freq format {freq}",
         )
-        groups = match.groupdict()
 
-        name = groups["freq"].upper().split("-")[0]
+        groups = match.groupdict()
         n = maybe.map_or(groups["n"], int, 1)
 
-        return cls(name, n)
+        suffix = groups["suffix"]
+        if suffix is not None:
+            # remove leading `-` from `-MON`
+            suffix = suffix[1:]
+
+        return cls(groups["freq"], n, suffix)
 
     def to_pandas(self):
         from pandas.tseries.frequencies import to_offset
@@ -166,7 +179,7 @@ class Freq:
         return np.arange(start, count * self.step, self.step)
 
     def __str__(self) -> str:
-        return _canonical_freqstr(self.n, self.name)
+        return _canonical_freqstr(self.n, self.name, self.suffix)
 
 
 def freq(arg) -> Freq:
