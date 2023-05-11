@@ -270,13 +270,17 @@ class DeepARModel(nn.Module):
         time_feat = (
             torch.cat(
                 (
-                    take_last(past_time_feat, dim=-2, num=self.context_length - 1),
+                    take_last(
+                        past_time_feat, dim=-2, num=self.context_length - 1
+                    ),
                     future_time_feat,
                 ),
                 dim=-2,
             )
             if future_time_feat is not None
-            else take_last(past_time_feat, dim=-2, num=self.context_length - 1),
+            else take_last(
+                past_time_feat, dim=-2, num=self.context_length - 1
+            ),
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
