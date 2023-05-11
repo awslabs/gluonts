@@ -34,7 +34,8 @@ def cli():
     "--type", "type_", type=click.Choice(["arrow", "feather", "parquet"])
 )
 @click.option("--stream", default=False)
-def write(dataset, out, freq, type_, stream):
+@click.option("--compression")
+def write(dataset, out, freq, type_, stream, compression):
     out = Path(out)
 
     if type_ is None:
@@ -46,7 +47,7 @@ def write(dataset, out, freq, type_, stream):
             raise click.UsageError(f"Unsupported suffix {out.suffix}.")
 
     if type_ == "arrow":
-        writer = ArrowWriter(stream=stream)
+        writer = ArrowWriter(stream=stream, compression=compression)
     else:
         writer = ParquetWriter()
 
