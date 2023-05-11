@@ -41,8 +41,8 @@ jobs:
 
     - name: Build docs
       run: |
-        SKIP_NOTEBOOKS=${{ github.event.pull_request && !contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook') }}
-        if [ $SKIP_NOTEBOOKS=true ]; then
+        SKIP_NOTEBOOKS=${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook') }}
+        if [ $SKIP_NOTEBOOKS = true ]; then
           DOCS_BUILD_MODE=skip
         else
           DOCS_BUILD_MODE=release

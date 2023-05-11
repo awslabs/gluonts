@@ -11,13 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .module import SimpleFeedForwardModel, make_linear_layer
-from .lightning_module import SimpleFeedForwardLightningModule
-from .estimator import SimpleFeedForwardEstimator
+from .module import PatchTSTModel, SinusoidalPositionalEmbedding
+from .lightning_module import PatchTSTLightningModule
+from .estimator import PatchTSTEstimator
 
 __all__ = [
-    "make_linear_layer",
-    "SimpleFeedForwardModel",
-    "SimpleFeedForwardLightningModule",
-    "SimpleFeedForwardEstimator",
+    "PatchTSTModel",
+    "PatchTSTLightningModule",
+    "PatchTSTEstimator",
+    "SinusoidalPositionalEmbedding",
 ]

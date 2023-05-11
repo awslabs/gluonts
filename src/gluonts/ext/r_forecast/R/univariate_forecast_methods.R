@@ -1,7 +1,6 @@
 loadNamespace("forecast")
 
-handleForecast <- function(model, params, xreg = NULL) {
-
+handleModel <- function(model, params, xreg = NULL) {
     outputs = list()
     output_types = params$output_types
 
@@ -23,8 +22,7 @@ handleForecast <- function(model, params, xreg = NULL) {
     outputs
 }
 
-
-handleQuantileForecast <- function(forecasts, params) {
+handleForecast <- function(forecasts, params) {
     outputs = list()
     output_types = params$output_types
     if ("samples" %in% output_types) {
@@ -43,30 +41,12 @@ handleQuantileForecast <- function(forecasts, params) {
     outputs
 }
 
-handlePointForecast <- function(forecasts, params) {
-    outputs = list()
-    output_types = params$output_types
-    if ("samples" %in% output_types) {
-        print("This forecasting method only produces point forecasts! Use mean as (only) output type.")
-    }
-    if("quantiles" %in% output_types) {
-        print("This forecasting method only produces point forecasts! Use mean as (only) output type.")
-    }
-    if("mean" %in% output_types) {
-        outputs$mean <- forecasts$mean
-    }
-    outputs
-}
-
-
 arima <- function(ts, params) {
     model <- forecast::auto.arima(ts, trace=TRUE)
-    handleForecast(model, params)
+    handleModel(model, params)
 }
 
-
 fourier.arima <- function(ts, params){
-
     fourier.frequency.low.periods <- 4
     fourier.ratio.threshold.low.periods <- 18
     fourier.frequency.high.periods <- 52
@@ -76,6 +56,9 @@ fourier.arima <- function(ts, params){
     period <- frequency(ts)
     len_ts <- length(ts)
     fourier_ratio <- len_ts / period
+
+    fourier <- FALSE
+
     if ((period > fourier.frequency.low.periods
         && fourier_ratio > fourier.ratio.threshold.low.periods)
         || (period >= fourier.frequency.high.periods
@@ -83,31 +66,31 @@ fourier.arima <- function(ts, params){
         # When the period is high, auto.arima becomes unstable
         # per Rob's suggestion, we use Fourier series instead
         # cf. https://robjhyndman.com/hyndsight/longseasonality/
-        params$fourier <- TRUE
+        fourier <- TRUE
     }
 
-    if(!is.null(params$fourier) && params$fourier == TRUE) {
+    if (fourier == TRUE) {
         K <- min(fourier.order, floor(frequency(ts) / 2))
         seasonal <- FALSE
         xreg <- forecast::fourier(ts, K=K)
         model <- forecast::auto.arima(ts, seasonal = seasonal, xreg = xreg, trace=TRUE)
 
         xreg <- forecast::fourier(ts, K=K, h=params$prediction_length)
-        handleForecast(model, params, xreg)
-    } else{
+        handleModel(model, params, xreg)
+    } else {
         model <- forecast::auto.arima(ts, trace=TRUE)
-        handleForecast(model, params)
+        handleModel(model, params)
     }
 }
 
 ets <- function(ts, params) {
     model <- forecast::ets(ts, additive.only=TRUE)
-    handleForecast(model, params)
+    handleModel(model, params)
 }
 
 croston <- function(ts, params) {
     forecasts <- forecast::croston(ts, h=params$prediction_length)
-    handlePointForecast(forecasts, params)
+    handleForecast(forecasts, params)
 }
 
 tbats <- function(ts, params) {
@@ -115,7 +98,7 @@ tbats <- function(ts, params) {
 
     # R doesn't allow `simulate` on tbats model. We obtain prediction intervals directly.
     forecasts <- forecast::forecast(model, h=params$prediction_length, level=unlist(params$intervals))
-    handleQuantileForecast(forecasts, params)
+    handleForecast(forecasts, params)
 }
 
 mlp <- function(ts, params) {
@@ -123,13 +106,13 @@ mlp <- function(ts, params) {
 
     # `mlp` is a point forecast method.
     forecasts <- forecast::forecast(model, h=params$prediction_length)
-    handleForecast(forecasts, params)
+    handleModel(forecasts, params)
 }
 
 thetaf <- function(ts, params) {
     # For thetaf, we obtain prediction intervals directly.
     forecasts <- forecast::thetaf(y=ts, h=params$prediction_length, level=unlist(params$intervals))
-    handleQuantileForecast(forecasts, params)
+    handleForecast(forecasts, params)
 }
 
 # Adapted the implementation of STL-AR by Thiyanga Talagala to obtain desired prediction intervals.
@@ -160,5 +143,5 @@ stlar <- function(ts, params) {
     }
 
     forecasts <- seer_stlar(y=ts, h=h, s.window=s_window, robust=robust, level=level)
-    handleQuantileForecast(forecasts, params)
+    handleForecast(forecasts, params)
 }
