@@ -11,13 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .module import SimpleFeedForwardModel, make_linear_layer
-from .lightning_module import SimpleFeedForwardLightningModule
-from .estimator import SimpleFeedForwardEstimator
 
-__all__ = [
-    "make_linear_layer",
-    "SimpleFeedForwardModel",
-    "SimpleFeedForwardLightningModule",
-    "SimpleFeedForwardEstimator",
-]
+import pytest
+
+from gluonts.ext.r_forecast.util import (
+    interval_to_quantile_level,
+    quantile_to_interval_level,
+)
+
+
+@pytest.mark.parametrize(
+    "quantile_level", [0.5, 0.15, 0.99, 0.4, 0.85, 0.35, 0.3, 0.5, 0.95, 0.13]
+)
+def test_quantile_to_interval_level_and_back(quantile_level: float):
+    interval_level, side = quantile_to_interval_level(quantile_level)
+    output = interval_to_quantile_level(interval_level, side)
+    assert output == quantile_level
