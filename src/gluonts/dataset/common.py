@@ -156,6 +156,7 @@ def FileDataset(
     pattern="*",
     levels=2,
     translate=None,
+    ignore_hidden=True,
 ) -> Dataset:
     path = Path(path)
 
@@ -167,6 +168,9 @@ def FileDataset(
     else:
         assert path.is_file()
         paths = [path]
+
+    if ignore_hidden:
+        paths = [path for path in paths if not path.name.startswith(".")]
 
     loaders = []
     for subpath in paths:
