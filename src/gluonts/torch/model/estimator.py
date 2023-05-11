@@ -190,8 +190,6 @@ class PyTorchLightningEstimator(Estimator):
                     num_workers=num_workers,
                 )
 
-        training_network = self.create_lightning_module()
-
         if from_predictor is not None:
             training_network.load_state_dict(
                 from_predictor.network.state_dict()
