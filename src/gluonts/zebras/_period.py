@@ -177,6 +177,9 @@ class Period(_BasePeriod):
     def to_timestamp(self):
         return self.data.astype(object)
 
+    def unix_epoch(self) -> int:
+        return self.to_numpy().astype("M8[s]").astype(int)
+
     def __repr__(self) -> str:
         return f"Period<{self.data}, {self.freq}>"
 
@@ -361,6 +364,9 @@ class Periods(_BasePeriod):
 
     def __array__(self) -> np.ndarray:
         return self.data
+
+    def unix_epoch(self) -> np.ndarray:
+        return self.to_numpy().astype("M8[s]").astype(int)
 
 
 @serde.encode.register
