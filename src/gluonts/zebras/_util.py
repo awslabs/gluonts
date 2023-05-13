@@ -30,6 +30,12 @@ class AxisView:
 
         return self.data[tuple(slices)]
 
+    def __setitem__(self, index, value):
+        slices = [slice(None)] * self.data.ndim
+        slices[self.axis] = index
+
+        self.data[tuple(slices)] = value
+
     def __len__(self):
         return self.data.shape[self.axis]
 

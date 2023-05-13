@@ -91,6 +91,35 @@ class TimeSeries(TimeBase):
             _pad=self._pad.extend(left, right),
         )
 
+    def update(self, other: TimeSeries, default=np.nan) -> TimeSeries:
+        assert self.index is not None and other.index is not None
+
+        start = min(self.index.start, other.index.start)
+        end = max(self.index.end, other.index.end) + 1
+
+        index = Periods(
+            np.arange(
+                start.to_numpy(),
+                end.to_numpy(),
+                start.freq.step,
+            ),
+            start.freq,
+        )
+
+        new_shape = list(self.values.shape)
+        new_shape[self.tdim] = len(index)
+
+        values = np.full(new_shape, default)
+        view = AxisView(values, self.tdim)
+
+        idx = index.index_of(self.index.start)
+        view[idx : idx + len(self)] = self.values
+
+        idx = index.index_of(other.index.start)
+        view[idx : idx + len(other)] = other.values
+
+        return _replace(self, values=values, index=index)
+
     @staticmethod
     def _batch(xs: List[TimeSeries]) -> BatchTimeSeries:
         for series in xs:
