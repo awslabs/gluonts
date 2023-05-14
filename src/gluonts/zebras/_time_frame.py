@@ -168,6 +168,56 @@ class TimeFrame(TimeBase):
             _pad=Pad(pad_left, pad_right),
         )
 
+    def update(self, other: TimeFrame, default=np.nan) -> TimeFrame:
+        assert self.index is not None and other.index is not None
+
+        start = min(self.index.start, other.index.start)
+        end = max(self.index.end, other.index.end)
+
+        index = Periods(
+            np.arange(
+                start.to_numpy(),
+                # arange is exclusive, thus we need to add `1`
+                (end + 1).to_numpy(),
+                start.freq.step,
+            ),
+            start.freq,
+        )
+        self_idx0 = index.index_of(self.index.start)
+        other_idx0 = index.index_of(other.index.start)
+
+        columns = {}
+        for name, (self_col, other_col, tdim) in rows_to_columns(
+            (self.columns, other.columns, self.tdims)
+        ).items():
+            new_shape = list(self_col.shape)
+            new_shape[tdim] = len(index)
+
+            values = np.full(new_shape, default)
+            view = AxisView(values, tdim)
+
+            view[self_idx0 : self_idx0 + len(self)] = self_col
+            view[other_idx0 : other_idx0 + len(other)] = other_col
+
+            columns[name] = values
+
+        static = {**self.static, **other.static}
+
+        if self.metadata is not None and other.metadata is not None:
+            metadata = {**self.metadata, **other.metadata}
+        else:
+            metadata = maybe.or_(self.metadata, other.metadata)
+
+        return _replace(
+            self,
+            columns=columns,
+            static=static,
+            index=index,
+            length=len(index),
+            metadata=metadata,
+            _pad=Pad(),
+        )
+
     def astype(self, type, columns=None) -> TimeFrame:
         if columns is None:
             columns = self.columns

@@ -95,12 +95,13 @@ class TimeSeries(TimeBase):
         assert self.index is not None and other.index is not None
 
         start = min(self.index.start, other.index.start)
-        end = max(self.index.end, other.index.end) + 1
+        end = max(self.index.end, other.index.end)
 
         index = Periods(
             np.arange(
                 start.to_numpy(),
-                end.to_numpy(),
+                # arange is exclusive, thus we need to add `1`
+                (end + 1).to_numpy(),
                 start.freq.step,
             ),
             start.freq,
@@ -112,13 +113,24 @@ class TimeSeries(TimeBase):
         values = np.full(new_shape, default)
         view = AxisView(values, self.tdim)
 
-        idx = index.index_of(self.index.start)
-        view[idx : idx + len(self)] = self.values
+        for part in self, other:
+            idx = index.index_of(part.index.start)
+            view[idx : idx + len(part)] = part.values
 
-        idx = index.index_of(other.index.start)
-        view[idx : idx + len(other)] = other.values
+        if self.metadata is not None and other.metadata is not None:
+            metadata = {**self.metadata, **other.metadata}
+        else:
+            metadata = maybe.or_(self.metadata, other.metadata)
 
-        return _replace(self, values=values, index=index)
+        # TODO: Pad -- does it even make sense?
+
+        return _replace(
+            self,
+            values=values,
+            index=index,
+            metadata=metadata,
+            _pad=Pad(),
+        )
 
     @staticmethod
     def _batch(xs: List[TimeSeries]) -> BatchTimeSeries:
