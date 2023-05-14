@@ -204,7 +204,7 @@ class TimeFrame(TimeBase):
         static = {**self.static, **other.static}
 
         if self.metadata is not None and other.metadata is not None:
-            metadata = {**self.metadata, **other.metadata}
+            metadata: Optional[dict] = {**self.metadata, **other.metadata}
         else:
             metadata = maybe.or_(self.metadata, other.metadata)
 

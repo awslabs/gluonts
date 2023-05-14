@@ -113,9 +113,11 @@ class TimeSeries(TimeBase):
         values = np.full(new_shape, default)
         view = AxisView(values, self.tdim)
 
-        for part in self, other:
-            idx = index.index_of(part.index.start)
-            view[idx : idx + len(part)] = part.values
+        idx = index.index_of(self.index.start)
+        view[idx : idx + len(self)] = self.values
+
+        idx = index.index_of(other.index.start)
+        view[idx : idx + len(other)] = other.values
 
         if self.metadata is not None and other.metadata is not None:
             metadata = {**self.metadata, **other.metadata}
