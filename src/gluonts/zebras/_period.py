@@ -355,9 +355,7 @@ class Periods(_BasePeriod):
         if not isinstance(other, Periods):
             return False
 
-        return self.freq.n == other.freq.n and np.array_equal(
-            self.data, other.data
-        )
+        return len(self) == len(other) and self.start == other.start
 
     def to_numpy(self) -> np.ndarray:
         return self.data
