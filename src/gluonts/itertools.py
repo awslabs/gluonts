@@ -461,9 +461,9 @@ def zip_items(*dicts, default=None, strict=False):
     >>> a = {"x": "a"}
     >>> b = {"x": "b"}
     >>> c = {}
-    >>> for name, xa, xb, xc in zip_items(a, b, c):
+    >>> for name, (xa, xb, xc) in zip_items(a, b, c):
     ...     print(name, xa, xb, xc)
-    x, a, b, None
+    x a b None
     """
     if not dicts:
         return
@@ -479,4 +479,4 @@ def zip_items(*dicts, default=None, strict=False):
             ref.update(dct)
 
     for key in ref:
-        yield key, *[dct.get(key, default) for dct in dicts]
+        yield key, tuple(dct.get(key, default) for dct in dicts)
