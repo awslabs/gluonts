@@ -61,7 +61,7 @@ class TimeFrame(TimeBase):
             f"Expected: {len(self)}, got {len(self.index)}."
         )
 
-    def __eq__(self, other: TimeFrame) -> bool:
+    def __eq__(self, other) -> bool:
         # not considered: Pad, metadata, default_tdim, tdims
 
         if (
