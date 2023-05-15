@@ -259,7 +259,7 @@ We can now train the model using the tooling that PyTorch Lightning provides:
 
 
 ```python
-trainer = pl.Trainer(max_epochs=10, gpus=-1 if torch.cuda.is_available() else None)
+trainer = pl.Trainer(max_epochs=10)
 trainer.fit(net, data_loader)
 ```
 
@@ -313,10 +313,7 @@ plt.rcParams.update({'font.size': 15})
 
 for idx, (forecast, ts) in islice(enumerate(zip(forecasts_pytorch, tss_pytorch)), 9):
     ax = plt.subplot(3, 3, idx+1)
-    ts = ts.copy()
-    ts.index = ts.index.to_timestamp()
-
-    plt.plot(ts[-5 * prediction_length:], label="target")
+    plt.plot(ts[-5 * prediction_length:].to_timestamp(), label="target")
     forecast.plot()
     plt.xticks(rotation=60)
     ax.xaxis.set_major_formatter(date_formater)
