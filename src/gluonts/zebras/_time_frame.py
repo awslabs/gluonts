@@ -169,7 +169,27 @@ class TimeFrame(TimeBase):
         )
 
     def update(self, other: TimeFrame, default=np.nan) -> TimeFrame:
+        """Create a new ``TimeFrame`` which includes values of both input
+        frames.
+
+        The new frame spans both input frames and inserts default values if
+        there is a gap between the two frames. If both frames overlap, the
+        second can overwrite the values of the first frame.
+
+        Static columns and metadata is also updated, and the second frames
+        value take precedence.
+
+        Updating a frame with itself is effectively a noop, similar to how
+        ``dict.update`` on the same dict will return an identical result.
+
+        Update requires that both frame have defined indices, since otherwise
+        its not possible to know how the values relate to each other.
+
+        Note: ``update`` will reset the padding.
+        """
+
         assert self.index is not None and other.index is not None
+        assert self.index.freq == other.index.freq
 
         start = min(self.index.start, other.index.start)
         end = max(self.index.end, other.index.end)

@@ -92,7 +92,27 @@ class TimeSeries(TimeBase):
         )
 
     def update(self, other: TimeSeries, default=np.nan) -> TimeSeries:
+        """Create a new ``TimeSeries`` which includes values of both input
+        series.
+
+        The new series spans both input series and inserts default values if
+        there is a gap between the two series. If both series overlap, the
+        second can overwrite the values of the first series.
+
+        Name and metadata is also updated, and the second series
+        value take precedence.
+
+        Updating a series with itself is effectively a noop, similar to how
+        ``dict.update`` on the same dict will return an identical result.
+
+        Update requires that both series have defined indices, since otherwise
+        its not possible to know how the values relate to each other.
+
+        Note: ``update`` will reset the padding.
+        """
+
         assert self.index is not None and other.index is not None
+        assert self.index.freq == other.index.freq
 
         start = min(self.index.start, other.index.start)
         end = max(self.index.end, other.index.end)
@@ -126,11 +146,14 @@ class TimeSeries(TimeBase):
 
         # TODO: Pad -- does it even make sense?
 
+        name = maybe.or_(other.name, self.name)
+
         return _replace(
             self,
             values=values,
             index=index,
             metadata=metadata,
+            name=name,
             _pad=Pad(),
         )
 
