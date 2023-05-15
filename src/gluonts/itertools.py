@@ -452,3 +452,31 @@ def power_set(iterable):
     return itertools.chain.from_iterable(
         itertools.combinations(iterable, r) for r in range(len(iterable) + 1)
     )
+
+
+def zip_items(*dicts, default=None, strict=False):
+    """
+    Iterate over multiple dictionary items.
+
+    >>> a = {"x": "a"}
+    >>> b = {"x": "b"}
+    >>> c = {}
+    >>> for name, xa, xb, xc in zip_items(a, b, c):
+    ...     print(name, xa, xb, xc)
+    x, a, b, None
+    """
+    if not dicts:
+        return
+
+    ref = dicts[0]
+
+    if strict:
+        for dct in dicts[1:]:
+            assert ref.keys() == dct.keys()
+    else:
+        ref = set()
+        for dct in dicts:
+            ref.update(dct)
+
+    for key in ref:
+        yield key, *[dct.get(key, default) for dct in dicts]
