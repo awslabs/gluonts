@@ -121,13 +121,8 @@ class TimeFrame(TimeBase):
         )
 
     def __getitem__(self, idx: Union[slice, int, str]):
-        if isinstance(idx, slice):
-            subtype = maybe.or_(idx.start, idx.stop)
-        else:
-            subtype = None
-
-        if isinstance(idx, int) or isinstance(subtype, int):
-            return self.iloc[idx]
+        if isinstance(idx, (slice, int)):
+            return TimeBase.__getitem__(self, idx)
 
         assert isinstance(idx, str)
 
