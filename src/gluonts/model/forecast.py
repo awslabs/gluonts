@@ -13,7 +13,6 @@
 
 import re
 from dataclasses import field
-from functools import partial
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
@@ -285,12 +284,18 @@ class Forecast:
 
     def plot(
         self,
-        ax=None,
+        *,
         intervals=(0.5, 0.9),
+        ax=None,
         color=None,
         name=None,
-        show_label=True,
+        show_label=False,
     ):
+        """
+        Plot forecast using ``matplotlib``.
+
+
+        """
         import matplotlib.pyplot as plt
 
         ax = maybe.unwrap_or_else(ax, plt.gca)
@@ -303,7 +308,7 @@ class Forecast:
             self.index.to_timestamp(),
             self.quantile(0.5),
             color=color,
-            label=name if show_label else None,
+            label=name,
         )
 
         for interval in intervals:
