@@ -154,16 +154,20 @@ class TimeBase:
             subtype = idx
         else:
             assert isinstance(idx, slice)
-            subtype = maybe.or_(idx.start, idx.stop)
 
-        if subtype is None:
-            return self
+            start = idx.start
+            if start is not None or not isinstance(start, int):
+                if isinstance(start, (Period, str)):
+                    start = self.index_of(start)
 
-        elif isinstance(subtype, int):
-            return self.iloc[idx]
+            stop = idx.stop
+            if stop is not None or not isinstance(stop, int):
+                if isinstance(stop, (Period, str)):
+                    stop = self.index_of(stop)
 
-        elif isinstance(subtype, Period):
-            return self.loc[idx]
+            idx = slice(start, stop, idx.step)
+
+        return self.iloc[idx]
 
         raise RuntimeError(f"Unsupported type {subtype}.")
 
