@@ -310,11 +310,14 @@ class Forecast:
             else:
                 label = None
 
+            # higher interval values mean lower confidence
+            d = (1 - interval) / 2
             ax.fill_between(
                 self.index.to_timestamp(),
-                self.quantile(interval / 2),
-                self.quantile(1 - interval / 2),
-                alpha=0.3 + interval / 3,
+                self.quantile(d),
+                self.quantile(1 - d),
+                # clamp alpha betwen
+                alpha=0.5 - interval / 3,
                 facecolor=color,
                 label=label,
             )
