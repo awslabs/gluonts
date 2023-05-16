@@ -83,7 +83,7 @@ class TimeFrame(TimeBase):
         return True
 
     def eq_to(self, other: TimeFrame) -> bool:
-        # not considered: Pad, metadata, default_tdim, tdims
+        # not considered: Pad, metadata, default_tdim
 
         if not self.eq_shape(other):
             return False
