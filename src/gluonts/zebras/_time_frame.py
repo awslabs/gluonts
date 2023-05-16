@@ -61,6 +61,28 @@ class TimeFrame(TimeBase):
             f"Expected: {len(self)}, got {len(self.index)}."
         )
 
+    def eq_to(self, other: TimeFrame) -> bool:
+        # not considered: Pad, metadata, default_tdim, tdims
+
+        if (
+            not isinstance(other, TimeFrame)
+            or len(self) != len(other)
+            or self.index != other.index
+            or self.columns.keys() != other.columns.keys()
+            or self.static.keys() != other.static.keys()
+        ):
+            return False
+
+        for key in self.columns:
+            if not np.array_equal(self.columns[key], other.columns[key]):
+                return False
+
+        for key in self.static:
+            if not np.array_equal(self.static[key], other.static[key]):
+                return False
+
+        return True
+
     def _time_view(self, column):
         """View of column with respect to time."""
 
