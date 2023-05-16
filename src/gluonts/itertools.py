@@ -452,3 +452,39 @@ def power_set(iterable):
     return itertools.chain.from_iterable(
         itertools.combinations(iterable, r) for r in range(len(iterable) + 1)
     )
+
+
+def join_items(left, right, how="outer", default=None):
+    """
+    Iterate over joined dictionary items.
+
+    Yields triples of `key`, `left_value`, `right_value`.
+
+    Similar to SQL join statements the join behaviour is controlled by ``how``:
+
+    * ``outer`` (default): use keys from left and right
+    * ``inner``: only use keys which appear in both left and right
+    * ``strict``: like ``inner``, but throws error if keys mismatch
+    * ``left``: use only keys from ``left``
+    * ``right``: use only keys from ``right``
+
+    If a key is not present in either input, ``default`` is chosen instead.
+
+    """
+
+    if how == "outer":
+        keys = {**left, **right}
+    elif how == "strict":
+        assert left.keys() == right.keys()
+        keys = left.keys()
+    elif how == "inner":
+        keys = left.keys() & right.keys()
+    elif how == "left":
+        keys = left.keys()
+    elif how == "right":
+        keys = right.keys()
+    else:
+        raise ValueError(f"Unknown how={how}.")
+
+    for key in keys:
+        yield key, left.get(key, default), right.get(key, default)
