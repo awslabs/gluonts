@@ -142,7 +142,7 @@ class TimeBase:
         else:
             return self.iloc[: length - len(self)]
 
-    def index_of(self, period: Period) -> int:
+    def index_of(self, period: Union[Period, str]) -> int:
         assert self.index is not None
 
         return self.index.index_of(period)
