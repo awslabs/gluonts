@@ -454,29 +454,37 @@ def power_set(iterable):
     )
 
 
-def zip_items(*dicts, default=None, strict=False):
+def join_items(left, right, how="outer", default=None):
     """
-    Iterate over multiple dictionary items.
+    Iterate over joined dictionary items.
 
-    >>> a = {"x": "a"}
-    >>> b = {"x": "b"}
-    >>> c = {}
-    >>> for name, (xa, xb, xc) in zip_items(a, b, c):
-    ...     print(name, xa, xb, xc)
-    x a b None
+    Yields triples of `key`, `left_value`, `right_value`.
+
+    Similar to SQL join statements the join behaviour is controlled by ``how``:
+
+    * ``outer`` (default): use keys from left and right
+    * ``inner``: only use keys which appear in both left and right
+    * ``strict``: like ``inner``, but throws error if keys mismatch
+    * ``left``: use only keys from ``left``
+    * ``right``: use only keys from ``right``
+
+    If a key is not present in either input, ``default`` is chosen instead.
+
     """
-    if not dicts:
-        return
 
-    ref = dicts[0]
-
-    if strict:
-        for dct in dicts[1:]:
-            assert ref.keys() == dct.keys()
+    if how == "outer":
+        keys = {**left, **right}
+    elif how == "strict":
+        assert left.keys() == right.keys()
+        keys = left.keys()
+    if how == "inner":
+        keys = left.keys() & right.keys()
+    elif how == "left":
+        keys = left.keys()
+    elif how == "right":
+        keys = right.keys()
     else:
-        ref = set()
-        for dct in dicts:
-            ref.update(dct)
+        raise ValueError(f"Unknown how={how}.")
 
-    for key in ref:
-        yield key, tuple(dct.get(key, default) for dct in dicts)
+    for key in keys:
+        yield key, left.get(key, default), right.get(key, default)
