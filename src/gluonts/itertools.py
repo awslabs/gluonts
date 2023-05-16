@@ -477,7 +477,7 @@ def join_items(left, right, how="outer", default=None):
     elif how == "strict":
         assert left.keys() == right.keys()
         keys = left.keys()
-    if how == "inner":
+    elif how == "inner":
         keys = left.keys() & right.keys()
     elif how == "left":
         keys = left.keys()
