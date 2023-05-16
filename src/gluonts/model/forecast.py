@@ -292,18 +292,31 @@ class Forecast:
         show_label=False,
     ):
         """
-        Plot forecast using ``matplotlib``.
+        Plot median forecast and prediction intervals using ``matplotlib``.
 
+        By default the `0.5` and `0.9` prediction intervals are plotted. Other
+        intervals can be choosen by setting `intervals`.
 
+        This plots to the current axes object (via ``plt.gca()``), or to ``ax``
+        if provided. Similarly, the color is using matplotlibs internal color
+        cycle, if no explicit ``color`` is set.
+
+        One can set ``name`` to use it as the ``label`` for the median
+        forecast. Intervals are not labeled, unless ``show_label`` is set to
+        ``True``.
         """
         import matplotlib.pyplot as plt
 
+        # Get current axes (gca), if not provided explicitly.
         ax = maybe.unwrap_or_else(ax, plt.gca)
 
+        # If no color is provided, we use matplotlib's internal color cycle.
+        # Note: This is an internal API and might change in the future.
         color = maybe.unwrap_or_else(
             color, lambda: next(ax._get_lines.prop_cycler)["color"]
         )
 
+        # Plot median forecast
         ax.plot(
             self.index.to_timestamp(),
             self.quantile(0.5),
@@ -311,6 +324,7 @@ class Forecast:
             label=name,
         )
 
+        # Plot prediction intervals
         for interval in intervals:
             if show_label:
                 if name is not None:
@@ -320,13 +334,19 @@ class Forecast:
             else:
                 label = None
 
-            # higher interval values mean lower confidence
-            d = (1 - interval) / 2
+            # Translate interval to low and high values. E.g for `0.9` we get
+            # `low = 0.05` and `high = 0.95`. (`interval + low + high == 1.0`)
+            # Also, higher interval values mean lower confidence, and thus we
+            # we use lower alpha values for them.
+            low = (1 - interval) / 2
             ax.fill_between(
+                # TODO: `index` currently uses `pandas.Period`, but we need
+                # to pass a timestamp value to matplotlib. In the future this
+                # will use ``zebras.Periods`` and thus needs to be adapted.
                 self.index.to_timestamp(),
-                self.quantile(d),
-                self.quantile(1 - d),
-                # clamp alpha betwen
+                self.quantile(low),
+                self.quantile(1 - low),
+                # Clamp alpha betwen ~16% and 50%.
                 alpha=0.5 - interval / 3,
                 facecolor=color,
                 label=label,
