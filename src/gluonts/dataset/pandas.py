@@ -286,7 +286,7 @@ class PandasDataset:
             dataframe.index = pd.to_datetime(dataframe[timestamp])
 
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
-            logger.info(f"Converting index into DatetimeIndex.")
+            logger.info("Converting index into DatetimeIndex.")
             dataframe.index = pd.to_datetime(dataframe.index)
 
         if static_feature_columns is not None:
