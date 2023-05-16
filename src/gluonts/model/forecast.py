@@ -13,6 +13,7 @@
 
 import re
 from dataclasses import field
+from functools import partial
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
@@ -20,6 +21,7 @@ import pandas as pd
 from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts import maybe
 
 
 def _linear_interpolation(
@@ -285,14 +287,17 @@ class Forecast:
         self,
         ax=None,
         intervals=(0.5, 0.9),
-        color="blue",
+        color=None,
         name=None,
         show_label=True,
     ):
         import matplotlib.pyplot as plt
 
-        if ax is None:
-            ax = plt.gca()
+        ax = maybe.unwrap_or_else(ax, plt.gca)
+
+        color = maybe.unwrap_or_else(
+            color, lambda: next(ax._get_lines.prop_cycler)["color"]
+        )
 
         ax.plot(
             self.index.to_timestamp(),
