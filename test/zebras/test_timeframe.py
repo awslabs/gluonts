@@ -45,6 +45,7 @@ def test_time_series():
 
 
 def test_time_frame():
+    assert tf.eq_to(tf)
     assert len(tf) == 10
     assert len(tf[:4]) == 4
     assert len(tf[-4:]) == 4
@@ -57,6 +58,7 @@ def test_time_frame():
     assert tf.metadata == {"x": 42}
 
     tf2 = tf.stack(["target", "feat"], "stacked")
+    assert not tf.eq_to(tf2)
     assert tf2.columns["stacked"].shape == (3, 10)
     assert tf2.columns["stacked"].shape == (3, 10)
     assert "target" not in tf2.columns

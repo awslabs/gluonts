@@ -62,13 +62,13 @@ test_data = test_gen.generate_instances(prediction_length=12, windows=3)
 forecasts = list(model.predict(test_data.input))
 
 # Plot predictions
-df["#Passengers"].plot(color="black")
-for forecast, color in zip(forecasts, ["green", "blue", "purple"]):
-    forecast.plot(color=f"tab:{color}")
+plt.plot(df["1954":], color="black")
+for forecast in forecasts:
+  forecast.plot()
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 
-![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
+![[train-test]](https://ts.gluon.ai/static/README/forecasts.png)
 
 
 Note that the forecasts are displayed in terms of a probability distribution:
