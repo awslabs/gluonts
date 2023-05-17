@@ -14,20 +14,6 @@ import matplotlib.pyplot as plt
 import json
 ```
 
-### Provided datasets
-
-
-```python
-from gluonts.dataset.repository import get_dataset, dataset_names
-from gluonts.dataset.util import to_pandas
-```
-
-
-```python
-print(f"Available datasets: {dataset_names}")
-```
-
-
 ```python
 dataset = get_dataset("m4_hourly")
 ```
