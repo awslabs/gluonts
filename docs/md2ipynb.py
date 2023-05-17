@@ -43,7 +43,7 @@ def run_notebook(text, kernel_name, timeout) -> str:
 def black_cells(text):
     CODE_RE = r"```py(?:thon)?\s*\n(.*?)```"
 
-    text = re.sub(r"^%", r"#%#", text, flags=re.M)
+    text = re.sub(r"^%", r"# %-% #", text, flags=re.M)
 
     def apply_black(match):
         code = match.group(1)
@@ -53,7 +53,7 @@ def black_cells(text):
         return "\n".join(["```", formatted.rstrip(), "```"])
 
     formatted = re.sub(CODE_RE, apply_black, text, flags=re.S)
-    return re.sub(r"^#%#", r"%", formatted, flags=re.M)
+    return re.sub(r"^# %-% #", r"%", formatted, flags=re.M)
 
 
 def convert(path, mode, kernel_name=None, timeout=40 * 60):
