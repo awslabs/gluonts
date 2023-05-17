@@ -122,17 +122,12 @@ source_suffix = [".rst", ".md"]
 # We want to execute the notebooks ourselves in the md2ipynb.py
 nbsphinx_execute = "never"
 
-# Add a `Download` link after the first h1 in the document, using javascript.
-nbsphinx_epilog = """
+# Add a `Download` at top of the document.
+nbsphinx_prolog = """
 .. raw:: html
 
-    <script>
-        window.addEventListener('DOMContentLoaded', (event) => {
-            const el = document.createElement("p");
-            el.innerHTML = '<a href="./{{ env.docname.rsplit("/", 1)[-1] }}.ipynb">(Download this notebook)</a>';
-            document.querySelector(".main h1").after(el);
-        });
-    </script>
-
+    <p>
+        <a href="./{{ env.docname.rsplit("/", 1)[-1] }}.ipynb">Download this notebook</a>
+    </p>
 
 """
