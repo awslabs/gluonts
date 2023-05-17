@@ -222,15 +222,9 @@ tss = list(ts_it)
 
 
 ```python
-def plot_prob_forecasts(ts_entry, forecast_entry):
-    plt.plot(ts_entry[-150:])
-    forecast_entry.plot(show_label=True)
-    plt.legend()
-```
-
-
-```python
-plot_prob_forecasts(tss[0], forecasts[0])
+plt.plot(tss[0][-150:])
+forecasts[0].plot(show_label=True)
+plt.legend()
 ```
 
 We can also evaluate the quality of our forecasts numerically. In GluonTS, the `Evaluator` class can compute aggregate performance metrics, as well as metrics per time series (which can be useful for analyzing performance across heterogeneous time series).
