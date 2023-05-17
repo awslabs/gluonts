@@ -208,6 +208,7 @@ def convert_data(
                     data_entry.get("start_timestamp", default_start_timestamp)
                 ),
                 "item_id": data_entry.get("series_name", i),
+                f"feat_static_cat_0": i,
             }
         )
 
@@ -218,6 +219,7 @@ def convert_data(
                     data_entry.get("start_timestamp", default_start_timestamp)
                 ),
                 "item_id": data_entry.get("series_name", i),
+                f"feat_static_cat_0": i,
             }
         )
 
