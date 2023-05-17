@@ -58,7 +58,7 @@ test_data = test_gen.generate_instances(prediction_length=12, windows=3)
 
 # Train the model and make predictions
 model = DeepAREstimator(
-    prediction_length=12, freq="M", trainer_kwargs{"max_epochs": 5}
+    prediction_length=12, freq="M", trainer_kwargs={"max_epochs": 5}
 ).train(training_data)
 
 forecasts = list(model.predict(test_data.input))
