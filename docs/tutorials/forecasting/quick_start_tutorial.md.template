@@ -235,7 +235,7 @@ print(f"0.5-quantile (median) of the future window:\n {forecast_entry.quantile(0
 
 
 ```python
-plt.plot(ts_entry[-150:])
+plt.plot(ts_entry[-150:].to_timestamp())
 forecast_entry.plot(show_label=True)
 plt.legend()
 ```

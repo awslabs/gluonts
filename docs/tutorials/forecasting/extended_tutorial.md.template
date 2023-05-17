@@ -709,7 +709,7 @@ print(f"0.5-quantile (median) of the future window:\n {forecast_entry.quantile(0
 
 
 ```python
-plt.plot(ts_entry[-150:])
+plt.plot(ts_entry[-150:].to_timestamp())
 forecast_entry.plot(show_label=True)
 plt.legend()
 ```
@@ -967,7 +967,7 @@ tss = list(ts_it)
 
 
 ```python
-plt.plot(tss[0][-150:])
+plt.plot(tss[0][-150:].to_timestamp())
 forecasts[0].plot(show_label=True)
 plt.legend()
 ```
@@ -1203,7 +1203,7 @@ tss = list(ts_it)
 
 
 ```python
-plt.plot(tss[0][-150:])
+plt.plot(tss[0][-150:].to_timestamp())
 forecasts[0].plot(show_label=True)
 plt.legend()
 ```
@@ -1484,7 +1484,7 @@ tss = list(ts_it)
 
 
 ```python
-plt.plot(tss[0][-150:])
+plt.plot(tss[0][-150:].to_timestamp())
 forecasts[0].plot(show_label=True)
 plt.legend()
 ```
@@ -1864,7 +1864,7 @@ tss = list(ts_it)
 
 
 ```python
-plt.plot(tss[0][-150:])
+plt.plot(tss[0][-150:].to_timestamp())
 forecasts[0].plot(show_label=True)
 plt.legend()
 ```

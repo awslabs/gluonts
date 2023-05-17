@@ -222,7 +222,7 @@ tss = list(ts_it)
 
 
 ```python
-plt.plot(tss[0][-150:])
+plt.plot(tss[0][-150:].to_timestamp())
 forecasts[0].plot(show_label=True)
 plt.legend()
 ```
