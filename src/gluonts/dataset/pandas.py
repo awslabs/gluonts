@@ -255,6 +255,10 @@ class PandasDataset:
         constant value), or be given as a separate data frame indexed by the
         ``item_id`` values.
 
+        Note: on large datasets, this constructor can take some time to complete
+        since it does some indexing and groupby operations on the data, and caches
+        the result.
+
         Parameters
         ----------
         dataframe
@@ -278,12 +282,17 @@ class PandasDataset:
             Dataset containing series data from the given long dataframe.
         """
         if timestamp is not None:
+            logger.info(f"Indexing data by '{timestamp}'.")
             dataframe.index = pd.to_datetime(dataframe[timestamp])
 
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
+            logger.info("Converting index into DatetimeIndex.")
             dataframe.index = pd.to_datetime(dataframe.index)
 
         if static_feature_columns is not None:
+            logger.info(
+                f"Collecting features from columns {static_feature_columns}."
+            )
             other_static_features = (
                 dataframe[[item_id] + static_feature_columns]
                 .drop_duplicates()
@@ -295,8 +304,11 @@ class PandasDataset:
         else:
             other_static_features = pd.DataFrame()
 
+        logger.info(f"Grouping data by '{item_id}'; this may take some time.")
+        pairs = list(dataframe.groupby(item_id))
+
         return cls(
-            dataframes=dataframe.groupby(item_id),
+            dataframes=pairs,
             static_features=pd.concat(
                 [static_features, other_static_features], axis=1
             ),

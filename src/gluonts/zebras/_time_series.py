@@ -49,6 +49,9 @@ class TimeSeries(TimeBase):
     def __array__(self):
         return self.values
 
+    def to_numpy(self):
+        return self.values
+
     def __len__(self):
         return self.values.shape[self.tdim]
 
