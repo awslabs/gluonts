@@ -76,7 +76,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         hidden_dim: int = 32,
         variable_dim: Optional[int] = None,
         num_heads: int = 4,
-        num_outputs: int = 3,
+        quantiles: List[float] = [0.1, 0.5, 0.9],
         num_instance_per_series: int = 100,
         dropout_rate: float = 0.1,
         time_features: List[TimeFeature] = [],
@@ -104,7 +104,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         self.hidden_dim = hidden_dim
         self.variable_dim = variable_dim or hidden_dim
         self.num_heads = num_heads
-        self.num_outputs = num_outputs
+        self.quantiles = quantiles
         self.num_instance_per_series = num_instance_per_series
 
         if not time_features:
@@ -372,7 +372,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_var=self.variable_dim,
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
-            n_output=self.num_outputs,
+            quantiles=self.quantiles,
             d_past_feat_dynamic_real=_default_feat_args(
                 list(self.past_dynamic_feature_dims.values())
             ),
@@ -406,7 +406,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
             d_var=self.variable_dim,
             d_hidden=self.hidden_dim,
             n_head=self.num_heads,
-            n_output=self.num_outputs,
+            quantiles=self.quantiles,
             d_past_feat_dynamic_real=_default_feat_args(
                 list(self.past_dynamic_feature_dims.values())
             ),
