@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field, InitVar
-from typing import Any, Iterable, Optional, Type, Union
+from typing import Any, Iterable, Optional, Type, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -350,4 +350,5 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
         >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
         False
     """
-    return np.all(np.diff(index.asi8) == index.freq.n)
+
+    return cast(bool, np.all(np.diff(index.asi8) == index.freq.n))
