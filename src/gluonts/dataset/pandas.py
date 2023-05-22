@@ -350,5 +350,4 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
         >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
         False
     """
-    other = pd.period_range(index[0], periods=len(index), freq=index.freq)
-    return (other == index).all()
+    return np.all(np.diff(index.asi8) == index.freq.n)
