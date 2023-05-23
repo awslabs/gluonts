@@ -30,15 +30,14 @@ class PatchTSTLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        ``PatchTSTModel`` to be trained.
+    model_kwargs
+        Keyword arguments to construct the ``PatchTSTModel`` to be trained.
     loss
-        Loss function to be used for training,
-        default: ``NegativeLogLikelihood()``.
+        Loss function to be used for training.
     lr
-        Learning rate, default: ``1e-3``.
+        Learning rate.
     weight_decay
-        Weight decay regularization parameter, default: ``1e-8``.
+        Weight decay regularization parameter.
     """
 
     @validated()
