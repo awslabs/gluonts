@@ -20,7 +20,6 @@ from typing import Any, Iterable, Optional, Type, Union, cast
 import numpy as np
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from toolz import first
 
 from gluonts.maybe import Maybe
 from gluonts.dataset.common import DataEntry
@@ -41,7 +40,10 @@ def norm_dataframe(df, timestamp=None, freq=None, agg=np.sum):
     if timestamp is not None:
         df.index = pd.DatetimeIndex(df[timestamp]).to_period(freq=freq)
 
-    elif not isinstance(df.index, pd.PeriodIndex):
+    elif not isinstance(df.index, DatetimeIndexOpsMixin):
+        df.index = pd.to_datetime(df.index)
+
+    if not isinstance(df.index, pd.PeriodIndex):
         df = df.to_period(freq)
 
     if not is_uniform(df.index):
@@ -122,8 +124,6 @@ class PandasDataset:
             assert isinstance(dataframes, SizedIterable)
             pairs = Map(pair_with_item_id, dataframes)
 
-        self._data_entries = StarMap(self._pair_to_dataentry, pairs)
-
         static_features = Maybe(static_features).unwrap_or_else(pd.DataFrame)
 
         object_columns = static_features.select_dtypes(
@@ -146,6 +146,8 @@ class PandasDataset:
             .astype(self.dtype)
             .T
         )
+
+        self._data_entries = list(StarMap(self._pair_to_dataentry, pairs))
 
     @property
     def num_feat_static_cat(self) -> int:
@@ -227,7 +229,6 @@ class PandasDataset:
         cls,
         dataframe: pd.DataFrame,
         item_id: str,
-        timestamp: Optional[str] = None,
         static_feature_columns: Optional[list[str]] = None,
         static_features: pd.DataFrame = pd.DataFrame(),
         **kwargs,
@@ -269,10 +270,8 @@ class PandasDataset:
         PandasDataset
             Dataset containing series data from the given long dataframe.
         """
-        if timestamp is not None:
-            dataframe.index = pd.to_datetime(dataframe[timestamp])
-        elif not isinstance(dataframe.index, DatetimeIndexOpsMixin):
-            dataframe.index = pd.to_datetime(dataframe.index)
+
+        other_static_features = pd.DataFrame()
 
         if static_feature_columns is not None:
             other_static_features = (
@@ -283,14 +282,9 @@ class PandasDataset:
             assert len(other_static_features) == len(
                 dataframe[item_id].unique()
             )
-        else:
-            other_static_features = pd.DataFrame()
-
-        logger.info(f"Grouping data by '{item_id}'; this may take some time.")
-        pairs = list(dataframe.groupby(item_id))
 
         return cls(
-            dataframes=pairs,
+            dataframes=dataframe.groupby(item_id),
             static_features=pd.concat(
                 [static_features, other_static_features], axis=1
             ),
@@ -301,8 +295,10 @@ class PandasDataset:
 def pair_with_item_id(obj: Union[tuple, pd.DataFrame, pd.Series]):
     if isinstance(obj, tuple) and len(obj) == 2:
         return obj
+
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         return (None, obj)
+
     raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
