@@ -151,7 +151,6 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         d_var: int,
         d_hidden: int,
         n_head: int,
-        #n_output: int,
         quantiles: List[float],
         d_past_feat_dynamic_real: List[int],
         c_past_feat_dynamic_cat: List[int],
@@ -168,7 +167,6 @@ class TemporalFusionTransformerNetwork(HybridBlock):
         self.d_var = d_var
         self.d_hidden = d_hidden
         self.n_head = n_head
-        # self.n_output = n_output
         self.quantiles = quantiles
         self.normalize_eps = 1e-5
 
