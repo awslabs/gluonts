@@ -166,7 +166,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
-        default_scale: float = 0.0,
+        default_scale: Optional[float] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,

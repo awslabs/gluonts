@@ -105,7 +105,7 @@ class DeepARModel(nn.Module):
         distr_output: DistributionOutput = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
-        default_scale: float = 0.0,
+        default_scale: Optional[float] = None,
         num_parallel_samples: int = 100,
     ) -> None:
         super().__init__()
