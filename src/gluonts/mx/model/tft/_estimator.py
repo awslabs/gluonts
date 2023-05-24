@@ -75,7 +75,7 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         Length of the prediction horizon.
     context_length
         Number of previous time series values provided as input to the encoder.
-        (default: None, in which case context_length = prediction_length).
+        (default: None).
     trainer
         Trainer object to be used (default: Trainer())
     hidden_dim
