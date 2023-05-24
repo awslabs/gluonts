@@ -66,6 +66,52 @@ def _default_feat_args(dims_or_cardinalities: List[int]):
 
 
 class TemporalFusionTransformerEstimator(GluonEstimator):
+    """
+    Parameters
+    ----------
+    freq
+        Frequency of the data to train on and predict.
+    prediction_length
+        Length of the prediction horizon.
+    context_length
+        Number of previous time series values provided as input to the encoder.
+        (default: None, in which case context_length = prediction_length).
+    trainer
+        Trainer object to be used (default: Trainer())
+    hidden_dim
+        Size of the LSTM & transformer hidden states.
+    variable_dim
+        Size of the feature embeddings.
+    num_heads
+        Number of attention heads in self-attention layer in the decoder.
+    quantiles
+        List of quantiles that the model will learn to predict.
+        Defaults to [0.1, 0.5, 0.9]
+    num_instances_per_series
+        Number of samples to generate for each time series when training.
+    dropout_rate
+        Dropout regularization parameter (default: 0.1).
+    time_features
+        List of time features, from :py:mod:`gluonts.time_feature`, to use as
+        dynamic real features in addition to the provided data (default: None,
+        in which case these are automatically determined based on freq).
+    static_cardinalities
+        Cardinalities of the categorical static features.
+    dynamic_cardinalities
+        Cardinalities of the categorical dynamic features that are known in the future.
+    static_feature_dims
+        Sizes of the real-valued static features.
+    dynamic_dims
+        Sizes of the real-valued dynamic features that are known in the future.
+    past_dynamic_features
+        List of names of the real-valued dynamic features that are only known in the past.
+    train_sampler
+        Controls the sampling of windows during training.
+    validation_sampler
+        Controls the sampling of windows during validation.
+    batch_size
+        The size of the batches to be used training and prediction.
+    """
     @validated()
     def __init__(
         self,
