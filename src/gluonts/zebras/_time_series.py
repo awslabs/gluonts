@@ -21,7 +21,7 @@ import numpy as np
 from toolz import first
 
 from gluonts import maybe
-from gluonts.itertools import pluck_attr
+from gluonts.itertools import pluck_attr, replace
 
 from ._base import Pad, TimeBase
 from ._period import period, Period, Periods
@@ -97,7 +97,7 @@ class TimeSeries(TimeBase):
 
         The new series spans both input series and inserts default values if
         there is a gap between the two series. If both series overlap, the
-        second can overwrite the values of the first series.
+        second overwrites the values of the first series.
 
         Name and metadata is also updated, and the second series
         value take precedence.
@@ -111,8 +111,20 @@ class TimeSeries(TimeBase):
         Note: ``update`` will reset the padding.
         """
 
-        assert self.index is not None and other.index is not None
-        assert self.index.freq == other.index.freq
+        if self.index is None or other.index is None:
+            raise ValueError("Both time frames need to have an index.")
+
+        if self.index.freq != other.index.freq:
+            raise ValueError("frequency mismatch on index.")
+
+        # ensure tdims match
+        if self.tdim != other.tdim:
+            raise ValueError(f"tdims mismatch.")
+
+        if replace(np.shape(self), self.tdim, 0) != replace(
+            np.shape(other), other.tdim, 0
+        ):
+            raise ValueError(f"Incompatible shapes.")
 
         start = min(self.index.start, other.index.start)
         end = max(self.index.end, other.index.end)
@@ -127,10 +139,10 @@ class TimeSeries(TimeBase):
             start.freq,
         )
 
-        new_shape = list(self.values.shape)
-        new_shape[self.tdim] = len(index)
-
-        values = np.full(new_shape, default)
+        values = np.full(
+            replace(np.shape(self), self.tdim, len(index)),
+            default,
+        )
         view = AxisView(values, self.tdim)
 
         idx = index.index_of(self.index.start)

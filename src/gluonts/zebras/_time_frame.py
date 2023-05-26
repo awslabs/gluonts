@@ -240,7 +240,9 @@ class TimeFrame(TimeBase):
 
             values = np.full(
                 replace(
-                    maybe.or_(self_col, other_col).shape, tdim, len(index)
+                    maybe.unwrap(maybe.or_(self_col, other_col)).shape,
+                    tdim,
+                    len(index),
                 ),
                 default,
             )
