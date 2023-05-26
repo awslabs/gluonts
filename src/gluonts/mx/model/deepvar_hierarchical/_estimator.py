@@ -226,6 +226,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         # If the method is exteneded, then these can be passed as arguments of
         # the estimator.
         rank = 0
+        target_dim = len(S)
         distr_output = LowrankMultivariateGaussianOutput(
             dim=target_dim, rank=rank
         )
@@ -239,8 +240,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
                 f"since {__name__} does not work in symbolic mode."
             )
             trainer.hybridize = False
-
-        target_dim = len(S)
 
         super().__init__(
             freq=freq,
