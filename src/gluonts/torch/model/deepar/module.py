@@ -146,7 +146,9 @@ class DeepARModel(nn.Module):
             )
         else:
             self.scaler = NOPScaler(dim=-1, keepdim=True)
-        self.rnn_input_size = len(self.lags_seq) + self._number_of_features
+        self.rnn_input_size = (
+            2 * len(self.lags_seq)
+        ) + self._number_of_features
         self.rnn = nn.LSTM(
             input_size=self.rnn_input_size,
             hidden_size=hidden_size,
@@ -216,11 +218,13 @@ class DeepARModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
         future_target: Optional[torch.Tensor] = None,
+        future_observed_values: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,]:
         context = past_target[..., -self.context_length :]
         observed_context = past_observed_values[..., -self.context_length :]
 
         input, _, scale = self.scaler(context, observed_context)
+        observed_input = observed_context
         future_length = future_time_feat.shape[-2]
         if future_length > 1:
             assert future_target is not None
@@ -228,10 +232,23 @@ class DeepARModel(nn.Module):
                 (input, future_target[..., : future_length - 1] / scale),
                 dim=-1,
             )
+            observed_input = torch.cat(
+                (
+                    observed_input,
+                    future_observed_values[..., : future_length - 1],
+                ),
+                dim=-1,
+            )
         prior_input = past_target[..., : -self.context_length] / scale
+        observed_prior_input = past_observed_values[
+            ..., : -self.context_length
+        ]
 
         lags = lagged_sequence_values(
             self.lags_seq, prior_input, input, dim=-1
+        )
+        observed_lags = lagged_sequence_values(
+            self.lags_seq, observed_prior_input, observed_input, dim=-1
         )
 
         time_feat = torch.cat(
@@ -252,8 +269,8 @@ class DeepARModel(nn.Module):
         )
 
         features = torch.cat((expanded_static_feat, time_feat), dim=-1)
-
-        return torch.cat((lags, features), dim=-1), scale, static_feat
+        rnn_input = torch.cat((lags, observed_lags, features), dim=-1)
+        return (rnn_input, scale, static_feat)
 
     def unroll_lagged_rnn(
         self,
@@ -264,6 +281,7 @@ class DeepARModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
         future_target: Optional[torch.Tensor] = None,
+        future_observed_values: Optional[torch.Tensor] = None,
     ) -> Tuple[
         Tuple[torch.Tensor, ...],
         torch.Tensor,
@@ -297,6 +315,9 @@ class DeepARModel(nn.Module):
         future_target
             (Optional) tensor of future target values,
             shape: ``(batch_size, prediction_length)``.
+        future_observed_values
+            (Optional) tensor of future observed values indicators,
+            shape: ``(batch_size, prediction_length)``.
 
         Returns
         -------
@@ -316,6 +337,7 @@ class DeepARModel(nn.Module):
             past_observed_values,
             future_time_feat,
             future_target,
+            future_observed_values,
         )
 
         output, new_state = self.rnn(rnn_input)
@@ -409,6 +431,9 @@ class DeepARModel(nn.Module):
             past_target.repeat_interleave(repeats=num_parallel_samples, dim=0)
             / repeated_scale
         )
+        repeated_past_observed_values = past_observed_values.repeat_interleave(
+            repeats=num_parallel_samples, dim=0
+        )
         repeated_time_feat = future_time_feat.repeat_interleave(
             repeats=num_parallel_samples, dim=0
         )
@@ -436,12 +461,27 @@ class DeepARModel(nn.Module):
             next_lags = lagged_sequence_values(
                 self.lags_seq, repeated_past_target, scaled_next_sample, dim=-1
             )
-            rnn_input = torch.cat((next_lags, next_features), dim=-1)
+            next_observed_lags = lagged_sequence_values(
+                self.lags_seq,
+                repeated_past_observed_values,
+                torch.ones_like(scaled_next_sample),
+                dim=-1,
+            )
+            rnn_input = torch.cat(
+                (next_lags, next_observed_lags, next_features), dim=-1
+            )
 
             output, repeated_state = self.rnn(rnn_input, repeated_state)
 
             repeated_past_target = torch.cat(
                 (repeated_past_target, scaled_next_sample), dim=1
+            )
+            repeated_past_observed_values = torch.cat(
+                (
+                    repeated_past_observed_values,
+                    torch.ones_like(scaled_next_sample),
+                ),
+                dim=1,
             )
 
             params = self.param_proj(output)
@@ -524,6 +564,7 @@ class DeepARModel(nn.Module):
             past_observed_values,
             future_time_feat,
             future_target_reshaped,
+            future_observed_reshaped,
         )
 
         if future_only:
