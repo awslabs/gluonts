@@ -79,6 +79,7 @@ def test_deepar_modules(
         past_observed_values,
         future_time_feat,
         future_target,
+        future_observed_values,
     )
 
     assert scale.shape == (batch_size, 1)
@@ -230,6 +231,11 @@ def test_rnn_input(
         history_length + prediction_length,
         dtype=torch.float32,
     ).view(1, prediction_length)
+
+    batch["future_observed_values"] = torch.ones(
+        (1, prediction_length),
+        dtype=torch.float32,
+    )
 
     rnn_input, scale, _ = model.prepare_rnn_input(**batch)
 
