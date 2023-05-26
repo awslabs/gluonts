@@ -107,9 +107,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Frequency of the data to train on and predict
     prediction_length
         Length of the prediction horizon
-    target_dim
-        Dimensionality of the input dataset (i.e., the total number of time
-        series in the hierarchical dataset).
     S
         Summation or aggregation matrix.
     num_samples_for_loss
@@ -197,7 +194,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         self,
         freq: str,
         prediction_length: int,
-        target_dim: int,
         S: np.ndarray,
         num_samples_for_loss: int = 200,
         likelihood_weight: float = 0.0,
@@ -244,6 +240,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             )
             trainer.hybridize = False
 
+        target_dim = len(S)
+
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,
@@ -270,13 +268,6 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             **kwargs,
         )
 
-        assert target_dim == S.shape[0], (
-            "The number of rows of `S` matrix must be equal to `target_dim`. "
-            f"Either `S` matrix is incorrectly constructed or a wrong value "
-            f"is passed for `target_dim`: shape of `S`: {S.shape} and "
-            f"`target_dim`: {target_dim}."
-        )
-
         # Assert that projection is *not* being done only during training
         assert coherent_pred_samples or (
             not coherent_train_samples
@@ -285,7 +276,8 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         A = constraint_mat(S.astype(self.dtype))
         M = null_space_projection_mat(A)
         ctx = self.trainer.ctx
-        self.M, self.A = mx.nd.array(M, ctx=ctx), mx.nd.array(A, ctx=ctx)
+        self.M = mx.nd.array(M, ctx=ctx)
+        self.A = mx.nd.array(A, ctx=ctx)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight
