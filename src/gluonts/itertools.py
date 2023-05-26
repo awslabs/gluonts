@@ -490,7 +490,7 @@ def join_items(left, right, how="outer", default=None):
         yield key, left.get(key, default), right.get(key, default)
 
 
-def replace(values: Tuple[T, ...], idx: int, value: T) -> Tuple[T, ...]:
+def replace(values: Sequence[T], idx: int, value: T) -> Sequence[T]:
     """Replace value at index ``idx`` with ``value``.
 
     Like ``setitem``, but for tuples.
@@ -501,4 +501,5 @@ def replace(values: Tuple[T, ...], idx: int, value: T) -> Tuple[T, ...]:
     """
     xs = list(values)
     xs[idx] = value
+
     return type(values)(xs)
