@@ -27,6 +27,7 @@ from gluonts.itertools import (
     rows_to_columns,
     select,
     join_items,
+    replace,
 )
 
 from ._base import Pad, TimeBase
@@ -228,16 +229,19 @@ class TimeFrame(TimeBase):
         self_idx0 = index.index_of(self.index.start)
         other_idx0 = index.index_of(other.index.start)
 
+        tdims = {**self.tdims, **other.tdims}
         # create new columns, by first filling them with default values and
         # then writing the values of self and other to them
         columns = {}
         for name, self_col, other_col in join_items(
             self.columns, other.columns, "outer"
         ):
-            tdim = self.tdims[name]
+            tdim = tdims[name]
 
             values = np.full(
-                replace(self_col.shape, tdim, len(index)),
+                replace(
+                    maybe.or_(self_col, other_col).shape, tdim, len(index)
+                ),
                 default,
             )
             view = AxisView(values, tdim)

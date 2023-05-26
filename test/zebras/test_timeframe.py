@@ -196,3 +196,23 @@ def test_rename():
 
 def test_update():
     assert tf.update(tf).eq_to(tf)
+
+    left = tf[:3]
+    right = tf[-3:]
+
+    tf2 = left.update(right)
+    assert len(tf) == len(tf2)
+    assert tf.index == tf2.index
+
+    gap = tf2[3:-3]
+    assert np.isnan(gap["target"]).all()
+
+    xxx = zb.time_frame(
+        {"xxx": np.full(3, 99)},
+        index=right.index,
+    )
+    tf3 = left.update(xxx)
+
+    assert len(tf) == len(tf3)
+    assert tf.index == tf3.index
+    tf3.columns.keys() == tf.columns.keys() | {"xxx"}
