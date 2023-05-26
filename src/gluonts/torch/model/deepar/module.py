@@ -227,7 +227,10 @@ class DeepARModel(nn.Module):
         observed_input = observed_context
         future_length = future_time_feat.shape[-2]
         if future_length > 1:
-            assert future_target is not None
+            assert (
+                future_target is not None
+                and future_observed_values is not None
+            )
             input = torch.cat(
                 (input, future_target[..., : future_length - 1] / scale),
                 dim=-1,
