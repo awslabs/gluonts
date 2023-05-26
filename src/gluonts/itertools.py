@@ -488,3 +488,17 @@ def join_items(left, right, how="outer", default=None):
 
     for key in keys:
         yield key, left.get(key, default), right.get(key, default)
+
+
+def replace(values: Tuple[T, ...], idx: int, value: T) -> Tuple[T, ...]:
+    """Replace value at index ``idx`` with ``value``.
+
+    Like ``setitem``, but for tuples.
+
+    >>> replace((1, 2, 3, 4), -1, 99)
+    (1, 2, 3, 99)
+
+    """
+    xs = list(values)
+    xs[idx] = value
+    return type(values)(xs)
