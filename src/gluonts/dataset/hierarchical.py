@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
