@@ -21,7 +21,7 @@ import numpy as np
 from toolz import first
 
 from gluonts import maybe
-from gluonts.itertools import pluck_attr
+from gluonts.itertools import pluck_attr, replace
 
 from ._base import Pad, TimeBase
 from ._period import period, Period, Periods

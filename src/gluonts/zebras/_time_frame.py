@@ -188,7 +188,7 @@ class TimeFrame(TimeBase):
         Note: ``update`` will reset the padding.
         """
 
-        if self.index is not None or other.index is not None:
+        if self.index is None or other.index is None:
             raise ValueError("Both time frames need to have an index.")
 
         if self.index.freq != other.index.freq:

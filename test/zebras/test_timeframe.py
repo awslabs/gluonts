@@ -192,3 +192,7 @@ def test_rename():
 
     tf2 = tf.rename_static(x="static")
     assert tf2.static.keys() == {"x"}
+
+
+def test_update():
+    assert tf.update(tf).eq_to(tf)
