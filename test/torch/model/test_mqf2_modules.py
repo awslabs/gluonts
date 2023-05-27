@@ -78,6 +78,7 @@ def test_mqf2_modules(
         past_observed_values,
         future_time_feat,
         future_target,
+        future_observed_values,
     )
 
     hidden_state = hidden_state[:, :context_length]
