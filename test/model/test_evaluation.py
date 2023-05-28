@@ -220,3 +220,35 @@ def test_evaluate_model_vs_forecasts():
             model=model, test_data=test_data, metrics=_test_metrics, axis=axis
         )
         assert (df1 == df2).all().all()
+
+def test_data_nan():
+    target = np.random.normal(size=50)
+    target[0] = np.nan
+    target[-1] = np.nan
+    dataset = [
+        {
+            "item_id": k,
+            "start": pd.Period("2022-06-12", freq="D"),
+            "target": target,
+        }
+        for k in range(2)
+    ]
+
+    test_data = split(dataset, offset=-12)[1].generate_instances(
+        prediction_length=3, windows=4
+    )
+
+    model = SeasonalNaivePredictor(
+        freq="D", prediction_length=3, season_length=1
+    )
+
+    forecasts = list(model.predict(test_data.input))
+
+    for axis in [None, 0, 1, (0, 1)]:
+        df1 = evaluate_forecasts(
+            forecasts=forecasts,
+            test_data=test_data,
+            metrics=_test_metrics,
+            axis=axis,
+        )
+        assert not np.any(df1.isna())
