@@ -221,6 +221,7 @@ def test_evaluate_model_vs_forecasts():
         )
         assert (df1 == df2).all().all()
 
+
 def test_data_nan():
     target = np.random.normal(size=50)
     target[0] = np.nan
