@@ -47,6 +47,7 @@ from gluonts.transform import (
     TestSplitSampler,
     ValidationSplitSampler,
 )
+from gluonts.maybe import unwrap_or
 
 from .module import WaveNet
 from .lightning_module import WaveNetLightningModule
@@ -154,17 +155,21 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self.n_residual_channels = n_residual_channels
         self.n_skip_channels = n_skip_channels
         self.n_stacks = n_stacks
-        self.time_features = time_features or time_features_from_frequency_str(
-            freq
+        self.time_features = unwrap_or(
+            time_features, time_features_from_frequency_str(freq)
         )
         self.temperature = temperature
         self.lr = lr
         self.weight_decay = weight_decay
-        self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
-            num_instances=1.0, min_future=self.prediction_length
+        self.train_sampler = unwrap_or(
+            train_sampler,
+            ExpectedNumInstanceSampler(
+                num_instances=1.0, min_future=self.prediction_length
+            ),
         )
-        self.validation_sampler = validation_sampler or ValidationSplitSampler(
-            min_future=self.prediction_length
+        self.validation_sampler = unwrap_or(
+            validation_sampler,
+            ValidationSplitSampler(min_future=self.prediction_length),
         )
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
@@ -179,17 +184,20 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self.bin_centers = bin_centers.tolist()
         self.bin_edges = bin_edges.tolist()
 
-        self.seasonality = seasonality or get_seasonality(
-            freq,
-            {
-                "H": 7 * 24,
-                "D": 7,
-                "W": 52,
-                "M": 12,
-                "B": 7 * 5,
-                "T": 24 * 60,
-                "S": 60 * 60,
-            },
+        self.seasonality = unwrap_or(
+            seasonality,
+            get_seasonality(
+                freq,
+                {
+                    "H": 7 * 24,
+                    "D": 7,
+                    "W": 52,
+                    "M": 12,
+                    "B": 7 * 5,
+                    "T": 24 * 60,
+                    "S": 60 * 60,
+                },
+            ),
         )
 
         goal_receptive_length = max(
@@ -221,10 +229,10 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             [
                 RemoveFields(field_names=remove_field_names),
                 SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
-                if not self.num_feat_static_cat > 0
+                if self.num_feat_static_cat == 0
                 else Identity(),
                 SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])
-                if not self.num_feat_static_real > 0
+                if self.num_feat_static_real == 0
                 else Identity(),
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=int
