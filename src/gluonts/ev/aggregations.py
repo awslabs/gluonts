@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
 import numpy as np
@@ -108,3 +108,20 @@ class Mean(Aggregation):
             return self.partial_result / self.n
 
         return np.ma.concatenate(self.partial_result)
+
+
+@dataclass
+class GeometricMean(Aggregation):
+    """
+    Map-reduce way of calculating the geometric mean of a stream of values.
+    """
+
+    partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
+    n: Optional[Union[int, np.ndarray]] = None
+    mean: Mean = field(default_factory=Mean, init=False)
+
+    def step(self, values: np.ndarray) -> None:
+        self.mean.step(np.log(values))
+
+    def get(self):
+        return np.exp(self.mean.get())

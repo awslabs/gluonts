@@ -45,7 +45,7 @@ from .metrics import (
     MeanWeightedSumQuantileLoss,
     OWA,
 )
-from .aggregations import Aggregation, Sum, Mean
+from .aggregations import Aggregation, Sum, Mean, GeometricMean
 from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
 
 __all__ = [
@@ -81,6 +81,7 @@ __all__ = [
     "Aggregation",
     "Sum",
     "Mean",
+    "GeometricMean",
     "Metric",
     "Evaluator",
     "DirectEvaluator",
