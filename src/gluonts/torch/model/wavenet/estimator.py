@@ -109,6 +109,7 @@ class QuantizeScaled(SimpleTransformation):
 
 
 class WaveNetEstimator(PyTorchLightningEstimator):
+    @validated()
     def __init__(
         self,
         freq: str,

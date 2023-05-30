@@ -14,10 +14,13 @@
 import pytorch_lightning as pl
 import torch
 
+from gluonts.core.component import validated
+
 from .module import WaveNet
 
 
 class WaveNetLightningModule(pl.LightningModule):
+    @validated()
     def __init__(
         self,
         model_kwargs: dict,

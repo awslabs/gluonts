@@ -16,10 +16,12 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
+from gluonts.core.component import validated
 from gluonts.torch.modules.feature import FeatureEmbedder
 
 
 class LookupValues(nn.Module):
+    @validated()
     def __init__(self, bin_values: torch.Tensor):
         super().__init__()
         self.register_buffer("bin_values", bin_values)
@@ -32,6 +34,7 @@ class LookupValues(nn.Module):
 
 
 class CausalDilatedResidualLayer(nn.Module):
+    @validated()
     def __init__(
         self,
         n_residual_channels: int,
@@ -92,6 +95,7 @@ class CausalDilatedResidualLayer(nn.Module):
 
 
 class WaveNet(nn.Module):
+    @validated()
     def __init__(
         self,
         pred_length: int,

@@ -34,6 +34,7 @@ from gluonts.torch.model.d_linear import DLinearEstimator
 from gluonts.torch.model.patch_tst import PatchTSTEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
+from gluonts.torch.model.wavenet import WaveNetEstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
@@ -103,6 +104,13 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: PatchTSTEstimator(
             prediction_length=dataset.metadata.prediction_length,
             patch_len=16,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: WaveNetEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -235,6 +243,17 @@ def test_estimator_constant_dataset(
             batch_size=4,
             num_batches_per_epoch=3,
             epochs=2,
+        ),
+        lambda freq, prediction_length: WaveNetEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
         ),
     ],
 )
