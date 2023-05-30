@@ -92,7 +92,6 @@ def test_deepvar_hierarchical(
     estimator = DeepVARHierarchicalEstimator(
         freq=train_datasets.metadata.freq,
         prediction_length=prediction_length,
-        target_dim=train_datasets.metadata.S.shape[0],
         S=train_datasets.metadata.S,
         likelihood_weight=likelihood_weight,
         CRPS_weight=CRPS_weight,
