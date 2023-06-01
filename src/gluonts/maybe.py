@@ -12,21 +12,20 @@
 # permissions and limitations under the License.
 
 """
-This module contains functions that work on ``Optional`` values. In contrast to
-other approaches, this does not wrap values into a dedicated type, but works
-on normal Python values, which are of type ``Optional[T]``.
-
-Thus, some functions are implemented identically but have different type
-signatures. For example, both ``map`` and ``and_then`` both just apply a
-function to a value if it is not ``None``, but the result of `map` is ``T``
-and the result of ``and_then`` is ``Optional[T]``.
+This module contains functions that work on ``Optional`` values. It supports
+wrapping of values into a dedicated type (``Maybe``), but also works on normal
+Python values, which are of type ``Optional[T]``.
 
 Each function is implemented twice, as a simple function and as a method on
 ``maybe.Maybe``::
 
-    maybe.Some(1).map(fn)
+    maybe.Some(1).map(fn) -> Maybe[T]
 
-    maybe.map(1, fn)
+    maybe.map(1, fn) -> Optional[T]
+
+
+Methods on ``Maybe`` return ``Maybe`` types, while functions return
+``Optional`` values.
 
 The names are taken from Rust, see:
 https://doc.rust-lang.org/stable/std/option/enum.Option.html
