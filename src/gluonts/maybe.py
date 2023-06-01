@@ -40,10 +40,11 @@ https://doc.rust-lang.org/stable/std/option/enum.Option.html
 """
 
 from dataclasses import dataclass
-from typing import Callable, Generic, Optional, TypeVar
+from typing import Callable, Generic, Optional, TypeVar, Tuple, List
 
 T = TypeVar("T")
 U = TypeVar("U")
+R = TypeVar("R")
 
 
 def expect(val: Optional[T], msg: str) -> T:
@@ -299,6 +300,47 @@ def xor(val: Optional[T], other: Optional[T]) -> Optional[T]:
 
     if other is None:
         return val
+
+    return None
+
+
+def iter(val: Optional[T]) -> List[T]:
+    """
+    Wrap ``val`` into a list, if it is not ``None``. Allows to use for loops
+    on optional values.
+    """
+    if val is None:
+        return []
+
+    return [val]
+
+
+def zip(val: Optional[T], other: Optional[U]) -> Optional[Tuple[T, U]]:
+    """
+    Return tuple of ``(val, other)`` if neither is ``None``, otherwise return
+    ``None``.
+    """
+    if val is None or other is None:
+        return None
+
+    return val, other
+
+
+def zip_with(
+    val: Optional[T], other: Optional[U], fn: Callable[[T, U], R]
+) -> Optional[R]:
+    """
+    Apply function to two optional values, if neither of them is ``None``:
+
+    >>> add = lambda left, right: left + right
+    >>> zip_with(1, 2, add)
+    3
+    >>> zip_with(1, None, add)
+    >>> zip_with(None, 2, add)
+
+    """
+    for left, right in iter(zip(val, other)):
+        return fn(left, right)
 
     return None
 
@@ -574,6 +616,38 @@ class Maybe(Generic[T]):
 
         """
         return xor(self.val, other)
+
+    def iter(self) -> List[T]:
+        """
+        Wrap ``val`` into a list, if it is not ``None``. Allows to use for
+        loops on optional values.
+        """
+        return iter(self.val)
+
+    def __iter__(self):
+        yield from self.iter()
+
+    def zip(self, other: Optional[U]) -> Optional[Tuple[T, U]]:
+        """
+        Return tuple of ``(val, other)`` if neither is ``None``, otherwise return
+        ``None``.
+        """
+        return zip(self.val, other)
+
+    def zip_with(
+        self, other: Optional[U], fn: Callable[[T, U], R]
+    ) -> Optional[R]:
+        """
+        Apply function to two optional values, if neither of them is ``None``:
+
+        >>> add = lambda left, right: left + right
+        >>> Maybe(1).zip_with(2, add)
+        3
+        >>> Maybe(1).zip_with(None, add)
+        >>> Maybe(None).zip_with(2, add)
+
+        """
+        return zip_with(self.val, other, fn)
 
     def flatten(self: "Maybe[Optional[T]]") -> Optional[T]:
         """Flatten nested optional value.
