@@ -240,7 +240,10 @@ class TimeFrame(TimeBase):
 
             values = np.full(
                 replace(
-                    maybe.unwrap(maybe.or_(self_col, other_col)).shape,
+                    cast(
+                        TimeFrame,
+                        maybe.unwrap(maybe.or_(self_col, other_col)),
+                    ).shape,
                     tdim,
                     len(index),
                 ),

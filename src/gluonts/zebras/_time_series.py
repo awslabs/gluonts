@@ -119,12 +119,12 @@ class TimeSeries(TimeBase):
 
         # ensure tdims match
         if self.tdim != other.tdim:
-            raise ValueError(f"tdims mismatch.")
+            raise ValueError("tdims mismatch.")
 
         if replace(np.shape(self), self.tdim, 0) != replace(
             np.shape(other), other.tdim, 0
         ):
-            raise ValueError(f"Incompatible shapes.")
+            raise ValueError("Incompatible shapes.")
 
         start = min(self.index.start, other.index.start)
         end = max(self.index.end, other.index.end)
