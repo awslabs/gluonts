@@ -24,7 +24,7 @@ and the result of ``and_then`` is ``Optional[T]``.
 Each function is implemented twice, as a simple function and as a method on
 ``maybe.Maybe``::
 
-    maybe.Maybe(1).map(fn)
+    maybe.Some(1).map(fn)
 
     maybe.map(1, fn)
 
@@ -39,15 +39,68 @@ https://doc.rust-lang.org/stable/std/option/enum.Option.html
 
 """
 
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Generic, Optional, TypeVar, Tuple, List
+from typing import (
+    Callable,
+    Generic,
+    Optional,
+    TypeVar,
+    Tuple,
+    List,
+    Union,
+    cast,
+    Any,
+)
+from typing_extensions import final, ParamSpec, Concatenate
 
 T = TypeVar("T")
 U = TypeVar("U")
 R = TypeVar("R")
 
+P = ParamSpec("P")
 
-def expect(val: Optional[T], msg: str) -> T:
+OptionalOrMaybe = Union[Optional[T], "Maybe[T]"]
+
+
+def box(val: OptionalOrMaybe[T]) -> Maybe[T]:
+    """
+    Turn ``Optional[T]`` into ``Maybe[T]``.
+    """
+
+    if isinstance(val, Maybe):
+        return val
+
+    if val is None:
+        return Nothing
+
+    return Some(val)
+
+
+def unbox(val: OptionalOrMaybe[T]) -> Optional[T]:
+    """
+    Turn ``Optional[T]`` into ``Maybe[T]``.
+    """
+
+    if isinstance(val, Maybe):
+        return val.unbox()
+
+    return val
+
+
+def flatten(val: Optional[Optional[T]]) -> Optional[T]:
+    """Flatten nested optional value.
+
+    Note: This just returns the value, but changes the type from
+    ``Optional[Optional[T]]`` to ``Optional[T].``
+    """
+
+    return val  # type: ignore
+
+
+def expect(val: OptionalOrMaybe[T], msg: str) -> T:
     """
     Ensure that ``val`` is not ``None``, raises a ``ValueError`` using ``msg``
     otherwise.
@@ -60,13 +113,10 @@ def expect(val: Optional[T], msg: str) -> T:
     ValueError: My message
 
     """
-    if val is None:
-        raise ValueError(msg)
-
-    return val
+    return box(val).expect(msg)
 
 
-def do(val: Optional[T], fn: Callable[[T], U]) -> Optional[T]:
+def do(val: OptionalOrMaybe[T], fn: Callable[[T], U]) -> Optional[T]:
     """
     Apply ``fn`` to ``val`` then return ``val``, if ``val`` is not ``None``.
 
@@ -76,13 +126,15 @@ def do(val: Optional[T], fn: Callable[[T], U]) -> Optional[T]:
     >>> do(None, print)
 
     """
-    if val is not None:
-        fn(val)
-
-    return val
+    return box(val).do(fn).unbox()
 
 
-def map(val: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
+def map(
+    val: OptionalOrMaybe[T],
+    fn: Callable[Concatenate[T, P], U],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> Optional[U]:
     """
     Apply ``fn`` to ``val`` if ``val`` is not ``None``.
 
@@ -90,11 +142,15 @@ def map(val: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
     2
     >>> map(None, lambda x: x + 1)
 
+    Allows to pass additional arguments that are passed to ``fn``:
+
+    >>> map(10, divmod, 3)
+    (3, 1)
     """
-    return map_or(val, fn, None)
+    return box(val).map(fn, *args, **kwargs).unbox()
 
 
-def map_or(val: Optional[T], fn: Callable[[T], U], default: U) -> U:
+def map_or(val: OptionalOrMaybe[T], fn: Callable[[T], U], default: U) -> U:
     """
     Apply ``fn`` to ``val`` if ``val`` is not ``None`` and return the result.
     In case of ``None`` the provided ``default`` is returned instead.
@@ -107,14 +163,11 @@ def map_or(val: Optional[T], fn: Callable[[T], U], default: U) -> U:
     0
 
     """
-    if val is None:
-        return default
-
-    return fn(val)
+    return box(val).map_or(fn, default)
 
 
 def map_or_else(
-    val: Optional[T],
+    val: OptionalOrMaybe[T],
     fn: Callable[[T], U],
     factory: Callable[[], U],
 ) -> U:
@@ -129,13 +182,10 @@ def map_or_else(
     []
 
     """
-    if val is None:
-        return factory()
-
-    return fn(val)
+    return box(val).map_or_else(fn, factory)
 
 
-def unwrap(val: Optional[T]) -> T:
+def unwrap(val: OptionalOrMaybe[T]) -> T:
     """
     Assert that the value is not ``None``.
 
@@ -147,10 +197,10 @@ def unwrap(val: Optional[T]) -> T:
     ValueError: Trying to unwrap `None` value.
 
     """
-    return expect(val, "Trying to unwrap `None` value.")
+    return box(val).expect("Trying to unwrap `None` value.")
 
 
-def unwrap_or(val: Optional[T], default: T) -> T:
+def unwrap_or(val: OptionalOrMaybe[T], default: T) -> T:
     """
     Get ``val`` if it is not ``None``, or ``default`` otherwise.
 
@@ -160,13 +210,10 @@ def unwrap_or(val: Optional[T], default: T) -> T:
     2
 
     """
-    if val is None:
-        return default
-
-    return val
+    return box(val).unwrap_or(default)
 
 
-def unwrap_or_else(val: Optional[T], factory: Callable[[], T]) -> T:
+def unwrap_or_else(val: OptionalOrMaybe[T], factory: Callable[[], T]) -> T:
     """
     Get ``val`` if it is not ``None``, or invoke ``factory`` to get a fallback.
 
@@ -176,13 +223,11 @@ def unwrap_or_else(val: Optional[T], factory: Callable[[], T]) -> T:
     []
 
     """
-    if val is None:
-        return factory()
 
-    return val
+    return box(val).unwrap_or_else(factory)
 
 
-def and_(val: Optional[T], other: Optional[U]) -> Optional[U]:
+def and_(val: OptionalOrMaybe[T], other: OptionalOrMaybe[U]) -> Optional[U]:
     """
     Like ``a and b`` in Python, except only considering ``None``.
 
@@ -195,13 +240,15 @@ def and_(val: Optional[T], other: Optional[U]) -> Optional[U]:
     >>> and_(None, 2)
 
     """
-    if val is None:
-        return None
-
-    return other
+    return box(val).and_(other).unbox()
 
 
-def and_then(val: Optional[T], fn: Callable[[T], Optional[U]]) -> Optional[U]:
+def and_then(
+    val: OptionalOrMaybe[T],
+    fn: Callable[Concatenate[T, P], U],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> Optional[U]:
     """
     Apply ``fn`` to ``val`` if it is not ``None`` and return the result.
 
@@ -212,10 +259,10 @@ def and_then(val: Optional[T], fn: Callable[[T], Optional[U]]) -> Optional[U]:
     42
     >>> and_then(None, lambda xs: xs[0] if xs else None)
     """
-    return flatten(map(val, fn))
+    return box(val).and_then(fn, *args, **kwargs).unbox()
 
 
-def or_(val: Optional[T], default: Optional[T]) -> Optional[T]:
+def or_(val: OptionalOrMaybe[T], default: Optional[T]) -> Optional[T]:
     """
     Like ``a or b`` in Python, except only considering ``None``.
 
@@ -226,14 +273,11 @@ def or_(val: Optional[T], default: Optional[T]) -> Optional[T]:
     >>> or_(None, 2)
     2
     """
-    if val is None:
-        return default
-
-    return val
+    return box(val).or_(default).unbox()
 
 
 def or_else(
-    val: Optional[T], factory: Callable[[], Optional[T]]
+    val: OptionalOrMaybe[T], factory: Callable[[], Optional[T]]
 ) -> Optional[T]:
     """
     Like ``unwrap_or_else``, except that it returns an optional value.
@@ -243,10 +287,10 @@ def or_else(
     >>> or_else(None, list)
     []
     """
-    return unwrap_or_else(val, factory)  # type: ignore
+    return box(val).or_else(factory).unbox()
 
 
-def contains(val: Optional[T], other: U) -> bool:
+def contains(val: OptionalOrMaybe[T], other: U) -> bool:
     """
     Check if ``val`` equals ``other``, always return ``False`` if ``val`` is
     ``None``.
@@ -258,13 +302,10 @@ def contains(val: Optional[T], other: U) -> bool:
     >>> contains(None, 3)
     False
     """
-    if val is None:
-        return False
-
-    return val == other
+    return box(val).contains(other)
 
 
-def filter(val: Optional[T], pred: Callable[[T], bool]) -> Optional[T]:
+def filter(val: OptionalOrMaybe[T], pred: Callable[[T], bool]) -> Optional[T]:
     """
     Return ``None`` if ``val`` is ``None`` or if ``pred(val)`` does not return
     ``True``, otherwise return ``val``.
@@ -275,13 +316,10 @@ def filter(val: Optional[T], pred: Callable[[T], bool]) -> Optional[T]:
     2
     >>> filter(None, is_even)
     """
-    if val is None or not pred(val):
-        return None
-
-    return val
+    return box(val).filter(pred).unbox()
 
 
-def xor(val: Optional[T], other: Optional[T]) -> Optional[T]:
+def xor(val: OptionalOrMaybe[T], other: OptionalOrMaybe[T]) -> Optional[T]:
     """
     Return either ``val`` or ``other`` if the other is ``None``. Also return
     ``None`` if both are not ``None``.
@@ -294,40 +332,29 @@ def xor(val: Optional[T], other: Optional[T]) -> Optional[T]:
     >>> xor(None, None)
 
     """
-
-    if val is None:
-        return other
-
-    if other is None:
-        return val
-
-    return None
+    return box(val).xor(other).unbox()
 
 
-def iter(val: Optional[T]) -> List[T]:
+def iter(val: OptionalOrMaybe[T]) -> List[T]:
     """
     Wrap ``val`` into a list, if it is not ``None``. Allows to use for loops
     on optional values.
     """
-    if val is None:
-        return []
-
-    return [val]
+    return box(val).iter()
 
 
-def zip(val: Optional[T], other: Optional[U]) -> Optional[Tuple[T, U]]:
+def zip(
+    val: OptionalOrMaybe[T], other: OptionalOrMaybe[U]
+) -> Optional[Tuple[T, U]]:
     """
     Return tuple of ``(val, other)`` if neither is ``None``, otherwise return
     ``None``.
     """
-    if val is None or other is None:
-        return None
-
-    return val, other
+    return box(val).zip(other).unbox()
 
 
 def zip_with(
-    val: Optional[T], other: Optional[U], fn: Callable[[T, U], R]
+    val: OptionalOrMaybe[T], other: OptionalOrMaybe[U], fn: Callable[[T, U], R]
 ) -> Optional[R]:
     """
     Apply function to two optional values, if neither of them is ``None``:
@@ -339,65 +366,77 @@ def zip_with(
     >>> zip_with(None, 2, add)
 
     """
-    for left, right in iter(zip(val, other)):
-        return fn(left, right)
-
-    return None
+    return box(val).zip_with(other, fn).unbox()
 
 
-def flatten(val: Optional[Optional[T]]) -> Optional[T]:
-    """Flatten nested optional value.
+class Maybe(ABC, Generic[T]):
+    @abstractmethod
+    def unbox(self) -> Optional[T]:
+        """
+        Turn ``Maybe[T]`` into ``Optional[T]``.
 
-    Note: This just returns the value, but changes the type from
-    ``Optional[Optional[T]]`` to ``Optional[T].``
-    """
+        >>> Some(1).unbox()
+        1
+        >>> Some(None).unbox() is None
+        True
 
-    return val  # type: ignore
+        """
 
+    @abstractmethod
+    def is_some(self) -> bool:
+        pass
 
-@dataclass
-class Maybe(Generic[T]):
-    val: Optional[T]
+    def is_none(self) -> bool:
+        return not self.is_some()
 
+    @abstractmethod
     def expect(self, msg: str) -> T:
         """
         Ensure that ``val`` is not ``None``, raises a ``ValueError`` using
         ``msg`` otherwise.
 
-        >>> Maybe(1).expect("My message")
+        >>> Some(1).expect("My message")
         1
-        >>> Maybe(None).expect("My message")
+        >>> Nothing.expect("My message")
         Traceback (most recent call last):
             ...
         ValueError: My message
 
         """
-        return expect(self.val, msg)
 
-    def do(self, fn: Callable[[T], U]) -> Optional[T]:
+    @abstractmethod
+    def do(self, fn: Callable[[T], U]) -> Maybe[T]:
         """
         Apply ``fn`` to ``val`` then return ``val``, if ``val`` is not
         ``None``.
 
-        >>> Maybe("a").do(print)
+        >>> Some("a").do(print)
         a
-        'a'
-        >>> Maybe(None).do(print)
-
+        Some('a')
+        >>> Nothing.do(print)
+        Nothing
         """
-        return do(self.val, fn)
 
-    def map(self, fn: Callable[[T], U]) -> Optional[U]:
+    @abstractmethod
+    def map(
+        self, fn: Callable[Concatenate[T, P], U], *args, **kwargs
+    ) -> Maybe[U]:
         """
         Apply ``fn`` to ``val`` if ``val`` is not ``None``.
 
-        >>> Maybe(1).map(lambda x: x + 1)
-        2
-        >>> Maybe(None).map(lambda x: x + 1)
+        >>> Some(1).map(lambda x: x + 1)
+        Some(2)
+        >>> Nothing.map(lambda x: x + 1)
+        Nothing
+
+        Allows to pass additional arguments that are passed to ``fn``:
+
+        >>> Some(10).map(divmod, 3)
+        Some((3, 1))
 
         """
-        return map(self.val, fn)
 
+    @abstractmethod
     def map_or(self, fn: Callable[[T], U], default: U) -> U:
         """
         Apply ``fn`` to ``val`` if ``val`` is not ``None`` and return the
@@ -406,14 +445,14 @@ class Maybe(Generic[T]):
 
         This is similar to calling ``map`` and ``unwrap_or`` in succession.
 
-        >>> Maybe(["x"]).map_or(len, 0)
+        >>> Some(["x"]).map_or(len, 0)
         1
-        >>> Maybe(None).map_or(len, 0)
+        >>> Nothing.map_or(len, 0)
         0
 
         """
-        return map_or(self.val, fn, default)
 
+    @abstractmethod
     def map_or_else(
         self,
         fn: Callable[[T], U],
@@ -426,233 +465,430 @@ class Maybe(Generic[T]):
         This is similar to calling ``map`` and ``unwrap_or_else`` in
         succession.
 
-        >>> Maybe(1).map_or_else(lambda n: [n], list)
+        >>> Some(1).map_or_else(lambda n: [n], list)
         [1]
-        >>> Maybe(None).map_or_else(lambda n: [n], list)
+        >>> Nothing.map_or_else(lambda n: [n], list)
         []
 
         """
-        return map_or_else(self.val, fn, factory)
 
+    @abstractmethod
     def unwrap(self) -> T:
         """
         Assert that the value is not ``None``.
 
-        >>> Maybe(1).unwrap()
+        >>> Some(1).unwrap()
         1
-        >>> Maybe(None).unwrap()
+        >>> Nothing.unwrap()
         Traceback (most recent call last):
             ...
         ValueError: Trying to unwrap `None` value.
 
         """
-        return unwrap(self.val)
 
+    @abstractmethod
     def unwrap_or(self, default: T) -> T:
         """
         Get ``val`` if it is not ``None``, or ``default`` otherwise.
 
-        >>> Maybe(1).unwrap_or(2)
+        >>> Some(1).unwrap_or(2)
         1
-        >>> Maybe(None).unwrap_or(2)
+        >>> Nothing.unwrap_or(2)
         2
 
         """
-        return unwrap_or(self.val, default)
 
+    @abstractmethod
     def unwrap_or_else(self, fn: Callable[[], T]) -> T:
         """
         Get ``val`` if it is not ``None``, or invoke ``factory`` to get a
         fallback.
 
-        >>> Maybe([1, 2, 3]).unwrap_or_else(list)
+        >>> Some([1, 2, 3]).unwrap_or_else(list)
         [1, 2, 3]
-        >>> Maybe(None).unwrap_or_else(list)
+        >>> Nothing.unwrap_or_else(list)
         []
 
         """
-        return unwrap_or_else(self.val, fn)
 
-    def and_(self, other: Optional[U]) -> Optional[U]:
+    @abstractmethod
+    def and_(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
         """
         Like ``a and b`` in Python, except only considering ``None``.
 
         This is implement identical to ``unwrap_or``, but different with
         respect to types.
 
-        >>> Maybe(1).and_(2)
-        2
-        >>> Maybe(1).and_(None)
-        >>> Maybe(None).and_(2)
+        >>> Some(1).and_(2)
+        Some(2)
+        >>> Some(1).and_(None)
+        Nothing
+        >>> Nothing.and_(2)
+        Nothing
 
         """
-        return and_(self.val, other)
 
-    def __and__(self, other: Optional[U]) -> Optional[U]:
+    def __and__(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
         """
         Like ``a and b`` in Python, except only considering ``None``.
 
         This is implement identical to ``unwrap_or``, but different with
         respect to types.
 
-        >>> Maybe(1) & 2
-        2
-        >>> Maybe(1) & None
-        >>> Maybe(None) & 2
+        >>> Some(1) & 2
+        Some(2)
+        >>> Some(1) & None
+        Nothing
+        >>> Nothing & 2
+        Nothing
 
         """
-        return and_(self.val, other)
+        return self.and_(other)
 
-    def and_then(self, fn: Callable[[T], Optional[U]]) -> Optional[U]:
+    @abstractmethod
+    def and_then(
+        self,
+        fn: Callable[Concatenate[T, P], U],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Maybe[U]:
         """
         Apply ``fn`` to ``val`` if it is not ``None`` and return the result.
 
         In contrast to ``map``, ``fn`` always returns an ``Optional``, which is
         consequently flattened.
 
-        >>> Maybe([42]).and_then(lambda xs: xs[0] if xs else None)
-        42
-        >>> Maybe([]).and_then(lambda xs: xs[0] if xs else None)
-        >>> Maybe(None).and_then(lambda xs: xs[0] if xs else None)
+        >>> Some([42]).and_then(lambda xs: xs[0] if xs else None)
+        Some(42)
+        >>> Some([]).and_then(lambda xs: xs[0] if xs else None)
+        Nothing
+        >>> Nothing.and_then(lambda xs: xs[0] if xs else None)
+        Nothing
 
         """
-        return and_then(self.val, fn)
 
-    def or_(self, default: Optional[T]) -> Optional[T]:
-        """
-        Like ``a or b`` in Python, except only considering ``None``.
-
-        >>> Maybe(1).or_(2)
-        1
-        >>> Maybe(1).or_(None)
-        1
-        >>> Maybe(None).or_(2)
-        2
-
-        """
-        return or_(self.val, default)
-
-    def __or__(self, default: Optional[T]) -> Optional[T]:
+    @abstractmethod
+    def or_(self, default: Optional[T]) -> Maybe[T]:
         """
         Like ``a or b`` in Python, except only considering ``None``.
 
-        >>> Maybe(1) | 2
-        1
-        >>> Maybe(1) | None
-        1
-        >>> Maybe(None) | 2
-        2
+        >>> Some(1).or_(2)
+        Some(1)
+        >>> Some(1).or_(None)
+        Some(1)
+        >>> Nothing.or_(2)
+        Some(2)
 
         """
-        return or_(self.val, default)
 
-    def or_else(self, factory: Callable[[], Optional[T]]) -> Optional[T]:
+    def __or__(self, default: Optional[T]) -> Maybe[T]:
+        """
+        Like ``a or b`` in Python, except only considering ``None``.
+
+        >>> Some(1) | 2
+        Some(1)
+        >>> Some(1) | None
+        Some(1)
+        >>> Nothing | 2
+        Some(2)
+
+        """
+
+        return self.or_(default)
+
+    @abstractmethod
+    def or_else(self, factory: Callable[[], Optional[T]]) -> Maybe[T]:
         """
         Like `unwrap_or_else`, except that it returns an optional value.
 
-        >>> Maybe([42]).or_else(list)
-        [42]
-        >>> Maybe(None).or_else(list)
-        []
+        >>> Some([42]).or_else(list)
+        Some([42])
+        >>> Nothing.or_else(list)
+        Some([])
 
         """
-        return or_else(self.val, factory)
 
+    @abstractmethod
     def contains(self, other: U) -> bool:
         """
         Check if ``val`` equals ``other``, always return ``False`` if ``val``
         is ``None``.
 
-        >>> Maybe(1).contains(1)
+        >>> Some(1).contains(1)
         True
-        >>> Maybe(1).contains(2)
+        >>> Some(1).contains(2)
         False
-        >>> Maybe(None).contains(3)
+        >>> Nothing.contains(3)
         False
 
         """
-        return contains(self.val, other)
 
-    def filter(self, pred: Callable[[T], bool]) -> Optional[T]:
+    @abstractmethod
+    def filter(self, pred: Callable[[T], bool]) -> Maybe[T]:
         """
         Return ``None`` if ``val`` is ``None`` or if ``pred(val)`` does not
         return ``True``, otherwise return ``val``.
 
         >>> is_even = lambda n: n % 2 == 0
-        >>> Maybe(1).filter(is_even)
-        >>> Maybe(2).filter(is_even)
-        2
-        >>> Maybe(None).filter(is_even)
+        >>> Some(1).filter(is_even)
+        Nothing
+        >>> Some(2).filter(is_even)
+        Some(2)
+        >>> Nothing.filter(is_even)
+        Nothing
 
         """
-        return filter(self.val, pred)
 
-    def xor(self, other: Optional[T]) -> Optional[T]:
+    @abstractmethod
+    def xor(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
         """
-        Return either ``val`` or ``other`` if the other is ``None``. Also
-        return ``None`` if both are not ``None``.
+        Return either ``val`` or ``other`` if the other is ``None``. Also return
+        ``None`` if both are not ``None``.
 
-        >>> Maybe(1).xor(None)
+        >>> xor(1, None)
         1
-        >>> Maybe(None).xor(2)
+        >>> xor(None, 2)
         2
-        >>> Maybe(1).xor(2)
-        >>> Maybe(None).xor(None)
+        >>> xor(1, 2)
+        >>> xor(None, None)
 
         """
-        return xor(self.val, other)
 
-    def __xor__(self, other: Optional[T]) -> Optional[T]:
-        """
-        Return either ``val`` or ``other`` if the other is ``None``. Also
-        return ``None`` if both are not ``None``.
+    def __xor__(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
+        return self.xor(other)
 
-        >>> Maybe(1) ^ None
-        1
-        >>> Maybe(None) ^ 2
-        2
-        >>> Maybe(1) ^ 2
-        >>> Maybe(None) ^ None
-
-        """
-        return xor(self.val, other)
-
+    @abstractmethod
     def iter(self) -> List[T]:
         """
-        Wrap ``val`` into a list, if it is not ``None``. Allows to use for
-        loops on optional values.
+        Wrap ``val`` into a list, if it is not ``None``. Allows to use for loops
+        on optional values.
         """
-        return iter(self.val)
 
     def __iter__(self):
         yield from self.iter()
 
-    def zip(self, other: Optional[U]) -> Optional[Tuple[T, U]]:
-        """
-        Return tuple of ``(val, other)`` if neither is ``None``, otherwise return
-        ``None``.
-        """
-        return zip(self.val, other)
+    @abstractmethod
+    def zip(self, other: OptionalOrMaybe[U]) -> Maybe[Tuple[T, U]]:
+        """ """
 
+    @abstractmethod
     def zip_with(
-        self, other: Optional[U], fn: Callable[[T, U], R]
-    ) -> Optional[R]:
+        self, other: OptionalOrMaybe[U], fn: Callable[[T, U], R]
+    ) -> Maybe[R]:
         """
         Apply function to two optional values, if neither of them is ``None``:
 
         >>> add = lambda left, right: left + right
-        >>> Maybe(1).zip_with(2, add)
-        3
-        >>> Maybe(1).zip_with(None, add)
-        >>> Maybe(None).zip_with(2, add)
+        >>> Some(1).zip_with(2, add)
+        Some(3)
+        >>> Some(1).zip_with(None, add)
+        Nothing
+        >>> Nothing.zip_with(2, add)
+        Nothing
 
         """
-        return zip_with(self.val, other, fn)
 
-    def flatten(self: "Maybe[Optional[T]]") -> Optional[T]:
+    @abstractmethod
+    def flatten(self: "Maybe[OptionalOrMaybe[T]]") -> Maybe[T]:
         """Flatten nested optional value.
 
         Note: This just returns the value, but changes the type from
         ``Optional[Optional[T]]`` to ``Optional[T].``
         """
-        return flatten(self.val)
+
+
+@dataclass
+@final
+class Some(Maybe[T]):
+    val: T
+
+    def __repr__(self):
+        return f"Some({self.val!r})"
+
+    def unbox(self) -> Optional[T]:
+        return self.val
+
+    def is_some(self):
+        return True
+
+    def unwrap(self) -> T:
+        return self.val
+
+    def expect(self, msg: str) -> T:
+        return self.val
+
+    def do(self, fn: Callable[[T], U]) -> Maybe[T]:
+        fn(self.val)
+
+        return self
+
+    def map(
+        self, fn: Callable[Concatenate[T, P], U], *args, **kwargs
+    ) -> Maybe[U]:
+        return Some(fn(self.val, *args, **kwargs))
+
+    def map_or(self, fn: Callable[[T], U], default: U) -> U:
+        return self.map(fn).unwrap()
+
+    def map_or_else(
+        self,
+        fn: Callable[[T], U],
+        factory: Callable[[], U],
+    ) -> U:
+        return self.map(fn).unwrap()
+
+    def unwrap_or(self, default: T) -> T:
+        return self.unwrap()
+
+    def unwrap_or_else(self, fn: Callable[[], T]) -> T:
+        return self.unwrap()
+
+    def and_(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
+        return box(other)
+
+    def __and__(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
+        return self.and_(other)
+
+    def and_then(
+        self,
+        fn: Callable[Concatenate[T, P], U],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Maybe[U]:
+        return box(fn(self.val, *args, **kwargs))
+
+    def or_(self, default: Optional[T]) -> Maybe[T]:
+        return self
+
+    def __or__(self, default: Optional[T]) -> Maybe[T]:
+        return self.or_(default)
+
+    def or_else(self, factory: Callable[[], Optional[T]]) -> Maybe[T]:
+        return self
+
+    def contains(self, other: U) -> bool:
+        return self.val == other
+
+    def filter(self, pred: Callable[[T], bool]) -> Maybe[T]:
+        if pred(self.val):
+            return self
+
+        return Nothing
+
+    def xor(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
+        other = box(other)
+
+        if other.is_none():
+            return self
+
+        return Nothing
+
+    def iter(self) -> List[T]:
+        return [self.val]
+
+    def zip(self, other: OptionalOrMaybe[U]) -> Maybe[Tuple[T, U]]:
+        other = box(other)
+        if other.is_some():
+            return Some((self.unwrap(), other.unwrap()))
+
+        return Nothing
+
+    def zip_with(
+        self, other: OptionalOrMaybe[U], fn: Callable[[T, U], R]
+    ) -> Maybe[R]:
+        zipped = self.zip(other)
+
+        if zipped.is_some():
+            return box(fn(*zipped.unwrap()))
+
+        return Nothing
+
+    def flatten(self: "Maybe[OptionalOrMaybe[T]]") -> Maybe[T]:
+        return box(self.unwrap())
+
+
+@final
+class _Nothing(Maybe[T]):
+    def __repr__(self):
+        return "Nothing"
+
+    def unbox(self) -> Optional[T]:
+        return None
+
+    def is_some(self):
+        return False
+
+    def unwrap(self) -> T:
+        self.expect("Trying to unwrap `None` value.")
+
+        assert False
+
+    def expect(self, msg: str) -> T:
+        raise ValueError(msg)
+
+    def do(self, fn: Callable[[T], U]) -> Maybe[T]:
+        return self
+
+    def map(
+        self, fn: Callable[Concatenate[T, P], U], *args, **kwargs
+    ) -> Maybe[U]:
+        return Nothing
+
+    def map_or(self, fn: Callable[[T], U], default: U) -> U:
+        return default
+
+    def map_or_else(
+        self,
+        fn: Callable[[T], U],
+        factory: Callable[[], U],
+    ) -> U:
+        return factory()
+
+    def unwrap_or(self, default: T) -> T:
+        return default
+
+    def unwrap_or_else(self, fn: Callable[[], T]) -> T:
+        return fn()
+
+    def and_(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
+        return Nothing
+
+    def and_then(
+        self,
+        fn: Callable[Concatenate[T, P], U],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Maybe[U]:
+        return Nothing
+
+    def or_(self, default: Optional[T]) -> Maybe[T]:
+        return box(default)
+
+    def or_else(self, factory: Callable[[], Optional[T]]) -> Maybe[T]:
+        return box(factory())
+
+    def contains(self, other: U) -> bool:
+        return False
+
+    def filter(self, pred: Callable[[T], bool]) -> Maybe[T]:
+        return self
+
+    def xor(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
+        return box(other)
+
+    def iter(self) -> List[T]:
+        return []
+
+    def zip(self, other: OptionalOrMaybe[U]) -> Maybe[Tuple[T, U]]:
+        return Nothing
+
+    def zip_with(
+        self, other: OptionalOrMaybe[U], fn: Callable[[T, U], R]
+    ) -> Maybe[R]:
+        return Nothing
+
+    def flatten(self: "Maybe[OptionalOrMaybe[T]]") -> Maybe[T]:
+        return cast(Maybe[T], self)
+
+
+Nothing: _Nothing[Any] = _Nothing()
