@@ -33,7 +33,7 @@ def get_version_cmdclass(version_file) -> dict:
 
     # When `_version.py` is replaced, it should still contain `__version__`,
     # but no longer "cmdclass".
-    if not "cmdclass" in globals_:
+    if "cmdclass" not in globals_:
         assert "__version__" in globals_
         return {}
 
@@ -78,7 +78,7 @@ class TypeCheckCommand(distutils.cmd.Command):
                 f"""
                 Mypy command
 
-                    mypy {" ".join(mypy_opts + folders)}
+                    mypy {" ".join(folders)}
 
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run
