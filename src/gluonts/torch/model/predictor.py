@@ -59,6 +59,7 @@ class PyTorchPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
+        self.required_fields = ["forecast_start"]
 
     def to(self, device) -> "PyTorchPredictor":
         self.prediction_net = self.prediction_net.to(device)
@@ -73,10 +74,11 @@ class PyTorchPredictor(Predictor):
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
-            dataset,
+            dataset=dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=lambda data: batchify(data, self.device),
+            field_names=self.input_names + self.required_fields,
         )
 
         self.prediction_net.eval()
