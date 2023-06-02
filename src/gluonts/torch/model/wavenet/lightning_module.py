@@ -20,11 +20,23 @@ from .module import WaveNet
 
 
 class WaveNetLightningModule(pl.LightningModule):
+    """LightningModule wrapper over WaveNet.
+
+    Parameters
+    ----------
+    model_kwargs
+        Keyword arguments to pass to WaveNet.
+    lr, optional
+        Learning rate, by default 1e-3
+    weight_decay, optional
+        Weight decay, by default 1e-8
+    """
+
     @validated()
     def __init__(
         self,
         model_kwargs: dict,
-        lr: float = 1e-2,
+        lr: float = 1e-3,
         weight_decay: float = 1e-8,
     ) -> None:
         super().__init__()

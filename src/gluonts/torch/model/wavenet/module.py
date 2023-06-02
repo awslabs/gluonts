@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -21,6 +21,14 @@ from gluonts.torch.modules.feature import FeatureEmbedder
 
 
 class LookupValues(nn.Module):
+    """Lookup bin values from bin indices.
+
+    Parameters
+    ----------
+    bin_values
+        Tensor of bin values with shape (num_bins, ).
+    """
+
     @validated()
     def __init__(self, bin_values: torch.Tensor):
         super().__init__()
@@ -95,6 +103,38 @@ class CausalDilatedResidualLayer(nn.Module):
 
 
 class WaveNet(nn.Module):
+    """The WaveNet model.
+
+    Parameters
+    ----------
+    pred_length
+        Prediction length.
+    bin_values
+        List of bin values.
+    n_residual_channels
+        Number of residual channels.
+    n_skip_channels
+        Number of skip channels.
+    dilation_depth
+        The depth of the dilated convolution.
+    n_stacks
+        The number of dilation stacks.
+    num_feat_dynamic_real, optional
+        The number of dynamic real features, by default 1
+    num_feat_static_real, optional
+        The number of static real features, by default 1
+    cardinality, optional
+        The cardinalities of static categorical features, by default [1]
+    embedding_dimension, optional
+        The dimension of the embeddings for categorical features, by default 5
+    n_parallel_samples, optional
+        The number of parallel samples to generate during inference.
+        This parameter is only used in inference mode, by default 100
+    temperature, optional
+        Temparature used for sampling from the output softmax distribution,
+        by default 1.0
+    """
+
     @validated()
     def __init__(
         self,
@@ -124,6 +164,7 @@ class WaveNet(nn.Module):
             + 1  # the log(scale)
         )
 
+        # 1 extra bin to accounts for extreme values
         self.n_bins = len(bin_values) + 1
         self.dilations = self._get_dilations(dilation_depth, n_stacks)
         self.receptive_field = self.get_receptive_field(
@@ -181,11 +222,11 @@ class WaveNet(nn.Module):
         self.criterion = nn.CrossEntropyLoss(reduction="none")
 
     @staticmethod
-    def _get_dilations(dilation_depth, n_stacks):
+    def _get_dilations(dilation_depth: int, n_stacks: int) -> List[int]:
         return [2**i for i in range(dilation_depth)] * n_stacks
 
     @staticmethod
-    def get_receptive_field(dilation_depth, n_stacks):
+    def get_receptive_field(dilation_depth: int, n_stacks: int) -> int:
         dilations = WaveNet._get_dilations(
             dilation_depth=dilation_depth, n_stacks=n_stacks
         )
@@ -199,7 +240,35 @@ class WaveNet(nn.Module):
         future_time_feat: torch.Tensor,
         future_observed_values: Optional[torch.Tensor],
         scale: torch.Tensor,
-    ):
+    ) -> torch.Tensor:
+        """Prepares the inputs for the network by repeating static feature and
+        concatenating it with time features and observed value indicator.
+
+        Parameters
+        ----------
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        future_observed_values
+            Observed value indicator for the future target:
+            (batch_size, pred_length). This will be set to all ones, if not
+            provided (e.g., during inference)
+        scale
+            scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+            A tensor containing all the features ready to be passed through the
+            network.
+            Shape: (batch_size, num_features, receptive_field + pred_length)
+        """
         embedded_cat = self.feature_embedder(feat_static_cat.long())
         static_feat = torch.cat([embedded_cat, torch.log(scale + 1.0)], dim=1)
         repeated_static_feat = torch.repeat_interleave(
@@ -225,7 +294,21 @@ class WaveNet(nn.Module):
 
     def target_feature_embedding(
         self, target: torch.Tensor, features: torch.Tensor
-    ):
+    ) -> torch.Tensor:
+        """Provides a joint embedding for the target and features.
+
+        Parameters
+        ----------
+        target
+            Full target of shape (batch_size, sequence_length)
+        features
+            Full features of shape (batch_size, num_features, sequence_length)
+
+        Returns
+        -------
+            A tensor containing a joint embedding of target and features.
+            Shape: (batch_size, n_residue, sequence_length)
+        """
         out = self.target_embedder(target)
         out = torch.transpose(out, 1, 2)
         out = torch.cat([out, features], dim=1)
@@ -237,7 +320,32 @@ class WaveNet(nn.Module):
         inputs: torch.Tensor,
         prediction_mode: bool = False,
         queues: List[torch.Tensor] = None,
-    ):
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """Forward pass through the WaveNet.
+
+        Parameters
+        ----------
+        inputs
+            A tensor of inputs
+            Shape: (batch_size, n_residual_channels, sequence_length)
+        prediction_mode, optional
+            Flag indicating whether the network is being used
+            for prediction, by default False
+        queues, optional
+            Convolutional queues containing past computations.
+            This speeds up predictions and must be provided
+            during prediction mode. See [Paine et al., 2016] for details,
+            by default None
+
+        [Paine et al., 2016] "Fast wavenet generation algorithm."
+           arXiv preprint arXiv:1611.09482 (2016).
+        Returns
+        -------
+            A tensor containing the unnormalized outputs of the network of
+            shape (batch_size, pred_length, num_bins) and a list containing the
+            convolutional queues for each layer. The queue corresponding to
+            layer `l` has shape: (batch_size, n_residual_channels, 2^l).
+        """
         if prediction_mode:
             assert (
                 queues is not None
@@ -275,7 +383,36 @@ class WaveNet(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
         scale: torch.Tensor,
-    ):
+    ) -> torch.Tensor:
+        """Computes the training loss for the wavenet model.
+
+        Parameters
+        ----------
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        future_target
+            Target on which the loss is computed: (batch_size, pred_length)
+        future_observed_values
+            Observed value indicator for the future target:
+            (batch_size, pred_length). This will be set to all ones, if not
+            provided (e.g., during inference)
+        scale
+            Scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+            Loss tensor with shape (batch_size, pred_length)
+        """
         full_target = torch.cat([past_target, future_target], dim=-1).long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
@@ -289,13 +426,11 @@ class WaveNet(nn.Module):
             target=full_target[..., :-1], features=full_features[..., 1:]
         )
         logits, _ = self.base_net(input_embedding, prediction_mode=False)
-        # logits = (batch, pred_length, n_bins)
         labels = full_target[..., self.receptive_field :]
-        # label = (batch, pred_length)
         loss_weight = torch.cat(
             [past_observed_values, future_observed_values], dim=-1
         )[..., self.receptive_field :]
-        # loss_weight = (batch, pred_length)
+
         assert labels.size() == loss_weight.size()
         loss = self.criterion(
             logits.reshape(-1, self.n_bins), labels.reshape(-1)
@@ -305,7 +440,22 @@ class WaveNet(nn.Module):
 
     def _initialize_conv_queues(
         self, past_target: torch.Tensor, features: torch.Tensor
-    ):
+    ) -> List[torch.Tensor]:
+        """Initialize the convolutional queues to speed up predictions.
+
+        Parameters
+        ----------
+        past_target
+            Past target: (batch_size, receptive_field)
+        features
+            Tensor of features: (batch_size, num_features, receptive_field)
+
+        Returns
+        -------
+            A list containing the convolutional queues for each layer.
+            The queue corresponding to layer `l` has shape:
+            (batch_size, n_residue, 2^l).
+        """
         out = self.target_feature_embedding(past_target, features)
         queues = []
         for i, (d, layer) in enumerate(zip(self.dilations, self.residuals)):
@@ -327,7 +477,30 @@ class WaveNet(nn.Module):
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
         scale: torch.Tensor,
-    ):
+    ) -> torch.Tensor:
+        """Generate predictions from the WaveNet model.
+
+        Parameters
+        ----------
+        feat_static_cat
+            Static categorical features: (batch_size, num_cat_features)
+        past_target
+            Past target: (batch_size, receptive_field)
+        past_observed_values
+            Observed value indicator for the past target: (batch_size,
+            receptive_field)
+        past_time_feat
+            Past time features: (batch_size, num_time_features,
+            receptive_field)
+        future_time_feat
+            Future time features: (batch_size, num_time_features, pred_length)
+        scale
+            Scale of the time series: (batch_size, 1)
+
+        Returns
+        -------
+            Predictions with shape (batch_size, num_samples, pred_length)
+        """
         past_target = past_target.long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,

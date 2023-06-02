@@ -68,43 +68,66 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class QuantizeScaled(SimpleTransformation):
-    """
-    Rescale and quantize the target variable.
+    """Rescale and quantize the target variable.
+    Requires `past_target_field`, and `future_target_field` to be present.
 
-    Requires
-      past_target and future_target fields.
+    The mean absolute value of the past_target is used to rescale
+    past_target and future_target. Then the bin_edges are used to quantize
+    the rescaled target.
 
-    The mean absolute value of the past_target is used to rescale past_target
-    and future_target. Then the bin_edges are used to quantize the rescaled
-    target.
+    The calculated scale is stored in the `scale_field`.
 
-    The calculated scale is included as a new field "scale"
+    Parameters
+    ----------
+    bin_edges
+        The bin edges for quantization.
+    past_target_field, optional
+        The field name that contains `past_target`,
+        by default "past_target"
+    past_observed_values_field, optional
+        The field name that contains `past_observed_values`,
+        by default "past_observed_values"
+    future_target_field, optional
+        The field name that contains `future_target`,
+        by default "future_target"
+    scale_field, optional
+        The field name where scale will be stored,
+        by default "scale"
     """
 
     @validated()
     def __init__(
         self,
         bin_edges: List[float],
-        past_target: str,
-        future_target: str,
-        scale: str = "scale",
+        past_target_field: str = "past_target",
+        past_observed_values_field: str = "past_observed_values",
+        future_target_field: str = "future_target",
+        scale_field: str = "scale",
     ):
         self.bin_edges = np.array(bin_edges)
-        self.future_target = future_target
-        self.past_target = past_target
-        self.scale = scale
+        self.future_target_field = future_target_field
+        self.past_target_field = past_target_field
+        self.past_observed_values_field = past_observed_values_field
+        self.scale_field = scale_field
 
     def transform(self, data: DataEntry) -> DataEntry:
-        p = data[self.past_target]
-        m = np.mean(np.abs(p))
+        target = data[self.past_target_field]
+        weights = data.get(
+            self.past_observed_values_field, np.ones_like(target)
+        )
+        m = np.sum(np.abs(target) * weights) / np.sum(weights)
         scale = m if m > 0 else 1.0
-        data[self.future_target] = np.digitize(
-            data[self.future_target] / scale, bins=self.bin_edges, right=False
+        data[self.future_target_field] = np.digitize(
+            data[self.future_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
         )
-        data[self.past_target] = np.digitize(
-            data[self.past_target] / scale, bins=self.bin_edges, right=False
+        data[self.past_target_field] = np.digitize(
+            data[self.past_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
         )
-        data[self.scale] = np.array([scale], dtype=np.float32)
+        data[self.scale_field] = np.array([scale], dtype=np.float32)
         return data
 
 
@@ -137,6 +160,78 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         negative_data: bool = False,
         trainer_kwargs: Dict[str, Any] = None,
     ) -> None:
+        """WaveNet estimator that uses the architecture proposed in
+        [Oord et al., 2016] with quantized targets. The model is trained
+        using the cross-entropy loss.
+
+        [Oord et al., 2016] "Wavenet: A generative model for raw audio."
+        arXiv preprint arXiv:1609.03499 (2016).
+
+        Parameters
+        ----------
+        freq
+            Frequency of the time series
+        prediction_length
+            Length of the prediction horizon
+        n_bins, optional
+            Number of bins used for quantization of the time series,
+            by default 1024
+        n_residual_channels, optional
+            Number of residual channels in wavenet architecture, by default 24
+        n_skip_channels, optional
+            Number of skip channels in wavenet architecture, by default 32
+        dilation_depth, optional
+            Number of dilation layers in wavenet architecture. If set to None
+            (default), dialation_depth is set such that the receptive length
+            is at least as long as typical seasonality for the frequency and
+            at least 2 * prediction_length, by default None
+        n_stacks, optional
+            Number of dilation stacks in wavenet architecture, by default 1
+        temperature, optional
+            Temparature used for sampling from softmax distribution,
+            by default 1.0
+        num_feat_dynamic_real, optional
+            The number of dynamic real features, by default 0
+        num_feat_static_cat, optional
+            The number of static categorical features, by default 0
+        num_feat_static_real, optional
+            The number of static real features, by default 0
+        cardinality, optional
+            The cardinalities of static categorical features, by default [1]
+        seasonality, optional
+            The seasonality of the time series. If set to None, seasonality
+            is set to default value based on the `freq`, by default None
+        embedding_dimension, optional
+            The dimension of the embeddings for categorical features,
+            by default 5
+        time_features, optional
+            List of time features, from :py:mod:`gluonts.time_feature`,
+            by default None
+        lr, optional
+            Learning rate, by default 1e-3
+        weight_decay, optional
+            Weight decay, by default 1e-8
+        train_sampler, optional
+            Controls the sampling of windows during training,
+            by default None
+        validation_sampler, optional
+            Controls the sampling of windows during validation,
+            by default None
+        batch_size, optional
+            The size of the batches to be used for training, by default 32
+        num_batches_per_epoch, optional
+            Number of batches to be processed in each training epoch,
+            by default 50
+        num_parallel_samples, optional
+            The number of parallel samples to generate during inference.
+            This parameter is only used in inference mode, by default 100
+        negative_data, optional
+            Flag indicating whether the time series take negative values,
+            by default False
+        trainer_kwargs, optional
+            Additional arguments to provide to ``pl.Trainer`` for construction,
+            by default None
+        """
         default_trainer_kwargs = {
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
@@ -297,11 +392,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
                 FieldName.FEAT_TIME,
                 FieldName.OBSERVED_VALUES,
             ],
-        ) + QuantizeScaled(
-            bin_edges=self.bin_edges,
-            future_target="future_target",
-            past_target="past_target",
-        )
+        ) + QuantizeScaled(bin_edges=self.bin_edges)
 
     def create_training_data_loader(
         self,
