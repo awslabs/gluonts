@@ -57,12 +57,6 @@ class TypeCheckCommand(distutils.cmd.Command):
         # otherwise a module-not-found error is thrown
         import mypy.api
 
-        mypy_opts = [
-            "--allow-redefinition",
-            "--follow-imports=silent",
-            "--ignore-missing-imports",
-        ]
-
         folders = [
             str(p.parent.resolve()) for p in ROOT.glob("src/**/.typesafe")
         ]
@@ -74,7 +68,7 @@ class TypeCheckCommand(distutils.cmd.Command):
         for folder in folders:
             print(f"  {folder}")
 
-        std_out, std_err, exit_code = mypy.api.run(mypy_opts + folders)
+        std_out, std_err, exit_code = mypy.api.run(folders)
 
         print(std_out, file=sys.stdout)
         print(std_err, file=sys.stderr)
