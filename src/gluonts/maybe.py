@@ -244,7 +244,7 @@ def and_(val: OptionalOrMaybe[T], other: OptionalOrMaybe[U]) -> Optional[U]:
 
 def and_then(
     val: OptionalOrMaybe[T],
-    fn: Callable[Concatenate[T, P], U],
+    fn: Callable[Concatenate[T, P], OptionalOrMaybe[U]],
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> Optional[U]:
@@ -547,7 +547,7 @@ class Maybe(ABC, Generic[T]):
     @abstractmethod
     def and_then(
         self,
-        fn: Callable[Concatenate[T, P], U],
+        fn: Callable[Concatenate[T, P], OptionalOrMaybe[U]],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Maybe[U]:
@@ -750,7 +750,7 @@ class Some(Maybe[T]):
 
     def and_then(
         self,
-        fn: Callable[Concatenate[T, P], U],
+        fn: Callable[Concatenate[T, P], OptionalOrMaybe[U]],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Maybe[U]:
@@ -854,7 +854,7 @@ class _Nothing(Maybe[T]):
 
     def and_then(
         self,
-        fn: Callable[Concatenate[T, P], U],
+        fn: Callable[Concatenate[T, P], OptionalOrMaybe[U]],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Maybe[U]:
