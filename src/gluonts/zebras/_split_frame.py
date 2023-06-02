@@ -22,6 +22,7 @@ import numpy as np
 from toolz import first, keymap, valmap, dissoc, merge
 
 from gluonts import maybe
+from gluonts.maybe import Maybe, Nothing
 from gluonts.itertools import pluck_attr, rows_to_columns
 
 from ._base import Pad
@@ -34,12 +35,12 @@ from ._util import _replace
 class SplitFrame:
     _past: dict
     _future: dict
-    index: Optional[Periods]
+    _index: Maybe[Periods]
     static: dict
     past_length: int
     future_length: int
     tdims: dict
-    metadata: Optional[dict] = None
+    metadata: dict
     default_tdim: int = -1
     _pad: Pad = Pad()
 
@@ -51,12 +52,14 @@ class SplitFrame:
         _, _ = self.past, self.future
 
     @property
+    def index(self):
+        return self._index.unbox()
+
+    @property
     def past(self):
         return TimeFrame(
             self._past,
-            index=maybe.map(
-                self.index, lambda index: index[: self.past_length]
-            ),
+            _index=self._index.map(lambda index: index[: self.past_length]),
             static=self.static,
             length=self.past_length,
             tdims=self.tdims,
@@ -68,9 +71,7 @@ class SplitFrame:
     def future(self):
         return TimeFrame(
             self._future,
-            index=maybe.map(
-                self.index, lambda index: index[self.past_length :]
-            ),
+            _index=self._index.map(lambda index: index[self.past_length :]),
             static=self.static,
             length=self.future_length,
             tdims=self.tdims,
@@ -92,6 +93,7 @@ class SplitFrame:
         )
 
         return _replace(
+            self,
             past=merge(self.past, {name: past}),
             future=merge(self.future, {name: future}),
             tdims=merge(self.tdims, {name: tdim}),
@@ -117,6 +119,7 @@ class SplitFrame:
         assert self.tdims.get(name, tdim) == tdim
 
         return _replace(
+            self,
             past=merge(self.past, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
@@ -127,6 +130,7 @@ class SplitFrame:
         assert self.tdims.get(name, tdim) == tdim
 
         return _replace(
+            self,
             future=merge(self.future, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
@@ -174,14 +178,14 @@ class SplitFrame:
         future_length: Optional[int] = None,
         pad_value=0.0,
     ) -> SplitFrame:
-        index = self.index
-
         past_length = maybe.unwrap_or(past_length, self.past_length)
         future_length = maybe.unwrap_or(future_length, self.future_length)
 
-        if index is not None:
-            start = index[0] + (self.past_length + past_length)
-            index = start.periods(past_length + future_length)
+        index = self._index.map(
+            lambda index: (
+                index.start + (self.past_length + past_length)
+            ).periods(past_length + future_length)
+        )
 
         return _replace(
             self,
@@ -193,7 +197,7 @@ class SplitFrame:
                 future_length, pad_value, pad="r", skip="r"
             ).columns,
             future_length=maybe.unwrap_or(future_length, self.future_length),
-            index=index,
+            _index=index,
         )
 
     def with_index(self, index):
@@ -207,7 +211,7 @@ class SplitFrame:
         return BatchSplitFrame(
             _past=rows_to_columns(pluck("_past"), np.stack),  # type: ignore
             _future=rows_to_columns(pluck("_future"), np.stack),  # type: ignore
-            index=pluck("index"),
+            index=pluck("_index"),
             static=rows_to_columns(pluck("static"), np.stack),  # type: ignore
             past_length=ref.past_length,
             future_length=ref.future_length,
@@ -215,6 +219,9 @@ class SplitFrame:
             metadata=pluck("metadata"),
             _pad=pluck("_pad"),
         )
+
+    def with_index(self, index):
+        return _replace(self, _index=maybe.box(index))
 
 
 @dataclasses.dataclass
@@ -270,7 +277,7 @@ class BatchSplitFrame:
         return BatchSplitFrameItems(self)
 
     def as_dict(self):
-        return SplitFrame.as_dict(self)
+        return SplitFrame.as_dict(self)  # type: ignore
 
 
 @dataclasses.dataclass(repr=False)
@@ -292,7 +299,7 @@ class BatchSplitFrameItems:
         return cls(
             _past=valmap(itemgetter(idx), self.data._past),
             _future=valmap(itemgetter(idx), self.data._future),
-            index=self.data.index[idx],
+            _index=self.data.index[idx],
             static=valmap(itemgetter(idx), self.data.static),
             tdims=tdims,
             metadata=self.data.metadata[idx],
@@ -425,7 +432,7 @@ def split_frame(
     sf = SplitFrame(
         _past=past,
         _future=future,
-        index=index,
+        _index=maybe.box(index),
         static=static,
         tdims=tdims,
         past_length=past_length,

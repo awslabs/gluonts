@@ -170,6 +170,3 @@ class TimeBase:
         return self.iloc[idx]
 
         raise RuntimeError(f"Unsupported type {subtype}.")
-
-    def with_index(self, index):
-        return _replace(self, index=index)

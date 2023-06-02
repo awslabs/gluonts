@@ -41,7 +41,7 @@ def test_time_series():
     assert len(ts[-4:]) == 4
 
     assert ts.metadata == {"x": 42}
-    assert ts.name == "target"
+    assert ts.name.contains("target")
 
 
 def test_time_frame():
@@ -51,7 +51,7 @@ def test_time_frame():
     assert len(tf[-4:]) == 4
     assert tf.tdims
 
-    assert tf["target"].name == "target"
+    assert tf["target"].name.contains("target")
     assert np.array_equal(tf["target"], target)
     assert np.array_equal(tf["feat"], feat)
 

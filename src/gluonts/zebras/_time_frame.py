@@ -15,12 +15,14 @@ from __future__ import annotations
 
 import dataclasses
 from operator import itemgetter
-from typing import cast, Optional, List, Union, Collection, Any, Mapping
+from typing import cast, Optional, List, Union, Any, Sequence, Type
 
 import numpy as np
 from toolz import first, valmap, dissoc, merge, itemmap, take
 
 from gluonts import maybe
+from gluonts.maybe import Maybe, Some, Nothing
+
 from gluonts.itertools import (
     pluck_attr,
     columns_to_rows,
@@ -39,11 +41,11 @@ from ._util import AxisView, pad_axis, _replace
 @dataclasses.dataclass
 class TimeFrame(TimeBase):
     columns: dict
-    index: Optional[Periods]
+    _index: Maybe[Periods]
     static: dict
     length: int
     tdims: dict
-    metadata: Optional[dict] = None
+    metadata: dict
     default_tdim: int = -1
     _pad: Pad = Pad()
 
@@ -57,15 +59,21 @@ class TimeFrame(TimeBase):
                 f"Expected: {len(self)}, got {len(self._time_view(column))}."
             )
 
-        assert maybe.map_or(self.index, len, self.length) == self.length, (
-            f"Index has incorrect length. "
-            f"Expected: {len(self)}, got {len(self.index)}."
-        )
+        for index_length in self._index.map(len):
+            if index_length != len(self):
+                raise ValueError(
+                    "Index has incorrect length. "
+                    f"Expected: {len(self)}, got {index_length}."
+                )
+
+    @property
+    def index(self) -> Optional[Periods]:
+        return self._index.unbox()
 
     def eq_shape(self, other: TimeFrame) -> bool:
         if (
             len(self) != len(other)
-            or self.index != other.index
+            or self._index != other._index
             or self.tdims != other.tdims
             or self.columns.keys() != other.columns.keys()
             or self.static.keys() != other.static.keys()
@@ -115,7 +123,7 @@ class TimeFrame(TimeBase):
             columns={
                 column: self._time_view(column)[idx] for column in self.columns
             },
-            index=maybe.map(self.index, itemgetter(idx)),
+            _index=self._index.map(lambda index: index[idx]),
             length=stop - start,
             _pad=Pad(pad_left, pad_right),
         )
@@ -128,10 +136,10 @@ class TimeFrame(TimeBase):
 
         return TimeSeries(
             self.columns[idx],
-            index=self.index,
+            _index=self._index,
             tdim=self.tdims[idx],
             metadata=self.metadata,
-            name=idx,
+            name=Some(idx),
             _pad=self._pad,
         )
 
@@ -156,14 +164,14 @@ class TimeFrame(TimeBase):
         pad_left = left + self._pad.left
         pad_right = right + self._pad.right
 
-        index = self.index
-        if self.index is not None:
-            index = self.index.prepend(left).extend(right)
+        index = self._index.map(
+            lambda index: index.prepend(left).extend(right)
+        )
 
         return _replace(
             self,
             columns=columns,
-            index=index,
+            _index=index,
             length=length,
             _pad=Pad(pad_left, pad_right),
         )
@@ -186,8 +194,8 @@ class TimeFrame(TimeBase):
     def _table_columns(self):
         columns = {}
 
-        if self.index is not None:
-            index = pluck_attr(self.index, "data")
+        if self._index is not None:
+            index = pluck_attr(self._index, "data")
             if len(self) > 10:
                 index = [
                     *index[:5],
@@ -256,10 +264,11 @@ class TimeFrame(TimeBase):
 
         return cls(
             columns=valmap(pd.Series.to_numpy, dict(df.items())),
-            index=index,
-            static=None,
+            _index=maybe.box(index),
+            static={},
             length=len(df),
             tdims={name: -1 for name in df.columns},
+            metadata={},
         )
 
     def set(self, name, value, tdim=None):
@@ -294,8 +303,8 @@ class TimeFrame(TimeBase):
         return _replace(self, static=dissoc(self.static, name))
 
     def like(self, columns=None, static=None):
-        columns = maybe.unwrap_or(columns, {})
-        static = maybe.unwrap_or(static, {})
+        columns: dict = maybe.unwrap_or(columns, {})
+        static: dict = maybe.unwrap_or(static, {})
 
         return _replace(self, columns=columns, static=static)
 
@@ -426,11 +435,14 @@ class TimeFrame(TimeBase):
 
     def split(
         self,
-        index,
-        past_length=None,
-        future_length=None,
+        index: Union[int, str, Period],
+        past_length: Optional[int] = None,
+        future_length: Optional[int] = None,
         pad_value=0.0,
     ):
+        past_length = maybe.box(past_length)
+        future_length = maybe.box(future_length)
+
         if not isinstance(index, (int, np.integer)):
             # If `index` is provided as timestamp we turn it into an integer.
             index = self.index_of(index)
@@ -444,19 +456,21 @@ class TimeFrame(TimeBase):
                 "to ensure `TimeFrame` is long enough."
             )
 
+        index = cast(int, index)
+
         # If past_length is not provided, it will equal to `index`, since
         # `len(tf.split(5).past) == 5`
-        past_length: int = maybe.unwrap_or(past_length, index)
+        past_length = past_length.unwrap_or(index)
 
         # Same logic applies to future_length, except that we deduct from the
         # right. (We can't use past_length, since it can be unequal to index).
-        future_length: int = maybe.unwrap_or(future_length, len(self) - index)
+        future_length = future_length.unwrap_or(len(self) - index)
 
-        if self.index is None:
-            new_index = None
-        else:
-            start = self.index.start + (index - past_length)
-            new_index = start.periods(past_length + future_length)
+        new_index = self._index.map(
+            lambda idx: (idx.start + (index - past_length)).periods(
+                past_length + future_length
+            )
+        )
 
         pad_left = max(0, past_length - index)
         pad_right = max(0, future_length - (len(self) - index))
@@ -467,6 +481,12 @@ class TimeFrame(TimeBase):
         index += pad_left
 
         def split_item(item):
+            # make mypy happy
+            nonlocal index, past_length
+
+            index = cast(int, index)
+            past_length = cast(int, past_length)
+
             name, data = item
 
             tdim = self.tdims[name]
@@ -480,7 +500,7 @@ class TimeFrame(TimeBase):
         return SplitFrame(
             _past=past,
             _future=future,
-            index=new_index,
+            _index=new_index,
             static=self.static,
             past_length=past_length,
             future_length=future_length,
@@ -511,7 +531,7 @@ class TimeFrame(TimeBase):
 
         return BatchTimeFrame(
             columns=rows_to_columns(pluck("columns"), np.stack),  # type: ignore
-            index=pluck("index"),
+            index=pluck("_index"),
             static=rows_to_columns(pluck("static"), np.stack),  # type: ignore
             length=ref.length,
             tdims=tdims,
@@ -519,16 +539,19 @@ class TimeFrame(TimeBase):
             _pad=pluck("_pad"),
         )
 
+    def with_index(self, index):
+        return _replace(self, _index=maybe.box(index))
+
 
 @dataclasses.dataclass
 class BatchTimeFrame:
     columns: dict
-    index: Collection[Optional[Periods]]
+    index: Sequence[Maybe[Periods]]
     static: dict
     length: int
     tdims: dict
-    metadata: Collection[Optional[dict]]
-    _pad: Collection[Pad]
+    metadata: Sequence[dict]
+    _pad: Sequence[Pad]
 
     @property
     def batch_size(self):
@@ -538,15 +561,19 @@ class BatchTimeFrame:
         return self.length
 
     def like(self, columns=None, static=None, tdims=None):
-        columns = maybe.unwrap_or(columns, {})
-        static = maybe.unwrap_or(static, {})
+        columns: dict = maybe.unwrap_or(columns, {})
+        static: dict = maybe.unwrap_or(static, {})
 
-        tdims = maybe.unwrap_or(tdims, {})
+        tdims: dict = maybe.unwrap_or(tdims, {})
         for name in columns:
             tdims.setdefault(name, -1)
 
         return _replace(
-            self, columns=columns, index=self.index, static=static, tdims=tdims
+            self,
+            columns=columns,
+            index=self.index,
+            static=static,
+            tdims=tdims,
         )
 
     def items(self):
@@ -557,13 +584,13 @@ class BatchTimeFrame:
             self.columns[name],
             index=self.index,
             tdim=self.tdims[name],
-            metadata=self.metadata,
+            metadata=self.metadata[name],
             name=[name] * self.batch_size,
             _pad=self._pad,
         )
 
     def as_dict(self, prefix=None, static=True):
-        return TimeFrame.as_dict(self, prefix, static)
+        return TimeFrame.as_dict(self, prefix, static)  # type: ignore
 
 
 @dataclasses.dataclass(repr=False)
@@ -573,16 +600,23 @@ class BatchTimeFrameItems:
     def __len__(self):
         return self.data.batch_size
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Union[TimeFrame, BatchTimeFrame]:
         tdims = self.data.tdims
 
         if isinstance(idx, int):
-            cls = TimeFrame
             tdims = valmap(lambda tdim: tdim - 1 if tdim >= 0 else tdim, tdims)
-        else:
-            cls = BatchTimeFrame
 
-        return cls(
+            return TimeFrame(
+                columns=valmap(itemgetter(idx), self.data.columns),
+                _index=self.data.index[idx],
+                static=valmap(itemgetter(idx), self.data.static),
+                tdims=tdims,
+                metadata=self.data.metadata[idx],
+                _pad=self.data._pad[idx],
+                length=self.data.length,
+            )
+
+        return BatchTimeFrame(
             columns=valmap(itemgetter(idx), self.data.columns),
             index=self.data.index[idx],
             static=valmap(itemgetter(idx), self.data.static),
@@ -594,16 +628,16 @@ class BatchTimeFrameItems:
 
 
 def time_frame(
-    columns: Optional[Mapping[str, Collection]] = None,
+    columns: Optional[dict[str, Sequence]] = None,
     *,
     index: Optional[Periods] = None,
     start: Optional[Union[Period, str]] = None,
     freq: Optional[Union[str, Freq]] = None,
-    static: Optional[Mapping[str, Any]] = None,
-    tdims: Optional[Mapping[str, int]] = None,
+    static: Optional[dict[str, Any]] = None,
+    tdims: Optional[dict[str, int]] = None,
     length: Optional[int] = None,
     default_tdim: int = -1,
-    metadata: Optional[Mapping] = None,
+    metadata: Optional[dict] = None,
 ):
     """Create a ``zebras.TimeFrame`` object that represents one
     or more time series.
@@ -662,12 +696,12 @@ def time_frame(
 
     tf = TimeFrame(
         columns=columns,
-        index=index,
+        _index=maybe.box(index),
         static=static,
-        tdims=cast(dict, tdims),
+        tdims=dict(tdims),
         length=length,
         default_tdim=default_tdim,
-        metadata=cast(Optional[dict], metadata),
+        metadata=maybe.unwrap_or(metadata, {}),
     )
     if tf.index is None and start is not None:
         if freq is not None:
