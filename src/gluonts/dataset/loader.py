@@ -228,6 +228,6 @@ def InferenceDataLoader(
         An iterable sequence of batches.
     """
     if field_names is not None:
-        transform += SelectFields(field_names)
+        transform += SelectFields(field_names, allow_missing=True)
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
     return transform.apply(dataset, is_train=False)
