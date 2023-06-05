@@ -12,7 +12,7 @@ Generally speaking, forecasting just means making predictions about events in
 the future. Trivially, in time series forecasting we want to predict the
 future values of a given time series.
 
-For example, in electricy production it is very important that demand and
+For example, in electricity production it is very important that demand and
 supply are in balance. Thus, producers anticipate consumer demand for
 electricity and plan production capacity accordingly. In other words, producers
 rely on accurate time series forecasting of consumer demand for electricity to
