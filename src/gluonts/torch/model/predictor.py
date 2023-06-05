@@ -59,7 +59,7 @@ class PyTorchPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
-        self.required_fields = ["forecast_start"]
+        self.required_fields = ["forecast_start", "item_id", "info"]
 
     def to(self, device) -> "PyTorchPredictor":
         self.prediction_net = self.prediction_net.to(device)
