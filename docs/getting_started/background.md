@@ -9,7 +9,7 @@ This article may be extended or reworked in the future.
 ## What is Time Series Forecasting?
 
 Generally speaking, forecasting just means making predictions about events in
-the feature. Trivially, in time series forecasting we want to predict the
+the future. Trivially, in time series forecasting we want to predict the
 future values of a given time series.
 
 For example, in electricity production it is very important that demand and
