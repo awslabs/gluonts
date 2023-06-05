@@ -220,7 +220,7 @@ class PandasDataset:
     def __len__(self) -> int:
         return len(self._data_entries)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         info = ", ".join(
             [
                 f"size={len(self)}",
