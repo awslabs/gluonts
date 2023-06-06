@@ -111,29 +111,30 @@ class InstanceSplitter(FlatMapTransformation):
     def _future(self, col_name):
         return f"future_{col_name}"
 
-    def _split_array(self, a: np.array, i: int) -> Tuple[np.array, np.array]:
-        if i >= self.past_length:
-            past_piece = a[..., i - self.past_length : i]
-        elif i < self.past_length:
-            pad_length = self.past_length - i
-            pad_shape = a.shape[:-1] + (pad_length,)
-            pad_block = np.full(pad_shape, self.dummy_value, dtype=a.dtype)
-            past_piece = np.concatenate([pad_block, a[..., :i]], axis=-1)
+    def _split_array(
+        self, array: np.array, idx: int
+    ) -> Tuple[np.array, np.array]:
+        if idx >= self.past_length:
+            past_piece = array[..., idx - self.past_length : idx]
+        elif idx < self.past_length:
+            pad_shape = array.shape[:-1] + (self.past_length - idx,)
+            pad_block = np.full(pad_shape, self.dummy_value, dtype=array.dtype)
+            past_piece = np.concatenate([pad_block, array[..., :idx]], axis=-1)
 
-        future_piece = a[
-            ..., i + self.lead_time : i + self.lead_time + self.future_length
-        ]
+        future_start = idx + self.lead_time
+        future_slice = slice(future_start, future_start + self.future_length)
+        future_piece = array[..., future_slice]
 
         return past_piece, future_piece
 
-    def _split_instance(self, data: DataEntry, i: int) -> DataEntry:
+    def _split_instance(self, entry: DataEntry, idx: int) -> DataEntry:
         slice_cols = self.ts_fields + [self.target_field]
-        dtype = data[self.target_field].dtype
+        dtype = entry[self.target_field].dtype
 
-        d = data.copy()
+        d = entry.copy()
 
         for ts_field in slice_cols:
-            past_piece, future_piece = self._split_array(d[ts_field], i)
+            past_piece, future_piece = self._split_array(d[ts_field], idx)
 
             if self.output_NTC:
                 past_piece = past_piece.transpose()
@@ -143,22 +144,24 @@ class InstanceSplitter(FlatMapTransformation):
             d[self._future(ts_field)] = future_piece
             del d[ts_field]
 
-        pad_length = max(self.past_length - i, 0)
         pad_indicator = np.zeros(self.past_length, dtype=dtype)
+        pad_length = max(self.past_length - idx, 0)
         pad_indicator[:pad_length] = 1
 
         d[self._past(self.is_pad_field)] = pad_indicator
-        d[self.forecast_start_field] = d[self.start_field] + i + self.lead_time
+        d[self.forecast_start_field] = (
+            d[self.start_field] + idx + self.lead_time
+        )
 
         return d
 
     def flatmap_transform(
-        self, data: DataEntry, is_train: bool
+        self, entry: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        sampled_indices = self.instance_sampler(data[self.target_field])
+        sampled_indices = self.instance_sampler(entry[self.target_field])
 
         for i in sampled_indices:
-            yield self._split_instance(data, i)
+            yield self._split_instance(entry, i)
 
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
