@@ -16,7 +16,6 @@ from __future__ import annotations
 import dataclasses
 from operator import itemgetter
 from typing import cast, Optional, List, Union, Collection, Any, Mapping
-from typing_extensions import Self
 
 import numpy as np
 from toolz import first, valmap, dissoc, merge, itemmap, take
@@ -263,7 +262,7 @@ class TimeFrame(TimeBase):
             tdims={name: -1 for name in df.columns},
         )
 
-    def set(self, name, value, tdim=None) -> Self:
+    def set(self, name, value, tdim=None):
         assert name not in self.static
 
         tdim = maybe.unwrap_or(tdim, self.default_tdim)
@@ -274,33 +273,33 @@ class TimeFrame(TimeBase):
             tdims=merge(self.tdims, {name: tdim}),
         )
 
-    def set_static(self, name, value) -> Self:
+    def set_static(self, name, value):
         assert name not in self.columns
 
         return _replace(self, static=merge(self.static, {name: value}))
 
-    def set_like(self, ref: str, column, value, tdim=None) -> Self:
+    def set_like(self, ref: str, column, value, tdim=None):
         assert ref in self.columns
 
         return self.set(column, value, tdim)
 
-    def remove(self, column) -> Self:
+    def remove(self, column):
         return _replace(
             self,
             columns=dissoc(self.columns, column),
             tdims=dissoc(self.tdims, column),
         )
 
-    def remove_static(self, name) -> Self:
+    def remove_static(self, name):
         return _replace(self, static=dissoc(self.static, name))
 
-    def like(self, columns=None, static=None) -> Self:
+    def like(self, columns=None, static=None):
         columns = maybe.unwrap_or(columns, {})
         static = maybe.unwrap_or(static, {})
 
         return _replace(self, columns=columns, static=static)
 
-    def rename(self, mapping=None, **kwargs) -> Self:
+    def rename(self, mapping=None, **kwargs):
         """Rename ``columns`` of ``TimeFrame``.
 
         The keys in ``mapping`` denote the target column names, i.e.
@@ -320,7 +319,7 @@ class TimeFrame(TimeBase):
 
         return _replace(self, columns=columns, tdims=tdims)
 
-    def rename_static(self, mapping=None, **kwargs) -> Self:
+    def rename_static(self, mapping=None, **kwargs):
         """Rename ``static`` fields of ``TimeFrame``.
 
         The keys in ``mapping`` denote the target column names, i.e.
@@ -343,7 +342,7 @@ class TimeFrame(TimeBase):
         select: List[str],
         into: str,
         drop: bool = True,
-    ) -> Self:
+    ) -> TimeFrame:
         # Ensure all tdims are the same.
         # TODO: Can we make that work for different tdims? There might be a
         # problem with what the resulting dimensions are.
@@ -363,7 +362,7 @@ class TimeFrame(TimeBase):
 
         return _replace(self, columns=columns, tdims=tdims)
 
-    def as_dict(self, prefix=None, static=True) -> dict:
+    def as_dict(self, prefix=None, static=True):
         result = dict(self.columns)
 
         if prefix is not None:
@@ -431,7 +430,7 @@ class TimeFrame(TimeBase):
         past_length=None,
         future_length=None,
         pad_value=0.0,
-    ) -> SplitFrame:
+    ):
         if not isinstance(index, (int, np.integer)):
             # If `index` is provided as timestamp we turn it into an integer.
             index = self.index_of(index)
@@ -490,7 +489,7 @@ class TimeFrame(TimeBase):
             _pad=self._pad,
         )
 
-    def apply(self, fn, columns=None) -> Self:
+    def apply(self, fn, columns=None):
         if columns is None:
             columns = self.columns.keys()
 
