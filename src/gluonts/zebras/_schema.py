@@ -90,6 +90,7 @@ class Field:
     required: bool = True
     internal: bool = False
     default: Any = None
+    default_factory: Any = None
     preprocess: Optional[Callable] = None
 
     def validate(self, value: Any, name: str) -> np.ndarray:
@@ -119,7 +120,13 @@ class Field:
                 # TODO: Add error message
                 raise
         else:
-            value = dct.get(name, self.default)
+            try:
+                value = dct[name]
+            except KeyError:
+                if self.default_factory is not None:
+                    value = self.default_factory(dct)
+                else:
+                    value = self.default
 
         if self.preprocess is not None:
             return self.preprocess(value)

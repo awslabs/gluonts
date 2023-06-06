@@ -518,6 +518,8 @@ def chop(
     >>>
     >>> x[chop(at=-2, take=2)]
     [3, 4]
+    >>> x[chop(at=3, take=-2)]
+    [1, 2]
     """
 
     if at < 0 and take + at <= 0:

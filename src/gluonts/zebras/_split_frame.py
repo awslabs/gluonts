@@ -17,6 +17,7 @@ import dataclasses
 import itertools
 from operator import itemgetter
 from typing import Optional, List
+from typing_extensions import Self
 
 import numpy as np
 from toolz import first, keymap, valmap, dissoc, merge
@@ -51,7 +52,7 @@ class SplitFrame:
         _, _ = self.past, self.future
 
     @property
-    def past(self):
+    def past(self) -> TimeFrame:
         return TimeFrame(
             self._past,
             index=maybe.map(
@@ -65,7 +66,7 @@ class SplitFrame:
         )
 
     @property
-    def future(self):
+    def future(self) -> TimeFrame:
         return TimeFrame(
             self._future,
             index=maybe.map(
@@ -196,7 +197,7 @@ class SplitFrame:
             index=index,
         )
 
-    def with_index(self, index):
+    def with_index(self, index) -> Self:
         return _replace(self, index=index)
 
     @staticmethod

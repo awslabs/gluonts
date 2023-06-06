@@ -426,7 +426,7 @@ class SampleForecast(Forecast):
             " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = samples
-        self._sorted_samples_value = None
+        self._sorted_samples_value: Optional[np.ndarray] = None
         self._mean = None
         self._dim = None
         self.item_id = item_id
@@ -669,6 +669,8 @@ class QuantileForecast(Forecast):
                 # multivariate target
                 # shape: (num_samples, prediction_length, target_dim)
                 self._dim = self.forecast_array.shape[2]
+
+        assert self._dim is not None
         return self._dim
 
     def __repr__(self):

@@ -40,6 +40,8 @@ from ._time_frame import time_frame, TimeFrame, BatchTimeFrame
 from ._time_series import time_series, TimeSeries, BatchTimeSeries
 from ._schema import Field, Schema
 
+from .lazy import *
+
 Batchable = TypeVar("Batchable", TimeSeries, TimeFrame, SplitFrame)
 
 

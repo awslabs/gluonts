@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 from typing import Any, Optional, NamedTuple, Union
-from typing_extensions import Literal
+from typing_extensions import Literal, Self
 
 
 from gluonts import maybe
@@ -80,7 +80,7 @@ class TimeBase:
     def __len__(self):
         raise NotImplementedError
 
-    def pad(self, value, left: int = 0, right: int = 0) -> TimeBase:
+    def pad(self, value, left: int = 0, right: int = 0) -> Self:
         raise NotImplementedError
 
     @property
@@ -112,9 +112,10 @@ class TimeBase:
         self,
         length: Optional[int],
         pad_value=0,
+        *,
         pad: LeftOrRight = "l",
         skip: LeftOrRight = "r",
-    ) -> TimeBase:
+    ) -> Self:
         """Force time frame to have length ``length``.
 
         This pads or slices the time frame, depending on whether its size is
