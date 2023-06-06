@@ -125,37 +125,37 @@ class InstanceSplitter(FlatMapTransformation):
         slice_cols = self.ts_fields + [self.target_field]
         dtype = entry[self.target_field].dtype
 
-        d = entry.copy()
+        entry = entry.copy()
 
         for ts_field in slice_cols:
-            past_piece, future_piece = self._split_array(d[ts_field], idx)
+            past_piece, future_piece = self._split_array(entry[ts_field], idx)
 
             if self.output_NTC:
                 past_piece = past_piece.transpose()
                 future_piece = future_piece.transpose()
 
-            d[self._past(ts_field)] = past_piece
-            d[self._future(ts_field)] = future_piece
-            del d[ts_field]
+            entry[self._past(ts_field)] = past_piece
+            entry[self._future(ts_field)] = future_piece
+            del entry[ts_field]
 
         pad_indicator = np.zeros(self.past_length, dtype=dtype)
         pad_length = max(self.past_length - idx, 0)
         pad_indicator[:pad_length] = 1
 
-        d[self._past(self.is_pad_field)] = pad_indicator
-        d[self.forecast_start_field] = (
-            d[self.start_field] + idx + self.lead_time
+        entry[self._past(self.is_pad_field)] = pad_indicator
+        entry[self.forecast_start_field] = (
+            entry[self.start_field] + idx + self.lead_time
         )
 
-        return d
+        return entry
 
     def flatmap_transform(
         self, entry: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
         sampled_indices = self.instance_sampler(entry[self.target_field])
 
-        for i in sampled_indices:
-            yield self._split_instance(entry, i)
+        for idx in sampled_indices:
+            yield self._split_instance(entry, idx)
 
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
