@@ -77,7 +77,7 @@ class PyTorchPredictor(Predictor):
             self.input_names + self.required_fields, allow_missing=True
         )
         inference_data_loader = InferenceDataLoader(
-            dataset=dataset,
+            dataset,
             transform=self.input_transform,
             batch_size=self.batch_size,
             stack_fn=lambda data: batchify(data, self.device),
