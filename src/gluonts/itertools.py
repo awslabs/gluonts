@@ -503,3 +503,29 @@ def replace(values: Sequence[T], idx: int, value: T) -> Sequence[T]:
     xs[idx] = value
 
     return type(values)(xs)
+
+
+def chop(
+    at: int,
+    take: int,
+) -> slice:
+    """
+    Create slice using an index ``at`` and amount ``take``.
+
+    >>> x = [0, 1, 2, 3, 4]
+    >>> x[chop(at=1, take=2)]
+    [1, 2]
+    >>>
+    >>> x[chop(at=-2, take=2)]
+    [3, 4]
+    >>> x[chop(at=3, take=-2)]
+    [1, 2]
+    """
+
+    if at < 0 and take + at <= 0:
+        return slice(at, None)
+
+    if take < 0:
+        return slice(at + take, at)
+
+    return slice(at, at + take)
