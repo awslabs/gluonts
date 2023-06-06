@@ -26,24 +26,17 @@ from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 class InstanceSplitter(FlatMapTransformation):
     """
-    Selects training instances, by slicing the target and other time series
-    like arrays at random points in training mode or at the last time point in
-    prediction mode. Assumption is that all time like arrays start at the same
-    time point.
+    Split instances from a dataset, by slicing the target and other time series
+    fields at points in time selected by the specified sampler. The assumption
+    is that all time series fields start at the same time point.
 
-    The target and each time_series_field is removed and instead two
-    corresponding fields with prefix `past_` and `future_` are included. E.g.
+    It is assumed that time axis is always the last axis.
 
-    If the target array is one-dimensional, the resulting instance has shape
-    (len_target). In the multi-dimensional case, the instance has shape (dim,
-    len_target).
+    The ``target_field`` and each field in ``time_series_fields`` are removed and
+    replaced by two new fields, with prefix `past_` and `future_` respectively.
 
-    target -> past_target and future_target
-
-    The transformation also adds a field 'past_is_pad' that indicates whether
-    values where padded or not.
-
-    Convention: time axis is always the last axis.
+    A ``past_is_pad`` is also added, that indicates whether values at a given
+    time point are padding or not.
 
     Parameters
     ----------
