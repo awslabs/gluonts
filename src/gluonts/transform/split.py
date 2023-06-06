@@ -19,7 +19,7 @@ from pandas.tseries.offsets import BaseOffset
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import replace
+from gluonts.zebras._util import pad_axis
 
 from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
@@ -111,9 +111,12 @@ class InstanceSplitter(FlatMapTransformation):
         if idx >= self.past_length:
             past_piece = array[..., idx - self.past_length : idx]
         else:
-            pad_shape = replace(array.shape, -1, self.past_length - idx)
-            pad_block = np.full(pad_shape, self.dummy_value, dtype=array.dtype)
-            past_piece = np.concatenate([pad_block, array[..., :idx]], axis=-1)
+            past_piece = pad_axis(
+                array[:idx],
+                axis=-1,
+                left=self.past_length - idx,
+                value=self.dummy_value,
+            )
 
         future_start = idx + self.lead_time
         future_slice = slice(future_start, future_start + self.future_length)
