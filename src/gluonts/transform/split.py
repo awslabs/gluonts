@@ -112,7 +112,7 @@ class InstanceSplitter(FlatMapTransformation):
             past_piece = array[..., idx - self.past_length : idx]
         else:
             past_piece = pad_axis(
-                array[:idx],
+                array[..., :idx],
                 axis=-1,
                 left=self.past_length - idx,
                 value=self.dummy_value,
