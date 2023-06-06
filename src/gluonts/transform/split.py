@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 from pandas.tseries.offsets import BaseOffset
@@ -111,57 +111,54 @@ class InstanceSplitter(FlatMapTransformation):
     def _future(self, col_name):
         return f"future_{col_name}"
 
+    def _split_array(self, a: np.array, i: int) -> Tuple[np.array, np.array]:
+        if i >= self.past_length:
+            past_piece = a[..., i - self.past_length : i]
+        elif i < self.past_length:
+            pad_length = self.past_length - i
+            pad_shape = a.shape[:-1] + (pad_length,)
+            pad_block = np.full(pad_shape, self.dummy_value, dtype=a.dtype)
+            past_piece = np.concatenate([pad_block, a[..., :i]], axis=-1)
+
+        future_piece = a[
+            ..., i + self.lead_time : i + self.lead_time + self.future_length
+        ]
+
+        return past_piece, future_piece
+
+    def _split_instance(self, data: DataEntry, i: int) -> DataEntry:
+        slice_cols = self.ts_fields + [self.target_field]
+        dtype = data[self.target_field].dtype
+
+        d = data.copy()
+
+        for ts_field in slice_cols:
+            past_piece, future_piece = self._split_array(d[ts_field], i)
+
+            if self.output_NTC:
+                past_piece = past_piece.transpose()
+                future_piece = future_piece.transpose()
+
+            d[self._past(ts_field)] = past_piece
+            d[self._future(ts_field)] = future_piece
+            del d[ts_field]
+
+        pad_length = max(self.past_length - i, 0)
+        pad_indicator = np.zeros(self.past_length, dtype=dtype)
+        pad_indicator[:pad_length] = 1
+
+        d[self._past(self.is_pad_field)] = pad_indicator
+        d[self.forecast_start_field] = d[self.start_field] + i + self.lead_time
+
+        return d
+
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
-        pl = self.future_length
-        lt = self.lead_time
-        slice_cols = self.ts_fields + [self.target_field]
-        target = data[self.target_field]
-
-        sampled_indices = self.instance_sampler(target)
+        sampled_indices = self.instance_sampler(data[self.target_field])
 
         for i in sampled_indices:
-            pad_length = max(self.past_length - i, 0)
-            d = data.copy()
-            for ts_field in slice_cols:
-                if i > self.past_length:
-                    # truncate to past_length
-                    past_piece = d[ts_field][..., i - self.past_length : i]
-                elif i < self.past_length:
-                    pad_block = (
-                        np.ones(
-                            d[ts_field].shape[:-1] + (pad_length,),
-                            dtype=d[ts_field].dtype,
-                        )
-                        * self.dummy_value
-                    )
-                    past_piece = np.concatenate(
-                        [pad_block, d[ts_field][..., :i]], axis=-1
-                    )
-                else:
-                    past_piece = d[ts_field][..., :i]
-                d[self._past(ts_field)] = past_piece
-                d[self._future(ts_field)] = d[ts_field][
-                    ..., i + lt : i + lt + pl
-                ]
-                del d[ts_field]
-            pad_indicator = np.zeros(self.past_length, dtype=target.dtype)
-            if pad_length > 0:
-                pad_indicator[:pad_length] = 1
-
-            if self.output_NTC:
-                for ts_field in slice_cols:
-                    d[self._past(ts_field)] = d[
-                        self._past(ts_field)
-                    ].transpose()
-                    d[self._future(ts_field)] = d[
-                        self._future(ts_field)
-                    ].transpose()
-
-            d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = d[self.start_field] + i + lt
-            yield d
+            yield self._split_instance(data, i)
 
 
 class CanonicalInstanceSplitter(FlatMapTransformation):
