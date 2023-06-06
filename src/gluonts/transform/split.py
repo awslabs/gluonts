@@ -112,8 +112,8 @@ class InstanceSplitter(FlatMapTransformation):
         return f"future_{col_name}"
 
     def _split_array(
-        self, array: np.array, idx: int
-    ) -> Tuple[np.array, np.array]:
+        self, array: np.ndarray, idx: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         if idx >= self.past_length:
             past_piece = array[..., idx - self.past_length : idx]
         elif idx < self.past_length:
