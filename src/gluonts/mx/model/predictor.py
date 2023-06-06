@@ -40,7 +40,7 @@ from gluonts.mx.util import (
     import_repr_block,
     import_symb_block,
 )
-from gluonts.transform import Transformation, SelectFields
+from gluonts.transform import Transformation
 
 
 @predict_to_numpy.register(mx.gluon.Block)
@@ -100,7 +100,6 @@ class GluonPredictor(Predictor):
         self.output_transform = output_transform
         self.ctx = ctx
         self.dtype = dtype
-        self.required_fields = ["forecast_start", "item_id", "info"]
 
     @property
     def network(self) -> BlockType:
@@ -154,9 +153,6 @@ class GluonPredictor(Predictor):
         num_prefetch: Optional[int] = None,
         **kwargs,
     ) -> Iterator[Forecast]:
-        self.input_transform += SelectFields(
-            self.input_names + self.required_fields, allow_missing=True
-        )
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
