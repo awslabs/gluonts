@@ -30,7 +30,7 @@ from gluonts.model.forecast_generator import (
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.component import equals
-from gluonts.transform import Transformation
+from gluonts.transform import Transformation, SelectFields
 
 
 @predict_to_numpy.register(nn.Module)
@@ -59,6 +59,7 @@ class PyTorchPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
+        self.required_fields = ["forecast_start", "item_id", "info"]
 
     def to(self, device) -> "PyTorchPredictor":
         self.prediction_net = self.prediction_net.to(device)
@@ -72,6 +73,9 @@ class PyTorchPredictor(Predictor):
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
+        self.input_transform += SelectFields(
+            self.input_names + self.required_fields, allow_missing=True
+        )
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
