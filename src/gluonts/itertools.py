@@ -452,3 +452,80 @@ def power_set(iterable):
     return itertools.chain.from_iterable(
         itertools.combinations(iterable, r) for r in range(len(iterable) + 1)
     )
+
+
+def join_items(left, right, how="outer", default=None):
+    """
+    Iterate over joined dictionary items.
+
+    Yields triples of `key`, `left_value`, `right_value`.
+
+    Similar to SQL join statements the join behaviour is controlled by ``how``:
+
+    * ``outer`` (default): use keys from left and right
+    * ``inner``: only use keys which appear in both left and right
+    * ``strict``: like ``inner``, but throws error if keys mismatch
+    * ``left``: use only keys from ``left``
+    * ``right``: use only keys from ``right``
+
+    If a key is not present in either input, ``default`` is chosen instead.
+
+    """
+
+    if how == "outer":
+        keys = {**left, **right}
+    elif how == "strict":
+        assert left.keys() == right.keys()
+        keys = left.keys()
+    elif how == "inner":
+        keys = left.keys() & right.keys()
+    elif how == "left":
+        keys = left.keys()
+    elif how == "right":
+        keys = right.keys()
+    else:
+        raise ValueError(f"Unknown how={how}.")
+
+    for key in keys:
+        yield key, left.get(key, default), right.get(key, default)
+
+
+def replace(values: Sequence[T], idx: int, value: T) -> Sequence[T]:
+    """Replace value at index ``idx`` with ``value``.
+
+    Like ``setitem``, but for tuples.
+
+    >>> replace((1, 2, 3, 4), -1, 99)
+    (1, 2, 3, 99)
+
+    """
+    xs = list(values)
+    xs[idx] = value
+
+    return type(values)(xs)
+
+
+def chop(
+    at: int,
+    take: int,
+) -> slice:
+    """
+    Create slice using an index ``at`` and amount ``take``.
+
+    >>> x = [0, 1, 2, 3, 4]
+    >>> x[chop(at=1, take=2)]
+    [1, 2]
+    >>>
+    >>> x[chop(at=-2, take=2)]
+    [3, 4]
+    >>> x[chop(at=3, take=-2)]
+    [1, 2]
+    """
+
+    if at < 0 and take + at <= 0:
+        return slice(at, None)
+
+    if take < 0:
+        return slice(at + take, at)
+
+    return slice(at, at + take)

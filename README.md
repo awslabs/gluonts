@@ -14,33 +14,34 @@ based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
 ## Installation
 
-GluonTS requires Python 3.7 or newer, and the easiest way to install it is via `pip`:
+GluonTS requires Python 3.7 or newer, and the easiest way to install it is via
+`pip`:
 
 ```bash
-# support for mxnet models, faster datasets
-pip install "gluonts[mxnet,pro]"
+# install with support for torch models
+pip install "gluonts[torch]"
 
-# support for torch models, faster datasets
-pip install "gluonts[torch,pro]"
+# install with support for mxnet models
+pip install "gluonts[mxnet]"
 ```
+
+See the [documentation](https://ts.gluon.ai/stable/getting_started/install.html)
+for more info on how GluonTS can be installed.
 
 ## Simple Example
 
 To illustrate how to use GluonTS, we train a DeepAR-model and make predictions
-using the simple "airpassengers" dataset. The dataset consists of a single
-time series, containing monthly international passengers between the years
-1949 and 1960, a total of 144 values (12 years * 12 months). We split the
-dataset into train and test parts, by removing the last three years (36 month)
-from the train data. Thus, we will train a model on just the first nine years
-of data.
-
+using the airpassengers dataset. The dataset consists of a single time
+series of monthly passenger numbers between 1949 and 1960. We train the model
+on the first nine years and make predictions for the remaining three years.
 
 ```py
 import pandas as pd
 import matplotlib.pyplot as plt
+
 from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.split import split
-from gluonts.mx import DeepAREstimator, Trainer
+from gluonts.torch import DeepAREstimator
 
 # Load data from a CSV file into a PandasDataset
 df = pd.read_csv(
@@ -51,29 +52,29 @@ df = pd.read_csv(
 )
 dataset = PandasDataset(df, target="#Passengers")
 
-# Train a DeepAR model on all data but the last 36 months
+# Split the data for training and testing
 training_data, test_gen = split(dataset, offset=-36)
+test_data = test_gen.generate_instances(prediction_length=12, windows=3)
+
+# Train the model and make predictions
 model = DeepAREstimator(
-    prediction_length=12, freq="M", trainer=Trainer(epochs=5)
+    prediction_length=12, freq="M", trainer_kwargs={"max_epochs": 5}
 ).train(training_data)
 
-# Generate test instances and predictions for them
-test_data = test_gen.generate_instances(prediction_length=12, windows=3)
 forecasts = list(model.predict(test_data.input))
 
 # Plot predictions
-df["#Passengers"].plot(color="black")
-for forecast, color in zip(forecasts, ["green", "blue", "purple"]):
-    forecast.plot(color=f"tab:{color}")
+plt.plot(df["1954":], color="black")
+for forecast in forecasts:
+  forecast.plot()
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
 ```
 
-![[train-test]](https://d2kv9n23y3w0pn.cloudfront.net/static/README/forecasts.png)
+![[train-test]](https://ts.gluon.ai/static/README/forecasts.png)
 
+Note, the forecasts are displayed in terms of a probability distribution and
+the shaded areas represent the 50% and 90% prediction intervals.
 
-Note that the forecasts are displayed in terms of a probability distribution:
-The shaded areas represent the 50% and 90% prediction intervals, respectively,
-centered around the median.
 
 ## Contributing
 

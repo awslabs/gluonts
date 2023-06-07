@@ -18,13 +18,15 @@
 ROOTDIR := justfile_directory()
 MD2IPYNB := ROOTDIR + "/docs/md2ipynb.py"
 
+mode := "release"
+
 docs: compile_notebooks
   make -C docs html # SPHINXOPTS=-W
 
 clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
-compile_notebooks mode="release":
+compile_notebooks:
     python -m ipykernel install --user --name docsbuild
     python {{MD2IPYNB}} --kernel docsbuild docs/tutorials/**/*.md.template --mode {{mode}}
 

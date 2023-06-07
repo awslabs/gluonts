@@ -39,6 +39,7 @@ from gluonts.itertools import (
     Map,
     StarMap,
     Filter,
+    join_items,
 )
 
 
@@ -248,3 +249,31 @@ def test_power_set():
 
     for es in expected_subsets:
         assert es in subsets
+
+
+def test_join_items():
+    left = {"a": 1, "b": 2}
+    right = {"a": 3, "c": 4}
+
+    assert list(join_items(left, right)) == [
+        ("a", 1, 3),
+        ("b", 2, None),
+        ("c", None, 4),
+    ]
+
+    assert list(join_items(left, right, "inner")) == [
+        ("a", 1, 3),
+    ]
+
+    assert list(join_items(left, right, "left")) == [
+        ("a", 1, 3),
+        ("b", 2, None),
+    ]
+
+    assert list(join_items(left, right, "right")) == [
+        ("a", 1, 3),
+        ("c", None, 4),
+    ]
+
+    with pytest.raises(Exception):
+        oin_items(left, right, "strict")
