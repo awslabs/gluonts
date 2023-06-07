@@ -265,38 +265,38 @@ def test_estimator_with_features(estimator_constructor):
     training_dataset = [
         {
             "start": pd.Period("2021-01-01 00:00:00", freq=freq),
-            "target": np.ones(200),
-            "feat_static_cat": np.array([0, 1]),
-            "feat_static_real": np.array([42.0]),
-            "feat_dynamic_real": np.ones((3, 200)),
-            "__unused__": np.ones(3),
+            "target": np.ones(200, dtype=np.float32),
+            "feat_static_cat": np.array([0, 1], dtype=np.float32),
+            "feat_static_real": np.array([42.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 200), dtype=np.float32),
+            "__unused__": np.ones(3, dtype=np.float32),
         },
         {
             "start": pd.Period("2021-02-01 00:00:00", freq=freq),
-            "target": np.ones(100),
-            "feat_static_cat": np.array([1, 0]),
-            "feat_static_real": np.array([1.0]),
-            "feat_dynamic_real": np.ones((3, 100)),
-            "__unused__": np.ones(5),
+            "target": np.ones(100, dtype=np.float32),
+            "feat_static_cat": np.array([1, 0], dtype=np.float32),
+            "feat_static_real": np.array([1.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 100), dtype=np.float32),
+            "__unused__": np.ones(5, dtype=np.float32),
         },
     ]
 
     prediction_dataset = [
         {
             "start": pd.Period("2021-01-01 00:00:00", freq=freq),
-            "target": np.ones(200),
-            "feat_static_cat": np.array([0, 1]),
-            "feat_static_real": np.array([42.0]),
-            "feat_dynamic_real": np.ones((3, 200 + prediction_length)),
-            "__unused__": np.ones(3),
+            "target": np.ones(200, dtype=np.float32),
+            "feat_static_cat": np.array([0, 1], dtype=np.float32),
+            "feat_static_real": np.array([42.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 200 + prediction_length), dtype=np.float32),
+            "__unused__": np.ones(3, dtype=np.float32),
         },
         {
             "start": pd.Period("2021-02-01 00:00:00", freq=freq),
-            "target": np.ones(100),
-            "feat_static_cat": np.array([1, 0]),
-            "feat_static_real": np.array([1.0]),
-            "feat_dynamic_real": np.ones((3, 100 + prediction_length)),
-            "__unused__": np.ones(5),
+            "target": np.ones(100, dtype=np.float32),
+            "feat_static_cat": np.array([1, 0], dtype=np.float32),
+            "feat_static_real": np.array([1.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 100 + prediction_length), dtype=np.float32),
+            "__unused__": np.ones(5, dtype=np.float32),
         },
     ]
 
