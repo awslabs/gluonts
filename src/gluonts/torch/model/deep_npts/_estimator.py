@@ -35,6 +35,7 @@ from gluonts.transform import (
     InstanceSplitter,
     ExpectedNumInstanceSampler,
     RemoveFields,
+    SelectFields,
     SetField,
     TestSplitSampler,
     Transformation,
@@ -316,11 +317,19 @@ class DeepNPTSEstimator(Estimator):
             min_future=1,
         )
 
+        transform = self.instance_splitter(
+            instance_sampler, is_train=True
+        ) + SelectFields(
+            self.features_fields
+            + self.prediction_features_field
+            + [self.target_field]
+        )
+
         return TrainDataLoader(
             training_dataset,
             batch_size=batch_size,
             stack_fn=batchify,
-            transform=self.instance_splitter(instance_sampler, is_train=True),
+            transform=transform,
             num_batches_per_epoch=num_batches_per_epoch,
         )
 

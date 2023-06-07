@@ -287,7 +287,9 @@ def test_estimator_with_features(estimator_constructor):
             "target": np.ones(200, dtype=np.float32),
             "feat_static_cat": np.array([0, 1], dtype=np.float32),
             "feat_static_real": np.array([42.0], dtype=np.float32),
-            "feat_dynamic_real": np.ones((3, 200 + prediction_length), dtype=np.float32),
+            "feat_dynamic_real": np.ones(
+                (3, 200 + prediction_length), dtype=np.float32
+            ),
             "__unused__": np.ones(3, dtype=np.float32),
         },
         {
@@ -295,7 +297,9 @@ def test_estimator_with_features(estimator_constructor):
             "target": np.ones(100, dtype=np.float32),
             "feat_static_cat": np.array([1, 0], dtype=np.float32),
             "feat_static_real": np.array([1.0], dtype=np.float32),
-            "feat_dynamic_real": np.ones((3, 100 + prediction_length), dtype=np.float32),
+            "feat_dynamic_real": np.ones(
+                (3, 100 + prediction_length), dtype=np.float32
+            ),
             "__unused__": np.ones(5, dtype=np.float32),
         },
     ]
