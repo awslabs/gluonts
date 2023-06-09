@@ -45,6 +45,26 @@ class InstanceSampler(BaseModel):
         raise NotImplementedError()
 
 
+class NInstanceSampler(InstanceSampler):
+    """
+    Samples N time points from each series.
+
+    Parameters
+    ----------
+    N
+        number of time points to sample from each time series.
+    """
+
+    N: int
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        if a > b:
+            return np.array([], dtype=int)
+
+        return np.random.choice(range(a, b), size=self.N)
+
+
 class UniformSplitSampler(InstanceSampler):
     """
     Samples each point with the same fixed probability.
@@ -116,7 +136,7 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     ----------
 
     num_instances
-        number of training examples generated per time series on average
+        number of time points to sample per time series on average
     """
 
     num_instances: float
@@ -140,6 +160,37 @@ class ExpectedNumInstanceSampler(InstanceSampler):
         p = self.num_instances / avg_length
         (indices,) = np.where(np.random.random_sample(window_size) < p)
         return indices + a
+
+
+class ExpectedNumInstanceWithMinSampler(ExpectedNumInstanceSampler):
+    """
+    Same as ExpectedNumInstanceSampler but ensures that at least
+    `min_instances` time points are sampled from every time series.
+
+    Parameters
+    ----------
+    num_instances
+        number of time points to sample per time series on average
+    min_instances
+        minimum number of time points to sample per time series
+    """
+
+    num_instances: float
+    min_instances: int = 1
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        indices = super().__call__(ts)
+
+        a, b = self._get_bounds(ts)
+
+        if a > b:
+            return indices
+        if len(indices) < self.min_instances:
+            prefix = np.random.choice(
+                range(a, b), size=self.min_instances - len(indices)
+            )
+            indices = np.concatenate([prefix, indices])
+        return indices
 
 
 class BucketInstanceSampler(InstanceSampler):
