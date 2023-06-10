@@ -62,7 +62,7 @@ class NInstanceSampler(InstanceSampler):
         if a > b:
             return np.array([], dtype=int)
 
-        return np.random.choice(range(a, b), size=self.N)
+        return np.random.choice(range(a, b + 1), size=self.N)
 
 
 class UniformSplitSampler(InstanceSampler):
@@ -187,7 +187,7 @@ class ExpectedNumInstanceWithMinSampler(ExpectedNumInstanceSampler):
             return indices
         if len(indices) < self.min_instances:
             prefix = np.random.choice(
-                range(a, b), size=self.min_instances - len(indices)
+                range(a, b + 1), size=self.min_instances - len(indices)
             )
             indices = np.concatenate([prefix, indices])
         return indices
