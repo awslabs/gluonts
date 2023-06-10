@@ -45,7 +45,7 @@ class InstanceSampler(BaseModel):
         raise NotImplementedError()
 
 
-class NInstanceSampler(InstanceSampler):
+class NumInstanceSampler(InstanceSampler):
     """
     Samples N time points from each series.
 
