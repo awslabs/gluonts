@@ -62,7 +62,7 @@ class NumInstanceSampler(InstanceSampler):
         if a > b:
             return np.array([], dtype=int)
 
-        return np.random.choice(range(a, b + 1), size=self.N)
+        return np.random.randint(a, b + 1, size=self.N)
 
 
 class UniformSplitSampler(InstanceSampler):
