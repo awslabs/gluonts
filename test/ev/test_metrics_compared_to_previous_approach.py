@@ -31,6 +31,7 @@ from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.ev import (
+    evaluate,
     seasonal_error,
     MAPE,
     MASE,
@@ -133,49 +134,40 @@ def get_data_batches(predictor, test_data):
         yield ChainMap(other_data, forecast_batch)
 
 
-def evaluate(metrics, data_batches, axis):
-    evaluators = {}
-    for metric in metrics:
-        evaluator = metric(axis=axis)
-        evaluators[evaluator.name] = evaluator
-
-    for data_batch in iter(data_batches):
-        for evaluator in evaluators.values():
-            evaluator.update(data_batch)
-
-    return {
-        metric_name: evaluator.get()
-        for metric_name, evaluator in evaluators.items()
-    }
-
-
 def get_new_metrics(test_data, predictor, quantile_levels):
     quantiles = [Quantile.parse(q) for q in quantile_levels]
 
-    item_metrics_to_evaluate = [
-        sum_absolute_label,
-        SumAbsoluteError(),
-        *(SumQuantileLoss(q=quantile.value) for quantile in quantiles),
-        mean_absolute_label,
-        MSE(),
-        MASE(),
-        MAPE(),
-        SMAPE(),
-        MSIS(),
-        *(Coverage(q=quantile.value) for quantile in quantiles),
-    ]
-    aggregated_metrics_to_evaluate = [
-        RMSE(),
-        NRMSE(),
-        ND(),
-        *(WeightedSumQuantileLoss(q=quantile.value) for quantile in quantiles),
-        MeanSumQuantileLoss([quantile.value for quantile in quantiles]),
-        MeanWeightedSumQuantileLoss(
+    item_metrics_to_evaluate = (
+        (
+            sum_absolute_label
+            + SumAbsoluteError()
+            + mean_absolute_label
+            + MSE()
+            + MASE()
+            + MAPE()
+            + SMAPE()
+            + MSIS()
+        )
+        .add(*[SumQuantileLoss(q=quantile.value) for quantile in quantiles])
+        .add(*[Coverage(q=quantile.value) for quantile in quantiles])
+    )
+
+    aggregated_metrics_to_evaluate = (
+        RMSE()
+        + NRMSE()
+        + ND()
+        + OWA()
+        + MAECoverage([quantile.value for quantile in quantiles])
+        + MeanSumQuantileLoss([quantile.value for quantile in quantiles])
+        + MeanWeightedSumQuantileLoss(
             [quantile.value for quantile in quantiles]
-        ),
-        MAECoverage([quantile.value for quantile in quantiles]),
-        OWA(),
-    ]
+        ).add(
+            *[
+                WeightedSumQuantileLoss(q=quantile.value)
+                for quantile in quantiles
+            ]
+        )
+    )
 
     # mask invalid values
     masked_dataset = []

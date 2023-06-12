@@ -26,27 +26,40 @@ from .stats import (
 )
 from .metrics import (
     Metric,
+    MeanAbsoluteLabel,
     mean_absolute_label,
+    SumAbsoluteLabel,
     sum_absolute_label,
     SumAbsoluteError,
+    sum_absolute_error,
     MSE,
+    mse,
     SumQuantileLoss,
     Coverage,
     MAPE,
+    mape,
     SMAPE,
+    smape,
     MSIS,
+    msis,
     MASE,
+    mase,
     ND,
+    nd,
     RMSE,
+    rmse,
     NRMSE,
+    nrmse,
     WeightedSumQuantileLoss,
     MAECoverage,
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
     OWA,
+    owa,
 )
 from .aggregations import Aggregation, Sum, Mean
-from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
+
+from .evaluator import Evaluator, evaluate
 
 __all__ = [
     "seasonal_error",

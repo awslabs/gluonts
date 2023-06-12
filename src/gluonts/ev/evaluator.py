@@ -11,57 +11,36 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Callable, ChainMap, Dict
+from operator import methodcaller
+from typing import Dict, Mapping, Iterator
 
 import numpy as np
-
-from .aggregations import Aggregation
+from toolz import valmap
 
 
 @dataclass
 class Evaluator:
-    name: str
+    metrics: Dict[str, Metric]
 
-    def update(self, data: ChainMap[str, np.ndarray]) -> None:
-        raise NotImplementedError
+    def update(self, data: Mapping[str, np.ndarray]) -> None:
+        for metric in self.metrics.values():
+            metric.update(data)
 
-    def get(self) -> np.ndarray:
-        raise NotImplementedError
+    def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> None:
+        for element in stream:
+            self.update(element)
 
-
-@dataclass
-class DirectEvaluator(Evaluator):
-    """An Evaluator which uses a single function and aggregation strategy."""
-
-    stat: Callable
-    aggregate: Aggregation
-
-    def update(self, data: ChainMap[str, np.ndarray]) -> None:
-        self.aggregate.step(self.stat(data))
-
-    def get(self) -> np.ndarray:
-        return self.aggregate.get()
+    def get(self) -> Dict[str, np.ndarray]:
+        return valmap(methodcaller("get"), self.metrics)
 
 
-@dataclass
-class DerivedEvaluator(Evaluator):
-    """An Evaluator for metrics that are derived from other metrics.
+def evaluate(metrics, data_batches, axis=None):
+    evaluator = metrics(axis)
+    evaluator.update_all(data_batches)
+    return evaluator.get()
 
-    A derived metric updates multiple, simpler metrics independently and in
-    the end combines their results as defined in `post_process`."""
 
-    evaluators: Dict[str, Evaluator]
-    post_process: Callable
-
-    def update(self, data: ChainMap[str, np.ndarray]) -> None:
-        for evaluator in self.evaluators.values():
-            evaluator.update(data)
-
-    def get(self) -> np.ndarray:
-        return self.post_process(
-            **{
-                name: evaluator.get()
-                for name, evaluator in self.evaluators.items()
-            }
-        )
+from .metrics import Metric
