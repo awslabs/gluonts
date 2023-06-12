@@ -167,7 +167,8 @@ class ExpectedNumInstanceSampler(InstanceSampler):
             prefix = np.random.randint(
                 a, b + 1, size=self.min_instances - len(indices)
             )
-            indices = np.concatenate([prefix, indices])
+            return np.concatenate([prefix, indices])
+
         return indices
 
 
