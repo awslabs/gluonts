@@ -137,9 +137,12 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
     num_instances
         number of time points to sample per time series on average
+    min_instances
+        minimum number of time points to sample per time series
     """
 
     num_instances: float
+    min_instances: int = 0
     total_length: int = 0
     n: int = 0
 
@@ -159,35 +162,10 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
         p = self.num_instances / avg_length
         (indices,) = np.where(np.random.random_sample(window_size) < p)
-        return indices + a
-
-
-class ExpectedNumInstanceWithMinSampler(ExpectedNumInstanceSampler):
-    """
-    Same as ExpectedNumInstanceSampler but ensures that at least
-    `min_instances` time points are sampled from every time series.
-
-    Parameters
-    ----------
-    num_instances
-        number of time points to sample per time series on average
-    min_instances
-        minimum number of time points to sample per time series
-    """
-
-    num_instances: float
-    min_instances: int = 1
-
-    def __call__(self, ts: np.ndarray) -> np.ndarray:
-        indices = super().__call__(ts)
-
-        a, b = self._get_bounds(ts)
-
-        if a > b:
-            return indices
+        indices += a
         if len(indices) < self.min_instances:
-            prefix = np.random.choice(
-                range(a, b + 1), size=self.min_instances - len(indices)
+            prefix = np.random.randint(
+                a, b + 1, size=self.min_instances - len(indices)
             )
             indices = np.concatenate([prefix, indices])
         return indices
