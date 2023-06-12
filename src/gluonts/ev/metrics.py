@@ -494,4 +494,4 @@ class OWA(BaseMetricDefinition):
 
 owa = OWA()
 
-from .evaluator import Evaluator
+from .evaluator import Evaluator  # noqa

@@ -43,4 +43,4 @@ def evaluate(metrics, data_batches, axis=None):
     return evaluator.get()
 
 
-from .metrics import Metric
+from .metrics import Metric  # noqa
