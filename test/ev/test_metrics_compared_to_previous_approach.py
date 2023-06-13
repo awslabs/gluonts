@@ -204,7 +204,7 @@ def get_new_metrics(test_data, predictor, quantile_levels):
             )
             for quantile in quantiles
         },
-        "abs_error": np.ma.sum(item_metrics["sum_absolute_error"]),
+        "abs_error": np.ma.sum(item_metrics["sum_absolute_error[0.5]"]),
         "abs_target_sum": np.ma.sum(item_metrics["sum_absolute_label"]),
         **{
             f"QuantileLoss[{quantile}]": np.ma.sum(
@@ -229,11 +229,21 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         "MAE_Coverage": aggregated_metrics["MAE_coverage"],
     }
 
-    for metric_name in ["MSE", "MASE", "MAPE", "sMAPE", "MSIS"]:
-        all_metrics[metric_name] = np.ma.mean(item_metrics[metric_name])
+    for metric_name in [
+        "MSE[mean]",
+        "MASE[0.5]",
+        "MAPE[0.5]",
+        "sMAPE[0.5]",
+        "MSIS",
+    ]:
+        all_metrics[metric_name.split("[")[0]] = np.ma.mean(
+            item_metrics[metric_name]
+        )
 
-    for metric_name in ["RMSE", "NRMSE", "ND", "OWA"]:
-        all_metrics[metric_name] = aggregated_metrics[metric_name]
+    for metric_name in ["RMSE[mean]", "NRMSE[mean]", "ND[0.5]", "OWA[0.5]"]:
+        all_metrics[metric_name.split("[")[0]] = aggregated_metrics[
+            metric_name
+        ]
 
     return all_metrics
 
