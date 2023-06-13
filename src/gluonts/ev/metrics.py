@@ -68,6 +68,10 @@ class Metric:
     def update(self, data: Mapping[str, np.ndarray]) -> None:
         raise NotImplementedError
 
+    def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> None:
+        for element in stream:
+            self.update(element)
+
     def get(self) -> np.ndarray:
         raise NotImplementedError
 
