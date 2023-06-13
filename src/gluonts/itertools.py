@@ -331,21 +331,18 @@ class WeightedIterables:
 
     def __iter__(self):
         iterators = [iter(it) for it in self.iterables]
+        probs = list(self.probabilities)
+
         while True:
-            idx = self.random_state.choice(
-                range(len(iterators)), p=self.probabilities
-            )
+            idx = self.random_state.choice(range(len(iterators)), p=probs)
 
             try:
                 yield next(iterators[idx])
             except StopIteration:
-                self.probabilities[idx] = 0
-                if sum(self.probabilities) == 0:
+                probs[idx] = 0
+                if sum(probs) == 0:
                     return
-                self.probabilities = [
-                    prob / sum(self.probabilities)
-                    for prob in self.probabilities
-                ]
+                probs = [prob / sum(probs) for prob in probs]
 
 
 def rows_to_columns(
