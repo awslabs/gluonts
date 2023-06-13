@@ -30,22 +30,21 @@ from ._split_frame import split_frame, SplitFrame
 This module provides tooling to extract ``zebras.TimeFrame`` and
 ``zebras.SplitFrame`` instances from Python dictionaries::
 
-    schema = zebras.Schema(...)
+    schema = zebras.schema.Schema(...)
     tf = schema.load_timeframe(raw_dict)
 
     sf = schema.load_splitframe(raw_dict)
 
-The idea is to define expected types and shapes for each field (column) using
-``zebras.Field`` and then wrap them in a ``zebras.Schema``:
+The idea is to define expected types and shapes for each field (column) and
+then wrap them in a ``zebras.Schema``:
 
     schema = zebras.Schema({
-        "target": zebras.schema.TimeSeries(ndim=1, tdim=0, past_only=True),
-        "time_feat": zebras.schema.TimeSeries(ndim=2, tdim=-1),
+        "target": zebras.schema.TimeSeries(),
+        "time_feat": zebras.schema.TimeSeries(ndim=2, tdim=-1, past_only=False),
         "static_feat": zebras.schema.Array(ndim=1),
 
     })
 
-See the documentation of ``Field`` on how to configure the columns of a schema.
 """
 
 

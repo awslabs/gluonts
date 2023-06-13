@@ -18,11 +18,13 @@ import numpy as np
 import gluonts.zebras as zb
 
 
-schema = zb.Schema(
+schema = zb.schema.Schema(
     {
-        "target": zb.Field(ndim=1, tdim=0, past_only=True),
-        "time_feat": zb.Field(ndim=2, tdim=-1, preprocess=np.atleast_2d),
-        "static_feat": zb.Field(ndim=1, preprocess=np.atleast_1d),
+        "target": zb.schema.TimeSeries(ndim=1, tdim=0),
+        "time_feat": zb.schema.TimeSeries(
+            ndim=2, tdim=-1, preprocess=np.atleast_2d, past_only=False
+        ),
+        "static_feat": zb.schema.Array(ndim=1, preprocess=np.atleast_1d),
     }
 )
 
