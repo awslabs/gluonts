@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union, Type, Dict
 
 import numpy as np
-from toolz import valfilter
 from pydantic import parse_obj_as, BaseModel
 
 from gluonts.itertools import partition
@@ -78,7 +77,7 @@ class Field(BaseModel):
 
 
 class Metadata(Field):
-    type: Type = Any
+    type: Any = Any
     required: bool = False
 
     def load_from(self, data, name):

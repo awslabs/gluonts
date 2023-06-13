@@ -27,6 +27,7 @@ __all__ = [
     "time_series",
     "BatchTimeSeries",
     "TimeSeries",
+    "schema",
 ]
 
 from typing import TypeVar
