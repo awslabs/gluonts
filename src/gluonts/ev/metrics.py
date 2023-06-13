@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
-from operator import methodcaller
 from typing import (
     Collection,
     Optional,
@@ -28,7 +27,6 @@ from typing import (
 from typing_extensions import Protocol, runtime_checkable
 
 import numpy as np
-from toolz import valmap
 
 from .aggregations import Aggregation, Mean, Sum
 from .stats import (
@@ -47,10 +45,10 @@ from .stats import (
 
 @dataclass
 class MetricCollection:
-    metrics: Dict[str, Metric]
+    metrics: List[Metric]
 
     def update(self, data: Mapping[str, np.ndarray]) -> None:
-        for metric in self.metrics.values():
+        for metric in self.metrics:
             metric.update(data)
 
     def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> None:
@@ -58,7 +56,7 @@ class MetricCollection:
             self.update(element)
 
     def get(self) -> Dict[str, np.ndarray]:
-        return valmap(methodcaller("get"), self.metrics)
+        return {metric.name: metric.get() for metric in self.metrics}
 
 
 @dataclass
@@ -138,9 +136,7 @@ class MetricDefinitionCollection(BaseMetricDefinition):
     metrics: List[MetricDefinition]
 
     def __call__(self, axis: Optional[int] = None) -> MetricCollection:
-        print(self.metrics)
-        metrics = [metric(axis=axis) for metric in self.metrics]
-        return MetricCollection({metric.name: metric for metric in metrics})
+        return MetricCollection([metric(axis=axis) for metric in self.metrics])
 
     def __add__(self, other) -> MetricDefinitionCollection:
         if isinstance(other, MetricDefinitionCollection):
