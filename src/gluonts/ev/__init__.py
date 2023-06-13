@@ -59,7 +59,6 @@ from .metrics import (
 )
 from .aggregations import Aggregation, Sum, Mean
 
-from .evaluator import Evaluator, evaluate
 
 __all__ = [
     "seasonal_error",
@@ -107,6 +106,10 @@ __all__ = [
     "Aggregation",
     "Sum",
     "Mean",
-    "Evaluator",
-    "evaluate",
 ]
+
+
+def evaluate(metrics, data_batches, axis=None):
+    evaluator = metrics(axis)
+    evaluator.update_all(data_batches)
+    return evaluator.get()

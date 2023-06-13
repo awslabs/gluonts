@@ -15,10 +15,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Collection, Optional, Callable, Mapping, Dict, List
+from operator import methodcaller
+from typing import (
+    Collection,
+    Optional,
+    Callable,
+    Mapping,
+    Dict,
+    List,
+    Iterator,
+)
 from typing_extensions import Protocol, runtime_checkable
 
 import numpy as np
+from toolz import valmap
 
 from .aggregations import Aggregation, Mean, Sum
 from .stats import (
@@ -33,6 +43,22 @@ from .stats import (
     squared_error,
     symmetric_absolute_percentage_error,
 )
+
+
+@dataclass
+class MetricCollection:
+    metrics: Dict[str, Metric]
+
+    def update(self, data: Mapping[str, np.ndarray]) -> None:
+        for metric in self.metrics.values():
+            metric.update(data)
+
+    def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> None:
+        for element in stream:
+            self.update(element)
+
+    def get(self) -> Dict[str, np.ndarray]:
+        return valmap(methodcaller("get"), self.metrics)
 
 
 @dataclass
@@ -90,11 +116,11 @@ class MetricDefinition(Protocol):
 
 
 class BaseMetricDefinition:
-    def __add__(self, other) -> MetricCollection:
-        if isinstance(other, MetricCollection):
+    def __add__(self, other) -> MetricDefinitionCollection:
+        if isinstance(other, MetricDefinitionCollection):
             return other + self
 
-        return MetricCollection([self, other])
+        return MetricDefinitionCollection([self, other])
 
     def add(self, *others):
         for other in others:
@@ -104,19 +130,19 @@ class BaseMetricDefinition:
 
 
 @dataclass
-class MetricCollection(BaseMetricDefinition):
+class MetricDefinitionCollection(BaseMetricDefinition):
     metrics: List[MetricDefinition]
 
-    def __call__(self, axis: Optional[int] = None) -> Evaluator:
+    def __call__(self, axis: Optional[int] = None) -> MetricCollection:
         print(self.metrics)
         metrics = [metric(axis=axis) for metric in self.metrics]
-        return Evaluator({metric.name: metric for metric in metrics})
+        return MetricCollection({metric.name: metric for metric in metrics})
 
-    def __add__(self, other) -> MetricCollection:
-        if isinstance(other, MetricCollection):
-            return MetricCollection([*self.metrics, *other.metrics])
+    def __add__(self, other) -> MetricDefinitionCollection:
+        if isinstance(other, MetricDefinitionCollection):
+            return MetricDefinitionCollection([*self.metrics, *other.metrics])
 
-        return MetricCollection([*self.metrics, other])
+        return MetricDefinitionCollection([*self.metrics, other])
 
 
 class MeanAbsoluteLabel(BaseMetricDefinition):
@@ -149,7 +175,7 @@ class SumError(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="sum_error",
+            name=f"sum_error[{self.forecast_type}]",
             stat=partial(error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
@@ -164,7 +190,7 @@ class SumAbsoluteError(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="sum_absolute_error",
+            name=f"sum_absolute_error[{self.forecast_type}]",
             stat=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
@@ -181,7 +207,7 @@ class MSE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="MSE",
+            name=f"MSE[{self.forecast_type}]",
             stat=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
@@ -222,7 +248,7 @@ class MAPE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="MAPE",
+            name=f"MAPE[{self.forecast_type}]",
             stat=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
             ),
@@ -241,7 +267,7 @@ class SMAPE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="sMAPE",
+            name=f"sMAPE[{self.forecast_type}]",
             stat=partial(
                 symmetric_absolute_percentage_error,
                 forecast_type=self.forecast_type,
@@ -278,7 +304,7 @@ class MASE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
-            name="MASE",
+            name=f"MASE[{self.forecast_type}]",
             stat=partial(
                 absolute_scaled_error, forecast_type=self.forecast_type
             ),
@@ -303,7 +329,7 @@ class ND(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
-            name="ND",
+            name=f"ND[{self.forecast_type}]",
             evaluators={
                 "sum_absolute_error": SumAbsoluteError(
                     forecast_type=self.forecast_type
@@ -329,7 +355,7 @@ class RMSE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
-            name="RMSE",
+            name=f"RMSE[{self.forecast_type}]",
             evaluators={
                 "mean_squared_error": MSE(forecast_type=self.forecast_type)(
                     axis=axis
@@ -356,7 +382,7 @@ class NRMSE(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
-            name="NRMSE",
+            name=f"NRMSE[{self.forecast_type}]",
             evaluators={
                 "root_mean_squared_error": RMSE(
                     forecast_type=self.forecast_type
@@ -481,7 +507,7 @@ class OWA(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
-            name="OWA",
+            name=f"OWA[{self.forecast_type}]",
             evaluators={
                 "smape": SMAPE(forecast_type=self.forecast_type)(axis=axis),
                 "smape_naive2": SMAPE(forecast_type="naive_2")(axis=axis),
@@ -493,5 +519,3 @@ class OWA(BaseMetricDefinition):
 
 
 owa = OWA()
-
-from .evaluator import Evaluator  # noqa
