@@ -40,6 +40,7 @@ from gluonts.itertools import (
     StarMap,
     Filter,
     join_items,
+    MixIterators,
 )
 
 
@@ -277,3 +278,27 @@ def test_join_items():
 
     with pytest.raises(Exception):
         oin_items(left, right, "strict")
+
+
+@pytest.mark.parametrize(
+    "iterators, probabilities, sample_size, samples",
+    [
+        ([iter([1, 2, 3]), iter([4, 5, 6])], [1.0, 0.0], 5, [1, 2, 3]),
+        ([iter([1, 2, 3]), iter([4, 5, 6])], [0.0, 1.0], 5, [4, 5, 6]),
+        (
+            [iter(Cyclic([1, 2, 3])), iter([4, 5, 6])],
+            [1.0, 0.0],
+            5,
+            [1, 2, 3, 1, 2],
+        ),
+    ],
+)
+def test_mix_iterators(iterators, probabilities, sample_size, samples):
+    it = MixIterators(iterators, probabilities)
+    generated_samples = []
+    for _ in range(sample_size):
+        try:
+            generated_samples.append(next(it))
+        except StopIteration:
+            break
+    assert generated_samples == samples

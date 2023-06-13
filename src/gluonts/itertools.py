@@ -30,7 +30,7 @@ from typing import (
     Tuple,
 )
 from typing_extensions import Protocol, runtime_checkable
-
+import numpy as np
 from toolz import curry
 
 
@@ -287,6 +287,43 @@ class Filter:
 
     def __iter__(self):
         return filter(self.fn, self.iterable)
+
+
+@dataclass
+class MixIterators:
+    iterators: List[Iterator]
+    probabilities: Optional[List[float]] = None
+    random_state: np.random.RandomState = np.random.RandomState()
+
+    def __post_init__(self):
+        if self.probabilities:
+            # copy the probabilities as we may modify it
+            self.probabilities = [prob for prob in self.probabilities]
+        else:
+            self.probabilities = [1.0 / len(self.iterators)] * len(
+                self.iterators
+            )
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        success = False
+        while not success:
+            probs = [
+                prob / sum(self.probabilities) for prob in self.probabilities
+            ]
+            idx = self.random_state.choice(range(len(self.iterators)), p=probs)
+
+            try:
+                data = next(self.iterators[idx])
+                success = True
+            except StopIteration:
+                self.probabilities[idx] = 0.0
+
+            if all([prob == 0 for prob in self.probabilities]):
+                raise StopIteration
+        return data
 
 
 def rows_to_columns(
