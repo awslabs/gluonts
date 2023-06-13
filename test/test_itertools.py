@@ -20,6 +20,7 @@ from typing import Iterable, List, Tuple
 
 import numpy as np
 from numpy.testing import assert_equal
+from toolz import take
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
@@ -40,7 +41,7 @@ from gluonts.itertools import (
     StarMap,
     Filter,
     join_items,
-    MixIterators,
+    WeightedIterables,
 )
 
 
@@ -281,24 +282,19 @@ def test_join_items():
 
 
 @pytest.mark.parametrize(
-    "iterators, probabilities, sample_size, samples",
+    "iterables, probabilities, sample_size, samples",
     [
-        ([iter([1, 2, 3]), iter([4, 5, 6])], [1.0, 0.0], 5, [1, 2, 3]),
-        ([iter([1, 2, 3]), iter([4, 5, 6])], [0.0, 1.0], 5, [4, 5, 6]),
+        ([[1, 2, 3], [4, 5, 6]], [1.0, 0.0], 5, [1, 2, 3]),
+        ([[1, 2, 3], [4, 5, 6]], [0.0, 1.0], 5, [4, 5, 6]),
         (
-            [iter(Cyclic([1, 2, 3])), iter([4, 5, 6])],
+            [Cyclic([1, 2, 3]), iter([4, 5, 6])],
             [1.0, 0.0],
             5,
             [1, 2, 3, 1, 2],
         ),
     ],
 )
-def test_mix_iterators(iterators, probabilities, sample_size, samples):
-    it = MixIterators(iterators, probabilities)
-    generated_samples = []
-    for _ in range(sample_size):
-        try:
-            generated_samples.append(next(it))
-        except StopIteration:
-            break
+def test_weighted_iterables(iterables, probabilities, sample_size, samples):
+    it = iter(WeightedIterables(iterables, probabilities))
+    generated_samples = list(take(sample_size, it))
     assert generated_samples == samples

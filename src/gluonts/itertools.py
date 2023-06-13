@@ -30,7 +30,7 @@ from typing import (
     Tuple,
 )
 from typing_extensions import Protocol, runtime_checkable
-import numpy as np
+from numpy.random import RandomState
 from toolz import curry
 
 
@@ -290,40 +290,62 @@ class Filter:
 
 
 @dataclass
-class MixIterators:
-    iterators: List[Iterator]
+class WeightedIterables:
+    """
+    Given a list of Iterables `iterables`, generate samples from them.
+
+    When `probabilities` is given, sample iteratbles according to it.
+    When `probabilities` is not given, sample iterables uniformly.
+
+    When one iterable exhausts, the sampling probabilities for it will be set to 0.
+
+        >>> from toolz import take
+        >>> from gluonts.itertools import Cyclic
+        >>> a = [1, 2, 3]
+        >>> b = [4, 5, 6]
+        >>> it = iter(WeightedIterables([a, b], [1, 0]))
+        >>> list(take(5, it))
+        [1, 2, 3]
+
+
+        >>> a = [1, 2, 3]
+        >>> b = [4, 5, 6]
+        >>> it = iter(WeightedIterables([Cyclic(a), b], [1, 0]))
+        >>> list(take(5, it))
+        [1, 2, 3, 1, 2]
+
+    """
+
+    iterables: List[Iterable]
     probabilities: Optional[List[float]] = None
-    random_state: np.random.RandomState = np.random.RandomState()
+    random_state: RandomState = field(default_factory=RandomState)
 
     def __post_init__(self):
         if self.probabilities:
             # copy the probabilities as we may modify it
-            self.probabilities = [prob for prob in self.probabilities]
+            self.probabilities = list(self.probabilities)
         else:
-            self.probabilities = [1.0 / len(self.iterators)] * len(
-                self.iterators
+            self.probabilities = [1.0 / len(self.iterables)] * len(
+                self.iterables
             )
 
     def __iter__(self):
-        return self
-
-    def __next__(self):
-        success = False
-        while not success:
-            probs = [
-                prob / sum(self.probabilities) for prob in self.probabilities
-            ]
-            idx = self.random_state.choice(range(len(self.iterators)), p=probs)
+        iterators = [iter(it) for it in self.iterables]
+        while True:
+            idx = self.random_state.choice(
+                range(len(iterators)), p=self.probabilities
+            )
 
             try:
-                data = next(self.iterators[idx])
-                success = True
+                yield next(iterators[idx])
             except StopIteration:
-                self.probabilities[idx] = 0.0
-
-            if all([prob == 0 for prob in self.probabilities]):
-                raise StopIteration
-        return data
+                self.probabilities[idx] = 0
+                if sum(self.probabilities) == 0:
+                    return
+                self.probabilities = [
+                    prob / sum(self.probabilities)
+                    for prob in self.probabilities
+                ]
 
 
 def rows_to_columns(
