@@ -198,10 +198,9 @@ class PyTorchLightningEstimator(Estimator):
         )
 
         custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
-        callbacks = [checkpoint] + custom_callbacks
         trainer_kwargs = {
             "accelerator": "auto",
-            "callbacks": callbacks,
+            "callbacks": [checkpoint] + custom_callbacks,
             **self.trainer_kwargs,
         }
         trainer = pl.Trainer(**trainer_kwargs)
