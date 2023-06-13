@@ -13,7 +13,7 @@ N-BEATS<br>[Oreshkin et al. 2019][Oreshkin2019]              | Global       | Un
 Rotbaum<br>[Hasson et al. 2021][Hasson2021]                  | Global       | Univariate               | XGBoost, Quantile Regression Forests, LightGBM, Level Set Forecaster | [Numpy][Rotbaum]
 Temporal Fusion Transformer<br>[Lim et al. 2021][Lim2021]    | Global       | Univariate               | LSTM, self attention | [MXNet][TFT_mx], [PyTorch][TFT_torch] 
 Transformer<br>[Vaswani et al. 2017][Vaswani2017]            | Global       | Univariate               | MLP, multi-head attention | [MXNet][Transformer]
-WaveNet<br>[van den Oord et al. 2016][vanDenOord2016]        | Global       | Univariate               | Dilated convolution | [MXNet][WaveNet]
+WaveNet<br>[van den Oord et al. 2016][vanDenOord2016]        | Global       | Univariate               | Dilated convolution | [MXNet][WaveNet_mx], [PyTorch][WaveNet_torch]
 SimpleFeedForward                                            | Global       | Univariate               | MLP | [MXNet][SFF_mx], [PyTorch][SFF_torch]
 DeepNPTS                                                     | Global       | Univariate               | MLP | [PyTorch][DeepNPTS_torch]
 MQF2<br>[Kan et al. 2022][Kan2022]                           | Global       | Univariate               | RNN, ICNN | [PyTorch][MQF2_torch]
@@ -64,7 +64,8 @@ NPTS                                                         | Local        | Un
 [TFT_mx]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/tft/_estimator.py
 [TFT_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/tft/estimator.py
 [Transformer]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/transformer/_estimator.py
-[WaveNet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/wavenet/_estimator.py
+[WaveNet_mx]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/wavenet/_estimator.py
+[WaveNet_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/wavenet/estimator.py
 [SFF_mx]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/simple_feedforward/_estimator.py
 [SFF_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/simple_feedforward/estimator.py
 [DeepNPTS_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/deep_npts/_estimator.py

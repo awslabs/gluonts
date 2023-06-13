@@ -45,6 +45,26 @@ class InstanceSampler(BaseModel):
         raise NotImplementedError()
 
 
+class NumInstanceSampler(InstanceSampler):
+    """
+    Samples N time points from each series.
+
+    Parameters
+    ----------
+    N
+        number of time points to sample from each time series.
+    """
+
+    N: int
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        if a > b:
+            return np.array([], dtype=int)
+
+        return np.random.randint(a, b + 1, size=self.N)
+
+
 class UniformSplitSampler(InstanceSampler):
     """
     Samples each point with the same fixed probability.
@@ -116,10 +136,13 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     ----------
 
     num_instances
-        number of training examples generated per time series on average
+        number of time points to sample per time series on average
+    min_instances
+        minimum number of time points to sample per time series
     """
 
     num_instances: float
+    min_instances: int = 0
     total_length: int = 0
     n: int = 0
 
@@ -139,7 +162,14 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
         p = self.num_instances / avg_length
         (indices,) = np.where(np.random.random_sample(window_size) < p)
-        return indices + a
+        indices += a
+        if len(indices) < self.min_instances:
+            prefix = np.random.randint(
+                a, b + 1, size=self.min_instances - len(indices)
+            )
+            return np.concatenate([prefix, indices])
+
+        return indices
 
 
 class BucketInstanceSampler(InstanceSampler):

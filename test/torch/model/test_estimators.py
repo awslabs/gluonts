@@ -17,8 +17,9 @@ from itertools import islice
 from pathlib import Path
 
 import pytest
+import pandas as pd
+import numpy as np
 
-from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
@@ -34,6 +35,7 @@ from gluonts.torch.model.d_linear import DLinearEstimator
 from gluonts.torch.model.patch_tst import PatchTSTEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
+from gluonts.torch.model.wavenet import WaveNetEstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
@@ -103,6 +105,13 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: PatchTSTEstimator(
             prediction_length=dataset.metadata.prediction_length,
             patch_len=16,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: WaveNetEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -236,51 +245,64 @@ def test_estimator_constant_dataset(
             num_batches_per_epoch=3,
             epochs=2,
         ),
+        lambda freq, prediction_length: WaveNetEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
     ],
 )
 def test_estimator_with_features(estimator_constructor):
     freq = "1h"
     prediction_length = 12
 
-    training_dataset = ListDataset(
-        [
-            {
-                "start": "2021-01-01 00:00:00",
-                "target": [1.0] * 200,
-                "feat_static_cat": [0, 1],
-                "feat_static_real": [42.0],
-                "feat_dynamic_real": [[1.0] * 200] * 3,
-            },
-            {
-                "start": "2021-02-01 00:00:00",
-                "target": [1.0] * 100,
-                "feat_static_cat": [1, 0],
-                "feat_static_real": [1.0],
-                "feat_dynamic_real": [[1.0] * 100] * 3,
-            },
-        ],
-        freq=freq,
-    )
+    training_dataset = [
+        {
+            "start": pd.Period("2021-01-01 00:00:00", freq=freq),
+            "target": np.ones(200, dtype=np.float32),
+            "feat_static_cat": np.array([0, 1], dtype=np.float32),
+            "feat_static_real": np.array([42.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 200), dtype=np.float32),
+            "__unused__": np.ones(3, dtype=np.float32),
+        },
+        {
+            "start": pd.Period("2021-02-01 00:00:00", freq=freq),
+            "target": np.ones(100, dtype=np.float32),
+            "feat_static_cat": np.array([1, 0], dtype=np.float32),
+            "feat_static_real": np.array([1.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones((3, 100), dtype=np.float32),
+            "__unused__": np.ones(5, dtype=np.float32),
+        },
+    ]
 
-    prediction_dataset = ListDataset(
-        [
-            {
-                "start": "2021-01-01 00:00:00",
-                "target": [1.0] * 200,
-                "feat_static_cat": [0, 1],
-                "feat_static_real": [42.0],
-                "feat_dynamic_real": [[1.0] * (200 + prediction_length)] * 3,
-            },
-            {
-                "start": "2021-02-01 00:00:00",
-                "target": [1.0] * 100,
-                "feat_static_cat": [1, 0],
-                "feat_static_real": [1.0],
-                "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
-            },
-        ],
-        freq=freq,
-    )
+    prediction_dataset = [
+        {
+            "start": pd.Period("2021-01-01 00:00:00", freq=freq),
+            "target": np.ones(200, dtype=np.float32),
+            "feat_static_cat": np.array([0, 1], dtype=np.float32),
+            "feat_static_real": np.array([42.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones(
+                (3, 200 + prediction_length), dtype=np.float32
+            ),
+            "__unused__": np.ones(3, dtype=np.float32),
+        },
+        {
+            "start": pd.Period("2021-02-01 00:00:00", freq=freq),
+            "target": np.ones(100, dtype=np.float32),
+            "feat_static_cat": np.array([1, 0], dtype=np.float32),
+            "feat_static_real": np.array([1.0], dtype=np.float32),
+            "feat_dynamic_real": np.ones(
+                (3, 100 + prediction_length), dtype=np.float32
+            ),
+            "__unused__": np.ones(5, dtype=np.float32),
+        },
+    ]
 
     estimator = estimator_constructor(freq, prediction_length)
 
