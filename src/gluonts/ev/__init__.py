@@ -110,6 +110,4 @@ __all__ = [
 
 
 def evaluate(metrics, data_batches, axis=None):
-    evaluator = metrics(axis)
-    evaluator.update_all(data_batches)
-    return evaluator.get()
+    return metrics(axis).update_all(data_batches).get()
