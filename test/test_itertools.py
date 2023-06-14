@@ -41,7 +41,7 @@ from gluonts.itertools import (
     StarMap,
     Filter,
     join_items,
-    ProbabilisticYield,
+    RandomYield,
 )
 
 
@@ -314,11 +314,9 @@ def test_join_items():
         ),
     ],
 )
-def test_probabilistic_yield(
+def test_random_yield(
     iterables, probabilities, sample_size, samples, random_state
 ):
-    it = iter(
-        ProbabilisticYield(iterables, probabilities, random_state=random_state)
-    )
+    it = iter(RandomYield(iterables, probabilities, random_state=random_state))
     generated_samples = list(take(sample_size, it))
     assert generated_samples == samples

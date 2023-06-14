@@ -290,7 +290,7 @@ class Filter:
 
 
 @dataclass
-class ProbabilisticYield:
+class RandomYield:
     """
     Given a list of Iterables `iterables`, generate samples from them.
 
@@ -302,14 +302,14 @@ class ProbabilisticYield:
         >>> from toolz import take
         >>> a = [1, 2, 3]
         >>> b = [4, 5, 6]
-        >>> it = iter(ProbabilisticYield([a, b], probabilities=[1, 0]))
+        >>> it = iter(RandomYield([a, b], probabilities=[1, 0]))
         >>> list(take(5, it))
         [1, 2, 3]
 
 
         >>> a = [1, 2, 3]
         >>> b = [4, 5, 6]
-        >>> it = iter(ProbabilisticYield([Cyclic(a), b], probabilities=[1, 0]))
+        >>> it = iter(RandomYield([Cyclic(a), b], probabilities=[1, 0]))
         >>> list(take(5, it))
         [1, 2, 3, 1, 2]
     """
