@@ -290,7 +290,7 @@ class Filter:
 
 
 @dataclass
-class WeightedIterables:
+class ProbabilisticYield:
     """
     Given a list of Iterables `iterables`, generate samples from them.
 
@@ -300,20 +300,18 @@ class WeightedIterables:
     When one iterable exhausts, the sampling probabilities for it will be set to 0.
 
         >>> from toolz import take
-        >>> from gluonts.itertools import Cyclic
         >>> a = [1, 2, 3]
         >>> b = [4, 5, 6]
-        >>> it = iter(WeightedIterables([a, b], [1, 0]))
+        >>> it = iter(ProbabilisticYield([a, b], probabilities=[1, 0]))
         >>> list(take(5, it))
         [1, 2, 3]
 
 
         >>> a = [1, 2, 3]
         >>> b = [4, 5, 6]
-        >>> it = iter(WeightedIterables([Cyclic(a), b], [1, 0]))
+        >>> it = iter(ProbabilisticYield([Cyclic(a), b], probabilities=[1, 0]))
         >>> list(take(5, it))
         [1, 2, 3, 1, 2]
-
     """
 
     iterables: List[Iterable]
@@ -321,10 +319,7 @@ class WeightedIterables:
     random_state: RandomState = field(default_factory=RandomState)
 
     def __post_init__(self):
-        if self.probabilities:
-            # copy the probabilities as we may modify it
-            self.probabilities = list(self.probabilities)
-        else:
+        if not self.probabilities:
             self.probabilities = [1.0 / len(self.iterables)] * len(
                 self.iterables
             )
@@ -335,7 +330,6 @@ class WeightedIterables:
 
         while True:
             idx = self.random_state.choice(range(len(iterators)), p=probs)
-
             try:
                 yield next(iterators[idx])
             except StopIteration:
