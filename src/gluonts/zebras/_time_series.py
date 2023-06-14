@@ -14,13 +14,13 @@
 from __future__ import annotations
 
 import dataclasses
-from operator import itemgetter
-from typing import Collection, Union, Optional, Dict, List
+from typing import Collection, Union, Optional, Dict, List, Sequence, Type
 
 import numpy as np
 from toolz import first
 
 from gluonts import maybe
+from gluonts.maybe import Maybe, Nothing
 from gluonts.itertools import pluck_attr
 
 from ._base import Pad, TimeBase
@@ -31,17 +31,23 @@ from ._util import AxisView, pad_axis, _replace
 @dataclasses.dataclass(eq=False)
 class TimeSeries(TimeBase):
     values: np.ndarray
-    index: Optional[Periods] = None
-    name: Optional[str] = None
+    _index: Maybe[Periods]
+    name: Maybe[str]
+    metadata: dict
     tdim: int = -1
-    metadata: Optional[dict] = None
     _pad: Pad = Pad()
 
     def __post_init__(self):
-        assert maybe.map_or(self.index, len, len(self)) == len(self), (
-            "Index has incorrect length. "
-            f"Expected: {len(self)}, got {len(self.index)}."
-        )
+        for index_length in self._index.map(len):
+            if index_length != len(self):
+                raise ValueError(
+                    "Index has incorrect length. "
+                    f"Expected: {len(self)}, got {index_length}."
+                )
+
+    @property
+    def index(self) -> Optional[Periods]:
+        return self._index.unbox()
 
     def __eq__(self, other):
         return self.values == other
@@ -65,7 +71,7 @@ class TimeSeries(TimeBase):
         return _replace(
             self,
             values=AxisView(self.values, self.tdim)[idx],
-            index=maybe.map(self.index, itemgetter(idx)),
+            _index=self._index.map(lambda index: index[idx]),
             _pad=self._pad.extend(-start, stop - len(self)),
         )
 
@@ -80,9 +86,9 @@ class TimeSeries(TimeBase):
             value=value,
         )
 
-        index = self.index
-        if self.index is not None:
-            index = self.index.prepend(left).extend(right)
+        index = self._index.map(
+            lambda index: index.prepend(left).extend(right)
+        )
 
         return _replace(
             self,
@@ -111,7 +117,7 @@ class TimeSeries(TimeBase):
         return BatchTimeSeries(
             values=values,
             tdim=tdim,
-            index=pluck("index"),
+            index=pluck("_index"),
             name=pluck("name"),
             metadata=pluck("metadata"),
             _pad=pluck("_pad"),
@@ -125,15 +131,18 @@ class TimeSeries(TimeBase):
         else:
             plt.plot(self.index, self.values)
 
+    def with_index(self, index):
+        return _replace(self, _index=maybe.box(index))
+
 
 @dataclasses.dataclass
 class BatchTimeSeries(TimeBase):
     values: np.ndarray
-    index: List[Optional[Periods]]
-    name: List[Optional[str]]
+    index: Sequence[Maybe[Periods]]
+    name: Sequence[Maybe[str]]
     tdim: int
-    metadata: List[Optional[dict]]
-    _pad: List[Pad]
+    metadata: Sequence[dict]
+    _pad: Sequence[Pad]
 
     def _slice_tdim(self, idx):
         if isinstance(idx, int):
@@ -151,7 +160,9 @@ class BatchTimeSeries(TimeBase):
         return _replace(
             self,
             values=AxisView(self.values, self.tdim)[idx],
-            index=[maybe.map(index, itemgetter(idx)) for index in self.index],
+            index=[
+                index.map(lambda index: index[idx]) for index in self.index
+            ],
             _pad=list(map(calc_pad, self._pad)),
         )
 
@@ -204,13 +215,19 @@ class TimeSeriesItems:
         tdim = self.data.tdim
 
         if isinstance(idx, int):
-            cls = TimeSeries
             if tdim > 0:
                 tdim -= 1
-        else:
-            cls = BatchTimeSeries
 
-        return cls(
+            return TimeSeries(
+                values=self.data.values[idx],
+                _index=self.data.index[idx],
+                name=self.data.name[idx],
+                metadata=self.data.metadata[idx],
+                _pad=self.data._pad[idx],
+                tdim=tdim,
+            )
+
+        return BatchTimeSeries(
             values=self.data.values[idx],
             index=self.data.index[idx],
             name=self.data.name[idx],
@@ -262,10 +279,10 @@ def time_series(
 
     ts = TimeSeries(
         values,
-        index=index,
+        _index=maybe.box(index),
         tdim=tdim,
-        name=name,
-        metadata=metadata,
+        name=maybe.box(name),
+        metadata=maybe.unwrap_or(metadata, {}),
     )
 
     if ts.index is None and start is not None:

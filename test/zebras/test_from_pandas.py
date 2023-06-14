@@ -38,12 +38,14 @@ def test_pandas_dataframe(from_pandas):
     )
 
     tf = zb.TimeFrame.from_pandas(df)
-    assert np.array_equal(tf.index.data.astype(int), df.index.to_period().asi8)
+    assert np.array_equal(
+        tf.index.to_numpy().astype(int), df.index.to_period().asi8
+    )
     assert np.array_equal(tf["x"], df["x"])
 
     df = df.reindex(pd.period_range(start="2020", periods=3, freq="H"))
     tf = zb.TimeFrame.from_pandas(df)
-    assert np.array_equal(tf.index.data.astype(int), df.index.asi8)
+    assert np.array_equal(tf.index.to_numpy().astype(int), df.index.asi8)
 
     df = df.reindex(np.arange(len(df)))
     tf = zb.TimeFrame.from_pandas(df)
