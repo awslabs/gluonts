@@ -30,7 +30,7 @@ from typing import (
     Tuple,
 )
 from typing_extensions import Protocol, runtime_checkable
-
+from numpy.random import RandomState
 from toolz import curry
 
 
@@ -287,6 +287,56 @@ class Filter:
 
     def __iter__(self):
         return filter(self.fn, self.iterable)
+
+
+@dataclass
+class RandomYield:
+    """
+    Given a list of Iterables `iterables`, generate samples from them.
+
+    When `probabilities` is given, sample iteratbles according to it.
+    When `probabilities` is not given, sample iterables uniformly.
+
+    When one iterable exhausts, the sampling probabilities for it will be set to 0.
+
+        >>> from toolz import take
+        >>> a = [1, 2, 3]
+        >>> b = [4, 5, 6]
+        >>> it = iter(RandomYield([a, b], probabilities=[1, 0]))
+        >>> list(take(5, it))
+        [1, 2, 3]
+
+
+        >>> a = [1, 2, 3]
+        >>> b = [4, 5, 6]
+        >>> it = iter(RandomYield([Cyclic(a), b], probabilities=[1, 0]))
+        >>> list(take(5, it))
+        [1, 2, 3, 1, 2]
+    """
+
+    iterables: List[Iterable]
+    probabilities: Optional[List[float]] = None
+    random_state: RandomState = field(default_factory=RandomState)
+
+    def __post_init__(self):
+        if not self.probabilities:
+            self.probabilities = [1.0 / len(self.iterables)] * len(
+                self.iterables
+            )
+
+    def __iter__(self):
+        iterators = [iter(it) for it in self.iterables]
+        probs = list(self.probabilities)
+
+        while True:
+            idx = self.random_state.choice(range(len(iterators)), p=probs)
+            try:
+                yield next(iterators[idx])
+            except StopIteration:
+                probs[idx] = 0
+                if sum(probs) == 0:
+                    return
+                probs = [prob / sum(probs) for prob in probs]
 
 
 def rows_to_columns(
