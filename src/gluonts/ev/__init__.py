@@ -100,6 +100,7 @@ __all__ = [
     "nrmse",
     "WeightedSumQuantileLoss",
     "MAECoverage",
+    "MeanScaledQuantileLoss",
     "MeanSumQuantileLoss",
     "MeanWeightedSumQuantileLoss",
     "OWA",
