@@ -38,6 +38,7 @@ from .stats import (
     coverage,
     quantile_loss,
     scaled_interval_score,
+    scaled_quantile_loss,
     squared_error,
     symmetric_absolute_percentage_error,
 )
@@ -332,6 +333,20 @@ class MASE(BaseMetricDefinition):
 
 
 mase = MASE()
+
+
+@dataclass
+class MeanScaledQuantileLoss(BaseMetricDefinition):
+    q: float
+
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"mean_scaled_quantile_loss[{self.q}]",
+            stat=partial(
+                scaled_quantile_loss, forecast_type=self.forecast_type
+            ),
+            aggregate=Mean(axis=axis),
+        )
 
 
 @dataclass

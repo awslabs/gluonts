@@ -52,6 +52,7 @@ from .metrics import (
     nrmse,
     WeightedSumQuantileLoss,
     MAECoverage,
+    MeanScaledQuantileLoss,
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
     OWA,
