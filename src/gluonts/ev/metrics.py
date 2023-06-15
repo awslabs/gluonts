@@ -496,6 +496,31 @@ class MeanWeightedSumQuantileLoss(BaseMetricDefinition):
 
 
 @dataclass
+class AverageMeanScaledQuantileLoss(BaseMetricDefinition):
+    quantile_levels: Collection[float]
+
+    @staticmethod
+    def mean(**quantile_losses: np.ndarray) -> np.ndarray:
+        stacked_quantile_losses = np.stack(
+            [quantile_loss for quantile_loss in quantile_losses.values()],
+            axis=0,
+        )
+        return np.ma.mean(stacked_quantile_losses, axis=0)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name=f"average_mean_scaled_quantile_loss",
+            metrics={
+                f"mean_scaled_quantile_loss[{q}]": MeanScaledQuantileLoss(q=q)(
+                    axis=axis
+                )
+                for q in self.quantile_levels
+            },
+            post_process=self.mean,
+        )
+
+
+@dataclass
 class MAECoverage(BaseMetricDefinition):
     quantile_levels: Collection[float]
 

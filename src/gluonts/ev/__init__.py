@@ -26,6 +26,7 @@ from .stats import (
 )
 from .metrics import (
     Metric,
+    MetricDefinition,
     MeanAbsoluteLabel,
     mean_absolute_label,
     SumAbsoluteLabel,
@@ -53,6 +54,7 @@ from .metrics import (
     WeightedSumQuantileLoss,
     MAECoverage,
     MeanScaledQuantileLoss,
+    AverageMeanScaledQuantileLoss,
     MeanSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
     OWA,
@@ -74,6 +76,7 @@ __all__ = [
     "scaled_interval_score",
     "absolute_scaled_error",
     "Metric",
+    "MetricDefinition",
     "MeanAbsoluteLabel",
     "mean_absolute_label",
     "SumAbsoluteLabel",
@@ -101,6 +104,7 @@ __all__ = [
     "WeightedSumQuantileLoss",
     "MAECoverage",
     "MeanScaledQuantileLoss",
+    "AverageMeanScaledQuantileLoss",
     "MeanSumQuantileLoss",
     "MeanWeightedSumQuantileLoss",
     "OWA",
