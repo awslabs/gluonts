@@ -509,7 +509,7 @@ class AverageMeanScaledQuantileLoss(BaseMetricDefinition):
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
-            name=f"average_mean_scaled_quantile_loss",
+            name="average_mean_scaled_quantile_loss",
             metrics={
                 f"mean_scaled_quantile_loss[{q}]": MeanScaledQuantileLoss(q=q)(
                     axis=axis
