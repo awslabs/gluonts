@@ -23,6 +23,7 @@ from .stats import (
     symmetric_absolute_percentage_error,
     scaled_interval_score,
     absolute_scaled_error,
+    scaled_quantile_loss,
 )
 from .metrics import (
     Metric,
@@ -75,6 +76,7 @@ __all__ = [
     "symmetric_absolute_percentage_error",
     "scaled_interval_score",
     "absolute_scaled_error",
+    "scaled_quantile_loss",
     "Metric",
     "MetricDefinition",
     "MeanAbsoluteLabel",
