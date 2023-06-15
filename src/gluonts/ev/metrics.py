@@ -342,9 +342,7 @@ class MeanScaledQuantileLoss(BaseMetricDefinition):
     def __call__(self, axis: Optional[int] = None) -> DirectMetric:
         return DirectMetric(
             name=f"mean_scaled_quantile_loss[{self.q}]",
-            stat=partial(
-                scaled_quantile_loss, forecast_type=self.forecast_type
-            ),
+            stat=partial(scaled_quantile_loss, q=self.q),
             aggregate=Mean(axis=axis),
         )
 
