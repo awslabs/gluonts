@@ -34,8 +34,8 @@ This module provides tooling to extract ``zebras.TimeFrame`` and
 
     sf = schema.load_splitframe(raw_dict)
 
-The idea is to define expected types and shapes for each field (column) and
-then wrap them in a ``zebras.Schema``:
+The idea is to define expected types and shapes for each field (column)
+in a ``zebras.schema.Schema``:
 
     schema = zebras.Schema({
         "target": zebras.schema.TimeSeries(),
