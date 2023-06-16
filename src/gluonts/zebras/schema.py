@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 
-from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union, Type, Dict
 
 import numpy as np
@@ -37,7 +36,7 @@ This module provides tooling to extract ``zebras.TimeFrame`` and
 The idea is to define expected types and shapes for each field (column)
 in a ``zebras.schema.Schema``:
 
-    schema = zebras.Schema({
+    schema = zebras.schema.Schema({
         "target": zebras.schema.TimeSeries(),
         "time_feat": zebras.schema.TimeSeries(ndim=2, tdim=-1, past_only=False),
         "static_feat": zebras.schema.Array(ndim=1),
