@@ -87,3 +87,7 @@ def absolute_scaled_error(
     data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
     return absolute_error(data, forecast_type) / data["seasonal_error"]
+
+
+def scaled_quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
+    return quantile_loss(data, q) / data["seasonal_error"]

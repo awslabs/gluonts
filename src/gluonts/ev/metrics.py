@@ -38,6 +38,7 @@ from .stats import (
     coverage,
     quantile_loss,
     scaled_interval_score,
+    scaled_quantile_loss,
     squared_error,
     symmetric_absolute_percentage_error,
 )
@@ -335,6 +336,18 @@ mase = MASE()
 
 
 @dataclass
+class MeanScaledQuantileLoss(BaseMetricDefinition):
+    q: float
+
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"mean_scaled_quantile_loss[{self.q}]",
+            stat=partial(scaled_quantile_loss, q=self.q),
+            aggregate=Mean(axis=axis),
+        )
+
+
+@dataclass
 class ND(BaseMetricDefinition):
     """Normalized Deviation"""
 
@@ -476,6 +489,31 @@ class MeanWeightedSumQuantileLoss(BaseMetricDefinition):
             name="mean_weighted_sum_quantile_loss",
             metrics={
                 f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
+                for q in self.quantile_levels
+            },
+            post_process=self.mean,
+        )
+
+
+@dataclass
+class AverageMeanScaledQuantileLoss(BaseMetricDefinition):
+    quantile_levels: Collection[float]
+
+    @staticmethod
+    def mean(**quantile_losses: np.ndarray) -> np.ndarray:
+        stacked_quantile_losses = np.stack(
+            [quantile_loss for quantile_loss in quantile_losses.values()],
+            axis=0,
+        )
+        return np.ma.mean(stacked_quantile_losses, axis=0)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name="average_mean_scaled_quantile_loss",
+            metrics={
+                f"mean_scaled_quantile_loss[{q}]": MeanScaledQuantileLoss(q=q)(
+                    axis=axis
+                )
                 for q in self.quantile_levels
             },
             post_process=self.mean,
