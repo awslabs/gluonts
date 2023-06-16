@@ -100,7 +100,7 @@ class Array(Field):
     def load_from(self, data, name):
         value = self._get(data, name)
 
-        value = np.array(value, dtype=self.dtype)
+        value = np.asarray(value, dtype=self.dtype)
 
         if not self.required and self.shape is not None and value.ndim == 0:
             value = np.full(self.shape, value.item())
