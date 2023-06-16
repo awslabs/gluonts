@@ -181,7 +181,6 @@ class TimeSeries(Field):
 Fields = Dict[str, Field]
 
 
-@dataclass(init=False)
 class Schema:
     fields: Fields
 
@@ -191,7 +190,6 @@ class Schema:
         else:
             self.fields = kwargs
 
-    def __post_init__(self):
         self.columns = {}
         self.time_series_ref = None
         self.static = {}
