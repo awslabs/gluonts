@@ -181,9 +181,15 @@ class TimeSeries(Field):
 Fields = Dict[str, Field]
 
 
-@dataclass
+@dataclass(init=False)
 class Schema:
     fields: Fields
+
+    def __init__(self, fields=None, **kwargs):
+        if fields is not None:
+            self.fields = {**fields, **kwargs}
+        else:
+            self.fields = kwargs
 
     def __post_init__(self):
         self.columns = {}

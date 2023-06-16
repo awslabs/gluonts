@@ -19,13 +19,11 @@ import gluonts.zebras as zb
 
 
 schema = zb.schema.Schema(
-    {
-        "target": zb.schema.TimeSeries(ndim=1, tdim=0),
-        "time_feat": zb.schema.TimeSeries(
-            ndim=2, tdim=-1, preprocess=np.atleast_2d, past_only=False
-        ),
-        "static_feat": zb.schema.Array(ndim=1, preprocess=np.atleast_1d),
-    }
+    target=zb.schema.TimeSeries(ndim=1, tdim=0),
+    time_feat=zb.schema.TimeSeries(
+        ndim=2, tdim=-1, preprocess=np.atleast_2d, past_only=False
+    ),
+    static_feat=zb.schema.Array(ndim=1, preprocess=np.atleast_1d),
 )
 
 
