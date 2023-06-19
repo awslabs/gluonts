@@ -386,6 +386,7 @@ class Evaluator:
             "MASE": mase(pred_target, median_fcst, seasonal_error),
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
+            "num_evaluations": pred_target.count(),
         }
 
     def get_metrics_per_ts(
@@ -498,6 +499,7 @@ class Evaluator:
             "MAPE": "mean",
             "sMAPE": "mean",
             "MSIS": "mean",
+            "num_evaluations": "sum",
         }
         if self.calculate_owa:
             agg_funs["sMAPE_naive2"] = "mean"
