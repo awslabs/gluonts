@@ -62,6 +62,7 @@ from .metrics import (
     OWA,
     owa,
     SumNumMaskedTargetValues,
+    sum_num_masked_target_values,
 )
 from .aggregations import Aggregation, Sum, Mean
 
@@ -117,7 +118,7 @@ __all__ = [
     "Sum",
     "Mean",
     "SumNumMaskedTargetValues",
-    "num_masked_target_values"
+    "num_masked_target_values",
 ]
 
 
