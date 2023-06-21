@@ -143,7 +143,7 @@ class Chained:
         yield from itertools.chain(*self.iterables)
 
     def __len__(self) -> int:
-        return sum(len(iterable) for iterable in self.iterables)
+        return sum(map(len, self.iterables))
 
 
 @dataclass
