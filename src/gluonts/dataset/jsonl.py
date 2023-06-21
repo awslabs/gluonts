@@ -166,7 +166,6 @@ class JsonLinesFile:
         return np.cumsum(line_lengths[:-1], dtype=dtype)
 
     def __getitem__(self, idx):
-        print(self.start, idx)
         if isinstance(idx, slice):
             # TODO: should we enable steps other than 1?
             assert idx.step is None or idx.step == 1
