@@ -24,6 +24,7 @@ from .stats import (
     scaled_interval_score,
     absolute_scaled_error,
     scaled_quantile_loss,
+    num_masked_target_values,
 )
 from .metrics import (
     Metric,
@@ -60,6 +61,7 @@ from .metrics import (
     MeanWeightedSumQuantileLoss,
     OWA,
     owa,
+    SumNumMaskedTargetValues,
 )
 from .aggregations import Aggregation, Sum, Mean
 
@@ -114,6 +116,8 @@ __all__ = [
     "Aggregation",
     "Sum",
     "Mean",
+    "SumNumMaskedTargetValues",
+    "num_masked_target_values"
 ]
 
 
