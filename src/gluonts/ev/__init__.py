@@ -80,6 +80,7 @@ __all__ = [
     "scaled_interval_score",
     "absolute_scaled_error",
     "scaled_quantile_loss",
+    "num_masked_target_values",
     "Metric",
     "MetricDefinition",
     "MeanAbsoluteLabel",
