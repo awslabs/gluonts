@@ -130,7 +130,7 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
 
 
 @dataclass
-class Chained:
+class Chain:
     """
     Chain multiple iterables into a single one.
 
