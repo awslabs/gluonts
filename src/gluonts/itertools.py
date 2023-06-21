@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     Callable,
+    Collection,
     Dict,
     Iterable,
     Iterator,
@@ -126,6 +127,23 @@ def batcher(iterable: Iterable[T], batch_size: int) -> Iterator[List[T]]:
 
     # has an empty list so that we have a 2D array for sure
     return iter(get_batch, [])
+
+
+@dataclass
+class Chain:
+    """
+    Chain multiple iterables into a single one.
+
+    This is a thin wrapper around ``itertools.chain``.
+    """
+
+    iterables: Collection[Iterable]
+
+    def __iter__(self):
+        yield from itertools.chain(*self.iterables)
+
+    def __len__(self) -> int:
+        return sum(map(len, self.iterables))
 
 
 @dataclass

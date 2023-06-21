@@ -27,6 +27,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
     Cached,
+    Chain,
     PickleCached,
     Cyclic,
     IterableSlice,
@@ -320,3 +321,17 @@ def test_random_yield(
     it = iter(RandomYield(iterables, probabilities, random_state=random_state))
     generated_samples = list(take(sample_size, it))
     assert generated_samples == samples
+
+
+@pytest.mark.parametrize(
+    "iterables",
+    [
+        [[1, 2, 3], [4, 5, 6, 7]],
+    ],
+)
+def test_chained(iterables: List[Iterable]):
+    expected = list(itertools.chain(*iterables))
+    chained = Chain(iterables)
+
+    assert list(chained) == expected
+    assert list(chained) == expected
