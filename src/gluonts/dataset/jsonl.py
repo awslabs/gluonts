@@ -16,7 +16,7 @@ import gzip
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import cast, Optional, BinaryIO
+from typing import cast, Optional, BinaryIO, List
 
 import numpy as np
 import pandas as pd
@@ -113,7 +113,7 @@ class JsonLinesFile:
     start: int = 0
     n: Optional[int] = None
 
-    line_starts: list[int] = field(default_factory=list)
+    line_starts: List[int] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.line_starts:
