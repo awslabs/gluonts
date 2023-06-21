@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import pytest
@@ -26,6 +26,7 @@ from gluonts.model import (
     evaluate_model,
 )
 from gluonts.ev import (
+    MetricDefinition,
     MSE,
     RMSE,
     NRMSE,
@@ -34,7 +35,10 @@ from gluonts.ev import (
     MASE,
     MSIS,
     ND,
+    WeightedSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
+    MeanScaledQuantileLoss,
+    AverageMeanScaledQuantileLoss,
 )
 
 
@@ -65,12 +69,15 @@ _test_metrics = [
     MASE(),
     MSIS(),
     ND(),
+    WeightedSumQuantileLoss(0.5),
     MeanWeightedSumQuantileLoss(quantile_levels=[0.1, 0.5, 0.9]),
+    MeanScaledQuantileLoss(0.5),
+    AverageMeanScaledQuantileLoss(quantile_levels=[0.1, 0.5, 0.9]),
 ]
 
 
 def infer_metrics_df_shape(
-    metrics,
+    metrics: List[MetricDefinition],
     test_data: TestData,
     axis: Union[int, Tuple[int]],
 ) -> Tuple[int]:
@@ -164,7 +171,7 @@ def infer_metrics_df_shape(
     ],
 )
 def test_evaluation_shape(
-    metrics,
+    metrics: List[MetricDefinition],
     test_data: TestData,
     axis: Union[int, Tuple[int]],
 ):
