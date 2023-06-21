@@ -118,7 +118,7 @@ __all__ = [
     "Sum",
     "Mean",
     "SumNumMaskedTargetValues",
-    "num_masked_target_values",
+    "sum_num_masked_target_values",
 ]
 
 
