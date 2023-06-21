@@ -20,6 +20,7 @@ from typing import Iterable, List, Tuple
 
 import numpy as np
 from numpy.testing import assert_equal
+from toolz import take
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
@@ -40,6 +41,7 @@ from gluonts.itertools import (
     StarMap,
     Filter,
     join_items,
+    RandomYield,
 )
 
 
@@ -277,3 +279,44 @@ def test_join_items():
 
     with pytest.raises(Exception):
         oin_items(left, right, "strict")
+
+
+@pytest.mark.parametrize(
+    "iterables, probabilities, sample_size, samples, random_state",
+    [
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [1.0, 0.0],
+            5,
+            [1, 2, 3],
+            np.random.RandomState(0),
+        ),
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [0.0, 1.0],
+            5,
+            [4, 5, 6],
+            np.random.RandomState(0),
+        ),
+        (
+            [Cyclic([1, 2, 3]), iter([4, 5, 6])],
+            [1.0, 0.0],
+            5,
+            [1, 2, 3, 1, 2],
+            np.random.RandomState(0),
+        ),
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [0.7, 0.3],
+            5,
+            [1, 4, 2, 3, 5],
+            np.random.RandomState(0),
+        ),
+    ],
+)
+def test_random_yield(
+    iterables, probabilities, sample_size, samples, random_state
+):
+    it = iter(RandomYield(iterables, probabilities, random_state=random_state))
+    generated_samples = list(take(sample_size, it))
+    assert generated_samples == samples
