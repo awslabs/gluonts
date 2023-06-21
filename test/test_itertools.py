@@ -27,7 +27,7 @@ from gluonts.dataset.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
     Cached,
-    Chained,
+    Chain,
     PickleCached,
     Cyclic,
     IterableSlice,
@@ -331,8 +331,7 @@ def test_random_yield(
 )
 def test_chained(iterables: List[Iterable]):
     expected = list(itertools.chain(*iterables))
-    chained = Chained(iterables)
-    _ = list(chained)
-    actual = list(chained)
+    chained = Chain(iterables)
 
-    assert actual == expected
+    assert list(chained) == expected
+    assert list(chained) == expected
