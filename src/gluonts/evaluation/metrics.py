@@ -170,3 +170,13 @@ def abs_target_mean(target) -> float:
         abs\_target\_mean = mean(|Y|)
     """
     return np.mean(np.abs(target))
+
+
+def num_masked_values(target) -> float:
+    """
+    Count number of masked values in target
+    """
+    if np.ma.isMaskedArray(target):
+        return np.ma.count_masked(target)
+    else:
+        return 0
