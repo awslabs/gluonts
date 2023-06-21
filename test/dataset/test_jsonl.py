@@ -71,3 +71,6 @@ def test_jsonl_slice():
 
         assert list(reader[3:7]) == data[3:7]
         assert len(reader[3:7]) == len(data[3:7])
+
+        # nested
+        assert list(reader[3:7][1:-1]) == data[3:7][1:-1]
