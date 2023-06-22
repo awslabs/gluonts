@@ -71,9 +71,8 @@ class ArrowFile(File):
     _batch_offsets: Optional[np.ndarray] = field(
         default=None, init=False, repr=False
     )
-
-    start: int = 0
-    n: Optional[int] = None
+    _start: int = 0
+    _take: Optional[int] = None
 
     def metadata(self) -> Dict[str, str]:
         metadata = self.reader.schema.metadata
@@ -117,11 +116,11 @@ class ArrowFile(File):
             yield self.reader.get_batch(batch_no)
 
     def __len__(self):
-        if self.n is not None:
-            return self.n
+        if self._take is not None:
+            return self._take
 
         if len(self.batch_offsets) > 0:
-            return self.batch_offsets[-1] - self.start
+            return self.batch_offsets[-1] - self._start
 
         # empty file
         return 0
@@ -129,7 +128,7 @@ class ArrowFile(File):
     def __iter__(self):
         def iter_values():
             # yield from starting batch
-            batch_no, batch_idx = self.location_for(self.start)
+            batch_no, batch_idx = self.location_for(self._start)
             sub_batch = self.reader.get_batch(batch_no)[batch_idx:]
             yield from self.decoder.decode_batch(sub_batch)
 
@@ -140,7 +139,7 @@ class ArrowFile(File):
                     self.reader.get_batch(batch_no_)
                 )
 
-        yield from take(self.n, iter_values())
+        yield from take(self._take, iter_values())
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
@@ -148,16 +147,16 @@ class ArrowFile(File):
 
             # normalize index
             start, stop, _step = idx.indices(len(self))
-            idx = slice(start + self.start, stop + self.start)
+            idx = slice(start + self._start, stop + self._start)
 
             return ArrowFile(
                 self.path,
-                start=idx.start,
-                n=max(0, idx.stop - idx.start),
+                _start=idx.start,
+                _take=max(0, idx.stop - idx.start),
             )
 
-        if self.start is not None:
-            idx += self.start
+        if self._start is not None:
+            idx += self._start
 
         batch_no, batch_idx = self.location_for(idx)
         return self.decoder.decode(self.reader.get_batch(batch_no), batch_idx)
@@ -167,8 +166,8 @@ class ArrowFile(File):
 class ArrowStreamFile(File):
     path: Path
     _decoder: Optional[ArrowDecoder] = field(default=None, init=False)
-    start: int = 0
-    n: Optional[int] = None
+    _start: int = 0
+    _take: Optional[int] = None
 
     def metadata(self) -> Dict[str, str]:
         with open(self.path, "rb") as infile:
@@ -196,7 +195,7 @@ class ArrowStreamFile(File):
 
                     yield from self._decoder.decode_batch(batch)
 
-        yield from take(self.n, drop(self.start, iter_values()))
+        yield from take(self._take, drop(self._start, iter_values()))
 
     def __len__(self):
         return sum(1 for _ in self)
@@ -207,12 +206,12 @@ class ArrowStreamFile(File):
 
             # normalize index
             start, stop, _step = idx.indices(len(self))
-            idx = slice(start + self.start, stop + self.start)
+            idx = slice(start + self._start, stop + self._start)
 
             return ArrowStreamFile(
                 self.path,
-                start=idx.start,
-                n=max(0, idx.stop - idx.start),
+                _start=idx.start,
+                _take=max(0, idx.stop - idx.start),
             )
 
         return first(self[idx:])
@@ -222,8 +221,8 @@ class ArrowStreamFile(File):
 class ParquetFile(File):
     path: Path
     reader: pq.ParquetFile = field(init=False)
-    start: int = 0
-    n: Optional[int] = None
+    _start: int = 0
+    _take: Optional[int] = None
 
     # Note: accumulated
     _row_group_sizes: List[int] = field(default_factory=list)
@@ -262,7 +261,7 @@ class ParquetFile(File):
 
     def __iter__(self):
         def iter_values():
-            row_group, row_index = self.location_for(self.start)
+            row_group, row_index = self.location_for(self._start)
 
             table = self.reader.read_row_group(row_group)
             yield from self.decoder.decode_batch(table[row_index:])
@@ -271,7 +270,7 @@ class ParquetFile(File):
                 table = self.reader.read_row_group(row_group_)
                 yield from self.decoder.decode_batch(table)
 
-        yield from take(self.n, iter_values())
+        yield from take(self._take, iter_values())
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
@@ -279,20 +278,20 @@ class ParquetFile(File):
 
             # normalize index
             start, stop, _step = idx.indices(len(self))
-            idx = slice(start + self.start, stop + self.start)
+            idx = slice(start + self._start, stop + self._start)
 
             return ParquetFile(
                 self.path,
-                start=idx.start,
-                n=max(0, idx.stop - idx.start),
+                _start=idx.start,
+                _take=max(0, idx.stop - idx.start),
                 _row_group_sizes=self._row_group_sizes,
             )
 
         return first(self[idx:])
 
     def __len__(self):
-        if self.n is not None:
-            return self.n
+        if self._take is not None:
+            return self._take
 
         # One would think that pq.ParquetFile had a nicer way to get its length
-        return max(0, self.reader.metadata.num_rows - self.start)
+        return max(0, self.reader.metadata.num_rows - self._start)
