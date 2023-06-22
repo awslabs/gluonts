@@ -41,6 +41,7 @@ from .stats import (
     scaled_quantile_loss,
     squared_error,
     symmetric_absolute_percentage_error,
+    num_masked_target_values,
 )
 
 
@@ -187,6 +188,18 @@ class SumAbsoluteLabel(BaseMetricDefinition):
 
 
 sum_absolute_label = SumAbsoluteLabel()
+
+
+class SumNumMaskedTargetValues(BaseMetricDefinition):
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name="sum_num_masked_target_values",
+            stat=num_masked_target_values,
+            aggregate=Sum(axis=axis),
+        )
+
+
+sum_num_masked_target_values = SumNumMaskedTargetValues()
 
 
 @dataclass

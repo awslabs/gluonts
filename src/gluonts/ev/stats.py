@@ -16,6 +16,13 @@ from typing import Dict
 import numpy as np
 
 
+def num_masked_target_values(data: Dict[str, np.ndarray]) -> np.ndarray:
+    if np.ma.isMaskedArray(data["label"]):
+        return data["label"].mask.astype(float)
+    else:
+        return np.zeros(data["label"].shape)
+
+
 def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
     return np.abs(data["label"])
 
