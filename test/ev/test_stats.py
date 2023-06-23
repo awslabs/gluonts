@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from gluonts.ev import (
+from gluonts.ev.stats import (
     absolute_error,
     absolute_label,
     absolute_percentage_error,
@@ -25,8 +25,8 @@ from gluonts.ev import (
     scaled_interval_score,
     absolute_scaled_error,
     scaled_quantile_loss,
-    seasonal_error,
 )
+from gluonts.ev.ts_stats import seasonal_error
 
 PREDICTION_LENGTH = 5
 

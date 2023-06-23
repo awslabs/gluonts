@@ -30,9 +30,10 @@ from gluonts.model.forecast import Quantile, SampleForecast
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.ev import (
-    evaluate,
-    seasonal_error,
+
+from gluonts.ev import evaluate
+from gluonts.ev.ts_stats import seasonal_error
+from gluonts.ev.metrics import (
     MAPE,
     MASE,
     MSE,
