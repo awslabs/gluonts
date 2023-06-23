@@ -25,7 +25,7 @@ from gluonts.model import (
     evaluate_forecasts,
     evaluate_model,
 )
-from gluonts.ev import (
+from gluonts.ev.metrics import (
     MetricDefinition,
     MSE,
     RMSE,
