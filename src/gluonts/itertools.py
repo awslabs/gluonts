@@ -225,16 +225,20 @@ class Fuse:
         _SubIndex(item=1, local=1)
 
         """
-        if idx == 0:
+        if idx == 0 or not self:
             return _SubIndex(0, 0)
+
+        # When the index is out of bounds, we fall back to the last element
+        if idx >= len(self):
+            return _SubIndex(
+                len(self.collections) - 1,
+                len(self.collections[-1]),
+            )
 
         part_no = np.searchsorted(self._offsets, idx, side)
 
         if part_no == 0:
             local_idx = idx
-        elif part_no >= len(self.collections):
-            part_no -= 1
-            local_idx = len(self.collections[part_no])
         else:
             local_idx = idx - self._offsets[part_no - 1]
 
