@@ -29,10 +29,13 @@ from typing import (
     TypeVar,
     Sequence,
     Tuple,
+    NamedTuple,
 )
 from typing_extensions import Protocol, runtime_checkable
 from numpy.random import RandomState
 from toolz import curry
+
+import numpy as np
 
 
 @runtime_checkable
@@ -140,10 +143,98 @@ class Chain:
     iterables: Collection[Iterable]
 
     def __iter__(self):
-        yield from itertools.chain(*self.iterables)
+        yield from itertools.chain.from_iterable(self.iterables)
 
     def __len__(self) -> int:
         return sum(map(len, self.iterables))
+
+
+class _SubIndex(NamedTuple):
+    item: int
+    local: int
+
+
+@dataclass
+class Fuse:
+    collections: List[Collection]
+    _lengths: List[int] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not self._lengths:
+            self._lengths = list(map(len, self.collections))
+
+    def __len__(self):
+        return sum(self._lengths)
+
+    def _get_range(self, start: _SubIndex, stop: _SubIndex) -> "Fuse":
+        first = self.collections[start.item]
+
+        if start.item == stop.item:
+            return Fuse([first[start.local : stop.local]])
+
+        items = []
+
+        first = first[start.local :]
+        if len(first) > 0:
+            items.append(first)
+
+        for item_index in range(start.item + 1, stop.item):
+            items.append(self.collections[item_index])
+
+        items.append(self.collections[stop.item][: stop.local])
+        return Fuse(items)
+
+    def _location_for(self, idx):
+        if idx == 0:
+            return _SubIndex(0, 0)
+
+        offsets = np.cumsum(self._lengths)
+        part_no = np.searchsorted(offsets, idx)
+        if part_no == 0:
+            local_idx = idx
+        else:
+            local_idx = idx - offsets[part_no - 1]
+
+        return _SubIndex(part_no, local_idx)
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            start, stop, step = idx.indices(len(self))
+            assert step is None or step == 1
+
+            start_index = self._location_for(start)
+            stop_index = self._location_for(stop)
+
+            return self._get_range(start_index, stop_index)
+
+        subindex = self._location_for(idx)
+        return self.collections[subindex.item][subindex.local]
+
+    def split(self, indices):
+        results = []
+        start = 0
+
+        for stop in indices:
+            results.append(self[start:stop])
+
+            start = stop
+
+        results.append(self[start:])
+
+        return results
+
+    def split_into(self, n):
+        bucket_size = int(math.ceil(len(self) / n))
+
+        split_positions = np.cumsum([bucket_size] * (n - 1))
+
+        return self.split(split_positions)
+
+    def __iter__(self):
+        yield from itertools.chain.from_iterable(self.collections)
+
+    def __repr__(self):
+        return f"Fuse<size={len(self)}>"
 
 
 @dataclass
