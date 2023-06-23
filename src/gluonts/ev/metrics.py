@@ -233,6 +233,23 @@ sum_absolute_error = SumAbsoluteError()
 
 
 @dataclass
+class MAE(BaseMetricDefinition):
+    """Mean Absolute Error"""
+
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"MAE[{self.forecast_type}]",
+            stat=partial(absolute_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis),
+        )
+
+
+mae = MAE()
+
+
+@dataclass
 class MSE(BaseMetricDefinition):
     """Mean Squared Error"""
 
