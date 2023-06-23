@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from __future__ import annotations
+
 import itertools
 import math
 import pickle
@@ -150,12 +152,33 @@ class Chain:
 
 
 class _SubIndex(NamedTuple):
+    """
+    A nested index with two layers.
+    """
+
     item: int
     local: int
 
 
 @dataclass
 class Fuse:
+    """Fuse collections together to act as single collections.
+
+    >>> a = [0, 1, 2]
+    >>> b = [3, 4, 5]
+    >>> fused = Fuse([a, b])
+    >>> assert len(a) + len(b) == len(fused)
+    >>> list(fused[2:5])
+    [2, 3, 4]
+    >>> list(fused[3:])
+    [3, 4, 5]
+
+    This is similar to ``Chain``, but also allows to select directly into the
+    data. While ``Chain`` creates a single ``Iterable`` out of a set of
+    ``Iterable``s, ``Fuse`` creates a single ``Collection`` out of a set of
+    ``Collection``s.
+    """
+
     collections: List[Collection]
     _lengths: List[int] = field(default_factory=list)
 
@@ -163,8 +186,11 @@ class Fuse:
         if not self._lengths:
             self._lengths = list(map(len, self.collections))
 
+        self._length = sum(self._lengths)
+        self._offsets = np.cumsum(self._lengths)
+
     def __len__(self):
-        return sum(self._lengths)
+        return self._length
 
     def _get_range(self, start: _SubIndex, stop: _SubIndex) -> "Fuse":
         first = self.collections[start.item]
@@ -184,16 +210,33 @@ class Fuse:
         items.append(self.collections[stop.item][: stop.local])
         return Fuse(items)
 
-    def _location_for(self, idx):
+    def _location_for(self, idx, side="right") -> _SubIndex:
+        """Map global index to pair of index to collection and index within
+        that collection.
+
+        >>> fuse = Fuse([[0, 0], [1, 1]])
+        >>> fuse._location_for(0)
+        _SubIndex(item=0, local=0)
+        >>> fuse._location_for(1)
+        _SubIndex(item=0, local=1)
+        >>> fuse._location_for(2)
+        _SubIndex(item=1, local=0)
+        >>> fuse._location_for(3)
+        _SubIndex(item=1, local=1)
+
+        """
         if idx == 0:
             return _SubIndex(0, 0)
 
-        offsets = np.cumsum(self._lengths)
-        part_no = np.searchsorted(offsets, idx)
+        part_no = np.searchsorted(self._offsets, idx, side)
+
         if part_no == 0:
             local_idx = idx
+        elif part_no >= len(self.collections):
+            part_no -= 1
+            local_idx = len(self.collections[part_no])
         else:
-            local_idx = idx - offsets[part_no - 1]
+            local_idx = idx - self._offsets[part_no - 1]
 
         return _SubIndex(part_no, local_idx)
 
@@ -204,13 +247,16 @@ class Fuse:
 
             start_index = self._location_for(start)
             stop_index = self._location_for(stop)
-
             return self._get_range(start_index, stop_index)
 
         subindex = self._location_for(idx)
         return self.collections[subindex.item][subindex.local]
 
-    def split(self, indices):
+    def split(self, indices: List[int]) -> List[Fuse]:
+        """Split into subsets given ``indices``.
+
+        This is similar to ``numpy.split``.
+        """
         results = []
         start = 0
 
@@ -224,11 +270,17 @@ class Fuse:
         return results
 
     def split_into(self, n):
-        bucket_size = int(math.ceil(len(self) / n))
+        """Split into ``n`` parts of equal size."""
 
-        split_positions = np.cumsum([bucket_size] * (n - 1))
+        bucket_size, remainder = divmod(len(self), n)
 
-        return self.split(split_positions)
+        # We need one fewer than `n`, since these become split positions.
+        relative_splits = np.full(bucket_size, n - 1)
+
+        # e.g. 100 by 3 -> 34, 33, 33
+        relative_splits[:r] += 1
+
+        return self.split(np.cumsum(relative_splits))
 
     def __iter__(self):
         yield from itertools.chain.from_iterable(self.collections)
