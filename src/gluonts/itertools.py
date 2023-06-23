@@ -252,41 +252,50 @@ class Fuse:
         subindex = self._location_for(idx)
         return self.collections[subindex.item][subindex.local]
 
-    def split(self, indices: List[int]) -> List[Fuse]:
-        """Split into subsets given ``indices``.
-
-        This is similar to ``numpy.split``.
-        """
-        results = []
-        start = 0
-
-        for stop in indices:
-            results.append(self[start:stop])
-
-            start = stop
-
-        results.append(self[start:])
-
-        return results
-
-    def split_into(self, n):
-        """Split into ``n`` parts of equal size."""
-
-        bucket_size, remainder = divmod(len(self), n)
-
-        # We need one fewer than `n`, since these become split positions.
-        relative_splits = np.full(bucket_size, n - 1)
-
-        # e.g. 100 by 3 -> 34, 33, 33
-        relative_splits[:r] += 1
-
-        return self.split(np.cumsum(relative_splits))
-
     def __iter__(self):
         yield from itertools.chain.from_iterable(self.collections)
 
     def __repr__(self):
         return f"Fuse<size={len(self)}>"
+
+
+def split(xs: Collection, indices: List[int]) -> List[Collection]:
+    """Split ``xs`` into subsets given ``indices``.
+
+    >>> split("abcdef", [1, 3])
+    ['a', 'bc', 'def']
+
+    This is similar to ``numpy.split`` when passing a list of indices, but this
+    version does not convert the underlying data into arrays.
+    """
+
+    return [
+        xs[start:stop]
+        for start, stop in zip(
+            itertools.chain([None], indices),
+            itertools.chain(indices, [None]),
+        )
+    ]
+
+
+def split_into(xs: Collection, n: int) -> Collection:
+    """Split ``xs`` into ``n`` parts of similar size.
+
+    >>> split_into("abcd", 2)
+    ['ab', 'cd']
+    >>> split_into("abcd", 3)
+    ['ab', 'c', 'd']
+
+    """
+
+    bucket_size, remainder = divmod(len(xs), n)
+
+    # We need one fewer than `n`, since these become split positions.
+    relative_splits = np.full(n - 1, bucket_size)
+    # e.g. 10 by 3 -> 4, 3, 3
+    relative_splits[:remainder] += 1
+
+    return split(xs, np.cumsum(relative_splits))
 
 
 @dataclass
