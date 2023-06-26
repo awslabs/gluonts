@@ -46,11 +46,11 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     prediction_length
         Number of time points to predict.
     freq
-        Frequency of the input data, used to infer ``season_length``
+        Sampling frequency of the input data, used to infer ``season_length``
         in case it is not provided.
     season_length
-        Length of the seasonality pattern of the input data. If not
-        provided, it is inferred from ``freq``.
+        Seasonality used to make predictions. If not provided, it is inferred
+        from ``freq``.
     imputation_method
         The imputation method to use in case of missing values.
         Defaults to :py:class:`LastValueImputation` which replaces each missing
