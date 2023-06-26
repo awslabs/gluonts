@@ -43,23 +43,25 @@ class SeasonalNaivePredictor(RepresentablePredictor):
 
     Parameters
     ----------
-    freq
-        Frequency of the input data
     prediction_length
-        Number of time points to predict
+        Number of time points to predict.
+    freq
+        Frequency of the input data, used to infer ``season_length``
+        in case it is not provided.
     season_length
-        Length of the seasonality pattern of the input data
+        Length of the seasonality pattern of the input data. If not
+        provided, it is inferred from ``freq``.
     imputation_method
         The imputation method to use in case of missing values.
-        Defaults to `LastValueImputation` which replaces each missing
+        Defaults to :py:class:`LastValueImputation` which replaces each missing
         value with the last value that was not missing.
     """
 
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
+        freq: Optional[str] = None,
         season_length: Optional[int] = None,
         imputation_method: Optional[
             MissingValueImputation
@@ -67,6 +69,9 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
+        assert (freq is not None) or (
+            season_length is not None
+        ), "You must provide one of `freq` or `season_length`"
         assert (
             season_length is None or season_length > 0
         ), "The value of `season_length` should be > 0"
