@@ -269,7 +269,8 @@ def test_against_former_evaluator():
     )
 
     predictor = SeasonalNaivePredictor(
-        prediction_length=prediction_length, freq=freq
+        prediction_length=prediction_length,
+        season_length=get_seasonality(freq),
     )
 
     quantile_levels = (0.1, 0.5, 0.9)
