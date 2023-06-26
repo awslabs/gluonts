@@ -211,7 +211,7 @@ def test_evaluate_model_vs_forecasts():
     )
 
     model = SeasonalNaivePredictor(
-        freq="D", prediction_length=3, season_length=1
+        prediction_length=3, season_length=1
     )
 
     forecasts = list(model.predict(test_data.input))
@@ -247,7 +247,7 @@ def test_data_nan():
     )
 
     model = SeasonalNaivePredictor(
-        freq="D", prediction_length=3, season_length=1
+        prediction_length=3, season_length=1
     )
 
     forecasts = list(model.predict(test_data.input))

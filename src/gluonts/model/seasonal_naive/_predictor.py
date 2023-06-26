@@ -25,7 +25,6 @@ from gluonts.transform.feature import (
     LastValueImputation,
     MissingValueImputation,
 )
-from gluonts.time_feature import get_seasonality
 
 
 class SeasonalNaivePredictor(RepresentablePredictor):
@@ -45,12 +44,8 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     ----------
     prediction_length
         Number of time points to predict.
-    freq
-        Sampling frequency of the input data, used to infer ``season_length``
-        in case it is not provided.
     season_length
-        Seasonality used to make predictions. If not provided, it is inferred
-        from ``freq``.
+        Seasonality used to make predictions.
     imputation_method
         The imputation method to use in case of missing values.
         Defaults to :py:class:`LastValueImputation` which replaces each missing
@@ -61,27 +56,17 @@ class SeasonalNaivePredictor(RepresentablePredictor):
     def __init__(
         self,
         prediction_length: int,
-        freq: Optional[str] = None,
-        season_length: Optional[int] = None,
+        season_length: int,
         imputation_method: Optional[
             MissingValueImputation
         ] = LastValueImputation(),
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
-        assert (freq is not None) or (
-            season_length is not None
-        ), "You must provide one of `freq` or `season_length`"
-        assert (
-            season_length is None or season_length > 0
-        ), "The value of `season_length` should be > 0"
+        assert season_length > 0, "The value of `season_length` should be > 0"
 
         self.prediction_length = prediction_length
-        self.season_length = (
-            season_length
-            if season_length is not None
-            else get_seasonality(freq)
-        )
+        self.season_length = season_length
         self.imputation_method = imputation_method
 
     def predict_item(self, item: DataEntry) -> Forecast:

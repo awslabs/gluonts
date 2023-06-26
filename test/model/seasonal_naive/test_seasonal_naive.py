@@ -29,7 +29,6 @@ def get_prediction(
     imputation_method=LastValueImputation(),
 ):
     pred = SeasonalNaivePredictor(
-        freq=FREQ,
         prediction_length=prediction_length,
         season_length=season_length,
         imputation_method=imputation_method,
@@ -68,12 +67,9 @@ def get_prediction(
         ([1, 2, 3], [1], 1, 3, LastValueImputation()),
         ([1, 2, 3], [1, 2], 2, 3, LastValueImputation()),
         ([1, 2, 3], [1, 2, 3], 3, 3, LastValueImputation()),
-        ([1, 1, 1], [1], 1, None, LastValueImputation()),
-        ([1, 1, 1], [1, 1], 2, None, LastValueImputation()),
-        ([1, 1, 1], [1, 1, 1], 3, None, LastValueImputation()),
-        ([1, 3, np.nan], [3], 1, None, LastValueImputation()),
-        ([1, 3, np.nan], [3, 3], 2, None, LastValueImputation()),
-        ([1, 3, np.nan], [3, 3, 3], 3, None, LastValueImputation()),
+        ([1, 3, np.nan], [3], 1, 1, LastValueImputation()),
+        ([1, 3, np.nan], [3, 3], 2, 1, LastValueImputation()),
+        ([1, 3, np.nan], [3, 3, 3], 3, 1, LastValueImputation()),
         ([1, 3, np.nan], [np.nan], 1, 1, LeavesMissingValues()),
         ([1, 3, np.nan], [np.nan] * 2, 2, 1, LeavesMissingValues()),
         ([1, 3, np.nan], [np.nan] * 3, 3, 1, LeavesMissingValues()),
