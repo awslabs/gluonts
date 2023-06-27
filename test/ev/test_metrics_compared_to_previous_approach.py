@@ -128,7 +128,13 @@ def get_data_batches(predictor, test_data):
                 [seasonal_error(input_["target"], seasonality=seasonality)]
             ),
             "naive_2": np.array(
-                [naive_2(input_["target"], len(label["target"]), freq=freq)]
+                [
+                    naive_2(
+                        input_["target"],
+                        len(label["target"]),
+                        season_length=seasonality,
+                    )
+                ]
             ),
         }
 
