@@ -35,6 +35,7 @@ import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.time_feature import get_seasonality
 
 from .metrics import (
     abs_error,
@@ -467,7 +468,9 @@ class Evaluator:
             from gluonts.ext.naive_2 import naive_2
 
             naive_median_forecast = naive_2(
-                past_data, len(pred_target), freq=forecast.start_date.freqstr
+                past_data,
+                len(pred_target),
+                season_length=get_seasonality(forecast.start_date.freqstr),
             )
             metrics["sMAPE_naive2"] = smape(pred_target, naive_median_forecast)
             metrics["MASE_naive2"] = mase(

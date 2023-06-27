@@ -57,7 +57,6 @@ NUM_TS = 10
             season_length=SEASON_LENGTH,
         ),
         lambda freq: Naive2Predictor(
-            freq=freq,
             prediction_length=PREDICTION_LENGTH,
             season_length=SEASON_LENGTH,
         ),
@@ -107,20 +106,6 @@ CONSTANT_DATASET_FREQ = dataset_info.metadata.freq
 CONSTANT_DATASET_PREDICTION_LENGTH = dataset_info.prediction_length
 
 
-def seasonal_naive_predictor():
-    return (
-        SeasonalNaivePredictor,
-        dict(prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH),
-    )
-
-
-def naive_2_predictor():
-    return (
-        Naive2Predictor,
-        dict(prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH),
-    )
-
-
 @flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize(
     "predictor, accuracy",
@@ -134,8 +119,8 @@ def naive_2_predictor():
         ),
         (
             Naive2Predictor(
-                freq=CONSTANT_DATASET_FREQ,
                 prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+                season_length=get_seasonality(CONSTANT_DATASET_FREQ),
             ),
             0.0,
         ),
@@ -162,8 +147,8 @@ def test_accuracy(predictor, accuracy):
             season_length=get_seasonality(CONSTANT_DATASET_FREQ),
         ),
         Naive2Predictor(
-            freq=CONSTANT_DATASET_FREQ,
             prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+            season_length=get_seasonality(CONSTANT_DATASET_FREQ),
         ),
     ],
 )
