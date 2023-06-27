@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, Union, Optional, cast, overload
+from typing import Any, Union, Optional, Tuple, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -177,6 +177,10 @@ class Period(_BasePeriod):
 
     def to_numpy(self) -> np.datetime64:
         return self.data
+
+    @property
+    def shape(self) -> Tuple[int]:
+        return self.data.shape
 
     def __array__(self) -> np.datetime64:
         return self.data
@@ -347,6 +351,10 @@ class Periods(_BasePeriod):
 
     def to_numpy(self) -> np.ndarray:
         return self.data
+
+    @property
+    def shape(self) -> Tuple[int]:
+        return self.data.shape
 
     def __array__(self) -> np.ndarray:
         return self.data

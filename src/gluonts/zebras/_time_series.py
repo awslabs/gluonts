@@ -46,6 +46,10 @@ class TimeSeries(TimeBase):
     def __eq__(self, other):
         return self.values == other
 
+    @property
+    def shape(self):
+        return self.values.shape
+
     def __array__(self):
         return self.values
 
@@ -161,6 +165,10 @@ class BatchTimeSeries(TimeBase):
 
     def __len__(self):
         return self.values.shape[self.tdim]
+
+    @property
+    def shape(self):
+        return self.values.shape
 
     def __array__(self):
         return self.values
