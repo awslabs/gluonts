@@ -1,7 +1,0 @@
-{
-    "ND": 1.0,
-    "RMSE": 62.517982482910156,
-    "dataset": "solar-energy",
-    "estimator": "SeasonalNaivePredictor",
-    "mean_wQuantileLoss": 1.0
-}
