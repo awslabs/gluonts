@@ -11,8 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
-
 import numpy as np
 import statsmodels.api as sm
 
@@ -21,16 +19,16 @@ from gluonts.dataset.common import DataEntry
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.time_feature import get_seasonality
 
 
 def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     """
     Test the time series for seasonal patterns by performing a 90% auto-
-    correlation test:
+    correlation test.
 
-    As described here:
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    For details, see:
+    http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
+
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
@@ -58,26 +56,19 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
 def naive_2(
     past_ts_data: np.ndarray,
     prediction_length: int,
-    freq: Optional[str] = None,
-    season_length: Optional[int] = None,
+    season_length: int,
 ) -> np.ndarray:
     """
     Make seasonality adjusted time series prediction.
 
-    If specified, `season_length` takes precedence.
+    For details, see:
+    http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
 
-    As described here:
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
-    assert freq is not None or season_length is not None, (
-        "Either the frequency or season length of the time series "
-        "has to be specified. "
-    )
-    season_length = (
-        season_length if season_length is not None else get_seasonality(freq)
-    )
+    assert season_length > 0, "The value of `season_length` should be > 0"
+
     has_seasonality = False
 
     if season_length > 1:
@@ -117,16 +108,13 @@ def naive_2(
 class Naive2Predictor(RepresentablePredictor):
     """
     Naïve 2 forecaster as described in the M4 Competition Guide:
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-
-    Guide.pdf.
+    http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
 
-    The python analogue implementation to:
+    The Python analogue implementation to:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R#L118
 
     Parameters
     ----------
-    freq
-        Frequency of the input data
     prediction_length
         Number of time points to predict
     season_length
@@ -137,26 +125,14 @@ class Naive2Predictor(RepresentablePredictor):
     def __init__(
         self,
         prediction_length: int,
-        freq: Optional[str] = None,
-        season_length: Optional[int] = None,
+        season_length: int,
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
-        assert (
-            season_length is None or season_length > 0
-        ), "The value of `season_length` should be > 0"
-        assert freq is not None or season_length is not None, (
-            "Either the frequency or season length of the time series "
-            "has to be specified. "
-        )
+        assert season_length > 0, "The value of `season_length` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
-        self.season_length = (
-            season_length
-            if season_length is not None
-            else get_seasonality(freq)
-        )
+        self.season_length = season_length
 
     def predict_item(self, item: DataEntry) -> Forecast:
         past_ts_data = item["target"]
@@ -167,7 +143,9 @@ class Naive2Predictor(RepresentablePredictor):
             len(past_ts_data) >= 1
         ), "all time series should have at least one data point"
 
-        prediction = naive_2(past_ts_data, self.prediction_length, self.freq)
+        prediction = naive_2(
+            past_ts_data, self.prediction_length, self.season_length
+        )
 
         samples = np.array([prediction])
 
