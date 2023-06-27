@@ -29,7 +29,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     correlation test:
 
     As described here:
-    https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf
+    http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
