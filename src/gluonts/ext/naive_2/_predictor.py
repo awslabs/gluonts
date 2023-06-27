@@ -28,7 +28,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
     Test the time series for seasonal patterns by performing a 90% auto-
     correlation test.
 
-    As described here:
+    For details, see:
     http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
     
     Code based on:
@@ -63,7 +63,7 @@ def naive_2(
     """
     Make seasonality adjusted time series prediction.
 
-    As described here:
+    For details, see:
     http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
     
     Code based on:
@@ -112,7 +112,7 @@ class Naive2Predictor(RepresentablePredictor):
     Naïve 2 forecaster as described in the M4 Competition Guide:
     http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
 
-    The python analogue implementation to:
+    The Python analogue implementation to:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R#L118
 
     Parameters
