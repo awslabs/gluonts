@@ -11,8 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
-
 import numpy as np
 import statsmodels.api as sm
 
@@ -30,7 +28,7 @@ def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
 
     For details, see:
     http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
-    
+
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
@@ -65,7 +63,7 @@ def naive_2(
 
     For details, see:
     http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
-    
+
     Code based on:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R
     """
