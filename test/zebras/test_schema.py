@@ -51,10 +51,10 @@ def test_schema_splitframe():
     short = [1, 2, 3, 4, 5]
     long = [1, 2, 3, 4, 5, 6, 7, 8]
     row = {"target": short, "time_feat": long, "static_feat": 1}
-    schema.load_splitframe(row)
+    schema.load_splitframe(row, future_length=3)
 
     row = {"target": short, "time_feat": [long, long], "static_feat": [1]}
-    schema.load_splitframe(row)
+    schema.load_splitframe(row, future_length=3)
 
 
 def test_schema_splitframe_error():

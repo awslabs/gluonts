@@ -268,24 +268,41 @@ class Schema:
     def load_splitframe(
         self,
         data: Dict[str, Any],
-        future_length: Optional[int] = None,
+        future_length: int,
         start: Optional[Union[Period, str]] = None,
         freq: Optional[Union[Freq, str]] = None,
     ) -> SplitFrame:
-        past_fields, full_fields = partition(  # type: ignore
-            self.columns.items(), lambda item: item[1].past_only
-        )
-        past = {
-            name: field.load_from(data, name) for name, field in past_fields
-        }
-        full = {
-            name: field.load_from(data, name) for name, field in full_fields
-        }
+        if self.time_series_ref is not None:
+            ty = self.columns[self.time_series_ref]
+            ref = ty.load_from(data, self.time_series_ref)
+            length = ref.shape[ty.tdim]
+
+            if ty.past_only:
+                past_length = length
+            else:
+                past_length = length - future_length
+
+            past_fields, full_fields = partition(  # type: ignore
+                self.columns.items(), lambda item: item[1].past_only
+            )
+            past = {
+                name: field.load_from(data, name)
+                for name, field in past_fields
+            }
+            full = {
+                name: field.load_from(data, name)
+                for name, field in full_fields
+            }
+        else:
+            past_length = 0
+            full = {}
+            past = {}
 
         return split_frame(
             full,
             past=past,
             static=self._load_static(data),
+            past_length=past_length,
             future_length=future_length,
             start=start,
             freq=freq,
