@@ -179,7 +179,7 @@ class Period(_BasePeriod):
         return self.data
 
     @property
-    def shape(self) -> Tuple[int]:
+    def shape(self) -> Tuple[int, ...]:
         return self.data.shape
 
     def __array__(self) -> np.datetime64:
@@ -353,7 +353,7 @@ class Periods(_BasePeriod):
         return self.data
 
     @property
-    def shape(self) -> Tuple[int]:
+    def shape(self) -> Tuple[int, ...]:
         return self.data.shape
 
     def __array__(self) -> np.ndarray:

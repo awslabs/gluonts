@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 from operator import itemgetter
-from typing import Collection, Union, Optional, Dict, List
+from typing import Collection, Union, Optional, Dict, List, Tuple
 
 import numpy as np
 from toolz import first
@@ -47,7 +47,7 @@ class TimeSeries(TimeBase):
         return self.values == other
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return self.values.shape
 
     def __array__(self):
@@ -167,7 +167,7 @@ class BatchTimeSeries(TimeBase):
         return self.values.shape[self.tdim]
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return self.values.shape
 
     def __array__(self):
