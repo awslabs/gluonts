@@ -78,6 +78,15 @@ class SplitFrame:
             _pad=Pad(0, self._pad.right),
         )
 
+    def __getitem__(self, name):
+        if name in self._past:
+            if name in self._future:
+                return np.concatenate(
+                    self._past[name], self._future[name], axis=self.tdims[name]
+                )
+            return self._past[name]
+        return self._future[name]
+
     def __len__(self):
         return self.past_length + self.future_length
 
@@ -117,7 +126,8 @@ class SplitFrame:
         assert self.tdims.get(name, tdim) == tdim
 
         return _replace(
-            past=merge(self.past, {name: value}),
+            self,
+            _past=merge(self._past, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
 
@@ -127,7 +137,8 @@ class SplitFrame:
         assert self.tdims.get(name, tdim) == tdim
 
         return _replace(
-            future=merge(self.future, {name: value}),
+            self,
+            _future=merge(self.future, {name: value}),
             tdims=merge(self.tdims, {name: tdim}),
         )
 
