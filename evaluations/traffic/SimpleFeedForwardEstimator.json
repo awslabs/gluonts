@@ -1,7 +1,0 @@
-{
-    "ND": 0.2511858344078064,
-    "RMSE": 0.03403539955615997,
-    "dataset": "traffic",
-    "estimator": "SimpleFeedForwardEstimator",
-    "mean_wQuantileLoss": 0.21249398589134216
-}
