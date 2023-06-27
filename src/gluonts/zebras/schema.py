@@ -57,6 +57,13 @@ class Field(BaseModel):
     default: Any = None
     preprocess: Optional[Callable] = None
 
+    def load_from(self, data, name, **kwargs):
+        try:
+            value = self._get(data, name)
+            return self._load(value, **kwargs)
+        except Exception as err:
+            raise ValueError(f"Error when processing field {name!r}.") from err
+
     def _get(self, data, name):
         if self.internal:
             value = self.default
@@ -79,16 +86,14 @@ class Metadata(Field):
     type: Any = Any
     required: bool = False
 
-    def load_from(self, data, name):
-        value = self._get(data, name)
+    def _load(self, value):
         return parse_obj_as(self.type, value)
 
 
 class Scalar(Field):
     type: Type
 
-    def load_from(self, data, name):
-        value = self._get(data, name)
+    def _load(self, value):
         return parse_obj_as(self.type, value)
 
 
@@ -97,9 +102,7 @@ class Array(Field):
     shape: Optional[tuple] = None
     dtype: Type = np.float32
 
-    def load_from(self, data, name):
-        value = self._get(data, name)
-
+    def _load(self, value):
         value = np.asarray(value, dtype=self.dtype)
 
         if not self.required and self.shape is not None and value.ndim == 0:
@@ -150,16 +153,13 @@ class TimeSeries(Field):
     tdim: int = -1
     past_only: bool = True
 
-    def load_from(
-        self, data: dict, name: str, length: Optional[int] = None
-    ) -> np.ndarray:
+    def _load(self, value, length: Optional[int] = None) -> np.ndarray:
         """Load field ``name`` from ``data`` and apply validation.
 
         Note: We do the lookup of the value in this function, since the field
         can be optional.
         """
 
-        value = self._get(data, name)
         value = np.array(value, dtype=self.dtype)
 
         if value.ndim == 0 and not self.required:
@@ -170,7 +170,7 @@ class TimeSeries(Field):
 
         if self.ndim is not None:
             assert value.ndim == self.ndim, (
-                f"Field {name} has incorrect number of dimensions. "
+                "Incorrect number of dimensions. "
                 f"Expected ndim = {self.ndim}, got: {value.ndim}"
             )
 
@@ -248,7 +248,7 @@ class Schema:
 
             columns.update(
                 {
-                    name: field.load_from(data, name, length)
+                    name: field.load_from(data, name, length=length)
                     for name, field in self.columns.items()
                     if name != self.time_series_ref
                 }
