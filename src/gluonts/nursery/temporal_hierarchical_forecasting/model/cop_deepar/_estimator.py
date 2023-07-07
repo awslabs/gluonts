@@ -211,13 +211,13 @@ class COPDeepAREstimator(GluonEstimator):
 
         print(f"Distribution output: {base_estimator_hps['distr_output']}")
 
-        if impute_missing_values not in base_estimator_hps:
+        if "impute_missing_values" not in base_estimator_hps:
             base_estimator_hps["impute_missing_values"] = impute_missing_values
 
-        if imputation_method not in base_estimator_hps:
+        if "imputation_method" not in base_estimator_hps:
             base_estimator_hps["imputation_method"] = imputation_method
 
-        if num_imputation_samples not in base_estimator_hps:
+        if "num_imputation_samples" not in base_estimator_hps:
             base_estimator_hps[
                 "num_imputation_samples"
             ] = num_imputation_samples
