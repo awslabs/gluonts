@@ -62,7 +62,9 @@ from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar._network
 class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
     @validated()
     def __init__(
-        self, agg_multiples: List[int], agg_estimators: List[GluonEstimator],
+        self,
+        agg_multiples: List[int],
+        agg_estimators: List[GluonEstimator],
     ):
         self.agg_multiples = agg_multiples
         self.agg_estimators = agg_estimators
@@ -102,7 +104,9 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
             agg_estimator.history_length + agg_estimator.prediction_length
         )
         full_date_range = pd.period_range(
-            start, periods=num_periods, freq=freq,
+            start,
+            periods=num_periods,
+            freq=freq,
         )
 
         # shape: (T, num_features)
@@ -226,7 +230,8 @@ class COPDeepAREstimator(GluonEstimator):
             base_estimator_hps_agg = deepcopy(base_estimator_hps)
             # Following is a hack because gluonts does not allow setting lag_ub from outside!
             lags_seq = get_lags_for_frequency(
-                freq_str=freq_str, lag_ub=lag_ub // agg_multiple,
+                freq_str=freq_str,
+                lag_ub=lag_ub // agg_multiple,
             )
 
             # Remove lags that will not be available for reconciliation during inference.
@@ -272,7 +277,9 @@ class COPDeepAREstimator(GluonEstimator):
         return self.base_estimator.create_transformation()
 
     def create_training_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         instance_splitter = self.base_estimator._create_instance_splitter(
@@ -292,7 +299,9 @@ class COPDeepAREstimator(GluonEstimator):
         )
 
     def create_validation_data_loader(
-        self, data: Dataset, **kwargs,
+        self,
+        data: Dataset,
+        **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         instance_splitter = self.base_estimator._create_instance_splitter(
