@@ -13,7 +13,7 @@
 
 from copy import deepcopy
 from functools import partial
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from mxnet.gluon import HybridBlock
 import numpy as np
@@ -27,7 +27,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import GaussianOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -42,6 +41,7 @@ from gluonts.transform import (
     SelectFields,
     SimpleTransformation,
     Transformation,
+    MissingValueImputation,
 )
 
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.gluonts_fixes import (
@@ -62,9 +62,7 @@ from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar._network
 class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
     @validated()
     def __init__(
-        self,
-        agg_multiples: List[int],
-        agg_estimators: List[GluonEstimator],
+        self, agg_multiples: List[int], agg_estimators: List[GluonEstimator],
     ):
         self.agg_multiples = agg_multiples
         self.agg_estimators = agg_estimators
@@ -104,9 +102,7 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
             agg_estimator.history_length + agg_estimator.prediction_length
         )
         full_date_range = pd.period_range(
-            start,
-            periods=num_periods,
-            freq=freq,
+            start, periods=num_periods, freq=freq,
         )
 
         # shape: (T, num_features)
@@ -172,6 +168,9 @@ class COPDeepAREstimator(GluonEstimator):
         return_forecasts_at_all_levels: bool = False,
         naive_reconciliation: bool = False,
         dtype: Type = np.float32,
+        impute_missing_values: bool = False,
+        imputation_method: Optional[MissingValueImputation] = None,
+        num_imputation_samples: int = 1,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -208,6 +207,17 @@ class COPDeepAREstimator(GluonEstimator):
 
         print(f"Distribution output: {base_estimator_hps['distr_output']}")
 
+        if impute_missing_values not in base_estimator_hps:
+            base_estimator_hps["impute_missing_values"] = impute_missing_values
+
+        if imputation_method not in base_estimator_hps:
+            base_estimator_hps["imputation_method"] = imputation_method
+
+        if num_imputation_samples not in base_estimator_hps:
+            base_estimator_hps[
+                "num_imputation_samples"
+            ] = num_imputation_samples
+
         self.estimators = []
         for agg_multiple, freq_str in zip(
             self.temporal_hierarchy.agg_multiples,
@@ -216,8 +226,7 @@ class COPDeepAREstimator(GluonEstimator):
             base_estimator_hps_agg = deepcopy(base_estimator_hps)
             # Following is a hack because gluonts does not allow setting lag_ub from outside!
             lags_seq = get_lags_for_frequency(
-                freq_str=freq_str,
-                lag_ub=lag_ub // agg_multiple,
+                freq_str=freq_str, lag_ub=lag_ub // agg_multiple,
             )
 
             # Remove lags that will not be available for reconciliation during inference.
@@ -263,9 +272,7 @@ class COPDeepAREstimator(GluonEstimator):
         return self.base_estimator.create_transformation()
 
     def create_training_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
+        self, data: Dataset, **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         instance_splitter = self.base_estimator._create_instance_splitter(
@@ -285,9 +292,7 @@ class COPDeepAREstimator(GluonEstimator):
         )
 
     def create_validation_data_loader(
-        self,
-        data: Dataset,
-        **kwargs,
+        self, data: Dataset, **kwargs,
     ) -> DataLoader:
         input_names = get_hybrid_forward_input_names(COPDeepARTrainingNetwork)
         instance_splitter = self.base_estimator._create_instance_splitter(
