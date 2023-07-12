@@ -744,7 +744,7 @@ class DeepVARNetwork(mx.gluon.HybridBlock):
             begin_states=state,
         )
 
-    def post_process_samples(self, samples: Tensor) -> Tensor:
+    def post_process_samples(self, samples: Tensor, **kwargs) -> Tensor:
         """
         Method to enforce domain-specific constraints on the generated samples.
 
