@@ -34,3 +34,8 @@ exclude = ["src/gluonts/nursery"]
 pre-summary-newline = true
 make-summary-multi-line = true
 wrap-descriptions = 79
+
+[tool.mypy]
+ignore_missing_imports = true
+allow_redefinition = true
+follow_imports = "silent"

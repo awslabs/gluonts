@@ -11,78 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .ts_stats import seasonal_error
-from .stats import (
-    absolute_label,
-    error,
-    absolute_error,
-    squared_error,
-    quantile_loss,
-    coverage,
-    absolute_percentage_error,
-    symmetric_absolute_percentage_error,
-    scaled_interval_score,
-    absolute_scaled_error,
-)
-from .metrics import (
-    Metric,
-    mean_absolute_label,
-    sum_absolute_label,
-    SumAbsoluteError,
-    MSE,
-    SumQuantileLoss,
-    Coverage,
-    MAPE,
-    SMAPE,
-    MSIS,
-    MASE,
-    ND,
-    RMSE,
-    NRMSE,
-    WeightedSumQuantileLoss,
-    MAECoverage,
-    MeanSumQuantileLoss,
-    MeanWeightedSumQuantileLoss,
-    OWA,
-)
-from .aggregations import Aggregation, Sum, Mean
-from .evaluator import Evaluator, DirectEvaluator, DerivedEvaluator
+from . import aggregations
+from . import metrics
+from . import stats
+from . import ts_stats
 
-__all__ = [
-    "seasonal_error",
-    "absolute_label",
-    "error",
-    "absolute_error",
-    "squared_error",
-    "quantile_loss",
-    "coverage",
-    "absolute_percentage_error",
-    "symmetric_absolute_percentage_error",
-    "scaled_interval_score",
-    "absolute_scaled_error",
-    "mean_absolute_label",
-    "sum_absolute_label",
-    "SumAbsoluteError",
-    "MSE",
-    "SumQuantileLoss",
-    "Coverage",
-    "MAPE",
-    "SMAPE",
-    "MSIS",
-    "MASE",
-    "ND",
-    "RMSE",
-    "NRMSE",
-    "WeightedSumQuantileLoss",
-    "MAECoverage",
-    "MeanSumQuantileLoss",
-    "MeanWeightedSumQuantileLoss",
-    "OWA",
-    "Aggregation",
-    "Sum",
-    "Mean",
-    "Metric",
-    "Evaluator",
-    "DirectEvaluator",
-    "DerivedEvaluator",
-]
+
+__all__ = ["aggregations", "metrics", "stats", "ts_stats", "evaluate"]
+
+
+def evaluate(metrics, data_batches, axis=None):
+    return metrics(axis).update_all(data_batches).get()

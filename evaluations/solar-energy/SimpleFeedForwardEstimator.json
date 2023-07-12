@@ -1,7 +1,0 @@
-{
-    "ND": 0.5201357007026672,
-    "RMSE": 37.25115203857422,
-    "dataset": "solar-energy",
-    "estimator": "SimpleFeedForwardEstimator",
-    "mean_wQuantileLoss": 0.4354718327522278
-}

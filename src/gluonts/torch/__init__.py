@@ -18,6 +18,10 @@ __all__ = [
     "DeepAREstimator",
     "SimpleFeedForwardEstimator",
     "TemporalFusionTransformerEstimator",
+    "WaveNetEstimator",
+    "DLinearEstimator",
+    "PatchTSTEstimator",
+    "LagTSTEstimator",
 ]
 import torch
 from .model.estimator import PyTorchLightningEstimator
@@ -26,6 +30,10 @@ from .model.deep_npts import DeepNPTSEstimator
 from .model.deepar import DeepAREstimator
 from .model.simple_feedforward import SimpleFeedForwardEstimator
 from .model.tft import TemporalFusionTransformerEstimator
+from .model.wavenet import WaveNetEstimator
+from .model.d_linear import DLinearEstimator
+from .model.patch_tst import PatchTSTEstimator
+from .model.lag_tst import LagTSTEstimator
 
 
 from . import prelude as _  # noqa

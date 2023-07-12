@@ -79,7 +79,6 @@ def test_train_prediction(features_df: Optional[pd.DataFrame]):
         freq=hts.freq,
         prediction_length=PREDICTION_LENGTH,
         trainer=Trainer(epochs=1, num_batches_per_epoch=1, hybridize=False),
-        target_dim=hts.num_ts,
         S=hts.S,
         use_feat_dynamic_real=use_feat_dynamic_real,
     )

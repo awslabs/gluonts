@@ -35,6 +35,7 @@ import pandas as pd
 
 from gluonts.gluonts_tqdm import tqdm
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.time_feature import get_seasonality
 
 from .metrics import (
     abs_error,
@@ -48,6 +49,7 @@ from .metrics import (
     msis,
     quantile_loss,
     smape,
+    num_masked_values,
 )
 
 
@@ -386,6 +388,7 @@ class Evaluator:
             "MASE": mase(pred_target, median_fcst, seasonal_error),
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
+            "num_masked_target_values": num_masked_values(pred_target),
         }
 
     def get_metrics_per_ts(
@@ -465,7 +468,9 @@ class Evaluator:
             from gluonts.ext.naive_2 import naive_2
 
             naive_median_forecast = naive_2(
-                past_data, len(pred_target), freq=forecast.start_date.freqstr
+                past_data,
+                len(pred_target),
+                season_length=get_seasonality(forecast.start_date.freqstr),
             )
             metrics["sMAPE_naive2"] = smape(pred_target, naive_median_forecast)
             metrics["MASE_naive2"] = mase(
@@ -498,6 +503,7 @@ class Evaluator:
             "MAPE": "mean",
             "sMAPE": "mean",
             "MSIS": "mean",
+            "num_masked_target_values": "sum",
         }
         if self.calculate_owa:
             agg_funs["sMAPE_naive2"] = "mean"

@@ -15,14 +15,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field, InitVar
-from typing import Any, Iterable, Optional, Type, Union
+from typing import Any, Iterable, Optional, Type, Union, cast
 
 import numpy as np
 import pandas as pd
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from toolz import first
 
-from gluonts.maybe import Maybe
+from gluonts import maybe
 from gluonts.dataset.common import DataEntry
 from gluonts.itertools import Map, StarMap, SizedIterable
 
@@ -118,7 +118,7 @@ class PandasDataset:
 
             self.freq = infer_freq(first(pairs)[1].index)
 
-        static_features = Maybe(static_features).unwrap_or_else(pd.DataFrame)
+        static_features = maybe.unwrap_or_else(static_features, pd.DataFrame)
 
         object_columns = static_features.select_dtypes(
             "object"
@@ -151,11 +151,11 @@ class PandasDataset:
 
     @property
     def num_feat_dynamic_real(self) -> int:
-        return Maybe(self.feat_dynamic_real).map_or(len, 0)
+        return maybe.map_or(self.feat_dynamic_real, len, 0)
 
     @property
     def num_past_feat_dynamic_real(self) -> int:
-        return Maybe(self.past_feat_dynamic_real).map_or(len, 0)
+        return maybe.map_or(self.past_feat_dynamic_real, len, 0)
 
     @property
     def static_cardinalities(self):
@@ -220,7 +220,7 @@ class PandasDataset:
     def __len__(self) -> int:
         return len(self._data_entries)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         info = ", ".join(
             [
                 f"size={len(self)}",
@@ -255,6 +255,10 @@ class PandasDataset:
         constant value), or be given as a separate data frame indexed by the
         ``item_id`` values.
 
+        Note: on large datasets, this constructor can take some time to complete
+        since it does some indexing and groupby operations on the data, and caches
+        the result.
+
         Parameters
         ----------
         dataframe
@@ -278,12 +282,17 @@ class PandasDataset:
             Dataset containing series data from the given long dataframe.
         """
         if timestamp is not None:
+            logger.info(f"Indexing data by '{timestamp}'.")
             dataframe.index = pd.to_datetime(dataframe[timestamp])
 
         if not isinstance(dataframe.index, DatetimeIndexOpsMixin):
+            logger.info("Converting index into DatetimeIndex.")
             dataframe.index = pd.to_datetime(dataframe.index)
 
         if static_feature_columns is not None:
+            logger.info(
+                f"Collecting features from columns {static_feature_columns}."
+            )
             other_static_features = (
                 dataframe[[item_id] + static_feature_columns]
                 .drop_duplicates()
@@ -295,8 +304,11 @@ class PandasDataset:
         else:
             other_static_features = pd.DataFrame()
 
+        logger.info(f"Grouping data by '{item_id}'; this may take some time.")
+        pairs = list(dataframe.groupby(item_id))
+
         return cls(
-            dataframes=dataframe.groupby(item_id),
+            dataframes=pairs,
             static_features=pd.concat(
                 [static_features, other_static_features], axis=1
             ),
@@ -338,5 +350,5 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
         >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
         False
     """
-    other = pd.period_range(index[0], periods=len(index), freq=index.freq)
-    return (other == index).all()
+
+    return cast(bool, np.all(np.diff(index.asi8) == index.freq.n))
