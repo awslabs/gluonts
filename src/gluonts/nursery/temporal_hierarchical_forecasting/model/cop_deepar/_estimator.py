@@ -42,8 +42,8 @@ from gluonts.transform import (
     SimpleTransformation,
     Transformation,
     MissingValueImputation,
+    RollingMeanValueImputation,
 )
-
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.gluonts_fixes import (
     batchify_with_dict,
     DeepAREstimatorForCOP,
@@ -237,6 +237,15 @@ class COPDeepAREstimator(GluonEstimator):
             # Remove lags that will not be available for reconciliation during inference.
             num_nodes = self.temporal_hierarchy.num_leaves // agg_multiple
             lags_seq = [lag for lag in lags_seq if lag >= num_nodes]
+
+            # adapt window_length if RollingMeanValueImputation is used
+            if isinstance(imputation_method, RollingMeanValueImputation):
+                base_estimator_hps_agg[
+                    "imputation_method"
+                ] = RollingMeanValueImputation(
+                    window_size=imputation_method.window_size // agg_multiple
+                )
+                print(base_estimator_hps_agg["imputation_method"])
 
             # Hack to enforce correct serialization of lags_seq and history length
             # (only works when set in constructor).
