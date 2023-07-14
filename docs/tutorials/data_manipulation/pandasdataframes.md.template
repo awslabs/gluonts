@@ -124,7 +124,7 @@ from gluonts.dataset.pandas import PandasDataset
 max_end = max(df.groupby("item_id").apply(lambda _df: _df.index[-1]))
 dfs_dict = {}
 for item_id, gdf in df_missing_val.groupby("item_id"):
-    new_index = pd.date_range(gdf.index[0], end=max_end, freq="1D")
+    new_index = pd.date_range(gdf.index[0], end=max_end, freq="1H")
     dfs_dict[item_id] = gdf.reindex(new_index).drop("item_id", axis=1)
 
 ds = PandasDataset(dfs_dict, target="target")
