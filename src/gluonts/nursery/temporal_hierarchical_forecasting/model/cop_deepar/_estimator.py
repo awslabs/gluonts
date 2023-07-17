@@ -352,7 +352,6 @@ class COPDeepAREstimator(GluonEstimator):
             + self.agg_feature_adder,
             prediction_net=prediction_network,
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
             ctx=self.trainer.ctx,
             dtype=self.dtype,
