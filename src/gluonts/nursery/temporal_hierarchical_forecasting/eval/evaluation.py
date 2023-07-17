@@ -87,27 +87,41 @@ def evaluate_forecasts_at_all_levels(
     evaluator,
     metrics: List[str] = ["mean_wQuantileLoss"],
 ):
+    # (ts_1_6M, ts_1_2M, ts_1_1M, ts_2_6M, ts_2_2M, ts_2_1M, ...)
     forecast_at_all_levels_unpacked_it = unpack_forecasts(
         forecast_at_all_levels_it=forecast_at_all_levels_it,
         temporal_hierarchy=temporal_hierarchy,
         target_temporal_hierarchy=temporal_hierarchy,
     )
 
-    # First get item metrics for all time series for all frequencies; these are per time series metrics.
-    # Then we aggregate the metrics by slicing according to the hierarchy.
-    # `metrics_per_ts` is a dataframe where columns contain all item metrics;
-    # number of rows = num_levels x num_ts, with the row ordering:
-    #  (ts_1_6M, ts_1_2M, ts_1_1M, ts_2_6M, ts_2_2M, ts_2_1M, ...)
-    _, metrics_per_ts = evaluator(
-        ts_iterator=test_ts_at_all_levels_it,
-        fcst_iterator=forecast_at_all_levels_unpacked_it,
-    )
-
     num_levels = len(temporal_hierarchy.agg_multiples)
+    forecast_at_all_levels_unpacked_it_set =  tee(
+        forecast_at_all_levels_unpacked_it,
+        num_levels,
+    )
+    test_ts_at_all_levels_it_set = tee(test_ts_at_all_levels_it, num_levels)
+
+    def skip_iter(it, num_skips: int, offset: int):
+        for _ in range(offset):
+            next(it)
+        for item in it:
+            for _ in range(num_skips):
+                next(it, None)  # None: in case the `it` is already exhausted.
+            yield item
+
     metrics_to_return = {}
     for level in range(num_levels):
-        agg_metrics_level, _ = evaluator.get_aggregate_metrics(
-            metrics_per_ts.iloc[level:None:num_levels]
+        agg_metrics_level, metrics_per_ts_level = evaluator(
+            ts_iterator=skip_iter(
+                test_ts_at_all_levels_it_set[level],
+                num_skips=num_levels - 1,
+                offset=level,
+            ),
+            fcst_iterator=skip_iter(
+                forecast_at_all_levels_unpacked_it_set[level],
+                num_skips=num_levels - 1,
+                offset=level,
+            ),
         )
 
         for metric_name in metrics:
