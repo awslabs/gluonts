@@ -27,7 +27,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import GaussianOutput
 from gluonts.mx.model.estimator import GluonEstimator
