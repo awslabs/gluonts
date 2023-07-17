@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from itertools import tee
 from typing import List
 
 import numpy as np
@@ -95,7 +96,7 @@ def evaluate_forecasts_at_all_levels(
     )
 
     num_levels = len(temporal_hierarchy.agg_multiples)
-    forecast_at_all_levels_unpacked_it_set =  tee(
+    forecast_at_all_levels_unpacked_it_set = tee(
         forecast_at_all_levels_unpacked_it,
         num_levels,
     )
