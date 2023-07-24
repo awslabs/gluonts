@@ -207,20 +207,24 @@ class COPDeepAREstimator(GluonEstimator):
         assert self.base_estimator_type == DeepAREstimatorForCOP
 
         if "distr_output" not in base_estimator_hps:
-            base_estimator_hps["distr_output"] = GaussianOutput()
+            base_estimator_hps.setdefault("distr_output", GaussianOutput())
 
         print(f"Distribution output: {base_estimator_hps['distr_output']}")
 
         if "impute_missing_values" not in base_estimator_hps:
-            base_estimator_hps["impute_missing_values"] = impute_missing_values
+            base_estimator_hps.setdefault(
+                "impute_missing_values", impute_missing_values
+            )
 
         if "imputation_method" not in base_estimator_hps:
-            base_estimator_hps["imputation_method"] = imputation_method
+            base_estimator_hps.setdefault(
+                "imputation_method", imputation_method
+            )
 
         if "num_imputation_samples" not in base_estimator_hps:
-            base_estimator_hps[
-                "num_imputation_samples"
-            ] = num_imputation_samples
+            base_estimator_hps.setdefault(
+                "num_imputation_samples", num_imputation_samples
+            )
 
         self.estimators = []
         for agg_multiple, freq_str in zip(
