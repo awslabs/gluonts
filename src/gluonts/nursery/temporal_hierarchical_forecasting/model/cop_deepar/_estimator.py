@@ -245,7 +245,6 @@ class COPDeepAREstimator(GluonEstimator):
                 ] = RollingMeanValueImputation(
                     window_size=imputation_method.window_size // agg_multiple
                 )
-                print(base_estimator_hps_agg["imputation_method"])
 
             # Hack to enforce correct serialization of lags_seq and history length
             # (only works when set in constructor).
