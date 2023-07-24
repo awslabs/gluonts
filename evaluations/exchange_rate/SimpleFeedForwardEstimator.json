@@ -1,7 +1,0 @@
-{
-    "ND": 0.011536053381860256,
-    "RMSE": 0.013878806494176388,
-    "dataset": "exchange_rate",
-    "estimator": "SimpleFeedForwardEstimator",
-    "mean_wQuantileLoss": 0.009026041254401207
-}

@@ -41,11 +41,18 @@ jobs:
 
     - name: Build docs
       run: |
-        just docs
+        SKIP_NOTEBOOKS=${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'pr:docs-build-notebook') }}
+        if [ $SKIP_NOTEBOOKS = true ]; then
+          DOCS_BUILD_MODE=skip
+        else
+          DOCS_BUILD_MODE=release
+        fi
+        echo "Running in '$DOCS_BUILD_MODE' mode"
+        just mode=$DOCS_BUILD_MODE docs
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
         role-session-name: docs-push

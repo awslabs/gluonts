@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import pytest
@@ -25,7 +25,8 @@ from gluonts.model import (
     evaluate_forecasts,
     evaluate_model,
 )
-from gluonts.ev import (
+from gluonts.ev.metrics import (
+    MetricDefinition,
     MSE,
     RMSE,
     NRMSE,
@@ -34,7 +35,10 @@ from gluonts.ev import (
     MASE,
     MSIS,
     ND,
+    WeightedSumQuantileLoss,
     MeanWeightedSumQuantileLoss,
+    MeanScaledQuantileLoss,
+    AverageMeanScaledQuantileLoss,
 )
 
 
@@ -65,12 +69,15 @@ _test_metrics = [
     MASE(),
     MSIS(),
     ND(),
+    WeightedSumQuantileLoss(0.5),
     MeanWeightedSumQuantileLoss(quantile_levels=[0.1, 0.5, 0.9]),
+    MeanScaledQuantileLoss(0.5),
+    AverageMeanScaledQuantileLoss(quantile_levels=[0.1, 0.5, 0.9]),
 ]
 
 
 def infer_metrics_df_shape(
-    metrics,
+    metrics: List[MetricDefinition],
     test_data: TestData,
     axis: Union[int, Tuple[int]],
 ) -> Tuple[int]:
@@ -164,7 +171,7 @@ def infer_metrics_df_shape(
     ],
 )
 def test_evaluation_shape(
-    metrics,
+    metrics: List[MetricDefinition],
     test_data: TestData,
     axis: Union[int, Tuple[int]],
 ):
@@ -203,9 +210,7 @@ def test_evaluate_model_vs_forecasts():
         prediction_length=3, windows=4
     )
 
-    model = SeasonalNaivePredictor(
-        freq="D", prediction_length=3, season_length=1
-    )
+    model = SeasonalNaivePredictor(prediction_length=3, season_length=1)
 
     forecasts = list(model.predict(test_data.input))
 
@@ -220,3 +225,34 @@ def test_evaluate_model_vs_forecasts():
             model=model, test_data=test_data, metrics=_test_metrics, axis=axis
         )
         assert (df1 == df2).all().all()
+
+
+def test_data_nan():
+    target = np.random.normal(size=50)
+    target[0] = np.nan
+    target[-1] = np.nan
+    dataset = [
+        {
+            "item_id": k,
+            "start": pd.Period("2022-06-12", freq="D"),
+            "target": target,
+        }
+        for k in range(2)
+    ]
+
+    test_data = split(dataset, offset=-12)[1].generate_instances(
+        prediction_length=3, windows=4
+    )
+
+    model = SeasonalNaivePredictor(prediction_length=3, season_length=1)
+
+    forecasts = list(model.predict(test_data.input))
+
+    for axis in [None, 0, 1, (0, 1)]:
+        df1 = evaluate_forecasts(
+            forecasts=forecasts,
+            test_data=test_data,
+            metrics=_test_metrics,
+            axis=axis,
+        )
+        assert not np.any(df1.isna())

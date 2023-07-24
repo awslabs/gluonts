@@ -11,26 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional, List, Union
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
-from gluonts.model.forecast import SampleForecast, QuantileForecast
+from gluonts.model.forecast import QuantileForecast
 
 from . import RBasePredictor
+from .util import (
+    unlist,
+    quantile_to_interval_level,
+    interval_to_quantile_level,
+)
 
 
-R_FILE_PREFIX = "univariate"
-
-UNIVARIATE_SAMPLE_FORECAST_METHODS = ["ets", "arima"]
-UNIVARIATE_QUANTILE_FORECAST_METHODS = ["tbats", "thetaf", "stlar"]
+UNIVARIATE_QUANTILE_FORECAST_METHODS = [
+    "arima",
+    "ets",
+    "tbats",
+    "thetaf",
+    "stlar",
+    "fourier.arima",
+]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
-    UNIVARIATE_SAMPLE_FORECAST_METHODS
-    + UNIVARIATE_QUANTILE_FORECAST_METHODS
-    + UNIVARIATE_POINT_FORECAST_METHODS
+    UNIVARIATE_QUANTILE_FORECAST_METHODS + UNIVARIATE_POINT_FORECAST_METHODS
 )
 
 
@@ -62,8 +69,8 @@ class RForecastPredictor(RBasePredictor):
         with very long series).
     params
         Parameters to be used when calling the forecast method default.
-        Note that, as `output_type`, only 'samples' and `quantiles` (depending on the underlying R method)
-        are supported currently.
+        For `output_type`, 'mean' and `quantiles` are supported (depending
+        on the underlying R method).
     """
 
     @validated()
@@ -74,14 +81,16 @@ class RForecastPredictor(RBasePredictor):
         method_name: str = "ets",
         period: int = None,
         trunc_length: Optional[int] = None,
-        params: Optional[Dict] = None,
+        save_info: bool = False,
+        params: Dict = dict(),
     ) -> None:
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,
             period=period,
             trunc_length=trunc_length,
-            r_file_prefix=R_FILE_PREFIX,
+            save_info=save_info,
+            r_file_prefix="univariate",
         )
         assert method_name in SUPPORTED_UNIVARIATE_METHODS, (
             f"method {method_name} is not supported please "
@@ -90,61 +99,63 @@ class RForecastPredictor(RBasePredictor):
 
         self.method_name = method_name
         self._r_method = self._robjects.r[method_name]
+
         self.params = {
             "prediction_length": self.prediction_length,
-            "output_types": ["samples"],
             "frequency": self.period,
         }
-        if params is not None:
-            self.params.update(params)
 
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
+        if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
+            self.params["output_types"] = ["mean"]
+        elif self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
+            self.params["output_types"] = ["mean", "quantiles"]
+            self.params["intervals"] = list(range(0, 100, 10))
+
+        if "quantiles" in params:
+            assert (
+                "intervals" not in params
+            ), "Cannot specify both 'quantiles' and 'intervals'."
+            intervals_info = [
+                quantile_to_interval_level(ql) for ql in params["quantiles"]
+            ]
+            params["intervals"] = sorted(
+                set([level for level, _ in intervals_info])
+            )
+
+        self.params.update(params)
+
+        # Always ask for the mean prediction to be given,
+        # since QuantileForecast will otherwise impute it
+        # using the median, which is undesired.
+        if "mean" not in self.params["output_types"]:
+            self.params["output_types"].append("mean")
+
+    def _get_r_forecast(self, data: Dict) -> Dict:
         make_ts = self._stats_pkg.ts
-        r_params = self._robjects.vectors.ListVector(params)
+        r_params = self._robjects.vectors.ListVector(self.params)
         vec = self._robjects.FloatVector(data["target"])
         ts = make_ts(vec, frequency=self.period)
         forecast = self._r_method(ts, r_params)
-        forecast_dict = dict(
-            zip(forecast.names, map(self._unlist, list(forecast)))
-        )
 
-        if "quantiles" in forecast_dict or "upper_quantiles" in forecast_dict:
+        forecast_dict = dict(zip(forecast.names, map(unlist, list(forecast))))
 
-            def from_interval_to_level(interval: int, side: str):
-                if side == "upper":
-                    level = 50 + interval / 2
-                elif side == "lower":
-                    level = 50 - interval / 2
-                else:
-                    raise ValueError
-                return level / 100
-
-            # Post-processing quantiles on then Python side for the
-            # convenience of asserting and debugging.
+        if "quantiles" in self.params["output_types"]:
             upper_quantiles = [
-                str(from_interval_to_level(interval, side="upper"))
-                for interval in params["intervals"]
+                str(interval_to_quantile_level(interval, side="upper"))
+                for interval in self.params["intervals"]
             ]
 
             lower_quantiles = [
-                str(from_interval_to_level(interval, side="lower"))
-                for interval in params["intervals"]
+                str(interval_to_quantile_level(interval, side="lower"))
+                for interval in self.params["intervals"]
             ]
 
-            # Median forecasts would be available at two places:
-            # Lower 0 and Higher 0 (0-prediction interval)
             forecast_dict["quantiles"] = dict(
                 zip(
-                    lower_quantiles + upper_quantiles[1:],
+                    lower_quantiles + upper_quantiles,
                     forecast_dict["lower_quantiles"]
-                    + forecast_dict["upper_quantiles"][1:],
+                    + forecast_dict["upper_quantiles"],
                 )
-            )
-
-            # `QuantileForecast` allows "mean" as the key;
-            # we store them as well since they can differ from median.
-            forecast_dict["quantiles"].update(
-                {"mean": forecast_dict.pop("mean")}
             )
 
         return forecast_dict
@@ -155,23 +166,6 @@ class RForecastPredictor(RBasePredictor):
             data["start"] = data["start"] + shift_by
             data["target"] = data["target"][-self.trunc_length :]
         return data
-
-    def _override_params(
-        self, params: Dict, num_samples: int, intervals: Optional[List] = None
-    ) -> Dict:
-        params["num_samples"] = num_samples
-
-        if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
-            params["output_types"] = ["mean"]
-        elif self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
-            params["output_types"] = ["quantiles", "mean"]
-            if intervals is None:
-                # This corresponds to quantiles: 0.05 to 0.95 in steps of 0.05.
-                params["intervals"] = list(range(0, 100, 10))
-            else:
-                params["intervals"] = np.sort(intervals).tolist()
-
-        return params
 
     def _warning_message(self) -> None:
         if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
@@ -188,46 +182,23 @@ class RForecastPredictor(RBasePredictor):
     def _forecast_dict_to_obj(
         self,
         forecast_dict: Dict,
-        num_samples: int,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
         info: Dict,
-    ) -> Union[QuantileForecast, SampleForecast]:
-        if self.method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS:
-            quantile_forecasts_dict = forecast_dict["quantiles"]
+    ) -> QuantileForecast:
+        stats_dict = {"mean": forecast_dict["mean"]}
 
-            return QuantileForecast(
-                forecast_arrays=np.array(
-                    list(quantile_forecasts_dict.values())
-                ),
-                forecast_keys=list(quantile_forecasts_dict.keys()),
-                start_date=forecast_start_date,
-                item_id=item_id,
-            )
-        else:
-            if self.method_name in UNIVARIATE_POINT_FORECAST_METHODS:
-                # Handling special cases outside of R is better,
-                # since it is more visible and is easier to change.
+        if "quantiles" in forecast_dict:
+            stats_dict.update(forecast_dict["quantiles"])
 
-                # Repeat mean forecasts `num_samples` times.
-                samples = np.reshape(
-                    forecast_dict["mean"] * num_samples,
-                    (num_samples, self.prediction_length),
-                )
-            else:
-                samples = np.array(forecast_dict["samples"])
+        forecast_arrays = np.array(list(stats_dict.values()))
 
-            expected_shape = (
-                num_samples,
-                self.prediction_length,
-            )
-            assert (
-                samples.shape == expected_shape
-            ), f"Expected shape {expected_shape} but found {samples.shape}"
+        assert forecast_arrays.shape[1] == self.prediction_length
 
-            return SampleForecast(
-                samples,
-                start_date=forecast_start_date,
-                info=info,
-                item_id=item_id,
-            )
+        return QuantileForecast(
+            forecast_arrays=forecast_arrays,
+            forecast_keys=list(stats_dict.keys()),
+            start_date=forecast_start_date,
+            item_id=item_id,
+            info=info,
+        )

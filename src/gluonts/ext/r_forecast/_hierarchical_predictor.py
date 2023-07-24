@@ -22,8 +22,6 @@ from gluonts.model.forecast import SampleForecast
 from . import RBasePredictor
 
 
-R_FILE_PREFIX = "hierarchical"
-
 HIERARCHICAL_POINT_FORECAST_METHODS = [
     "naive_bottom_up",
     "top_down_w_average_historical_proportions",
@@ -107,6 +105,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         fmethod: str,
         period: Optional[int] = None,
         trunc_length: Optional[int] = None,
+        save_info: bool = False,
         nonnegative: bool = False,
         level: Optional[int] = None,
         algorithm: Optional[str] = "cg",
@@ -119,7 +118,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
             prediction_length=prediction_length,
             period=period,
             trunc_length=trunc_length,
-            r_file_prefix=R_FILE_PREFIX,
+            save_info=save_info,
+            r_file_prefix="hierarchical",
         )
 
         assert method_name in SUPPORTED_HIERARCHICAL_METHODS, (
@@ -139,6 +139,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         self.params = {
             "prediction_length": self.prediction_length,
             "output_types": ["samples"],
+            "num_samples": 100,
             "frequency": self.period,
             "fmethod": fmethod,
             "nonnegative": nonnegative,
@@ -157,8 +158,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
 
         self.is_hts = is_hts
 
-    def _get_r_forecast(self, data: Dict, params: Dict) -> Dict:
-        r_params = self._robjects.vectors.ListVector(params)
+    def _get_r_forecast(self, data: Dict) -> Dict:
+        r_params = self._robjects.vectors.ListVector(self.params)
 
         # R methods take only bottom level time series and the
         # hierarchical (or grouping) structure in the form of
@@ -210,13 +211,13 @@ class RHierarchicalForecastPredictor(RBasePredictor):
                 list(forecast), (self.target_dim, self.prediction_length)
             ).transpose()
             hier_forecasts = np.tile(
-                hier_point_forecasts, (params["num_samples"], 1, 1)
+                hier_point_forecasts, (self.params["num_samples"], 1, 1)
             )
         else:
             hier_forecasts = np.reshape(
                 list(forecast),
                 (
-                    params["num_samples"],
+                    self.params["num_samples"],
                     self.prediction_length,
                     self.target_dim,
                 ),
@@ -238,23 +239,20 @@ class RHierarchicalForecastPredictor(RBasePredictor):
 
         return data
 
-    def _override_params(
-        self, params: Dict, num_samples: int, intervals: Optional[List] = None
-    ) -> Dict:
-        params["num_samples"] = num_samples
-        return params
-
     def _forecast_dict_to_obj(
         self,
         forecast_dict: Dict,
-        num_samples: int,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
         info: Dict,
     ) -> SampleForecast:
         samples = np.array(forecast_dict["samples"])
 
-        expected_shape = (num_samples, self.prediction_length, self.target_dim)
+        expected_shape = (
+            self.params["num_samples"],
+            self.prediction_length,
+            self.target_dim,
+        )
         assert (
             samples.shape == expected_shape
         ), f"Expected shape {expected_shape} but found {samples.shape}"

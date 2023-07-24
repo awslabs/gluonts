@@ -30,8 +30,10 @@ from gluonts.model.forecast import Quantile, SampleForecast
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
-from gluonts.ev import (
-    seasonal_error,
+
+from gluonts.ev import evaluate
+from gluonts.ev.ts_stats import seasonal_error
+from gluonts.ev.metrics import (
     MAPE,
     MASE,
     MSE,
@@ -126,56 +128,53 @@ def get_data_batches(predictor, test_data):
                 [seasonal_error(input_["target"], seasonality=seasonality)]
             ),
             "naive_2": np.array(
-                [naive_2(input_["target"], len(label["target"]), freq=freq)]
+                [
+                    naive_2(
+                        input_["target"],
+                        len(label["target"]),
+                        season_length=seasonality,
+                    )
+                ]
             ),
         }
 
         yield ChainMap(other_data, forecast_batch)
 
 
-def evaluate(metrics, data_batches, axis):
-    evaluators = {}
-    for metric in metrics:
-        evaluator = metric(axis=axis)
-        evaluators[evaluator.name] = evaluator
-
-    for data_batch in iter(data_batches):
-        for evaluator in evaluators.values():
-            evaluator.update(data_batch)
-
-    return {
-        metric_name: evaluator.get()
-        for metric_name, evaluator in evaluators.items()
-    }
-
-
 def get_new_metrics(test_data, predictor, quantile_levels):
     quantiles = [Quantile.parse(q) for q in quantile_levels]
 
-    item_metrics_to_evaluate = [
-        sum_absolute_label,
-        SumAbsoluteError(),
-        *(SumQuantileLoss(q=quantile.value) for quantile in quantiles),
-        mean_absolute_label,
-        MSE(),
-        MASE(),
-        MAPE(),
-        SMAPE(),
-        MSIS(),
-        *(Coverage(q=quantile.value) for quantile in quantiles),
-    ]
-    aggregated_metrics_to_evaluate = [
-        RMSE(),
-        NRMSE(),
-        ND(),
-        *(WeightedSumQuantileLoss(q=quantile.value) for quantile in quantiles),
-        MeanSumQuantileLoss([quantile.value for quantile in quantiles]),
-        MeanWeightedSumQuantileLoss(
+    item_metrics_to_evaluate = (
+        (
+            sum_absolute_label
+            + SumAbsoluteError()
+            + mean_absolute_label
+            + MSE()
+            + MASE()
+            + MAPE()
+            + SMAPE()
+            + MSIS()
+        )
+        .add(*[SumQuantileLoss(q=quantile.value) for quantile in quantiles])
+        .add(*[Coverage(q=quantile.value) for quantile in quantiles])
+    )
+
+    aggregated_metrics_to_evaluate = (
+        RMSE()
+        + NRMSE()
+        + ND()
+        + OWA()
+        + MAECoverage([quantile.value for quantile in quantiles])
+        + MeanSumQuantileLoss([quantile.value for quantile in quantiles])
+        + MeanWeightedSumQuantileLoss(
             [quantile.value for quantile in quantiles]
-        ),
-        MAECoverage([quantile.value for quantile in quantiles]),
-        OWA(),
-    ]
+        ).add(
+            *[
+                WeightedSumQuantileLoss(q=quantile.value)
+                for quantile in quantiles
+            ]
+        )
+    )
 
     # mask invalid values
     masked_dataset = []
@@ -212,7 +211,7 @@ def get_new_metrics(test_data, predictor, quantile_levels):
             )
             for quantile in quantiles
         },
-        "abs_error": np.ma.sum(item_metrics["sum_absolute_error"]),
+        "abs_error": np.ma.sum(item_metrics["sum_absolute_error[0.5]"]),
         "abs_target_sum": np.ma.sum(item_metrics["sum_absolute_label"]),
         **{
             f"QuantileLoss[{quantile}]": np.ma.sum(
@@ -237,11 +236,21 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         "MAE_Coverage": aggregated_metrics["MAE_coverage"],
     }
 
-    for metric_name in ["MSE", "MASE", "MAPE", "sMAPE", "MSIS"]:
-        all_metrics[metric_name] = np.ma.mean(item_metrics[metric_name])
+    for metric_name in [
+        "MSE[mean]",
+        "MASE[0.5]",
+        "MAPE[0.5]",
+        "sMAPE[0.5]",
+        "MSIS",
+    ]:
+        all_metrics[metric_name.split("[")[0]] = np.ma.mean(
+            item_metrics[metric_name]
+        )
 
-    for metric_name in ["RMSE", "NRMSE", "ND", "OWA"]:
-        all_metrics[metric_name] = aggregated_metrics[metric_name]
+    for metric_name in ["RMSE[mean]", "NRMSE[mean]", "ND[0.5]", "OWA[0.5]"]:
+        all_metrics[metric_name.split("[")[0]] = aggregated_metrics[
+            metric_name
+        ]
 
     return all_metrics
 
@@ -266,7 +275,8 @@ def test_against_former_evaluator():
     )
 
     predictor = SeasonalNaivePredictor(
-        prediction_length=prediction_length, freq=freq
+        prediction_length=prediction_length,
+        season_length=get_seasonality(freq),
     )
 
     quantile_levels = (0.1, 0.5, 0.9)

@@ -27,6 +27,7 @@ from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.ext.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+from gluonts.time_feature import get_seasonality
 
 
 def generate_random_dataset(
@@ -49,17 +50,23 @@ NUM_TS = 10
 
 
 @pytest.mark.parametrize(
-    "predictor_cls", [SeasonalNaivePredictor, Naive2Predictor]
+    "make_predictor",
+    [
+        lambda freq: SeasonalNaivePredictor(
+            prediction_length=PREDICTION_LENGTH,
+            season_length=SEASON_LENGTH,
+        ),
+        lambda freq: Naive2Predictor(
+            prediction_length=PREDICTION_LENGTH,
+            season_length=SEASON_LENGTH,
+        ),
+    ],
 )
 @pytest.mark.parametrize(
     "freq", ["1min", "15min", "30min", "1H", "2H", "12H", "7D", "1W", "1M"]
 )
-def test_predictor(predictor_cls, freq: str):
-    predictor = predictor_cls(
-        freq=freq,
-        prediction_length=PREDICTION_LENGTH,
-        season_length=SEASON_LENGTH,
-    )
+def test_predictor(make_predictor, freq: str):
+    predictor = make_predictor(freq)
     dataset = list(
         generate_random_dataset(
             num_ts=NUM_TS,
@@ -87,7 +94,7 @@ def test_predictor(predictor_cls, freq: str):
         assert forecast.start_date == forecast_start(data)
 
         # specifically for the seasonal naive we can test the supposed result directly
-        if predictor_cls == SeasonalNaivePredictor:
+        if isinstance(predictor, SeasonalNaivePredictor):
             assert np.allclose(forecast.samples[0], ref)
 
 
@@ -99,27 +106,27 @@ CONSTANT_DATASET_FREQ = dataset_info.metadata.freq
 CONSTANT_DATASET_PREDICTION_LENGTH = dataset_info.prediction_length
 
 
-def seasonal_naive_predictor():
-    return (
-        SeasonalNaivePredictor,
-        dict(prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH),
-    )
-
-
-def naive_2_predictor():
-    return (
-        Naive2Predictor,
-        dict(prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH),
-    )
-
-
 @flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize(
-    "predictor_cls, parameters, accuracy",
-    [seasonal_naive_predictor() + (0.0,), naive_2_predictor() + (0.0,)],
+    "predictor, accuracy",
+    [
+        (
+            SeasonalNaivePredictor(
+                prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+                season_length=get_seasonality(CONSTANT_DATASET_FREQ),
+            ),
+            0.0,
+        ),
+        (
+            Naive2Predictor(
+                prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+                season_length=get_seasonality(CONSTANT_DATASET_FREQ),
+            ),
+            0.0,
+        ),
+    ],
 )
-def test_accuracy(predictor_cls, parameters, accuracy):
-    predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
+def test_accuracy(predictor, accuracy):
     agg_metrics, item_metrics = backtest_metrics(
         test_dataset=constant_test_ds,
         predictor=predictor,
@@ -133,11 +140,19 @@ def test_accuracy(predictor_cls, parameters, accuracy):
 
 
 @pytest.mark.parametrize(
-    "predictor_cls, parameters",
-    [seasonal_naive_predictor(), naive_2_predictor()],
+    "predictor",
+    [
+        SeasonalNaivePredictor(
+            prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+            season_length=get_seasonality(CONSTANT_DATASET_FREQ),
+        ),
+        Naive2Predictor(
+            prediction_length=CONSTANT_DATASET_PREDICTION_LENGTH,
+            season_length=get_seasonality(CONSTANT_DATASET_FREQ),
+        ),
+    ],
 )
-def test_seriali_predictors(predictor_cls, parameters):
-    predictor = predictor_cls(freq=CONSTANT_DATASET_FREQ, **parameters)
+def test_seriali_predictors(predictor):
     with tempfile.TemporaryDirectory() as temp_dir:
         predictor.serialize(Path(temp_dir))
         predictor_exp = Predictor.deserialize(Path(temp_dir))

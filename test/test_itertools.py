@@ -20,12 +20,14 @@ from typing import Iterable, List, Tuple
 
 import numpy as np
 from numpy.testing import assert_equal
+from toolz import take
 import pytest
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.itertools import (
     batcher,
     Cached,
+    Chain,
     PickleCached,
     Cyclic,
     IterableSlice,
@@ -39,6 +41,8 @@ from gluonts.itertools import (
     Map,
     StarMap,
     Filter,
+    join_items,
+    RandomYield,
 )
 
 
@@ -248,3 +252,86 @@ def test_power_set():
 
     for es in expected_subsets:
         assert es in subsets
+
+
+def test_join_items():
+    left = {"a": 1, "b": 2}
+    right = {"a": 3, "c": 4}
+
+    assert list(join_items(left, right)) == [
+        ("a", 1, 3),
+        ("b", 2, None),
+        ("c", None, 4),
+    ]
+
+    assert list(join_items(left, right, "inner")) == [
+        ("a", 1, 3),
+    ]
+
+    assert list(join_items(left, right, "left")) == [
+        ("a", 1, 3),
+        ("b", 2, None),
+    ]
+
+    assert list(join_items(left, right, "right")) == [
+        ("a", 1, 3),
+        ("c", None, 4),
+    ]
+
+    with pytest.raises(Exception):
+        oin_items(left, right, "strict")
+
+
+@pytest.mark.parametrize(
+    "iterables, probabilities, sample_size, samples, random_state",
+    [
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [1.0, 0.0],
+            5,
+            [1, 2, 3],
+            np.random.RandomState(0),
+        ),
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [0.0, 1.0],
+            5,
+            [4, 5, 6],
+            np.random.RandomState(0),
+        ),
+        (
+            [Cyclic([1, 2, 3]), iter([4, 5, 6])],
+            [1.0, 0.0],
+            5,
+            [1, 2, 3, 1, 2],
+            np.random.RandomState(0),
+        ),
+        (
+            [[1, 2, 3], [4, 5, 6]],
+            [0.7, 0.3],
+            5,
+            [1, 4, 2, 3, 5],
+            np.random.RandomState(0),
+        ),
+    ],
+)
+def test_random_yield(
+    iterables, probabilities, sample_size, samples, random_state
+):
+    it = iter(RandomYield(iterables, probabilities, random_state=random_state))
+    generated_samples = list(take(sample_size, it))
+    assert generated_samples == samples
+
+
+@pytest.mark.parametrize(
+    "iterables",
+    [
+        [[1, 2, 3], [4, 5, 6, 7]],
+    ],
+)
+def test_chained(iterables: List[Iterable]):
+    expected = list(itertools.chain(*iterables))
+    chained = Chain(iterables)
+
+    assert list(chained) == expected
+    assert list(chained) == expected

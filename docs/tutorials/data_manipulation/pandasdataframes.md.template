@@ -123,8 +123,8 @@ from gluonts.dataset.pandas import PandasDataset
 
 max_end = max(df.groupby("item_id").apply(lambda _df: _df.index[-1]))
 dfs_dict = {}
-for item_id, gdf in df.groupby("item_id"):
-    new_index = pd.date_range(gdf.index[0], end=max_end, freq="1D")
+for item_id, gdf in df_missing_val.groupby("item_id"):
+    new_index = pd.date_range(gdf.index[0], end=max_end, freq="1H")
     dfs_dict[item_id] = gdf.reindex(new_index).drop("item_id", axis=1)
 
 ds = PandasDataset(dfs_dict, target="target")
@@ -448,8 +448,8 @@ n_plot = 3
 indices = np.random.choice(np.arange(0, N), size=n_plot, replace=False)
 fig, axes = plt.subplots(n_plot, 1, figsize=(10, n_plot*5))
 for index, ax in zip(indices, axes):
-    tests[index][-4*prediction_length:].plot(ax=ax)
+    ax.plot(tests[index][-4 * prediction_length :].to_timestamp())
     plt.sca(ax)
-    forecasts[index].plot(prediction_intervals=[90.], color='g')
-    plt.legend(["observed", "predicted median", "predicted 90% quantile"])
+    forecasts[index].plot(intervals=(0.9,), color='g')
+    plt.legend(["observed", "predicted median", "90% prediction interval"])
 ```

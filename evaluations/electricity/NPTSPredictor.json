@@ -1,7 +1,0 @@
-{
-    "ND": 0.08042465150356293,
-    "RMSE": 1679.8331298828125,
-    "dataset": "electricity",
-    "estimator": "NPTSPredictor",
-    "mean_wQuantileLoss": 0.061757832765579224
-}
