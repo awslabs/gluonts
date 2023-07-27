@@ -11,16 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Type
+from typing import NamedTuple, Optional
 
-import numpy as np
+from gluonts.core.component import from_hyperparameters
 
-from gluonts.core import fqname_for
-from gluonts.core.component import (
-    GluonTSHyperparametersError,
-    from_hyperparameters,
-    validated,
-)
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import DataLoader
 from gluonts.env import env
@@ -31,7 +25,6 @@ from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
 from gluonts.transform import Transformation
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
 
 
 class TrainOutput(NamedTuple):
@@ -49,42 +42,10 @@ class GluonEstimator(Estimator):
     `create_training_data_loader`, and `create_validation_data_loader`.
     """
 
-    @validated()
-    def __init__(
-        self,
-        *,
-        trainer: Trainer,
-        batch_size: int = 32,
-        lead_time: int = 0,
-        dtype: Type = np.float32,
-    ) -> None:
-        super().__init__(lead_time=lead_time)
-
-        assert batch_size > 0, "The value of `batch_size` should be > 0"
-
-        self.batch_size = batch_size
-        self.trainer = trainer
-        self.dtype = dtype
-
     @classmethod
     def from_hyperparameters(cls, **hyperparameters) -> "GluonEstimator":
-        Model = getattr(cls.__init__, "Model", None)
-
-        if not Model:
-            raise AttributeError(
-                "Cannot find attribute Model attached to the "
-                f"{fqname_for(cls)}. Most probably you have forgotten to mark "
-                "the class constructor as @validated()."
-            )
-
-        try:
-            trainer = from_hyperparameters(Trainer, **hyperparameters)
-
-            return cls(
-                **Model(**{**hyperparameters, "trainer": trainer}).__dict__
-            )
-        except ValidationError as e:
-            raise GluonTSHyperparametersError from e
+        trainer = from_hyperparameters(Trainer, **hyperparameters)
+        return cls(**{**hyperparameters, "trainer": trainer})
 
     def create_transformation(self) -> Transformation:
         """
