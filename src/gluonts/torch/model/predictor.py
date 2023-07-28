@@ -59,6 +59,7 @@ class PyTorchPredictor(Predictor):
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = device
+        self.provided_fields = False
         self.required_fields = ["forecast_start", "item_id", "info"]
 
     def to(self, device) -> "PyTorchPredictor":
@@ -73,9 +74,11 @@ class PyTorchPredictor(Predictor):
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
-        self.input_transform += SelectFields(
-            self.input_names + self.required_fields, allow_missing=True
-        )
+        if self.provided_fields:
+            self.input_transform += SelectFields(
+                self.input_names + self.required_fields, allow_missing=True
+            )
+            self.provided_fields = True
         inference_data_loader = InferenceDataLoader(
             dataset,
             transform=self.input_transform,
