@@ -13,7 +13,7 @@
 
 from copy import deepcopy
 from functools import partial
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from mxnet.gluon import HybridBlock
 import numpy as np
@@ -27,7 +27,6 @@ from gluonts.dataset.loader import (
     TrainDataLoader,
     ValidationDataLoader,
 )
-from gluonts.env import env
 from gluonts.model.predictor import Predictor
 from gluonts.mx.distribution import GaussianOutput
 from gluonts.mx.model.estimator import GluonEstimator
@@ -42,8 +41,9 @@ from gluonts.transform import (
     SelectFields,
     SimpleTransformation,
     Transformation,
+    MissingValueImputation,
+    RollingMeanValueImputation,
 )
-
 from gluonts.nursery.temporal_hierarchical_forecasting.model.cop_deepar.gluonts_fixes import (
     batchify_with_dict,
     DeepAREstimatorForCOP,
@@ -172,6 +172,9 @@ class COPDeepAREstimator(GluonEstimator):
         return_forecasts_at_all_levels: bool = False,
         naive_reconciliation: bool = False,
         dtype: Type = np.float32,
+        impute_missing_values: bool = False,
+        imputation_method: Optional[MissingValueImputation] = None,
+        num_imputation_samples: int = 1,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -203,10 +206,19 @@ class COPDeepAREstimator(GluonEstimator):
 
         assert self.base_estimator_type == DeepAREstimatorForCOP
 
-        if "distr_output" not in base_estimator_hps:
-            base_estimator_hps["distr_output"] = GaussianOutput()
+        base_estimator_hps.setdefault("distr_output", GaussianOutput())
 
         print(f"Distribution output: {base_estimator_hps['distr_output']}")
+
+        base_estimator_hps.setdefault(
+            "impute_missing_values", impute_missing_values
+        )
+
+        base_estimator_hps.setdefault("imputation_method", imputation_method)
+
+        base_estimator_hps.setdefault(
+            "num_imputation_samples", num_imputation_samples
+        )
 
         self.estimators = []
         for agg_multiple, freq_str in zip(
@@ -223,6 +235,14 @@ class COPDeepAREstimator(GluonEstimator):
             # Remove lags that will not be available for reconciliation during inference.
             num_nodes = self.temporal_hierarchy.num_leaves // agg_multiple
             lags_seq = [lag for lag in lags_seq if lag >= num_nodes]
+
+            # adapt window_length if RollingMeanValueImputation is used
+            if isinstance(imputation_method, RollingMeanValueImputation):
+                base_estimator_hps_agg[
+                    "imputation_method"
+                ] = RollingMeanValueImputation(
+                    window_size=imputation_method.window_size // agg_multiple
+                )
 
             # Hack to enforce correct serialization of lags_seq and history length
             # (only works when set in constructor).
