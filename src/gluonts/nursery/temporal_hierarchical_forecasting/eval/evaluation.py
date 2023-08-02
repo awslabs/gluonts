@@ -95,20 +95,20 @@ def evaluate_forecasts_at_all_levels(
         temporal_hierarchy=temporal_hierarchy,
         target_temporal_hierarchy=temporal_hierarchy,
     )
-    
+
     num_levels = len(temporal_hierarchy.agg_multiples)
 
     # In one go, we can get item metrics for time series that have the same frequency.
-    # So we create `num_levels` copies of the iterator and obtain the item metrics 
-    # for each level independently.    
+    # So we create `num_levels` copies of the iterator and obtain the item metrics
+    # for each level independently.
     forecast_at_all_levels_unpacked_it_set = tee(
         forecast_at_all_levels_unpacked_it,
         num_levels,
     )
     test_ts_at_all_levels_it_set = tee(test_ts_at_all_levels_it, num_levels)
 
-    # Since forecasts for all granularities are in the same iterable, 
-    # we need a way to iterate through forecasts skipping some elements.    
+    # Since forecasts for all granularities are in the same iterable,
+    # we need a way to iterate through forecasts skipping some elements.
     def skip_iter(it, num_skips: int, offset: int):
         for _ in range(offset):
             next(it)
