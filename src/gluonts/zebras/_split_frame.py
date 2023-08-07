@@ -180,7 +180,10 @@ class SplitFrame:
         future_length = maybe.unwrap_or(future_length, self.future_length)
 
         if index is not None:
-            start = index[0] + (self.past_length + past_length)
+            # Calculate new start. If current past_length is larger than the
+            # the new one, we shift it to the right, if it's smaller, we need
+            # to go further into the past (shift to the left)
+            start = index[0] + (self.past_length - past_length)
             index = start.periods(past_length + future_length)
 
         return _replace(
