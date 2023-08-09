@@ -22,6 +22,7 @@ from gluonts.mx.trainer import Trainer
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
+
 @pytest.mark.parametrize("datasets", [make_dummy_datasets_with_features()])
 @pytest.mark.parametrize("distr_output", [StudentTOutput()])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
