@@ -95,7 +95,7 @@ class Gaussian(Distribution):
 
         """
 
-        # Compute mean and variances
+        # Compute mean and standard deviations
         mu = samples.mean(axis=0)
         sigma = F.sqrt(F.square(samples - mu).mean(axis=0))
         return cls(mu=mu, sigma=sigma)
