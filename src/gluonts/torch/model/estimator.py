@@ -213,10 +213,15 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
         )
 
-        logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.load_from_checkpoint(
-            checkpoint.best_model_path
-        )
+        if checkpoint.best_model_path != "":
+            logger.info(
+                f"Loading best model from {checkpoint.best_model_path}"
+            )
+            best_model = training_network.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = training_network
 
         return TrainOutput(
             transformation=transformation,

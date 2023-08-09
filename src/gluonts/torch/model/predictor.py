@@ -73,12 +73,12 @@ class PyTorchPredictor(Predictor):
     def predict(
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
-        self.input_transform += SelectFields(
-            self.input_names + self.required_fields, allow_missing=True
-        )
         inference_data_loader = InferenceDataLoader(
             dataset,
-            transform=self.input_transform,
+            transform=self.input_transform
+            + SelectFields(
+                self.input_names + self.required_fields, allow_missing=True
+            ),
             batch_size=self.batch_size,
             stack_fn=lambda data: batchify(data, self.device),
         )
