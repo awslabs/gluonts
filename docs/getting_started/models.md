@@ -79,4 +79,4 @@ NPTS                                                         | Local        | Un
 [Prophet]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/prophet/_predictor.py
 [NaiveSeasonal]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/seasonal_naive/_predictor.py
 [Naive2]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/naive_2/_predictor.py
-[NPTS]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/ext/npts/_predictor.py
+[NPTS]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/model/npts/_predictor.py
