@@ -25,19 +25,17 @@ from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 @pytest.mark.parametrize("distr_output", [StudentTOutput()])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("impute_missing_values", [False, True])
-@pytest.mark.parametrize("nonnegative_pred_samples", [True])
 def test_deepar_nonnegative_pred_samples(
     distr_output,
     datasets,
     dtype,
     impute_missing_values,
-    nonnegative_pred_samples,
 ):
     estimator = DeepAREstimator(
         distr_output=distr_output,
         dtype=dtype,
         impute_missing_values=impute_missing_values,
-        nonnegative_pred_samples=nonnegative_pred_samples,
+        nonnegative_pred_samples=True,
         freq="D",
         prediction_length=3,
         trainer=Trainer(epochs=1, num_batches_per_epoch=1),
