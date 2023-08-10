@@ -17,7 +17,6 @@ import pytest
 from gluonts.mx import DeepAREstimator
 from gluonts.mx.distribution import StudentTOutput
 from gluonts.mx.trainer import Trainer
-
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 
 
@@ -25,11 +24,13 @@ from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 @pytest.mark.parametrize("distr_output", [StudentTOutput()])
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 @pytest.mark.parametrize("impute_missing_values", [False, True])
+@pytest.mark.parametrize("symbol_block_predictor", [False, True])
 def test_deepar_nonnegative_pred_samples(
     distr_output,
     datasets,
     dtype,
     impute_missing_values,
+    symbol_block_predictor,
 ):
     estimator = DeepAREstimator(
         distr_output=distr_output,
@@ -43,6 +44,10 @@ def test_deepar_nonnegative_pred_samples(
 
     dataset_train, dataset_test = datasets
     predictor = estimator.train(dataset_train)
+
+    if symbol_block_predictor:
+        predictor = predictor.as_symbol_block_predictor(dataset=dataset_test)
+
     forecasts = list(predictor.predict(dataset_test))
     assert all([forecast.samples.dtype == dtype for forecast in forecasts])
     assert len(forecasts) == len(dataset_test)
