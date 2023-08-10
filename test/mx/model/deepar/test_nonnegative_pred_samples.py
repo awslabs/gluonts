@@ -50,6 +50,5 @@ def test_deepar_nonnegative_pred_samples(
     assert len(forecasts) == len(dataset_test)
 
     if nonnegative_pred_samples:
-        assert all(
-            [(forecast.samples < 0).sum() == 0 for forecast in forecasts]
-        )
+        for forecast in forecasts:
+            assert (forecast.samples >= 0).all()
