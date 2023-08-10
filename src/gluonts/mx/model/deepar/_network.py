@@ -805,7 +805,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         """
 
         if self.nonnegative_pred_samples:
-            return F.Activation(samples, act_type="relu")
+            return F.relu(samples)
 
         return samples
 
