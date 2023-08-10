@@ -317,7 +317,7 @@ class MQCNNEstimator(ForkingSeq2SeqEstimator):
             if field in params.keys():
                 is_params_field = (
                     params[field]
-                    if type(params[field]) == bool
+                    if isinstance(params[field], bool)
                     else strtobool(params[field])
                 )
                 if is_params_field and not auto_params[field]:
