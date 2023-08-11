@@ -363,10 +363,10 @@ class DeepARModel(nn.Module):
         Parameters
         ----------
         samples
-            Tensor of shape (batch_size * num_samples, 1)
+            Tensor of samples
         Returns
         -------
-            Tensor of samples with the same shape.
+            Tensor of processed samples with the same shape.
         """
 
         if self.nonnegative_pred_samples:
@@ -478,12 +478,6 @@ class DeepARModel(nn.Module):
         future_samples_concat = self.post_process_samples(
             future_samples_concat
         )
-        print(1)
-
-        print(f"self.training: {self.training}")
-
-        if not self.training:
-            print(1)
 
         return future_samples_concat.reshape(
             (-1, num_parallel_samples, self.prediction_length)
