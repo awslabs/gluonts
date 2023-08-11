@@ -124,6 +124,12 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Length of the prediction horizon
     S
         Summation or aggregation matrix.
+    D
+        Positive definite matrix (typically a diagonal matrix). Optional.
+        If provided then the distance between the reconciled and unreconciled
+        forecasts is calculated based on the norm induced by D. Useful for
+        weighing the distances differently for each level of the hierarchy.
+        By default Euclidean distance is used.
     num_samples_for_loss
         Number of samples to draw from the predicted distribution to compute
         the training loss.
@@ -210,6 +216,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         freq: str,
         prediction_length: int,
         S: np.ndarray,
+        D: Optional[np.ndarray] = None,
         num_samples_for_loss: int = 200,
         likelihood_weight: float = 0.0,
         CRPS_weight: float = 1.0,
@@ -288,7 +295,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         ), "Cannot project only during training (and not during prediction)"
 
         A = constraint_mat(S.astype(self.dtype))
-        M = null_space_projection_mat(A)
+        M = null_space_projection_mat(A=A, D=D)
         ctx = self.trainer.ctx
         self.M = mx.nd.array(M, ctx=ctx)
         self.A = mx.nd.array(A, ctx=ctx)
