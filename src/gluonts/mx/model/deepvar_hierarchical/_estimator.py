@@ -75,7 +75,7 @@ def constraint_mat(S: np.ndarray) -> np.ndarray:
 
 def null_space_projection_mat(
     A: np.ndarray,
-    D: Optional[np.ndarray],
+    D: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """
     Computes the projection matrix for projecting onto the null space of A.
@@ -88,9 +88,9 @@ def null_space_projection_mat(
     D
         Positive definite matrix (typically a diagonal matrix). Optional.
         If provided then the distance between the reconciled and unreconciled
-        forecasts is calculated based on the norm induced by D. Useful for 
-        weighing the distances differently for each level of the hierarchy. 
-        By default Euclidean distance is used. 
+        forecasts is calculated based on the norm induced by D. Useful for
+        weighing the distances differently for each level of the hierarchy.
+        By default Euclidean distance is used.
 
     Returns
     -------
@@ -102,7 +102,10 @@ def null_space_projection_mat(
         return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
     else:
         D_inv = np.linalg.inv(D)
-        return np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
+        return (
+            np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
+        )
+
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
     """
