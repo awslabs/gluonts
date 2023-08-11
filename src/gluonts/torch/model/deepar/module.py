@@ -86,6 +86,10 @@ class DeepARModel(nn.Module):
     num_parallel_samples
         Number of samples to produce when unrolling the RNN in the prediction
         time range.
+    nonnegative_pred_samples
+        Should final prediction samples be non-negative? If yes, an activation
+        function is applied to ensure non-negative. Observe that this is applied
+        only to the final samples and this is not applied during training.
     """
 
     @validated()
@@ -107,6 +111,7 @@ class DeepARModel(nn.Module):
         scaling: bool = True,
         default_scale: Optional[float] = None,
         num_parallel_samples: int = 100,
+        nonnegative_pred_samples: bool = False,
     ) -> None:
         super().__init__()
 
@@ -154,6 +159,7 @@ class DeepARModel(nn.Module):
             dropout=dropout_rate,
             batch_first=True,
         )
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -350,6 +356,24 @@ class DeepARModel(nn.Module):
             sliced_params = [p[:, -trailing_n:] for p in params]
         return self.distr_output.distribution(sliced_params, scale=scale)
 
+    def post_process_samples(self, samples: torch.Tensor) -> torch.Tensor:
+        """
+        Method to enforce domain-specific constraints on the generated samples.
+        For example, we can enforce forecasts to be nonnegative.
+        Parameters
+        ----------
+        samples
+            Tensor of shape (batch_size * num_samples, 1)
+        Returns
+        -------
+            Tensor of samples with the same shape.
+        """
+
+        if self.nonnegative_pred_samples:
+            return torch.relu(samples)
+
+        return samples
+
     def forward(
         self,
         feat_static_cat: torch.Tensor,
@@ -450,6 +474,16 @@ class DeepARModel(nn.Module):
             future_samples.append(next_sample)
 
         future_samples_concat = torch.cat(future_samples, dim=1)
+
+        future_samples_concat = self.post_process_samples(
+            future_samples_concat
+        )
+        print(1)
+
+        print(f"self.training: {self.training}")
+
+        if not self.training:
+            print(1)
 
         return future_samples_concat.reshape(
             (-1, num_parallel_samples, self.prediction_length)
