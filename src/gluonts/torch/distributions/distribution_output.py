@@ -17,7 +17,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Beta, Distribution, Gamma, Normal, Poisson
+from torch.distributions import (
+    Beta,
+    Distribution,
+    Gamma,
+    Normal,
+    Poisson,
+    Laplace,
+)
 
 from gluonts.core.component import validated
 from gluonts.torch.distributions import AffineTransformed
@@ -171,6 +178,20 @@ class DistributionOutput(Output):
 class NormalOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
     distr_cls: type = Normal
+
+    @classmethod
+    def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
+        scale = F.softplus(scale)
+        return loc.squeeze(-1), scale.squeeze(-1)
+
+    @property
+    def event_shape(self) -> Tuple:
+        return ()
+
+
+class LaplaceOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
+    distr_cls: type = Laplace
 
     @classmethod
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
