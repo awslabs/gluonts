@@ -101,6 +101,9 @@ def null_space_projection_mat(
     if D is None:
         return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
     else:
+        assert np.all(
+            np.linalg.eigvals(D) > 0
+        ), "`D` must be positive definite."
         D_inv = np.linalg.inv(D)
         return (
             np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
