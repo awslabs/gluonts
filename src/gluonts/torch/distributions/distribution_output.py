@@ -17,7 +17,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Beta, Distribution, Gamma, Normal, Poisson, Laplace
+from torch.distributions import (
+    Beta,
+    Distribution,
+    Gamma,
+    Normal,
+    Poisson,
+    Laplace,
+)
 
 from gluonts.core.component import validated
 from gluonts.torch.distributions import AffineTransformed
