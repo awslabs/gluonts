@@ -20,6 +20,7 @@ from .distribution_output import (
     GammaOutput,
     NormalOutput,
     PoissonOutput,
+    LaplaceOutput,
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
 from .implicit_quantile_network import (
@@ -50,6 +51,7 @@ __all__ = [
     "ImplicitQuantileNetworkOutput",
     "ISQF",
     "ISQFOutput",
+    "LaplaceOutput",
     "MQF2Distribution",
     "MQF2DistributionOutput",
     "NegativeBinomialOutput",
