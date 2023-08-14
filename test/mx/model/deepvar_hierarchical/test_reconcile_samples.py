@@ -58,20 +58,15 @@ A = constraint_mat(S)
         None,
         # Root gets the maximum weight and the two aggregated levels get
         # more weight than the leaf level.
-        np.diag(
-            [4, 2, 2, 1, 1, 1, 1]
-        ),
+        np.diag([4, 2, 2, 1, 1, 1, 1]),
         # Random diagonal matrix
-        np.diag(
-            np.random.rand(S.shape[0])
-        ),
+        np.diag(np.random.rand(S.shape[0])),
         # Random positive definite matrix
-        np.diag(
-            np.random.rand(S.shape[0])
-        ) + np.dot(
+        np.diag(np.random.rand(S.shape[0]))
+        + np.dot(
             np.array([[4, 2, 2, 1, 1, 1, 1]]).T,
-            np.array([[4, 2, 2, 1, 1, 1, 1]])
-        )
+            np.array([[4, 2, 2, 1, 1, 1, 1]]),
+        ),
     ],
 )
 @pytest.mark.parametrize(
