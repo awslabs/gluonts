@@ -73,8 +73,8 @@ def constraint_mat(S: np.ndarray) -> np.ndarray:
     return A
 
 
-def null_space_projection_mat(
-    A: np.ndarray,
+def projection_mat(
+    S: np.ndarray,
     D: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """
@@ -82,11 +82,12 @@ def null_space_projection_mat(
 
     Parameters
     ----------
-    A
-        The constraint matrix A in the equation: Ay = 0 (y being the
-        values/forecasts of all time series in the hierarchy).
+    S
+        The summation or the aggregation matrix. Shape:
+        (total_num_time_series, num_bottom_time_series)
     D
         Symmetric positive definite matrix (typically a diagonal matrix).
+        Shape: (total_num_time_series, total_num_time_series)
         Optional.
         If provided then the distance between the reconciled and unreconciled
         forecasts is calculated based on the norm induced by D. Useful for
@@ -98,9 +99,8 @@ def null_space_projection_mat(
     Numpy ND array
         Projection matrix, shape (total_num_time_series, total_num_time_series)
     """
-    num_ts = A.shape[1]
     if D is None:
-        return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
+        return S @ np.linalg.pinv(S.T @ S) @ S.T
     else:
         assert np.all(D == D.T), "`D` must be symmetric."
         assert np.all(
@@ -109,7 +109,7 @@ def null_space_projection_mat(
 
         D_inv = np.linalg.inv(D)
         return (
-            np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
+            S @ np.linalg.pinv(S.T @ D @ S) @ S.T @ D
         )
 
 
@@ -301,7 +301,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         ), "Cannot project only during training (and not during prediction)"
 
         A = constraint_mat(S.astype(self.dtype))
-        M = null_space_projection_mat(A=A, D=D)
+        M = projection_mat(S=S, D=D)
         ctx = self.trainer.ctx
         self.M = mx.nd.array(M, ctx=ctx)
         self.A = mx.nd.array(A, ctx=ctx)

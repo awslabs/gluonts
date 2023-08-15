@@ -17,7 +17,7 @@ import pytest
 
 from gluonts.mx.model.deepvar_hierarchical import (
     constraint_mat,
-    null_space_projection_mat,
+    projection_mat,
     reconcile_samples,
     coherency_error,
 )
@@ -81,7 +81,7 @@ A = constraint_mat(S)
 )
 def test_reconciliation_error(samples, D, seq_axis):
     coherent_samples = reconcile_samples(
-        reconciliation_mat=mx.nd.array(null_space_projection_mat(A=A, D=D)),
+        reconciliation_mat=mx.nd.array(projection_mat(S=S, D=D)),
         samples=mx.nd.array(samples),
         seq_axis=seq_axis,
     )

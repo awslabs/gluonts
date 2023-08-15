@@ -22,7 +22,7 @@ from gluonts.mx.model.deepar import DeepAREstimator
 from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
 from gluonts.mx.model.deepvar_hierarchical._estimator import (
     constraint_mat,
-    null_space_projection_mat,
+    projection_mat,
 )
 from gluonts.mx.model.deepvar_hierarchical._network import coherency_error
 from gluonts.mx.distribution import Distribution, EmpiricalDistribution
@@ -97,7 +97,7 @@ class COPNetwork(mx.gluon.HybridBlock):
                 self.temporal_hierarchy.agg_mat, self.temporal_hierarchy.nodes
             )
         else:
-            M = null_space_projection_mat(A)
+            M = projection_mat(S=self.temporal_hierarchy.agg_mat)
         self.M, self.A = mx.nd.array(M), mx.nd.array(A)
 
         self.estimators = estimators
