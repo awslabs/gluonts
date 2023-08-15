@@ -117,6 +117,7 @@ dev_require = (
 )
 
 setup(
+    setup_requires=["Cython<3.0"],
     install_requires=find_requirements("requirements.txt"),
     tests_require=tests_require,
     extras_require={
