@@ -77,8 +77,15 @@ def projection_mat(
     S: np.ndarray,
     D: Optional[np.ndarray] = None,
 ) -> np.ndarray:
-    """
-    Computes the projection matrix for projecting onto the null space of A.
+    r"""
+    Computes the projection matrix :math: P for projecting base forecasts
+    :math: \bar{y} on to the space of coherent forecasts: :math: P \bar{y}.
+
+    More precisely,
+
+    .. math::
+        P = S (S^T S)^{-1} S^T,      if D is None,\\
+        P = S (S^T D S)^{-1} S^TD,   otherwise.
 
     Parameters
     ----------
