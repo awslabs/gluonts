@@ -107,10 +107,7 @@ def projection_mat(
             np.linalg.eigvals(D) > 0
         ), "`D` must be positive definite."
 
-        D_inv = np.linalg.inv(D)
-        return (
-            S @ np.linalg.pinv(S.T @ D @ S) @ S.T @ D
-        )
+        return S @ np.linalg.pinv(S.T @ D @ S) @ S.T @ D
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
