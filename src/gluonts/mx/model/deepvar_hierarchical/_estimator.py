@@ -86,7 +86,8 @@ def null_space_projection_mat(
         The constraint matrix A in the equation: Ay = 0 (y being the
         values/forecasts of all time series in the hierarchy).
     D
-        Positive definite matrix (typically a diagonal matrix). Optional.
+        Symmetric positive definite matrix (typically a diagonal matrix).
+        Optional.
         If provided then the distance between the reconciled and unreconciled
         forecasts is calculated based on the norm induced by D. Useful for
         weighing the distances differently for each level of the hierarchy.
@@ -101,9 +102,11 @@ def null_space_projection_mat(
     if D is None:
         return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
     else:
+        assert np.all(D == D.T), "`D` must be symmetric."
         assert np.all(
             np.linalg.eigvals(D) > 0
         ), "`D` must be positive definite."
+
         D_inv = np.linalg.inv(D)
         return (
             np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
