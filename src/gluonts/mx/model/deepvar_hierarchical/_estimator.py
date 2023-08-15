@@ -73,7 +73,10 @@ def constraint_mat(S: np.ndarray) -> np.ndarray:
     return A
 
 
-def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
+def null_space_projection_mat(
+    A: np.ndarray,
+    D: Optional[np.ndarray] = None,
+) -> np.ndarray:
     """
     Computes the projection matrix for projecting onto the null space of A.
 
@@ -82,6 +85,13 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
     A
         The constraint matrix A in the equation: Ay = 0 (y being the
         values/forecasts of all time series in the hierarchy).
+    D
+        Symmetric positive definite matrix (typically a diagonal matrix).
+        Optional.
+        If provided then the distance between the reconciled and unreconciled
+        forecasts is calculated based on the norm induced by D. Useful for
+        weighing the distances differently for each level of the hierarchy.
+        By default Euclidean distance is used.
 
     Returns
     -------
@@ -89,7 +99,18 @@ def null_space_projection_mat(A: np.ndarray) -> np.ndarray:
         Projection matrix, shape (total_num_time_series, total_num_time_series)
     """
     num_ts = A.shape[1]
-    return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
+    if D is None:
+        return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
+    else:
+        assert np.all(D == D.T), "`D` must be symmetric."
+        assert np.all(
+            np.linalg.eigvals(D) > 0
+        ), "`D` must be positive definite."
+
+        D_inv = np.linalg.inv(D)
+        return (
+            np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
+        )
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
@@ -109,6 +130,12 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         Length of the prediction horizon
     S
         Summation or aggregation matrix.
+    D
+        Positive definite matrix (typically a diagonal matrix). Optional.
+        If provided then the distance between the reconciled and unreconciled
+        forecasts is calculated based on the norm induced by D. Useful for
+        weighing the distances differently for each level of the hierarchy.
+        By default Euclidean distance is used.
     num_samples_for_loss
         Number of samples to draw from the predicted distribution to compute
         the training loss.
@@ -195,6 +222,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         freq: str,
         prediction_length: int,
         S: np.ndarray,
+        D: Optional[np.ndarray] = None,
         num_samples_for_loss: int = 200,
         likelihood_weight: float = 0.0,
         CRPS_weight: float = 1.0,
@@ -273,7 +301,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
         ), "Cannot project only during training (and not during prediction)"
 
         A = constraint_mat(S.astype(self.dtype))
-        M = null_space_projection_mat(A)
+        M = null_space_projection_mat(A=A, D=D)
         ctx = self.trainer.ctx
         self.M = mx.nd.array(M, ctx=ctx)
         self.A = mx.nd.array(A, ctx=ctx)

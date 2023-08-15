@@ -38,7 +38,6 @@ S = np.array(
 
 num_bottom_ts = S.shape[1]
 A = constraint_mat(S)
-reconciliation_mat = null_space_projection_mat(A)
 
 
 @pytest.mark.parametrize(
@@ -54,6 +53,23 @@ reconciliation_mat = null_space_projection_mat(A)
     ],
 )
 @pytest.mark.parametrize(
+    "D",
+    [
+        None,
+        # Root gets the maximum weight and the two aggregated levels get
+        # more weight than the leaf level.
+        np.diag([4, 2, 2, 1, 1, 1, 1]),
+        # Random diagonal matrix
+        np.diag(np.random.rand(S.shape[0])),
+        # Random positive definite matrix
+        np.diag(np.random.rand(S.shape[0]))
+        + np.dot(
+            np.array([[4, 2, 2, 1, 1, 1, 1]]).T,
+            np.array([[4, 2, 2, 1, 1, 1, 1]]),
+        ),
+    ],
+)
+@pytest.mark.parametrize(
     "seq_axis",
     [
         None,
@@ -63,9 +79,9 @@ reconciliation_mat = null_space_projection_mat(A)
         [1, 0],
     ],
 )
-def test_reconciliation_error(samples, seq_axis):
+def test_reconciliation_error(samples, D, seq_axis):
     coherent_samples = reconcile_samples(
-        reconciliation_mat=mx.nd.array(reconciliation_mat),
+        reconciliation_mat=mx.nd.array(null_space_projection_mat(A=A, D=D)),
         samples=mx.nd.array(samples),
         seq_axis=seq_axis,
     )
