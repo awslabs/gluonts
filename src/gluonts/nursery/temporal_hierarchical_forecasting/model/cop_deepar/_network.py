@@ -91,14 +91,13 @@ class COPNetwork(mx.gluon.HybridBlock):
         self.loss_function = loss_function
         self.dtype = dtype
 
-        A = constraint_mat(self.temporal_hierarchy.agg_mat)
         if naive_reconciliation:
             M = utils.naive_reconcilation_mat(
                 self.temporal_hierarchy.agg_mat, self.temporal_hierarchy.nodes
             )
         else:
             M = projection_mat(S=self.temporal_hierarchy.agg_mat)
-        self.M, self.A = mx.nd.array(M), mx.nd.array(A)
+        self.M = mx.nd.array(M)
 
         self.estimators = estimators
 
@@ -681,7 +680,8 @@ class COPDeepARPredictionNetwork(COPNetwork):
                 reconciled_samples_at_all_levels = samples_at_all_levels
 
             rec_err = coherency_error(
-                A=self.A, samples=reconciled_samples_at_all_levels
+                S=self.temporal_hierarchy.agg_mat,
+                samples=reconciled_samples_at_all_levels.asnumpy()
             )
             print(f"Reconciliation error: {rec_err}")
 

@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import mxnet as mx
 import numpy as np
 import pytest
 
@@ -56,4 +55,4 @@ A = constraint_mat(S)
 def test_coherency_error(bottom_ts):
     all_ts = S @ bottom_ts
 
-    assert coherency_error(mx.nd.array(A), mx.nd.array(all_ts)) < TOL
+    assert coherency_error(S, all_ts) < TOL

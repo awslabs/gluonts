@@ -85,7 +85,7 @@ def projection_mat(
 
     .. math::
         P = S (S^T S)^{-1} S^T,      if D is None,\\
-        P = S (S^T D S)^{-1} S^TD,   otherwise.
+        P = S (S^T D S)^{-1} S^T D,   otherwise.
 
     Parameters
     ----------
@@ -304,11 +304,10 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        A = constraint_mat(S.astype(self.dtype))
         M = projection_mat(S=S, D=D)
+        self.S = S
         ctx = self.trainer.ctx
         self.M = mx.nd.array(M, ctx=ctx)
-        self.A = mx.nd.array(A, ctx=ctx)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight
@@ -322,7 +321,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(
             M=self.M,
-            A=self.A,
+            S=self.S,
             num_samples_for_loss=self.num_samples_for_loss,
             likelihood_weight=self.likelihood_weight,
             CRPS_weight=self.CRPS_weight,
@@ -354,7 +353,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         prediction_network = DeepVARHierarchicalPredictionNetwork(
             M=self.M,
-            A=self.A,
+            S=self.S,
             log_coherency_error=self.log_coherency_error,
             coherent_pred_samples=self.coherent_pred_samples,
             target_dim=self.target_dim,
