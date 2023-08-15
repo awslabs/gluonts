@@ -98,6 +98,13 @@ class PyTorchPredictor(Predictor):
         if type(self) != type(that):
             return False
 
+        if (
+            self.prediction_length != that.prediction_length
+            or self.lead_time != that.lead_time
+            or self.input_names != that.input_names
+        ):
+            return False
+
         if not equals(self.input_transform, that.input_transform):
             return False
 
