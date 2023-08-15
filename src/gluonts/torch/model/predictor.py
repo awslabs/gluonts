@@ -94,11 +94,14 @@ class PyTorchPredictor(Predictor):
                 num_samples=num_samples,
             )
 
-    def __eq__(self, that):
+    def __eq__(self, that: "PyTorchPredictor"):
         if type(self) != type(that):
             return False
 
         if not equals(self.input_transform, that.input_transform):
+            return False
+
+        if not equals(self.output_transform, that.output_transform):
             return False
 
         return equals(
@@ -109,20 +112,10 @@ class PyTorchPredictor(Predictor):
     def serialize(self, path: Path) -> None:
         super().serialize(path)
 
-        # serialize network
-        with (path / "prediction_net.json").open("w") as fp:
-            print(dump_json(self.prediction_net), file=fp)
         torch.save(
             self.prediction_net.state_dict(), path / "prediction_net_state"
         )
 
-        # serialize transformation chain
-        with (path / "input_transform.json").open("w") as fp:
-            print(dump_json(self.input_transform), file=fp)
-
-        # FIXME: also needs to serialize the output_transform
-
-        # serialize all remaining constructor parameters
         with (path / "parameters.json").open("w") as fp:
             parameters = dict(
                 batch_size=self.batch_size,
@@ -130,6 +123,9 @@ class PyTorchPredictor(Predictor):
                 lead_time=self.lead_time,
                 forecast_generator=self.forecast_generator,
                 input_names=self.input_names,
+                input_transform=self.input_transform,
+                output_transform=self.output_transform,
+                prediction_net=self.prediction_net,
             )
             print(dump_json(parameters), file=fp)
 
@@ -140,25 +136,12 @@ class PyTorchPredictor(Predictor):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # deserialize constructor parameters
         with (path / "parameters.json").open("r") as fp:
             parameters = load_json(fp.read())
 
-        # deserialize transformation chain
-        with (path / "input_transform.json").open("r") as fp:
-            transformation = load_json(fp.read())
-
-        # deserialize network
-        with (path / "prediction_net.json").open("r") as fp:
-            prediction_net = load_json(fp.read())
-        prediction_net.load_state_dict(
+        predictor = PyTorchPredictor(**parameters, device=device)
+        predictor.prediction_net.load_state_dict(
             torch.load(path / "prediction_net_state", map_location=device)
         )
 
-        parameters["device"] = device
-
-        return PyTorchPredictor(
-            input_transform=transformation,
-            prediction_net=prediction_net,
-            **parameters,
-        )
+        return predictor
