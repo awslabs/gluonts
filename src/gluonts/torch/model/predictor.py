@@ -12,13 +12,13 @@
 # permissions and limitations under the License.
 
 from pathlib import Path
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 
-from gluonts.core.serde import dump_json, load_json
+from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
 from gluonts.model.forecast import Forecast
@@ -27,9 +27,8 @@ from gluonts.model.forecast_generator import (
     SampleForecastGenerator,
     predict_to_numpy,
 )
-from gluonts.model.predictor import OutputTransform, Predictor
+from gluonts.model.predictor import OutputTransform, RepresentablePredictor
 from gluonts.torch.batchify import batchify
-from gluonts.torch.component import equals
 from gluonts.transform import Transformation, SelectFields
 
 
@@ -38,7 +37,8 @@ def _(prediction_net: nn.Module, kwargs) -> np.ndarray:
     return prediction_net(**kwargs).cpu().numpy()
 
 
-class PyTorchPredictor(Predictor):
+class PyTorchPredictor(RepresentablePredictor):
+    @validated()
     def __init__(
         self,
         input_names: List[str],
@@ -49,7 +49,7 @@ class PyTorchPredictor(Predictor):
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
-        device: Optional[torch.device] = torch.device("cpu"),
+        device: Optional[str] = "cpu",
     ) -> None:
         super().__init__(prediction_length, lead_time=lead_time)
         self.input_names = input_names
@@ -94,28 +94,6 @@ class PyTorchPredictor(Predictor):
                 num_samples=num_samples,
             )
 
-    def __eq__(self, that: "PyTorchPredictor"):
-        if type(self) != type(that):
-            return False
-
-        if (
-            self.prediction_length != that.prediction_length
-            or self.lead_time != that.lead_time
-            or self.input_names != that.input_names
-        ):
-            return False
-
-        if not equals(self.input_transform, that.input_transform):
-            return False
-
-        if not equals(self.output_transform, that.output_transform):
-            return False
-
-        return equals(
-            self.prediction_net.state_dict(),
-            that.prediction_net.state_dict(),
-        )
-
     def serialize(self, path: Path) -> None:
         super().serialize(path)
 
@@ -123,30 +101,15 @@ class PyTorchPredictor(Predictor):
             self.prediction_net.state_dict(), path / "prediction_net_state"
         )
 
-        with (path / "parameters.json").open("w") as fp:
-            parameters = dict(
-                batch_size=self.batch_size,
-                prediction_length=self.prediction_length,
-                lead_time=self.lead_time,
-                forecast_generator=self.forecast_generator,
-                input_names=self.input_names,
-                input_transform=self.input_transform,
-                output_transform=self.output_transform,
-                prediction_net=self.prediction_net,
-            )
-            print(dump_json(parameters), file=fp)
-
     @classmethod
     def deserialize(
-        cls, path: Path, device: Optional[torch.device] = None
+        cls, path: Path, device: Optional[Union[str, torch.device]] = None
     ) -> "PyTorchPredictor":
+        predictor = super().deserialize(path)
+
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        with (path / "parameters.json").open("r") as fp:
-            parameters = load_json(fp.read())
-
-        predictor = PyTorchPredictor(**parameters, device=device)
         predictor.prediction_net.load_state_dict(
             torch.load(path / "prediction_net_state", map_location=device)
         )

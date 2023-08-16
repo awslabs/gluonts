@@ -399,7 +399,7 @@ class DeepNPTSEstimator(Estimator):
         return best_net
 
     def get_predictor(
-        self, net: torch.nn.Module, device=torch.device("cpu")
+        self, net: torch.nn.Module, device="cpu"
     ) -> PyTorchPredictor:
         pred_net_multi_step = DeepNPTSMultiStepNetwork(
             net=net, prediction_length=self.prediction_length
