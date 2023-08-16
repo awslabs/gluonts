@@ -26,7 +26,7 @@ import numpy as np
 
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import equals, from_hyperparameters, validated
+from gluonts.core.component import equals, from_hyperparameters
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import Forecast
@@ -135,22 +135,17 @@ class Predictor:
 
 class RepresentablePredictor(Predictor):
     """
-    An abstract predictor that can be subclassed by models that are not based
-    on Gluon. Subclasses should have @validated() constructors.
-    (De)serialization and value equality are all implemented on top of the.
+    An abstract predictor that can be subclassed by framework-specific models.
+    Subclasses should have ``@validated()`` constructors:
+    (de)serialization and equality test are all implemented on top of its logic.
 
-    @validated() logic.
     Parameters
     ----------
     prediction_length
         Prediction horizon.
+    lead_time
+        Prediction lead time.
     """
-
-    @validated()
-    def __init__(self, prediction_length: int, lead_time: int = 0) -> None:
-        super().__init__(
-            lead_time=lead_time, prediction_length=prediction_length
-        )
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for item in dataset:
