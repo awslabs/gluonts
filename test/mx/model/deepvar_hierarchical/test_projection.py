@@ -129,3 +129,21 @@ def test_projection_mat(D):
     p1 = null_space_projection_mat(A=constraint_mat(S), D=D)
     p2 = projection_mat(S=S, D=D)
     assert (np.abs(p1 - p2)).sum() < TOL
+
+
+@pytest.mark.parametrize(
+    "D",
+    [
+        # Non-positive definite matrix.
+        np.diag([-4, 2, 2, 1, 1, 1, 1]),
+        # Non-symmetric matrix.
+        np.diag(np.random.rand(S.shape[0]))
+        + np.dot(
+            np.array([[4, 2, 2, 1, 1, 1, 1]]).T,
+            np.array([[40, 2, 2, 1, 1, 1, 1]]),
+        ),
+    ],
+)
+def test_projection_mat_expected_fail(D):
+    with pytest.raises(AssertionError):
+        p = projection_mat(S=S, D=D)
