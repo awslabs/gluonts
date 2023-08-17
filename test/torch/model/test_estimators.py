@@ -140,6 +140,8 @@ def test_estimator_constant_dataset(
         predictor.serialize(Path(td))
         predictor_copy = Predictor.deserialize(Path(td))
 
+    assert predictor == predictor_copy
+
     forecasts = predictor_copy.predict(constant.test)
 
     for f in islice(forecasts, 5):
@@ -314,6 +316,8 @@ def test_estimator_with_features(estimator_constructor):
     with tempfile.TemporaryDirectory() as td:
         predictor.serialize(Path(td))
         predictor_copy = Predictor.deserialize(Path(td))
+
+    assert predictor == predictor_copy
 
     forecasts = predictor_copy.predict(prediction_dataset)
 

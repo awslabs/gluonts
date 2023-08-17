@@ -69,7 +69,7 @@ def test_pytorch_predictor_serde():
         prediction_net=pred_net,
         batch_size=16,
         input_transform=transformation,
-        device=torch.device("cpu"),
+        device="cpu",
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:

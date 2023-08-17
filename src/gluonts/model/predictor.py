@@ -162,7 +162,6 @@ class RepresentablePredictor(Predictor):
         return equals(self, that)
 
     def serialize(self, path: Path) -> None:
-        # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
         with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
