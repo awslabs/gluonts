@@ -191,37 +191,3 @@ class TruncatedNormal(TruncatedStandardNormal):
     def log_prob(self, value):
         value = self._to_std_rv(value)
         return super(TruncatedNormal, self).log_prob(value) - self._log_scale
-
-
-# class TruncatedNormalOutput(DistributionOutput):
-#     distr_cls: type = TruncatedNormal
-#
-#     @validated()
-#     def __init__(self, a: float, b: float) -> None:
-#         super().__init__(self)
-#
-#         self.a = a
-#         self.b = b
-#         self.args_dim: Dict[str, int] = {"loc": 1, "scale": 1, "a": 1, "b": 1}
-#
-#     # @classmethod
-#     def domain_map(
-#         self,
-#         loc: torch.Tensor,
-#         scale: torch.Tensor,
-#         a: torch.Tensor,
-#         b: torch.Tensor,
-#     ):
-#         scale = F.softplus(scale)
-#         a = self.a * torch.ones_like(a)
-#         b = self.b * torch.ones_like(b)
-#         return (
-#             loc.squeeze(-1),
-#             scale.squeeze(-1),
-#             a.squeeze(axis=-1),
-#             b.squeeze(axis=-1),
-#         )
-#
-#     @property
-#     def event_shape(self) -> Tuple:
-#         return ()
