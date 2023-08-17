@@ -31,7 +31,6 @@ D.Distribution.set_default_validate_args(False)
 
 
 class TruncatedNormal(D.Independent):
-    # class TruncatedNormal(Distribution):
     """Implements a Truncated Normal distribution with location scaling.
 
     Location scaling prevents the location to be "too far" from 0, which ultimately
