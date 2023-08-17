@@ -16,10 +16,7 @@ from typing import Optional
 import numpy as np
 import pytest
 
-from gluonts.mx.model.deepvar_hierarchical._estimator import (
-    constraint_mat,
-    projection_mat,
-)
+from gluonts.mx.model.deepvar_hierarchical._estimator import projection_mat
 
 
 TOL = 1e-12
@@ -37,7 +34,38 @@ S = np.array(
 )
 
 num_bottom_ts = S.shape[1]
-A = constraint_mat(S)
+
+
+def constraint_mat(S: np.ndarray) -> np.ndarray:
+    """
+    Generates the constraint matrix in the equation: Ay = 0 (y being the
+    values/forecasts of all time series in the hierarchy).
+
+    Parameters
+    ----------
+    S
+        Summation or aggregation matrix. Shape:
+        (total_num_time_series, num_bottom_time_series)
+
+    Returns
+    -------
+    Numpy ND array
+        Coefficient matrix of the linear constraints, shape
+        (num_agg_time_series, num_time_series)
+    """
+
+    # Re-arrange S matrix to form A matrix
+    # S = [S_agg|I_m_K]^T dim:(m,m_K)
+    # A = [I_magg | -S_agg] dim:(m_agg,m)
+
+    m, m_K = S.shape
+    m_agg = m - m_K
+
+    # The top `m_agg` rows of the matrix `S` give the aggregation constraint
+    # matrix.
+    S_agg = S[:m_agg, :]
+    A = np.hstack((np.eye(m_agg), -S_agg))
+    return A
 
 
 def null_space_projection_mat(
@@ -98,6 +126,6 @@ def null_space_projection_mat(
     ],
 )
 def test_projection_mat(D):
-    p1 = null_space_projection_mat(A=A, D=D)
+    p1 = null_space_projection_mat(A=constraint_mat(S), D=D)
     p2 = projection_mat(S=S, D=D)
     assert (np.abs(p1 - p2)).sum() < TOL

@@ -14,10 +14,8 @@
 import numpy as np
 import pytest
 
-from gluonts.mx.model.deepvar_hierarchical import (
-    constraint_mat,
-    coherency_error,
-)
+from gluonts.mx.model.deepvar_hierarchical import coherency_error
+
 
 TOL = 1e-4
 
@@ -34,7 +32,6 @@ S = np.array(
 )
 
 num_bottom_ts = S.shape[1]
-A = constraint_mat(S)
 
 
 @pytest.mark.parametrize(

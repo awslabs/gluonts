@@ -20,10 +20,7 @@ from gluonts.core.component import Type, validated
 from gluonts.itertools import prod
 from gluonts.mx.model.deepar import DeepAREstimator
 from gluonts.mx.model.deepar._network import DeepARPredictionNetwork
-from gluonts.mx.model.deepvar_hierarchical._estimator import (
-    constraint_mat,
-    projection_mat,
-)
+from gluonts.mx.model.deepvar_hierarchical._estimator import projection_mat
 from gluonts.mx.model.deepvar_hierarchical._network import coherency_error
 from gluonts.mx.distribution import Distribution, EmpiricalDistribution
 from gluonts.mx import Tensor
@@ -681,7 +678,7 @@ class COPDeepARPredictionNetwork(COPNetwork):
 
             rec_err = coherency_error(
                 S=self.temporal_hierarchy.agg_mat,
-                samples=reconciled_samples_at_all_levels.asnumpy()
+                samples=reconciled_samples_at_all_levels.asnumpy(),
             )
             print(f"Reconciliation error: {rec_err}")
 

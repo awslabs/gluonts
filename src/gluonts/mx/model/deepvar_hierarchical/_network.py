@@ -99,14 +99,14 @@ def reconcile_samples(
 
 def coherency_error(S: np.ndarray, samples: np.ndarray) -> float:
     r"""
-        Computes the maximum relative coherency error
+    Computes the maximum relative coherency error
 
-        .. math::
+    .. math::
 
-                        \max_i | (S @ y_b)_i - y_i | / y_i
+                \max_i | (S @ y_b)_i - y_i | / y_i
 
-        where :math:`y` refers to the `samples` and :math:`y_b` refers to the
-        samples at the bottom level.
+    where :math:`y` refers to the `samples` and :math:`y_b` refers to the
+    samples at the bottom level.
 
     Parameters
     ----------
@@ -121,11 +121,9 @@ def coherency_error(S: np.ndarray, samples: np.ndarray) -> float:
     Float
         Coherency error
     """
-    samples_bottom_level = samples[..., -S.shape[1]:]
+    samples_bottom_level = samples[..., -S.shape[1] :]
 
-    errs = np.abs(
-        samples_bottom_level @ S.T - samples
-    )
+    errs = np.abs(samples_bottom_level @ S.T - samples)
     rel_errs = np.where(
         samples == 0.0,
         errs,
@@ -296,8 +294,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         # Show coherency error: A*X_proj
         if self.log_coherency_error:
             coh_error = coherency_error(
-                S=self.S,
-                samples=samples_to_return.asnumpy()
+                S=self.S, samples=samples_to_return.asnumpy()
             )
             logger.info(
                 "Coherency error of the predicted samples for time step"

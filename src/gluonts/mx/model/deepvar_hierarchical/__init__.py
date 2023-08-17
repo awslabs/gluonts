@@ -13,7 +13,6 @@
 
 # Relative imports
 from ._estimator import (
-    constraint_mat,
     projection_mat,
     DeepVARHierarchicalEstimator,
 )
@@ -21,7 +20,6 @@ from ._network import reconcile_samples, coherency_error
 
 __all__ = [
     "DeepVARHierarchicalEstimator",
-    "constraint_mat",
     "projection_mat",
     "reconcile_samples",
     "coherency_error",

@@ -41,38 +41,6 @@ from ._network import (
 logger = logging.getLogger(__name__)
 
 
-def constraint_mat(S: np.ndarray) -> np.ndarray:
-    """
-    Generates the constraint matrix in the equation: Ay = 0 (y being the
-    values/forecasts of all time series in the hierarchy).
-
-    Parameters
-    ----------
-    S
-        Summation or aggregation matrix. Shape:
-        (total_num_time_series, num_bottom_time_series)
-
-    Returns
-    -------
-    Numpy ND array
-        Coefficient matrix of the linear constraints, shape
-        (num_agg_time_series, num_time_series)
-    """
-
-    # Re-arrange S matrix to form A matrix
-    # S = [S_agg|I_m_K]^T dim:(m,m_K)
-    # A = [I_magg | -S_agg] dim:(m_agg,m)
-
-    m, m_K = S.shape
-    m_agg = m - m_K
-
-    # The top `m_agg` rows of the matrix `S` give the aggregation constraint
-    # matrix.
-    S_agg = S[:m_agg, :]
-    A = np.hstack((np.eye(m_agg), -S_agg))
-    return A
-
-
 def projection_mat(
     S: np.ndarray,
     D: Optional[np.ndarray] = None,

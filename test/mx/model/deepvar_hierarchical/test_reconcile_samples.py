@@ -16,7 +16,6 @@ import numpy as np
 import pytest
 
 from gluonts.mx.model.deepvar_hierarchical import (
-    constraint_mat,
     projection_mat,
     reconcile_samples,
     coherency_error,
