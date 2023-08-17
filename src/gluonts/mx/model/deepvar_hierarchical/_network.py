@@ -97,34 +97,22 @@ def reconcile_samples(
         return out
 
 
-def coherency_error(A: Tensor, samples: Tensor) -> float:
+def coherency_error(S: np.ndarray, samples: np.ndarray) -> float:
     r"""
-    Computes the maximum relative coherency error among all the aggregated
-    time series
+    Computes the maximum relative coherency error
 
     .. math::
 
-                    \max_i \frac{|y_i - s_i|} {|y_i|},
+                \max_i | (S @ y_b)_i - y_i | / y_i
 
-    where :math:`i` refers to the aggregated time series index, :math:`y_i` is
-    the (direct) forecast obtained for the :math:`i^{th}` time series
-    and :math:`s_i` is its aggregated forecast obtained by summing the
-    corresponding bottom-level forecasts. If :math:`y_i` is zero, then the
-    absolute difference, :math:`|s_i|`, is used instead.
-
-    This can be comupted as follows given the constraint matrix A:
-
-    .. math::
-
-                    \max \frac{|A \times samples|} {|samples[:r]|},
-
-    where :math:`r` is the number aggregated time series.
+    where :math:`y` refers to the `samples` and :math:`y_b` refers to the
+    samples at the bottom level.
 
     Parameters
     ----------
-    A
-        The constraint matrix A in the equation: Ay = 0 (y being the
-        values/forecasts of all time series in the hierarchy).
+    S
+        The summation matrix S. Shape:
+        (total_num_time_series, num_bottom_time_series)
     samples
         Samples. Shape: `(*batch_shape, target_dim)`.
 
@@ -132,23 +120,16 @@ def coherency_error(A: Tensor, samples: Tensor) -> float:
     -------
     Float
         Coherency error
-
-
     """
+    samples_bottom_level = samples[..., -S.shape[1] :]
 
-    num_agg_ts = A.shape[0]
-    forecasts_agg_ts = samples.slice_axis(
-        axis=-1, begin=0, end=num_agg_ts
-    ).asnumpy()
-
-    abs_err = mx.nd.abs(mx.nd.dot(samples, A, transpose_b=True)).asnumpy()
-    rel_err = np.where(
-        forecasts_agg_ts == 0,
-        abs_err,
-        abs_err / np.abs(forecasts_agg_ts),
+    errs = np.abs(samples_bottom_level @ S.T - samples)
+    rel_errs = np.where(
+        samples == 0.0,
+        errs,
+        errs / np.abs(samples),
     )
-
-    return np.max(rel_err)
+    return rel_errs.max()
 
 
 class DeepVARHierarchicalNetwork(DeepVARNetwork):
@@ -156,7 +137,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
     def __init__(
         self,
         M,
-        A,
+        S,
         num_layers: int,
         num_cells: int,
         cell_type: str,
@@ -191,7 +172,7 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
         )
 
         self.M = M
-        self.A = A
+        self.S = S
         self.seq_axis = seq_axis
 
     def get_samples_for_loss(self, distr: Distribution) -> Tensor:
@@ -312,7 +293,9 @@ class DeepVARHierarchicalNetwork(DeepVARNetwork):
 
         # Show coherency error: A*X_proj
         if self.log_coherency_error:
-            coh_error = coherency_error(self.A, samples=samples_to_return)
+            coh_error = coherency_error(
+                S=self.S, samples=samples_to_return.asnumpy()
+            )
             logger.info(
                 "Coherency error of the predicted samples for time step"
                 f" {self.forecast_time_step}: {coh_error}"

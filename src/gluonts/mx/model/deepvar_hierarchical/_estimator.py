@@ -41,52 +41,28 @@ from ._network import (
 logger = logging.getLogger(__name__)
 
 
-def constraint_mat(S: np.ndarray) -> np.ndarray:
-    """
-    Generates the constraint matrix in the equation: Ay = 0 (y being the
-    values/forecasts of all time series in the hierarchy).
+def projection_mat(
+    S: np.ndarray,
+    D: Optional[np.ndarray] = None,
+) -> np.ndarray:
+    r"""
+    Computes the projection matrix :math: P for projecting base forecasts
+    :math: \bar{y} on to the space of coherent forecasts: :math: P \bar{y}.
+
+    More precisely,
+
+    .. math::
+        P = S (S^T S)^{-1} S^T,      if D is None,\\
+        P = S (S^T D S)^{-1} S^T D,   otherwise.
 
     Parameters
     ----------
     S
-        Summation or aggregation matrix. Shape:
+        The summation or the aggregation matrix. Shape:
         (total_num_time_series, num_bottom_time_series)
-
-    Returns
-    -------
-    Numpy ND array
-        Coefficient matrix of the linear constraints, shape
-        (num_agg_time_series, num_time_series)
-    """
-
-    # Re-arrange S matrix to form A matrix
-    # S = [S_agg|I_m_K]^T dim:(m,m_K)
-    # A = [I_magg | -S_agg] dim:(m_agg,m)
-
-    m, m_K = S.shape
-    m_agg = m - m_K
-
-    # The top `m_agg` rows of the matrix `S` give the aggregation constraint
-    # matrix.
-    S_agg = S[:m_agg, :]
-    A = np.hstack((np.eye(m_agg), -S_agg))
-    return A
-
-
-def null_space_projection_mat(
-    A: np.ndarray,
-    D: Optional[np.ndarray] = None,
-) -> np.ndarray:
-    """
-    Computes the projection matrix for projecting onto the null space of A.
-
-    Parameters
-    ----------
-    A
-        The constraint matrix A in the equation: Ay = 0 (y being the
-        values/forecasts of all time series in the hierarchy).
     D
         Symmetric positive definite matrix (typically a diagonal matrix).
+        Shape: (total_num_time_series, total_num_time_series)
         Optional.
         If provided then the distance between the reconciled and unreconciled
         forecasts is calculated based on the norm induced by D. Useful for
@@ -98,19 +74,15 @@ def null_space_projection_mat(
     Numpy ND array
         Projection matrix, shape (total_num_time_series, total_num_time_series)
     """
-    num_ts = A.shape[1]
     if D is None:
-        return np.eye(num_ts) - A.T @ np.linalg.pinv(A @ A.T) @ A
+        return S @ np.linalg.pinv(S.T @ S) @ S.T
     else:
         assert np.all(D == D.T), "`D` must be symmetric."
         assert np.all(
             np.linalg.eigvals(D) > 0
         ), "`D` must be positive definite."
 
-        D_inv = np.linalg.inv(D)
-        return (
-            np.eye(num_ts) - D_inv @ A.T @ np.linalg.pinv(A @ D_inv @ A.T) @ A
-        )
+        return S @ np.linalg.pinv(S.T @ D @ S) @ S.T @ D
 
 
 class DeepVARHierarchicalEstimator(DeepVAREstimator):
@@ -300,11 +272,10 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
             not coherent_train_samples
         ), "Cannot project only during training (and not during prediction)"
 
-        A = constraint_mat(S.astype(self.dtype))
-        M = null_space_projection_mat(A=A, D=D)
+        M = projection_mat(S=S, D=D)
+        self.S = S
         ctx = self.trainer.ctx
         self.M = mx.nd.array(M, ctx=ctx)
-        self.A = mx.nd.array(A, ctx=ctx)
         self.num_samples_for_loss = num_samples_for_loss
         self.likelihood_weight = likelihood_weight
         self.CRPS_weight = CRPS_weight
@@ -318,7 +289,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
     def create_training_network(self) -> DeepVARHierarchicalTrainingNetwork:
         return DeepVARHierarchicalTrainingNetwork(
             M=self.M,
-            A=self.A,
+            S=self.S,
             num_samples_for_loss=self.num_samples_for_loss,
             likelihood_weight=self.likelihood_weight,
             CRPS_weight=self.CRPS_weight,
@@ -350,7 +321,7 @@ class DeepVARHierarchicalEstimator(DeepVAREstimator):
 
         prediction_network = DeepVARHierarchicalPredictionNetwork(
             M=self.M,
-            A=self.A,
+            S=self.S,
             log_coherency_error=self.log_coherency_error,
             coherent_pred_samples=self.coherent_pred_samples,
             target_dim=self.target_dim,
