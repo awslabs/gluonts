@@ -16,7 +16,6 @@ import numpy as np
 import pytest
 
 from gluonts.mx.model.deepvar_hierarchical import (
-    constraint_mat,
     projection_mat,
     reconcile_samples,
     coherency_error,
@@ -37,7 +36,6 @@ S = np.array(
 )
 
 num_bottom_ts = S.shape[1]
-A = constraint_mat(S)
 
 
 @pytest.mark.parametrize(
@@ -86,4 +84,4 @@ def test_reconciliation_error(samples, D, seq_axis):
         seq_axis=seq_axis,
     )
 
-    assert coherency_error(mx.nd.array(A), coherent_samples) < TOL
+    assert coherency_error(S, coherent_samples.asnumpy()) < TOL
