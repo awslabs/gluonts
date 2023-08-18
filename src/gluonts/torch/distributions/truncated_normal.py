@@ -33,7 +33,6 @@ CONST_INV_SQRT_2PI = 1 / math.sqrt(2 * math.pi)
 CONST_INV_SQRT_2 = 1 / math.sqrt(2)
 CONST_LOG_INV_SQRT_2PI = math.log(CONST_INV_SQRT_2PI)
 CONST_LOG_SQRT_2PI_E = 0.5 * math.log(2 * math.pi * math.e)
-torch.manual_seed(0)
 
 
 class TruncatedNormal(Distribution):
@@ -91,7 +90,6 @@ class TruncatedNormal(Distribution):
         upscale: Union[torch.Tensor, float] = 5.0,
         tanh_loc: bool = False,
     ):
-
         scale = scale.clamp_min(self.eps)
         if tanh_loc:
             loc = (loc / upscale).tanh() * upscale
@@ -239,7 +237,6 @@ class TruncatedNormalOutput(DistributionOutput):
         upscale: float = 5.0,
         tanh_loc: bool = False,
     ) -> None:
-
         assert min < max, "max must be strictly greater than min"
 
         super().__init__(self)
