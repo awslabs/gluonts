@@ -75,9 +75,10 @@ class TruncatedNormal(Distribution):
     """
 
     arg_constraints = {
-        "a": constraints.real,
-        "b": constraints.real,
+        "loc": constraints.real,
+        "scale": constraints.greater_than(1e-6),
     }
+
     has_rsample = True
     eps = 1e-6
 
@@ -97,6 +98,7 @@ class TruncatedNormal(Distribution):
 
         self.min = min
         self.max = max
+        self.upscale = upscale
         self.loc, self.scale, a, b = broadcast_all(
             loc, scale, self.min, self.max
         )
