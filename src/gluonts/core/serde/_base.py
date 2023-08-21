@@ -309,7 +309,7 @@ def decode(r: Any) -> Any:
     """
 
     # structural recursion over the possible shapes of r
-    if type(r) == dict and "__kind__" in r:
+    if isinstance(r, dict) and "__kind__" in r:
         kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
 
