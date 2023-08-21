@@ -315,7 +315,7 @@ def decode(r: Any) -> Any:
 
         assert cls is not None, f"Can not locate {r['class']}."
 
-        if kind == Kind.Type:
+        if isinstance(kind, Kind.Type):
             return cls
 
         args = decode(r.get("args", []))
@@ -331,10 +331,10 @@ def decode(r: Any) -> Any:
 
         raise ValueError(f"Unknown kind {kind}.")
 
-    if type(r) == dict:
+    if isinstance(r, dict):
         return valmap(decode, r)
 
-    if type(r) == list:
+    if isinstance(r, list):
         return list(map(decode, r))
 
     return r
