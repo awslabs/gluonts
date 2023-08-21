@@ -215,6 +215,12 @@ class TruncatedNormal(Distribution):
         return sample
 
     def log_prob(self, value):
+        a = self._non_std_a + self._dtype_min_gt_0
+        a = a.expand_as(value)
+        b = self._non_std_b - self._dtype_min_gt_0
+        b = b.expand_as(value)
+        value = torch.min(torch.stack([value, b], -1), dim=-1)[0]
+        value = torch.max(torch.stack([value, a], -1), dim=-1)[0]
         value = self._to_std_rv(value)
         return self.log_prob_truncated_standard_normal(value) - self._log_scale
 
