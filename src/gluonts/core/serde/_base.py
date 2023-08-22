@@ -314,8 +314,7 @@ def decode(r: Any) -> Any:
         cls = cast(Any, locate(r["class"]))
 
         assert cls is not None, f"Can not locate {r['class']}."
-
-        if isinstance(kind, Kind.Type):
+        if kind is Kind.Type:
             return cls
 
         args = decode(r.get("args", []))
