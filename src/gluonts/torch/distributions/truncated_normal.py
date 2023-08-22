@@ -55,7 +55,8 @@ class TruncatedNormal(Distribution):
         maximum value of the distribution. Default = 1.0
     upscale:
         scaling factor. Default = 5.0
-    tanh_loc: if ``True``, the above formula is used for
+    tanh_loc:
+        if ``True``, the above formula is used for
         the location scaling, otherwise the raw value is kept.
         Default is ``False``
 
