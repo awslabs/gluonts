@@ -86,8 +86,8 @@ class TruncatedNormal(Distribution):
         self,
         loc: torch.Tensor,
         scale: torch.Tensor,
-        min: Union[torch.Tensor, float],
-        max: Union[torch.Tensor, float],
+        min: Union[torch.Tensor, float] = -1.0,
+        max: Union[torch.Tensor, float] = 1.0,
         upscale: Union[torch.Tensor, float] = 5.0,
         tanh_loc: bool = False,
     ):
@@ -240,8 +240,8 @@ class TruncatedNormalOutput(DistributionOutput):
     @validated()
     def __init__(
         self,
-        min: float,
-        max: float,
+        min: float = -1.0,
+        max: float = 1.0,
         upscale: float = 5.0,
         tanh_loc: bool = False,
     ) -> None:
