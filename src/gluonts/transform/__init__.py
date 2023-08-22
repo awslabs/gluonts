@@ -41,6 +41,7 @@ __all__ = [
     "InstanceSplitter",
     "ListFeatures",
     "MapTransformation",
+    "QuantizeMeanScaled",
     "RemoveFields",
     "RenameFields",
     "SampleTargetDim",
@@ -89,6 +90,7 @@ from .convert import (
     VstackFeatures,
     cdf_to_gaussian_forward_transform,
     Valmap,
+    QuantizeMeanScaled,
 )
 from .feature import (
     AddAgeFeature,
