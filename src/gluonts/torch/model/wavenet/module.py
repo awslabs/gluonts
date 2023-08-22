@@ -18,27 +18,7 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.feature import FeatureEmbedder
-
-
-class LookupValues(nn.Module):
-    """Lookup bin values from bin indices.
-
-    Parameters
-    ----------
-    bin_values
-        Tensor of bin values with shape (num_bins, ).
-    """
-
-    @validated()
-    def __init__(self, bin_values: torch.Tensor):
-        super().__init__()
-        self.register_buffer("bin_values", bin_values)
-
-    def forward(self, indices: torch.Tensor) -> torch.Tensor:
-        indices = torch.clamp(indices, 0, self.bin_values.shape[0] - 1)
-        return torch.index_select(
-            self.bin_values, 0, indices.reshape(-1)
-        ).view_as(indices)
+from gluonts.torch.modules.lookup_table import LookupValues
 
 
 class CausalDilatedResidualLayer(nn.Module):
