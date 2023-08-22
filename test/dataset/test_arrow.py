@@ -82,13 +82,15 @@ def test_arrow(writer, flatten_arrays):
 
         assert_equal(data, dataset)
 
+        assert_equal(dataset[4], data[4])
+
         assert len(dataset[:5]) == len(data[:5])
         assert_equal(dataset[:5], data[:5])
 
         assert len(dataset[10:]) == len(data[10:])
         assert_equal(dataset[10:], data[10:])
 
-        assert len(dataset[3:7]) == len(data[3:7])
+        assert len(dataset[3:7]) == len(data[3: 7])
         assert_equal(dataset[3:7], data[3:7])
 
         assert len(dataset[3:7][1:-1]) == len(data[3:7][1:-1])
