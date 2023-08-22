@@ -45,17 +45,17 @@ class TruncatedNormal(Distribution):
 
     Parameters
     ----------
-    loc (torch.Tensor):
+    loc:
         normal distribution location parameter
-    scale (torch.Tensor):
+    scale:
         normal distribution sigma parameter (squared root of variance)
-    min (torch.Tensor or number, optional):
+    min:
         minimum value of the distribution. Default = -1.0
-    max (torch.Tensor or number, optional):
+    max:
         maximum value of the distribution. Default = 1.0
-    upscale (torch.Tensor or number, optional):
+    upscale:
         scaling factor. Default = 5.0
-    tanh_loc (bool, optional): if ``True``, the above formula is used for
+    tanh_loc: if ``True``, the above formula is used for
         the location scaling, otherwise the raw value is kept.
         Default is ``False``
 
