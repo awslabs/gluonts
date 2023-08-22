@@ -904,3 +904,67 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         if len(times) > 0 or not self.drop_empty:
             data[self.target_field] = [times, sizes]
             yield data
+
+
+class QuantizeMeanScaled(SimpleTransformation):
+    """Rescale and quantize the target variable.
+    Requires `past_target_field`, and `future_target_field` to be present.
+
+    The mean absolute value of the past_target is used to rescale
+    past_target and future_target. Then the bin_edges are used to quantize
+    the rescaled target.
+
+    The calculated scale is stored in the `scale_field`.
+
+    Parameters
+    ----------
+    bin_edges
+        The bin edges for quantization.
+    past_target_field, optional
+        The field name that contains `past_target`,
+        by default "past_target"
+    past_observed_values_field, optional
+        The field name that contains `past_observed_values`,
+        by default "past_observed_values"
+    future_target_field, optional
+        The field name that contains `future_target`,
+        by default "future_target"
+    scale_field, optional
+        The field name where scale will be stored,
+        by default "scale"
+    """
+
+    @validated()
+    def __init__(
+        self,
+        bin_edges: List[float],
+        past_target_field: str = "past_target",
+        past_observed_values_field: str = "past_observed_values",
+        future_target_field: str = "future_target",
+        scale_field: str = "scale",
+    ):
+        self.bin_edges = np.array(bin_edges)
+        self.future_target_field = future_target_field
+        self.past_target_field = past_target_field
+        self.past_observed_values_field = past_observed_values_field
+        self.scale_field = scale_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        target = data[self.past_target_field]
+        weights = data.get(
+            self.past_observed_values_field, np.ones_like(target)
+        )
+        m = np.sum(np.abs(target) * weights) / np.sum(weights)
+        scale = m if m > 0 else 1.0
+        data[self.future_target_field] = np.digitize(
+            data[self.future_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
+        )
+        data[self.past_target_field] = np.digitize(
+            data[self.past_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
+        )
+        data[self.scale_field] = np.array([scale], dtype=np.float32)
+        return data
