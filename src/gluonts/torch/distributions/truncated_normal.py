@@ -11,10 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# The implementation is strongly inspired from:
-# - https://github.com/pytorch/rl/blob/main/torchrl/modules/distributions/truncated_normal.py
-# - https://github.com/toshas/torch_truncnorm
-
 import math
 from numbers import Number
 from typing import Dict, Optional, Tuple, Union
@@ -36,8 +32,6 @@ CONST_LOG_SQRT_2PI_E = 0.5 * math.log(2 * math.pi * math.e)
 
 
 class TruncatedNormal(Distribution):
-    """Truncated Normal distribution."""
-
     """Implements a Truncated Normal distribution with location scaling.
 
     Location scaling prevents the location to be "too far" from 0, which ultimately
@@ -49,26 +43,28 @@ class TruncatedNormal(Distribution):
 
     This behaviour can be disabled by switching off the tanh_loc parameter (see below).
 
+    Parameters
+    ----------
+    loc (torch.Tensor):
+        normal distribution location parameter
+    scale (torch.Tensor):
+        normal distribution sigma parameter (squared root of variance)
+    min (torch.Tensor or number, optional):
+        minimum value of the distribution. Default = -1.0
+    max (torch.Tensor or number, optional):
+        maximum value of the distribution. Default = 1.0
+    upscale (torch.Tensor or number, optional):
+        scaling factor. Default = 5.0
+    tanh_loc (bool, optional): if ``True``, the above formula is used for
+        the location scaling, otherwise the raw value is kept.
+        Default is ``False``
 
-    Args:
-        loc (torch.Tensor): normal distribution location parameter
-        scale (torch.Tensor): normal distribution sigma parameter (squared root of variance)
-        upscale (torch.Tensor or number, optional): 'a' scaling factor in the formula:
-
-            .. math::
-                loc = tanh(loc / upscale) * upscale.
-
-            Default is 5.0
-
-        min (torch.Tensor or number, optional): minimum value of the distribution. Default = -1.0;
-        max (torch.Tensor or number, optional): maximum value of the distribution. Default = 1.0;
-        tanh_loc (bool, optional): if ``True``, the above formula is used for
-            the location scaling, otherwise the raw value is kept.
-            Default is ``False``;
-            
-    References: 
+    References
+    ----------
     - https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
-    
+
+    Notes
+    -----
     This implementation is strongly based on:
         - https://github.com/pytorch/rl/blob/main/torchrl/modules/distributions/truncated_normal.py
         - https://github.com/toshas/torch_truncnorm
