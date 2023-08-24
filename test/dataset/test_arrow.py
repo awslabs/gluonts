@@ -79,6 +79,6 @@ def test_arrow(writer, flatten_arrays):
 
         for orig, arrow_value in zip(data, dataset):
             assert_equal(orig, arrow_value)
-        
+
         if isinstance(dataset, ArrowFile):
             assert_equal(dataset[4], data[4])
