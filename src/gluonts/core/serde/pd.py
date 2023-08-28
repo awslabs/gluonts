@@ -29,7 +29,6 @@ def encode_pd_timestamp(v: pd.Timestamp) -> Any:
         "__kind__": Kind.Instance,
         "class": "pandas.Timestamp",
         "args": encode([str(v)]),
-        "kwargs": {"freq": v.freqstr if v.freq else None},
     }
 
 
@@ -55,7 +54,7 @@ def encode_pd_period(v: pd.Period) -> Any:
     """
     return {
         "__kind__": Kind.Instance,
-        "class": "pandas.Timestamp",
+        "class": "pandas.Period",
         "args": encode([str(v)]),
         "kwargs": {"freq": v.freqstr},
     }

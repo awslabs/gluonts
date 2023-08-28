@@ -17,6 +17,7 @@ from typing import Callable, Optional
 import numpy as np
 import pandas as pd
 
+from gluonts.itertools import batcher
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
@@ -125,10 +126,21 @@ class MultivariateGrouper:
             grouped_dataset = self._prepare_test_data(dataset)
         return grouped_dataset
 
-    def _prepare_train_data(self, dataset: Dataset) -> ListDataset:
-        logging.info("group training time-series to datasets")
+    def _prepare_train_data(self, dataset: Dataset) -> Dataset:
+        logging.info("group training time series to datasets")
 
+        # Creates a single multivariate time series from the
+        # univariate series in the dataset
         grouped_data = self._transform_target(self._align_data_entry, dataset)
+        grouped_data[FieldName.TARGET] = np.vstack(
+            grouped_data[FieldName.TARGET]
+        )
+
+        fields = next(iter(dataset), {}).keys()
+        if FieldName.FEAT_DYNAMIC_REAL in fields:
+            grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+            )
         grouped_data = self._restrict_max_dimensionality(grouped_data)
         grouped_data[FieldName.START] = self.first_timestamp
         grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -137,24 +149,29 @@ class MultivariateGrouper:
             [grouped_data], freq=self.frequency, one_dim_target=False
         )
 
-    def _prepare_test_data(self, dataset: Dataset) -> ListDataset:
+    def _prepare_test_data(self, dataset: Dataset) -> Dataset:
         assert self.num_test_dates is not None
 
-        logging.info("group test time-series to datasets")
+        logging.info("group test time series to datasets")
 
         grouped_data = self._transform_target(self._left_pad_data, dataset)
-        # splits test dataset with rolling date into N R^d time series where
-        # N is the number of rolling evaluation dates
-        split_dataset = np.split(
-            grouped_data[FieldName.TARGET], self.num_test_dates
-        )
 
+        # Splits test dataset with rolling date into N R^d time series,
+        # where N is the number of rolling evaluation dates
+        assert len(grouped_data[FieldName.TARGET]) % self.num_test_dates == 0
+        split_size = len(grouped_data[FieldName.TARGET]) // self.num_test_dates
+        split_dataset = batcher(grouped_data[FieldName.TARGET], split_size)
+
+        fields = next(iter(dataset), {}).keys()
         all_entries = list()
         for dataset_at_test_date in split_dataset:
             grouped_data = dict()
-            grouped_data[FieldName.TARGET] = np.array(
-                list(dataset_at_test_date), dtype=np.float32
-            )
+            grouped_data[FieldName.TARGET] = np.vstack(dataset_at_test_date)
+
+            if FieldName.FEAT_DYNAMIC_REAL in fields:
+                grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
+                    [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+                )
             grouped_data = self._restrict_max_dimensionality(grouped_data)
             grouped_data[FieldName.START] = self.first_timestamp
             grouped_data[FieldName.FEAT_STATIC_CAT] = [0]
@@ -188,7 +205,7 @@ class MultivariateGrouper:
 
     @staticmethod
     def _transform_target(funcs, dataset: Dataset) -> DataEntry:
-        return {FieldName.TARGET: np.array([funcs(data) for data in dataset])}
+        return {FieldName.TARGET: [funcs(data) for data in dataset]}
 
     def _restrict_max_dimensionality(self, data: DataEntry) -> DataEntry:
         """
@@ -212,6 +229,10 @@ class MultivariateGrouper:
             data[FieldName.TARGET] = data[FieldName.TARGET][
                 -self.max_target_dimension :, :
             ]
+            if FieldName.FEAT_DYNAMIC_REAL in data.keys():
+                data[FieldName.FEAT_DYNAMIC_REAL] = data[
+                    FieldName.FEAT_DYNAMIC_REAL
+                ][-self.max_target_dimension :, :]
         return data
 
     @staticmethod

@@ -15,7 +15,7 @@ catch22 = "^0.2.0"
 click = "^7.1.2"
 fastparquet = "^0.6.1"
 fbprophet = "^0.7.1"
-gluonts = {git = "https://github.com/awslabs/gluon-ts.git", rev = "7c94c1149875f6ad2e0d7b0a6bcee952f14d3fb1"}
+gluonts = {git = "https://github.com/awslabs/gluonts.git", rev = "7c94c1149875f6ad2e0d7b0a6bcee952f14d3fb1"}
 holidays = "^0.11.1"
 lightkit = "^0.3.6"
 mxnet = "1.8.0.post0"

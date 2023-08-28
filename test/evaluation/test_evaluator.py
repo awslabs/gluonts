@@ -15,7 +15,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.evaluation import Evaluator, MultivariateEvaluator
+from gluonts.evaluation import (
+    Evaluator,
+    MultivariateEvaluator,
+    aggregate_valid,
+)
 from gluonts.model.forecast import QuantileForecast, SampleForecast
 
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
@@ -30,33 +34,16 @@ def data_iterator(ts):
         yield ts[i]
 
 
-def fcst_iterator(fcst, start_dates, freq):
+def fcst_iterator(fcst, start_dates):
     """
     :param fcst: list of numpy arrays with the sample paths
     :return:
     """
     for i in range(len(fcst)):
         yield SampleForecast(
-            samples=fcst[i], start_date=start_dates[i], freq=freq
+            samples=fcst[i],
+            start_date=start_dates[i],
         )
-
-
-def iterator(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterator)
-    """
-    return iter(it)
-
-
-def iterable(it):
-    """
-    Convenience function to toggle whether to consume dataset and forecasts as iterators or iterables.
-    :param it:
-    :return: it (as iterable)
-    """
-    return list(it)
 
 
 def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
@@ -87,7 +74,7 @@ def calculate_metrics(
     ts_datastructure,
     has_nans=False,
     forecaster=naive_forecaster,
-    input_type=iterator,
+    input_type=iter,
 ):
     num_timeseries = timeseries.shape[0]
     num_timestamps = timeseries.shape[1]
@@ -107,11 +94,7 @@ def calculate_metrics(
     samples = []  # list of forecast samples
     start_dates = []  # start date of the prediction range
     for i in range(num_timeseries):
-        ts_start_dates.append(
-            pd.Period(
-                pd.Timestamp(year=2018, month=1, day=1, hour=1), freq=freq
-            )
-        )
+        ts_start_dates.append(pd.Period("2018-01-01 01:00:00", freq=freq))
         index = pd.period_range(
             ts_start_dates[i], periods=num_timestamps, freq=freq
         )
@@ -128,7 +111,7 @@ def calculate_metrics(
 
     # data iterator
     data_iter = input_type(data_iterator(pd_timeseries))
-    fcst_iter = input_type(fcst_iterator(samples, start_dates, freq))
+    fcst_iter = input_type(fcst_iterator(samples, start_dates))
 
     # evaluate
     agg_df, item_df = evaluator(data_iter, fcst_iter)
@@ -434,7 +417,7 @@ RES = [
 HAS_NANS = [False, False, True, False, True, True]
 
 
-INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
+INPUT_TYPE = [list, list, list, iter, iter, list]
 
 
 @pytest.mark.parametrize(
@@ -443,7 +426,9 @@ INPUT_TYPE = [iterable, iterable, iterable, iterator, iterator, iterable]
 )
 def test_metrics(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=None)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=None, allow_nan_forecast=True
+    )
     agg_metrics, _ = calculate_metrics(
         timeseries,
         evaluator,
@@ -467,7 +452,9 @@ def test_metrics(timeseries, res, has_nans, input_type):
 def test_metrics_mp(timeseries, res, has_nans, input_type):
     ts_datastructure = pd.Series
     # Default will be multiprocessing evaluator
-    evaluator = Evaluator(quantiles=QUANTILES, num_workers=4)
+    evaluator = Evaluator(
+        quantiles=QUANTILES, num_workers=4, allow_nan_forecast=True
+    )
     agg_metrics, item_metrics = calculate_metrics(
         timeseries,
         evaluator,
@@ -610,7 +597,7 @@ HAS_NANS_MULTIVARIATE = [False, False, False, False, False, False]
 
 EVAL_DIMS = [[0], [1], [0, 1], [0], [1], None]
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable, iterator]
+INPUT_TYPE = [list, list, iter, iter, list, iter]
 
 
 @pytest.mark.parametrize(
@@ -656,12 +643,11 @@ def test_evaluation_with_QuantileForecast():
     index = pd.period_range(start=start, freq="1D", periods=len(target))
     ts = pd.Series(index=index, data=target)
 
-    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"))
+    ev = Evaluator(quantiles=("0.1", "0.2", "0.5"), allow_nan_forecast=True)
 
     fcst = [
         QuantileForecast(
             start_date=pd.Period("2012-01-11", freq="D"),
-            freq="D",
             forecast_arrays=np.array([[2.4, 9.0, 3.0, 2.4, 5.5, 4.9] * 10]),
             forecast_keys=["0.5"],
         )
@@ -849,14 +835,14 @@ FCST_TYPES = ["mean"] * 8
 HAS_NANS = [False, False, True, False, False, True, True, True]
 
 INPUT_TYPE = [
-    iterable,
-    iterable,
-    iterable,
-    iterator,
-    iterator,
-    iterator,
-    iterator,
-    iterable,
+    list,
+    list,
+    list,
+    iter,
+    iter,
+    iter,
+    iter,
+    list,
 ]
 
 
@@ -887,6 +873,7 @@ def test_custom_eval_fn(
     evaluator = Evaluator(
         quantiles=QUANTILES,
         custom_eval_fn={eval_name: [eval_fn, agg_str, fcst_type]},
+        allow_nan_forecast=True,
     )
 
     agg_metrics, item_metrics = calculate_metrics(
@@ -1041,7 +1028,7 @@ HAS_NANS_MULTIVARIATE = [False, False, False, False, False, False]
 
 EVAL_DIMS = [[0], [1], [0, 1], [0], [1], None]
 
-INPUT_TYPE = [iterable, iterable, iterator, iterator, iterable, iterator]
+INPUT_TYPE = [list, list, iter, iter, list, iter]
 
 CALLABLES = [rmsle] * 6
 METRIC_NAMES = ["RMSLE"] * 6
@@ -1097,3 +1084,28 @@ def test_metrics_multivariate_custom_eval_fn(
                 "Scores for the metric {} do not match: \nexpected: {} "
                 "\nobtained: {}".format(metric, res[metric], score)
             )
+
+
+def test_aggregate_valid():
+    num_series = 3
+    series = [
+        pd.Series(
+            np.random.normal(24 + 6),
+            index=pd.date_range(
+                start="2022-12-31 00", periods=24 + 6, freq="H"
+            ),
+        ).to_period()
+        for _ in range(num_series)
+    ]
+    forecasts = [
+        SampleForecast(
+            samples=np.random.normal(size=(10, 6)),
+            start_date=pd.Period("2023-01-01 00", freq="H"),
+            item_id=str(item_id),
+        )
+        for item_id in range(num_series)
+    ]
+    evaluator = Evaluator(
+        aggregation_strategy=aggregate_valid, num_workers=None
+    )
+    agg_metrics, item_metrics = evaluator(series, forecasts)

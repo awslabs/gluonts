@@ -131,7 +131,6 @@ class DeterministicArgProj(mx.gluon.HybridBlock):
         self.args_dim = args_dim
         self.dtype = dtype
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor]:
         return (self.value * F.ones_like(x.sum(axis=-1)),)
 

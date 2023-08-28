@@ -14,6 +14,7 @@
 import pytorch_lightning as pl
 import torch
 
+from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 from .module import SimpleFeedForwardModel
@@ -29,30 +30,33 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        ``SimpleFeedForwardModel`` to be trained.
+    model_kwargs
+        Keyword arguments to construct the ``SimpleFeedForwardModel`` to be trained.
     loss
-        Loss function to be used for training,
-        default: ``NegativeLogLikelihood()``.
+        Loss function to be used for training.
     lr
-        Learning rate, default: ``1e-3``.
+        Learning rate.
     weight_decay
-        Weight decay regularization parameter, default: ``1e-8``.
+        Weight decay regularization parameter.
     """
 
+    @validated()
     def __init__(
         self,
-        model: SimpleFeedForwardModel,
+        model_kwargs: dict,
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = model
+        self.model = SimpleFeedForwardModel(**model_kwargs)
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
+
+    def forward(self, *args, **kwargs):
+        return self.model.forward(*args, **kwargs)
 
     def _compute_loss(self, batch):
         context = batch["past_target"]

@@ -1,7 +1,0 @@
-{
-    "ND": 0.061101533472537994,
-    "RMSE": 1177.8084716796875,
-    "dataset": "electricity",
-    "estimator": "DeepAREstimator",
-    "mean_wQuantileLoss": 0.04987090080976486
-}

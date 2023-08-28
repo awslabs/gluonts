@@ -74,7 +74,6 @@ class MeanScaling(Representation):
 
         return F.maximum(scale, self.scale_min)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

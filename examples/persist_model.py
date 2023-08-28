@@ -17,19 +17,17 @@ This example shows how to serialize and deserialize a model
 import os
 import pprint
 
-from gluonts.dataset.repository.datasets import get_dataset, get_download_path
+from gluonts.dataset.repository import get_dataset, get_download_path
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.model.predictor import Predictor
 
 if __name__ == "__main__":
-
     dataset = get_dataset("exchange_rate")
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
         trainer=Trainer(epochs=5, num_batches_per_epoch=10),
     )
 

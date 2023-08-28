@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 # Third-party imports
-import pytest
 
 # First-party imports
 from gluonts.mx.trainer import Trainer
@@ -26,12 +25,11 @@ from gluonts.mx.trainer.model_iteration_averaging import (
     NTA,
     ModelIterationAveraging,
 )
-from gluonts.dataset.repository.datasets import get_dataset
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.dataset.repository import get_dataset
+from gluonts.mx import SimpleFeedForwardEstimator
 
 
 def test_callbacklist():
-
     cb1 = TrainingHistory()
     cb2 = TerminateOnNaN()
     cb3 = TrainingHistory()
@@ -56,11 +54,9 @@ def test_callbacks():
     dataset = "m4_hourly"
     dataset = get_dataset(dataset)
     prediction_length = dataset.metadata.prediction_length
-    freq = dataset.metadata.freq
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,
-        freq=freq,
         trainer=Trainer(epochs=n_epochs, callbacks=[history, iter_avg]),
     )
 
@@ -72,7 +68,6 @@ def test_callbacks():
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=prediction_length,
-        freq=freq,
         trainer=Trainer(epochs=n_epochs, callbacks=[history, iter_avg, ws]),
     )
     predictor = estimator.train(dataset.train, num_workers=None)

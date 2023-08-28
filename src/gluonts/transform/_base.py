@@ -12,10 +12,10 @@
 # permissions and limitations under the License.
 
 import abc
+from dataclasses import dataclass
 from typing import Callable, Iterable, Iterator, List
 
-from gluonts.core.component import equals
-from gluonts.core.component import validated
+from gluonts.core.component import equals, validated
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.env import env
 
@@ -45,20 +45,28 @@ class Transformation(metaclass=abc.ABCMeta):
         return TransformedDataset(dataset, self, is_train=is_train)
 
 
+@dataclass
 class Chain(Transformation):
     """
     Chain multiple transformations together.
     """
 
-    @validated()
-    def __init__(self, trans: List[Transformation]) -> None:
-        self.transformations: List[Transformation] = []
-        for transformation in trans:
-            # flatten chains
-            if isinstance(transformation, Chain):
-                self.transformations.extend(transformation.transformations)
+    transformations: List[Transformation]
+
+    def __post_init__(self) -> None:
+        transformations = []
+
+        for transformation in self.transformations:
+            if isinstance(transformation, Identity):
+                continue
+            elif isinstance(transformation, Chain):
+                transformations.extend(transformation.transformations)
             else:
-                self.transformations.append(transformation)
+                assert isinstance(transformation, Transformation)
+                transformations.append(transformation)
+
+        self.transformations = transformations
+        self.__init_passed_kwargs__ = {"transformations": transformations}
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -169,7 +177,7 @@ class FlatMapTransformation(Transformation):
 
     @validated()
     def __init__(self):
-        self.max_idle_transforms = max(env.max_idle_transforms, 100)
+        self.max_idle_transforms = env.max_idle_transforms
 
     def __call__(
         self, data_it: Iterable[DataEntry], is_train: bool
@@ -180,7 +188,12 @@ class FlatMapTransformation(Transformation):
             for result in self.flatmap_transform(data_entry.copy(), is_train):
                 num_idle_transforms = 0
                 yield result
-            if num_idle_transforms > self.max_idle_transforms:
+
+            if (
+                # negative values disable the check
+                self.max_idle_transforms > 0
+                and num_idle_transforms > self.max_idle_transforms
+            ):
                 raise Exception(
                     "Reached maximum number of idle transformation"
                     " calls.\nThis means the transformation looped over"

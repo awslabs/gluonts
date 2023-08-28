@@ -149,9 +149,8 @@ docs/html
 .DS_Store
 
 # release
-docs/model_zoo/*.zip
-docs/examples/*.zip
-docs/examples/*/*.ipynb
+docs/tutorials/**/*.zip
+docs/tutorials/**/*.ipynb
 
 conda
 

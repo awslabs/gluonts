@@ -66,6 +66,11 @@ class SplicedBinnedPareto(BinnedUniforms):
             tail_percentile_gen_pareto
         )
 
+        device = logits.device
+        self.tail_percentile_gen_pareto = self.tail_percentile_gen_pareto.to(
+            device
+        )
+
         self.lower_gp_xi = lower_gp_xi
         self.lower_gp_beta = lower_gp_beta
         self.lower_gen_pareto = GeneralizedPareto(
@@ -317,7 +322,6 @@ class SplicedBinnedParetoOutput(DistributionOutput):
     ) -> Tuple[
         torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
     ]:
-
         logits = torch.abs(logits)
 
         upper_gp_xi = torch.abs(upper_gp_xi)

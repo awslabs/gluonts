@@ -34,7 +34,6 @@ class KernelOutput:
     def kernel(self, args) -> Kernel:
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     @staticmethod
     def compute_std(F, data: Tensor, axis: int) -> Tensor:
         """
@@ -97,13 +96,11 @@ class KernelOutputDict(KernelOutput):
             dtype=float_type,
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> tuple:
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def domain_map(self, F, *args: Tensor):
         raise NotImplementedError()
 

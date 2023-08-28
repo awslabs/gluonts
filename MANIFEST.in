@@ -1,1 +1,25 @@
-include gluonts/model/r_forecast/R/*.R
+
+# include all of gluonts
+graft src/gluonts
+
+# except the nursery
+prune src/gluonts/nursery
+
+graft docs
+graft requirements
+graft test
+
+include NOTICE
+
+prune .devtools
+prune .gitattributes
+prune .github
+prune examples
+prune evaluations
+
+exclude .dockerignore
+exclude .gitignore
+exclude dev_setup.sh
+
+global-exclude */__pycache__/*
+global-exclude *.pyc

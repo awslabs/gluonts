@@ -15,13 +15,11 @@ from gluonts.mx import Tensor
 
 
 class Kernel:
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor):
         # raise error in the base Kernel class, implement in the concrete
         # subclasses
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def _compute_square_dist(self, F, x1: Tensor, x2: Tensor) -> None:
         r"""
         Parameters

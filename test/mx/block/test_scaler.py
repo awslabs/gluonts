@@ -365,7 +365,6 @@ def test_nopscaler(target, observed):
 
 @pytest.mark.parametrize("s, target, observed, expected_scale", test_minmax)
 def test_minmaxscaler(s, target, observed, expected_scale):
-
     target_scaled, scale = s(target, observed)
 
     assert np.allclose(

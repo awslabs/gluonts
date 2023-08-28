@@ -22,7 +22,7 @@ import pytest
 import gluonts
 from gluonts import time_feature, transform
 from gluonts.core import fqname_for
-from gluonts.core.serde import dump_code, dump_json, load_code, load_json
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, ListDataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.stat import ScaleHistogram, calculate_dataset_statistics
@@ -32,6 +32,7 @@ from gluonts.transform import (
     LastValueImputation,
     MeanValueImputation,
     RollingMeanValueImputation,
+    Valmap,
 )
 from gluonts.transform.convert import ToIntervalSizeFormat, erf, erfinv
 from gluonts.transform.feature import CountTrailingZeros
@@ -115,9 +116,9 @@ def test_add_method():
         target_field=FieldName.TARGET,
         output_field="time_feat",
         time_features=[
-            time_feature.DayOfWeek(),
-            time_feature.DayOfMonth(),
-            time_feature.MonthOfYear(),
+            time_feature.day_of_week,
+            time_feature.day_of_month,
+            time_feature.month_of_year,
         ],
         pred_length=24,
     ) + transform.AddAgeFeature(
@@ -140,7 +141,7 @@ def test_AddTimeFeatures(start, target, is_train: bool):
         target_field=FieldName.TARGET,
         output_field="myout",
         pred_length=pred_length,
-        time_features=[time_feature.DayOfWeek(), time_feature.DayOfMonth()],
+        time_features=[time_feature.day_of_week, time_feature.day_of_month],
         dtype=np.float64,
     )
 
@@ -154,8 +155,8 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     tmp_idx = pd.period_range(
         start=start, freq=start.freq, periods=expected_length
     )
-    assert np.alltrue(mat[0] == time_feature.DayOfWeek()(tmp_idx))
-    assert np.alltrue(mat[1] == time_feature.DayOfMonth()(tmp_idx))
+    assert np.alltrue(mat[0] == time_feature.day_of_week(tmp_idx))
+    assert np.alltrue(mat[1] == time_feature.day_of_month(tmp_idx))
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
@@ -371,15 +372,15 @@ def test_Transformation():
     pred_length = 10
 
     t = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=pred_length,
             ),
@@ -440,15 +441,15 @@ def test_multi_dim_transformation(is_train):
     second_dim[0] = np.nan
 
     t = transform.Chain(
-        trans=[
+        [
             transform.AddTimeFeatures(
                 start_field=FieldName.START,
                 target_field=FieldName.TARGET,
                 output_field="time_feat",
                 time_features=[
-                    time_feature.DayOfWeek(),
-                    time_feature.DayOfMonth(),
-                    time_feature.MonthOfYear(),
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
                 ],
                 pred_length=pred_length,
             ),
@@ -532,20 +533,16 @@ def test_ExpectedNumInstanceSampler():
     pred_length = 1
     ds = make_dataset(N, train_length)
 
-    t = transform.Chain(
-        trans=[
-            transform.InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.ExpectedNumInstanceSampler(
-                    num_instances=4, min_future=pred_length
-                ),
-                past_length=train_length,
-                future_length=pred_length,
-            )
-        ]
+    t = transform.InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=transform.ExpectedNumInstanceSampler(
+            num_instances=4, min_future=pred_length
+        ),
+        past_length=train_length,
+        future_length=pred_length,
     )
 
     assert_serializable(t)
@@ -573,20 +570,16 @@ def test_BucketInstanceSampler():
 
     dataset_stats = calculate_dataset_statistics(ds)
 
-    t = transform.Chain(
-        trans=[
-            transform.InstanceSplitter(
-                target_field=FieldName.TARGET,
-                is_pad_field=FieldName.IS_PAD,
-                start_field=FieldName.START,
-                forecast_start_field=FieldName.FORECAST_START,
-                instance_sampler=transform.BucketInstanceSampler(
-                    scale_histogram=dataset_stats.scale_histogram
-                ),
-                past_length=train_length,
-                future_length=pred_length,
-            )
-        ]
+    t = transform.InstanceSplitter(
+        target_field=FieldName.TARGET,
+        is_pad_field=FieldName.IS_PAD,
+        start_field=FieldName.START,
+        forecast_start_field=FieldName.FORECAST_START,
+        instance_sampler=transform.BucketInstanceSampler(
+            scale_histogram=dataset_stats.scale_histogram
+        ),
+        past_length=train_length,
+        future_length=pred_length,
     )
 
     assert_serializable(t)
@@ -666,15 +659,11 @@ def test_cdf_to_gaussian_transformation():
 
     ds = make_test_data()
 
-    t = transform.Chain(
-        trans=[
-            transform.CDFtoGaussianTransform(
-                target_field=FieldName.TARGET,
-                observed_values_field=FieldName.OBSERVED_VALUES,
-                max_context_length=20,
-                target_dim=2,
-            )
-        ]
+    t = transform.CDFtoGaussianTransform(
+        target_field=FieldName.TARGET,
+        observed_values_field=FieldName.OBSERVED_VALUES,
+        max_context_length=20,
+        target_dim=2,
     )
 
     for u in t(iter(ds), is_train=False):
@@ -736,12 +725,8 @@ def test_target_dim_indicator():
         one_dim_target=False,
     )
 
-    t = transform.Chain(
-        trans=[
-            transform.TargetDimIndicator(
-                target_field=FieldName.TARGET, field_name="target_dimensions"
-            )
-        ]
+    t = transform.TargetDimIndicator(
+        target_field=FieldName.TARGET, field_name="target_dimensions"
     )
 
     for data_entry in t(dataset, is_train=True):
@@ -792,7 +777,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
             min_past=2,
             min_future=1,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     # no boundary conditions
@@ -812,7 +797,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
             allow_empty_interval=False,
             min_past=2,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -837,7 +822,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -862,7 +847,6 @@ def test_ctsplitter_train_correct(point_process_dataset):
 
 
 def test_ctsplitter_train_correct_out_count(point_process_dataset):
-
     # produce new TPP data by shuffling existing TS instance
     def shuffle_iterator(num_duplications=5):
         for entry in point_process_dataset:
@@ -877,7 +861,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(shuffle_iterator(), is_train=True)
@@ -888,7 +872,6 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
 
 
 def test_ctsplitter_train_samples_correct_times(point_process_dataset):
-
     splitter = transform.ContinuousTimeInstanceSplitter(
         past_interval_length=1.25,
         future_interval_length=1.25,
@@ -897,7 +880,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
             min_past=1.25,
             min_future=1.25,
         ),
-        freq=to_offset(point_process_dataset.freq),
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -921,7 +904,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=point_process_dataset.freq,
+        freq=to_offset("H"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -1046,13 +1029,10 @@ def make_dataset(N, train_length):
 def assert_serializable(x: transform.Transformation):
     t = fqname_for(x.__class__)
     y = load_json(dump_json(x))
-    z = load_code(dump_code(x))
+
     assert dump_json(x) == dump_json(
         y
     ), f"Code serialization for transformer {t} does not work"
-    assert dump_code(x) == dump_code(
-        z
-    ), f"JSON serialization for transformer {t} does not work"
 
 
 def assert_shape(array: np.array, reference_shape: Tuple[int, int]):
@@ -1213,3 +1193,10 @@ def test_erfinv() -> None:
     # Text np
     y_np = erfinv(x)
     assert np.allclose(y_np, y_scipy, rtol=1e-3)
+
+
+def test_valmap():
+    data = [{"a": 1, "b": [2]}]
+
+    for entry in Valmap(str)(data, is_train=False):
+        assert entry == {"a": "1", "b": "[2]"}

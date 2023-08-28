@@ -78,6 +78,28 @@ class Gaussian(Distribution):
     def stddev(self) -> Tensor:
         return self.sigma
 
+    @classmethod
+    def fit(cls, F, samples: Tensor):
+        """
+        Returns an instance of `Gaussian` after fitting parameters to the given data.
+
+        Parameters
+        ----------
+        F
+        samples
+            Tensor of shape (num_samples, batch_size, seq_len)
+
+        Returns
+        -------
+        Distribution instance of type `Gaussian`.
+
+        """
+
+        # Compute mean and standard deviations
+        mu = samples.mean(axis=0)
+        sigma = F.sqrt(F.square(samples - mu).mean(axis=0))
+        return cls(mu=mu, sigma=sigma)
+
     def cdf(self, x):
         F = self.F
         u = F.broadcast_div(

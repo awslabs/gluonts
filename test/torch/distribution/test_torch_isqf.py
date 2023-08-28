@@ -84,7 +84,6 @@ def test_values(
     right_crps: List[float],
     spline_crps: List[float],
 ):
-
     target = torch.tensor(target).reshape(len(target))
     alpha = torch.tensor(alpha).reshape(len(alpha), len(target))
     quantile = np.array(quantile).reshape((len(quantile), len(target)))
@@ -128,7 +127,6 @@ def test_shapes(
     num_qk: int,
     num_samples: int,
 ):
-
     spline_knots = torch.ones(
         (*batch_shape, (num_qk - 1), num_pieces), dtype=torch.float32
     )
@@ -233,7 +231,6 @@ def test_cdf_quantile_consistency(
     num_samples: int,
     atol: float,
 ):
-
     distr_out = ISQFOutput(num_pieces, list_qk_x)
 
     args_proj = distr_out.get_args_proj(in_features=30)

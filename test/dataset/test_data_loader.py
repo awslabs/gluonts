@@ -22,16 +22,19 @@ from typing import Dict, Any, List
 
 import numpy as np
 import pytest
+from toolz import take
 
 from gluonts.core.component import equals
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import DataEntry, DataBatch, FileDataset
 from gluonts.dataset.field_names import FieldName
+from gluonts.itertools import Cyclic
 from gluonts.dataset.loader import (
     Batch,
     TrainDataLoader,
     ValidationDataLoader,
     InferenceDataLoader,
+    as_stacked_batches,
 )
 from gluonts.transform import (
     InstanceSampler,
@@ -111,11 +114,7 @@ def count_item_ids(batches: List[DataBatch]) -> Dict[Any, int]:
         else [default_list_dataset]
     ),
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_training_data_loader(dataset_context, num_workers):
+def test_training_data_loader(dataset_context):
     with dataset_context() as dataset:
         dataset_length = len(dataset)
 
@@ -126,7 +125,6 @@ def test_training_data_loader(dataset_context, num_workers):
             transform=default_transformation(),
             batch_size=batch_size,
             stack_fn=batchify,
-            num_workers=num_workers,
         )
 
         num_epochs = 20
@@ -151,9 +149,8 @@ def test_training_data_loader(dataset_context, num_workers):
 
         counter = count_item_ids(batches)
 
-        if num_workers is None or num_workers == 1:
-            for entry in dataset:
-                assert counter[entry[FieldName.ITEM_ID]] >= 1
+        for entry in dataset:
+            assert counter[entry[FieldName.ITEM_ID]] >= 1
 
 
 @pytest.mark.parametrize(
@@ -163,18 +160,13 @@ def test_training_data_loader(dataset_context, num_workers):
         default_file_dataset,
     ],
 )
-@pytest.mark.parametrize(
-    "num_workers",
-    [None, 1, 2, 5],
-)
-def test_validation_data_loader(dataset_context, num_workers):
+def test_validation_data_loader(dataset_context):
     with dataset_context() as dataset:
         dl = ValidationDataLoader(
             dataset=dataset,
             transform=default_transformation(),
             batch_size=4,
             stack_fn=batchify,
-            num_workers=num_workers,
         )
 
         for _ in range(3):
@@ -219,3 +211,100 @@ def test_inference_data_loader(dataset_context):
 def test_equals_batch():
     assert equals(Batch(batch_size=10), Batch(batch_size=10))
     assert not equals(Batch(batch_size=10), Batch(batch_size=100))
+
+
+def test_as_stacked_batches():
+    step = 10
+    data = [
+        {"x": np.arange(start, start + step)} for start in range(0, 100, step)
+    ]
+
+    stream = as_stacked_batches(data, batch_size=2)
+
+    for _ in range(3):
+        batches = list(take(2, stream))
+        assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+        assert np.array_equal(
+            batches[1]["x"], np.arange(20, 40).reshape(2, 10)
+        )
+
+
+def test_as_stacked_batches_iter():
+    step = 10
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
+
+    stream = as_stacked_batches(data, batch_size=2)
+
+    batches = list(take(2, stream))
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+
+    batches = list(take(2, stream))
+    assert np.array_equal(batches[0]["x"], np.arange(40, 60).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(60, 80).reshape(2, 10))
+
+    batches = list(take(2, stream))
+    assert len(batches) == 1
+    assert np.array_equal(batches[0]["x"], np.arange(80, 100).reshape(2, 10))
+
+
+def test_as_stacked_batches_iter_num_batches():
+    step = 10
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
+
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(40, 60).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 2
+    assert np.array_equal(batches[0]["x"], np.arange(60, 80).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(80, 100).reshape(2, 10))
+
+    assert len(list(stream)) == 0
+
+
+def test_as_stacked_batches_num_batches_iter_cycle():
+    step = 10
+    data = iter(
+        Cyclic(
+            [
+                {"x": np.arange(start, start + step)}
+                for start in range(0, 100, step)
+            ]
+        )
+    )
+
+    stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(0, 20).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(40, 60).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(60, 80).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(80, 100).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(0, 20).reshape(2, 10))
+
+    batches = list(stream)
+    assert len(batches) == 3
+    assert np.array_equal(batches[0]["x"], np.arange(20, 40).reshape(2, 10))
+    assert np.array_equal(batches[1]["x"], np.arange(40, 60).reshape(2, 10))
+    assert np.array_equal(batches[2]["x"], np.arange(60, 80).reshape(2, 10))

@@ -140,7 +140,6 @@ class SNMLPBlock(mx.gluon.HybridBlock):
             if isinstance(layer, SNDense)
         ]
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
 

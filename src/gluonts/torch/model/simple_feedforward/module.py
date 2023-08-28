@@ -11,12 +11,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import torch
 from torch import nn
 
 from gluonts.core.component import validated
+from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 
 
@@ -42,7 +43,7 @@ class SimpleFeedForwardModel(nn.Module):
     context_length
         Number of time steps prior to prediction time that the model.
     hidden_dimensions
-        Size of hidden layers in the feedforward network.
+        Size of hidden layers in the feed-forward network.
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
@@ -55,7 +56,7 @@ class SimpleFeedForwardModel(nn.Module):
         self,
         prediction_length: int,
         context_length: int,
-        hidden_dimensions: List[int],
+        hidden_dimensions: Optional[List[int]] = None,
         distr_output=StudentTOutput(),
         batch_norm: bool = False,
     ) -> None:
@@ -63,15 +64,17 @@ class SimpleFeedForwardModel(nn.Module):
 
         assert prediction_length > 0
         assert context_length > 0
-        assert len(hidden_dimensions) > 0
+        assert hidden_dimensions is None or len(hidden_dimensions) > 0
 
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.hidden_dimensions = hidden_dimensions
+        self.hidden_dimensions = (
+            hidden_dimensions if hidden_dimensions is not None else [20, 20]
+        )
         self.distr_output = distr_output
         self.batch_norm = batch_norm
 
-        dimensions = [context_length] + hidden_dimensions[:-1]
+        dimensions = [context_length] + self.hidden_dimensions[:-1]
 
         modules = []
         for in_size, out_size in zip(dimensions[:-1], dimensions[1:]):
@@ -80,19 +83,31 @@ class SimpleFeedForwardModel(nn.Module):
                 modules.append(nn.BatchNorm1d(out_size))
         modules.append(
             make_linear_layer(
-                dimensions[-1], prediction_length * hidden_dimensions[-1]
+                dimensions[-1], prediction_length * self.hidden_dimensions[-1]
             )
         )
 
         self.nn = nn.Sequential(*modules)
-        self.args_proj = self.distr_output.get_args_proj(hidden_dimensions[-1])
+        self.args_proj = self.distr_output.get_args_proj(
+            self.hidden_dimensions[-1]
+        )
+
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
+            {
+                "past_target": Input(
+                    shape=(batch_size, self.context_length), dtype=torch.float
+                ),
+            },
+            torch.zeros,
+        )
 
     def forward(
         self,
-        context: torch.Tensor,
+        past_target: torch.Tensor,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
-        scale = mean_abs_scaling(context)
-        scaled_context = context / scale
+        scale = mean_abs_scaling(past_target)
+        scaled_context = past_target / scale
         nn_out = self.nn(scaled_context)
         nn_out_reshaped = nn_out.reshape(
             -1, self.prediction_length, self.hidden_dimensions[-1]

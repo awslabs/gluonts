@@ -11,11 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import mxnet as mx
 import pytest
 
 from gluonts.core.serde import encode, decode, dump_json
-from gluonts.model.tpp.distribution import (
+from gluonts.mx.model.tpp.distribution import (
     LoglogisticOutput,
     WeibullOutput,
 )
@@ -27,7 +26,6 @@ from gluonts.mx.distribution import (
     DirichletMultinomialOutput,
     DirichletOutput,
     EmpiricalDistributionOutput,
-    EmpiricalDistribution,
     GammaOutput,
     GaussianOutput,
     GenParetoOutput,

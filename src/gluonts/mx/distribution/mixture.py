@@ -64,7 +64,6 @@ class MixtureDistribution(Distribution):
         self.mixture_probs = mixture_probs
         self.components = components
         if not isinstance(mixture_probs, mx.sym.Symbol):
-
             # assert that all components have the same batch shape
             assert np.all(
                 [d.batch_shape == self.batch_shape for d in components[1:]]

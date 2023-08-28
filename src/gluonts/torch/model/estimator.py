@@ -20,8 +20,9 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
+from gluonts.env import env
 from gluonts.itertools import Cached
-from gluonts.model.estimator import Estimator
+from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation
 
@@ -146,7 +147,7 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: int = 0,
+        from_predictor: Optional[PyTorchPredictor] = None,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
@@ -154,34 +155,41 @@ class PyTorchLightningEstimator(Estimator):
     ) -> TrainOutput:
         transformation = self.create_transformation()
 
-        transformed_training_data = transformation.apply(
-            training_data, is_train=True
-        )
+        with env._let(max_idle_transforms=max(len(training_data), 100)):
+            transformed_training_data = transformation.apply(
+                training_data, is_train=True
+            )
+            if cache_data:
+                transformed_training_data = Cached(transformed_training_data)
 
-        training_network = self.create_lightning_module()
+            training_network = self.create_lightning_module()
 
-        training_data_loader = self.create_training_data_loader(
-            transformed_training_data
-            if not cache_data
-            else Cached(transformed_training_data),
-            training_network,
-            num_workers=num_workers,
-            shuffle_buffer_length=shuffle_buffer_length,
-        )
+            training_data_loader = self.create_training_data_loader(
+                transformed_training_data,
+                training_network,
+                shuffle_buffer_length=shuffle_buffer_length,
+            )
 
         validation_data_loader = None
 
         if validation_data is not None:
-            transformed_validation_data = transformation.apply(
-                validation_data, is_train=True
-            )
+            with env._let(max_idle_transforms=max(len(validation_data), 100)):
+                transformed_validation_data = transformation.apply(
+                    validation_data, is_train=True
+                )
+                if cache_data:
+                    transformed_validation_data = Cached(
+                        transformed_validation_data
+                    )
 
-            validation_data_loader = self.create_validation_data_loader(
-                transformed_validation_data
-                if not cache_data
-                else Cached(transformed_validation_data),
-                training_network,
-                num_workers=num_workers,
+                validation_data_loader = self.create_validation_data_loader(
+                    transformed_validation_data,
+                    training_network,
+                )
+
+        if from_predictor is not None:
+            training_network.load_state_dict(
+                from_predictor.network.state_dict()
             )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
@@ -189,10 +197,14 @@ class PyTorchLightningEstimator(Estimator):
             monitor=monitor, mode="min", verbose=True
         )
 
-        custom_callbacks = self.trainer_kwargs.get("callbacks", [])
-        callbacks = [checkpoint] + custom_callbacks
-        trainer_kwargs = {**self.trainer_kwargs, "callbacks": callbacks}
-        trainer = pl.Trainer(**trainer_kwargs)
+        custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
+        trainer = pl.Trainer(
+            **{
+                "accelerator": "auto",
+                "callbacks": [checkpoint] + custom_callbacks,
+                **self.trainer_kwargs,
+            }
+        )
 
         trainer.fit(
             model=training_network,
@@ -201,10 +213,15 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
         )
 
-        logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.load_from_checkpoint(
-            checkpoint.best_model_path
-        )
+        if checkpoint.best_model_path != "":
+            logger.info(
+                f"Loading best model from {checkpoint.best_model_path}"
+            )
+            best_model = training_network.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = training_network
 
         return TrainOutput(
             transformation=transformation,
@@ -221,7 +238,6 @@ class PyTorchLightningEstimator(Estimator):
         self,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
-        num_workers: int = 0,
         shuffle_buffer_length: Optional[int] = None,
         cache_data: bool = False,
         ckpt_path: Optional[str] = None,
@@ -230,9 +246,26 @@ class PyTorchLightningEstimator(Estimator):
         return self.train_model(
             training_data,
             validation_data,
-            num_workers=num_workers,
             shuffle_buffer_length=shuffle_buffer_length,
             cache_data=cache_data,
             ckpt_path=ckpt_path,
-            **kwargs,
+        ).predictor
+
+    def train_from(
+        self,
+        predictor: Predictor,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
+    ) -> PyTorchPredictor:
+        assert isinstance(predictor, PyTorchPredictor)
+        return self.train_model(
+            training_data,
+            validation_data,
+            from_predictor=predictor,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            ckpt_path=ckpt_path,
         ).predictor

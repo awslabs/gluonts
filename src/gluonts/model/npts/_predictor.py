@@ -163,7 +163,7 @@ class NPTSPredictor(RepresentablePredictor):
         num_default_time_features: int = 1,
         feature_scale: float = 1000.0,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
         # We limit the context length to some maximum value instead of
         # looking at the whole history which might be too large.
         self.context_length = (
@@ -174,6 +174,7 @@ class NPTSPredictor(RepresentablePredictor):
         self.use_seasonal_model = use_seasonal_model
         self.use_default_time_features = use_default_time_features
         self.feature_scale = feature_scale
+        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
@@ -227,7 +228,7 @@ class NPTSPredictor(RepresentablePredictor):
         self,
         ts: pd.Series,
         num_samples: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
         item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
@@ -290,9 +291,9 @@ class NPTSPredictor(RepresentablePredictor):
 
     def _get_features(
         self,
-        train_index: pd.DatetimeIndex,
+        train_index: pd.PeriodIndex,
         prediction_length: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Internal method for computing default, (optional) seasonal features for
@@ -304,7 +305,7 @@ class NPTSPredictor(RepresentablePredictor):
         Parameters
         ----------
         train_index
-            Pandas DatetimeIndex
+            Pandas PeriodIndex
         prediction_length
             prediction length
         custom_features

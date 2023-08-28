@@ -29,9 +29,7 @@ def test_parallelized_predictor():
         freq="1H",
     )
 
-    base_predictor = IdentityPredictor(
-        freq="1H", prediction_length=10, num_samples=100
-    )
+    base_predictor = IdentityPredictor(prediction_length=10, num_samples=100)
 
     predictor = ParallelizedPredictor(
         base_predictor=base_predictor, num_workers=10, chunk_size=2
@@ -60,7 +58,7 @@ def test_localizer():
         freq="1H",
     )
 
-    estimator = MeanEstimator(prediction_length=10, freq="1H", num_samples=50)
+    estimator = MeanEstimator(prediction_length=10, num_samples=50)
 
     local_pred = Localizer(estimator=estimator)
     agg_metrics, _ = backtest_metrics(

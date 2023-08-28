@@ -36,7 +36,6 @@ class DimExpansion(Representation):
         super().__init__(*args, **kwargs)
         self.axis = axis
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

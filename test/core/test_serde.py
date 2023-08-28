@@ -98,26 +98,13 @@ def test_json_serialization(e) -> None:
     assert check_equality(expected, actual)
 
 
-@pytest.mark.parametrize("e", examples)
-def test_code_serialization(e) -> None:
-    expected, actual = e, serde.load_code(serde.dump_code(e))
-    assert check_equality(expected, actual)
-
-
 def test_timestamp_encode_decode() -> None:
     now = pd.Timestamp.now()
     assert now == serde.decode(serde.encode(now))
 
 
-@pytest.mark.parametrize(
-    "serialize_fn",
-    [
-        lambda x: serde.load_json(serde.dump_json(x)),
-        lambda x: serde.load_code(serde.dump_code(x)),
-    ],
-)
-def test_string_escape(serialize_fn) -> None:
-    assert serialize_fn(r"a\b") == r"a\b"
+def test_string_escape() -> None:
+    assert serde.load_json(serde.dump_json(r"a\b")) == r"a\b"
 
 
 def test_serde_fq():
@@ -150,3 +137,8 @@ def test_serde_method():
     m = serde.decode(serde.encode(x.m))
 
     assert m() == 42
+
+
+def test_np_str_dtype():
+    a = np.array(["foo"])
+    serde.decode(serde.encode(a.dtype)) == a.dtype

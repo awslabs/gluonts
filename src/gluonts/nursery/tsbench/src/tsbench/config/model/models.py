@@ -15,18 +15,18 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast, List, Optional
-from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx import DeepAREstimator
 from gluonts.model.estimator import DummyEstimator, Estimator
-from gluonts.model.n_beats import NBEATSEstimator
+from gluonts.mx import NBEATSEstimator
 from gluonts.model.naive_2 import Naive2Predictor
 from gluonts.model.npts import NPTSEstimator
 from gluonts.model.predictor import Predictor
 from gluonts.model.prophet import ProphetPredictor
 from gluonts.model.r_forecast import RForecastPredictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
-from gluonts.model.seq2seq import MQCNNEstimator, MQRNNEstimator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
-from gluonts.model.tft import TemporalFusionTransformerEstimator
+from gluonts.mx import MQCNNEstimator, MQRNNEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
+from gluonts.mx.model.tft import TemporalFusionTransformerEstimator
 from gluonts.mx.trainer.callback import Callback
 from gluonts.time_feature import Constant
 from mxnet.gluon import nn

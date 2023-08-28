@@ -22,11 +22,11 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
 from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
-from gluonts.model.predictor import FallbackPredictor, RepresentablePredictor
+from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
 
 
-class MeanPredictor(RepresentablePredictor, FallbackPredictor):
+class MeanPredictor(RepresentablePredictor):
     """
     A :class:`Predictor` that predicts the samples based on the mean of the
     last `context_length` elements of the input target.
@@ -40,19 +40,16 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
     num_samples
         Number of samples to use to construct :class:`SampleForecast` objects
         for every prediction.
-    freq
-        Frequency of the predicted data.
     """
 
     @validated()
     def __init__(
         self,
         prediction_length: int,
-        freq: str,
         num_samples: int = 100,
         context_length: Optional[int] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
         self.context_length = context_length
         self.num_samples = num_samples
         self.shape = (self.num_samples, self.prediction_length)
@@ -70,7 +67,6 @@ class MeanPredictor(RepresentablePredictor, FallbackPredictor):
         return SampleForecast(
             samples=std * normal + mean,
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -96,18 +92,15 @@ class MovingAveragePredictor(RepresentablePredictor):
         Length of the target context used to condition the predictions.
     prediction_length
         Length of the prediction horizon.
-    freq
-        Frequency of the predicted data.
     """
 
     @validated()
     def __init__(
         self,
         prediction_length: int,
-        freq: str,
         context_length: Optional[int] = None,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
         if context_length is not None:
             assert (
@@ -130,7 +123,6 @@ class MovingAveragePredictor(RepresentablePredictor):
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
             start_date=forecast_start(item),
-            freq=self.freq,
             item_id=item.get(FieldName.ITEM_ID),
         )
 
@@ -145,8 +137,6 @@ class MeanEstimator(Estimator):
     ----------
     prediction_length
         Prediction horizon.
-    freq
-        Frequency of the predicted data.
     num_samples
         Number of samples to include in the forecasts. Not that the samples
         produced by this predictor will all be identical.
@@ -156,12 +146,10 @@ class MeanEstimator(Estimator):
     def __init__(
         self,
         prediction_length: PositiveInt,
-        freq: str,
         num_samples: PositiveInt,
     ) -> None:
         super().__init__()
         self.prediction_length = prediction_length
-        self.freq = freq
         self.num_samples = num_samples
 
     def train(
@@ -181,4 +169,4 @@ class MeanEstimator(Estimator):
             shape=(self.num_samples, self.prediction_length),
         )
 
-        return ConstantPredictor(samples=samples, freq=self.freq)
+        return ConstantPredictor(samples=samples)

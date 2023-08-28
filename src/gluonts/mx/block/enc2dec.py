@@ -29,7 +29,6 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -53,7 +52,7 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
             prediction_length=decoder_length, num_feat_dynamic) or
             (N, T, P, C`)
         """
-        pass
+        raise NotImplementedError
 
 
 class PassThroughEnc2Dec(Seq2SeqEnc2Dec):

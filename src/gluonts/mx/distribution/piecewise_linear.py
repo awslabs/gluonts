@@ -181,7 +181,9 @@ class PiecewiseLinear(Distribution):
             a_tilde.expand_dims(axis=-1), knot_positions
         )
 
-        knots_cubed = F.broadcast_power(self.knot_positions, F.ones(1) * 3.0)
+        knots_cubed = F.power(
+            knot_positions, F.ones_like(knot_positions) * 3.0
+        )
 
         coeff = (
             (1.0 - knots_cubed) / 3.0
@@ -386,7 +388,6 @@ class FixedKnotsArgProj(ArgProj):
                 "knot_spacings", knot_spacings
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
         knot_spacings = kwargs["knot_spacings"]

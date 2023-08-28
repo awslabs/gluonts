@@ -122,7 +122,6 @@ class GlobalRelativeBinning(Representation):
         self.bin_edges.set_data(mx.nd.array(bin_edges))
         self.bin_centers.set_data(mx.nd.array(bin_centers))
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

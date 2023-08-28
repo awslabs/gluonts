@@ -75,7 +75,6 @@ class DiscretePIT(Representation):
         else:
             self.mlp = None
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

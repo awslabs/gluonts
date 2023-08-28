@@ -27,7 +27,7 @@ from gluonts.transform import (
 
 ds1 = [
     {
-        "start": pd.Timestamp("2020/01/01", freq="1D"),
+        "start": pd.Period("2020/01/01", freq="1D"),
         "target": np.array(
             [1, 2, 3, np.nan, 5, np.nan, 7, np.nan, np.nan, 10]
         ),

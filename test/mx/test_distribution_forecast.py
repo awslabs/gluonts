@@ -29,7 +29,6 @@ FORECASTS = {
     "DistributionForecast": DistributionForecast(
         distribution=Uniform(low=mx.nd.zeros(1), high=mx.nd.ones(1)),
         start_date=START_DATE,
-        freq=FREQ,
     ),
 }
 
@@ -61,7 +60,6 @@ def test_DistributionForecast():
             low=mx.nd.array([0.0, 0.0]), high=mx.nd.array([1.0, 2.0])
         ),
         start_date=START_DATE,
-        freq=FREQ,
     )
 
     def percentile(value):
@@ -91,7 +89,6 @@ def test_DistributionForecast():
                     high=mx.nd.ones(shape=(5, 2)),
                 ),
                 start_date=pd.Period("2020-01-01 00:00:00", freq="W"),
-                freq="W",
             ),
             pd.period_range(
                 start="2020-01-01 00:00:00",

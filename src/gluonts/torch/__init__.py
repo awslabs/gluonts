@@ -11,12 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
-
-
-from pkgutil import extend_path
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
+__all__ = [
+    "PyTorchLightningEstimator",
+    "PyTorchPredictor",
+    "DeepNPTSEstimator",
+    "DeepAREstimator",
+    "SimpleFeedForwardEstimator",
+    "TemporalFusionTransformerEstimator",
+    "WaveNetEstimator",
+    "DLinearEstimator",
+    "PatchTSTEstimator",
+    "LagTSTEstimator",
+]
+import torch
+from .model.estimator import PyTorchLightningEstimator
+from .model.predictor import PyTorchPredictor
+from .model.deep_npts import DeepNPTSEstimator
+from .model.deepar import DeepAREstimator
+from .model.simple_feedforward import SimpleFeedForwardEstimator
+from .model.tft import TemporalFusionTransformerEstimator
+from .model.wavenet import WaveNetEstimator
+from .model.d_linear import DLinearEstimator
+from .model.patch_tst import PatchTSTEstimator
+from .model.lag_tst import LagTSTEstimator
 
 
 from . import prelude as _  # noqa
+
+
+if torch.cuda.is_available():
+    torch.multiprocessing.set_start_method("spawn", force=True)

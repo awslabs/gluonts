@@ -21,15 +21,14 @@ from torch.distributions import (
     Beta,
     Distribution,
     Gamma,
-    NegativeBinomial,
     Normal,
     Poisson,
-    StudentT,
+    Laplace,
 )
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.lambda_layer import LambdaLayer
 from gluonts.torch.distributions import AffineTransformed
+from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
 class PtArgProj(nn.Module):
@@ -190,17 +189,14 @@ class NormalOutput(DistributionOutput):
         return ()
 
 
-class StudentTOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
-    distr_cls: type = StudentT
+class LaplaceOutput(DistributionOutput):
+    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
+    distr_cls: type = Laplace
 
     @classmethod
-    def domain_map(
-        cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
-    ):
+    def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
-        df = 2.0 + F.softplus(df)
-        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
+        return loc.squeeze(-1), scale.squeeze(-1)
 
     @property
     def event_shape(self) -> Tuple:
@@ -258,39 +254,21 @@ class PoissonOutput(DistributionOutput):
         rate_pos = F.softplus(rate).clone()
         return (rate_pos.squeeze(-1),)
 
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-
-class NegativeBinomialOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"total_count": 1, "logits": 1}
-    distr_cls: type = NegativeBinomial
-
-    @classmethod
-    def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
-        total_count = F.softplus(total_count)
-        return total_count.squeeze(-1), logits.squeeze(-1)
-
-    def _base_distribution(self, distr_args) -> Distribution:
-        total_count, logits = distr_args
-        return self.distr_cls(total_count=total_count, logits=logits)
-
     # Overwrites the parent class method. We cannot scale using the affine
-    # transformation since negative binomial should return integers. Instead
-    # we scale the parameters.
+    # transformation since Poisson should return integers. Instead we scale
+    # the parameters.
     def distribution(
         self,
         distr_args,
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> Distribution:
-        total_count, logits = distr_args
+        (rate,) = distr_args
 
         if scale is not None:
-            logits += scale.log()
+            rate *= scale
 
-        return NegativeBinomial(total_count=total_count, logits=logits)
+        return Poisson(rate=rate)
 
     @property
     def event_shape(self) -> Tuple:

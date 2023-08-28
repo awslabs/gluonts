@@ -46,6 +46,7 @@ class InpuDataConfig(BaseModel):
 class TrainPaths:
     def __init__(self, base: Path = Path("/opt/ml")) -> None:
         self.base = base.expanduser().resolve()
+        self.input = self.base / "input"
         self.config = self.base / "input" / "config"
         self.data = self.base / "input" / "data"
         self.model = self.base / "model"

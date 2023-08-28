@@ -168,24 +168,26 @@ class ConstantDataset(ArtificialDataset):
         metadata = MetaData(
             freq=self.freq.freqstr,
             feat_static_cat=[
-                {
-                    "name": "feat_static_cat_000",
-                    "cardinality": str(self.num_timeseries),
-                }
+                CategoricalFeatureInfo(
+                    name="feat_static_cat_000",
+                    cardinality=str(self.num_timeseries),
+                )
             ],
-            feat_static_real=[{"name": "feat_static_real_000"}],
+            feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
             prediction_length=self.prediction_length,
         )
         if self.is_promotions or self.holidays:
             metadata = MetaData(
                 freq=self.freq.freqstr,
                 feat_static_cat=[
-                    {
-                        "name": "feat_static_cat_000",
-                        "cardinality": str(self.num_timeseries),
-                    }
+                    CategoricalFeatureInfo(
+                        name="feat_static_cat_000",
+                        cardinality=str(self.num_timeseries),
+                    )
                 ],
-                feat_static_real=[{"name": "feat_static_real_000"}],
+                feat_static_real=[
+                    BasicFeatureInfo(name="feat_static_real_000")
+                ],
                 feat_dynamic_real=[
                     BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)
                 ],
@@ -250,7 +252,7 @@ class ConstantDataset(ArtificialDataset):
             max_train_length=max_train_length,
             prediction_length=self.prediction_length,
             # Add 1 time series at a time in the loop for different constant
-            # valus per time series
+            # values per time series
             num_timeseries=1,
         )
         generated = data.generate()
@@ -337,7 +339,6 @@ class ConstantDataset(ArtificialDataset):
                     or self.is_promotions
                     or self.holidays
                 ):
-
                     num_steps = self.get_num_steps(i)
                     generated = self.compute_data_from_recipe(
                         num_steps, constant
@@ -407,11 +408,11 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                test set
         :param prediction_length:
         :param freq_str:
-        :param length_low: minimum length of a time-series, must be larger than
+        :param length_low: minimum length of a time series, must be larger than
                prediction_length
-        :param length_high: maximum length of a time-series
-        :param min_val: min value of a time-series
-        :param max_val: max value of a time-series
+        :param length_high: maximum length of a time series
+        :param min_val: min value of a time series
+        :param max_val: max value of a time series
         :param is_integer: whether the dataset has integers or not
         :param proportion_missing_values:
         :param is_noise: whether to add noise
@@ -637,7 +638,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                         v[j] = None if state.rand() < 0.5 else "NaN"
             res.append(
                 dict(
-                    start=pd.Timestamp(start, freq=self.freq_str),
+                    start=pd.Period(start, freq=self.freq_str),
                     target=np.array(v),
                     item_id=i,
                 )
@@ -791,7 +792,6 @@ class RecipeDataset(ArtificialDataset):
 
 
 def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
-
     recipe = [
         (FieldName.TARGET, LinearTrend() + RandomGaussian()),
         (FieldName.FEAT_STATIC_CAT, RandomCat([10])),
@@ -811,7 +811,7 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
             ],
             feat_static_cat=[
                 CategoricalFeatureInfo(
-                    name=FieldName.FEAT_STATIC_CAT, cardinality=10
+                    name=FieldName.FEAT_STATIC_CAT, cardinality="10"
                 )
             ],
             feat_dynamic_real=[
@@ -843,6 +843,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
             )
         ],
         feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
+        feat_dynamic_real=[BasicFeatureInfo(name=FieldName.FEAT_DYNAMIC_REAL)],
     )
 
     start_date = "2000-01-01 00:00:00"
@@ -855,6 +856,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
                 FieldName.TARGET: [float(i)] * 24,
                 FieldName.FEAT_STATIC_CAT: [i],
                 FieldName.FEAT_STATIC_REAL: [float(i)],
+                FieldName.FEAT_DYNAMIC_REAL: [[float(i) * 0.5] * 24],
             }
             for i in range(10)
         ],
@@ -869,6 +871,7 @@ def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
                 FieldName.TARGET: [float(i)] * 30,
                 FieldName.FEAT_STATIC_CAT: [i],
                 FieldName.FEAT_STATIC_REAL: [float(i)],
+                FieldName.FEAT_DYNAMIC_REAL: [[float(i) * 0.5] * 30],
             }
             for i in range(10)
         ],

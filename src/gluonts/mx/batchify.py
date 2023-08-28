@@ -75,12 +75,21 @@ def stack(
         data = _pad_arrays(data, axis=0, is_right_pad=is_right_pad)
     if isinstance(data[0], mx.nd.NDArray):
         # TODO: think about using shared context NDArrays
-        #  https://github.com/awslabs/gluon-ts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
+        #  https://github.com/awslabs/gluonts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
         return mx.nd.stack(*data)
     if isinstance(data[0], np.ndarray):
         data = mx.nd.array(data, dtype=dtype, ctx=ctx)
     elif isinstance(data[0], (list, tuple)):
-        return list(stack(t, ctx=ctx) for t in zip(*data))
+        return list(
+            stack(
+                t,
+                ctx=ctx,
+                dtype=dtype,
+                variable_length=variable_length,
+                is_right_pad=is_right_pad,
+            )
+            for t in zip(*data)
+        )
     return data
 
 

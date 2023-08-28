@@ -14,13 +14,13 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
-from gluonts.itertools import Cyclic, PseudoShuffled, IterableSlice
+from gluonts.dataset.loader import as_stacked_batches
+from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
@@ -33,9 +33,6 @@ from gluonts.transform import (
     ExpectedNumInstanceSampler,
     SelectFields,
 )
-from gluonts.torch.util import (
-    IterableDataset,
-)
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import (
@@ -43,7 +40,6 @@ from gluonts.torch.distributions import (
     StudentTOutput,
 )
 
-from .module import SimpleFeedForwardModel
 from .lightning_module import SimpleFeedForwardLightningModule
 
 PREDICTION_INPUT_NAMES = [
@@ -58,7 +54,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     """
-    An estimator training a feedforward model for forecasting.
+    An estimator training a feed-forward model for forecasting.
 
     This class is uses the model defined in ``SimpleFeedForwardModel``,
     and wraps it into a ``SimpleFeedForwardLightningModule`` for training
@@ -67,16 +63,18 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
 
     Parameters
     ----------
-    freq
-        Frequency of the data to train on and predict.
     prediction_length
         Length of the prediction horizon.
     context_length
         Number of time steps prior to prediction time that the model
         takes as inputs (default: ``10 * prediction_length``).
     hidden_dimensions
-        Size of hidden layers in the feedforward network
+        Size of hidden layers in the feed-forward network
         (default: ``[20, 20]``).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization parameter (default: ``1e-8``).
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
@@ -102,10 +100,11 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         hidden_dimensions: Optional[List[int]] = None,
+        lr: float = 1e-3,
+        weight_decay: float = 1e-8,
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         batch_norm: bool = False,
@@ -123,12 +122,13 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
             default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
 
-        self.freq = freq
         self.prediction_length = prediction_length
         self.context_length = context_length or 10 * prediction_length
         # TODO find way to enforce same defaults to network and estimator
         # somehow
         self.hidden_dimensions = hidden_dimensions or [20, 20]
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.distr_output = distr_output
         self.loss = loss
         self.batch_norm = batch_norm
@@ -143,20 +143,32 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return AddObservedValuesIndicator(
+        return SelectFields(
+            [
+                FieldName.ITEM_ID,
+                FieldName.INFO,
+                FieldName.START,
+                FieldName.TARGET,
+            ],
+            allow_missing=True,
+        ) + AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
             output_field=FieldName.OBSERVED_VALUES,
         )
 
     def create_lightning_module(self) -> pl.LightningModule:
-        model = SimpleFeedForwardModel(
-            prediction_length=self.prediction_length,
-            context_length=self.context_length,
-            hidden_dimensions=self.hidden_dimensions,
-            distr_output=self.distr_output,
-            batch_norm=self.batch_norm,
+        return SimpleFeedForwardLightningModule(
+            loss=self.loss,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+            model_kwargs={
+                "prediction_length": self.prediction_length,
+                "context_length": self.context_length,
+                "hidden_dimensions": self.hidden_dimensions,
+                "distr_output": self.distr_output,
+                "batch_norm": self.batch_norm,
+            },
         )
-        return SimpleFeedForwardLightningModule(model=model, loss=self.loss)
 
     def _create_instance_splitter(
         self, module: SimpleFeedForwardLightningModule, mode: str
@@ -190,27 +202,17 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "training"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        training_instances = transformation.apply(
-            Cyclic(data)
-            if shuffle_buffer_length is None
-            else PseudoShuffled(
-                Cyclic(data), shuffle_buffer_length=shuffle_buffer_length
-            )
+        data = Cyclic(data).stream()
+        instances = self._create_instance_splitter(module, "training").apply(
+            data, is_train=True
         )
-
-        return IterableSlice(
-            iter(
-                DataLoader(
-                    IterableDataset(training_instances),
-                    batch_size=self.batch_size,
-                    **kwargs,
-                )
-            ),
-            self.num_batches_per_epoch,
+        return as_stacked_batches(
+            instances,
+            batch_size=self.batch_size,
+            shuffle_buffer_length=shuffle_buffer_length,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
+            num_batches_per_epoch=self.num_batches_per_epoch,
         )
 
     def create_validation_data_loader(
@@ -219,16 +221,14 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         module: SimpleFeedForwardLightningModule,
         **kwargs,
     ) -> Iterable:
-        transformation = self._create_instance_splitter(
-            module, "validation"
-        ) + SelectFields(TRAINING_INPUT_NAMES)
-
-        validation_instances = transformation.apply(data)
-
-        return DataLoader(
-            IterableDataset(validation_instances),
+        instances = self._create_instance_splitter(module, "validation").apply(
+            data, is_train=True
+        )
+        return as_stacked_batches(
+            instances,
             batch_size=self.batch_size,
-            **kwargs,
+            field_names=TRAINING_INPUT_NAMES,
+            output_type=torch.tensor,
         )
 
     def create_predictor(
@@ -241,14 +241,11 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module.model,
+            prediction_net=module,
             forecast_generator=DistributionForecastGenerator(
                 self.distr_output
             ),
             batch_size=self.batch_size,
-            freq=self.freq,
             prediction_length=self.prediction_length,
-            device=torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ),
+            device="cuda" if torch.cuda.is_available() else "cpu",
         )

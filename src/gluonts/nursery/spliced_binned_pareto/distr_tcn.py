@@ -102,7 +102,6 @@ class DistributionalTCN(torch.nn.Module):
         fwd_time: bool = True,
         output_distr=Normal(torch.tensor([0.0]), torch.tensor([1.0])),
     ):
-
         super().__init__()
 
         self.out_channels = out_channels
@@ -145,7 +144,6 @@ class DistributionalTCN(torch.nn.Module):
         self.output_distr = output_distr
 
     def forward(self, x):
-
         net_out = self.network(x)
         net_out_final = net_out[..., -1].squeeze()
         self.output_distr(net_out_final)

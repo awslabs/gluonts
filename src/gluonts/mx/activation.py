@@ -214,7 +214,6 @@ class LipSwish(nn.HybridBlock):
                 "beta", shape=(1,), init=beta_initializer
             )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor, beta: Tensor) -> Tensor:
         """
 

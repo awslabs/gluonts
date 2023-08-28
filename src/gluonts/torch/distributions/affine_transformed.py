@@ -12,15 +12,30 @@
 # permissions and limitations under the License.
 
 from torch.distributions import (
-    TransformedDistribution,
     AffineTransform,
     Distribution,
+    TransformedDistribution,
 )
 
 
 class AffineTransformed(TransformedDistribution):
-    def __init__(self, base_distribution: Distribution, loc=None, scale=None):
+    """
+    Represents the distribution of an affinely transformed random variable.
 
+    This is the distribution of ``Y = scale * X + loc``, where ``X`` is a
+    random variable distributed according to ``base_distribution``.
+
+    Parameters
+    ----------
+    base_distribution
+        Original distribution
+    loc
+        Translation parameter of the affine transformation.
+    scale
+        Scaling parameter of the affine transformation.
+    """
+
+    def __init__(self, base_distribution: Distribution, loc=None, scale=None):
         self.scale = 1.0 if scale is None else scale
         self.loc = 0.0 if loc is None else loc
 
@@ -33,7 +48,7 @@ class AffineTransformed(TransformedDistribution):
         """
         Returns the mean of the distribution.
         """
-        return self.base_dist.mean + self.loc
+        return self.base_dist.mean * self.scale + self.loc
 
     @property
     def variance(self):

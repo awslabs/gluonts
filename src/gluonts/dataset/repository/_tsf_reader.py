@@ -13,7 +13,6 @@
 
 from datetime import datetime
 from distutils.util import strtobool
-from multiprocessing import cpu_count
 from types import SimpleNamespace
 from typing import Dict
 
@@ -22,7 +21,6 @@ from toolz import compose_left
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
-from gluonts.nursery import glide
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -114,7 +112,7 @@ class TSFReader:
             assert self.target_name not in self.meta.columns
             self.meta.columns[self.target_name] = None
 
-            data = self._read_data_section(lines)
+            data = list(map(self._read_data, lines))
 
             return self.meta, data
 
@@ -128,19 +126,8 @@ class TSFReader:
 
         return False
 
-    def _read_data_section(self, lines):
-        # Enumerate here to keep the indices
-        data = list(enumerate(lines))
-        result = glide.imap_unordered(
-            self._read_data, data, num_workers=cpu_count(), batch_size=8092
-        )
-        # Sort by index here to ensure that the order is deterministic
-        return [x[1] for x in sorted(result, key=lambda x: x[0])]
-
-    def _read_data(self, data):
-        idx, line = data
+    def _read_data(self, line):
         parts = line.split(":")
-
         assert len(parts) == len(
             self.meta.columns
         ), "Missing attributes/values in series."
@@ -154,7 +141,7 @@ class TSFReader:
         for (column, ty), attr in zip(self.meta.columns.items(), attributes):
             record[column] = parse_attribute(ty, attr)
 
-        return idx, record
+        return record
 
     def _data_target(self, s):
         s = s.replace("?", '"nan"')

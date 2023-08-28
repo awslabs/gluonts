@@ -53,7 +53,6 @@ class LocalAbsoluteBinning(Representation):
         self.num_bins = num_bins
         self.is_quantile = is_quantile
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

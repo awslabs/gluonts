@@ -268,7 +268,8 @@ class BinnedUniforms(Distribution):
         # including the bin (upper)
         incomplete_cdf_upper = bins_prob.cumsum(dim=-1)
         # incomplete_cdf_upper.shape: (*batch_shape, numb_bins)
-        incomplete_cdf_lower = bins_prob.cumsum(dim=-1) - bins_prob
+        incomplete_cdf_lower = torch.zeros_like(incomplete_cdf_upper)
+        incomplete_cdf_lower[..., 1:] = incomplete_cdf_upper[..., :-1]
         # incomplete_cdf_lower.shape: (*batch_shape, numb_bins)
 
         one_hot_bin_indicator = (incomplete_cdf_lower <= quantiles) * (
@@ -467,7 +468,6 @@ class BinnedUniformsOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, logits: torch.Tensor) -> torch.Tensor:
-
         logits = torch.abs(logits)
 
         return logits

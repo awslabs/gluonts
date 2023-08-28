@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import mxnet as mx
-import numpy as np
 import pytest
 
 from gluonts.mx.representation import Representation

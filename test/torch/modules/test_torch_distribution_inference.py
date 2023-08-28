@@ -22,6 +22,7 @@ import pytest
 import torch
 import torch.nn as nn
 from pydantic import PositiveFloat, PositiveInt
+from scipy.special import softmax
 from torch.distributions import (
     Beta,
     Gamma,
@@ -34,7 +35,6 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
 
-from gluonts.model.common import NPArrayLike
 from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
@@ -42,15 +42,11 @@ from gluonts.torch.distributions import (
     NegativeBinomialOutput,
     NormalOutput,
     PoissonOutput,
-    StudentTOutput,
-)
-
-from gluonts.torch.distributions import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
+    StudentTOutput,
 )
-
-from scipy.special import softmax
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
@@ -61,12 +57,12 @@ np.random.seed(1)
 torch.manual_seed(1)
 
 
-def inv_softplus(y: NPArrayLike) -> np.ndarray:
+def inv_softplus(y: np.ndarray) -> np.ndarray:
     # y = log(1 + exp(x))  ==>  x = log(exp(y) - 1)
     return np.log(np.exp(y) - 1)
 
 
-def inv_softmax(y: NPArrayLike) -> np.ndarray:
+def inv_softmax(y: np.ndarray) -> np.ndarray:
     """
     Inverse of the scipy.special.softmax
     """
@@ -79,6 +75,7 @@ def maximum_likelihood_estimate_sgd(
     init_biases: List[np.ndarray] = None,
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
+    loss: DistributionLoss = NegativeLogLikelihood(),
 ):
     arg_proj = distr_output.get_args_proj(in_features=1)
     if init_biases is not None:
@@ -105,52 +102,6 @@ def maximum_likelihood_estimate_sgd(
         return [
             param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))
         ]
-    return [
-        param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
-    ]
-
-
-def maximum_likelihood_estimate_sgd_2(
-    distr_output: DistributionOutput,
-    samples: torch.Tensor,
-    init_biases: List[np.ndarray] = None,
-    num_epochs: PositiveInt = PositiveInt(5),
-    learning_rate: PositiveFloat = PositiveFloat(1e-2),
-):
-    arg_proj = distr_output.get_args_proj(in_features=1)
-
-    if init_biases is not None:
-        for param, bias in zip(arg_proj.proj, init_biases):
-            nn.init.constant_(param.bias, bias)
-
-    dummy_data = torch.ones((len(samples), 1))
-
-    dataset = TensorDataset(dummy_data, samples)
-    train_data = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    optimizer = SGD(arg_proj.parameters(), lr=learning_rate)
-
-    for e in range(num_epochs):
-        cumulative_loss = 0
-        num_batches = 0
-
-        for i, (data, sample_label) in enumerate(train_data):
-            optimizer.zero_grad()
-            distr_args = arg_proj(data)
-            distr = distr_output.distribution(distr_args)
-            loss = -distr.log_prob(sample_label).mean()
-            loss.backward()
-            clip_grad_norm_(arg_proj.parameters(), 10.0)
-            optimizer.step()
-
-            num_batches += 1
-            cumulative_loss += loss.item()
-
-    if len(distr_args[0].shape) == 1:
-        return [
-            param.detach().numpy() for param in arg_proj(torch.ones((1, 1)))
-        ]
-
     return [
         param[0].detach().numpy() for param in arg_proj(torch.ones((1, 1)))
     ]
@@ -247,7 +198,6 @@ def test_gamma_likelihood(concentration: float, rate: float) -> None:
 @pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("loc, scale,", [(1.0, 0.1)])
 def test_normal_likelihood(loc: float, scale: float):
-
     locs = torch.zeros((NUM_SAMPLES,)) + loc
     scales = torch.zeros((NUM_SAMPLES,)) + scale
 
@@ -278,7 +228,6 @@ def test_normal_likelihood(loc: float, scale: float):
 @pytest.mark.flaky(max_runs=3, min_passes=1)
 @pytest.mark.parametrize("df, loc, scale,", [(6.0, 2.3, 0.7)])
 def test_studentT_likelihood(df: float, loc: float, scale: float):
-
     dfs = torch.zeros((NUM_SAMPLES,)) + df
     locs = torch.zeros((NUM_SAMPLES,)) + loc
     scales = torch.zeros((NUM_SAMPLES,)) + scale
@@ -446,19 +395,9 @@ def test_splicedbinnedpareto_likelihood(
         tail_percentile_gen_pareto=percentile_tail,
     )
 
-    # Initialize parameter estimates
-    init_args = []
-    for param_name in distr_output.args_dim.keys():
-        init_args.append(
-            distr_true.__getattribute__(param_name).squeeze(dim=0).numpy()
-            * (1 - START_TOL_MULTIPLE * TOL)
-        )
-    init_biases = tuple(init_args)
-
     params_hat_values = maximum_likelihood_estimate_sgd(
         distr_output,
         samples,
-        # init_biases=init_biases,
         num_epochs=50,
     )
 

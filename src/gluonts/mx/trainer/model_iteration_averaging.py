@@ -24,7 +24,6 @@ from .callback import Callback
 
 
 class IterationAveragingStrategy:
-
     r"""
     The model averaging is based on paper
     "Stochastic Gradient Descent for Non-smooth Optimization: Convergence
@@ -187,7 +186,7 @@ class NTA(IterationAveragingStrategy):
         epochs
             The total number of epochs.
         n
-            The non-montone interval.
+            The non-monotone interval.
         maximize
             Whether to maximize or minimize the validation metric.
         eta
@@ -254,7 +253,6 @@ class NTA(IterationAveragingStrategy):
 
 
 class Alpha_Suffix(IterationAveragingStrategy):
-
     r"""
     Implement Alpha Suffix model averaging.
     This method is based on paper "Making Gradient Descent Optimalfor Strongly
@@ -336,8 +334,9 @@ class ModelIterationAveraging(Callback):
         self.avg_strategy.load_cached_model(training_network)
         return True
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         self.avg_strategy.apply(training_network)
+        return True
 
     def on_epoch_end(
         self,

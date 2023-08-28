@@ -89,7 +89,6 @@ class SNDense(mx.gluon.HybridBlock):
             self._weight.data(self._ctx), self._u.data(self._ctx)
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x, _weight, _u, _bias=None):
         """
 

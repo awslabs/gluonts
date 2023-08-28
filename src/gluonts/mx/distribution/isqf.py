@@ -354,7 +354,6 @@ class ISQF(Distribution):
         spline_val = self.quantile_spline(alpha, axis=axis)
 
         for spline_idx in range(self.num_qk - 1):
-
             is_in_between = F.broadcast_logical_and(
                 F.broadcast_lesser_equal(
                     F.slice_axis(
@@ -755,7 +754,6 @@ class ISQF(Distribution):
         spline_alpha_tilde = self.cdf_spline(z)
 
         for i in range(self.num_qk - 1):
-
             is_in_between = F.broadcast_logical_and(
                 F.slice_axis(qk_y, axis=-1, begin=i, end=i + 1).squeeze(-1)
                 <= z,
@@ -1007,7 +1005,6 @@ class TransformedISQF(TransformedDistribution, ISQF):
     def __init__(
         self, base_distribution: ISQF, transforms: List[Bijection]
     ) -> None:
-
         super().__init__(base_distribution, transforms)
 
     def crps(self, y: Tensor) -> Tensor:

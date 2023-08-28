@@ -15,7 +15,6 @@ import mxnet as mx
 import numpy as np
 import pytest
 
-from gluonts.mx.distribution import DistributionOutput
 from gluonts.mx.distribution.beta import BetaOutput
 from gluonts.mx.distribution.gamma import GammaOutput
 from gluonts.mx.distribution.neg_binomial import NegativeBinomialOutput

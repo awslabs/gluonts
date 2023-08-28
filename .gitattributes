@@ -1,1 +1,1 @@
-src/gluonts/_static_version.py export-subst
+src/gluonts/meta/_version.py export-subst

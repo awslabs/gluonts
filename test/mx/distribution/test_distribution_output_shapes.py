@@ -205,7 +205,6 @@ def test_distribution_output_shapes(
     assert distr_out.event_shape == expected_event_shape
 
     for l, s in product(loc, scale):
-
         distr = distr_out.distribution(args, loc=l, scale=s)
 
         assert distr.batch_shape == expected_batch_shape

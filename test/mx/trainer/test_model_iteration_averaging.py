@@ -20,12 +20,11 @@ import pandas as pd
 import pytest
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.trainer.model_iteration_averaging import (
     NTA,
     Alpha_Suffix,
-    IterationAveragingStrategy,
 )
 
 
@@ -36,7 +35,7 @@ def initialize_model() -> nn.HybridBlock:
     prediction_length = 24
     freq = "1H"
     custom_dataset = np.zeros(shape=(N, T))
-    start = pd.Timestamp(
+    start = pd.Period(
         "01-01-2019", freq=freq
     )  # can be different for each time series
     train_ds = ListDataset(
@@ -51,7 +50,6 @@ def initialize_model() -> nn.HybridBlock:
         num_hidden_dimensions=[10],
         prediction_length=prediction_length,
         context_length=T,
-        freq=freq,
         trainer=Trainer(
             ctx="cpu",
             epochs=1,

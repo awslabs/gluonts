@@ -41,8 +41,6 @@ class DistributionForecast(Forecast):
 
     start_date
         start of the forecast
-    freq
-        forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -52,7 +50,6 @@ class DistributionForecast(Forecast):
         self,
         distribution: Distribution,
         start_date: pd.Period,
-        freq: str,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
         index: Optional[Union[pd.DatetimeIndex, pd.PeriodIndex]] = None,
@@ -68,8 +65,6 @@ class DistributionForecast(Forecast):
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
         self._mean = None
         if index is not None:
             self._index = index[-self.prediction_length :]
@@ -94,13 +89,18 @@ class DistributionForecast(Forecast):
 
     def quantile(self, level: Union[float, str]) -> np.ndarray:
         level = Quantile.parse(level).value
-        return self.distribution.icdf(torch.tensor([level])).cpu().numpy()
+        return (
+            self.distribution.icdf(
+                torch.tensor([level], device=self.distribution.mean.device)
+            )
+            .cpu()
+            .numpy()
+        )
 
     def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
         return SampleForecast(
             samples=self.distribution.sample((num_samples,)).cpu().numpy(),
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
             index=self.index,

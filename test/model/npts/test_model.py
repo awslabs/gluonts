@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from gluonts.model.npts import NPTSEstimator
+from gluonts.model.npts import NPTSPredictor
 
 hyperparameters = dict(
     kernel_type="uniform",
@@ -20,12 +20,8 @@ hyperparameters = dict(
 
 
 def test_accuracy(accuracy_test):
-    accuracy_test(NPTSEstimator, hyperparameters, accuracy=0.0)
-
-
-def test_repr(repr_test):
-    repr_test(NPTSEstimator, hyperparameters)
+    accuracy_test(NPTSPredictor, hyperparameters, accuracy=0.0)
 
 
 def test_serialize(serialize_test):
-    serialize_test(NPTSEstimator, hyperparameters)
+    serialize_test(NPTSPredictor, hyperparameters)

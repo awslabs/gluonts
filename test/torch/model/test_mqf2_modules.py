@@ -12,14 +12,12 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
-import pytest
 
-from gluonts.torch.model.mqf2 import (
-    MQF2MultiHorizonModel,
-    MQF2MultiHorizonLightningModule,
-)
+import pytest
+import torch
+
 from gluonts.torch.distributions import MQF2DistributionOutput
+from gluonts.torch.model.mqf2 import MQF2MultiHorizonLightningModule
 
 
 @pytest.mark.parametrize(
@@ -43,16 +41,19 @@ def test_mqf2_modules(
 
     distr_output = MQF2DistributionOutput(prediction_length)
 
-    model = MQF2MultiHorizonModel(
-        freq="1H",
-        context_length=context_length,
-        prediction_length=prediction_length,
-        num_feat_dynamic_real=num_feat_dynamic_real,
-        num_feat_static_real=num_feat_static_real,
-        num_feat_static_cat=num_feat_static_cat,
-        cardinality=cardinality,
-        distr_output=distr_output,
+    lightning_module = MQF2MultiHorizonLightningModule(
+        {
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "distr_output": distr_output,
+        }
     )
+    model = lightning_module.model
 
     feat_static_cat = torch.zeros(
         batch_size, num_feat_static_cat, dtype=torch.long
@@ -69,7 +70,7 @@ def test_mqf2_modules(
     future_target = torch.ones(batch_size, prediction_length)
     future_observed_values = torch.ones(batch_size, prediction_length)
 
-    hidden_state, scale = model.unroll_lagged_rnn(
+    _, scale, hidden_state, _, _ = model.unroll_lagged_rnn(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -79,9 +80,11 @@ def test_mqf2_modules(
         future_target,
     )
 
+    hidden_state = hidden_state[:, :context_length]
+
     assert scale.shape == (batch_size, 1)
 
-    hidden_size = model.lagged_rnn.rnn.hidden_size
+    hidden_size = model.rnn.hidden_size
 
     assert hidden_state.shape == (batch_size, context_length, hidden_size)
 
@@ -124,8 +127,6 @@ def test_mqf2_modules(
         future_target=future_target,
         future_observed_values=future_observed_values,
     )
-
-    lightning_module = MQF2MultiHorizonLightningModule(model=model)
 
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()

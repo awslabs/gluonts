@@ -34,7 +34,6 @@ class Scaler(nn.HybridBlock):
     """
 
     def __init__(self, keepdims: bool = False, axis: int = 1):
-
         super().__init__()
         self.keepdims = keepdims
         self.axis = axis
@@ -59,7 +58,6 @@ class Scaler(nn.HybridBlock):
         """
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tuple[Tensor, Tensor]:
@@ -274,7 +272,6 @@ class NOPScaler(Scaler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # noinspection PyMethodOverriding
     def compute_scale(
         self, F, data: Tensor, observed_indicator: Tensor
     ) -> Tensor:
@@ -298,4 +295,4 @@ class NOPScaler(Scaler):
         Tensor
             shape (N, C), identically equal to 1.
         """
-        return F.ones_like(data).mean(axis=self.axis)
+        return F.ones_like(observed_indicator).mean(axis=self.axis)

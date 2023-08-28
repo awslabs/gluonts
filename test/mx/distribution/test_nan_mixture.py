@@ -20,7 +20,6 @@ import pytest
 from gluonts.core.serde import dump_json, load_json
 
 from gluonts.gluonts_tqdm import tqdm
-from gluonts.model.common import NPArrayLike
 from gluonts.mx import Tensor
 from gluonts.mx.distribution import (
     Categorical,
@@ -31,12 +30,11 @@ from gluonts.mx.distribution import (
     NanMixtureOutput,
     StudentTOutput,
 )
-from gluonts.mx.distribution.distribution import Distribution
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
 
-def diff(x: NPArrayLike, y: NPArrayLike) -> np.ndarray:
+def diff(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return np.mean(np.abs(x - y))
 
 
@@ -174,7 +172,6 @@ def test_nan_mixture(
     assert np.allclose(p.grad.asnumpy(), p_grad_true.asnumpy())
 
     for param in distr_params:
-
         assert np.allclose(
             distr_params[param].grad.asnumpy(), distr_params_grad[param]
         )
@@ -197,14 +194,13 @@ np_samples = np.where(
 
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_gaussian_inference() -> None:
-
     nmdo = NanMixtureOutput(GaussianOutput())
 
     args_proj = nmdo.get_args_proj()
     args_proj.initialize()
     args_proj.hybridize()
 
-    input = mx.nd.ones((NUM_SAMPLES))
+    input = mx.nd.ones(NUM_SAMPLES)
 
     trainer = mx.gluon.Trainer(
         args_proj.collect_params(), "sgd", {"learning_rate": 0.00001}
@@ -252,14 +248,13 @@ cat_samples = np.where(
 
 @pytest.mark.skip("Skip test that takes long time to run")
 def test_nanmixture_categorical_inference() -> None:
-
     nmdo = NanMixtureOutput(CategoricalOutput(3))
 
     args_proj = nmdo.get_args_proj()
     args_proj.initialize()
     args_proj.hybridize()
 
-    input = mx.nd.ones((NUM_SAMPLES))
+    input = mx.nd.ones(NUM_SAMPLES)
 
     trainer = mx.gluon.Trainer(
         args_proj.collect_params(), "sgd", {"learning_rate": 0.000002}
@@ -313,7 +308,6 @@ cat_samples = np.where(
 )
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_nanmixture_output(distribution_output, serialize_fn) -> None:
-
     nmdo = NanMixtureOutput(distribution_output)
 
     args_proj = nmdo.get_args_proj()

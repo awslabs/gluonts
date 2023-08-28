@@ -21,7 +21,7 @@ from typing import Any, Type, TypeVar
 import numpy as np
 from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
-from gluonts.core.serde import dump_code
+from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
 
 
@@ -74,7 +74,7 @@ def equals(this: Any, that: Any) -> bool:
 
     In addition, the function dispatches to specialized implementations based
     on the type of the first argument, so the above conditions might be
-    sticter for certain types.
+    stricter for certain types.
 
     Parameters
     ----------
@@ -112,7 +112,7 @@ def equals_default_impl(this: Any, that: Any) -> bool:
 
     1. Their types match.
     2. If their initializer are :func:`validated`, their initializer arguments
-       are pairlise structurally equal.
+       are pairwise structurally equal.
     3. If their initializer are not :func:`validated`, they are referentially
        equal (i.e. ``this == that``).
 
@@ -129,12 +129,22 @@ def equals_default_impl(this: Any, that: Any) -> bool:
     """
     if type(this) != type(that):
         return False
-    elif hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
-        this_args = getattr(this, "__init_args__")
-        that_args = getattr(that, "__init_args__")
-        return equals(this_args, that_args)
-    else:
-        return this == that
+
+    if hasattr(this, "__init_args__") and hasattr(that, "__init_args__"):
+        return equals(
+            this.__init_args__,
+            that.__init_args__,
+        )
+
+    if hasattr(this, "__init_passed_kwargs__") and hasattr(
+        that, "__init_passed_kwargs__"
+    ):
+        return equals(
+            this.__init_passed_kwargs__,
+            that.__init_passed_kwargs__,
+        )
+
+    return this == that
 
 
 @equals.register(list)
@@ -276,7 +286,7 @@ def validated(base_model=None):
     """
 
     def validator(init):
-        init_qualname = dict(inspect.getmembers(init))["__qualname__"]
+        init_qualname = dict(inspect.getmembers(init))["__qualname__"]  # noqa
         init_clsnme = init_qualname.split(".")[0]
         init_params = inspect.signature(init).parameters
         init_fields = {
@@ -307,7 +317,11 @@ def validated(base_model=None):
             )
 
         def validated_repr(self) -> str:
-            return dump_code(self)
+            cname = fqname_for(self.__class__)
+            kwargs = ", ".join(
+                f"{key}={value!r}" for key, value in self.__init_args__.items()
+            )
+            return f"{cname}({kwargs})"
 
         def validated_getnewargs_ex(self):
             return (), self.__init_args__

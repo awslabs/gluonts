@@ -26,17 +26,13 @@ from gluonts.mx.distribution import (
     Gaussian,
     GenPareto,
     Laplace,
-    MultivariateGaussian,
     NegativeBinomial,
     OneInflatedBeta,
-    PiecewiseLinear,
     Poisson,
     StudentT,
-    TransformedDistribution,
     Uniform,
     ZeroAndOneInflatedBeta,
     ZeroInflatedBeta,
-    ZeroInflatedPoissonOutput,
 )
 
 test_cases = [

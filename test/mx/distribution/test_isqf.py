@@ -19,7 +19,6 @@ import pytest
 
 from gluonts.core.serde import dump_json, load_json
 from gluonts.mx.distribution import ISQF, ISQFOutput
-from gluonts.testutil import empirical_cdf
 
 serialize_fn_list = [lambda x: x, lambda x: load_json(dump_json(x))]
 
@@ -130,7 +129,6 @@ def test_shapes(
     num_samples: int,
     serialize_fn,
 ):
-
     spline_knots = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces))
     spline_heights = mx.nd.ones(shape=(*batch_shape, (num_qk - 1), num_pieces))
     beta_l = mx.nd.ones(shape=batch_shape)
@@ -234,7 +232,6 @@ def test_cdf_quantile_consistency(
     num_samples: int,
     atol: float,
 ):
-
     distr_out = ISQFOutput(num_pieces, list_qk_x)
 
     args_proj = distr_out.get_args_proj()
