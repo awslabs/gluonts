@@ -121,6 +121,7 @@ class RForecastPredictor(RBasePredictor):
             params["intervals"] = sorted(
                 set([level for level, _ in intervals_info])
             )
+            params.pop("quantiles")
 
         self.params.update(params)
 
