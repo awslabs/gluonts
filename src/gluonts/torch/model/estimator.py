@@ -197,10 +197,14 @@ class PyTorchLightningEstimator(Estimator):
             monitor=monitor, mode="min", verbose=True
         )
 
-        custom_callbacks = self.trainer_kwargs.get("callbacks", [])
-        callbacks = [checkpoint] + custom_callbacks
-        trainer_kwargs = {**self.trainer_kwargs, "callbacks": callbacks}
-        trainer = pl.Trainer(**trainer_kwargs)
+        custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
+        trainer = pl.Trainer(
+            **{
+                "accelerator": "auto",
+                "callbacks": [checkpoint] + custom_callbacks,
+                **self.trainer_kwargs,
+            }
+        )
 
         trainer.fit(
             model=training_network,
@@ -209,10 +213,15 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
         )
 
-        logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.load_from_checkpoint(
-            checkpoint.best_model_path
-        )
+        if checkpoint.best_model_path != "":
+            logger.info(
+                f"Loading best model from {checkpoint.best_model_path}"
+            )
+            best_model = training_network.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = training_network
 
         return TrainOutput(
             transformation=transformation,

@@ -11,15 +11,24 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import partial
-from typing import Collection, Optional
-from typing_extensions import Protocol, runtime_checkable
+from typing import (
+    Collection,
+    Optional,
+    Callable,
+    Mapping,
+    Dict,
+    List,
+    Iterator,
+)
+from typing_extensions import Protocol, runtime_checkable, Self
 
 import numpy as np
 
-from .evaluator import DirectEvaluator, DerivedEvaluator, Evaluator
-from .aggregations import Mean, Sum
+from .aggregations import Aggregation, Mean, Sum
 from .stats import (
     error,
     absolute_error,
@@ -29,77 +38,240 @@ from .stats import (
     coverage,
     quantile_loss,
     scaled_interval_score,
+    scaled_quantile_loss,
     squared_error,
     symmetric_absolute_percentage_error,
+    num_masked_target_values,
 )
 
 
-@runtime_checkable
-class Metric(Protocol):
-    def __call__(self, axis: Optional[int] = None) -> Evaluator:
-        raise NotImplementedError
+@dataclass
+class MetricCollection:
+    metrics: List[Metric]
 
+    def update(self, data: Mapping[str, np.ndarray]) -> Self:
+        """Update metrics using a single data instance."""
 
-def mean_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
-    return DirectEvaluator(
-        name="mean_absolute_label",
-        stat=absolute_label,
-        aggregate=Mean(axis=axis),
-    )
+        for metric in self.metrics:
+            metric.update(data)
 
+        return self
 
-def sum_absolute_label(axis: Optional[int] = None) -> DirectEvaluator:
-    return DirectEvaluator(
-        name="sum_absolute_label",
-        stat=absolute_label,
-        aggregate=Sum(axis=axis),
-    )
+    def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> Self:
+        """Update metrics using a stream of data instances."""
+
+        for element in stream:
+            self.update(element)
+
+        return self
+
+    def get(self) -> Dict[str, np.ndarray]:
+        return {metric.name: metric.get() for metric in self.metrics}
 
 
 @dataclass
-class SumError:
+class Metric:
+    name: str
+
+    def update(self, data: Mapping[str, np.ndarray]) -> Self:
+        """Update metric using a single data instance."""
+
+        raise NotImplementedError
+
+    def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> Self:
+        """Update metric using a stream of data instances."""
+
+        for element in stream:
+            self.update(element)
+
+        return self
+
+    def get(self) -> np.ndarray:
+        raise NotImplementedError
+
+
+@dataclass
+class DirectMetric(Metric):
+    """A Metric which uses a single function and aggregation strategy."""
+
+    stat: Callable
+    aggregate: Aggregation
+
+    def update(self, data: Mapping[str, np.ndarray]) -> Self:
+        self.aggregate.step(self.stat(data))
+
+        return self
+
+    def get(self) -> np.ndarray:
+        return self.aggregate.get()
+
+
+@dataclass
+class DerivedMetric(Metric):
+    """A Metric that is computed using other metrics.
+
+    A derived metric updates multiple, simpler metrics independently and in
+    the end combines their results as defined in `post_process`.
+    """
+
+    metrics: Dict[str, Metric]
+    post_process: Callable
+
+    def update(self, data: Mapping[str, np.ndarray]) -> Self:
+        for evaluator in self.metrics.values():
+            evaluator.update(data)
+
+        return self
+
+    def get(self) -> np.ndarray:
+        return self.post_process(
+            **{
+                name: evaluator.get()
+                for name, evaluator in self.metrics.items()
+            }
+        )
+
+
+@runtime_checkable
+class MetricDefinition(Protocol):
+    def __call__(self, axis: Optional[int] = None) -> Metric:
+        raise NotImplementedError
+
+
+class BaseMetricDefinition:
+    def __add__(self, other) -> MetricDefinitionCollection:
+        if isinstance(other, MetricDefinitionCollection):
+            return other + self
+
+        return MetricDefinitionCollection([self, other])
+
+    def add(self, *others):
+        for other in others:
+            self = self + other
+
+        return self
+
+
+@dataclass
+class MetricDefinitionCollection(BaseMetricDefinition):
+    metrics: List[MetricDefinition]
+
+    def __call__(self, axis: Optional[int] = None) -> MetricCollection:
+        return MetricCollection([metric(axis=axis) for metric in self.metrics])
+
+    def __add__(self, other) -> MetricDefinitionCollection:
+        if isinstance(other, MetricDefinitionCollection):
+            return MetricDefinitionCollection([*self.metrics, *other.metrics])
+
+        return MetricDefinitionCollection([*self.metrics, other])
+
+
+class MeanAbsoluteLabel(BaseMetricDefinition):
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name="mean_absolute_label",
+            stat=absolute_label,
+            aggregate=Mean(axis=axis),
+        )
+
+
+mean_absolute_label = MeanAbsoluteLabel()
+
+
+class SumAbsoluteLabel(BaseMetricDefinition):
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name="sum_absolute_label",
+            stat=absolute_label,
+            aggregate=Sum(axis=axis),
+        )
+
+
+sum_absolute_label = SumAbsoluteLabel()
+
+
+class SumNumMaskedTargetValues(BaseMetricDefinition):
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name="sum_num_masked_target_values",
+            stat=num_masked_target_values,
+            aggregate=Sum(axis=axis),
+        )
+
+
+sum_num_masked_target_values = SumNumMaskedTargetValues()
+
+
+@dataclass
+class SumError(BaseMetricDefinition):
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="sum_error",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"sum_error[{self.forecast_type}]",
             stat=partial(error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
 
 
+sum_error = SumError()
+
+
 @dataclass
-class SumAbsoluteError:
+class SumAbsoluteError(BaseMetricDefinition):
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="sum_absolute_error",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"sum_absolute_error[{self.forecast_type}]",
             stat=partial(absolute_error, forecast_type=self.forecast_type),
             aggregate=Sum(axis=axis),
         )
 
 
+sum_absolute_error = SumAbsoluteError()
+
+
 @dataclass
-class MSE:
+class MAE(BaseMetricDefinition):
+    """Mean Absolute Error"""
+
+    forecast_type: str = "0.5"
+
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"MAE[{self.forecast_type}]",
+            stat=partial(absolute_error, forecast_type=self.forecast_type),
+            aggregate=Mean(axis=axis),
+        )
+
+
+mae = MAE()
+
+
+@dataclass
+class MSE(BaseMetricDefinition):
     """Mean Squared Error"""
 
     forecast_type: str = "mean"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="MSE",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"MSE[{self.forecast_type}]",
             stat=partial(squared_error, forecast_type=self.forecast_type),
             aggregate=Mean(axis=axis),
         )
 
 
+mse = MSE()
+
+
 @dataclass
-class SumQuantileLoss:
+class SumQuantileLoss(BaseMetricDefinition):
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
             name=f"sum_quantile_loss[{self.q}]",
             stat=partial(quantile_loss, q=self.q),
             aggregate=Sum(axis=axis),
@@ -107,11 +279,11 @@ class SumQuantileLoss:
 
 
 @dataclass
-class Coverage:
+class Coverage(BaseMetricDefinition):
     q: float
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
             name=f"coverage[{self.q}]",
             stat=partial(coverage, q=self.q),
             aggregate=Mean(axis=axis),
@@ -119,14 +291,14 @@ class Coverage:
 
 
 @dataclass
-class MAPE:
+class MAPE(BaseMetricDefinition):
     """Mean Absolute Percentage Error"""
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="MAPE",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"MAPE[{self.forecast_type}]",
             stat=partial(
                 absolute_percentage_error, forecast_type=self.forecast_type
             ),
@@ -134,15 +306,18 @@ class MAPE:
         )
 
 
+mape = MAPE()
+
+
 @dataclass
-class SMAPE:
+class SMAPE(BaseMetricDefinition):
     """Symmetric Mean Absolute Percentage Error"""
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="sMAPE",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"sMAPE[{self.forecast_type}]",
             stat=partial(
                 symmetric_absolute_percentage_error,
                 forecast_type=self.forecast_type,
@@ -151,29 +326,35 @@ class SMAPE:
         )
 
 
+smape = SMAPE()
+
+
 @dataclass
-class MSIS:
+class MSIS(BaseMetricDefinition):
     """Mean Scaled Interval Score"""
 
     alpha: float = 0.05
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
             name="MSIS",
             stat=partial(scaled_interval_score, alpha=self.alpha),
             aggregate=Mean(axis=axis),
         )
 
 
+msis = MSIS()
+
+
 @dataclass
-class MASE:
+class MASE(BaseMetricDefinition):
     """Mean Absolute Scaled Error"""
 
     forecast_type: str = "0.5"
 
-    def __call__(self, axis: Optional[int] = None) -> DirectEvaluator:
-        return DirectEvaluator(
-            name="MASE",
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"MASE[{self.forecast_type}]",
             stat=partial(
                 absolute_scaled_error, forecast_type=self.forecast_type
             ),
@@ -181,8 +362,23 @@ class MASE:
         )
 
 
+mase = MASE()
+
+
 @dataclass
-class ND:
+class MeanScaledQuantileLoss(BaseMetricDefinition):
+    q: float
+
+    def __call__(self, axis: Optional[int] = None) -> DirectMetric:
+        return DirectMetric(
+            name=f"mean_scaled_quantile_loss[{self.q}]",
+            stat=partial(scaled_quantile_loss, q=self.q),
+            aggregate=Mean(axis=axis),
+        )
+
+
+@dataclass
+class ND(BaseMetricDefinition):
     """Normalized Deviation"""
 
     forecast_type: str = "0.5"
@@ -193,10 +389,10 @@ class ND:
     ) -> np.ndarray:
         return sum_absolute_error / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
-            name="ND",
-            evaluators={
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name=f"ND[{self.forecast_type}]",
+            metrics={
                 "sum_absolute_error": SumAbsoluteError(
                     forecast_type=self.forecast_type
                 )(axis=axis),
@@ -206,8 +402,11 @@ class ND:
         )
 
 
+nd = ND()
+
+
 @dataclass
-class RMSE:
+class RMSE(BaseMetricDefinition):
     """Root Mean Squared Error"""
 
     forecast_type: str = "mean"
@@ -216,10 +415,10 @@ class RMSE:
     def root_mean_squared_error(mean_squared_error: np.ndarray) -> np.ndarray:
         return np.sqrt(mean_squared_error)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
-            name="RMSE",
-            evaluators={
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name=f"RMSE[{self.forecast_type}]",
+            metrics={
                 "mean_squared_error": MSE(forecast_type=self.forecast_type)(
                     axis=axis
                 )
@@ -228,8 +427,11 @@ class RMSE:
         )
 
 
+rmse = RMSE()
+
+
 @dataclass
-class NRMSE:
+class NRMSE(BaseMetricDefinition):
     """RMSE, normalized by the mean absolute label"""
 
     forecast_type: str = "mean"
@@ -240,10 +442,10 @@ class NRMSE:
     ) -> np.ndarray:
         return root_mean_squared_error / mean_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
-            name="NRMSE",
-            evaluators={
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name=f"NRMSE[{self.forecast_type}]",
+            metrics={
                 "root_mean_squared_error": RMSE(
                     forecast_type=self.forecast_type
                 )(axis=axis),
@@ -253,8 +455,11 @@ class NRMSE:
         )
 
 
+nrmse = NRMSE()
+
+
 @dataclass
-class WeightedSumQuantileLoss:
+class WeightedSumQuantileLoss(BaseMetricDefinition):
     q: float
 
     @staticmethod
@@ -263,10 +468,10 @@ class WeightedSumQuantileLoss:
     ) -> np.ndarray:
         return sum_quantile_loss / sum_absolute_label
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
             name=f"weighted_sum_quantile_loss[{self.q}]",
-            evaluators={
+            metrics={
                 "sum_quantile_loss": SumQuantileLoss(q=self.q)(axis=axis),
                 "sum_absolute_label": sum_absolute_label(axis=axis),
             },
@@ -275,7 +480,7 @@ class WeightedSumQuantileLoss:
 
 
 @dataclass
-class MeanSumQuantileLoss:
+class MeanSumQuantileLoss(BaseMetricDefinition):
     quantile_levels: Collection[float]
 
     @staticmethod
@@ -286,10 +491,10 @@ class MeanSumQuantileLoss:
         )
         return np.ma.mean(stacked_quantile_losses, axis=0)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
             name="mean_sum_quantile_loss",
-            evaluators={
+            metrics={
                 f"quantile_loss[{q}]": SumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
             },
@@ -298,7 +503,7 @@ class MeanSumQuantileLoss:
 
 
 @dataclass
-class MeanWeightedSumQuantileLoss:
+class MeanWeightedSumQuantileLoss(BaseMetricDefinition):
     quantile_levels: Collection[float]
 
     @staticmethod
@@ -309,10 +514,10 @@ class MeanWeightedSumQuantileLoss:
         )
         return np.ma.mean(stacked_quantile_losses, axis=0)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
             name="mean_weighted_sum_quantile_loss",
-            evaluators={
+            metrics={
                 f"quantile_loss[{q}]": WeightedSumQuantileLoss(q=q)(axis=axis)
                 for q in self.quantile_levels
             },
@@ -321,7 +526,32 @@ class MeanWeightedSumQuantileLoss:
 
 
 @dataclass
-class MAECoverage:
+class AverageMeanScaledQuantileLoss(BaseMetricDefinition):
+    quantile_levels: Collection[float]
+
+    @staticmethod
+    def mean(**quantile_losses: np.ndarray) -> np.ndarray:
+        stacked_quantile_losses = np.stack(
+            [quantile_loss for quantile_loss in quantile_losses.values()],
+            axis=0,
+        )
+        return np.ma.mean(stacked_quantile_losses, axis=0)
+
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name="average_mean_scaled_quantile_loss",
+            metrics={
+                f"mean_scaled_quantile_loss[{q}]": MeanScaledQuantileLoss(q=q)(
+                    axis=axis
+                )
+                for q in self.quantile_levels
+            },
+            post_process=self.mean,
+        )
+
+
+@dataclass
+class MAECoverage(BaseMetricDefinition):
     quantile_levels: Collection[float]
 
     @staticmethod
@@ -334,10 +564,10 @@ class MAECoverage:
         )
         return np.ma.mean(intermediate_result, axis=0)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
             name="MAE_coverage",
-            evaluators={
+            metrics={
                 f"coverage[{q}]": Coverage(q=q)(axis=axis)
                 for q in self.quantile_levels
             },
@@ -348,7 +578,7 @@ class MAECoverage:
 
 
 @dataclass
-class OWA:
+class OWA(BaseMetricDefinition):
     """Overall Weighted Average"""
 
     forecast_type: str = "0.5"
@@ -362,10 +592,10 @@ class OWA:
     ) -> np.ndarray:
         return 0.5 * (smape / smape_naive2 + mase / mase_naive2)
 
-    def __call__(self, axis: Optional[int] = None) -> DerivedEvaluator:
-        return DerivedEvaluator(
-            name="OWA",
-            evaluators={
+    def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
+        return DerivedMetric(
+            name=f"OWA[{self.forecast_type}]",
+            metrics={
                 "smape": SMAPE(forecast_type=self.forecast_type)(axis=axis),
                 "smape_naive2": SMAPE(forecast_type="naive_2")(axis=axis),
                 "mase": MASE(forecast_type=self.forecast_type)(axis=axis),
@@ -373,3 +603,6 @@ class OWA:
             },
             post_process=self.calculate_OWA,
         )
+
+
+owa = OWA()

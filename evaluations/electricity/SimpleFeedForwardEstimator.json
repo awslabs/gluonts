@@ -1,7 +1,0 @@
-{
-    "ND": 0.07546810060739517,
-    "RMSE": 1285.8748779296875,
-    "dataset": "electricity",
-    "estimator": "SimpleFeedForwardEstimator",
-    "mean_wQuantileLoss": 0.06195841729640961
-}

@@ -11,14 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import mxnet as mx
 import numpy as np
 import pytest
 
-from gluonts.mx.model.deepvar_hierarchical import (
-    constraint_mat,
-    coherency_error,
-)
+from gluonts.mx.model.deepvar_hierarchical import coherency_error
+
 
 TOL = 1e-4
 
@@ -35,7 +32,6 @@ S = np.array(
 )
 
 num_bottom_ts = S.shape[1]
-A = constraint_mat(S)
 
 
 @pytest.mark.parametrize(
@@ -56,4 +52,4 @@ A = constraint_mat(S)
 def test_coherency_error(bottom_ts):
     all_ts = S @ bottom_ts
 
-    assert coherency_error(mx.nd.array(A), mx.nd.array(all_ts)) < TOL
+    assert coherency_error(S, all_ts) < TOL

@@ -25,7 +25,7 @@ from gluonts.dataset import DataEntry
 from gluonts.dataset.split import TestData
 from gluonts.time_feature.seasonality import get_seasonality
 from gluonts.model import Forecast, Predictor
-from gluonts.ev import seasonal_error
+from gluonts.ev.ts_stats import seasonal_error
 from gluonts.itertools import prod
 
 logger = logging.getLogger(__name__)

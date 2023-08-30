@@ -16,7 +16,6 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
 
 from gluonts.dataset.arrow import (
@@ -24,6 +23,11 @@ from gluonts.dataset.arrow import (
     ArrowWriter,
     ParquetWriter,
 )
+
+
+def assert_equal(left, right):
+    for lval, rval in zip(left, right):
+        np.testing.assert_equal(lval, rval)
 
 
 def rand_start():
@@ -62,7 +66,7 @@ def make_data(n: int):
 )
 @pytest.mark.parametrize("flatten_arrays", [True, False])
 def test_arrow(writer, flatten_arrays):
-    data = make_data(5)
+    data = make_data(10)
     writer.flatten_arrays = flatten_arrays
 
     with tempfile.TemporaryDirectory() as path:
@@ -76,5 +80,18 @@ def test_arrow(writer, flatten_arrays):
         assert len(data) == len(dataset)
         assert dataset.metadata()["freq"] == "H"
 
-        for orig, arrow_value in zip(data, dataset):
-            assert_equal(orig, arrow_value)
+        assert_equal(data, dataset)
+
+        assert_equal(dataset[4], data[4])
+
+        assert len(dataset[:5]) == len(data[:5])
+        assert_equal(dataset[:5], data[:5])
+
+        assert len(dataset[10:]) == len(data[10:])
+        assert_equal(dataset[10:], data[10:])
+
+        assert len(dataset[3:7]) == len(data[3:7])
+        assert_equal(dataset[3:7], data[3:7])
+
+        assert len(dataset[3:7][1:-1]) == len(data[3:7][1:-1])
+        assert_equal(dataset[3:7][1:-1], data[3:7][1:-1])

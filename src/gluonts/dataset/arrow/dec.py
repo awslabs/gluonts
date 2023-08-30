@@ -32,7 +32,7 @@ class ArrowDecoder:
         )
 
     def decode(self, batch, row_number: int):
-        yield from self.decode_batch(batch.slice(row_number, row_number + 1))
+        return next(self.decode_batch(batch.slice(row_number, row_number + 1)))
 
     def decode_batch(self, batch):
         for row in batch.to_pandas().to_dict("records"):

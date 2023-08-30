@@ -22,6 +22,9 @@ from gluonts.nursery.temporal_hierarchical_forecasting.eval.evaluation import (
 )
 
 
+EVALUATE_ALL_LEVELS = True
+
+
 def main():
     dataset = get_dataset("exchange_rate", regenerate=False)
 

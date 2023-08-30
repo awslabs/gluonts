@@ -16,6 +16,13 @@ from typing import Dict
 import numpy as np
 
 
+def num_masked_target_values(data: Dict[str, np.ndarray]) -> np.ndarray:
+    if np.ma.isMaskedArray(data["label"]):
+        return data["label"].mask.astype(float)
+    else:
+        return np.zeros(data["label"].shape)
+
+
 def absolute_label(data: Dict[str, np.ndarray]) -> np.ndarray:
     return np.abs(data["label"])
 
@@ -87,3 +94,7 @@ def absolute_scaled_error(
     data: Dict[str, np.ndarray], forecast_type: str
 ) -> np.ndarray:
     return absolute_error(data, forecast_type) / data["seasonal_error"]
+
+
+def scaled_quantile_loss(data: Dict[str, np.ndarray], q: float) -> np.ndarray:
+    return quantile_loss(data, q) / data["seasonal_error"]

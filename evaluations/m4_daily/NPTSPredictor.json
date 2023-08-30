@@ -1,7 +1,0 @@
-{
-    "ND": 0.19054152071475983,
-    "RMSE": 2207.531982421875,
-    "dataset": "m4_daily",
-    "estimator": "NPTSPredictor",
-    "mean_wQuantileLoss": 0.14493508636951447
-}

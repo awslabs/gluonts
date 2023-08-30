@@ -1,7 +1,0 @@
-{
-    "ND": 0.30959680676460266,
-    "RMSE": NaN,
-    "dataset": "traffic",
-    "estimator": "MQCNNEstimator",
-    "mean_wQuantileLoss": 0.27244091033935547
-}
