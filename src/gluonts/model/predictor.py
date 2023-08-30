@@ -77,7 +77,7 @@ class Predictor:
 
     def serialize(self, path: Path) -> None:
         # serialize Predictor type
-        with (path / "gluonts_config.json").open("w") as fp:
+        with (path / "gluonts-config.json").open("w") as fp:
             json.dump(
                 {
                     "model": self.__version__,
