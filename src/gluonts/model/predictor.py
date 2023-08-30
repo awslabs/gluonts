@@ -102,8 +102,8 @@ class Predictor:
             otherwise.
         """
         # deserialize Predictor type
-        if (path / "gluonts_config.json").exists():
-            with (path / "gluonts_config.json").open("r") as fp:
+        if (path / "gluonts-config.json").exists():
+            with (path / "gluonts-config.json").open("r") as fp:
                 tpe_str = json.load(fp)["type"]
         else:
             logger.warn(
