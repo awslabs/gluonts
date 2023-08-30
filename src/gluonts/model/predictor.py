@@ -34,7 +34,7 @@ from gluonts.model.forecast import Forecast
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
 
-
+logger = logging.getLogger(__name__)
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
@@ -77,11 +77,14 @@ class Predictor:
 
     def serialize(self, path: Path) -> None:
         # serialize Predictor type
-        with (path / "type.txt").open("w") as fp:
-            fp.write(fqname_for(self.__class__))
-        with (path / "version.json").open("w") as fp:
+        with (path / "gluonts_config.json").open("w") as fp:
             json.dump(
-                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
+                {
+                    "model": self.__version__,
+                    "gluonts": gluonts.__version__,
+                    "type": fqname_for(self.__class__),
+                },
+                fp,
             )
 
     @classmethod
@@ -99,8 +102,17 @@ class Predictor:
             otherwise.
         """
         # deserialize Predictor type
-        with (path / "type.txt").open("r") as fp:
-            tpe_str = fp.readline()
+        if (path / "gluonts_config.json").exists():
+            with (path / "gluonts_config.json").open("r") as fp:
+                tpe_str = json.load(fp)["type"]
+        else:
+            logger.warn(
+                "Deserializing an old version of gluonts predictor. "
+                "Support for old gluonts predictors will be removed in v0.16. "
+                "Consider serializing this predictor again.",
+            )
+            with (path / "type.txt").open("r") as fp:
+                tpe_str = fp.readline()
 
         tpe = locate(tpe_str)
         assert tpe is not None, f"Cannot locate {tpe_str}."
@@ -364,7 +376,6 @@ class Localizer(Predictor):
         self.estimator = estimator
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
-        logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
             logger.info(f"training for time series {i} / {len(dataset)}")
             trained_pred = self.estimator.train([ts])
