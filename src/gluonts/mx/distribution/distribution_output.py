@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, Type
 
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 from .distribution import Distribution
@@ -45,7 +45,7 @@ class ArgProj(gluon.HybridBlock):
         self,
         args_dim: Dict[str, int],
         domain_map: Callable[..., Tuple[Tensor]],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         prefix: Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -65,7 +65,6 @@ class ArgProj(gluon.HybridBlock):
             self.register_child(dense)
         self.domain_map = domain_map
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
 
@@ -78,15 +77,19 @@ class Output:
     """
 
     args_dim: Dict[str, int]
-    _dtype: DType = np.float32
+    _dtype: Type = np.float32
 
     @property
     def dtype(self):
         return self._dtype
 
     @dtype.setter
-    def dtype(self, dtype: DType):
+    def dtype(self, dtype: Type):
         self._dtype = dtype
+
+    @classmethod
+    def eps(cls):
+        return np.finfo(cls._dtype).eps
 
     def get_args_proj(self, prefix: Optional[str] = None) -> gluon.HybridBlock:
         return ArgProj(

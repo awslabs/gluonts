@@ -46,7 +46,7 @@ class RNN(HybridBlock):
         bidirectional: bool = False,
         **kwargs,
     ):
-        super(RNN, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         with self.name_scope():
             if mode == "rnn_relu":
@@ -80,8 +80,8 @@ class RNN(HybridBlock):
                 )
             else:
                 raise ValueError(
-                    "Invalid mode %s. Options are rnn_relu, rnn_tanh, lstm, and gru "
-                    % mode
+                    "Invalid mode %s. Options are rnn_relu, rnn_tanh, lstm,"
+                    " and gru " % mode
                 )
 
     def hybrid_forward(self, F, inputs: Tensor) -> Tensor:  # NTC in, NTC out

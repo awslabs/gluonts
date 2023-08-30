@@ -11,8 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# !!! DO NOT MODIFY !!! (pkgutil-style namespace package)
+__all__ = [
+    "Estimator",
+    "IncrementallyTrainable",
+    "Predictor",
+    "Forecast",
+    "SampleForecast",
+    "QuantileForecast",
+    "Input",
+    "InputSpec",
+    "evaluate_forecasts",
+    "evaluate_model",
+]
 
-from pkgutil import extend_path
-
-__path__ = extend_path(__path__, __name__)  # type: ignore
+from .estimator import Estimator, IncrementallyTrainable
+from .predictor import Predictor
+from .forecast import Forecast, SampleForecast, QuantileForecast
+from .inputs import Input, InputSpec
+from .evaluation import evaluate_forecasts, evaluate_model

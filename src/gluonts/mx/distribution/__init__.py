@@ -65,6 +65,10 @@ from .piecewise_linear import (
     PiecewiseLinearOutput,
     TransformedPiecewiseLinear,
 )
+from .isqf import (
+    ISQF,
+    ISQFOutput,
+)
 from .poisson import Poisson, PoissonOutput, ZeroInflatedPoissonOutput
 from .student_t import StudentT, StudentTOutput
 from .transformed_distribution import TransformedDistribution
@@ -98,6 +102,8 @@ __all__ = [
     "GenPareto",
     "GenParetoOutput",
     "InverseBoxCoxTransformOutput",
+    "ISQF",
+    "ISQFOutput",
     "Laplace",
     "LaplaceFixedVarianceOutput",
     "LaplaceOutput",

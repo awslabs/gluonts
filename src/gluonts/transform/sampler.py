@@ -21,8 +21,8 @@ from gluonts.dataset.stat import ScaleHistogram
 
 class InstanceSampler(BaseModel):
     """
-    An InstanceSampler is called with the time series ``ts``, and returns
-    a set of indices at which training instances will be generated.
+    An InstanceSampler is called with the time series ``ts``, and returns a set
+    of indices at which training instances will be generated.
 
     The sampled indices ``i`` satisfy ``a <= i <= b``, where ``a = min_past``
     and ``b = ts.shape[axis] - min_future``.
@@ -43,6 +43,26 @@ class InstanceSampler(BaseModel):
 
     def __call__(self, ts: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
+
+
+class NumInstanceSampler(InstanceSampler):
+    """
+    Samples N time points from each series.
+
+    Parameters
+    ----------
+    N
+        number of time points to sample from each time series.
+    """
+
+    N: int
+
+    def __call__(self, ts: np.ndarray) -> np.ndarray:
+        a, b = self._get_bounds(ts)
+        if a > b:
+            return np.array([], dtype=int)
+
+        return np.random.randint(a, b + 1, size=self.N)
 
 
 class UniformSplitSampler(InstanceSampler):
@@ -70,8 +90,10 @@ class UniformSplitSampler(InstanceSampler):
 
 class PredictionSplitSampler(InstanceSampler):
     """
-    Sampler used for prediction. Always selects the last time point for
-    splitting i.e. the forecast point for the time series.
+    Sampler used for prediction.
+
+    Always selects the last time point for splitting i.e. the forecast point
+    for the time series.
     """
 
     allow_empty_interval: bool = False
@@ -114,10 +136,13 @@ class ExpectedNumInstanceSampler(InstanceSampler):
     ----------
 
     num_instances
-        number of training examples generated per time series on average
+        number of time points to sample per time series on average
+    min_instances
+        minimum number of time points to sample per time series
     """
 
     num_instances: float
+    min_instances: int = 0
     total_length: int = 0
     n: int = 0
 
@@ -137,16 +162,24 @@ class ExpectedNumInstanceSampler(InstanceSampler):
 
         p = self.num_instances / avg_length
         (indices,) = np.where(np.random.random_sample(window_size) < p)
-        return indices + a
+        indices += a
+        if len(indices) < self.min_instances:
+            prefix = np.random.randint(
+                a, b + 1, size=self.min_instances - len(indices)
+            )
+            return np.concatenate([prefix, indices])
+
+        return indices
 
 
 class BucketInstanceSampler(InstanceSampler):
     """
     This sample can be used when working with a set of time series that have a
-    skewed distributions. For instance, if the dataset contains many time series
-    with small values and few with large values.
+    skewed distributions. For instance, if the dataset contains many time
+    series with small values and few with large values.
 
-    The probability of sampling from bucket i is the inverse of its number of elements.
+    The probability of sampling from bucket i is the inverse of its number of
+    elements.
 
     Parameters
     ----------

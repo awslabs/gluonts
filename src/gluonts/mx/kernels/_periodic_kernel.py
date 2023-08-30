@@ -32,7 +32,6 @@ class PeriodicKernel(Kernel):
     :math:`\theta_2` is the frequency parameter.
     """
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def __init__(
         self,
         amplitude: Tensor,
@@ -44,9 +43,11 @@ class PeriodicKernel(Kernel):
         Parameters
         ----------
         amplitude : Tensor
-            Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
+            Periodic kernel amplitude hyper-parameter of shape
+            (batch_size, 1, 1).
         length_scale : Tensor
-            Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            Periodic kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
         frequency : Tensor
             Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
         F : ModuleType
@@ -58,7 +59,6 @@ class PeriodicKernel(Kernel):
         self.length_scale = length_scale
         self.frequency = frequency
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor) -> Tensor:
         """
         Parameters
@@ -71,7 +71,8 @@ class PeriodicKernel(Kernel):
         Returns
         --------------------
         Tensor
-            Periodic kernel matrix of shape (batch_size, history_length, history_length).
+            Periodic kernel matrix of shape (batch_size, history_length,
+            history_length).
         """
         self._compute_square_dist(self.F, x1, x2)
 
@@ -88,7 +89,7 @@ class PeriodicKernel(Kernel):
                         )
                     )
                     ** 2,
-                    self.length_scale ** 2,
+                    self.length_scale**2,
                 )
             ),
         )
@@ -102,13 +103,13 @@ class PeriodicKernelOutput(KernelOutputDict):
     }
     kernel_cls: type = PeriodicKernel
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP Periodic Kernel hyper-parameters by using the standard deviations
-        of the past_target and past_time_features.
+        This function returns the scales for the GP Periodic Kernel hyper-
+        parameters by using the standard deviations of the past_target and
+        past_time_features.
 
         Parameters
         ----------
@@ -118,19 +119,21 @@ class PeriodicKernelOutput(KernelOutputDict):
         past_target : Tensor
             Training time series values of shape (batch_size, context_length).
         past_time_feat : Tensor
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
 
         Returns
         -------
         Tuple
-            Three scaled GP hyper-parameters for the Periodic Kernel and scaled model noise hyper-parameter.
-            Each is a Tensor of shape (batch_size, 1, 1).
+            Three scaled GP hyper-parameters for the Periodic Kernel and scaled
+            model noise hyper-parameter. Each is a Tensor of shape
+            (batch_size, 1, 1).
         """
         axis = 1
         sigma_scaling = (
             self.compute_std(F, past_target, axis=axis) / math.sqrt(2)
         ).expand_dims(axis=axis)
-        amplitude_scaling = sigma_scaling ** 2
+        amplitude_scaling = sigma_scaling**2
         length_scale_scaling = F.broadcast_mul(
             F.mean(self.compute_std(F, past_time_feat, axis=axis)),
             F.ones_like(amplitude_scaling),
@@ -144,11 +147,11 @@ class PeriodicKernelOutput(KernelOutputDict):
             sigma_scaling,
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     @classmethod
     def domain_map(cls, F, amplitude, length_scale, frequency):
         r"""
-        This function applies the softmax to the Periodic Kernel hyper-parameters.
+        This function applies the softmax to the Periodic Kernel
+        hyper-parameters.
 
         Parameters
         ----------
@@ -156,9 +159,11 @@ class PeriodicKernelOutput(KernelOutputDict):
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
         amplitude
-            Periodic kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
+            Periodic kernel amplitude hyper-parameter of shape
+            (batch_size, 1, 1).
         length_scale
-            Periodic kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            Periodic kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
         frequency
             Periodic kernel hyper-parameter of shape (batch_size, 1, 1).
 

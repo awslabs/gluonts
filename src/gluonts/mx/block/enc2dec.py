@@ -29,7 +29,6 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -45,18 +44,22 @@ class Seq2SeqEnc2Dec(nn.HybridBlock):
             shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or
+            (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length=decoder_length, num_feat_dynamic) or (N, T, P, C`)
+            shape (batch_size, sequence_length,
+            prediction_length=decoder_length, num_feat_dynamic) or
+            (N, T, P, C`)
         """
-        pass
+        raise NotImplementedError
 
 
 class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
     """
-    Simplest class for passing encoder tensors do decoder. Passes through
-    tensors, except that future_features_dynamic is dropped.
+    Simplest class for passing encoder tensors do decoder.
+
+    Passes through tensors, except that future_features_dynamic is dropped.
     """
 
     def hybrid_forward(
@@ -74,10 +77,13 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
             shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or
+            (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length=decoder_length,  num_feat_dynamic) or (N, T, P, C`)
+            shape (batch_size, sequence_length,
+            prediction_length=decoder_length,  num_feat_dynamic) or
+            (N, T, P, C`)
 
 
         Returns
@@ -86,7 +92,8 @@ class PassThroughEnc2Dec(Seq2SeqEnc2Dec):
             shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         Tensor
-            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or
+            (N, T, C)
         """
         return encoder_output_static, encoder_output_dynamic
 
@@ -112,10 +119,13 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
             shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         encoder_output_dynamic
-            shape (batch_size, sequence_length, channels_seq[-1] + 1) or (N, T, C)
+            shape (batch_size, sequence_length, channels_seq[-1] + 1) or
+            (N, T, C)
 
         future_features_dynamic
-            shape (batch_size, sequence_length, prediction_length=decoder_length, num_feat_dynamic) or (N, T, P, C`)
+            shape (batch_size, sequence_length,
+            prediction_length=decoder_length, num_feat_dynamic) or
+            (N, T, P, C`)
 
 
         Returns
@@ -124,19 +134,22 @@ class FutureFeatIntegratorEnc2Dec(Seq2SeqEnc2Dec):
             shape (batch_size, channels_seq[-1] + 1) or (N, C)
 
         Tensor
-            shape (batch_size, prediction_length=decoder_length, channels_seq[-1] + 1 + decoder_length * num_feat_dynamic) or (N, T, C)
+            shape (batch_size, prediction_length=decoder_length,
+            channels_seq[-1] + 1 + decoder_length * num_feat_dynamic) or
+            (N, T, C)
 
         """
 
         # flatten the last two dimensions:
-        # => (batch_size, sequence_length, decoder_length * num_feat_dynamic), where
-        # num_future_feat_dynamic = decoder_length * num_feat_dynamic
+        # => (batch_size, sequence_length, decoder_length * num_feat_dynamic),
+        # where num_future_feat_dynamic = decoder_length * num_feat_dynamic
         future_features_dynamic = F.reshape(
             future_features_dynamic, shape=(0, 0, -1)
         )
 
         # concatenate output of decoder and future_feat_dynamic covariates:
-        # => (batch_size, sequence_length, num_dec_input_dynamic + num_future_feat_dynamic)
+        # => (batch_size, sequence_length, num_dec_input_dynamic +
+        # num_future_feat_dynamic)
         total_dec_input_dynamic = F.concat(
             encoder_output_dynamic, future_features_dynamic, dim=2
         )

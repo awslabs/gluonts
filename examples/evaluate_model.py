@@ -16,14 +16,13 @@ This example shows how to fit a model and evaluate its predictions.
 """
 import pprint
 
-from gluonts.dataset.repository.datasets import get_dataset, dataset_recipes
+from gluonts.dataset.repository import get_dataset, dataset_recipes
 from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
+from gluonts.mx import SimpleFeedForwardEstimator
 from gluonts.mx.trainer import Trainer
 
 
 if __name__ == "__main__":
-
     print(f"datasets available: {dataset_recipes.keys()}")
 
     # we pick m4_hourly as it only contains a few hundred time series
@@ -31,7 +30,6 @@ if __name__ == "__main__":
 
     estimator = SimpleFeedForwardEstimator(
         prediction_length=dataset.metadata.prediction_length,
-        freq=dataset.metadata.freq,
         trainer=Trainer(epochs=5, num_batches_per_epoch=10),
     )
 

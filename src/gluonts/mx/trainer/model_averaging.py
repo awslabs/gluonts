@@ -44,7 +44,7 @@ def save_epoch_info(tmp_path: str, epoch_info: dict) -> None:
     None
     """
 
-    with open("{}-{}.json".format(tmp_path, EPOCH_INFO_STRING), "w") as f:
+    with open(f"{tmp_path}-{EPOCH_INFO_STRING}.json", "w") as f:
         json.dump(epoch_info, f)
 
 
@@ -113,12 +113,12 @@ class AveragingStrategy:
         checkpoint path).
         """
         epoch_info_files = glob.glob(
-            "{}/*-{}.json".format(model_path, EPOCH_INFO_STRING)
+            f"{model_path}/*-{EPOCH_INFO_STRING}.json"
         )
 
         assert (
             len(epoch_info_files) >= 1
-        ), "No checkpoints found in {}.".format(model_path)
+        ), f"No checkpoints found in {model_path}."
 
         all_checkpoint_info = list()
         for epoch_info in epoch_info_files:
@@ -138,7 +138,8 @@ class AveragingStrategy:
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
         raise NotImplementedError()
 
@@ -191,10 +192,9 @@ class AveragingStrategy:
 
         def _assert_shapes(arrays):
             shape_set = {array.shape for array in arrays}
-            assert (
-                len(shape_set) == 1
-            ), "All arrays should be the same shape. Found arrays with these shapes instead :{}".format(
-                shape_set
+            assert len(shape_set) == 1, (
+                "All arrays should be the same shape. Found arrays with these"
+                " shapes instead :{}".format(shape_set)
             )
 
         _assert_shapes(arrays)
@@ -222,7 +222,8 @@ class SelectNBestSoftmax(AveragingStrategy):
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
 
         metric_path_tuple = [
@@ -259,7 +260,8 @@ class SelectNBestMean(AveragingStrategy):
             List of checkpoint information dictionaries.
         Returns
         -------
-            List of selected checkpoint paths and list of corresponding weights.
+            List of selected checkpoint paths and list of corresponding
+            weights.
         """
 
         metric_path_tuple = [
@@ -280,9 +282,9 @@ class SelectNBestMean(AveragingStrategy):
 
 class ModelAveraging(Callback):
     """
-    Callback to implement model averaging strategies.
-    Selects the checkpoints with the best loss values and computes the model
-    average or weighted model average depending on the chosen avg_strategy.
+    Callback to implement model averaging strategies. Selects the checkpoints
+    with the best loss values and computes the model average or weighted model
+    average depending on the chosen avg_strategy.
 
     Parameters
     ----------

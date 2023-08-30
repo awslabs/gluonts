@@ -582,7 +582,7 @@ def _inject_nans_in_target(data_entry: DataEntry, p: float) -> DataEntry:
     """
     nan_positions = np.sort(
         a=np.random.choice(
-            a=np.arange(data_entry["target"].size, dtype=np.int),
+            a=np.arange(data_entry["target"].size, dtype=int),
             size=int(p * data_entry["target"].size),
             replace=False,
         )

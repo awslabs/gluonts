@@ -30,26 +30,31 @@ from .representation import Representation
 
 class GlobalRelativeBinning(Representation):
     """
-    A class representing a global relative binning approach.
-    This binning first rescales all input series by their respective mean (relative) and then performs one binning
-    across all series (global).
+    A class representing a global relative binning approach. This binning first
+    rescales all input series by their respective mean (relative) and then
+    performs one binning across all series (global).
 
     Parameters
     ----------
     num_bins
-        The number of discrete bins/buckets that we want values to be mapped to.
+        The number of discrete bins/buckets that we want values to be mapped
+        to.
         (default: 1024)
     is_quantile
-        Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
-        distribution function, while linear binning allocates evenly spaced bins.
+        Whether the binning is quantile or linear. Quantile binning allocated
+        bins based on the cumulative distribution function, while linear
+        binning allocates evenly spaced bins.
         (default: True, i.e. quantile binning)
+
     linear_scaling_limit
-        The linear scaling limit. Values which are larger than linear_scaling_limit times the mean will be capped at
+        The linear scaling limit. Values which are larger than
+        linear_scaling_limit times the mean will be capped at
         linear_scaling_limit.
         (default: 10)
     quantile_scaling_limit
-        The quantile scaling limit. Values which are larger than the quantile evaluated at quantile_scaling_limit
-        will be capped at the quantile evaluated at quantile_scaling_limit.
+        The quantile scaling limit. Values which are larger than the quantile
+        evaluated at quantile_scaling_limit will be capped at the quantile
+        evaluated at quantile_scaling_limit.
         (default: 0.99)
     """
 
@@ -82,7 +87,7 @@ class GlobalRelativeBinning(Representation):
         self, input_dataset: Dataset, ctx: mx.Context = get_mxnet_context()
     ):
         # Rescale all time series in training set.
-        train_target_sequence = np.array([])
+        train_target_sequence: np.ndarray = np.array([])
         for train_entry in input_dataset:
             train_entry_target = train_entry["target"]
             train_tar_mean = np.mean(train_entry_target)
@@ -95,7 +100,7 @@ class GlobalRelativeBinning(Representation):
     def initialize_from_array(
         self, input_array: np.ndarray, ctx: mx.Context = get_mxnet_context()
     ):
-        # Calculate bin centers and bin edges using linear or quantile binning..
+        # Calculate bin centers and bin edges using linear or quantile binning.
         if self.is_quantile:
             bin_centers = np.quantile(
                 input_array,
@@ -109,14 +114,14 @@ class GlobalRelativeBinning(Representation):
             bin_centers = np.linspace(low, high, self.num_bins)
         bin_edges = bin_edges_from_bin_centers(bin_centers)
 
-        # Store bin centers and edges since their are globally applicable to all time series.
+        # Store bin centers and edges since their are globally applicable to
+        # all time series.
         with ctx:
             self.bin_edges.initialize()
             self.bin_centers.initialize()
         self.bin_edges.set_data(mx.nd.array(bin_edges))
         self.bin_centers.set_data(mx.nd.array(bin_centers))
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

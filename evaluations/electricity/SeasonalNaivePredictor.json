@@ -1,7 +1,0 @@
-{
-    "ND": 0.06967883557081223,
-    "RMSE": 1139.925048828125,
-    "dataset": "electricity",
-    "estimator": "SeasonalNaivePredictor",
-    "mean_wQuantileLoss": 0.06967883557081223
-}

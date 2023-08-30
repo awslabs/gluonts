@@ -20,7 +20,8 @@ import torch
 
 def add_spikes(ts: torch.Tensor, only_upper_spikes: bool = False):
     """
-    Adds spikes to 15% of the time series in the form of heavy-tailed (Generalized Pareto) realizations
+    Adds spikes to 15% of the time series in the form of heavy-tailed
+    (Generalized Pareto) realizations.
 
     Arguments:
         ts: time series
@@ -66,8 +67,9 @@ def create_ds(
 
 
 def create_ds_iid(num_points: int, noise_mult: float = 0.25):
-    """Creates heavy-tailed gaussian iid.
-    Returns tensor of shape (1, 1, num_points).
+    """
+    Creates heavy-tailed gaussian iid. Returns tensor of shape (1, 1,
+    num_points).
 
     Arguments:
       num_points: int, number of points in the dataset.
@@ -82,7 +84,8 @@ def add_spikes_asymmetric(
     ts: torch.Tensor, xi: List[float] = [1 / 50.0, 1 / 25.0]
 ):
     """
-    Adds spikes to 15% of the time series in the form of heavy-tailed (Generalized Pareto) realizations
+    Adds spikes to 15% of the time series in the form of heavy-tailed
+    (Generalized Pareto) realizations.
 
     Arguments:
         ts: time series

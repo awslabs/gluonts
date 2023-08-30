@@ -154,3 +154,32 @@ as the environment-variable, instead of `DEEPAR_INFERENCE_CONFIG`.
    ...
 }
 ```
+
+## Dynamic Code
+
+It is possible to pass a `code` channel to training jobs to install code
+dependencies without the need to build a new container.
+
+Code-channel entries will be installed to `/opt/ml/code`, and the process is
+restarted with `/opt/ml/code` being added to `PYTHONPATH`. On the second
+iteration the newly installed modules and packages can be simply imported.
+
+The contents of the code-channel are treated as follows:
+
+Folders with a `setup.py` are assumed to be pip compatible, and are thus
+installed with `pip install`. This is the most powerful option, since this
+means that dependencies of the package are installed as well.
+
+A folder with an `__init__.py` file is treated as a simple python-package,
+which is copied to `/opt/ml/code`.
+
+If neither `setup.py` nor `__init__.py` exists in a folder, all other python
+files are simply copied to `/opt/ml/code` directly and all subfolders are
+searched for more possible modules and packages.
+
+Further, `.tar.gz` archives are unpackaged and their contents are then treated
+as described above.
+
+In addition, the contents of the code-channel are copied to
+`/opt/ml/model/code`. For inference, the same logic applies as for training,
+except that the code-channel is part of the model.

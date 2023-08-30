@@ -18,18 +18,61 @@ import signal
 import time
 import traceback
 from queue import Empty as QueueEmpty
-from typing import Callable, Iterable, List, NamedTuple, Tuple
+from typing import Callable, Iterable, List, NamedTuple, Set, Tuple
+from typing_extensions import Literal
 
 from flask import Flask, Response, jsonify, request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.forecast import Config as ForecastConfig
+from gluonts.dataset.jsonl import encode_json
+from gluonts.model.forecast import Forecast, Quantile
 from gluonts.shell.util import forecaster_type_by_name
 
-from .util import jsonify_floats
 
 logger = logging.getLogger("gluonts.serve")
+
+
+OutputType = Literal["mean", "samples", "quantiles"]
+
+
+class ForecastConfig(BaseModel):
+    num_samples: int = Field(100, alias="num_eval_samples")
+    output_types: Set[OutputType] = {"quantiles", "mean"}
+    # FIXME: validate list elements
+    quantiles: List[str] = ["0.1", "0.5", "0.9"]
+
+    class Config:
+        allow_population_by_field_name = True
+        # store additional fields
+        extra = "allow"
+
+    def as_json_dict(self, forecast: Forecast) -> dict:
+        result = {}
+
+        if "mean" in self.output_types:
+            result["mean"] = forecast.mean.tolist()
+
+        if "quantiles" in self.output_types:
+            quantiles = map(Quantile.parse, self.quantiles)
+
+            result["quantiles"] = {
+                quantile.name: forecast.quantile(quantile.value).tolist()
+                for quantile in quantiles
+            }
+
+        if "samples" in self.output_types:
+            samples = getattr(forecast, "samples", None)
+            if samples is not None:
+                samples = samples.tolist()
+
+            result["samples"] = samples
+
+            valid_length = getattr(forecast, "valid_length", None)
+            if valid_length is not None:
+                result["valid_length"] = valid_length.tolist()
+
+        return result
 
 
 class InferenceRequest(BaseModel):
@@ -68,7 +111,8 @@ def log_throughput(instances, timings):
             zip(timings, item_lengths), start=1
         ):
             logger.info(
-                f"\t{idx} took -> {duration:.2f}s (len(target)=={input_length})."
+                f"\t{idx} took -> {duration:.2f}s"
+                f" (len(target)=={input_length})."
             )
     else:
         logger.info(
@@ -98,13 +142,13 @@ def handle_predictions(predictor, instances, configuration):
     # create the forecasts
     forecasts = ThrougputIter(
         predictor.predict(
-            ListDataset(instances, predictor.freq),
+            ListDataset(instances, configuration.freq),
             num_samples=configuration.num_samples,
         )
     )
 
     predictions = [
-        forecast.as_json_dict(configuration) for forecast in forecasts
+        configuration.as_json_dict(forecast) for forecast in forecasts
     ]
 
     log_throughput(instances, forecasts.timings)
@@ -119,7 +163,7 @@ def inference_invocations(predictor_factory) -> Callable[[], Response]:
         predictions = handle_predictions(
             predictor, req.instances, req.configuration
         )
-        return jsonify(predictions=jsonify_floats(predictions))
+        return jsonify(predictions=encode_json(predictions))
 
     return invocations
 
@@ -156,7 +200,7 @@ def make_predictions(predictor, dataset, configuration):
 
     for forecast in forecast_iter:
         end = time.time()
-        prediction = forecast.as_json_dict(configuration)
+        prediction = configuration.as_json_dict(forecast)
 
         if DEBUG:
             prediction["debug"] = {"timing": end - start}
@@ -207,7 +251,7 @@ def batch_inference_invocations(
         else:
             instances = []
 
-        dataset = ListDataset(instances, predictor.freq)
+        dataset = ListDataset(instances, configuration.freq)
 
         start_time = time.time()
 
@@ -225,7 +269,6 @@ def batch_inference_invocations(
                     settings.gluonts_batch_fallback_predictor
                 )
                 fallback_predictor = FallbackPredictor(
-                    freq=predictor.freq,
                     prediction_length=predictor.prediction_length,
                 )
 
@@ -249,7 +292,7 @@ def batch_inference_invocations(
             for input_item, prediction in zip(dataset, predictions):
                 prediction[forward_field] = input_item.get(forward_field)
 
-        lines = list(map(json.dumps, map(jsonify_floats, predictions)))
+        lines = list(map(json.dumps, map(encode_json, predictions)))
         return Response("\n".join(lines), mimetype="application/jsonlines")
 
     def invocations_error_wrapper() -> Response:

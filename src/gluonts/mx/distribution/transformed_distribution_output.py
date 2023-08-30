@@ -70,9 +70,9 @@ class TransformedDistributionOutput(DistributionOutput):
         )
 
     def _split_args(self, args):
-        # Since hybrid_forward does not support dictionary,
-        # we have to separate the raw outputs of the network based on the indices
-        # and map them to the learnable parameters
+        # Since hybrid_forward does not support dictionary, we have to separate
+        # the raw outputs of the network based on the indices and map them to
+        # the learnable parameters
         num_distr_args = len(self.base_distr_args_dim)
         distr_args = args[0:num_distr_args]
 

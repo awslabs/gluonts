@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, List, Optional  # noqa: F401
+from typing import Callable, List, Optional, Type
 
 import mxnet.gluon.nn as nn
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 
@@ -41,7 +41,7 @@ class FeatureEmbedder(nn.HybridBlock):
         self,
         cardinalities: List[int],
         embedding_dims: List[int],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -51,7 +51,7 @@ class FeatureEmbedder(nn.HybridBlock):
         ), "Length of `cardinalities` list must be greater than zero"
         assert len(cardinalities) == len(
             embedding_dims
-        ), "Length of `embedding_dims` and `embedding_dims` should match"
+        ), "Length of `cardinalities` and `embedding_dims` should match"
         assert all(
             [c > 0 for c in cardinalities]
         ), "Elements of `cardinalities` should be > 0"
@@ -75,7 +75,6 @@ class FeatureEmbedder(nn.HybridBlock):
                 for i, (c, d) in enumerate(zip(cardinalities, embedding_dims))
             ]
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, features: Tensor) -> Tensor:
         """
 
@@ -96,12 +95,14 @@ class FeatureEmbedder(nn.HybridBlock):
         """
 
         if self.__num_features > 1:
-            # we slice the last dimension, giving an array of length self.__num_features with shape (N,T) or (N)
+            # we slice the last dimension, giving an array of length
+            # self.__num_features with shape (N,T) or (N)
             cat_feature_slices = F.split(
                 features, axis=-1, num_outputs=self.__num_features
             )
         else:
-            # F.split will iterate over the second-to-last axis if the last axis is one
+            # F.split will iterate over the second-to-last axis if the last
+            # axis is one
             cat_feature_slices = [features]
 
         return F.concat(
@@ -117,42 +118,45 @@ class FeatureEmbedder(nn.HybridBlock):
 
 class FeatureAssembler(nn.HybridBlock):
     """
-    Assemble features into an MXNet tensor. Input features are distinguished based on the following criteria:
+    Assemble features into an MXNet tensor. Input features are distinguished
+    based on the following criteria:
 
     - static (time-independent) features vs dynamic (that is, time-dependent)
     - categorical vs real-valued features.
 
-    Dynamic features have shape `(N, T, C)` and static features have shape `(N, C)`, where
+    Dynamic features have shape `(N, T, C)` and static features have shape
+    `(N, C)`, where
 
-    - `N` is the number of elements in the processed batch,
-    - `T` is the time dimension,
-    - `C` is the number of features.
+        - `N` is the number of elements in the processed batch,
+        - `T` is the time dimension,
+        - `C` is the number of features.
 
-    If multiple feature types are used, the :class:`FeatureAssembler` will assume that the N and T dimensions
-    are the same for all passed arguments.
+    If multiple feature types are used, the :class:`FeatureAssembler` will
+    assume that the N and T dimensions are the same for all passed arguments.
 
-    Categorical features can be optionally embedded using trained embedding layers via nested :class:`FeatureEmbedder`
-    components.
+    Categorical features can be optionally embedded using trained embedding
+    layers via nested :class:`FeatureEmbedder` components.
 
-    >>> # noinspection PyTypeChecker
-    ... embed_static = FeatureEmbedder(
+    >>> embed_static = FeatureEmbedder(
     ...     cardinalities=[2],
     ...     embedding_dims=[3],
     ...     prefix='embed_static_',
     ... )
-    >>> # noinspection PyTypeChecker
-    ... embed_dynamic = FeatureEmbedder(
+    >>> embed_dynamic = FeatureEmbedder(
     ...     cardinalities=[5, 5],
     ...     embedding_dims=[6, 9],
     ...     prefix='embed_dynamic_',
     ... )
 
-    The above snippet with four :class:`nn.Embedding` corresponding to the one static and two dynamic categorical
-    features. The `(input_dim, output_dim)` of these layers are going to be `(2, 3)`, `(5, 6)`, and `(5, 9)`.
-    The created `assemble_feature` instance will not handle real-valued features.
+    The above snippet with four :class:`nn.Embedding` corresponding to the one
+    static and two dynamic categorical features. The `(input_dim, output_dim)`
+    of these layers are going to be `(2, 3)`, `(5, 6)`, and `(5, 9)`. The
+    created `assemble_feature` instance will not handle real-valued features.
 
-    The subset of feature types to be used by the :class:`FeatureAssembler` instance is determined using corresponding
-    constructor parameters. Here is an example that constructs a feature assembler consuming only real-valued features.
+    The subset of feature types to be used by the :class:`FeatureAssembler`
+    instance is determined using corresponding constructor parameters. Here is
+    an example that constructs a feature assembler consuming only real-valued
+    features.
 
     >>> N, T = 50, 168
     >>> assemble_feature = FeatureAssembler(
@@ -165,31 +169,38 @@ class FeatureAssembler(nn.HybridBlock):
     ...     embed_dynamic=embed_dynamic
     ... )
 
-    When the `__call__`, `forward`, or `hybrid_forward` methods of a :class:`FeatureAssembler` are called, we always
-    have to pass a full set of features. Missing features are represented as zero tensors with a suitable shape.
+    When the `__call__`, `forward`, or `hybrid_forward` methods of
+    a :class:`FeatureAssembler` are called, we always have to pass a full set
+    of features. Missing features are represented as zero tensors with a
+    suitable shape.
 
     For example,
 
     >>> import mxnet as mx
     >>> feat_static_cat = mx.nd.random.uniform(0, 2, shape=(N, 1)).floor()
-    >>> feat_dynamic_cat = mx.nd.random.uniform(0, 5, shape=(N, 168, 2)).floor()
+    >>> feat_dynamic_cat = mx.nd.random.uniform(
+        0, 5, shape=(N, 168, 2)
+    ).floor()
     >>> feat_static_real = mx.nd.zeros(shape=(N, 1,)) # empty feature
     >>> feat_dynamic_real = mx.nd.zeros(shape=(N, T, 1,)) # empty feature
 
-    After initializing the embedder parameters to one and instantiating some random `static_cat` and
-    `dynamic_cat` vectors,
+    After initializing the embedder parameters to one and instantiating some
+    random `static_cat` and `dynamic_cat` vectors,
 
     >>> assemble_feature.collect_params().initialize(mx.initializer.One())
 
     one can do a forward pass as follows.
 
-    >>> assembled_feature = assemble_feature(feat_static_cat, feat_static_real, feat_dynamic_cat, feat_dynamic_real)
+    >>> assembled_feature = assemble_feature(
+        feat_static_cat, feat_static_real, feat_dynamic_cat, feat_dynamic_real
+    )
     >>> assembled_feature.shape
     (50, 168, 20)
     >>>
 
-    However, relative order of `static_cat` and `dynamic_cat` in the call above is determined by the fact that
-    `use_static_cat` is defined before `use_dynamic_cat` in the class constructor.
+    However, relative order of `static_cat` and `dynamic_cat` in the call above
+    is determined by the fact that `use_static_cat` is defined before
+    `use_dynamic_cat` in the class constructor.
     """
 
     @validated()
@@ -202,7 +213,7 @@ class FeatureAssembler(nn.HybridBlock):
         use_dynamic_real: bool = False,
         embed_static: Optional[FeatureEmbedder] = None,
         embed_dynamic: Optional[FeatureEmbedder] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -222,7 +233,6 @@ class FeatureAssembler(nn.HybridBlock):
             lambda x: x
         )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

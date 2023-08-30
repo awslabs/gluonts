@@ -38,12 +38,13 @@ class Binned(Distribution):
         Tensor containing the bin centers, of shape `(*batch_shape, num_bins)`.
     F
     label_smoothing
-        The label smoothing weight, real number in `[0, 1)`. Default `None`. If not
-        `None`, then the loss of the distribution will be "label smoothed" cross-entropy.
-        For example, instead of computing cross-entropy loss between the estimated bin
-        probabilities and a hard-label (one-hot encoding) `[1, 0, 0]`, a soft label of
-        `[0.9, 0.05, 0.05]` is taken as the ground truth (when `label_smoothing=0.15`).
-        See (Muller et al., 2019) [MKH19]_, for further reference.
+        The label smoothing weight, real number in `[0, 1)`. Default `None`. If
+        not `None`, then the loss of the distribution will be "label smoothed"
+        cross-entropy. For example, instead of computing cross-entropy loss
+        between the estimated bin probabilities and a hard-label
+        (one-hot encoding) `[1, 0, 0]`, a soft label of `[0.9, 0.05, 0.05]` is
+        taken as the ground truth (when `label_smoothing=0.15`). See(Muller et
+        al., 2019) [MKH19]_, for further reference.
     """
 
     is_reparameterizable = False
@@ -85,7 +86,8 @@ class Binned(Distribution):
     @staticmethod
     def _compute_edges(F, bin_centers: Tensor) -> Tensor:
         r"""
-        Computes the edges of the bins based on the centers. The first and last edge are set to :math:`10^{-10}` and
+        Computes the edges of the bins based on the centers. The first and last
+        edge are set to :math:`10^{-10}` and
         :math:`10^{10}`, repsectively.
 
         Parameters
@@ -314,9 +316,10 @@ class BinnedOutput(DistributionOutput):
         bin_centers: mx.nd.NDArray,
         label_smoothing: Optional[float] = None,
     ) -> None:
-        assert label_smoothing is None or (
-            0 <= label_smoothing < 1
-        ), "Smoothing factor should be less than 1 and greater than or equal to 0."
+        assert label_smoothing is None or (0 <= label_smoothing < 1), (
+            "Smoothing factor should be less than 1 and greater than or equal"
+            " to 0."
+        )
         super().__init__(self)
         self.bin_centers = bin_centers
         self.num_bins = self.bin_centers.shape[0]

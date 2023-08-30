@@ -13,7 +13,7 @@ docker build ../.. -f <dockerfile>
 ```
 
 The built images are compatible with sagemaker.
-For more information about the shell and the available params, see the [shell documentation](https://github.com/awslabs/gluon-ts/tree/master/src/gluonts/shell).
+For more information about the shell and the available params, see the [shell documentation](https://github.com/awslabs/gluonts/tree/dev/src/gluonts/shell).
 
 
 ## How to choose between the dockerfiles

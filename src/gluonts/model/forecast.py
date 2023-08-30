@@ -12,72 +12,195 @@
 # permissions and limitations under the License.
 
 import re
-from enum import Enum
-from typing import Callable, Dict, List, NamedTuple, Optional, Set, Union
+import logging
+from dataclasses import field
+from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-import pydantic
+from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
-from gluonts.exceptions import GluonTSUserError
-from gluonts.support.util import (
-    LinearInterpolation,
-    ExponentialTailApproximation,
-)
+from gluonts import maybe
+
+logger = logging.getLogger(__name__)
 
 
-class Quantile(NamedTuple):
-    value: float
-    name: str
+def _linear_interpolation(
+    xs: np.ndarray, ys: np.ndarray, x: float
+) -> np.ndarray:
+    assert sorted(xs) == xs
+    assert len(xs) == len(ys)
+    assert len(xs) >= 2
 
-    @property
-    def loss_name(self):
-        return f"QuantileLoss[{self.name}]"
+    if x < xs[0]:
+        idx = 1
+    elif x > xs[-1]:
+        idx = len(xs) - 1
+    else:
+        idx = next(i for i, x_ in enumerate(xs) if x <= x_)
 
-    @property
-    def weighted_loss_name(self):
-        return f"wQuantileLoss[{self.name}]"
+    x_low, x_high = xs[idx - 1 : idx + 1]
+    y_low, y_high = ys[idx - 1 : idx + 1]
 
-    @property
-    def coverage_name(self):
-        return f"Coverage[{self.name}]"
+    dx = x_high - x_low
+    dy = y_high - y_low
 
-    @classmethod
-    def checked(cls, value: float, name: str) -> "Quantile":
-        if not 0 <= value <= 1:
-            raise GluonTSUserError(
-                f"quantile value should be in [0, 1] but found {value}"
+    return y_low + (x - x_low) / dx * dy
+
+
+class ExponentialTailApproximation:
+    """
+    Approximate function on tails based on knots and make a inference on query
+    point. Can be used for either interpolation or extrapolation on tails.
+
+    Parameters
+    ----------
+    x_coord
+        x-coordinates of the data points must be in increasing order.
+    y_coord
+        y-coordinates of the data points - may be a higher numpy array.
+    tol
+        tolerance when performing the division and computing the log in the
+        exponential extrapolation.
+    """
+
+    def __init__(
+        self,
+        x_coord: List[float],
+        y_coord: List[np.ndarray],
+        tol: float = 1e-8,
+    ) -> None:
+        self.x_coord = x_coord
+        assert sorted(self.x_coord) == self.x_coord
+        self.y_coord = y_coord
+        self.num_points = len(self.x_coord)
+        assert (
+            self.num_points >= 2
+        ), "Need at least two points for exponential approximation."
+        self.tol = tol
+        (
+            self.beta_inv_left,
+            self.beta_inv_right,
+        ) = self.init_exponential_tail_weights()
+
+    def init_exponential_tail_weights(self) -> Tuple[float, float]:
+        """
+        Initialize the weight of exponentially decaying tail functions based on
+        two extreme points on the left and right, respectively.
+
+        Returns
+        -------
+        Tuple
+            beta coefficient for left and right tails.
+        """
+        q_log_diff = np.log(
+            (self.x_coord[1] + self.tol) / (self.x_coord[0] + self.tol)
+            + self.tol
+        )
+        y_diff_left = self.y_coord[1] - self.y_coord[0]
+        beta_inv_left = y_diff_left / q_log_diff
+
+        z_log_diff = np.log(
+            (1 - self.x_coord[-2] + self.tol)
+            / (1 - self.x_coord[-1] + self.tol)
+            + self.tol
+        )  # z = 1/(1-q)
+        y_diff_right = self.y_coord[-1] - self.y_coord[-2]
+        beta_inv_right = y_diff_right / z_log_diff
+
+        return beta_inv_left, beta_inv_right
+
+    def left(self, x: float) -> np.ndarray:
+        """
+        Return the inference made on exponentially decaying tail functions.
+
+        For left tail, x = exp(beta * (q - alpha))
+        For right tail, x = 1 - exp(-beta * (q - alpha))
+
+        E.g. for x = self.x_coord[0] or self.x_coord[1], return value is
+        exactly self.y_coord[0] or self.y_coord[1], respectively.
+
+        Parameters
+        ----------
+        x
+            x-coordinate to evaluate the right tail.
+        """
+        return (
+            self.beta_inv_left
+            * np.log((x + self.tol) / (self.x_coord[1] + self.tol) + self.tol)
+        ) + self.y_coord[1]
+
+    def right(self, x: float) -> np.ndarray:
+        """
+        Return the inference made on exponentially decaying tail functions.
+
+        For left tail, x = exp(beta * (q - alpha))
+        For right tail, x = 1 - exp(-beta * (q - alpha))
+
+        E.g. for x = self.x_coord[-1] or self.x_coord[-2] ,
+        return value is exactly self.y_coord[-1]
+        or self.y_coord[-2] respectively.
+        Parameters
+        ----------
+        x
+            x-coordinate to evaluate the right tail.
+        """
+        return (
+            self.beta_inv_right
+            * np.log(
+                (1 - self.x_coord[-2] + self.tol) / (1 - x + self.tol)
+                + self.tol
             )
+        ) + self.y_coord[-2]
 
-        return Quantile(value, name)
+    def tail_range(self, default_left_tail=0.1, default_right_tail=0.9):
+        """
+        Return an effective range of left and right tails.
+        """
+        left_tail = max(
+            self.x_coord[0],
+            min(self.x_coord[1], default_left_tail),
+        )
+        right_tail = min(
+            self.x_coord[-1],
+            max(self.x_coord[-2], default_right_tail),
+        )
+        return left_tail, right_tail
+
+
+@dataclass
+class Quantile:
+    value: float = field(metadata={"ge": 0.0, "le": 1.0})
+    name: str
 
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
         assert isinstance(quantile, float)
-        return cls.checked(value=quantile, name=str(quantile))
+        return cls(value=quantile, name=str(quantile))
 
     @classmethod
     def from_str(cls, quantile: str) -> "Quantile":
         assert isinstance(quantile, str)
+
         try:
-            return cls.checked(value=float(quantile), name=quantile)
+            return cls(value=float(quantile), name=quantile)
         except ValueError:
-            m = re.match(r"^p(\d{2})$", quantile)
+            m = re.match(r"^p(\d+)$", quantile)
 
             if m is None:
-                raise GluonTSUserError(
-                    "Quantile string should be of the form "
-                    f'"p10", "p50", ... or "0.1", "0.5", ... but found {quantile}'
+                raise ValueError(
+                    'Quantile string should be of the form "p10", "p50", ...'
+                    f' or "0.1", "0.5", ... but found {quantile}'
                 )
-            else:
-                quantile_float: float = int(m.group(1)) / 100
-                return cls(value=quantile_float, name=str(quantile_float))
+
+            return cls.from_float(float(m.group(1)) / 100)
 
     @classmethod
     def parse(cls, quantile: Union["Quantile", float, str]) -> "Quantile":
-        """Produces equivalent float and string representation of a given
-        quantile level.
+        """
+        Produces equivalent float and string representation of a given quantile
+        level.
 
         >>> Quantile.parse(0.1)
         Quantile(value=0.1, name='0.1')
@@ -95,7 +218,7 @@ class Quantile(NamedTuple):
         ----------
         quantile
             Quantile, can be a float a str representing a float e.g. '0.1' or a
-            quantile string of the form 'p0.1'.
+            quantile string of the form 'p10'.
 
         Returns
         -------
@@ -105,10 +228,14 @@ class Quantile(NamedTuple):
         """
         if isinstance(quantile, Quantile):
             return quantile
-        elif isinstance(quantile, float):
+
+        if isinstance(quantile, float):
             return cls.from_float(quantile)
-        else:
-            return cls.from_str(quantile)
+
+        return cls.from_str(quantile)
+
+    def __str__(self):
+        return self.name
 
 
 class Forecast:
@@ -116,8 +243,7 @@ class Forecast:
     A abstract class representing predictions.
     """
 
-    start_date: pd.Timestamp
-    freq: str
+    start_date: pd.Period
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
@@ -147,107 +273,95 @@ class Forecast:
     def median(self) -> np.ndarray:
         return self.quantile(0.5)
 
+    @property
+    def freq(self):
+        return self.start_date.freq
+
+    def __getitem__(self, name):
+        if name == "mean":
+            return self.mean
+        elif name == "median":
+            return self.median
+
+        return self.quantile(name)
+
     def plot(
         self,
-        prediction_intervals=(50.0, 90.0),
-        show_mean=False,
-        color="b",
-        label=None,
-        output_file=None,
-        *args,
-        **kwargs,
+        *,
+        intervals=(0.5, 0.9),
+        ax=None,
+        color=None,
+        name=None,
+        show_label=False,
     ):
         """
-        Plots the median of the forecast as well as confidence bounds.
-        (requires matplotlib and pandas).
+        Plot median forecast and prediction intervals using ``matplotlib``.
 
-        Parameters
-        ----------
-        prediction_intervals : float or list of floats in [0, 100]
-            Confidence interval size(s). If a list, it will stack the error
-            plots for each confidence interval. Only relevant for error styles
-            with "ci" in the name.
-        show_mean : boolean
-            Whether to also show the mean of the forecast.
-        color : matplotlib color name or dictionary
-            The color used for plotting the forecast.
-        label : string
-            A label (prefix) that is used for the forecast
-        output_file : str or None, default None
-            Output path for the plot file. If None, plot is not saved to file.
-        args :
-            Other arguments are passed to main plot() call
-        kwargs :
-            Other keyword arguments are passed to main plot() call
+        By default the `0.5` and `0.9` prediction intervals are plotted. Other
+        intervals can be choosen by setting `intervals`.
+
+        This plots to the current axes object (via ``plt.gca()``), or to ``ax``
+        if provided. Similarly, the color is using matplotlibs internal color
+        cycle, if no explicit ``color`` is set.
+
+        One can set ``name`` to use it as the ``label`` for the median
+        forecast. Intervals are not labeled, unless ``show_label`` is set to
+        ``True``.
         """
-
-        # matplotlib==2.0.* gives errors in Brazil builds and has to be
-        # imported locally
         import matplotlib.pyplot as plt
 
-        label_prefix = "" if label is None else label + "-"
+        # Get current axes (gca), if not provided explicitly.
+        ax = maybe.unwrap_or_else(ax, plt.gca)
 
-        for c in prediction_intervals:
-            assert 0.0 <= c <= 100.0
+        # If no color is provided, we use matplotlib's internal color cycle.
+        # Note: This is an internal API and might change in the future.
+        color = maybe.unwrap_or_else(
+            color, lambda: next(ax._get_lines.prop_cycler)["color"]
+        )
 
-        ps = [50.0] + [
-            50.0 + f * c / 2.0
-            for c in prediction_intervals
-            for f in [-1.0, +1.0]
-        ]
-        percentiles_sorted = sorted(set(ps))
+        # Plot median forecast
+        ax.plot(
+            self.index.to_timestamp(),
+            self.quantile(0.5),
+            color=color,
+            label=name,
+        )
 
-        def alpha_for_percentile(p):
-            return (p / 100.0) ** 0.3
+        # Plot prediction intervals
+        for interval in intervals:
+            if show_label:
+                if name is not None:
+                    label = f"{name}: {interval}"
+                else:
+                    label = interval
+            else:
+                label = None
 
-        ps_data = [self.quantile(p / 100.0) for p in percentiles_sorted]
-        i_p50 = len(percentiles_sorted) // 2
-
-        p50_data = ps_data[i_p50]
-        p50_series = pd.Series(data=p50_data, index=self.index)
-        p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
-
-        if show_mean:
-            mean_data = np.mean(self._sorted_samples, axis=0)
-            pd.Series(data=mean_data, index=self.index).plot(
-                color=color,
-                ls=":",
-                label=f"{label_prefix}mean",
-                *args,
-                **kwargs,
-            )
-
-        for i in range(len(percentiles_sorted) // 2):
-            ptile = percentiles_sorted[i]
-            alpha = alpha_for_percentile(ptile)
-            plt.fill_between(
-                self.index,
-                ps_data[i],
-                ps_data[-i - 1],
+            # Translate interval to low and high values. E.g for `0.9` we get
+            # `low = 0.05` and `high = 0.95`. (`interval + low + high == 1.0`)
+            # Also, higher interval values mean lower confidence, and thus we
+            # we use lower alpha values for them.
+            low = (1 - interval) / 2
+            ax.fill_between(
+                # TODO: `index` currently uses `pandas.Period`, but we need
+                # to pass a timestamp value to matplotlib. In the future this
+                # will use ``zebras.Periods`` and thus needs to be adapted.
+                self.index.to_timestamp(),
+                self.quantile(low),
+                self.quantile(1 - low),
+                # Clamp alpha betwen ~16% and 50%.
+                alpha=0.5 - interval / 3,
                 facecolor=color,
-                alpha=alpha,
-                interpolate=True,
-                *args,
-                **kwargs,
+                label=label,
             )
-            # Hack to create labels for the error intervals.
-            # Doesn't actually plot anything, because we only pass a single data point
-            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
-                color=color,
-                alpha=alpha,
-                linewidth=10,
-                label=f"{label_prefix}{100 - ptile * 2}%",
-                *args,
-                **kwargs,
-            )
-        if output_file:
-            plt.savefig(output_file)
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def index(self) -> pd.PeriodIndex:
         if self._index is None:
-            self._index = pd.date_range(
-                self.start_date, periods=self.prediction_length, freq=self.freq
+            self._index = pd.period_range(
+                self.start_date,
+                periods=self.prediction_length,
+                freq=self.start_date.freq,
             )
         return self._index
 
@@ -281,25 +395,6 @@ class Forecast:
         """
         raise NotImplementedError()
 
-    def as_json_dict(self, config: "Config") -> dict:
-        result = {}
-
-        if OutputType.mean in config.output_types:
-            result["mean"] = self.mean.tolist()
-
-        if OutputType.quantiles in config.output_types:
-            quantiles = map(Quantile.parse, config.quantiles)
-
-            result["quantiles"] = {
-                quantile.name: self.quantile(quantile.value).tolist()
-                for quantile in quantiles
-            }
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = []
-
-        return result
-
 
 class SampleForecast(Forecast):
     """
@@ -313,8 +408,6 @@ class SampleForecast(Forecast):
         (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
         start of the forecast
-    freq
-        forecast frequency
     info
         additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
@@ -324,18 +417,16 @@ class SampleForecast(Forecast):
     def __init__(
         self,
         samples: np.ndarray,
-        start_date: pd.Timestamp,
-        freq: str,
+        start_date: pd.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         assert isinstance(
             samples, np.ndarray
         ), "samples should be a numpy array"
-        assert (
-            len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3
-        ), "samples should be a 2-dimensional or 3-dimensional array. Dimensions found: {}".format(
-            len(np.shape(samples))
+        assert len(np.shape(samples)) == 2 or len(np.shape(samples)) == 3, (
+            "samples should be a 2-dimensional or 3-dimensional array."
+            " Dimensions found: {}".format(len(np.shape(samples)))
         )
         self.samples = samples
         self._sorted_samples_value = None
@@ -345,12 +436,9 @@ class SampleForecast(Forecast):
         self.info = info
 
         assert isinstance(
-            start_date, pd.Timestamp
-        ), "start_date should be a pandas Timestamp object"
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
         self.start_date = start_date
-
-        assert isinstance(freq, str), "freq should be a string"
-        self.freq = freq
 
     @property
     def _sorted_samples(self):
@@ -377,10 +465,9 @@ class SampleForecast(Forecast):
         """
         Forecast mean.
         """
-        if self._mean is not None:
-            return self._mean
-        else:
-            return np.mean(self.samples, axis=0)
+        if self._mean is None:
+            self._mean = np.mean(self.samples, axis=0)
+        return self._mean
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -408,7 +495,6 @@ class SampleForecast(Forecast):
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
@@ -422,50 +508,41 @@ class SampleForecast(Forecast):
         return SampleForecast(
             samples=samples,
             start_date=self.start_date,
-            freq=self.freq,
             item_id=self.item_id,
             info=self.info,
         )
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
+        if self._dim is None:
             if len(self.samples.shape) == 2:
                 # univariate target
                 # shape: (num_samples, prediction_length)
-                return 1
+                self._dim = 1
             else:
                 # multivariate target
                 # shape: (num_samples, prediction_length, target_dim)
-                return self.samples.shape[2]
-
-    def as_json_dict(self, config: "Config") -> dict:
-        result = super().as_json_dict(config)
-
-        if OutputType.samples in config.output_types:
-            result["samples"] = self.samples.tolist()
-
-        return result
+                self._dim = self.samples.shape[2]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
             [
                 f"SampleForecast({self.samples!r})",
                 f"{self.start_date!r}",
-                f"{self.freq!r}",
                 f"item_id={self.item_id!r}",
                 f"info={self.info!r})",
             ]
         )
 
-    def to_quantile_forecast(
-        self, quantiles: List[Union[float, str]]
-    ) -> "QuantileForecast":
+    def to_quantile_forecast(self, quantiles: List[str]) -> "QuantileForecast":
         return QuantileForecast(
-            forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
+            forecast_arrays=np.array(
+                [
+                    self.quantile(q) if q != "mean" else self.mean()
+                    for q in quantiles
+                ]
+            ),
             start_date=self.start_date,
-            freq=self.freq,
             forecast_keys=quantiles,
             item_id=self.item_id,
             info=self.info,
@@ -474,7 +551,7 @@ class SampleForecast(Forecast):
 
 class QuantileForecast(Forecast):
     """
-    A Forecast that contains arrays (i.e. time series) for quantiles and mean
+    A Forecast that contains arrays (i.e. time series) for quantiles and mean.
 
     Parameters
     ----------
@@ -482,8 +559,6 @@ class QuantileForecast(Forecast):
         An array of forecasts
     start_date
         start of the forecast
-    freq
-        forecast frequency
     forecast_keys
         A list of quantiles of the form '0.1', '0.9', etc.,
         and potentially 'mean'. Each entry corresponds to one array in
@@ -496,15 +571,16 @@ class QuantileForecast(Forecast):
     def __init__(
         self,
         forecast_arrays: np.ndarray,
-        start_date: pd.Timestamp,
-        freq: str,
+        start_date: pd.Period,
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
-        self.start_date = pd.Timestamp(start_date, freq=freq)
-        self.freq = freq
+        assert isinstance(
+            start_date, pd.Period
+        ), "start_date should be a pandas Period object"
+        self.start_date = start_date
 
         # normalize keys
         self.forecast_keys = [
@@ -520,7 +596,7 @@ class QuantileForecast(Forecast):
             f"The forecast_array (shape={shape} should have the same "
             f"length as the forecast_keys (len={len(self.forecast_keys)})."
         )
-        self.prediction_length = shape[-1]
+        self.prediction_length = shape[1]
         self._forecast_dict = {
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
@@ -534,17 +610,15 @@ class QuantileForecast(Forecast):
 
         inference_quantile = Quantile.parse(inference_quantile).value
 
-        if len(quantiles) == 1 or inference_quantile in quantiles:
+        if len(quantiles) < 2 or inference_quantile in quantiles:
             q_str = Quantile.parse(inference_quantile).name
             return self._forecast_dict.get(q_str, self._nan_out)
 
-        linear_interpolation = LinearInterpolation(
-            quantiles, quantile_predictions
-        )
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
         )
-        # The effective range of left, right tails varies over tail approximation class
+        # The effective range of left, right tails varies over tail
+        # approximation class
         (
             left_tail_quantile,
             right_tail_quantile,
@@ -555,7 +629,28 @@ class QuantileForecast(Forecast):
         elif inference_quantile >= right_tail_quantile:
             return exp_tail_approximation.right(inference_quantile)
         else:
-            return linear_interpolation(inference_quantile)
+            return _linear_interpolation(
+                quantiles, quantile_predictions, inference_quantile
+            )
+
+    def copy_dim(self, dim: int) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        else:
+            target_dim = self.forecast_array.shape[2]
+            assert dim < target_dim, (
+                f"must set 0 <= dim < target_dim, but got dim={dim},"
+                f" target_dim={target_dim}"
+            )
+            forecast_array = self.forecast_array[:, :, dim]
+
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
 
     @property
     def mean(self) -> np.ndarray:
@@ -564,68 +659,32 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-
+        logger.warning(
+            "The mean prediction is not stored in the forecast data; "
+            "the median is being returned instead. "
+            "This behaviour may change in the future."
+        )
         return self.quantile("p50")
 
     def dim(self) -> int:
-        if self._dim is not None:
-            return self._dim
-        else:
-            if (
-                len(self.forecast_array.shape) == 2
-            ):  # 1D target. shape: (num_samples, prediction_length)
-                return 1
+        if self._dim is None:
+            if len(self.forecast_array.shape) == 2:
+                # univariate target
+                # shape: (num_samples, prediction_length)
+                self._dim = 1
             else:
-                return self.forecast_array.shape[
-                    1
-                ]  # 2D target. shape: (num_samples, target_dim, prediction_length)
+                # multivariate target
+                # shape: (num_samples, prediction_length, target_dim)
+                self._dim = self.forecast_array.shape[2]
+        return self._dim
 
     def __repr__(self):
         return ", ".join(
             [
                 f"QuantileForecast({self.forecast_array!r})",
                 f"start_date={self.start_date!r}",
-                f"freq={self.freq!r}",
                 f"forecast_keys={self.forecast_keys!r}",
                 f"item_id={self.item_id!r}",
                 f"info={self.info!r})",
             ]
         )
-
-    def plot(self, label=None, output_file=None, keys=None, *args, **kwargs):
-        import matplotlib.pyplot as plt
-
-        label_prefix = "" if label is None else label + "-"
-
-        if keys is None:
-            keys = self.forecast_keys
-
-        for k, v in zip(keys, self.forecast_array):
-            plt.plot(
-                self.index,
-                v,
-                label=f"{label_prefix}q{k}",
-                *args,
-                **kwargs,
-            )
-            plt.legend()
-        if output_file:
-            plt.savefig(output_file)
-
-
-class OutputType(str, Enum):
-    mean = "mean"
-    samples = "samples"
-    quantiles = "quantiles"
-
-
-class Config(pydantic.BaseModel):
-    num_samples: int = pydantic.Field(100, alias="num_eval_samples")
-    output_types: Set[OutputType] = {OutputType.quantiles, OutputType.mean}
-    # FIXME: validate list elements
-    quantiles: List[str] = ["0.1", "0.5", "0.9"]
-
-    class Config:
-        allow_population_by_field_name = True
-        # store additional fields
-        extra = "allow"

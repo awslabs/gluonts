@@ -90,12 +90,12 @@ class PoissonOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, rate):
-        rate = softplus(F, rate) + 1e-8
+        rate = F.maximum(softplus(F, rate), cls.eps())
         return rate.squeeze(axis=-1)
 
-    # Overwrites the parent class method.
-    # We cannot scale using the affine transformation since Poisson should return integers.
-    # Instead we scale the parameters.
+    # Overwrites the parent class method. We cannot scale using the affine
+    # transformation since Poisson should return integers. Instead we scale
+    # the parameters.
     def distribution(
         self,
         distr_args,

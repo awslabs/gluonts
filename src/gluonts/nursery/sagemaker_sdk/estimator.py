@@ -31,6 +31,7 @@ from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
+from gluonts.util import safe_extractall
 
 from .defaults import (
     ENTRY_POINTS_FOLDER,
@@ -113,7 +114,7 @@ class GluonTSFramework(Framework):
     defined by the "entry_point" argument of the :meth:`GluonTSFramework.run`
     method. Technical documentation on preparing GluonTSFramework scripts for
     SageMaker training and using the GluonTsFramework Estimator is available on
-    the project home-page: https://github.com/awslabs/gluon-ts. See
+    the project home-page: https://github.com/awslabs/gluonts. See
     how_to_notebooks for examples of how to use this SDK.
 
     Parameters
@@ -272,7 +273,8 @@ class GluonTSFramework(Framework):
         image_uri: str = None,
         **kwargs,
     ) -> GluonTSModel:
-        """Create a ``GluonTSModel`` object that can be deployed to an
+        """
+        Create a ``GluonTSModel`` object that can be deployed to an
         ``Endpoint``.
 
         Parameters
@@ -395,7 +397,7 @@ class GluonTSFramework(Framework):
     ):
         """
         Convert the job description to init params that can be handled by the
-        class constructor
+        class constructor.
 
         Parameters
         ----------
@@ -446,8 +448,8 @@ class GluonTSFramework(Framework):
 
         if self.code_location is None:
             code_bucket, _ = parse_s3_url(self.output_path)
-            self.code_location = (
-                f"s3://{code_bucket}"  # for consistency with sagemaker API
+            self.code_location = (  # for consistency with sagemaker API
+                f"s3://{code_bucket}"
             )
 
         locations = Locations(
@@ -502,7 +504,7 @@ class GluonTSFramework(Framework):
         with self._s3fs.open(locations.model_archive, "rb") as stream:
             with tarfile.open(mode="r:gz", fileobj=stream) as archive:
                 with TemporaryDirectory() as temp_dir:
-                    archive.extractall(temp_dir)
+                    safe_extractall(archive, temp_dir)
                     predictor = Predictor.deserialize(Path(temp_dir))
 
         return predictor
@@ -609,9 +611,10 @@ class GluonTSFramework(Framework):
         **kwargs,
     ) -> Tuple[Framework, str]:
         """
-        Use this function to run a custom script specified in 'entry_point' in GluonTSFramework.
-        To access files on s3 specify them in inputs. If you want to access local files you should
-        have specified them in 'dependencies' in GluonTSFramework.
+        Use this function to run a custom script specified in 'entry_point' in
+        GluonTSFramework. To access files on s3 specify them in inputs. If you
+        want to access local files you should have specified them in
+        'dependencies' in GluonTSFramework.
 
         Parameters
         ----------

@@ -1,0 +1,8 @@
+pareto:
+  - key: objectives
+    values:
+      - ncrps_mean,latency_mean
+  - key: focus_objective
+    values: ["ncrps_mean"]
+  - key: surrogate.name
+    values: [deepset]

@@ -120,7 +120,7 @@ class LDS(Distribution):
     seq_length
         Sequence length
     F
-    """
+    """  # noqa: E501
 
     @validated()
     def __init__(
@@ -243,7 +243,6 @@ class LDS(Distribution):
     ) -> Tuple[Tensor, ...]:
         """
         Performs Kalman filtering given observations.
-
 
         Parameters
         ----------
@@ -389,10 +388,11 @@ class LDS(Distribution):
 
         # Sample the prior state.
         # samples_lat_state: (num_samples, batch_size, latent_dim, 1)
-        # The prior covariance is observed to be slightly negative definite whenever there is
-        # excessive zero padding at the beginning of the time series.
-        # We add positive tolerance to the diagonal to avoid numerical issues.
-        # Note that `jitter_cholesky` adds positive tolerance only if the decomposition without jitter fails.
+        # The prior covariance is observed to be slightly negative definite
+        # whenever there is excessive zero padding at the beginning of the time
+        # series. We add positive tolerance to the diagonal to avoid numerical
+        # issues. Note that `jitter_cholesky` adds positive tolerance only if
+        # the decomposition without jitter fails.
         state = MultivariateGaussian(
             self.prior_mean,
             jitter_cholesky(
@@ -408,7 +408,7 @@ class LDS(Distribution):
             # transition_coeff_t:
             #   (num_samples, batch_size, latent_dim, latent_dim)
             # innovation_coeff_t: (num_samples, batch_size, 1, latent_dim)
-            emission_coeff_t, transition_coeff_t, innovation_coeff_t = [
+            emission_coeff_t, transition_coeff_t, innovation_coeff_t = (
                 _broadcast_param(coeff, axes=[0], sizes=[num_samples])
                 if num_samples is not None
                 else coeff
@@ -417,7 +417,7 @@ class LDS(Distribution):
                     self.transition_coeff[t],
                     self.innovation_coeff[t],
                 ]
-            ]
+            )
 
             # Expand residuals as well
             # residual_t: (num_samples, batch_size, obs_dim, 1)
@@ -562,7 +562,6 @@ class LDSArgsProj(mx.gluon.HybridBlock):
         self.innovation_bounds = innovation_bounds
         self.noise_std_bounds = noise_std_bounds
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         noise_std = (
             self.dense_noise_std(x)

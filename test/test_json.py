@@ -15,7 +15,10 @@ from io import StringIO, BytesIO
 
 import pytest
 
-from gluonts.json import _orjson, _ujson, _json
+pytest.importorskip("orjson")
+pytest.importorskip("ujson")
+
+from gluonts.json import _orjson, _ujson, _json  # noqa
 
 
 class AttrDict(dict):

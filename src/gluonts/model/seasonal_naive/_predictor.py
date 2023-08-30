@@ -17,10 +17,14 @@ import numpy as np
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
+from gluonts.dataset.util import forecast_start
+from gluonts.dataset.field_names import FieldName
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
-from gluonts.support.pandas import forecast_start
-from gluonts.time_feature import get_seasonality
+from gluonts.transform.feature import (
+    LastValueImputation,
+    MissingValueImputation,
+)
 
 
 class SeasonalNaivePredictor(RepresentablePredictor):
@@ -38,43 +42,45 @@ class SeasonalNaivePredictor(RepresentablePredictor):
 
     Parameters
     ----------
-    freq
-        Frequency of the input data
     prediction_length
-        Number of time points to predict
+        Number of time points to predict.
     season_length
-        Length of the seasonality pattern of the input data
+        Seasonality used to make predictions.
+    imputation_method
+        The imputation method to use in case of missing values.
+        Defaults to :py:class:`LastValueImputation` which replaces each missing
+        value with the last value that was not missing.
     """
 
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
-        season_length: Optional[int] = None,
+        season_length: int,
+        imputation_method: Optional[
+            MissingValueImputation
+        ] = LastValueImputation(),
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
 
-        assert (
-            season_length is None or season_length > 0
-        ), "The value of `season_length` should be > 0"
+        assert season_length > 0, "The value of `season_length` should be > 0"
 
-        self.freq = freq
         self.prediction_length = prediction_length
-        self.season_length = (
-            season_length
-            if season_length is not None
-            else get_seasonality(freq)
-        )
+        self.season_length = season_length
+        self.imputation_method = imputation_method
 
     def predict_item(self, item: DataEntry) -> Forecast:
-        target = np.asarray(item["target"], np.float32)
+        target = np.asarray(item[FieldName.TARGET], np.float32)
         len_ts = len(target)
         forecast_start_time = forecast_start(item)
 
         assert (
             len_ts >= 1
         ), "all time series should have at least one data point"
+
+        if np.isnan(target).any():
+            target = target.copy()
+            target = self.imputation_method(target)
 
         if len_ts >= self.season_length:
             indices = [
@@ -84,12 +90,12 @@ class SeasonalNaivePredictor(RepresentablePredictor):
             samples = target[indices].reshape((1, self.prediction_length))
         else:
             samples = np.full(
-                shape=(1, self.prediction_length), fill_value=target.mean()
+                shape=(1, self.prediction_length),
+                fill_value=np.nanmean(target),
             )
 
         return SampleForecast(
             samples=samples,
             start_date=forecast_start_time,
-            freq=self.freq,
             item_id=item.get("item_id", None),
         )

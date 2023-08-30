@@ -11,28 +11,33 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Standard library imports
-from typing import List, Union, Dict, Any
+from dataclasses import dataclass, field
+from typing import List, Union, Dict, Any, Optional
 import logging
 import math
+import time
 
 # Third-party imports
 import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import gluon
+from pydantic import BaseModel, PrivateAttr
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx.util import copy_parameters
 
+logger = logging.getLogger(__name__)
+
 
 class Callback:
     """
     Abstract Callback base class.
-    Callbacks control the training of the GluonTS trainer.
-    To write a custom Callback, you can subclass Callback and overwrite one or
-    more of the hook methods. Hook methods with boolean return value stop the
-    training if False is returned.
+
+    Callbacks control the training of the GluonTS trainer. To write a custom
+    Callback, you can subclass Callback and overwrite one or more of the hook
+    methods. Hook methods with boolean return value stop the training if False
+    is returned.
     """
 
     def on_train_start(self, max_epochs: int) -> None:
@@ -84,7 +89,7 @@ class Callback:
             The network that is being trained.
         """
 
-    def on_train_batch_end(self, training_network: nn.HybridBlock) -> None:
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
         """
         Hook that is called after each training batch.
 
@@ -92,11 +97,17 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
         """
+        return True
 
     def on_validation_batch_end(
         self, training_network: nn.HybridBlock
-    ) -> None:
+    ) -> bool:
         """
         Hook that is called after each validation batch. This hook is never
         called if no validation data is available during training.
@@ -105,7 +116,13 @@ class Callback:
         ----------
         training_network
             The network that is being trained.
+
+        Returns
+        -------
+        bool
+            A boolean whether the training should continue. Defaults to `True`.
         """
+        return True
 
     def on_train_epoch_end(
         self,
@@ -225,7 +242,8 @@ class Callback:
         training_network
             The network that was trained.
         temporary_dir
-            The directory where model parameters are logged throughout training.
+            The directory where model parameters are logged throughout
+            training.
         ctx
             An MXNet context used.
         """
@@ -233,9 +251,9 @@ class Callback:
 
 class CallbackList(Callback):
     """
-    Used to chain a list of callbacks to one Callback.
-    Boolean hook methods are logically joined with AND, meaning that if at
-    least one callback method returns False, the training is stopped.
+    Used to chain a list of callbacks to one Callback. Boolean hook methods are
+    logically joined with AND, meaning that if at least one callback method
+    returns False, the training is stopped.
 
     Attributes
     ----------
@@ -267,11 +285,11 @@ class CallbackList(Callback):
     def on_validation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         self._exec("on_validation_epoch_start", *args, **kwargs)
 
-    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec("on_train_batch_end", *args, **kwargs)
+    def on_train_batch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec("on_train_batch_end", *args, **kwargs))
 
-    def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> None:
-        self._exec("on_validation_batch_end", *args, **kwargs)
+    def on_validation_batch_end(self, *args: Any, **kwargs: Any) -> bool:
+        return all(self._exec("on_validation_batch_end", *args, **kwargs))
 
     def on_train_epoch_end(self, *args: Any, **kwargs: Any) -> bool:
         return all(self._exec("on_train_epoch_end", *args, **kwargs))
@@ -323,7 +341,8 @@ class TerminateOnNaN(Callback):
     ) -> bool:
         if math.isnan(epoch_loss):
             logging.warning(
-                f"TerminateOnNaN Callback initiated stop of training at epoch {epoch_no}."
+                "TerminateOnNaN Callback initiated stop of training at epoch"
+                f" {epoch_no}."
             )
             return False
         return True
@@ -338,3 +357,61 @@ class WarmStart(Callback):
         self, training_network: nn.HybridBlock
     ) -> None:
         copy_parameters(self.predictor.prediction_net, training_network)
+
+
+@dataclass
+class _Timer:
+    duration: float
+    _start: Optional[float] = field(init=False, default=None)
+
+    def start(self):
+        assert self._start is None
+
+        self._start = time.time()
+
+    def remaining(self) -> float:
+        assert self._start is not None
+
+        return max(self._start - time.time(), 0.0)
+
+    def is_running(self) -> bool:
+        return self.remaining() > 0
+
+
+class TrainingTimeLimit(BaseModel, Callback):
+    """Limit time spent for training.
+
+    This is useful when ensuring that training for a given model doesn't
+    exceed a budget, for example when doing AutoML.
+
+    If `stop_within_epoch` is set to true, training can be stopped after
+    each batch, otherwise it stops after the end of the epoch.
+    """
+
+    time_limit: float
+    stop_within_epoch: bool = False
+    _timer: _Timer = PrivateAttr()
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._timer = _Timer(self.time_limit)
+
+    def on_train_start(self, max_epochs: int) -> None:
+        self._timer.start()
+
+    def on_train_batch_end(self, training_network: nn.HybridBlock) -> bool:
+        if self.stop_within_epoch:
+            return self._timer.is_running()
+
+        return True
+
+    def on_epoch_end(
+        self,
+        epoch_no: int,
+        epoch_loss: float,
+        training_network: nn.HybridBlock,
+        trainer: gluon.Trainer,
+        best_epoch_info: Dict[str, Any],
+        ctx: mx.Context,
+    ) -> bool:
+        return self._timer.is_running()

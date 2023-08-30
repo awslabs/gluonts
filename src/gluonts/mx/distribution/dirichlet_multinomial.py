@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.util import make_nd_diag
 
@@ -25,17 +25,19 @@ from .distribution_output import DistributionOutput
 
 class DirichletMultinomial(Distribution):
     r"""
-    Dirichlet-Multinomial distribution, specified by the concentration vector alpha of length dim, and a number of
-    trials n_trials.
+    Dirichlet-Multinomial distribution, specified by the concentration vector
+    alpha of length dim, and a number of trials n_trials.
     https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution
 
-    The Dirichlet-Multinomial distribution is a discrete multivariate probability distribution, a sample
-    (or observation) x = (x_0,..., x_{dim-1}) must satisfy:
+    The Dirichlet-Multinomial distribution is a discrete multivariate
+    probability distribution, a sample (or observation)
+    x = (x_0,..., x_{dim-1}) must satisfy:
 
     sum_k x_k = n_trials and for all k, x_k is a non-negative integer.
 
-    Such a sample can be obtained by first drawing a vector p from a Dirichlet(alpha) distribution, then x is
-    drawn from a Multinomial(p) with n trials
+    Such a sample can be obtained by first drawing a vector p from a
+    Dirichlet(alpha) distribution, then x is drawn from a Multinomial(p) with n
+    trials.
 
     Parameters
     ----------
@@ -61,7 +63,7 @@ class DirichletMultinomial(Distribution):
         dim: int,
         n_trials: int,
         alpha: Tensor,
-        float_type: DType = np.float32,
+        float_type: Type = np.float32,
     ) -> None:
         self.dim = dim
         self.n_trials = n_trials

@@ -69,7 +69,7 @@ class Laplace(Distribution):
 
     @property
     def stddev(self) -> Tensor:
-        return 2.0 ** 0.5 * self.b
+        return 2.0**0.5 * self.b
 
     def cdf(self, x: Tensor) -> Tensor:
         y = (x - self.mu) / self.b
@@ -112,7 +112,7 @@ class LaplaceOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, b):
-        b = softplus(F, b)
+        b = F.maximum(softplus(F, b), cls.eps())
         return mu.squeeze(axis=-1), b.squeeze(axis=-1)
 
     @property

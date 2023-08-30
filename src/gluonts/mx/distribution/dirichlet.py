@@ -11,11 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.util import make_nd_diag
 
@@ -25,11 +25,11 @@ from .distribution_output import DistributionOutput
 
 class Dirichlet(Distribution):
     r"""
-    Dirichlet distribution, specified by the concentration vector alpha of length d.
-    https://en.wikipedia.org/wiki/Dirichlet_distribution
+    Dirichlet distribution, specified by the concentration vector alpha of
+    length d. https://en.wikipedia.org/wiki/Dirichlet_distribution
 
-    The Dirichlet distribution is defined on the open (d-1)-simplex, which means that
-    a sample (or observation) x = (x_0,..., x_{d-1}) must satisfy:
+    The Dirichlet distribution is defined on the open (d-1)-simplex, which
+    means that a sample (or observation) x = (x_0,..., x_{d-1}) must satisfy:
 
     sum_k x_k = 1 and for all k, x_k > 0.
 
@@ -46,7 +46,7 @@ class Dirichlet(Distribution):
     is_reparameterizable = False
 
     @validated()
-    def __init__(self, alpha: Tensor, float_type: DType = np.float32) -> None:
+    def __init__(self, alpha: Tensor, float_type: Type = np.float32) -> None:
         self.alpha = alpha
         self.float_type = float_type
 

@@ -11,12 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
+from typing import Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.mx import Tensor
 
 
@@ -43,7 +42,6 @@ def batch_diagonal(
     -------
     Tensor
         Diagonals of kernel_matrix of shape (batch_size, num_data_points, 1).
-
     """
     return F.linalg.gemm2(
         F.broadcast_mul(F.eye(num_data_points, dtype=float_type), matrix),
@@ -71,7 +69,6 @@ def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
     Tensor
         Tensor of shape (d, d) consisting of ones in the strictly lower
         triangular part, and zeros elsewhere.
-
     """
     mask = F.zeros_like(F.eye(d))
     for k in range(offset, d):
@@ -79,18 +76,17 @@ def lower_triangular_ones(F, d: int, offset: int = 0) -> Tensor:
     return mask
 
 
-# noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    float_type: DType = np.float64,
+    float_type: Type = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
     """
     This function applies the jitter method using the eigenvalue decomposition.
-    The eigenvalues are bound below by the jitter, which is proportional to the mean of the
-    diagonal elements
+    The eigenvalues are bound below by the jitter, which is proportional to the
+    mean of the diagonal elements.
 
     Parameters
     ----------
@@ -119,8 +115,9 @@ def jitter_cholesky_eig(
     U, Lambda = F.linalg.syevd(matrix)
     jitter = F.broadcast_mul(diag_mean, F.ones_like(diag)) * diag_weight
     # `K = U^TLambdaU`, where the rows of `U` are the eigenvectors of `K`.
-    # The eigendecomposition :math:`U^TLambdaU` is used instead of :math: ULambdaU^T, sine
-    # to utilize row-based computation (see Section 4, Seeger et al., 2018)
+    # The eigendecomposition :math:`U^TLambdaU` is used instead of
+    # :math: ULambdaU^T, sine to utilize row-based computation
+    # (see Section 4, Seeger et al., 2018)
     return F.linalg.potrf(
         F.linalg.gemm2(
             U,
@@ -136,21 +133,21 @@ def jitter_cholesky_eig(
     )
 
 
-# noinspection PyMethodOverriding,PyPep8Naming
 def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    float_type: DType = np.float64,
+    float_type: Type = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,
     diag_weight: float = 1e-6,
     increase_jitter: int = 10,
 ) -> Optional[Tensor]:
     """
-    This function applies the jitter method.  It iteratively tries to compute the Cholesky decomposition and
-    adds a positive tolerance to the diagonal that increases at each iteration until the matrix is positive definite
-    or the maximum number of iterations has been reached.
+    This function applies the jitter method.  It iteratively tries to compute
+    the Cholesky decomposition and adds a positive tolerance to the diagonal
+    that increases at each iteration until the matrix is positive definite or
+    the maximum number of iterations has been reached.
 
     Parameters
     ----------
@@ -161,10 +158,12 @@ def jitter_cholesky(
     float_type
         Determines whether to use single or double precision.
     max_iter_jitter
-        Maximum number of iterations for jitter to iteratively make the matrix positive definite.
+        Maximum number of iterations for jitter to iteratively make the matrix
+        positive definite.
     neg_tol
-        Parameter in the jitter methods to eliminate eliminate matrices with diagonal elements smaller than this
-        when checking if a matrix is positive definite.
+        Parameter in the jitter methods to eliminate eliminate matrices with
+        diagonal elements smaller than this when checking if a matrix is
+        positive definite.
     diag_weight
             Multiple of mean of diagonal entries to initialize the jitter.
     increase_jitter
@@ -172,9 +171,10 @@ def jitter_cholesky(
     Returns
     -------
     Optional[Tensor]
-        The method either fails to make the matrix positive definite within the maximum number of iterations
-        and outputs an error or succeeds and returns the lower triangular Cholesky factor `L`
-        of shape (batch_size, num_data_points, num_data_points)
+        The method either fails to make the matrix positive definite within the
+        maximum number of iterations and outputs an error or succeeds and
+        returns the lower triangular Cholesky factor `L` of shape
+        (batch_size, num_data_points, num_data_points)
     """
     num_iter = 0
     diag = batch_diagonal(
@@ -184,8 +184,10 @@ def jitter_cholesky(
         axis=2
     )  # shape (batch_size, 1, 1)
     jitter = F.zeros_like(diag)  # shape (batch_size, num_data_points, 1)
-    # Ensure that diagonal entries are numerically non-negative, as defined by neg_tol
-    # TODO: Add support for symbolic case: Cannot use < operator with symbolic variables
+    # Ensure that diagonal entries are numerically non-negative, as defined by
+    # neg_to
+    # TODO: Add support for symbolic case: Cannot use < operator with symbolic
+    # variables
     if F.sum(diag <= neg_tol) > 0:
         raise mx.base.MXNetError(
             " Matrix is not positive definite: negative diagonal elements"
@@ -201,10 +203,12 @@ def jitter_cholesky(
                     ),
                 )
             )
-            # gpu will not throw error but will store nans. If nan, L.sum() = nan and
-            # L.nansum() computes the sum treating nans as zeros so the error tolerance can be large.
-            # for axis = Null, nansum() and sum() will sum over all elements and return scalar array with shape (1,)
-            # TODO: Add support for symbolic case: Cannot use <= operator with symbolic variables
+            # gpu will not throw error but will store nans. If nan, L.sum() =
+            # nan and L.nansum() computes the sum treating nans as zeros so
+            # the error tolerance can be large. for axis = Null, nansum() and
+            # sum() will sum over all elements and return scalar array with
+            # shape (1,) TODO: Add support for symbolic case: Cannot use <=
+            # operator with symbolic variables
             assert F.abs(L.nansum() - L.sum()) <= 1e-1
             return L
         except Exception:  # TODO: this looks weird
@@ -219,6 +223,7 @@ def jitter_cholesky(
         finally:
             num_iter += 1
     raise mx.base.MXNetError(
-        f" Matrix is not positive definite after the maximum number of iterations = {max_iter_jitter} "
-        f"with a maximum jitter = {F.max(jitter)}"
+        " Matrix is not positive definite after the maximum number of"
+        f" iterations = {max_iter_jitter} with a maximum jitter ="
+        f" {F.max(jitter)}"
     )

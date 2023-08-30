@@ -48,7 +48,6 @@ class MLP(nn.HybridBlock):
                     nn.Dense(layer_dim, flatten=flatten, activation=activation)
                 )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor) -> Tensor:
         """
         Parameters

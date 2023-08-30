@@ -16,6 +16,6 @@ from gluonts.exceptions import GluonTSException
 
 class ForecasterNotFound(GluonTSException):
     """
-    An exception indicating that a forecaster identified by the given
-    name cannot be found in the current environment.
+    An exception indicating that a forecaster identified by the given name
+    cannot be found in the current environment.
     """

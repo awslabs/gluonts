@@ -7,23 +7,28 @@ import textwrap
 from pathlib import Path
 from subprocess import CalledProcessError, check_output
 
+ROOT = Path(__file__).parents[2]
+SRC = ROOT / "src"
+
 
 def type_check() -> int:
-    mypy_opts = ['--follow-imports=silent', '--ignore-missing-imports']
-    mypy_args = [
-        str(p.parent.resolve())
-        for p in Path(__file__).parents[2].glob('**/.typesafe')
+    mypy_opts = [
+        "--allow-redefinition",
+        "--follow-imports=silent",
+        "--ignore-missing-imports",
     ]
 
+    mypy_args = [str(p.parent.resolve()) for p in SRC.glob("**/.typesafe")]
+
     try:
-        check_output(['mypy'] + mypy_opts + mypy_args)
+        check_output(["mypy"] + mypy_opts + mypy_args)
         return 0
     except CalledProcessError as e:
         print(e.output.decode().strip())
 
         print(
             textwrap.dedent(
-                f'''
+                f"""
                 Mypy command
 
                     mypy {" ".join(mypy_opts + mypy_args)}
@@ -34,7 +39,7 @@ def type_check() -> int:
                     python setup.py type_check
 
                 in order to validate your fixes.
-                '''
+                """
             ).lstrip(),
             file=sys.stderr,
         )
@@ -43,30 +48,20 @@ def type_check() -> int:
 
 
 def style_check() -> int:
-    git_root = (
-        check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
-    )
-    git_files = (
-        check_output(['git', 'diff', '--name-only', '--cached'])
-        .decode()
-        .strip()
-        .split()
-    )
-
     black_opts = []
     black_args = [
-        os.path.join(git_root, git_file)
-        for git_file in git_files
-        if git_file.endswith('.py') and os.path.isfile(git_file)
+        str(ROOT / folder)
+        for folder in ["src", "test", "examples"]
+        if (ROOT / folder).is_dir()
     ]
 
     try:
-        check_output(['black'] + ['--check'] + black_opts + black_args)
+        check_output(["black"] + ["--check"] + black_opts + black_args)
         return 0
     except CalledProcessError as e:
         print(
             textwrap.dedent(
-                f'''
+                f"""
                 Black command
 
                     black {" ".join(['--check'] + black_opts + black_args)}
@@ -80,7 +75,7 @@ def style_check() -> int:
                     python setup.py style_check
 
                 in order to validate your fixes.
-                '''
+                """
             ).lstrip(),
             file=sys.stderr,
         )
@@ -90,10 +85,10 @@ def style_check() -> int:
 
 def license_check() -> int:
     git_root = (
-        check_output(['git', 'rev-parse', '--show-toplevel']).decode().strip()
+        check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
     )
     git_files = (
-        check_output(['git', 'diff', '--name-only', '--cached'])
+        check_output(["git", "diff", "--name-only", "--cached"])
         .decode()
         .strip()
         .split()
@@ -102,16 +97,16 @@ def license_check() -> int:
     py_files = [
         os.path.join(git_root, git_file)
         for git_file in git_files
-        if git_file.endswith('.py') and os.path.isfile(git_file)
+        if git_file.endswith(".py") and os.path.isfile(git_file)
     ]
 
     try:
-        check_output(['.devtools/license'] + ['check'] + py_files)
+        check_output([".devtools/license"] + ["check"] + py_files)
         return 0
     except CalledProcessError as e:
         print(
             textwrap.dedent(
-                f'''
+                f"""
                 License check command
 
                     .devtools/license {" ".join(['check'] + py_files)}
@@ -125,12 +120,13 @@ def license_check() -> int:
                     .devtools/license check src test
 
                 in order to validate your fixes.
-                '''
+                """
             ).lstrip(),
             file=sys.stderr,
         )
 
         return e.returncode
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(type_check() | style_check())

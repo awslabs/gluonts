@@ -24,7 +24,6 @@ def get_predictions(
     mp = MovingAveragePredictor(
         prediction_length=prediction_length,
         context_length=context_length,
-        freq=freq,
     )
 
     ds = ListDataset([{"target": target, "start": start}], freq=freq)
@@ -71,7 +70,6 @@ def get_predictions(
     ],
 )
 def testing(data, expected_output, prediction_length, context_length):
-
     predictions = get_predictions(
         data,
         prediction_length=prediction_length,

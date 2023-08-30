@@ -34,13 +34,16 @@ logger = logging.getLogger(__name__)
 class GluonTSPredictor(RealTimePredictor):
     """
     A RealTimePredictor for inference against GluonTS Endpoints.
-    This is able to serialize and deserialize datasets in the gluonts data format.
+
+    This is able to serialize and deserialize datasets in the gluonts data
+    format.
     """
 
     def __init__(
         self, endpoint_name: str, sagemaker_session: session.Session = None
     ):
-        """Initialize an ``GluonTSPredictor``.
+        """
+        Initialize an ``GluonTSPredictor``.
 
         Parameters
         ----------
@@ -55,7 +58,7 @@ class GluonTSPredictor(RealTimePredictor):
         # TODO: implement custom data serializer and deserializer: convert between gluonts dataset and bytes
         # Use the default functions from MXNet (they handle more than we need
         # (e.g: np.ndarrays), but that should be fine)
-        super(GluonTSPredictor, self).__init__(
+        super().__init__(
             endpoint_name,
             sagemaker_session,
             json_serializer,  # change this
@@ -64,7 +67,10 @@ class GluonTSPredictor(RealTimePredictor):
 
 
 class GluonTSModel(FrameworkModel):
-    """An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker ``Endpoint``."""
+    """
+    An GluonTS SageMaker ``Model`` that can be deployed to a SageMaker
+    ``Endpoint``.
+    """
 
     __framework_name__ = FRAMEWORK_NAME
     _LOWEST_MMS_VERSION = LOWEST_MMS_VERSION
@@ -112,7 +118,7 @@ class GluonTSModel(FrameworkModel):
             Keyword arguments passed to the ``FrameworkModel`` initializer.
         """
 
-        super(GluonTSModel, self).__init__(
+        super().__init__(
             model_data,
             image,
             role,
@@ -128,8 +134,8 @@ class GluonTSModel(FrameworkModel):
         self, instance_type, accelerator_type=None
     ) -> Dict[str, str]:
         """
-        Return a container definition with framework configuration set in
-        model environment variables.
+        Return a container definition with framework configuration set in model
+        environment variables.
 
         Parameters
         ----------

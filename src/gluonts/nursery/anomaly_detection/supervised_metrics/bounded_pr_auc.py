@@ -18,7 +18,8 @@ from sklearn.metrics import auc
 def bounded_pr_auc(
     precisions: np.array, recalls: np.array, lower_bound: float = 0
 ) -> float:
-    """Bounded PR AUC --> AUC when recall > lower_bound
+    """
+    Bounded PR AUC --> AUC when recall > lower_bound.
 
     Parameters
     ----------

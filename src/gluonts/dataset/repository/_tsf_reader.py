@@ -13,7 +13,6 @@
 
 from datetime import datetime
 from distutils.util import strtobool
-from multiprocessing import cpu_count
 from types import SimpleNamespace
 from typing import Dict
 
@@ -22,7 +21,6 @@ from toolz import compose_left
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
-from gluonts.nursery import glide
 
 parse_bool = compose_left(strtobool, bool)
 
@@ -106,14 +104,15 @@ class TSFReader:
 
             data_tag_found = self._read_header(lines)
             assert data_tag_found, "Missing @data tag."
-            assert (
-                self.meta.columns
-            ), "Missing attribute section. Attribute section must come before data."
+            assert self.meta.columns, (
+                "Missing attribute section. Attribute section must come before"
+                " data."
+            )
 
             assert self.target_name not in self.meta.columns
             self.meta.columns[self.target_name] = None
 
-            data = self._read_data_section(lines)
+            data = list(map(self._read_data, lines))
 
             return self.meta, data
 
@@ -127,18 +126,8 @@ class TSFReader:
 
         return False
 
-    def _read_data_section(self, lines):
-        lines = list(lines)
-
-        lines = glide.imap_unordered(
-            self._read_data, lines, num_workers=cpu_count(), batch_size=8092
-        )
-
-        return list(lines)
-
     def _read_data(self, line):
         parts = line.split(":")
-
         assert len(parts) == len(
             self.meta.columns
         ), "Missing attributes/values in series."
@@ -158,9 +147,11 @@ class TSFReader:
         s = s.replace("?", '"nan"')
 
         values = json.loads(f"[{s}]")
-        assert (
-            values
-        ), "A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series. Missing values should be indicated with ? symbol"
+        assert values, (
+            "A given series should contains a set of comma separated numeric"
+            " values. At least one numeric value should be there in a series."
+            " Missing values should be indicated with ? symbol"
+        )
 
         return np.array(values, dtype=float)
 

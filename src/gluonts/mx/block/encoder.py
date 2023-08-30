@@ -24,12 +24,13 @@ from gluonts.mx.block.rnn import RNN
 
 class Seq2SeqEncoder(nn.HybridBlock):
     """
-    Abstract class for the encoder. An encoder takes a `target` sequence with
-    corresponding covariates and maps it into a static latent and
-    a dynamic latent code with the same length as the `target` sequence.
+    Abstract class for the encoder.
+
+    An encoder takes a `target` sequence with corresponding covariates and maps
+    it into a static latent and a dynamic latent code with the same length as
+    the `target` sequence.
     """
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -114,8 +115,9 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
     Defines a stack of dilated convolutions as the encoder.
 
     See the following paper for details:
-    1. Van Den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O., Graves, A., Kalchbrenner,
-    N., Senior, A.W. and Kavukcuoglu, K., 2016, September. WaveNet: A generative model for raw audio. In SSW (p. 125).
+    1. Van Den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O.,
+    Graves, A., Kalchbrenner, N., Senior, A.W. and Kavukcuoglu, K., 2016,
+    September. WaveNet: A generative model for raw audio. In SSW (p. 125).
 
     Parameters
     ----------
@@ -201,7 +203,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
             shape (batch_size, channel_seqs + (1) if use_residual)
         Tensor
             dynamic code,
-            shape (batch_size, sequence_length, channel_seqs + (1) if use_residual)
+            shape (batch_size, sequence_length, channel_seqs + (1) if
+            use_residual)
         """
 
         if self.use_dynamic_feat and self.use_static_feat:
@@ -235,7 +238,8 @@ class HierarchicalCausalConv1DEncoder(Seq2SeqEncoder):
 
 class RNNEncoder(Seq2SeqEncoder):
     """
-    Defines RNN encoder that uses covariates and target as input to the RNN if desired.
+    Defines RNN encoder that uses covariates and target as input to the RNN if
+    desired.
 
     Parameters
     ----------

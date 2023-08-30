@@ -163,7 +163,7 @@ class NPTSPredictor(RepresentablePredictor):
         num_default_time_features: int = 1,
         feature_scale: float = 1000.0,
     ) -> None:
-        super().__init__(freq=freq, prediction_length=prediction_length)
+        super().__init__(prediction_length=prediction_length)
         # We limit the context length to some maximum value instead of
         # looking at the whole history which might be too large.
         self.context_length = (
@@ -174,6 +174,7 @@ class NPTSPredictor(RepresentablePredictor):
         self.use_seasonal_model = use_seasonal_model
         self.use_default_time_features = use_default_time_features
         self.feature_scale = feature_scale
+        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
@@ -194,9 +195,9 @@ class NPTSPredictor(RepresentablePredictor):
         self, dataset: Dataset, num_samples: int = 100, **kwargs
     ) -> Iterator[SampleForecast]:
         for data in dataset:
-            start = pd.Timestamp(data["start"])
+            start = data["start"]
             target = np.asarray(data["target"], np.float32)
-            index = pd.date_range(
+            index = pd.period_range(
                 start=start, freq=self.freq, periods=len(target)
             )
             item_id = data.get("item_id", None)
@@ -205,6 +206,8 @@ class NPTSPredictor(RepresentablePredictor):
             # depending on which ever is minimum
             train_length = min(len(target), self.context_length)
             ts = pd.Series(index=index, data=target)[-train_length:]
+
+            custom_features: Optional[np.ndarray]
             if "feat_dynamic_real" in data.keys():
                 custom_features = np.array(
                     [
@@ -225,7 +228,7 @@ class NPTSPredictor(RepresentablePredictor):
         self,
         ts: pd.Series,
         num_samples: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
         item_id: Optional[Any] = None,
     ) -> SampleForecast:
         """
@@ -254,10 +257,10 @@ class NPTSPredictor(RepresentablePredictor):
         if np.all(np.isnan(ts.values[-self.context_length :])):
             raise GluonTSDataError(
                 f"The last {self.context_length} positions of the target time "
-                f"series are all NaN. Please increase the `context_length` "
-                f"parameter of your NPTS model so the last "
+                "series are all NaN. Please increase the `context_length` "
+                "parameter of your NPTS model so the last "
                 f"{self.context_length} positions of each target contain at "
-                f"least one non-NaN value."
+                "least one non-NaN value."
             )
 
         # Get the features for both training and prediction ranges
@@ -288,21 +291,21 @@ class NPTSPredictor(RepresentablePredictor):
 
     def _get_features(
         self,
-        train_index: pd.DatetimeIndex,
+        train_index: pd.PeriodIndex,
         prediction_length: int,
-        custom_features: np.ndarray = None,
+        custom_features: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Internal method for computing default, (optional) seasonal features
-        for the training and prediction ranges given time index for the
-        training range and the prediction length.
+        Internal method for computing default, (optional) seasonal features for
+        the training and prediction ranges given time index for the training
+        range and the prediction length.
 
         Appends `custom_features` if provided.
 
         Parameters
         ----------
         train_index
-            Pandas DatetimeIndex
+            Pandas PeriodIndex
         prediction_length
             prediction length
         custom_features
@@ -315,7 +318,7 @@ class NPTSPredictor(RepresentablePredictor):
         """
 
         train_length = len(train_index)
-        full_time_index = pd.date_range(
+        full_time_index = pd.period_range(
             train_index.min(),
             periods=train_length + prediction_length,
             freq=train_index.freq,
@@ -348,8 +351,8 @@ class NPTSPredictor(RepresentablePredictor):
                 )
 
                 assert custom_features.shape[1] == total_length, (
-                    f"For a seasonal model, feat_dynamic_real must be defined "
-                    f"for both training and prediction ranges. They are only "
+                    "For a seasonal model, feat_dynamic_real must be defined "
+                    "for both training and prediction ranges. They are only "
                     f"provided for {custom_features.shape[1]} time steps "
                     f"instead of {train_length + prediction_length} steps."
                 )

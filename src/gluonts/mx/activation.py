@@ -83,7 +83,7 @@ def get_activation_deriv(act: nn.HybridBlock) -> Callable:
     if isinstance(act, LipSwish):
         return partial(deriv_lipswish, beta=act.params.get("beta").data())
     raise NotImplementedError(
-        f'No derivative function for activation "' f'{act.__class__.__name__}"'
+        f'No derivative function for activation "{act.__class__.__name__}"'
     )
 
 
@@ -94,7 +94,8 @@ def deriv_tanh(F, x: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
 
     x
         Input tensor
@@ -103,7 +104,6 @@ def deriv_tanh(F, x: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     return 1 - F.tanh(x) ** 2
 
@@ -115,7 +115,8 @@ def deriv_softrelu(F, x: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
 
@@ -123,7 +124,6 @@ def deriv_softrelu(F, x: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     e = mx.nd.exp(x)
     return e / (1 + e)
@@ -136,7 +136,8 @@ def deriv_elu(F, x: Tensor, alpha: float = 1.0) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     alpha
@@ -146,7 +147,6 @@ def deriv_elu(F, x: Tensor, alpha: float = 1.0) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     m = x > 0
     return m + (1 - m) * (F.LeakyReLU(x, act_type="elu", slope=alpha) + alpha)
@@ -159,7 +159,8 @@ def deriv_swish(F, x: Tensor, beta: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     beta
@@ -169,7 +170,6 @@ def deriv_swish(F, x: Tensor, beta: Tensor) -> Tensor:
     -------
     Tensor
         Derivative tensor
-
     """
     f = x * F.sigmoid(beta * x, name="fwd")
     return beta * f + F.sigmoid(beta * x) * (1 - beta * f)
@@ -181,7 +181,8 @@ def deriv_lipswish(F, x: Tensor, beta: Tensor) -> Tensor:
     Parameters
     ----------
     F
-        A module that can either refer to the Symbol API or the NDArray API in MXNet.
+        A module that can either refer to the Symbol API or the NDArray API in
+        MXNet.
     x
         Input tensor
     beta
@@ -197,7 +198,8 @@ def deriv_lipswish(F, x: Tensor, beta: Tensor) -> Tensor:
 
 class LipSwish(nn.HybridBlock):
     """
-    Implemented LipSwish activation, i.e. LipSwish(z) := Swish(z)/ 1.1 with a learnable parameter beta.
+    Implemented LipSwish activation, i.e. LipSwish(z) := Swish(z)/ 1.1 with a
+    learnable parameter beta.
     """
 
     @validated()
@@ -212,7 +214,6 @@ class LipSwish(nn.HybridBlock):
                 "beta", shape=(1,), init=beta_initializer
             )
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(self, F, x: Tensor, beta: Tensor) -> Tensor:
         """
 

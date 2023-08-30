@@ -11,59 +11,21 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import json
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-
-import numpy as np
-
-
-def to_dict(
-    target_values: np.ndarray,
-    start: str,
-    cat: Optional[List[int]] = None,
-    item_id: Optional[Any] = None,
-):
-    def serialize(x):
-        if np.isnan(x):
-            return "NaN"
-        else:
-            # return x
-            return float("{0:.6f}".format(float(x)))
-
-    res = {
-        "start": str(start),
-        "target": [serialize(x) for x in target_values],
-    }
-
-    if cat is not None:
-        res["feat_static_cat"] = cat
-
-    if item_id is not None:
-        res["item_id"] = item_id
-
-    return res
-
-
-def save_to_file(path: Path, data: List[Dict]):
-    print(f"saving time-series into {path}")
-    path_dir = os.path.dirname(path)
-    os.makedirs(path_dir, exist_ok=True)
-    with open(path, "wb") as fp:
-        for d in data:
-            fp.write(json.dumps(d).encode("utf-8"))
-            fp.write("\n".encode("utf-8"))
+from typing import List, Union
 
 
 def metadata(
     cardinality: Union[int, List[int]], freq: str, prediction_length: int
 ):
+    if not isinstance(cardinality, list):
+        cardinality = [cardinality]
+
     return {
         "freq": freq,
         "prediction_length": prediction_length,
         "feat_static_cat": [
-            {"name": "feat_static_cat", "cardinality": str(cardinality)}
+            {"name": f"feat_static_cat_{i}", "cardinality": str(card)}
+            for i, card in enumerate(cardinality)
         ],
     }
 

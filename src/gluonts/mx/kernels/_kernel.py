@@ -15,12 +15,11 @@ from gluonts.mx import Tensor
 
 
 class Kernel:
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor):
-        # raise error in the base Kernel class, implement in the concrete subclasses
+        # raise error in the base Kernel class, implement in the concrete
+        # subclasses
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def _compute_square_dist(self, F, x1: Tensor, x2: Tensor) -> None:
         r"""
         Parameters
@@ -40,7 +39,7 @@ class Kernel:
             :math: `\|\mathbf{x_1}-\mathbf{x_2}\|_2^2 = (\mathbf{x_1}-\mathbf{x_2})^T(\mathbf{x_1}-\mathbf{x_2})
                                                         = \|\mathbf{x_1}\|_2^2 - 2\mathbf{x_1}^T\mathbf{x_2}
                                                         + \|\mathbf{x_2}\|_2^2`.
-        """
+        """  # noqa: E501
         feature_axis = 2
         # Column vector: Add to math:`x_i^Tx_i` to every column in row i
         x1_norm_square = (

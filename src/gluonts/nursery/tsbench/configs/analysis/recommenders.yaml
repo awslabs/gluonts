@@ -1,0 +1,20 @@
+greedy:
+  - key: [objectives, enforce_single_objective]
+    values:
+      - ["ncrps_mean,latency_mean", False]
+      - ["ncrps_mean,latency_mean", True]
+
+optimal:
+  - key: objectives
+    values:
+      - ncrps_mean,latency_mean
+
+pareto:
+  - key: __repeat__
+    values: [5]
+  - key: [surrogate.name, objectives, focus_objective]
+    values:
+      - ["mlp", "ncrps_mean,latency_mean", null]
+      - ["mlp", "ncrps_mean,latency_mean", "ncrps_mean"]
+      - ["xgboost", "ncrps_mean,latency_mean", null]
+      - ["random", "ncrps_mean", null]

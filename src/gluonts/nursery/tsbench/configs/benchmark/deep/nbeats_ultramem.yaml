@@ -1,0 +1,11 @@
+seeds: [42, 137]
+datasets:
+  - london_smart_meters
+models:
+  nbeats:
+    - key: __instance_type__
+      values: [ml.m5.4xlarge]
+    - key: context_length_multiple
+      values: [1, 2, 4, 8]
+    - key: [num_stacks, num_blocks]
+      values: [[4, 5], [30, 1], [30, 2]]

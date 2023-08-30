@@ -32,7 +32,8 @@ def log_abs_det(A: Tensor) -> Tensor:
     Parameters
     ----------
     A
-        Tensor matrix from which to compute the log absolute value of its determinant
+        Tensor matrix from which to compute the log absolute value of its
+        determinant
 
     Returns
     -------
@@ -47,8 +48,7 @@ def log_abs_det(A: Tensor) -> Tensor:
 
 class InvertibleResnetHybridBlock(BijectionHybridBlock):
     """
-    Based on [BJC19]_,
-    apart from f and f_inv that are swapped.
+    Based on [BJC19]_, apart from f and f_inv that are swapped.
     """
 
     @validated()
@@ -102,7 +102,7 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
 
     def f(self, x: Tensor) -> Tensor:
         """
-        Forward transformation of iResnet
+        Forward transformation of iResnet.
 
         Parameters
         ----------
@@ -113,7 +113,6 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             transformed tensor `\text{iResnet}(x)`
-
         """
         if x is self._cached_x:
             return self._cached_y
@@ -137,7 +136,6 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         -------
         Tensor
             transformed tensor `\text{iResnet}^{-1}(y)`
-
         """
         if y is self._cached_y:
             return self._cached_x
@@ -149,12 +147,14 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         """
-        Logarithm of the absolute value of the Jacobian determinant corresponding to the iResnet Transform
+        Logarithm of the absolute value of the Jacobian determinant
+        corresponding to the iResnet Transform.
 
         Parameters
         ----------
         x
-            input of the forward transformation or output of the inverse transform
+            input of the forward transformation or output of the inverse
+            transform
         y
             output of the forward transform or input of the inverse transform
 
@@ -167,8 +167,8 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
             assert x is not None
             ladj = mx.nd.zeros(x.shape[0])
         else:
-            # we take the negative value since we use the forward pass of mlp to
-            # compute the inverse, and we want ladj of forward, which is
+            # we take the negative value since we use the forward pass of mlp
+            # to compute the inverse, and we want ladj of forward, which is
             # opposite of ladj of reverse
             jac_block = self._block.jacobian(y)
             batch_shape, (output_dim, input_dim) = (

@@ -26,14 +26,15 @@ from gluonts.mx import Tensor
 
 class VariationalZoneoutCell(ModifierCell):
     """
-    Applies Variational Zoneout on base cell.
-    The implementation follows [GG16]_.
-    Variational zoneout uses the same mask across time-steps. It can be applied to RNN
-    outputs, and states. The masks for them are not shared.
+    Applies Variational Zoneout on base cell. The implementation follows.
 
-    The mask is initialized when stepping forward for the first time and will remain
-    the same until .reset() is called. Thus, if using the cell and stepping manually without calling
-    .unroll(), the .reset() should be called after each sequence.
+    [GG16]_. Variational zoneout uses the same mask across time-steps. It can
+    be applied to RNN outputs, and states. The masks for them are not shared.
+
+    The mask is initialized when stepping forward for the first time and
+    willremain the same until .reset() is called. Thus, if using the cell and
+    stepping manually without calling .unroll(), the .reset() should be called
+    after each sequence.
 
     Parameters
     ----------
@@ -44,7 +45,6 @@ class VariationalZoneoutCell(ModifierCell):
     zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
-
     """
 
     @validated()
@@ -55,17 +55,18 @@ class VariationalZoneoutCell(ModifierCell):
         zoneout_states: float = 0.0,
     ):
         assert not isinstance(base_cell, BidirectionalCell), (
-            "BidirectionalCell doesn't support zoneout since it doesn't support step. "
-            "Please add VariationalZoneoutCell to the cells underneath instead."
+            "BidirectionalCell doesn't support zoneout since it doesn't"
+            " support step. Please add VariationalZoneoutCell to the cells"
+            " underneath instead."
         )
         assert (
             not isinstance(base_cell, SequentialRNNCell)
             or not base_cell._bidirectional
         ), (
-            "Bidirectional SequentialRNNCell doesn't support zoneout. "
-            "Please add VariationalZoneoutCell to the cells underneath instead."
+            "Bidirectional SequentialRNNCell doesn't support zoneout. Please"
+            " add VariationalZoneoutCell to the cells underneath instead."
         )
-        super(VariationalZoneoutCell, self).__init__(base_cell)
+        super().__init__(base_cell)
         self.zoneout_outputs = zoneout_outputs
         self.zoneout_states = zoneout_states
         self._prev_output = None
@@ -75,14 +76,17 @@ class VariationalZoneoutCell(ModifierCell):
         self.zoneout_outputs_mask = None
 
     def __repr__(self):
-        s = "{name}(p_out={zoneout_outputs}, p_state={zoneout_states}, {base_cell})"
+        s = (
+            "{name}(p_out={zoneout_outputs}, p_state={zoneout_states},"
+            " {base_cell})"
+        )
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
     def _alias(self):
         return "variationalzoneout"
 
     def reset(self):
-        super(VariationalZoneoutCell, self).reset()
+        super().reset()
         self._prev_output = None
 
         self.zoneout_states_mask = None
@@ -144,10 +148,11 @@ class VariationalZoneoutCell(ModifierCell):
 
 class RNNZoneoutCell(ModifierCell):
     """
-    Applies Zoneout on base cell.
-    The implementation follows [KMK16]_.
-    Compared to mx.gluon.rnn.ZoneoutCell, this implementation uses the same mask for output and states[0],
-    since for RNN cells, states[0] is the same as output, except for ResidualCell, where states[0] = input + ouptut
+    Applies Zoneout on base cell. The implementation follows [KMK16]_.
+
+    Compared to mx.gluon.rnn.ZoneoutCell, this implementation uses the same
+    mask for output and states[0], since for RNN cells, states[0] is the same
+    as output, except for ResidualCell, where states[0] = input + ouptut
 
     Parameters
     ----------
@@ -158,7 +163,6 @@ class RNNZoneoutCell(ModifierCell):
     zoneout_states
         The dropout rate for state inputs on the first state channel.
         Won't apply dropout if it equals 0.
-
     """
 
     @validated()
@@ -169,8 +173,9 @@ class RNNZoneoutCell(ModifierCell):
         zoneout_states: float = 0.0,
     ):
         assert not isinstance(base_cell, BidirectionalCell), (
-            "BidirectionalCell doesn't support zoneout since it doesn't support step. "
-            "Please add RNNZoneoutCell to the cells underneath instead."
+            "BidirectionalCell doesn't support zoneout since it doesn't"
+            " support step. Please add RNNZoneoutCell to the cells underneath"
+            " instead."
         )
         assert (
             not isinstance(base_cell, SequentialRNNCell)
@@ -179,20 +184,23 @@ class RNNZoneoutCell(ModifierCell):
             "Bidirectional SequentialRNNCell doesn't support zoneout. "
             "Please add RNNZoneoutCell to the cells underneath instead."
         )
-        super(RNNZoneoutCell, self).__init__(base_cell)
+        super().__init__(base_cell)
         self.zoneout_outputs = zoneout_outputs
         self.zoneout_states = zoneout_states
         self._prev_output = None
 
     def __repr__(self):
-        s = "{name}(p_out={zoneout_outputs}, p_state={zoneout_states}, {base_cell})"
+        s = (
+            "{name}(p_out={zoneout_outputs}, p_state={zoneout_states},"
+            " {base_cell})"
+        )
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
     def _alias(self):
         return "rnnzoneout"
 
     def reset(self):
-        super(RNNZoneoutCell, self).reset()
+        super().reset()
         self._prev_output = None
 
     def hybrid_forward(
@@ -219,8 +227,8 @@ class RNNZoneoutCell(ModifierCell):
             else next_output
         )
 
-        # only for RNN, the first element of states is output
-        # use the same mask as output, instead of simply copy output to the first element
+        # only for RNN, the first element of states is output. Use the same
+        # mask as output, instead of simply copy output to the first element
         # in case that the base cell is ResidualCell
         new_states = [
             F.where(output_mask, next_states[0], states[0])

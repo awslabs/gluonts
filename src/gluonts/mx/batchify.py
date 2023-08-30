@@ -12,23 +12,39 @@
 # permissions and limitations under the License.
 
 import functools
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType
 from gluonts.dataset.common import DataBatch
-from gluonts.support.util import pad_to_size
+
+
+def pad_to_size(
+    x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
+):
+    """
+    Pads `xs` with 0 on the right (default) on the specified axis, which is the
+    first axis by default.
+    """
+
+    pad_length = size - x.shape[axis]
+    if pad_length <= 0:
+        return x
+
+    pad_width = [(0, 0)] * x.ndim
+    right_pad = (0, pad_length)
+    pad_width[axis] = right_pad if is_right_pad else right_pad[::-1]
+    return np.pad(x, mode="constant", pad_width=pad_width)
 
 
 def _is_stackable(arrays: List, axis: int = 0) -> bool:
     """
-    Check if elements are scalars, have too few dimensions, or their
-    target axes have equal length; i.e. they are directly `stack` able.
+    Check if elements are scalars, have too few dimensions, or their target
+    axes have equal length; i.e. they are directly `stack` able.
     """
     if isinstance(arrays[0], np.ndarray):
-        s = set(arr.shape[axis] for arr in arrays)
+        s = {arr.shape[axis] for arr in arrays}
         return len(s) <= 1 and arrays[0].shape[axis] != 0
     return True
 
@@ -51,7 +67,7 @@ def _pad_arrays(
 def stack(
     data,
     ctx: Optional[mx.context.Context] = None,
-    dtype: Optional[DType] = np.float32,
+    dtype: Optional[Type] = np.float32,
     variable_length: bool = False,
     is_right_pad: bool = True,
 ):
@@ -59,19 +75,28 @@ def stack(
         data = _pad_arrays(data, axis=0, is_right_pad=is_right_pad)
     if isinstance(data[0], mx.nd.NDArray):
         # TODO: think about using shared context NDArrays
-        #  https://github.com/awslabs/gluon-ts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
+        #  https://github.com/awslabs/gluonts/blob/42bee73409f801e7bca73245ca21cd877891437c/src/gluonts/dataset/parallelized_loader.py#L157
         return mx.nd.stack(*data)
     if isinstance(data[0], np.ndarray):
         data = mx.nd.array(data, dtype=dtype, ctx=ctx)
     elif isinstance(data[0], (list, tuple)):
-        return list(stack(t, ctx=ctx) for t in zip(*data))
+        return list(
+            stack(
+                t,
+                ctx=ctx,
+                dtype=dtype,
+                variable_length=variable_length,
+                is_right_pad=is_right_pad,
+            )
+            for t in zip(*data)
+        )
     return data
 
 
 def batchify(
     data: List[dict],
     ctx: Optional[mx.context.Context] = None,
-    dtype: Optional[DType] = np.float32,
+    dtype: Optional[Type] = np.float32,
     variable_length: bool = False,
     is_right_pad: bool = True,
 ) -> DataBatch:
@@ -88,10 +113,13 @@ def batchify(
 
 
 def as_in_context(batch: dict, ctx: mx.Context = None) -> DataBatch:
-    """Move data into new context, should only be in main process."""
+    """
+    Move data into new context, should only be in main process.
+    """
     batch = {
         k: v.as_in_context(ctx) if isinstance(v, mx.nd.NDArray)
-        # Workaround due to MXNet not being able to handle NDArrays with 0 in shape properly:
+        # Workaround due to MXNet not being able to handle NDArrays with 0 in
+        # shape properly:
         else (
             stack(v, ctx=ctx, dtype=v.dtype, variable_length=False)
             if isinstance(v[0], np.ndarray) and 0 in v[0].shape

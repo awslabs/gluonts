@@ -11,20 +11,105 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional, Tuple
+from typing import Callable, Iterator, List, Optional, Tuple, Type
 
 import numpy as np
+from toolz import valmap
 
-from gluonts.core.component import DType, validated, tensor_to_numpy
+from gluonts.core.component import validated, tensor_to_numpy
 from gluonts.dataset.common import DataEntry
 from gluonts.exceptions import assert_data_error
-from gluonts.support.util import erf, erfinv
 
 from ._base import (
     FlatMapTransformation,
     MapTransformation,
     SimpleTransformation,
 )
+
+
+def erf(x: np.ndarray) -> np.ndarray:
+    # Using numerical recipes approximation for erf function
+    # accurate to 1E-7
+
+    ones = np.ones_like(x)
+    zeros = np.zeros_like(x)
+
+    t = ones / (ones + 0.5 * np.abs(x))
+
+    coefficients = [
+        1.00002368,
+        0.37409196,
+        0.09678418,
+        -0.18628806,
+        0.27886807,
+        -1.13520398,
+        1.48851587,
+        -0.82215223,
+        0.17087277,
+    ]
+
+    inner = zeros
+    for c in coefficients[::-1]:
+        inner = t * (c + inner)
+
+    res = ones - t * np.exp(inner - 1.26551223 - np.square(x))
+    return np.where(x >= zeros, res, -1.0 * res)
+
+
+def erfinv(x: np.ndarray) -> np.ndarray:
+    zeros = np.zeros_like(x)
+
+    w = -np.log((1.0 - x) * (1.0 + x))
+    mask_lesser = w < (zeros + 5.0)
+
+    w = np.where(mask_lesser, w - 2.5, np.sqrt(w) - 3.0)
+
+    coefficients_lesser = [
+        2.81022636e-08,
+        3.43273939e-07,
+        -3.5233877e-06,
+        -4.39150654e-06,
+        0.00021858087,
+        -0.00125372503,
+        -0.00417768164,
+        0.246640727,
+        1.50140941,
+    ]
+
+    coefficients_greater_equal = [
+        -0.000200214257,
+        0.000100950558,
+        0.00134934322,
+        -0.00367342844,
+        0.00573950773,
+        -0.0076224613,
+        0.00943887047,
+        1.00167406,
+        2.83297682,
+    ]
+
+    p = np.where(
+        mask_lesser,
+        coefficients_lesser[0] + zeros,
+        coefficients_greater_equal[0] + zeros,
+    )
+
+    for c_l, c_ge in zip(
+        coefficients_lesser[1:], coefficients_greater_equal[1:]
+    ):
+        c = np.where(mask_lesser, c_l + zeros, c_ge + zeros)
+        p = c + p * w
+
+    return p * x
+
+
+class Valmap(SimpleTransformation):
+    @validated()
+    def __init__(self, fn: Callable) -> None:
+        self.fn = fn
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        return valmap(self.fn, data)
 
 
 class AsNumpyArray(SimpleTransformation):
@@ -42,7 +127,7 @@ class AsNumpyArray(SimpleTransformation):
 
     @validated()
     def __init__(
-        self, field: str, expected_ndim: int, dtype: DType = np.float32
+        self, field: str, expected_ndim: int, dtype: Type = np.float32
     ) -> None:
         self.field = field
         self.expected_ndim = expected_ndim
@@ -214,7 +299,7 @@ class SwapAxes(SimpleTransformation):
         else:
             raise ValueError(
                 f"Unexpected field type {type(v).__name__}, expected "
-                f"np.ndarray or list[np.ndarray]"
+                "np.ndarray or list[np.ndarray]"
             )
 
 
@@ -323,8 +408,8 @@ class SampleTargetDim(FlatMapTransformation):
 
 class CDFtoGaussianTransform(MapTransformation):
     """
-    Marginal transformation that transforms the target via an empirical CDF
-    to a standard gaussian as described here: https://arxiv.org/abs/1910.03002
+    Marginal transformation that transforms the target via an empirical CDF to
+    a standard gaussian as described here: https://arxiv.org/abs/1910.03002.
 
     To be used in conjunction with a multivariate gaussian to from a copula.
     Note that this transformation is currently intended for multivariate
@@ -339,7 +424,7 @@ class CDFtoGaussianTransform(MapTransformation):
         observed_values_field: str,
         cdf_suffix="_cdf",
         max_context_length: Optional[int] = None,
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
     ) -> None:
         """
         Constructor for CDFtoGaussianTransform.
@@ -389,10 +474,9 @@ class CDFtoGaussianTransform(MapTransformation):
     def _preprocess_data(self, data: DataEntry, is_train: bool):
         """
         Performs several preprocess operations for computing the empirical CDF.
-        1) Reshaping the data.
-        2) Normalizing the target length.
-        3) Adding noise to avoid zero slopes (training only)
-        4) Sorting the target to compute the empirical CDF
+        1) Reshaping the data. 2) Normalizing the target length. 3) Adding
+        noise to avoid zero slopes (training only) 4) Sorting the target to
+        compute the empirical CDF.
 
         Parameters
         ----------
@@ -403,7 +487,6 @@ class CDFtoGaussianTransform(MapTransformation):
             avoid zero slopes in the piece-wise linear function.
         Returns
         -------
-
         """
         # (target_length, target_dim)
         past_target_vec = data[self.past_target_field].copy()
@@ -452,8 +535,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _calc_pw_linear_params(self, data: DataEntry):
         """
-        Calculates the piece-wise linear parameters to interpolate between
-        the observed values in the empirical CDF.
+        Calculates the piece-wise linear parameters to interpolate between the
+        observed values in the empirical CDF.
 
         Once current limitation is that we use a zero slope line as the last
         piece. Thus, we cannot forecast anything higher than the highest
@@ -466,18 +549,14 @@ class CDFtoGaussianTransform(MapTransformation):
 
         Returns
         -------
-
         """
         sorted_target = data[self.sort_target_field]
         sorted_target_length, target_dim = sorted_target.shape
 
-        quantiles = (
-            np.stack(
-                [np.arange(sorted_target_length) for _ in range(target_dim)],
-                axis=1,
-            )
-            / float(sorted_target_length)
-        )
+        quantiles = np.stack(
+            [np.arange(sorted_target_length) for _ in range(target_dim)],
+            axis=1,
+        ) / float(sorted_target_length)
 
         x_diff = np.diff(sorted_target, axis=0)
         y_diff = np.diff(quantiles, axis=0)
@@ -522,8 +601,7 @@ class CDFtoGaussianTransform(MapTransformation):
         Returns
         -------
         quantiles
-            Empirical CDF quantiles in [0, 1] interval with winzorized cutoff.
-
+            Empirical CDF quantiles in [0, 1] interval with winsorized cutoff.
         """
         m = sorted_values.shape[0]
         quantiles = self._forward_transform(
@@ -536,7 +614,7 @@ class CDFtoGaussianTransform(MapTransformation):
         return quantiles
 
     @staticmethod
-    def _add_noise(x: np.array) -> np.array:
+    def _add_noise(x: np.ndarray) -> np.ndarray:
         scale_noise = 0.2
         std = np.sqrt(
             (np.square(x - x.mean(axis=1, keepdims=True))).mean(
@@ -551,8 +629,8 @@ class CDFtoGaussianTransform(MapTransformation):
 
     @staticmethod
     def _search_sorted(
-        sorted_vec: np.array, to_insert_vec: np.array
-    ) -> np.array:
+        sorted_vec: np.ndarray, to_insert_vec: np.ndarray
+    ) -> np.ndarray:
         """
         Finds the indices of the active piece-wise linear function.
 
@@ -582,11 +660,11 @@ class CDFtoGaussianTransform(MapTransformation):
 
     def _forward_transform(
         self,
-        sorted_vec: np.array,
-        target: np.array,
-        slopes: np.array,
-        intercepts: np.array,
-    ) -> np.array:
+        sorted_vec: np.ndarray,
+        target: np.ndarray,
+        slopes: np.ndarray,
+        intercepts: np.ndarray,
+    ) -> np.ndarray:
         """
         Applies the forward transformation to the marginals of the multivariate
         target. Target (real valued) -> empirical cdf [0, 1]
@@ -620,32 +698,32 @@ class CDFtoGaussianTransform(MapTransformation):
         return np.array(transformed).transpose()
 
     @staticmethod
-    def standard_gaussian_cdf(x: np.array) -> np.array:
+    def standard_gaussian_cdf(x: np.ndarray) -> np.ndarray:
         u = x / (np.sqrt(2.0))
         return (erf(u) + 1.0) / 2.0
 
     @staticmethod
-    def standard_gaussian_ppf(y: np.array) -> np.array:
+    def standard_gaussian_ppf(y: np.ndarray) -> np.ndarray:
         y_clipped = np.clip(y, a_min=1.0e-6, a_max=1.0 - 1.0e-6)
         return np.sqrt(2.0) * erfinv(2.0 * y_clipped - 1.0)
 
     @staticmethod
-    def winsorized_cutoff(m: np.array) -> np.array:
+    def winsorized_cutoff(m: float) -> float:
         """
         Apply truncation to the empirical CDF estimator to reduce variance as
-        described here: https://arxiv.org/abs/0903.0649
+        described here: https://arxiv.org/abs/0903.0649.
 
         Parameters
         ----------
         m
-            Input array with empirical CDF values.
+            Input empirical CDF value.
 
         Returns
         -------
         res
-            Truncated empirical CDf values.
+            Truncated empirical CDf value.
         """
-        res = 1 / (4 * m ** 0.25 * np.sqrt(3.14 * np.log(m)))
+        res = 1 / (4 * m**0.25 * np.sqrt(3.14 * np.log(m)))
         assert 0 < res < 1
         return res
 
@@ -701,7 +779,6 @@ def cdf_to_gaussian_forward_transform(
     -------
     outputs
         Forward transformed outputs.
-
     """
 
     def _empirical_cdf_inverse_transform(
@@ -728,7 +805,6 @@ def cdf_to_gaussian_forward_transform(
         -------
         outputs
             Forward transformed outputs.
-
         """
 
         num_timesteps = batch_target_sorted.shape[1]
@@ -736,7 +812,7 @@ def cdf_to_gaussian_forward_transform(
         # indices = indices - 1
         # for now project into [0, 1]
         indices = np.clip(indices, 0, num_timesteps - 1)
-        indices = indices.astype(np.int)
+        indices = indices.astype(int)
 
         transformed = np.where(
             np.take_along_axis(slopes, indices, axis=1) != 0.0,
@@ -774,7 +850,8 @@ class ToIntervalSizeFormat(FlatMapTransformation):
 
     As an example, the time series `[0, 0, 1, 0, 3, 2, 0, 4]` is converted into
     the 2-dimensional time series `[[3, 2, 1, 2], [1, 3, 2, 4]]`, with a
-    shape (2, M) where M denotes the number of non-zero items in the time series.
+    shape (2, M) where M denotes the number of non-zero items in the time
+    series.
 
     Parameters
     ----------
@@ -784,10 +861,10 @@ class ToIntervalSizeFormat(FlatMapTransformation):
     drop_empty
         If True, all-zero time series will be dropped.
     discard_first
-        If True, the first element in the converted dense series will be dropped,
-        replacing the target with a (2, M-1) tet instead. This can be used
-        when the first 'inter-demand' time is not well-defined. e.g., when the true
-        starting index of the time-series is not known.
+        If True, the first element in the converted dense series will be
+        dropped, replacing the target with a (2, M-1) tet instead. This can be
+        used when the first 'inter-demand' time is not well-defined. e.g.,
+        when the true starting index of the time series is not known.
     """
 
     @validated()
@@ -804,7 +881,7 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         self.discard_first = discard_first
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
-        a = np.array(a)
+        a: np.ndarray = np.array(a)
         (non_zero_index,) = np.nonzero(a)
 
         if len(non_zero_index) == 0:
@@ -827,3 +904,67 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         if len(times) > 0 or not self.drop_empty:
             data[self.target_field] = [times, sizes]
             yield data
+
+
+class QuantizeMeanScaled(SimpleTransformation):
+    """Rescale and quantize the target variable.
+    Requires `past_target_field`, and `future_target_field` to be present.
+
+    The mean absolute value of the past_target is used to rescale
+    past_target and future_target. Then the bin_edges are used to quantize
+    the rescaled target.
+
+    The calculated scale is stored in the `scale_field`.
+
+    Parameters
+    ----------
+    bin_edges
+        The bin edges for quantization.
+    past_target_field, optional
+        The field name that contains `past_target`,
+        by default "past_target"
+    past_observed_values_field, optional
+        The field name that contains `past_observed_values`,
+        by default "past_observed_values"
+    future_target_field, optional
+        The field name that contains `future_target`,
+        by default "future_target"
+    scale_field, optional
+        The field name where scale will be stored,
+        by default "scale"
+    """
+
+    @validated()
+    def __init__(
+        self,
+        bin_edges: List[float],
+        past_target_field: str = "past_target",
+        past_observed_values_field: str = "past_observed_values",
+        future_target_field: str = "future_target",
+        scale_field: str = "scale",
+    ):
+        self.bin_edges = np.array(bin_edges)
+        self.future_target_field = future_target_field
+        self.past_target_field = past_target_field
+        self.past_observed_values_field = past_observed_values_field
+        self.scale_field = scale_field
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        target = data[self.past_target_field]
+        weights = data.get(
+            self.past_observed_values_field, np.ones_like(target)
+        )
+        m = np.sum(np.abs(target) * weights) / np.sum(weights)
+        scale = m if m > 0 else 1.0
+        data[self.future_target_field] = np.digitize(
+            data[self.future_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
+        )
+        data[self.past_target_field] = np.digitize(
+            data[self.past_target_field] / scale,
+            bins=self.bin_edges,
+            right=False,
+        )
+        data[self.scale_field] = np.array([scale], dtype=np.float32)
+        return data

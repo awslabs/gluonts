@@ -68,8 +68,8 @@ class PiecewiseLinear(Distribution):
         self.slopes = slopes
         self.knot_spacings = knot_spacings
 
-        # Since most of the calculations are easily expressed in the original parameters, we transform the
-        # learned parameters back
+        # Since most of the calculations are easily expressed in the original
+        # parameters, we transform the learned parameters back
         self.b, self.knot_positions = PiecewiseLinear._to_orig_params(
             self.F, slopes, knot_spacings
         )
@@ -130,10 +130,12 @@ class PiecewiseLinear(Distribution):
     ) -> Tensor:
         F = self.F
 
-        # if num_samples=None then u should have the same shape as gamma, i.e., (dim,)
-        # else u should be (num_samples, dim)
-        # Note: there is no need to extend the parameters to (num_samples, dim, ...)
-        # Thankfully samples returned by `uniform_like` have the expected datatype.
+        # if num_samples=None then u should have the same shape as gamma,
+        # i.e., (dim,) else u should be (num_samples, dim)
+
+        # Note: there is no need to extend the parameters to
+        # (num_samples, dim, ...) Thankfully samples returned by
+        # `uniform_like` have the expected datatype.
         u = F.random.uniform_like(
             data=(
                 self.gamma
@@ -179,7 +181,9 @@ class PiecewiseLinear(Distribution):
             a_tilde.expand_dims(axis=-1), knot_positions
         )
 
-        knots_cubed = F.broadcast_power(self.knot_positions, F.ones(1) * 3.0)
+        knots_cubed = F.power(
+            knot_positions, F.ones_like(knot_positions) * 3.0
+        )
 
         coeff = (
             (1.0 - knots_cubed) / 3.0
@@ -217,16 +221,17 @@ class PiecewiseLinear(Distribution):
 
         quantiles_at_knots = self.quantile_internal(knot_positions, axis=-2)
 
-        # Mask to nullify the terms corresponding to knots larger than l_0, which is the largest knot
-        # (quantile level) such that the quantile at l_0, s(l_0) < x.
-        # (..., num_pieces)
+        # Mask to nullify the terms corresponding to knots larger than l_0,
+        # which is the largest knot(quantile level) such that the quantile at
+        # l_0, s(l_0) < x.(..., num_pieces)
         mask = F.broadcast_lesser(quantiles_at_knots, x.expand_dims(axis=-1))
 
         slope_l0 = F.sum(b * mask, axis=-1, keepdims=False)
 
-        # slope_l0 can be zero in which case a_tilde = 0.
-        # The following is to circumvent mxnet issue with "where" operator which returns nan even if the statement
-        # you are interested in does not result in nan (but the "else" statement evaluates to nan).
+        # slope_l0 can be zero in which case a_tilde = 0. The following is to
+        # circumvent mxnet issue with "where" operator which returns nan even
+        # if the statement you are interested in does not result in nan
+        # (but the "else" statement evaluates to nan).
         slope_l0_nz = F.where(
             slope_l0 == F.zeros_like(slope_l0), F.ones_like(x), slope_l0
         )
@@ -251,7 +256,8 @@ class PiecewiseLinear(Distribution):
         self, x: Tensor, axis: Optional[int] = None
     ) -> Tensor:
         r"""
-        Evaluates the quantile function at the quantile levels contained in `x`.
+        Evaluates the quantile function at the quantile levels contained in
+        `x`.
 
         Parameters
         ----------
@@ -283,14 +289,19 @@ class PiecewiseLinear(Distribution):
         # axis=0 - passed at inference when num_samples is not None
         # The shape of x is (num_samples, *batch_shape).
         # The shapes of the parameters should be:
-        # gamma: (num_samples, *batch_shape), knot_positions, b: (num_samples, *batch_shape, num_pieces),
-        # They do not match the self. counterparts and we need to expand the axis=0 to all of them.
+        # gamma: (num_samples, *batch_shape), knot_positions, b:
+        # (num_samples, *batch_shape, num_pieces), They do not match the self.
+        # counterparts and we need to expand the axis=0 to all of them.
 
-        # axis=-2 - passed at training when we evaluate quantiles at knot_positions in order to compute a_tilde
-        # The shape of x is shape(x) = shape(knot_positions) = (*batch_shape, num_pieces).
+        # axis=-2 - passed at training when we evaluate quantiles at
+        # knot_positions in order to compute a_tilde
+        # The shape of x is shape(x) = shape(knot_positions) =
+        # (*batch_shape, num_pieces).
         # The shape of the parameters shopuld be:
-        # gamma: (*batch_shape, 1), knot_positions: (*batch_shape, 1, num_pieces), b: (*batch_shape, 1, num_pieces)
-        # They do not match the self. counterparts and we need to expand axis=-1 for gamma and axis=-2 for the rest.
+        # gamma: (*batch_shape, 1), knot_positions: (*batch_shape, 1,
+        # num_pieces), b: (*batch_shape, 1, num_pieces) They do not match the
+        # self. counterparts and we need to expand axis=-1 for gamma and
+        # axis=-2 for the rest.
 
         if axis is not None:
             gamma = self.gamma.expand_dims(axis=axis if axis == 0 else -1)
@@ -377,7 +388,6 @@ class FixedKnotsArgProj(ArgProj):
                 "knot_spacings", knot_spacings
             )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor, **kwargs) -> Tuple[Tensor]:
         params_unbounded = [proj(x) for proj in self.proj]
         knot_spacings = kwargs["knot_spacings"]
@@ -391,20 +401,20 @@ class FixedKnotsArgProj(ArgProj):
 
 class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
     """
-    A simple extension of PiecewiseLinearOutput that "fixes" the knot
-    positions in the quantile function representation. That is, instead
-    of initializing with the number of pieces, the quantiles are provided
-    directly at initialization.
+    A simple extension of PiecewiseLinearOutput that "fixes" the knot positions
+    in the quantile function representation. That is, instead of initializing
+    with the number of pieces, the quantiles are provided directly at
+    initialization.
 
     Parameters
     ----------
     quantile_levels
-        Points along the domain of the quantile function (i.e., in the interval [0,1])
-        where the knots of the piecewise linear approximation will be fixed, provided
-        in sorted order (ascending).
+        Points along the domain of the quantile function (i.e., in the
+        interval [0,1]) where the knots of the piecewise linear approximation
+        will be fixed, provided in sorted order (ascending).
 
-        For more information on the piecewise linear quantile function, refer to
-        :code:`gluonts.distribution.PiecewiseLinear`.
+        For more information on the piecewise linear quantile function, refer
+        to :code:`gluonts.distribution.PiecewiseLinear`.
     """
 
     distr_cls: type = PiecewiseLinear
@@ -418,9 +428,10 @@ class FixedKnotsPiecewiseLinearOutput(PiecewiseLinearOutput):
             [0 < q < 1 for q in quantile_levels]
         ), "Quantiles must be strictly between 0 and 1."
 
-        assert np.all(
-            np.diff(quantile_levels) > 0
-        ), "Quantiles must be in increasing order, with quantile each specified once"
+        assert np.all(np.diff(quantile_levels) > 0), (
+            "Quantiles must be in increasing order, with quantile each"
+            " specified once"
+        )
 
         super().__init__(
             num_pieces=len(quantile_levels) + 1,

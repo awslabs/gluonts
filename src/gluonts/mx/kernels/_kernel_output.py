@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict
+from typing import Dict, Type
 
 import numpy as np
 from mxnet import gluon
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 from gluonts.mx.distribution.distribution_output import ArgProj
 
@@ -28,13 +28,12 @@ class KernelOutput:
     Class to connect a network to a kernel.
     """
 
-    def get_args_proj(self, float_type: DType) -> gluon.HybridBlock:
+    def get_args_proj(self, float_type: Type) -> gluon.HybridBlock:
         raise NotImplementedError()
 
     def kernel(self, args) -> Kernel:
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     @staticmethod
     def compute_std(F, data: Tensor, axis: int) -> Tensor:
         """
@@ -78,14 +77,14 @@ class KernelOutputDict(KernelOutput):
     def get_num_args(self) -> int:
         return len(self.args_dim)
 
-    def get_args_proj(self, float_type: DType = np.float32) -> ArgProj:
+    def get_args_proj(self, float_type: Type = np.float32) -> ArgProj:
         """
         This method calls the ArgProj block in distribution_output to project
         from a dense layer to kernel arguments.
 
         Parameters
         ----------
-        float_type : DType
+        float_type : Type
             Determines whether to use single or double precision.
         Returns
         -------
@@ -97,13 +96,11 @@ class KernelOutputDict(KernelOutput):
             dtype=float_type,
         )
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> tuple:
         raise NotImplementedError()
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def domain_map(self, F, *args: Tensor):
         raise NotImplementedError()
 

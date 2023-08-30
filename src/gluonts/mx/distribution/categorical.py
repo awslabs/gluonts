@@ -30,7 +30,8 @@ class Categorical(Distribution):
     Parameters
     ----------
     log_probs
-        Tensor containing log probabilities of the individual categories, of shape `(*batch_shape, num_cats)`.
+        Tensor containing log probabilities of the individual categories, of
+        shape `(*batch_shape, num_cats)`.
     F
     """
 

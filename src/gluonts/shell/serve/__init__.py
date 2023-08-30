@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     sagemaker_batch_strategy: str = "SINGLE_RECORD"
 
     sagemaker_max_payload_in_mb: int = 6
-    sagemaker_max_concurrent_transforms: int = 2 ** 32 - 1
+    sagemaker_max_concurrent_transforms: int = 2**32 - 1
 
     @property
     def sagemaker_server_bind(self) -> str:
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
         if self.model_server_workers:
             logging.info(
                 f"Using {self.model_server_workers} workers "
-                f"(set by MODEL_SERVER_WORKERS environment variable)."
+                "(set by MODEL_SERVER_WORKERS environment variable)."
             )
             return self.model_server_workers
 
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
         ):
             logger.info(
                 f"Using {self.sagemaker_max_concurrent_transforms} workers "
-                f"(set by MaxConcurrentTransforms parameter in batch mode)."
+                "(set by MaxConcurrentTransforms parameter in batch mode)."
             )
             return self.sagemaker_max_concurrent_transforms
 

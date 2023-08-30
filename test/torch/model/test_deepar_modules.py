@@ -12,78 +12,20 @@
 # permissions and limitations under the License.
 
 from typing import List, Optional
-import torch
+
 import pytest
+import torch
 
-from gluonts.torch.model.deepar import (
-    DeepARModel,
-    DeepARLightningModule,
-)
-from gluonts.torch.model.deepar.module import LaggedLSTM
+from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
 
 
 @pytest.mark.parametrize(
-    "model, prior_input, input, features, more_input, more_features",
+    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality, scaling",
     [
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100)),
-            torch.ones((4, 8)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=1, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 1)),
-            torch.ones((4, 8, 1)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 1)),
-            torch.ones((4, 5, 3)),
-        ),
-        (
-            LaggedLSTM(
-                input_size=2, features_size=3, lags_seq=[0, 1, 5, 10, 20]
-            ),
-            torch.ones((4, 100, 2)),
-            torch.ones((4, 8, 2)),
-            torch.ones((4, 8, 3)),
-            torch.ones((4, 5, 2)),
-            torch.ones((4, 5, 3)),
-        ),
-    ],
-)
-def test_lagged_lstm(
-    model: LaggedLSTM,
-    prior_input: torch.Tensor,
-    input: torch.Tensor,
-    features: torch.Tensor,
-    more_input: torch.Tensor,
-    more_features: torch.Tensor,
-):
-    torch.jit.script(model)
-    output, state = model(prior_input, input, features=features)
-    assert output.shape[:2] == input.shape[:2]
-    more_output, state = model(
-        torch.cat((prior_input, input), dim=1),
-        more_input,
-        features=more_features,
-        state=state,
-    )
-    assert more_output.shape[:2] == more_input.shape[:2]
-
-
-@pytest.mark.parametrize(
-    "num_feat_dynamic_real, num_feat_static_real, num_feat_static_cat, cardinality",
-    [
-        (5, 4, 1, [1]),
-        (1, 4, 2, [2, 3]),
-        (5, 1, 3, [4, 5, 6]),
-        (5, 4, 1, [1]),
+        (5, 4, 1, [1], True),
+        (1, 4, 2, [2, 3], False),
+        (5, 1, 3, [4, 5, 6], True),
+        (5, 4, 1, [1], False),
     ],
 )
 def test_deepar_modules(
@@ -91,20 +33,25 @@ def test_deepar_modules(
     num_feat_static_real: int,
     num_feat_static_cat: int,
     cardinality: Optional[List[int]],
+    scaling: bool,
 ):
     batch_size = 4
     prediction_length = 6
     context_length = 12
 
-    model = DeepARModel(
-        freq="1H",
-        context_length=context_length,
-        prediction_length=prediction_length,
-        num_feat_dynamic_real=num_feat_dynamic_real,
-        num_feat_static_real=num_feat_static_real,
-        num_feat_static_cat=num_feat_static_cat,
-        cardinality=cardinality,
+    lightning_module = DeepARLightningModule(
+        model_kwargs={
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "scaling": scaling,
+        }
     )
+    model = lightning_module.model
 
     # TODO uncomment the following
     # torch.jit.script(model)
@@ -124,7 +71,7 @@ def test_deepar_modules(
     future_target = torch.ones(batch_size, prediction_length)
     future_observed_values = torch.ones(batch_size, prediction_length)
 
-    params, scale, _, _ = model.unroll_lagged_rnn(
+    params, scale, _, _, _ = model.unroll_lagged_rnn(
         feat_static_cat,
         feat_static_real,
         past_time_feat,
@@ -162,6 +109,30 @@ def test_deepar_modules(
 
     assert samples.shape == (batch_size, 100, prediction_length)
 
+    log_densities = model.log_prob(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+        future_target,
+    )
+
+    assert log_densities.shape == (batch_size,)
+
+    log_densities = model.log_prob(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+        samples.transpose(0, 1),  # TODO: ugly!
+    )
+
+    assert log_densities.shape == (100, batch_size)
+
     batch = dict(
         feat_static_cat=feat_static_cat,
         feat_static_real=feat_static_real,
@@ -173,7 +144,102 @@ def test_deepar_modules(
         future_observed_values=future_observed_values,
     )
 
-    lightning_module = DeepARLightningModule(model=model)
-
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()
+
+
+@pytest.mark.parametrize(
+    "prediction_length, context_length, lags_seq",
+    [
+        (1, 5, [1, 10, 15]),
+        (1, 5, [3, 6, 9, 10]),
+        (2, 5, [1, 2, 7]),
+        (2, 5, [2, 3, 4, 6]),
+        (4, 5, [1, 5, 9, 11]),
+        (4, 5, [7, 8, 13, 14]),
+    ],
+)
+def test_rnn_input(
+    prediction_length: int, context_length: int, lags_seq: List[int]
+):
+    num_samples = 10
+    history_length = max(lags_seq) + context_length - 1
+
+    model = DeepARModel(
+        freq="D",
+        prediction_length=prediction_length,
+        context_length=context_length,
+        lags_seq=lags_seq,
+        scaling=False,
+        num_parallel_samples=num_samples,
+    )
+
+    # Construct test batch of size 1, such that:
+    # - target values are increasing integers
+    # - there is one dynamic feature that is equal to the target
+    #
+    # Since scaling=False, this way we can compare lagged target
+    # values and dynamic feature and verify that the expected values
+    # are given as input to the RNN, at the expected time index.
+
+    batch = {
+        "feat_static_cat": torch.tensor([[0]], dtype=torch.int64),
+        "feat_static_real": torch.tensor([[0.0]], dtype=torch.float32),
+        "past_time_feat": torch.arange(
+            history_length, dtype=torch.float32
+        ).view(1, history_length, 1),
+        "past_target": torch.arange(history_length, dtype=torch.float32).view(
+            1, history_length
+        ),
+        "past_observed_values": torch.arange(
+            history_length, dtype=torch.float32
+        ).view(1, history_length),
+    }
+
+    # test with no future_target (only one step prediction)
+
+    batch["future_time_feat"] = torch.arange(
+        history_length,
+        history_length + 1,
+        dtype=torch.float32,
+    ).view(1, 1, 1)
+
+    rnn_input, scale, _ = model.prepare_rnn_input(**batch)
+
+    assert (scale == 1.0).all()
+
+    ref = torch.arange(
+        history_length - context_length + 1,
+        history_length + 1,
+        dtype=torch.float32,
+    )
+
+    for idx, lag in enumerate(lags_seq):
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])
+
+    # test with all future data
+
+    batch["future_time_feat"] = torch.arange(
+        history_length,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    ).view(1, prediction_length, 1)
+
+    batch["future_target"] = torch.arange(
+        history_length,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    ).view(1, prediction_length)
+
+    rnn_input, scale, _ = model.prepare_rnn_input(**batch)
+
+    assert (scale == 1.0).all()
+
+    ref = torch.arange(
+        history_length - context_length + 1,
+        history_length + prediction_length,
+        dtype=torch.float32,
+    )
+
+    for idx, lag in enumerate(lags_seq):
+        assert torch.equal(ref - lag, rnn_input[0, :, idx])

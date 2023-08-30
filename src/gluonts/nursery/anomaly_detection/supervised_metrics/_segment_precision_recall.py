@@ -42,7 +42,6 @@ def segment_precision_recall(
     Returns
     -------
     Tuple containing segment based precision and recall.
-
     """
     # Compute the number of true positives and false negatives by going over each of the ground truth anomaly ranges
     tp, fn = 0, 0

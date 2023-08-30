@@ -28,19 +28,20 @@ from .representation import Representation
 
 class LocalAbsoluteBinning(Representation):
     """
-    A class representing a local absolute binning approach.
-    This binning estimates a binning for every single time series on a local level and therefore implicitly acts as
-    a scaling mechanism.
+    A class representing a local absolute binning approach. This binning
+    estimates a binning for every single time series on a local level and
+    therefore implicitly acts as a scaling mechanism.
 
     Parameters
     ----------
     num_bins
-        The number of discrete bins/buckets that we want values to be mapped to.
-        (default: 1024)
+        The number of discrete bins/buckets that we want values to be mapped
+        to. (default: 1024)
     is_quantile
-        Whether the binning is quantile or linear. Quantile binning allocated bins based on the cumulative
-        distribution function, while linear binning allocates evenly spaced bins.
-        (default: True, i.e. quantile binning)
+        Whether the binning is quantile or linear. Quantile binning allocated
+        bins based on the cumulative distribution function, while linear
+        binning allocates evenly spaced bins.(default: True, i.e. quantile
+        binning)
     """
 
     @validated()
@@ -52,7 +53,6 @@ class LocalAbsoluteBinning(Representation):
         self.num_bins = num_bins
         self.is_quantile = is_quantile
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,
@@ -66,7 +66,8 @@ class LocalAbsoluteBinning(Representation):
         observed_indicator_np = observed_indicator.astype("int32").asnumpy()
 
         if scale is None:
-            # Even though local binning implicitly scales the data, we still return the scale as an input to the model.
+            # Even though local binning implicitly scales the data, we still
+            # return the scale as an input to the model.
             scale = F.expand_dims(
                 F.sum(data * observed_indicator, axis=-1)
                 / F.sum(observed_indicator, axis=-1),
@@ -119,12 +120,12 @@ class LocalAbsoluteBinning(Representation):
 
             bin_edges_hyb = np.repeat(
                 bin_edges_hyb,
-                len(data_np) / len(bin_edges_hyb),
+                len(data_np) // len(bin_edges_hyb),
                 axis=0,
             )
             bin_centers_hyb = np.repeat(
                 bin_centers_hyb,
-                len(data_np) / len(bin_centers_hyb),
+                len(data_np) // len(bin_centers_hyb),
                 axis=0,
             )
 

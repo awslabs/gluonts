@@ -18,8 +18,10 @@ import numpy as np
 
 def fill_forward(a: np.ndarray, fill_start=None) -> np.ndarray:
     """
-    Forward fill an array. If `fill_start` is not None, then the
-    NaNs in the beginning of the array will be filled with `fill_start`.
+    Forward fill an array.
+
+    If `fill_start` is not None, then the NaNs in the beginning of the array
+    will be filled with `fill_start`.
     """
     a = np.array(a)
     assert a.ndim == 1
@@ -75,8 +77,8 @@ def n_k_filter(
     forward_fill: bool = False,
 ) -> np.ndarray:
     """
-    Implements the (N, K)-filter that opens/closes anomalies based on
-    observing K or greater labels in the last N time steps.
+    Implements the (N, K)-filter that opens/closes anomalies based on observing
+    K or greater labels in the last N time steps.
 
     Parameters
     ----------

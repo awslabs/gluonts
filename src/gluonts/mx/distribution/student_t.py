@@ -41,8 +41,8 @@ class StudentT(Distribution):
         Tensor containing the standard deviations, of shape
         `(*batch_shape, *event_shape)`.
     nu
-        Nonnegative tensor containing the degrees of freedom of the distribution,
-        of shape `(*batch_shape, *event_shape)`.
+        Nonnegative tensor containing the degrees of freedom of the
+        distribution, of shape `(*batch_shape, *event_shape)`.
     F
     """
 
@@ -128,8 +128,8 @@ class StudentTOutput(DistributionOutput):
 
     @classmethod
     def domain_map(cls, F, mu, sigma, nu):
-        sigma = softplus(F, sigma)
-        nu = 2.0 + softplus(F, nu)
+        sigma = F.maximum(softplus(F, sigma), cls.eps())
+        nu = 2.0 + F.maximum(softplus(F, nu), cls.eps())
         return mu.squeeze(axis=-1), sigma.squeeze(axis=-1), nu.squeeze(axis=-1)
 
     @property

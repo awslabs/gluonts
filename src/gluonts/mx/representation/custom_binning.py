@@ -61,7 +61,6 @@ class CustomBinning(Representation):
             self.bin_edges.initialize()
             self.bin_centers.initialize()
 
-    # noinspection PyMethodOverriding
     def hybrid_forward(
         self,
         F,

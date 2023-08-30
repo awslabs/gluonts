@@ -16,22 +16,24 @@ import pandas as pd
 import pytest
 
 from gluonts.time_feature import (
-    TimeFeature,
-    MinuteOfHour,
-    HourOfDay,
-    DayOfWeek,
-    DayOfMonth,
-    DayOfYear,
-    WeekOfYear,
-    MonthOfYear,
     Constant,
-    MinuteOfHourIndex,
-    HourOfDayIndex,
-    DayOfWeekIndex,
-    DayOfMonthIndex,
-    DayOfYearIndex,
-    WeekOfYearIndex,
-    MonthOfYearIndex,
+    TimeFeature,
+    day_of_month,
+    day_of_month_index,
+    day_of_week,
+    day_of_week_index,
+    day_of_year,
+    day_of_year_index,
+    hour_of_day,
+    hour_of_day_index,
+    minute_of_hour,
+    minute_of_hour_index,
+    month_of_year,
+    month_of_year_index,
+    second_of_minute,
+    second_of_minute_index,
+    week_of_year,
+    week_of_year_index,
 )
 
 
@@ -39,27 +41,49 @@ from gluonts.time_feature import (
     "feature, index",
     [
         (
-            MinuteOfHour(),
-            pd.date_range(
+            second_of_minute,
+            pd.period_range(
+                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="5S"
+            ),
+        ),
+        (
+            minute_of_hour,
+            pd.period_range(
                 "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1min"
             ),
         ),
         (
-            HourOfDay(),
-            pd.date_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
+            hour_of_day,
+            pd.period_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
         ),
-        (DayOfWeek(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
-        (DayOfMonth(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
-        (DayOfYear(), pd.date_range("01-01-2015", periods=365 * 5, freq="D")),
-        (WeekOfYear(), pd.date_range("01-01-2015", periods=53 * 5, freq="W")),
-        (MonthOfYear(), pd.date_range("01-01-2015", periods=12 * 5, freq="M")),
-        (Constant(), pd.date_range("01-01-2015", periods=5, freq="A")),
+        (
+            day_of_week,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+        ),
+        (
+            day_of_month,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+        ),
+        (
+            day_of_year,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
+        ),
+        (
+            week_of_year,
+            pd.period_range("01-01-2015", periods=53 * 5, freq="W"),
+        ),
+        (
+            month_of_year,
+            pd.period_range("01-01-2015", periods=12 * 5, freq="M"),
+        ),
+        (Constant(), pd.period_range("01-01-2015", periods=5, freq="A")),
     ],
 )
 def test_feature_normalized_bounds(
-    feature: TimeFeature, index: pd.DatetimeIndex
+    feature: TimeFeature, index: pd.PeriodIndex
 ):
     values = feature(index)
+    assert isinstance(values, np.ndarray)
     for v in values:
         assert -0.5 <= v <= 0.5
 
@@ -68,40 +92,47 @@ def test_feature_normalized_bounds(
     "feature, index, cardinality",
     [
         (
-            MinuteOfHourIndex(),
-            pd.date_range(
+            second_of_minute_index,
+            pd.period_range(
+                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1S"
+            ),
+            60,
+        ),
+        (
+            minute_of_hour_index,
+            pd.period_range(
                 "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1min"
             ),
             60,
         ),
         (
-            HourOfDayIndex(),
-            pd.date_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
+            hour_of_day_index,
+            pd.period_range("01-01-2015 00:00:00", periods=14 * 24, freq="1h"),
             24,
         ),
         (
-            DayOfWeekIndex(),
-            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
+            day_of_week_index,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
             7,
         ),
         (
-            DayOfMonthIndex(),
-            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
+            day_of_month_index,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
             31,
         ),
         (
-            DayOfYearIndex(),
-            pd.date_range("01-01-2015", periods=365 * 5, freq="D"),
+            day_of_year_index,
+            pd.period_range("01-01-2015", periods=365 * 5, freq="D"),
             366,
         ),
         (
-            WeekOfYearIndex(),
-            pd.date_range("01-01-2015", periods=53 * 5, freq="W"),
+            week_of_year_index,
+            pd.period_range("01-01-2015", periods=53 * 5, freq="W"),
             53,
         ),
         (
-            MonthOfYearIndex(),
-            pd.date_range("01-01-2015", periods=12 * 5, freq="M"),
+            month_of_year_index,
+            pd.period_range("01-01-2015", periods=12 * 5, freq="M"),
             12,
         ),
     ],
@@ -110,6 +141,7 @@ def test_feature_unnormalized_bounds(
     feature: TimeFeature, index: pd.DatetimeIndex, cardinality: int
 ):
     values = feature(index)
+    assert isinstance(values, np.ndarray)
     counts = [0] * cardinality
     for v in values:
         assert 0 <= int(v) < cardinality

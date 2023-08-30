@@ -11,12 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Type
 
 import mxnet as mx
 import numpy as np
 
-from gluonts.core.component import DType, validated
+from gluonts.core.component import validated
 from gluonts.mx import Tensor
 
 from .distribution import Distribution, _sample_multiple, getF
@@ -123,7 +123,7 @@ class DeterministicArgProj(mx.gluon.HybridBlock):
         self,
         value: float,
         args_dim: Dict[str, int],
-        dtype: DType = np.float32,
+        dtype: Type = np.float32,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -131,7 +131,6 @@ class DeterministicArgProj(mx.gluon.HybridBlock):
         self.args_dim = args_dim
         self.dtype = dtype
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def hybrid_forward(self, F, x: Tensor) -> Tuple[Tensor]:
         return (self.value * F.ones_like(x.sum(axis=-1)),)
 

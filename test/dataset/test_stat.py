@@ -32,7 +32,7 @@ def make_dummy_dynamic_feat(target, num_features) -> np.ndarray:
 
 
 # default values for TimeSeries field
-start = pd.Timestamp("1985-01-02", freq="1D")
+start = pd.Period("1985-01-02", freq="1D")
 target = np.random.randint(0, 10, 20)
 fsc = [0, 1]
 fsr = [0.1, 0.2]
@@ -98,7 +98,6 @@ def ts(
 
 class DatasetStatisticsTest(unittest.TestCase):
     def test_dataset_statistics(self) -> None:
-
         num_time_series = 3
         num_time_observations = 10
         num_feat_dynamic_real = 2
@@ -175,10 +174,9 @@ class DatasetStatisticsTest(unittest.TestCase):
         assert expected == found
 
     def test_dataset_histogram(self) -> None:
-
         # generates 2 ** N - 1 timeseries with constant increasing values
         N = 6
-        n = 2 ** N - 1
+        n = 2**N - 1
         T = 5
         targets = np.ones((n, T))
         for i in range(0, n):
@@ -194,7 +192,7 @@ class DatasetStatisticsTest(unittest.TestCase):
         hist = found.scale_histogram.bin_counts
         for i in range(0, N):
             assert i in hist
-            assert hist[i] == 2 ** i
+            assert hist[i] == 2**i
 
 
 class DatasetStatisticsExceptions(unittest.TestCase):

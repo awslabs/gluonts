@@ -31,7 +31,6 @@ class RBFKernel(Kernel):
     :math:`\theta_1` is the length scale parameter.
     """
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def __init__(
         self, amplitude: Tensor, length_scale: Tensor, F=None
     ) -> None:
@@ -41,7 +40,8 @@ class RBFKernel(Kernel):
         amplitude : Tensor
             RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
         length_scale : Tensor
-            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            RBF kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
         F : ModuleType
             A module that can either refer to the Symbol API or the NDArray
             API in MXNet.
@@ -50,7 +50,6 @@ class RBFKernel(Kernel):
         self.amplitude = amplitude
         self.length_scale = length_scale
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def kernel_matrix(self, x1: Tensor, x2: Tensor) -> Tensor:
         """
         Parameters
@@ -63,7 +62,8 @@ class RBFKernel(Kernel):
         Returns
         --------------------
         Tensor
-            RBF kernel matrix of shape (batch_size, history_length, history_length).
+            RBF kernel matrix of shape (batch_size, history_length,
+            history_length).
         """
         self._compute_square_dist(self.F, x1, x2)
 
@@ -71,7 +71,7 @@ class RBFKernel(Kernel):
             self.amplitude,
             self.F.exp(
                 self.F.broadcast_div(
-                    -self.square_dist, 2 * self.length_scale ** 2
+                    -self.square_dist, 2 * self.length_scale**2
                 )
             ),
         )
@@ -81,13 +81,13 @@ class RBFKernelOutput(KernelOutputDict):
     args_dim: Dict[str, int] = {"amplitude": 1, "length_scale": 1}
     kernel_cls: type = RBFKernel
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def gp_params_scaling(
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP RBF Kernel hyper-parameters by using the standard deviations
-        of the past_target and past_time_features.
+        This function returns the scales for the GP RBF Kernel hyper-parameters
+        by using the standard deviations of the past_target and
+        past_time_features.
 
         Parameters
         ----------
@@ -97,26 +97,27 @@ class RBFKernelOutput(KernelOutputDict):
         past_target
             Training time series values of shape (batch_size, context_length).
         past_time_feat
-            Training features of shape (batch_size, context_length, num_features).
+            Training features of shape (batch_size, context_length,
+            num_features).
 
         Returns
         -------
         Tuple
-            Two scaled GP hyper-parameters for the RBF Kernel and scaled model noise hyper-parameter.
-            Each is a Tensor of shape (batch_size, 1, 1).
+            Two scaled GP hyper-parameters for the RBF Kernel and scaled model
+            noise hyper-parameter. Each is a Tensor of shape
+            (batch_size, 1, 1).
         """
         axis = 1
         sigma_scaling = (
             self.compute_std(F, past_target, axis=axis) / math.sqrt(2)
         ).expand_dims(axis=axis)
-        amplitude_scaling = sigma_scaling ** 2
+        amplitude_scaling = sigma_scaling**2
         length_scale_scaling = F.broadcast_mul(
             F.mean(self.compute_std(F, past_time_feat, axis=axis)),
             F.ones_like(amplitude_scaling),
         )
         return amplitude_scaling, length_scale_scaling, sigma_scaling
 
-    # noinspection PyMethodOverriding,PyPep8Naming
     def domain_map(self, F, amplitude, length_scale):
         """
         This function applies the softmax to the RBF Kernel hyper-parameters.
@@ -129,7 +130,8 @@ class RBFKernelOutput(KernelOutputDict):
         amplitude
             RBF kernel amplitude hyper-parameter of shape (batch_size, 1, 1).
         length_scale
-            RBF kernel length scale hyper-parameter of of shape (batch_size, 1, 1).
+            RBF kernel length scale hyper-parameter of of shape
+            (batch_size, 1, 1).
 
         Returns
         -------

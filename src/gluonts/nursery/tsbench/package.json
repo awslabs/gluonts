@@ -1,0 +1,10 @@
+{
+  "name": "tsbench",
+  "version": "1.0.0",
+  "scripts": {
+    "lint": "pyright src"
+  },
+  "devDependencies": {
+    "pyright": "^1.1.206"
+  }
+}
