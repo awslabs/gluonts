@@ -98,7 +98,7 @@ class PyTorchPredictor(RepresentablePredictor):
         super().serialize(path)
 
         torch.save(
-            self.prediction_net.state_dict(), path / "prediction_net_state"
+            self.prediction_net.state_dict(), path / "prediction-net-state.pt"
         )
 
     @classmethod
@@ -111,7 +111,7 @@ class PyTorchPredictor(RepresentablePredictor):
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
         predictor.prediction_net.load_state_dict(
-            torch.load(path / "prediction_net_state", map_location=device)
+            torch.load(path / "prediction-net-state.pt", map_location=device)
         )
 
         return predictor
