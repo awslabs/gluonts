@@ -661,7 +661,8 @@ class QuantileForecast(Forecast):
             return self._forecast_dict["mean"]
         logger.warning(
             "The mean prediction is not stored in the forecast data; "
-            "the median is being returned instead."
+            "the median is being returned instead. "
+            "This behaviour may change in the future."
         )
         return self.quantile("p50")
 
