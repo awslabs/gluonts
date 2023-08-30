@@ -56,6 +56,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         minimum_scale: float = 1e-10,
         impute_missing_values: bool = False,
         default_scale: Optional[float] = None,
+        nonnegative_pred_samples: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -72,6 +73,7 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         self.num_cat = len(cardinality)
         self.scaling = scaling
         self.dtype = dtype
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
         assert len(cardinality) == len(embedding_dimension), (
             "embedding_dimension should be a list with the same size as"
@@ -789,6 +791,24 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         # static_feat: (batch_size, num_features + prod(target_shape))
         return outputs, state, scale, static_feat, sequence
 
+    def post_process_samples(self, F, samples: Tensor) -> Tensor:
+        """
+        Method to enforce domain-specific constraints on the generated samples.
+        For example, we can enforce forecasts to be nonnegative.
+        Parameters
+        ----------
+        samples
+            Tensor of shape (batch_size * num_samples, 1)
+        Returns
+        -------
+            Tensor of samples with the same shape.
+        """
+
+        if self.nonnegative_pred_samples:
+            return F.relu(samples)
+
+        return samples
+
 
 class DeepARTrainingNetwork(DeepARNetwork):
     @validated()
@@ -1098,6 +1118,7 @@ class DeepARPredictionNetwork(DeepARNetwork):
 
             # (batch_size * num_samples, 1, *target_shape)
             new_samples = distr.sample(dtype=self.dtype)
+            new_samples = self.post_process_samples(F, new_samples)
 
             # (batch_size * num_samples, seq_len, *target_shape)
             repeated_past_target = F.concat(

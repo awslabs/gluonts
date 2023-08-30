@@ -25,7 +25,7 @@ from gluonts.dataset import DataEntry
 from gluonts.dataset.split import TestData
 from gluonts.time_feature.seasonality import get_seasonality
 from gluonts.model import Forecast, Predictor
-from gluonts.ev import seasonal_error
+from gluonts.ev.ts_stats import seasonal_error
 from gluonts.itertools import prod
 
 logger = logging.getLogger(__name__)
@@ -70,14 +70,16 @@ def _get_data_batch(
         seasonality = get_seasonality(freq=freq)
 
     label_target = label["target"]
+    input_target = input_["target"]
     if mask_invalid_label:
         label_target = np.ma.masked_invalid(label_target)
+        input_target = np.ma.masked_invalid(input_target)
 
     other_data = {
         "label": np.expand_dims(label_target, axis=0),
         "seasonal_error": np.expand_dims(
             seasonal_error(
-                input_["target"], seasonality=seasonality, time_axis=-1
+                input_target, seasonality=seasonality, time_axis=-1
             ),
             axis=0,
         ),

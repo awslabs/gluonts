@@ -33,17 +33,16 @@ class DeepARLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        ``DeepARModel`` to be trained.
+    model_kwargs
+        Keyword arguments to construct the ``DeepARModel`` to be trained.
     loss
-        Loss function to be used for training,
-        default: ``NegativeLogLikelihood()``.
+        Loss function to be used for training.
     lr
-        Learning rate, default: ``1e-3``.
+        Learning rate.
     weight_decay
-        Weight decay regularization parameter, default: ``1e-8``.
+        Weight decay regularization parameter.
     patience
-        Patience parameter for learning rate scheduler, default: ``10``.
+        Patience parameter for learning rate scheduler.
     """
 
     @validated()

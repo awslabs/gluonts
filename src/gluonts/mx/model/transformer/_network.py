@@ -21,6 +21,7 @@ from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
 from gluonts.mx.distribution import DistributionOutput
+from gluonts.mx.util import weighted_average
 
 from .trans_decoder import TransformerDecoder
 from .trans_encoder import TransformerEncoder
@@ -240,6 +241,7 @@ class TransformerTrainingNetwork(TransformerNetwork):
         past_observed_values: Tensor,
         future_time_feat: Tensor,
         future_target: Tensor,
+        future_observed_values: Tensor,
     ) -> Tensor:
         """
         Computes the loss for training Transformer, all inputs tensors
@@ -255,6 +257,7 @@ class TransformerTrainingNetwork(TransformerNetwork):
             seq_len)
         future_time_feat : (batch_size, prediction_length, num_features)
         future_target : (batch_size, prediction_length, *target_shape)
+        future_observed_values: (batch_size, prediction_length, *target_shape)
 
         Returns
         -------
@@ -294,7 +297,15 @@ class TransformerTrainingNetwork(TransformerNetwork):
         distr = self.distr_output.distribution(distr_args, scale=scale)
         loss = distr.loss(future_target)
 
-        return loss.mean()
+        # mask loss
+        weighted_loss = weighted_average(
+            F=F,
+            x=loss,
+            weights=future_observed_values,
+            axis=1,
+        )
+
+        return weighted_loss.mean()
 
 
 class TransformerPredictionNetwork(TransformerNetwork):

@@ -13,18 +13,19 @@
 
 import functools
 import gzip
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import cast, Optional, BinaryIO
+from typing import cast, Optional, BinaryIO, List
 
 import numpy as np
 import pandas as pd
 from toolz import first, take, valmap
 
+
+from gluonts import maybe
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
-from gluonts.util import lazy_property
 
 from . import Dataset, DatasetWriter
 
@@ -112,6 +113,12 @@ class JsonLinesFile:
     start: int = 0
     n: Optional[int] = None
 
+    line_starts: List[int] = field(default_factory=list)
+
+    def __post_init__(self):
+        if not self.line_starts:
+            self.line_starts.extend(self._line_starts())
+
     def open(self):
         if self.path.suffix == ".gz":
             return gzip.open(self.path)
@@ -120,9 +127,12 @@ class JsonLinesFile:
 
     def __iter__(self):
         with self.open() as jsonl_file:
-            jsonl_file.seek(self.start)
+            jsonl_file.seek(self.line_starts[self.start])
 
-            for line_number, line in take(self.n, enumerate(jsonl_file)):
+            for line_number, line in take(
+                self.n,
+                enumerate(jsonl_file, start=self.start),
+            ):
                 try:
                     yield json.loads(line)
                 except ValueError:
@@ -131,29 +141,52 @@ class JsonLinesFile:
                     )
 
     def __len__(self):
-        return len(self.line_starts)
+        return maybe.box(self.n).unwrap_or(len(self.line_starts) - self.start)
 
-    @lazy_property
-    def line_starts(self):
-        lengths = [self.start]
+    def _line_starts(self):
+        """
+        Calculate the position for each line in the file.
+        This information can be used with ``file.seek`` to directly jump to a
+        specific line in the file.
+        """
+        line_lengths = [0]
 
         with self.open() as file_obj:
-            file_obj.seek(self.start)
+            line_lengths.extend(map(len, file_obj))
 
-            for line in take(self.n, file_obj):
-                lengths.append(len(line))
+        # let's try to save some memory
+        if line_lengths[-1] <= 2**16:
+            dtype = np.int16
+        elif line_lengths[-1] <= 2**32:
+            dtype = np.int32
+        else:
+            # this should only happen for very large files `> 4 GB`
+            dtype = np.int64
 
-        return np.cumsum(lengths[:-1])
+        return np.cumsum(line_lengths[:-1], dtype=dtype)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
-            starts = self.line_starts[idx]
-            if len(starts) == 0:
-                return JsonLinesFile(self.path, n=0)
+            # TODO: should we enable steps other than 1?
+            assert idx.step is None or idx.step == 1
 
-            return JsonLinesFile(self.path, start=starts[0], n=len(starts))
+            # normalize index
+            start, stop, _step = idx.indices(len(self))
+            idx = slice(start + self.start, stop + self.start)
 
-        assert isinstance(idx, int)
+            line_starts = self.line_starts[idx]
+            if len(line_starts) == 0:
+                return JsonLinesFile(
+                    self.path, n=0, line_starts=self.line_starts
+                )
+
+            return JsonLinesFile(
+                self.path,
+                start=idx.start,
+                n=len(line_starts),
+                line_starts=self.line_starts,
+            )
+
         return first(self[idx:])
 
 

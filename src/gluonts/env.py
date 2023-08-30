@@ -13,8 +13,19 @@
 
 
 import os
+from pathlib import Path
 
 from .core.settings import Settings
+
+
+# see: https://wiki.archlinux.org/title/XDG_Base_Directory
+if "GLUONTS_DATA" in os.environ:
+    data_path = Path(os.environ["GLUONTS_DATA"]).expanduser()
+else:
+    data_path = (
+        Path(os.environ.get("XDG_DATA_HOME", "~/.local/share")).expanduser()
+        / "gluonts"
+    )
 
 
 class Environment(Settings):
@@ -28,6 +39,15 @@ class Environment(Settings):
 
     # we want to be able to disable TQDM, for example when running in sagemaker
     use_tqdm: bool = True
+
+    data_path: Path = data_path
+
+    def get_data_path(self, create: bool = True) -> Path:
+        path = self.data_path
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+
+        return path
 
 
 env = Environment()

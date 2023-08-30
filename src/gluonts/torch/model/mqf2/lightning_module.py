@@ -35,14 +35,14 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        An MQF2MultiHorizonModel instance
+    model_kwargs
+        Keyword arguments to construct the ``MQF2MultiHorizonModel`` to be trained.
     loss
-        Distribution loss
+        Distribution loss.
     lr
-        Learning rate
+        Learning rate.
     weight_decay
-        Weight decay during training
+        Weight decay during training.
     patience
         Patience parameter for learning rate scheduler, default: ``10``.
     """

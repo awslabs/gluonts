@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from gluonts.ev import (
+from gluonts.ev.stats import (
     absolute_error,
     absolute_label,
     absolute_percentage_error,
@@ -24,8 +24,9 @@ from gluonts.ev import (
     symmetric_absolute_percentage_error,
     scaled_interval_score,
     absolute_scaled_error,
-    seasonal_error,
+    scaled_quantile_loss,
 )
+from gluonts.ev.ts_stats import seasonal_error
 
 PREDICTION_LENGTH = 5
 
@@ -190,5 +191,28 @@ def test_absolute_scaled_error():
 
             actual = absolute_scaled_error(data, forecast_type="0.5")
             expected = np.abs(label - forecast) / seasonal_err
+
+            np.testing.assert_almost_equal(actual, expected)
+
+
+def test_scaled_quantile_loss():
+    for label in TIME_SERIES:
+        for forecast in TIME_SERIES:
+            # applying `seasonal_error` on the label is not realistic but
+            # at least, the seasonal error function gets used this way
+            seasonal_err = seasonal_error(label, seasonality=2)
+            data = {
+                "label": label,
+                "0.9": forecast,
+                "seasonal_error": seasonal_err,
+            }
+
+            actual = scaled_quantile_loss(data, 0.9)
+            expected = (
+                2
+                * (label - forecast)
+                * (0.9 - (label < forecast))
+                / seasonal_err
+            )
 
             np.testing.assert_almost_equal(actual, expected)

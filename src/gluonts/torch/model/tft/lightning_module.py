@@ -31,14 +31,14 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        ``TemporalFusionTransformerModel`` to be trained.
+    model_kwargs
+        Keyword arguments to construct the ``TemporalFusionTransformerModel`` to be trained.
     lr
-        Learning rate, default: ``1e-3``.
+        Learning rate.
     weight_decay
-        Weight decay regularization parameter, default: ``1e-8``.
+        Weight decay regularization parameter.
     patience
-        Patience parameter for learning rate scheduler, default: ``10``.
+        Patience parameter for learning rate scheduler.
     """
 
     @validated()
