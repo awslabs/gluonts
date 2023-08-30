@@ -106,7 +106,7 @@ class Predictor:
             with (path / "gluonts-config.json").open("r") as fp:
                 tpe_str = json.load(fp)["type"]
         else:
-            logger.warn(
+            logger.warning(
                 "Deserializing an old version of gluonts predictor. "
                 "Support for old gluonts predictors will be removed in v0.16. "
                 "Consider serializing this predictor again.",
