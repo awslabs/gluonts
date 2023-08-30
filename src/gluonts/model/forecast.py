@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import re
+import logging
 from dataclasses import field
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
@@ -21,6 +22,8 @@ from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
 from gluonts import maybe
+
+logger = logging.getLogger(__name__)
 
 
 def _linear_interpolation(
@@ -656,7 +659,11 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-
+        logger.warning(
+            "The mean prediction is not stored in the forecast data; "
+            "the median is being returned instead. "
+            "This behaviour may change in the future."
+        )
         return self.quantile("p50")
 
     def dim(self) -> int:
