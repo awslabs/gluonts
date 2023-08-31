@@ -87,7 +87,7 @@ def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
 
         coverage = mean(Y <= \hat{Y})
     """
-    return np.mean(target <= forecast)
+    return float(np.mean(target <= forecast))
 
 
 def mase(
