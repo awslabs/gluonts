@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from dataclasses import field
 from typing import List
 
 from pydantic import BaseModel
@@ -22,10 +21,8 @@ from gluonts.core import serde
 @serde.dataclass
 class Estimator:
     prediction_length: int
-    context_length: int = field(
-        default_factory=lambda: serde.OrElse(
-            lambda prediction_length: prediction_length * 2
-        )
+    context_length: int = serde.OrElse(
+        lambda prediction_length: prediction_length * 2
     )
 
     use_feat_static_cat: bool = True

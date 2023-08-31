@@ -20,7 +20,7 @@ import tempfile
 import time
 import typing
 from contextlib import closing, contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
@@ -118,7 +118,7 @@ def free_port() -> int:
 class Server:
     env: ServeEnv
     forecaster_type: Optional[Type[Predictor]]
-    settings: Settings = field(default_factory=Settings)
+    settings: Settings = Settings()
 
     def run(self):
         gunicorn_app = make_gunicorn_app(
