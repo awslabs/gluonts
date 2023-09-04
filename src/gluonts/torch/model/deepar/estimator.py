@@ -181,9 +181,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
         nonnegative_pred_samples: bool = False,
+        max_epochs: int = 100,
     ) -> None:
         default_trainer_kwargs = {
-            "max_epochs": 100,
+            "max_epochs": max_epochs,
             "gradient_clip_val": 10.0,
         }
         if trainer_kwargs is not None:
