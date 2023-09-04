@@ -110,8 +110,11 @@ class PyTorchPredictor(RepresentablePredictor):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        predictor.prediction_net.load_state_dict(
-            torch.load(path / "prediction-net-state.pt", map_location=device)
+        predictor.to(device)
+        state_dict = torch.load(
+            path / "prediction-net-state.pt",
+            map_location=device,
         )
+        predictor.prediction_net.load_state_dict(state_dict)
 
         return predictor
