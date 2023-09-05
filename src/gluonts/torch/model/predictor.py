@@ -54,12 +54,12 @@ class PyTorchPredictor(RepresentablePredictor):
     ) -> None:
         super().__init__(prediction_length, lead_time=lead_time)
         self.input_names = input_names
-        self.prediction_net = prediction_net.to(device)
         self.batch_size = batch_size
         self.input_transform = input_transform
         self.forecast_generator = forecast_generator
         self.output_transform = output_transform
         self.device = resolve_device(device)
+        self.prediction_net = prediction_net.to(self.device)
         self.required_fields = ["forecast_start", "item_id", "info"]
 
     def to(self, device: Union[str, torch.device]) -> "PyTorchPredictor":
