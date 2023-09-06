@@ -28,6 +28,13 @@ from .util import Forecaster, forecaster_type_by_name
 
 logger = logging.getLogger(__name__)
 
+try:
+    import torch
+
+    torch.set_num_threads(1)
+except ModuleNotFoundError:
+    pass
+
 
 @click.group()
 def cli() -> None:
