@@ -164,6 +164,7 @@ def make_gunicorn_app(
         config={
             "bind": settings.sagemaker_server_bind,
             "workers": settings.number_of_workers,
+            "worker_class": "uvicorn.workers.UvicornWorker",
             "timeout": settings.sagemaker_server_timeout,
         },
     )
