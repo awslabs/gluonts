@@ -26,8 +26,11 @@ def resolve_device(
     The ``"auto"`` device is resolved to ``"cuda"`` if CUDA is available,
     and to ``"cpu"`` otherwise. Otherwise the device is unchanged.
     """
-    if isinstance(device, str) and device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        return "cpu"
+
     return device
 
 
