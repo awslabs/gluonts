@@ -13,6 +13,7 @@
 
 import logging
 import traceback
+import multiprocessing as mp
 from pathlib import Path
 from typing import Optional
 
@@ -148,6 +149,8 @@ if __name__ == "__main__":
     import os
 
     from gluonts.env import env
+
+    mp.set_start_method("spawn")
 
     if "TRAINING_JOB_NAME" in os.environ:
         env._push(use_tqdm=False)
