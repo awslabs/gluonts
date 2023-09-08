@@ -13,7 +13,6 @@
 
 import logging
 import traceback
-import multiprocessing as mp
 from pathlib import Path
 from typing import Optional
 
@@ -150,6 +149,7 @@ if __name__ == "__main__":
 
     from gluonts.env import env
 
+    import torch.multiprocessing as mp
     mp.set_start_method("spawn")
 
     if "TRAINING_JOB_NAME" in os.environ:
