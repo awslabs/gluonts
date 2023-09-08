@@ -10,8 +10,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-tags: true
+    - name: Get tags
+      run: git fetch --tags origin
     - name: Set up Python 3.8
       uses: actions/setup-python@v4
       with:
