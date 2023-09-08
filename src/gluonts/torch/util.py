@@ -11,10 +11,27 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Union
 import inspect
 
 import torch
+
+
+def resolve_device(
+    device: Union[str, torch.device]
+) -> Union[str, torch.device]:
+    """
+    Resolves a torch device to the most appropriate one.
+
+    The ``"auto"`` device is resolved to ``"cuda"`` if CUDA is available,
+    and to ``"cpu"`` otherwise. Otherwise the device is unchanged.
+    """
+    if device == "auto":
+        if torch.cuda.is_available():
+            return "cuda"
+        return "cpu"
+
+    return device
 
 
 def copy_parameters(
