@@ -15,6 +15,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from gluonts import zebras as zb
+
 from gluonts.time_feature import (
     Constant,
     TimeFeature,
@@ -38,7 +40,7 @@ from gluonts.time_feature import (
 
 
 @pytest.mark.parametrize(
-    "feature, index",
+    "feature, pd_index",
     [
         (
             second_of_minute,
@@ -80,16 +82,21 @@ from gluonts.time_feature import (
     ],
 )
 def test_feature_normalized_bounds(
-    feature: TimeFeature, index: pd.PeriodIndex
+    feature: TimeFeature, pd_index: pd.PeriodIndex
 ):
-    values = feature(index)
-    assert isinstance(values, np.ndarray)
-    for v in values:
-        assert -0.5 <= v <= 0.5
+    zb_index = zb.periods(pd_index[0], pd_index.freqstr, len(pd_index))
+
+    for index in [pd_index, zb_index]:
+        values = feature(index)
+        assert isinstance(values, np.ndarray)
+        for v in values:
+            assert -0.5 <= v <= 0.5
+
+    assert np.array_equal(feature(zb_index), feature(pd_index))
 
 
 @pytest.mark.parametrize(
-    "feature, index, cardinality",
+    "feature, pd_index, cardinality",
     [
         (
             second_of_minute_index,
@@ -138,12 +145,17 @@ def test_feature_normalized_bounds(
     ],
 )
 def test_feature_unnormalized_bounds(
-    feature: TimeFeature, index: pd.DatetimeIndex, cardinality: int
+    feature: TimeFeature, pd_index: pd.DatetimeIndex, cardinality: int
 ):
-    values = feature(index)
-    assert isinstance(values, np.ndarray)
-    counts = [0] * cardinality
-    for v in values:
-        assert 0 <= int(v) < cardinality
-        counts[int(v)] += 1
-    assert all(c > 0 for c in counts)
+    zb_index = zb.periods(pd_index[0], pd_index.freqstr, len(pd_index))
+
+    for index in pd_index, zb_index:
+        values = feature(index)
+        assert isinstance(values, np.ndarray)
+        counts = [0] * cardinality
+        for v in values:
+            assert 0 <= int(v) < cardinality
+            counts[int(v)] += 1
+        assert all(c > 0 for c in counts)
+
+    assert np.array_equal(feature(zb_index), feature(pd_index))
