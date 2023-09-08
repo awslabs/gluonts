@@ -144,13 +144,13 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
 
 if __name__ == "__main__":
+    import multiprocessing as mp
+    mp.set_start_method("spawn", force=True)
+    
     import logging
     import os
 
     from gluonts.env import env
-
-    import torch.multiprocessing as mp
-    mp.set_start_method("spawn")
 
     if "TRAINING_JOB_NAME" in os.environ:
         env._push(use_tqdm=False)
