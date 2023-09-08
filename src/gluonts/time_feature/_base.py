@@ -40,7 +40,7 @@ def second_of_minute_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Second of minute encoded as zero-based index, between 0 and 59.
     """
-    return np.asarray(index.second, dtype="float")
+    return np.asarray(index.second)
 
 
 def minute_of_hour(index: pd.PeriodIndex) -> np.ndarray:
@@ -55,7 +55,7 @@ def minute_of_hour_index(index: pd.PeriodIndex) -> np.ndarray:
     Minute of hour encoded as zero-based index, between 0 and 59.
     """
 
-    return np.asarray(index.minute, dtype=float)
+    return np.asarray(index.minute)
 
 
 def hour_of_day(index: pd.PeriodIndex) -> np.ndarray:
@@ -71,7 +71,7 @@ def hour_of_day_index(index: pd.PeriodIndex) -> np.ndarray:
     Hour of day encoded as zero-based index, between 0 and 23.
     """
 
-    return np.asarray(index.hour, dtype=float)
+    return np.asarray(index.hour)
 
 
 def day_of_week(index: pd.PeriodIndex) -> np.ndarray:
@@ -87,7 +87,7 @@ def day_of_week_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of week encoded as zero-based index, between 0 and 6.
     """
 
-    return np.asarray(index.dayofweek, dtype=float)
+    return np.asarray(index.dayofweek)
 
 
 def day_of_month(index: pd.PeriodIndex) -> np.ndarray:
@@ -104,7 +104,7 @@ def day_of_month_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of month encoded as zero-based index, between 0 and 11.
     """
 
-    return np.asarray(index.day, dtype=float) - 1
+    return np.asarray(index.day) - 1
 
 
 def day_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -120,7 +120,7 @@ def day_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of year encoded as zero-based index, between 0 and 365.
     """
 
-    return np.asarray(index.dayofyear, dtype=float) - 1
+    return np.asarray(index.dayofyear) - 1
 
 
 def month_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -136,7 +136,7 @@ def month_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     Month of year encoded as zero-based index, between 0 and 11.
     """
 
-    return np.asarray(index.month, dtype=float) - 1
+    return np.asarray(index.month) - 1
 
 
 def week_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -170,7 +170,7 @@ def week_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     except AttributeError:
         week = index.week
 
-    return np.asarray(week, dtype=float) - 1
+    return np.asarray(week) - 1
 
 
 class Constant(BaseModel):
