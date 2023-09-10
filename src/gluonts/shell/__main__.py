@@ -145,8 +145,9 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
 if __name__ == "__main__":
     import multiprocessing as mp
+
     mp.set_start_method("spawn", force=True)
-    
+
     import logging
     import os
 
