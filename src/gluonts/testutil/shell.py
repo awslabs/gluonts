@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
+from waitress import serve as waitress_serve
 
 import requests
 from gluonts.dataset.common import DataEntry
@@ -33,7 +34,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
-from gluonts.shell.serve import Settings, make_gunicorn_app
+from gluonts.shell.serve import Settings, make_flask_app
 
 
 class ServerFacade:
@@ -121,10 +122,10 @@ class Server:
     settings: Settings = Settings()
 
     def run(self):
-        gunicorn_app = make_gunicorn_app(
+        flask_app = make_flask_app(
             self.env, self.forecaster_type, self.settings
         )
-        gunicorn_app.run()
+        waitress_serve(flask_app, listen="*:8080")
 
 
 @contextmanager
@@ -162,10 +163,7 @@ def temporary_server(
     process.start()
 
     endpoint = ServerFacade(
-        base_address="http://{address}:{port}".format(
-            address=settings.sagemaker_server_address,
-            port=settings.sagemaker_server_port,
-        )
+        base_address=f"http://{settings.sagemaker_server_address}:{settings.sagemaker_server_port}"
     )
 
     # try to ping the server (signalling liveness)
