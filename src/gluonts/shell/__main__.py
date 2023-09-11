@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
-from waitress import serve as waitress_serve
+import waitress
 
 from gluonts.env import env as gluonts_env
 from gluonts.shell.serve import Settings
@@ -89,7 +89,7 @@ def serve_command(
         settings=Settings(),
     )
 
-    waitress_serve(flask_app, listen="*:8080")
+    waitress.serve(flask_app, listen="*:8080")
 
 
 @cli.command(name="train")

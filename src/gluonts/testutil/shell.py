@@ -19,12 +19,12 @@ import socket
 import tempfile
 import time
 import typing
+import waitress
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from multiprocessing.context import ForkContext
 from pathlib import Path
 from typing import Any, ContextManager, Dict, Iterable, List, Optional, Type
-from waitress import serve as waitress_serve
 
 import requests
 from gluonts.dataset.common import DataEntry
@@ -125,7 +125,9 @@ class Server:
         flask_app = make_flask_app(
             self.env, self.forecaster_type, self.settings
         )
-        waitress_serve(flask_app, listen="*:8080")
+        waitress.serve(
+            flask_app, listen=f"*:{self.settings.sagemaker_server_port}"
+        )
 
 
 @contextmanager
@@ -163,7 +165,10 @@ def temporary_server(
     process.start()
 
     endpoint = ServerFacade(
-        base_address=f"http://{settings.sagemaker_server_address}:{settings.sagemaker_server_port}"
+        base_address="http://{address}:{port}".format(
+            address=settings.sagemaker_server_address,
+            port=settings.sagemaker_server_port,
+        )
     )
 
     # try to ping the server (signalling liveness)
