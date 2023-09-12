@@ -18,16 +18,16 @@ from gluonts.meta.export import re_export
 
 __all__ = re_export(
     __name__,
-    ".model.estimator.PyTorchLightningEstimator",
-    ".model.predictor.PyTorchPredictor",
-    ".model.deep_npts.DeepNPTSEstimator",
-    ".model.deepar.DeepAREstimator",
-    ".model.simple_feedforward.SimpleFeedForwardEstimator",
-    ".model.tft.TemporalFusionTransformerEstimator",
-    ".model.wavenet.WaveNetEstimator",
-    ".model.d_linear.DLinearEstimator",
-    ".model.patch_tst.PatchTSTEstimator",
-    ".model.lag_tst.LagTSTEstimator",
+    ".model.estimator:PyTorchLightningEstimator",
+    ".model.predictor:PyTorchPredictor",
+    ".model.deep_npts:DeepNPTSEstimator",
+    ".model.deepar:DeepAREstimator",
+    ".model.simple_feedforward:SimpleFeedForwardEstimator",
+    ".model.tft:TemporalFusionTransformerEstimator",
+    ".model.wavenet:WaveNetEstimator",
+    ".model.d_linear:DLinearEstimator",
+    ".model.patch_tst:PatchTSTEstimator",
+    ".model.lag_tst:LagTSTEstimator",
 )
 
 

@@ -29,23 +29,25 @@ class Exports:
 
     def re_export(self, *paths):
         for path in paths:
-            if path.startswith("."):
-                path = self.name + path
+            path = ".".join([self.name, path])
 
-            module_name, *name = path.rsplit(".", 1)
-
-            if name:
-                name = name[0]
-            else:
+            parts = path.rsplit(":", 1)
+            if len(parts) == 1:
+                module_name = parts[0]
                 name = ""
+            else:
+                module_name, name = parts
 
             module = import_module(module_name)
-            value = getattr(module, name)
+
+            if name:
+                value = getattr(module, name)
+                if hasattr(value, "__module__"):
+                    value.__module__ = self.name
+            else:
+                value = module
 
             setattr(self.module, name, value)
-
-            if hasattr(value, "__module__"):
-                value.__module__ = self.name
 
             self.exports[name] = value
 
@@ -67,7 +69,32 @@ class Exports:
         return list(self.exports)[index]
 
 
-def re_export(module, *names):
+def re_export(module, *names, **kwargs):
+    """Import sub-paths and assign `__module__` on definitions.
+
+    Often there is a difference between the intended external interface and
+    internal code structure. For example, the ``Predictor`` class is defined
+    in ``gluonts/model/predictor.py``, but the canonical path is
+    ``gluonts.model.Predictor`` and not ``gluonts.model.predictor.Predictor``.
+
+    The desired behaviour can be achieved using the following in
+    ``model/__init__.py``::
+
+        __all__ = re_export(
+            __name__,
+            "estimator:Estimator",
+            "predictor:Predictor",
+            ...
+        )
+
+    """
+
+    names = list(names)
+
+    for base, paths in kwargs.items():
+        for path in paths:
+            names.append(":".join([base, path]))
+
     exports = Exports(module)
     for name in names:
         exports.re_export(name)

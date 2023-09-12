@@ -11,21 +11,25 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = [
-    "Estimator",
-    "IncrementallyTrainable",
-    "Predictor",
-    "Forecast",
-    "SampleForecast",
-    "QuantileForecast",
-    "Input",
-    "InputSpec",
-    "evaluate_forecasts",
-    "evaluate_model",
-]
+from gluonts.meta.export import re_export
 
-from .estimator import Estimator, IncrementallyTrainable
-from .predictor import Predictor
-from .forecast import Forecast, SampleForecast, QuantileForecast
-from .inputs import Input, InputSpec
-from .evaluation import evaluate_forecasts, evaluate_model
+__all__ = re_export(
+    __name__,
+    # NOTE: order is important! we need to import from predictor and forecast
+    # first, otherwise we get circular imports
+    predictor=["Predictor"],
+    forecast=[
+        "Forecast",
+        "SampleForecast",
+        "QuantileForecast",
+    ],
+    estimator=[
+        "Estimator",
+        "IncrementallyTrainable",
+    ],
+    evaluation=[
+        "evaluate_forecasts",
+        "evaluate_model",
+    ],
+    inputs=["Input", "InputSpec"],
+)
