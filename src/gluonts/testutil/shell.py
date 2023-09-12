@@ -19,6 +19,7 @@ import socket
 import tempfile
 import time
 import typing
+import waitress
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from multiprocessing.context import ForkContext
@@ -33,7 +34,7 @@ from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv, TrainEnv
 from gluonts.shell.sagemaker import ServePaths, TrainPaths
 from gluonts.shell.sagemaker.params import encode_sagemaker_parameters
-from gluonts.shell.serve import Settings, make_gunicorn_app
+from gluonts.shell.serve import Settings, make_flask_app
 
 
 class ServerFacade:
@@ -121,10 +122,12 @@ class Server:
     settings: Settings = Settings()
 
     def run(self):
-        gunicorn_app = make_gunicorn_app(
+        flask_app = make_flask_app(
             self.env, self.forecaster_type, self.settings
         )
-        gunicorn_app.run()
+        waitress.serve(
+            flask_app, listen=f"*:{self.settings.sagemaker_server_port}"
+        )
 
 
 @contextmanager

@@ -21,6 +21,7 @@ jobs:
         pip install .
         pip install click black mypy
         pip install types-python-dateutil
+        pip install types-waitress
     - name: Style and type checks
       run: |
         just black

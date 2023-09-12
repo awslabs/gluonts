@@ -1,2 +1,2 @@
 flask~=2.0
-gunicorn~=19.9
+waitress~=2.1.2
