@@ -30,6 +30,7 @@ __all__ = [
 
 from typing import TypeVar
 
+from . import TimeSeries, TimeFrame, SplitFrame, Periods, Freq  # type: ignore
 
 Batchable = TypeVar("Batchable", TimeSeries, TimeFrame, SplitFrame)
 
