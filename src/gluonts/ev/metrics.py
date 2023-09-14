@@ -28,6 +28,8 @@ from typing_extensions import Protocol, runtime_checkable, Self
 
 import numpy as np
 
+from gluonts.itertools import join_items
+
 from .aggregations import Aggregation, Mean, Sum
 from .stats import (
     error,
@@ -89,6 +91,9 @@ class Metric:
     def get(self) -> np.ndarray:
         raise NotImplementedError
 
+    def reduce(self, other):
+        raise NotImplementedError
+
 
 @dataclass
 class DirectMetric(Metric):
@@ -104,6 +109,11 @@ class DirectMetric(Metric):
 
     def get(self) -> np.ndarray:
         return self.aggregate.get()
+
+    def reduce(self, other):
+        return DirectMetric(
+            self.name, self.stat, self.aggregate.reduce(other.aggregate)
+        )
 
 
 @dataclass
@@ -129,6 +139,20 @@ class DerivedMetric(Metric):
                 name: evaluator.get()
                 for name, evaluator in self.metrics.items()
             }
+        )
+
+    def reduce(self, other):
+        metrics = {
+            key: left.reduce(right)
+            for key, left, right in join_items(
+                self.metrics, other.metrics, "strict"
+            )
+        }
+
+        return DerivedMetric(
+            self.name,
+            metrics,
+            self.post_process,
         )
 
 
