@@ -73,11 +73,11 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self,
         freq: str,
         prediction_length: int,
-        n_bins: int = 1024,
-        n_residual_channels: int = 24,
-        n_skip_channels: int = 32,
+        num_bins: int = 1024,
+        num_residual_channels: int = 24,
+        num_skip_channels: int = 32,
         dilation_depth: Optional[int] = None,
-        n_stacks: int = 1,
+        num_stacks: int = 1,
         temperature: float = 1.0,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
@@ -109,19 +109,19 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             Frequency of the time series
         prediction_length
             Length of the prediction horizon
-        n_bins, optional
-            Number of bins used for quantization of the time series,
+        num_bins, optional
+            Number ofum bins used for quantization of the time series,
             by default 1024
-        n_residual_channels, optional
+        num_residual_channels, optional
             Number of residual channels in wavenet architecture, by default 24
-        n_skip_channels, optional
+        num_skip_channels, optional
             Number of skip channels in wavenet architecture, by default 32
         dilation_depth, optional
             Number of dilation layers in wavenet architecture. If set to None
             (default), dialation_depth is set such that the receptive length
             is at least as long as typical seasonality for the frequency and
             at least 2 * prediction_length, by default None
-        n_stacks, optional
+        num_stacks, optional
             Number of dilation stacks in wavenet architecture, by default 1
         temperature, optional
             Temparature used for sampling from softmax distribution,
@@ -183,10 +183,10 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self.num_feat_static_real = num_feat_static_real
         self.cardinality = cardinality
         self.embedding_dimension = embedding_dimension
-        self.n_bins = n_bins
-        self.n_residual_channels = n_residual_channels
-        self.n_skip_channels = n_skip_channels
-        self.n_stacks = n_stacks
+        self.num_bins = num_bins
+        self.num_residual_channels = num_residual_channels
+        self.num_skip_channels = num_skip_channels
+        self.num_stacks = num_stacks
         self.time_features = unwrap_or(
             time_features, time_features_from_frequency_str(freq)
         )
@@ -209,7 +209,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self.negative_data = negative_data
         low = -10.0 if self.negative_data else 0
         high = 10.0
-        bin_centers = np.linspace(low, high, self.n_bins)
+        bin_centers = np.linspace(low, high, self.num_bins)
         bin_edges = np.concatenate(
             [[-1e20], (bin_centers[1:] + bin_centers[:-1]) / 2.0, [1e20]]
         )
@@ -239,7 +239,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             d = 1
             while (
                 WaveNet.get_receptive_field(
-                    dilation_depth=d, n_stacks=n_stacks
+                    dilation_depth=d, num_stacks=num_stacks
                 )
                 < goal_receptive_length
             ):
@@ -248,7 +248,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         else:
             self.dilation_depth = dilation_depth
         self.context_length = WaveNet.get_receptive_field(
-            dilation_depth=self.dilation_depth, n_stacks=n_stacks
+            dilation_depth=self.dilation_depth, num_stacks=num_stacks
         )
 
     def create_transformation(self) -> Transformation:
@@ -369,10 +369,10 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             weight_decay=self.weight_decay,
             model_kwargs=dict(
                 bin_values=self.bin_centers,
-                n_residual_channels=self.n_residual_channels,
-                n_skip_channels=self.n_skip_channels,
+                num_residual_channels=self.num_residual_channels,
+                num_skip_channels=self.num_skip_channels,
                 dilation_depth=self.dilation_depth,
-                n_stacks=self.n_stacks,
+                num_stacks=self.num_stacks,
                 num_feat_dynamic_real=1
                 + self.num_feat_dynamic_real
                 + len(self.time_features),
@@ -380,7 +380,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
                 cardinality=self.cardinality,
                 embedding_dimension=self.embedding_dimension,
                 pred_length=self.prediction_length,
-                n_parallel_samples=self.num_parallel_samples,
+                num_parallel_samples=self.num_parallel_samples,
                 temperature=self.temperature,
             ),
         )
