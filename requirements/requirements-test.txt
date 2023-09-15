@@ -8,4 +8,4 @@ ujson
 orjson
 requests
 holidays~=0.9
-matplotlib
+matplotlib~=3.6
