@@ -316,7 +316,7 @@ class Forecast:
         # If no color is provided, we use matplotlib's internal color cycle.
         # Note: This is an internal API and might change in the future.
         color = maybe.unwrap_or_else(
-            color, lambda: next(ax._get_lines.prop_cycler)["color"]
+            color, lambda: ax._get_lines.get_next_color()
         )
 
         # Plot median forecast
