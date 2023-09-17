@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import re
+import logging
 from dataclasses import field
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
@@ -21,6 +22,8 @@ from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
 from gluonts import maybe
+
+logger = logging.getLogger(__name__)
 
 
 def _linear_interpolation(
@@ -313,7 +316,7 @@ class Forecast:
         # If no color is provided, we use matplotlib's internal color cycle.
         # Note: This is an internal API and might change in the future.
         color = maybe.unwrap_or_else(
-            color, lambda: next(ax._get_lines.prop_cycler)["color"]
+            color, lambda: ax._get_lines.get_next_color()
         )
 
         # Plot median forecast
@@ -656,7 +659,11 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-
+        logger.warning(
+            "The mean prediction is not stored in the forecast data; "
+            "the median is being returned instead. "
+            "This behaviour may change in the future."
+        )
         return self.quantile("p50")
 
     def dim(self) -> int:

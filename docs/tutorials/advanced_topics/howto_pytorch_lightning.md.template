@@ -118,7 +118,7 @@ class FeedForwardNetwork(nn.Module):
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale
     
-    def get_predictor(self, input_transform, batch_size=32, device=None):
+    def get_predictor(self, input_transform, batch_size=32):
         return PyTorchPredictor(
             prediction_length=self.prediction_length,
             input_names=["past_target"],
@@ -126,7 +126,6 @@ class FeedForwardNetwork(nn.Module):
             batch_size=batch_size,
             input_transform=input_transform,
             forecast_generator=DistributionForecastGenerator(self.distr_output),
-            device=device,
         )
 ```
 

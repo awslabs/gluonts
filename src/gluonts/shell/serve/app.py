@@ -37,6 +37,7 @@ OutputType = Literal["mean", "samples", "quantiles"]
 
 
 class ForecastConfig(BaseModel):
+    freq: str
     num_samples: int = Field(100, alias="num_eval_samples")
     output_types: Set[OutputType] = {"quantiles", "mean"}
     # FIXME: validate list elements
