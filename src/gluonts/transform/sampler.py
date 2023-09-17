@@ -14,7 +14,7 @@
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 from gluonts.dataset.stat import ScaleHistogram
 
@@ -31,9 +31,7 @@ class InstanceSampler(BaseModel):
     axis: int = -1
     min_past: int = 0
     min_future: int = 0
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def _get_bounds(self, ts: np.ndarray) -> Tuple[int, int]:
         return (

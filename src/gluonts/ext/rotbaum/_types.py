@@ -14,7 +14,7 @@
 from typing import List, Union, Optional
 
 import numpy as np
-from pydantic import BaseModel, root_validator
+from pydantic import model_validator, BaseModel
 
 
 class FeatureImportanceResult(BaseModel):
@@ -25,7 +25,8 @@ class FeatureImportanceResult(BaseModel):
     feat_dynamic_real: List[Union[List[float], float]]
     feat_dynamic_cat: List[Union[List[float], float]]
 
-    @root_validator()
+    @model_validator()
+    @classmethod
     def check_shape(cls, values):
         """
         Validate the second dimension is the same for 2d results and all fields share the same dimensionality
@@ -60,5 +61,5 @@ class FeatureImportanceResult(BaseModel):
 
 
 class ExplanationResult(BaseModel):
-    time_quantile_aggregated_result: Optional[FeatureImportanceResult]
+    time_quantile_aggregated_result: Optional[FeatureImportanceResult] = None
     quantile_aggregated_result: FeatureImportanceResult

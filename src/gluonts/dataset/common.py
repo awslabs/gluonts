@@ -33,6 +33,7 @@ from gluonts.exceptions import GluonTSDataError
 
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl, DatasetWriter
+from pydantic import ConfigDict
 
 
 arrow: Optional[ModuleType]
@@ -63,8 +64,7 @@ class MetaData(pydantic.BaseModel):
 
     prediction_length: Optional[int] = None
 
-    class Config(pydantic.BaseConfig):
-        allow_population_by_field_name = True
+    model_config = ConfigDict(allow_population_by_field_name=True)
 
 
 class SourceContext(NamedTuple):
@@ -277,8 +277,9 @@ class ProcessStartField(pydantic.BaseModel):
         Frequency to use. This must be a valid Pandas frequency string.
     """
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        populate_by_name=True, arbitrary_types_allowed=True
+    )
 
     freq: Union[str, pd.DateOffset]
     use_timestamp: bool = False

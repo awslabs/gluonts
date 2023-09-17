@@ -19,7 +19,7 @@ from functools import singledispatch
 from typing import Any, Type, TypeVar
 
 import numpy as np
-from pydantic import BaseConfig, BaseModel, ValidationError, create_model
+from pydantic import ConfigDict, BaseModel, ValidationError, create_model
 
 from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
@@ -217,15 +217,7 @@ class BaseValidatedInitializerModel(BaseModel):
         Decorates an initializer methods with argument validation logic.
     """
 
-    class Config(BaseConfig):
-        """
-        `Config <https://pydantic-docs.helpmanual.io/#model-config>`_ for the
-        Pydantic model inherited by all :func:`validated` initializers.
-
-        Allows the use of arbitrary type annotations in initializer parameters.
-        """
-
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def validated(base_model=None):
@@ -306,7 +298,7 @@ def validated(base_model=None):
         if base_model is None:
             PydanticModel = create_model(
                 f"{init_clsnme}Model",
-                __config__=BaseValidatedInitializerModel.Config,
+                __config__=BaseValidatedInitializerModel.model_config,
                 **init_fields,
             )
         else:

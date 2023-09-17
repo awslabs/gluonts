@@ -18,7 +18,7 @@ from typing import List, Optional, Type, Union
 
 from flask import Flask
 from gunicorn.app.base import BaseApplication
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 import gluonts
 from gluonts.core import fqname_for
@@ -40,9 +40,7 @@ MB = 1024 * 1024
 
 
 class Settings(BaseSettings):
-    # see: https://pydantic-docs.helpmanual.io/#settings
-    class Config:
-        env_prefix = ""
+    model_config = SettingsConfigDict(env_prefix="")
 
     model_server_workers: Optional[int] = None
     max_content_length: int = 6 * MB

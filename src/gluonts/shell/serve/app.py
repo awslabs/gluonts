@@ -22,7 +22,7 @@ from typing import Callable, Iterable, List, NamedTuple, Set, Tuple
 from typing_extensions import Literal
 
 from flask import Flask, Response, jsonify, request
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.jsonl import encode_json
@@ -41,11 +41,7 @@ class ForecastConfig(BaseModel):
     output_types: Set[OutputType] = {"quantiles", "mean"}
     # FIXME: validate list elements
     quantiles: List[str] = ["0.1", "0.5", "0.9"]
-
-    class Config:
-        allow_population_by_field_name = True
-        # store additional fields
-        extra = "allow"
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     def as_json_dict(self, forecast: Forecast) -> dict:
         result = {}

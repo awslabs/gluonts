@@ -16,7 +16,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from .dyn import install_and_restart
 from .params import decode_sagemaker_parameters
@@ -30,17 +30,17 @@ class DataConfig(BaseModel):
     RecordWrapperType: Optional[str] = None
 
 
-class InpuDataConfig(BaseModel):
-    __root__: Dict[str, DataConfig]
+class InpuDataConfig(RootModel):
+    root: Dict[str, DataConfig]
 
     def __getitem__(self, item):
-        return self.__root__[item]
+        return self.root[item]
 
     def channels(self):
-        return self.__root__
+        return self.root
 
     def channel_names(self):
-        return list(self.__root__.keys())
+        return list(self.root.keys())
 
 
 class TrainPaths:

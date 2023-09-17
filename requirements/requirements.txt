@@ -1,6 +1,7 @@
 numpy~=1.16
 pandas>=1.0,<3
-pydantic~=1.7
+pydantic~=2.3
+pydantic-settings
 tqdm~=4.23
 toolz~=0.10
 

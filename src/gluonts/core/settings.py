@@ -305,7 +305,7 @@ class Settings:
             # assignment: `settings.foo = {"b": 1}` should only set `b`
             # Thus we check whether we are dealing with a pydantic model and if
             # we are also assigning a `dict`:
-            type_ = model.__fields__[key].type_
+            type_ = model.model_fields[key].annotation
 
             if issubclass(type_, pydantic.BaseModel) and isinstance(
                 value, dict
