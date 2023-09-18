@@ -25,15 +25,15 @@ class CausalDilatedResidualLayer(nn.Module):
     @validated()
     def __init__(
         self,
-        n_residual_channels: int,
-        n_skip_channels: int,
+        num_residual_channels: int,
+        num_skip_channels: int,
         dilation: int,
         kernel_size: int,
         return_dense_output: bool,
     ):
         super().__init__()
-        self.n_residual_channels = n_residual_channels
-        self.n_skip_channels = n_skip_channels
+        self.num_residual_channels = num_residual_channels
+        self.num_skip_channels = num_skip_channels
         self.dilation = dilation
         self.kernel_size = kernel_size
         self.return_dense_output = return_dense_output
@@ -41,8 +41,8 @@ class CausalDilatedResidualLayer(nn.Module):
         # Modules
         self.conv_sigmoid = nn.Sequential(
             nn.Conv1d(
-                in_channels=n_residual_channels,
-                out_channels=n_residual_channels,
+                in_channels=num_residual_channels,
+                out_channels=num_residual_channels,
                 kernel_size=kernel_size,
                 dilation=dilation,
             ),
@@ -50,23 +50,23 @@ class CausalDilatedResidualLayer(nn.Module):
         )
         self.conv_tanh = nn.Sequential(
             nn.Conv1d(
-                in_channels=n_residual_channels,
-                out_channels=n_residual_channels,
+                in_channels=num_residual_channels,
+                out_channels=num_residual_channels,
                 kernel_size=kernel_size,
                 dilation=dilation,
             ),
             nn.Tanh(),
         )
         self.conv_skip = nn.Conv1d(
-            in_channels=n_residual_channels,
-            out_channels=n_skip_channels,
+            in_channels=num_residual_channels,
+            out_channels=num_skip_channels,
             kernel_size=1,
         )
 
         if self.return_dense_output:
             self.conv_residual = nn.Conv1d(
-                in_channels=n_residual_channels,
-                out_channels=n_residual_channels,
+                in_channels=num_residual_channels,
+                out_channels=num_residual_channels,
                 kernel_size=1,
             )
 
@@ -91,13 +91,13 @@ class WaveNet(nn.Module):
         Prediction length.
     bin_values
         List of bin values.
-    n_residual_channels
+    num_residual_channels
         Number of residual channels.
-    n_skip_channels
+    num_skip_channels
         Number of skip channels.
     dilation_depth
         The depth of the dilated convolution.
-    n_stacks
+    num_stacks
         The number of dilation stacks.
     num_feat_dynamic_real, optional
         The number of dynamic real features, by default 1
@@ -107,7 +107,7 @@ class WaveNet(nn.Module):
         The cardinalities of static categorical features, by default [1]
     embedding_dimension, optional
         The dimension of the embeddings for categorical features, by default 5
-    n_parallel_samples, optional
+    num_parallel_samples, optional
         The number of parallel samples to generate during inference.
         This parameter is only used in inference mode, by default 100
     temperature, optional
@@ -120,22 +120,22 @@ class WaveNet(nn.Module):
         self,
         pred_length: int,
         bin_values: List[float],
-        n_residual_channels: int,
-        n_skip_channels: int,
+        num_residual_channels: int,
+        num_skip_channels: int,
         dilation_depth: int,
-        n_stacks: int,
+        num_stacks: int,
         num_feat_dynamic_real: int = 1,
         num_feat_static_real: int = 1,
         cardinality: List[int] = [1],
         embedding_dimension: int = 5,
-        n_parallel_samples: int = 100,
+        num_parallel_samples: int = 100,
         temperature: float = 1.0,
     ):
         super().__init__()
 
         self.dilation_depth = dilation_depth
         self.prediction_length = pred_length
-        self.n_parallel_samples = n_parallel_samples
+        self.num_parallel_samples = num_parallel_samples
         self.temperature = temperature
         self.num_features = (
             embedding_dimension * len(cardinality)
@@ -146,9 +146,9 @@ class WaveNet(nn.Module):
 
         # 1 extra bin to accounts for extreme values
         self.n_bins = len(bin_values) + 1
-        self.dilations = self._get_dilations(dilation_depth, n_stacks)
+        self.dilations = self._get_dilations(dilation_depth, num_stacks)
         self.receptive_field = self.get_receptive_field(
-            dilation_depth, n_stacks
+            dilation_depth, num_stacks
         )
         self.trim_lengths = [
             sum(self.dilations) - sum(self.dilations[: i + 1])
@@ -161,15 +161,15 @@ class WaveNet(nn.Module):
             embedding_dims=[embedding_dimension] * len(cardinality),
         )
         self.target_embedder = nn.Embedding(
-            num_embeddings=self.n_bins, embedding_dim=n_residual_channels
+            num_embeddings=self.n_bins, embedding_dim=num_residual_channels
         )
         self.residuals = nn.ModuleList()
         for i, d in enumerate(self.dilations):
             self.residuals.add_module(
                 f"residual_layer_{i}",
                 CausalDilatedResidualLayer(
-                    n_residual_channels=n_residual_channels,
-                    n_skip_channels=n_skip_channels,
+                    num_residual_channels=num_residual_channels,
+                    num_skip_channels=num_skip_channels,
                     dilation=d,
                     kernel_size=2,
                     return_dense_output=i + 1 < len(self.dilations),
@@ -177,8 +177,8 @@ class WaveNet(nn.Module):
             )
 
         self.conv_project = nn.Conv1d(
-            in_channels=n_residual_channels + self.num_features,
-            out_channels=n_residual_channels,
+            in_channels=num_residual_channels + self.num_features,
+            out_channels=num_residual_channels,
             kernel_size=1,
             bias=True,
         )
@@ -186,12 +186,12 @@ class WaveNet(nn.Module):
             self.conv_project.bias.zero_()
 
         self.conv1 = nn.Conv1d(
-            in_channels=n_skip_channels,
-            out_channels=n_skip_channels,
+            in_channels=num_skip_channels,
+            out_channels=num_skip_channels,
             kernel_size=1,
         )
         self.conv2 = nn.Conv1d(
-            in_channels=n_skip_channels,
+            in_channels=num_skip_channels,
             out_channels=self.n_bins,
             kernel_size=1,
         )
@@ -202,13 +202,13 @@ class WaveNet(nn.Module):
         self.criterion = nn.CrossEntropyLoss(reduction="none")
 
     @staticmethod
-    def _get_dilations(dilation_depth: int, n_stacks: int) -> List[int]:
-        return [2**i for i in range(dilation_depth)] * n_stacks
+    def _get_dilations(dilation_depth: int, num_stacks: int) -> List[int]:
+        return [2**i for i in range(dilation_depth)] * num_stacks
 
     @staticmethod
-    def get_receptive_field(dilation_depth: int, n_stacks: int) -> int:
+    def get_receptive_field(dilation_depth: int, num_stacks: int) -> int:
         dilations = WaveNet._get_dilations(
-            dilation_depth=dilation_depth, n_stacks=n_stacks
+            dilation_depth=dilation_depth, num_stacks=num_stacks
         )
         return sum(dilations) + 1
 
@@ -307,7 +307,7 @@ class WaveNet(nn.Module):
         ----------
         inputs
             A tensor of inputs
-            Shape: (batch_size, n_residual_channels, sequence_length)
+            Shape: (batch_size, num_residual_channels, sequence_length)
         prediction_mode, optional
             Flag indicating whether the network is being used
             for prediction, by default False
@@ -324,7 +324,7 @@ class WaveNet(nn.Module):
             A tensor containing the unnormalized outputs of the network of
             shape (batch_size, pred_length, num_bins) and a list containing the
             convolutional queues for each layer. The queue corresponding to
-            layer `l` has shape: (batch_size, n_residual_channels, 2^l).
+            layer `l` has shape: (batch_size, num_residual_channels, 2^l).
         """
         if prediction_mode:
             assert (
@@ -457,6 +457,9 @@ class WaveNet(nn.Module):
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
         scale: torch.Tensor,
+        prediction_length: Optional[int] = None,
+        num_parallel_samples: Optional[int] = None,
+        temperature: Optional[float] = None,
     ) -> torch.Tensor:
         """Generate predictions from the WaveNet model.
 
@@ -476,11 +479,27 @@ class WaveNet(nn.Module):
             Future time features: (batch_size, num_time_features, pred_length)
         scale
             Scale of the time series: (batch_size, 1)
+        prediction_length
+            Time length of the samples to generate. If not provided, use
+            ``self.prediction_length``.
+        num_parallel_samples
+            Number of samples to generate. If not provided, use
+            ``self.num_parallel_samples``.
+        temperature
+            Temperature to use in generating samples. If not provided, use
+            ``self.temperature``.
 
         Returns
         -------
-            Predictions with shape (batch_size, num_samples, pred_length)
+            Predictions with shape (batch_size, num_parallel_samples, pred_length)
         """
+        if prediction_length is None:
+            prediction_length = self.prediction_length
+        if num_parallel_samples is None:
+            num_parallel_samples = self.num_parallel_samples
+        if temperature is None:
+            temperature = self.temperature
+
         past_target = past_target.long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
@@ -493,9 +512,9 @@ class WaveNet(nn.Module):
 
         # To compute queues for the first step, we need features from
         # -self.pred_length - self.receptive_field + 1 to -self.pred_length + 1
-        features_start_idx = -self.prediction_length - self.receptive_field + 1
+        features_start_idx = -prediction_length - self.receptive_field + 1
         features_end_idx = (
-            -self.prediction_length + 1 if self.prediction_length > 1 else None
+            -prediction_length + 1 if prediction_length > 1 else None
         )
         queues = self._initialize_conv_queues(
             past_target=past_target[..., -self.receptive_field :],
@@ -506,15 +525,15 @@ class WaveNet(nn.Module):
         )
 
         queues = [
-            torch.repeat_interleave(q, self.n_parallel_samples, dim=0)
+            torch.repeat_interleave(q, num_parallel_samples, dim=0)
             for q in queues
         ]
 
         res = torch.repeat_interleave(
-            past_target[..., -2:], self.n_parallel_samples, dim=0
+            past_target[..., -2:], num_parallel_samples, dim=0
         )
 
-        for t in range(self.prediction_length):
+        for t in range(prediction_length):
             current_target = res[..., -2:]
             current_features = full_features[
                 ...,
@@ -523,15 +542,15 @@ class WaveNet(nn.Module):
             input_embedding = self.target_feature_embedding(
                 current_target,
                 torch.repeat_interleave(
-                    current_features, self.n_parallel_samples, dim=0
+                    current_features, num_parallel_samples, dim=0
                 ),
             )
             logits, queues = self.base_net(
                 input_embedding, prediction_mode=True, queues=queues
             )
 
-            if self.temperature > 0.0:
-                probs = torch.softmax(logits / self.temperature, dim=-1)
+            if temperature > 0.0:
+                probs = torch.softmax(logits / temperature, dim=-1)
                 y = torch.multinomial(probs.view(-1, self.n_bins), 1).view(
                     logits.size()[:-1]
                 )
@@ -540,10 +559,8 @@ class WaveNet(nn.Module):
             y = y.long()
             res = torch.cat([res, y], dim=-1)
 
-        samples = res[..., -self.prediction_length :]
-        samples = samples.view(
-            -1, self.n_parallel_samples, self.prediction_length
-        )
+        samples = res[..., -prediction_length:]
+        samples = samples.view(-1, num_parallel_samples, prediction_length)
         samples = self.lookup_values(samples)
         samples = samples * scale[:, None]
         return samples
