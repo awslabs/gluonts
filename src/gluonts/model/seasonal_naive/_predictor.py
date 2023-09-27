@@ -57,9 +57,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         self,
         prediction_length: int,
         season_length: int,
-        imputation_method: Optional[
-            MissingValueImputation
-        ] = LastValueImputation(),
+        imputation_method: MissingValueImputation = LastValueImputation(),
     ) -> None:
         super().__init__(prediction_length=prediction_length)
 
@@ -98,4 +96,5 @@ class SeasonalNaivePredictor(RepresentablePredictor):
             samples=samples,
             start_date=forecast_start_time,
             item_id=item.get("item_id", None),
+            info=item.get("info", None),
         )

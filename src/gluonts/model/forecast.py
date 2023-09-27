@@ -240,7 +240,7 @@ class Quantile:
 
 class Forecast:
     """
-    A abstract class representing predictions.
+    Abstract class representing predictions.
     """
 
     start_date: pd.Period
@@ -252,7 +252,7 @@ class Forecast:
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
-        Computes a quantile from the predicted distribution.
+        Compute a quantile from the predicted distribution.
 
         Parameters
         ----------
@@ -367,13 +367,13 @@ class Forecast:
 
     def dim(self) -> int:
         """
-        Returns the dimensionality of the forecast object.
+        Return the dimensionality of the forecast object.
         """
         raise NotImplementedError()
 
     def copy_dim(self, dim: int):
         """
-        Returns a new Forecast object with only the selected sub-dimension.
+        Return a new Forecast object with only the selected sub-dimension.
 
         Parameters
         ----------
@@ -384,7 +384,7 @@ class Forecast:
 
     def copy_aggregate(self, agg_fun: Callable):
         """
-        Returns a new Forecast object with a time series aggregated over the
+        Return a new Forecast object with a time series aggregated over the
         dimension axis.
 
         Parameters
@@ -407,9 +407,11 @@ class SampleForecast(Forecast):
         Array of size (num_samples, prediction_length) (1D case) or
         (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
-        start of the forecast
+        Start of the forecast.
+    item_id
+        Identifier of the item being forecasted.
     info
-        additional information that the forecaster may provide e.g. estimated
+        Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
     """
 
@@ -563,8 +565,10 @@ class QuantileForecast(Forecast):
         A list of quantiles of the form '0.1', '0.9', etc.,
         and potentially 'mean'. Each entry corresponds to one array in
         forecast_arrays.
+    item_id
+        Identifier of the item being forecasted.
     info
-        additional information that the forecaster may provide e.g. estimated
+        Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
     """
 
