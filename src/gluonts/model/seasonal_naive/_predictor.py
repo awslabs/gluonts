@@ -11,8 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional
-
 import numpy as np
 
 from gluonts.core.component import validated
@@ -77,7 +75,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         ), "all time series should have at least one data point"
 
         if np.isnan(target).any():
-            target = target.copy()
+            target = target.copy()ß
             target = self.imputation_method(target)
 
         if len_ts >= self.season_length:
