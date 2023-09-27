@@ -38,7 +38,7 @@ class NPTSPredictor(RepresentablePredictor):
 
     Forecasts of NPTS for time step :math:`T` are one of the previous values
     of the time series (these could be known values or predictions), sampled
-    according to the (un-normalized) distribution :math:`q_T(t) > 0`, where
+    according to the (un-normalized) distribution :math:`q_T(t) > 0` where
     :math:`0 <= t < T`.
 
     The distribution :math:`q_T` is expressed in terms of a feature map
@@ -95,9 +95,9 @@ class NPTSPredictor(RepresentablePredictor):
       Forecaster (i.e., with the `exponential` kernel) and no features for the
       Climatological Forecaster (i.e., the `uniform` kernel).
 
-      For seasonal NPTS and seasonal Climatological, time features determined
-      based on the frequency of the time series are added to the default
-      feature map.
+      For seasonal NPTS and seasonal Climatological, time features are
+      determined based on the frequency of the time series are added to the
+      default feature map.
 
       The default time features for various frequencies are
 
@@ -242,6 +242,7 @@ class NPTSPredictor(RepresentablePredictor):
             number of samples to draw
         item_id
             item_id to identify the time series
+
         Returns
         -------
         Forecast
