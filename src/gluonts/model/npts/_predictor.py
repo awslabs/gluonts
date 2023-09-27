@@ -122,8 +122,6 @@ class NPTSPredictor(RepresentablePredictor):
     Parameters
     ----------
 
-    freq
-        time frequency string
     prediction_length
         number of time steps to predict
     context_length
@@ -153,7 +151,6 @@ class NPTSPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         kernel_type: KernelType = KernelType.exponential,
@@ -174,7 +171,6 @@ class NPTSPredictor(RepresentablePredictor):
         self.use_seasonal_model = use_seasonal_model
         self.use_default_time_features = use_default_time_features
         self.feature_scale = feature_scale
-        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
@@ -197,9 +193,7 @@ class NPTSPredictor(RepresentablePredictor):
         for data in dataset:
             start = data["start"]
             target = np.asarray(data["target"], np.float32)
-            index = pd.period_range(
-                start=start, freq=self.freq, periods=len(target)
-            )
+            index = pd.period_range(start=start, periods=len(target))
             item_id = data.get("item_id", None)
 
             # Slice the time series until context_length or history length

@@ -96,7 +96,6 @@ def test_climatological_forecaster(
     predictor = NPTSPredictor(
         prediction_length=pred_length,
         context_length=context_length,
-        freq=freq,
         use_seasonal_model=use_seasonal_model,
         kernel_type=KernelType.uniform,
     )
@@ -259,7 +258,6 @@ def test_npts_forecaster(
     predictor = NPTSPredictor(
         prediction_length=pred_length,
         context_length=context_length,
-        freq=freq,
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
@@ -422,7 +420,6 @@ def test_npts_custom_features(
 
     predictor = NPTSPredictor(
         prediction_length=pred_length,
-        freq=freq,
         context_length=context_length,
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
@@ -532,20 +529,14 @@ def _test_nans_in_target(predictor: NPTSPredictor, dataset: Dataset) -> None:
     """
 
     # a copy of dataset with 90% of the target entries NaNs
-    ds_090pct_nans = ListDataset(
-        data_iter=[
-            _inject_nans_in_target(data_entry, p=0.9) for data_entry in dataset
-        ],
-        freq=predictor.freq,
-    )
+    ds_090pct_nans = [
+        _inject_nans_in_target(data_entry, p=0.9) for data_entry in dataset
+    ]
 
     # a copy of dataset with 100% of the target entries NaNs
-    ds_100pct_nans = ListDataset(
-        data_iter=[
-            _inject_nans_in_target(data_entry, p=1.0) for data_entry in dataset
-        ],
-        freq=predictor.freq,
-    )
+    ds_100pct_nans = [
+        _inject_nans_in_target(data_entry, p=1.0) for data_entry in dataset
+    ]
 
     # assert that we can tolerate a high percentage of NaNs
     for forecast in predictor.predict(ds_090pct_nans):
