@@ -75,7 +75,7 @@ class SeasonalNaivePredictor(RepresentablePredictor):
         ), "all time series should have at least one data point"
 
         if np.isnan(target).any():
-            target = target.copy()ß
+            target = target.copy()
             target = self.imputation_method(target)
 
         if len_ts >= self.season_length:
