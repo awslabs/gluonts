@@ -193,7 +193,9 @@ class NPTSPredictor(RepresentablePredictor):
         for data in dataset:
             start = data["start"]
             target = np.asarray(data["target"], np.float32)
-            index = pd.period_range(start=start, periods=len(target))
+            index = pd.period_range(
+                start=start, freq=start.freq, periods=len(target)
+            )
             item_id = data.get("item_id", None)
 
             # Slice the time series until context_length or history length
