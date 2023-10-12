@@ -130,6 +130,7 @@ class WaveNet(nn.Module):
         embedding_dimension: int = 5,
         num_parallel_samples: int = 100,
         temperature: float = 1.0,
+        use_log_scale_feature: bool = True,
     ):
         super().__init__()
 
@@ -141,8 +142,9 @@ class WaveNet(nn.Module):
             embedding_dimension * len(cardinality)
             + num_feat_dynamic_real
             + num_feat_static_real
-            + 1  # the log(scale)
+            + int(use_log_scale_feature)  # the log(scale)
         )
+        self.use_log_scale_feature = use_log_scale_feature
 
         # 1 extra bin to accounts for extreme values
         self.n_bins = len(bin_values) + 1
@@ -249,8 +251,11 @@ class WaveNet(nn.Module):
             network.
             Shape: (batch_size, num_features, receptive_field + pred_length)
         """
-        embedded_cat = self.feature_embedder(feat_static_cat.long())
-        static_feat = torch.cat([embedded_cat, torch.log(scale + 1.0)], dim=1)
+        static_feat = self.feature_embedder(feat_static_cat.long())
+        if self.use_log_scale_feature:
+            static_feat = torch.cat(
+                [static_feat, torch.log(scale + 1.0)], dim=1
+            )
         repeated_static_feat = torch.repeat_interleave(
             static_feat[..., None],
             self.prediction_length + self.receptive_field,
