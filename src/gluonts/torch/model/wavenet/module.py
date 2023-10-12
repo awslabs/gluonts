@@ -253,7 +253,9 @@ class WaveNet(nn.Module):
         """
         static_feat = self.feature_embedder(feat_static_cat.long())
         if self.use_log_scale_feature:
-            static_feat = torch.cat([static_feat, torch.log(scale + 1.0)], dim=1)
+            static_feat = torch.cat(
+                [static_feat, torch.log(scale + 1.0)], dim=1
+            )
         repeated_static_feat = torch.repeat_interleave(
             static_feat[..., None],
             self.prediction_length + self.receptive_field,
