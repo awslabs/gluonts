@@ -1,5 +1,6 @@
 torch>=1.9,<3
-pytorch-lightning>=1.5,<3
+lightning>=1.8,<2.2
+lightning.pytorch>=1.8,<2.2
 # Need to pin protobuf (for now)
 # See: https://github.com/PyTorchLightning/pytorch-lightning/issues/13159
 protobuf~=3.19.0

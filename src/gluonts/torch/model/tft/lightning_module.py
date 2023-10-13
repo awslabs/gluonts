@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from gluonts.core.component import validated
 from gluonts.itertools import select
