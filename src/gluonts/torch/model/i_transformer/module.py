@@ -1,0 +1,158 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
+from typing import Tuple
+
+import torch
+from torch import nn
+
+from gluonts.core.component import validated
+from gluonts.model import Input, InputSpec
+from gluonts.torch.distributions import StudentTOutput
+from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
+
+
+class ITransformerModel(nn.Module):
+    """
+    Module implementing the iTransformer model for multivariate forecasting as described in
+    https://arxiv.org/abs/2310.06625 extended to be probabilistic.
+
+    Parameters
+    ----------
+    prediction_length
+        Number of time points to predict.
+    context_length
+        Number of time steps prior to prediction time that the model.
+    distr_output
+        Distribution to use to evaluate observations and sample predictions.
+        Default: ``StudentTOutput()``.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        input_size: int,
+        prediction_length: int,
+        context_length: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float,
+        activation: str,
+        norm_first: bool,
+        num_encoder_layers: int,
+        scaling: str,
+        distr_output=StudentTOutput(),
+    ) -> None:
+        super().__init__()
+
+        assert prediction_length > 0
+        assert context_length > 0
+        assert input_size > 0
+
+        self.input_size = input_size
+        self.prediction_length = prediction_length
+        self.context_length = context_length
+
+        self.d_model = d_model
+        self.nhead = nhead
+        self.distr_output = distr_output
+
+        if scaling == "mean":
+            self.scaler = MeanScaler(keepdim=True, dim=1)
+        elif scaling == "std":
+            self.scaler = StdScaler(keepdim=True, dim=1)
+        else:
+            self.scaler = NOPScaler(keepdim=True, dim=1)
+
+        self.emebdding = nn.Linear(context_length + 2, d_model)
+
+        layer_norm_eps: float = 1e-5
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            activation=activation,
+            layer_norm_eps=layer_norm_eps,
+            batch_first=True,
+            norm_first=norm_first,
+        )
+        encoder_norm = nn.LayerNorm(d_model, eps=layer_norm_eps)
+        self.encoder = nn.TransformerEncoder(
+            encoder_layer, num_encoder_layers, encoder_norm
+        )
+
+        self.projection = nn.Linear(
+            d_model, prediction_length * d_model // nhead
+        )
+
+        self.args_proj = self.distr_output.get_args_proj(d_model // nhead)
+
+    def describe_inputs(self, batch_size=1) -> InputSpec:
+        return InputSpec(
+            {
+                "past_target": Input(
+                    shape=(batch_size, self.context_length, self.input_size),
+                    dtype=torch.float,
+                ),
+                "past_observed_values": Input(
+                    shape=(batch_size, self.context_length, self.input_size),
+                    dtype=torch.float,
+                ),
+            },
+            torch.zeros,
+        )
+
+    def forward(
+        self,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
+        # scale the input
+        past_target_scaled, loc, scale = self.scaler(
+            past_target, past_observed_values
+        )
+        log_abs_loc = loc.abs().log1p()
+        log_scale = scale.log()
+
+        # Transpose to time last
+        past_target_scaled = past_target_scaled.transpose(1, 2)
+        log_abs_loc = log_abs_loc.transpose(1, 2)
+        log_scale = log_scale.transpose(1, 2)
+
+        # concatenate past target with log_abs_loc and log_scale
+        expanded_target_scaled = torch.cat(
+            [past_target_scaled, log_abs_loc, log_scale], dim=-1
+        )
+
+        # project to d_model
+        enc_in = self.emebdding(expanded_target_scaled)
+
+        # transformer encoder with positional encoding
+        enc_out = self.encoder(enc_in)
+
+        # project to prediction length * d_model // nhead
+        projection_out = self.projection(enc_out).reshape(
+            -1,
+            self.input_size,
+            self.prediction_length,
+            self.d_model // self.nhead,
+        )
+
+        # transpose to variate first
+        projection_out_transpose = projection_out.transpose(1, 2)
+
+        # project to distribution arguments
+        distr_args = self.args_proj(projection_out_transpose)
+        return distr_args, loc, scale
