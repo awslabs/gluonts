@@ -13,7 +13,7 @@
 
 from typing import Any, Dict, List, Optional, Iterable
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 import numpy as np
 

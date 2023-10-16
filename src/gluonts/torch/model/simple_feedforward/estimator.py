@@ -14,7 +14,7 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
