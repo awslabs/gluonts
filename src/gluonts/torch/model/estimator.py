@@ -15,7 +15,7 @@ from typing import NamedTuple, Optional, Iterable, Dict, Any
 import logging
 
 import numpy as np
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch.nn as nn
 
 from gluonts.core.component import validated
@@ -209,10 +209,15 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
         )
 
-        logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.load_from_checkpoint(
-            checkpoint.best_model_path
-        )
+        if checkpoint.best_model_path != "":
+            logger.info(
+                f"Loading best model from {checkpoint.best_model_path}"
+            )
+            best_model = training_network.__class__.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = training_network
 
         return TrainOutput(
             transformation=transformation,

@@ -13,7 +13,7 @@
 
 from packaging import version
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 
 def has_validation_loop(trainer: pl.Trainer):
