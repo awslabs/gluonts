@@ -34,6 +34,8 @@ class ITransformerLightningModule(pl.LightningModule):
         Keyword arguments to construct the ``ITransformerModel`` to be trained.
     loss
         Loss function to be used for training.
+    num_parallel_samples:
+        Number of evaluation samples per time series to sample during inference.
     lr
         Learning rate.
     weight_decay
