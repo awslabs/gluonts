@@ -134,7 +134,7 @@ To train the model using PyTorch Lightning, we only need to extend the class wit
 
 
 ```python
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 ```
 
 
