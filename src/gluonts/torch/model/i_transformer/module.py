@@ -29,10 +29,28 @@ class ITransformerModel(nn.Module):
 
     Parameters
     ----------
+    imput_size
+        Number of multivariates to predict.
     prediction_length
         Number of time points to predict.
     context_length
         Number of time steps prior to prediction time that the model.
+    d_model
+        Transformer latent dimension.
+    nhead
+        Number of attention heads which must be divisible with d_model.
+    dim_feedforward
+        Dimension of the transformer's feedforward network model.
+    dropout
+        Dropout rate for the transformer.
+    activation
+        Activation function for the transformer.
+    norm_first
+        Whether to normalize the input before the transformer.
+    num_encoder_layers
+        Number of transformer encoder layers.
+    scaling
+        Whether to scale the input using mean or std or None.
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
