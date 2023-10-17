@@ -67,7 +67,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         Number of time steps prior to prediction time that the model
         takes as inputs (default: ``10 * prediction_length``).
     d_model
-        Size of hidden layers in the Transformer encoder.
+        Size of latent in the Transformer encoder.
     nhead
         Number of attention heads in the Transformer encoder which must divide d_model.
     dim_feedforward
