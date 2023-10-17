@@ -29,7 +29,7 @@ class ITransformerModel(nn.Module):
 
     Parameters
     ----------
-    imput_size
+    input_size
         Number of multivariates to predict.
     prediction_length
         Number of time points to predict.
@@ -93,8 +93,10 @@ class ITransformerModel(nn.Module):
         else:
             self.scaler = NOPScaler(keepdim=True, dim=1)
 
+        # project each variate plus mean and std to d_model dimension
         self.emebdding = nn.Linear(context_length + 2, d_model)
 
+        # transformer encoder
         layer_norm_eps: float = 1e-5
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
@@ -111,10 +113,12 @@ class ITransformerModel(nn.Module):
             encoder_layer, num_encoder_layers, encoder_norm
         )
 
+        # project each variate to prediction length number of latent variables
         self.projection = nn.Linear(
             d_model, prediction_length * d_model // nhead
         )
 
+        # project each prediction length latent to distribution parameters
         self.args_proj = self.distr_output.get_args_proj(d_model // nhead)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
