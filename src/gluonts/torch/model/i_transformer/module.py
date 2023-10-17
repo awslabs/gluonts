@@ -172,7 +172,7 @@ class ITransformerModel(nn.Module):
             self.d_model // self.nhead,
         )
 
-        # transpose to variate first
+        # transpose to prediction length first
         projection_out_transpose = projection_out.transpose(1, 2)
 
         # project to distribution arguments
