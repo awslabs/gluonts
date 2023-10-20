@@ -54,6 +54,7 @@ from .lightning_module import WaveNetLightningModule
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",
+    "feat_static_real",
     "past_target",
     "past_observed_values",
     "past_time_feat",
