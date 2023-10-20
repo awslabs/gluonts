@@ -59,8 +59,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
 
     Parameters
     ----------
-    input_size
-        The multivariate vector dimension.
     prediction_length
         Length of the prediction horizon.
     context_length
@@ -111,7 +109,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
     @validated()
     def __init__(
         self,
-        input_size: int,
         prediction_length: int,
         context_length: Optional[int] = None,
         d_model: int = 32,
@@ -151,7 +148,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.loss = loss
         self.scaling = scaling
-        self.input_size = input_size
         self.d_model = d_model
         self.nhead = nhead
         self.dim_feedforward = dim_feedforward
@@ -196,7 +192,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
             model_kwargs={
                 "prediction_length": self.prediction_length,
                 "context_length": self.context_length,
-                "input_size": self.input_size,
                 "d_model": self.d_model,
                 "nhead": self.nhead,
                 "dim_feedforward": self.dim_feedforward,

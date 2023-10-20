@@ -29,8 +29,6 @@ class ITransformerModel(nn.Module):
 
     Parameters
     ----------
-    input_size
-        Number of multivariates to predict.
     prediction_length
         Number of time points to predict.
     context_length
@@ -59,7 +57,6 @@ class ITransformerModel(nn.Module):
     @validated()
     def __init__(
         self,
-        input_size: int,
         prediction_length: int,
         context_length: int,
         d_model: int,
@@ -76,9 +73,7 @@ class ITransformerModel(nn.Module):
 
         assert prediction_length > 0
         assert context_length > 0
-        assert input_size > 0
 
-        self.input_size = input_size
         self.prediction_length = prediction_length
         self.context_length = context_length
 
@@ -125,11 +120,11 @@ class ITransformerModel(nn.Module):
         return InputSpec(
             {
                 "past_target": Input(
-                    shape=(batch_size, self.context_length, self.input_size),
+                    shape=(batch_size, self.context_length, -1),
                     dtype=torch.float,
                 ),
                 "past_observed_values": Input(
-                    shape=(batch_size, self.context_length, self.input_size),
+                    shape=(batch_size, self.context_length, -1),
                     dtype=torch.float,
                 ),
             },
@@ -167,7 +162,7 @@ class ITransformerModel(nn.Module):
         # project to prediction length * d_model // nhead
         projection_out = self.projection(enc_out).reshape(
             -1,
-            self.input_size,
+            past_target.shape[2],
             self.prediction_length,
             self.d_model // self.nhead,
         )
