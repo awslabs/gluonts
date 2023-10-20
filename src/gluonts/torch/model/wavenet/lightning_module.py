@@ -53,6 +53,7 @@ class WaveNetLightningModule(pl.LightningModule):
         Execute training step.
         """
         feat_static_cat = batch["feat_static_cat"]
+        feat_static_real = batch["feat_static_real"]
         past_target = batch["past_target"]
         past_observed_values = batch["past_observed_values"]
         past_time_feat = batch["past_time_feat"]
@@ -63,6 +64,7 @@ class WaveNetLightningModule(pl.LightningModule):
 
         train_loss = self.model.loss(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_target=past_target,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
@@ -87,6 +89,7 @@ class WaveNetLightningModule(pl.LightningModule):
         Execute validation step.
         """
         feat_static_cat = batch["feat_static_cat"]
+        feat_static_real = batch["feat_static_real"]
         past_target = batch["past_target"]
         past_observed_values = batch["past_observed_values"]
         past_time_feat = batch["past_time_feat"]
@@ -97,6 +100,7 @@ class WaveNetLightningModule(pl.LightningModule):
 
         val_loss = self.model.loss(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_target=past_target,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,

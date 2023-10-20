@@ -143,6 +143,7 @@ class WaveNet(nn.Module):
             + num_feat_dynamic_real
             + num_feat_static_real
             + int(use_log_scale_feature)  # the log(scale)
+            + 1  # for observed value indicator
         )
         self.use_log_scale_feature = use_log_scale_feature
 
@@ -217,6 +218,7 @@ class WaveNet(nn.Module):
     def get_full_features(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
@@ -230,6 +232,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_observed_values
             Observed value indicator for the past target: (batch_size,
             receptive_field)
@@ -256,6 +260,7 @@ class WaveNet(nn.Module):
             static_feat = torch.cat(
                 [static_feat, torch.log(scale + 1.0)], dim=1
             )
+        static_feat = torch.cat([static_feat, feat_static_real], dim=1)
         repeated_static_feat = torch.repeat_interleave(
             static_feat[..., None],
             self.prediction_length + self.receptive_field,
@@ -361,6 +366,7 @@ class WaveNet(nn.Module):
     def loss(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
@@ -375,6 +381,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
@@ -401,6 +409,7 @@ class WaveNet(nn.Module):
         full_target = torch.cat([past_target, future_target], dim=-1).long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
             future_time_feat=future_time_feat,
@@ -457,6 +466,7 @@ class WaveNet(nn.Module):
     def forward(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
@@ -472,6 +482,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
@@ -508,6 +520,7 @@ class WaveNet(nn.Module):
         past_target = past_target.long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
             future_time_feat=future_time_feat,
