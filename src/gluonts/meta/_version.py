@@ -251,4 +251,6 @@ def cmdclass():
     return {"sdist": sdist, "build_py": build_py}
 
 
-__version__ = get_version(fallback=os.environ.get("GLUONTS_FALLBACK_VERSION", "0.0.0"))
+__version__ = get_version(
+    fallback=os.environ.get("GLUONTS_FALLBACK_VERSION", "0.0.0")
+)
