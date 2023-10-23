@@ -115,7 +115,7 @@ class OrElse(AnyLike):
 def dataclass(
     cls=None,
     *,
-    init=True,
+    init=False,
     repr=True,
     eq=True,
     order=False,
@@ -131,7 +131,7 @@ def dataclass(
     """
 
     # assert frozen
-    assert init
+    assert init is False
 
     if cls is None:
         return _dataclass

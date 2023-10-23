@@ -25,7 +25,7 @@ class FeatureImportanceResult(BaseModel):
     feat_dynamic_real: List[Union[List[float], float]]
     feat_dynamic_cat: List[Union[List[float], float]]
 
-    @model_validator()
+    @model_validator(mode="before")
     @classmethod
     def check_shape(cls, values):
         """

@@ -135,7 +135,7 @@ def test_recipe_dataset(recipe) -> None:
             freq="D",
             feat_static_real=[BasicFeatureInfo(name="feat_static_real_000")],
             feat_static_cat=[
-                CategoricalFeatureInfo(name="foo", cardinality=10)
+                CategoricalFeatureInfo(name="foo", cardinality="10")
             ],
             feat_dynamic_real=[BasicFeatureInfo(name="binary_causal")],
         ),
