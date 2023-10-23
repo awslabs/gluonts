@@ -161,8 +161,10 @@ def check_training_validation(
     date,
     offset,
 ) -> None:
-    assert original_entry[FieldName.ITEM_ID] == train_entry[FieldName.ITEM_ID]
-    assert train_entry[FieldName.ITEM_ID] == valid_pair[0][FieldName.ITEM_ID]
+    for field_name in [FieldName.ITEM_ID, FieldName.INFO]:
+        assert original_entry[field_name] == train_entry[field_name]
+        assert original_entry[field_name] == valid_pair[0][field_name]
+        assert original_entry[field_name] == valid_pair[1][field_name]
     if max_history is not None:
         assert valid_pair[0][FieldName.TARGET].shape[-1] == max_history
     assert valid_pair[1][FieldName.TARGET].shape[-1] == prediction_length
@@ -201,12 +203,14 @@ def check_training_validation(
         [
             {
                 "item_id": 0,
+                "info": {"a": "4"},
                 "start": pd.Period("2021-03-04", freq="D"),
                 "target": np.ones(shape=(365,)),
                 "feat_dynamic_real": 2 * np.ones(shape=(1, 365)),
             },
             {
                 "item_id": 1,
+                "info": {"a": "2"},
                 "start": pd.Period("2021-03-04", freq="D"),
                 "target": 2 * np.ones(shape=(265,)),
                 "feat_dynamic_real": 3 * np.ones(shape=(1, 265)),
@@ -215,6 +219,7 @@ def check_training_validation(
         [
             {
                 "item_id": 0,
+                "info": {"a": "4"},
                 "start": pd.Period("2021-03-04", freq="D"),
                 "target": np.stack(
                     [np.ones(shape=(365,)), 10 * np.ones(shape=(365,))]
@@ -223,6 +228,7 @@ def check_training_validation(
             },
             {
                 "item_id": 1,
+                "info": {"a": "2"},
                 "start": pd.Period("2021-03-04", freq="D"),
                 "target": np.stack(
                     [2 * np.ones(shape=(265,)), 20 * np.ones(shape=(265,))]

@@ -38,7 +38,7 @@ class NPTSPredictor(RepresentablePredictor):
 
     Forecasts of NPTS for time step :math:`T` are one of the previous values
     of the time series (these could be known values or predictions), sampled
-    according to the (un-normalized) distribution :math:`q_T(t) > 0`, where
+    according to the (un-normalized) distribution :math:`q_T(t) > 0` where
     :math:`0 <= t < T`.
 
     The distribution :math:`q_T` is expressed in terms of a feature map
@@ -95,9 +95,9 @@ class NPTSPredictor(RepresentablePredictor):
       Forecaster (i.e., with the `exponential` kernel) and no features for the
       Climatological Forecaster (i.e., the `uniform` kernel).
 
-      For seasonal NPTS and seasonal Climatological, time features determined
-      based on the frequency of the time series are added to the default
-      feature map.
+      For seasonal NPTS and seasonal Climatological, time features are
+      determined based on the frequency of the time series are added to the
+      default feature map.
 
       The default time features for various frequencies are
 
@@ -122,8 +122,6 @@ class NPTSPredictor(RepresentablePredictor):
     Parameters
     ----------
 
-    freq
-        time frequency string
     prediction_length
         number of time steps to predict
     context_length
@@ -153,7 +151,6 @@ class NPTSPredictor(RepresentablePredictor):
     @validated()
     def __init__(
         self,
-        freq: str,
         prediction_length: int,
         context_length: Optional[int] = None,
         kernel_type: KernelType = KernelType.exponential,
@@ -174,7 +171,6 @@ class NPTSPredictor(RepresentablePredictor):
         self.use_seasonal_model = use_seasonal_model
         self.use_default_time_features = use_default_time_features
         self.feature_scale = feature_scale
-        self.freq = freq
 
         if not self._is_exp_kernel():
             self.kernel = NPTS.uniform_kernel()
@@ -198,7 +194,7 @@ class NPTSPredictor(RepresentablePredictor):
             start = data["start"]
             target = np.asarray(data["target"], np.float32)
             index = pd.period_range(
-                start=start, freq=self.freq, periods=len(target)
+                start=start, freq=start.freq, periods=len(target)
             )
             item_id = data.get("item_id", None)
 
@@ -248,6 +244,7 @@ class NPTSPredictor(RepresentablePredictor):
             number of samples to draw
         item_id
             item_id to identify the time series
+
         Returns
         -------
         Forecast

@@ -130,6 +130,7 @@ class WaveNet(nn.Module):
         embedding_dimension: int = 5,
         num_parallel_samples: int = 100,
         temperature: float = 1.0,
+        use_log_scale_feature: bool = True,
     ):
         super().__init__()
 
@@ -141,8 +142,10 @@ class WaveNet(nn.Module):
             embedding_dimension * len(cardinality)
             + num_feat_dynamic_real
             + num_feat_static_real
-            + 1  # the log(scale)
+            + int(use_log_scale_feature)  # the log(scale)
+            + 1  # for observed value indicator
         )
+        self.use_log_scale_feature = use_log_scale_feature
 
         # 1 extra bin to accounts for extreme values
         self.n_bins = len(bin_values) + 1
@@ -215,6 +218,7 @@ class WaveNet(nn.Module):
     def get_full_features(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
@@ -228,6 +232,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_observed_values
             Observed value indicator for the past target: (batch_size,
             receptive_field)
@@ -249,8 +255,12 @@ class WaveNet(nn.Module):
             network.
             Shape: (batch_size, num_features, receptive_field + pred_length)
         """
-        embedded_cat = self.feature_embedder(feat_static_cat.long())
-        static_feat = torch.cat([embedded_cat, torch.log(scale + 1.0)], dim=1)
+        static_feat = self.feature_embedder(feat_static_cat.long())
+        if self.use_log_scale_feature:
+            static_feat = torch.cat(
+                [static_feat, torch.log(scale + 1.0)], dim=1
+            )
+        static_feat = torch.cat([static_feat, feat_static_real], dim=1)
         repeated_static_feat = torch.repeat_interleave(
             static_feat[..., None],
             self.prediction_length + self.receptive_field,
@@ -356,6 +366,7 @@ class WaveNet(nn.Module):
     def loss(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
@@ -370,6 +381,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
@@ -396,6 +409,7 @@ class WaveNet(nn.Module):
         full_target = torch.cat([past_target, future_target], dim=-1).long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
             future_time_feat=future_time_feat,
@@ -452,6 +466,7 @@ class WaveNet(nn.Module):
     def forward(
         self,
         feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         past_time_feat: torch.Tensor,
@@ -467,6 +482,8 @@ class WaveNet(nn.Module):
         ----------
         feat_static_cat
             Static categorical features: (batch_size, num_cat_features)
+        feat_static_real
+            Static real-valued features: (batch_size, num_feat_static_real)
         past_target
             Past target: (batch_size, receptive_field)
         past_observed_values
@@ -503,6 +520,7 @@ class WaveNet(nn.Module):
         past_target = past_target.long()
         full_features = self.get_full_features(
             feat_static_cat=feat_static_cat,
+            feat_static_real=feat_static_real,
             past_observed_values=past_observed_values,
             past_time_feat=past_time_feat,
             future_time_feat=future_time_feat,

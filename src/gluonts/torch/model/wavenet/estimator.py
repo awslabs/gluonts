@@ -13,7 +13,7 @@
 
 from typing import Any, Dict, List, Optional, Iterable
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 import numpy as np
 
@@ -54,6 +54,7 @@ from .lightning_module import WaveNetLightningModule
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",
+    "feat_static_real",
     "past_target",
     "past_observed_values",
     "past_time_feat",
@@ -85,6 +86,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         cardinality: List[int] = [1],
         seasonality: Optional[int] = None,
         embedding_dimension: int = 5,
+        use_log_scale_feature: bool = True,
         time_features: Optional[List[TimeFeature]] = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -140,6 +142,10 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         embedding_dimension, optional
             The dimension of the embeddings for categorical features,
             by default 5
+        use_log_scale_feature, optional
+            If True, logarithm of the scale of the past data will be used as an
+            additional static feature,
+            by default True
         time_features, optional
             List of time features, from :py:mod:`gluonts.time_feature`,
             by default None
@@ -187,6 +193,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         self.num_residual_channels = num_residual_channels
         self.num_skip_channels = num_skip_channels
         self.num_stacks = num_stacks
+        self.use_log_scale_feature = use_log_scale_feature
         self.time_features = unwrap_or(
             time_features, time_features_from_frequency_str(freq)
         )
@@ -382,6 +389,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
                 pred_length=self.prediction_length,
                 num_parallel_samples=self.num_parallel_samples,
                 temperature=self.temperature,
+                use_log_scale_feature=self.use_log_scale_feature,
             ),
         )
 

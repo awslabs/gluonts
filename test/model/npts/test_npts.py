@@ -17,15 +17,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.dataset.common import DataEntry, Dataset, ListDataset
+from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSDataError
 from gluonts.model.npts import KernelType, NPTSPredictor
 from gluonts.model.npts._weighted_sampler import WeightedSampler
 
 
-def get_test_data(history_length: int, freq: str) -> pd.Series:
+def get_test_data(
+    history_length: int, freq: str, dtype=np.float32
+) -> pd.Series:
     index = pd.date_range("1/1/2011", periods=history_length, freq=freq)
-    return pd.Series(np.arange(len(index)), index=index)
+    return pd.Series(np.arange(len(index), dtype=dtype), index=index)
 
 
 @pytest.mark.parametrize(
@@ -96,15 +98,16 @@ def test_climatological_forecaster(
     predictor = NPTSPredictor(
         prediction_length=pred_length,
         context_length=context_length,
-        freq=freq,
         use_seasonal_model=use_seasonal_model,
         kernel_type=KernelType.uniform,
     )
 
-    dataset = ListDataset(
-        [{"start": str(train_ts.index[0]), "target": train_ts.values}],
-        freq=freq,
-    )
+    dataset = [
+        {
+            "start": pd.Period(train_ts.index[0], freq=freq),
+            "target": train_ts.values,
+        }
+    ]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -259,16 +262,17 @@ def test_npts_forecaster(
     predictor = NPTSPredictor(
         prediction_length=pred_length,
         context_length=context_length,
-        freq=freq,
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
         use_seasonal_model=use_seasonal_model,
     )
 
-    dataset = ListDataset(
-        [{"start": str(train_ts.index[0]), "target": train_ts.values}],
-        freq=freq,
-    )
+    dataset = [
+        {
+            "start": pd.Period(train_ts.index[0], freq=freq),
+            "target": train_ts.values,
+        }
+    ]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -422,7 +426,6 @@ def test_npts_custom_features(
 
     predictor = NPTSPredictor(
         prediction_length=pred_length,
-        freq=freq,
         context_length=context_length,
         kernel_type=KernelType.exponential,
         feature_scale=feature_scale,
@@ -430,16 +433,13 @@ def test_npts_custom_features(
         use_default_time_features=False,  # disable default time features
     )
 
-    dataset = ListDataset(
-        [
-            {
-                "start": str(train_ts.index[0]),
-                "target": train_ts.values,
-                "feat_dynamic_real": feat_dynamic_real,
-            }
-        ],
-        freq=freq,
-    )
+    dataset = [
+        {
+            "start": pd.Period(train_ts.index[0], freq=freq),
+            "target": train_ts.values,
+            "feat_dynamic_real": np.array(feat_dynamic_real),
+        }
+    ]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -532,20 +532,14 @@ def _test_nans_in_target(predictor: NPTSPredictor, dataset: Dataset) -> None:
     """
 
     # a copy of dataset with 90% of the target entries NaNs
-    ds_090pct_nans = ListDataset(
-        data_iter=[
-            _inject_nans_in_target(data_entry, p=0.9) for data_entry in dataset
-        ],
-        freq=predictor.freq,
-    )
+    ds_090pct_nans = [
+        _inject_nans_in_target(data_entry, p=0.9) for data_entry in dataset
+    ]
 
     # a copy of dataset with 100% of the target entries NaNs
-    ds_100pct_nans = ListDataset(
-        data_iter=[
-            _inject_nans_in_target(data_entry, p=1.0) for data_entry in dataset
-        ],
-        freq=predictor.freq,
-    )
+    ds_100pct_nans = [
+        _inject_nans_in_target(data_entry, p=1.0) for data_entry in dataset
+    ]
 
     # assert that we can tolerate a high percentage of NaNs
     for forecast in predictor.predict(ds_090pct_nans):
