@@ -33,7 +33,7 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
         self.weight = self._init_weight(self.weight)
 
     @staticmethod
-    def _init_weight(out: nn.Parameter) -> nn.Parameter:
+    def _init_weight(out: torch.Tensor) -> torch.Tensor:
         """
         Features are not interleaved. The cos features are in the 2nd half of the vector. [dim // 2:]
         """
@@ -54,7 +54,7 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
         return out
 
     @torch.no_grad()
-    def forward(
+    def forward(  # type: ignore
         self, input_ids_shape: torch.Size, past_key_values_length: int = 0
     ) -> torch.Tensor:
         """`input_ids_shape` is expected to be [bsz x seqlen x ...]."""

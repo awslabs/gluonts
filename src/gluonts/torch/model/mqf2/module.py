@@ -113,7 +113,7 @@ class MQF2MultiHorizonModel(DeepARModel):
                 ActNorm(prediction_length),
             ]
 
-        self.picnn = SequentialNet(networks)
+        self.picnn = SequentialNet(networks)  # type: ignore
 
     @torch.jit.ignore
     def output_distribution(
