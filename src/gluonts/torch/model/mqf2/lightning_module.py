@@ -15,14 +15,14 @@ from typing import Dict
 
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import lightning.pytorch as pl
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
 from . import MQF2MultiHorizonModel
-from ..deepar import DeepARLightningModule
 
 
-class MQF2MultiHorizonLightningModule(DeepARLightningModule):
+class MQF2MultiHorizonLightningModule(pl.LightningModule):
     r"""
     LightningModule class for the model MQF2 proposed in the paper
     ``Multivariate Quantile Function Forecaster``

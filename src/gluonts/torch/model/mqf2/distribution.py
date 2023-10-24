@@ -21,7 +21,7 @@ from gluonts.core.component import validated
 from gluonts.itertools import prod
 from gluonts.torch.model.mqf2.module import PICNN
 
-from .distribution_output import DistributionOutput
+from ...distributions.distribution_output import DistributionOutput
 
 
 class MQF2Distribution(torch.distributions.Distribution):
@@ -318,7 +318,6 @@ class MQF2DistributionOutput(DistributionOutput):
         self,
         picnn: torch.nn.Module,
         hidden_state: torch.Tensor,
-        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> MQF2Distribution:
         distr = self.distr_cls(
@@ -335,7 +334,7 @@ class MQF2DistributionOutput(DistributionOutput):
             return distr
         else:
             return TransformedMQF2Distribution(
-                distr, [AffineTransform(loc=loc, scale=scale)]
+                distr, [AffineTransform(loc=0.0, scale=scale)]
             )
 
     @property
