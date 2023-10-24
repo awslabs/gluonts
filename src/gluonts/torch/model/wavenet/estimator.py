@@ -96,7 +96,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         num_batches_per_epoch: int = 50,
         num_parallel_samples: int = 100,
         negative_data: bool = False,
-        trainer_kwargs: Dict[str, Any] = None,
+        trainer_kwargs: Dict[str, Any] = dict(),
     ) -> None:
         """WaveNet estimator that uses the architecture proposed in
         [Oord et al., 2016] with quantized targets. The model is trained
@@ -178,8 +178,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             "max_epochs": 100,
             "gradient_clip_val": 10.0,
         }
-        if trainer_kwargs is not None:
-            default_trainer_kwargs.update(trainer_kwargs)
+        default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
 
         self.freq = freq

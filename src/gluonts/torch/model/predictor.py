@@ -71,7 +71,7 @@ class PyTorchPredictor(RepresentablePredictor):
     def network(self) -> nn.Module:
         return self.prediction_net
 
-    def predict(
+    def predict(  # type: ignore
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         inference_data_loader = InferenceDataLoader(
@@ -103,10 +103,12 @@ class PyTorchPredictor(RepresentablePredictor):
         )
 
     @classmethod
-    def deserialize(
+    def deserialize(  # type: ignore
         cls, path: Path, device: Optional[Union[str, torch.device]] = None
     ) -> "PyTorchPredictor":
         predictor = super().deserialize(path)
+
+        assert isinstance(predictor, cls)
 
         if device is not None:
             device = resolve_device(device)

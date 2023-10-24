@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import torch
@@ -19,7 +19,7 @@ import torch
 from gluonts.dataset.common import DataBatch
 
 
-def stack(data, device: Optional[torch.device] = None):
+def stack(data, device: torch.types.Device = None):
     if isinstance(data[0], np.ndarray):
         data = torch.tensor(np.array(data), device=device)
     elif isinstance(data[0], (list, tuple)):
@@ -27,9 +27,7 @@ def stack(data, device: Optional[torch.device] = None):
     return data
 
 
-def batchify(
-    data: List[dict], device: Optional[torch.device] = None
-) -> DataBatch:
+def batchify(data: List[dict], device: torch.types.Device = None) -> DataBatch:
     return {
         key: stack(data=[item[key] for item in data], device=device)
         for key in data[0].keys()

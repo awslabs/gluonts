@@ -32,6 +32,7 @@ class LookupValues(nn.Module):
         self.register_buffer("bin_values", bin_values)
 
     def forward(self, indices: torch.Tensor) -> torch.Tensor:
+        assert isinstance(self.bin_values, torch.Tensor)
         indices = torch.clamp(indices, 0, self.bin_values.shape[0] - 1)
         return torch.index_select(
             self.bin_values, 0, indices.reshape(-1)

@@ -247,8 +247,11 @@ class Forecast:
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
-    mean: np.ndarray
     _index = None
+
+    @property
+    def mean(self) -> np.ndarray:
+        raise NotImplementedError()
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
