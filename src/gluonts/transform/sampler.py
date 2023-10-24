@@ -14,10 +14,13 @@
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
 
 from gluonts.dataset.stat import ScaleHistogram
 
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 class InstanceSampler(BaseModel):
     """

@@ -17,11 +17,14 @@ import pytest
 
 import mxnet as mx
 import numpy as np
-from pydantic import BaseModel
 
 from gluonts.core import serde
 from gluonts.core.component import equals
 
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 class CategoricalFeatureInfo(BaseModel):
     name: str

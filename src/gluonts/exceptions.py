@@ -13,7 +13,10 @@
 
 from typing import Any
 
-from pydantic.error_wrappers import ValidationError, display_errors
+try:
+    from pydantic.v1.error_wrappers import ValidationError, display_errors
+except ModuleNotFoundError:
+    from pydantic.error_wrappers import ValidationError, display_errors
 
 
 class GluonTSException(Exception):

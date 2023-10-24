@@ -20,7 +20,6 @@ from typing import Iterator, List, Optional
 
 import mxnet as mx
 import numpy as np
-from pydantic import ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import from_hyperparameters, validated
@@ -36,6 +35,11 @@ from gluonts.mx.trainer import Trainer
 
 from ._estimator import NBEATSEstimator
 from ._network import VALID_LOSS_FUNCTIONS
+
+try:
+    from pydantic.v1 import ValidationError
+except ModuleNotFoundError:
+    from pydantic import ValidationError
 
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"

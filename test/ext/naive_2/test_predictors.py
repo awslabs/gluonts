@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from flaky import flaky
-from pydantic import PositiveInt
 
 from gluonts.dataset.artificial import constant_dataset
 from gluonts.dataset.common import Dataset
@@ -29,6 +28,10 @@ from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.time_feature import get_seasonality
 
+try:
+    from pydantic.v1 import PositiveInt
+except ModuleNotFoundError:
+    from pydantic import PositiveInt
 
 def generate_random_dataset(
     num_ts: int, start_time: str, freq: str, min_length: int, max_length: int

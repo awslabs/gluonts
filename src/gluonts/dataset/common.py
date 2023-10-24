@@ -22,8 +22,6 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-import pydantic
-
 from gluonts import json
 from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
@@ -34,6 +32,10 @@ from gluonts.exceptions import GluonTSDataError
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl, DatasetWriter
 
+try:
+    import pydantic.v1 as pydantic
+except ModuleNotFoundError:
+    import pydantic
 
 arrow: Optional[ModuleType]
 

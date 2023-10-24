@@ -11,10 +11,12 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pydantic import BaseModel
-
 from gluonts.core.settings import Settings, let
 
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 class MySettings(Settings):
     foo: str = "bar"

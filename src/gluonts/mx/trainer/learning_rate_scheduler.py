@@ -14,7 +14,6 @@
 from dataclasses import field
 from typing import Dict, Any, Optional
 
-from pydantic.dataclasses import dataclass
 from typing_extensions import Literal
 
 import numpy as np
@@ -26,6 +25,10 @@ from gluonts.core.component import validated
 
 from .callback import Callback
 
+try:
+    from pydantic.v1.dataclasses import dataclass
+except ModuleNotFoundError:
+    from pydantic.dataclasses import dataclass
 
 @dataclass
 class Objective:

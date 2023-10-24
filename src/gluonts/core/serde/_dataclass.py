@@ -24,10 +24,13 @@ from typing import (
     TypeVar,
 )
 
-import pydantic
-import pydantic.dataclasses
-
 from gluonts.itertools import select
+
+try:
+    import pydantic.v1 as pydantic
+except ModuleNotFoundError:
+    import pydantic
+    import pydantic.dataclasses
 
 T = TypeVar("T")
 

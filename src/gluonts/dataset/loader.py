@@ -15,7 +15,6 @@ import logging
 from typing import Callable, Iterable, Optional
 
 import numpy as np
-from pydantic import BaseModel
 
 from gluonts.dataset import DataBatch, Dataset
 from gluonts.itertools import (
@@ -32,6 +31,11 @@ from gluonts.transform import (
     Transformation,
     Valmap,
 )
+
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

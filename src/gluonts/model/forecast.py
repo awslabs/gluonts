@@ -18,10 +18,14 @@ from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
 from gluonts import maybe
+
+try:
+    from pydantic.v1.dataclasses import dataclass
+except ModuleNotFoundError:
+    from pydantic.dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 

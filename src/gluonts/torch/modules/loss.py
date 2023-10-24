@@ -12,7 +12,11 @@
 # permissions and limitations under the License.
 
 import torch
-from pydantic import BaseModel
+
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 
 
 class DistributionLoss(BaseModel):

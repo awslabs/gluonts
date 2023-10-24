@@ -21,7 +21,6 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
-from pydantic import PositiveFloat, PositiveInt
 from scipy.special import softmax
 from torch.distributions import (
     Beta,
@@ -47,6 +46,11 @@ from gluonts.torch.distributions import (
     StudentTOutput,
 )
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+
+try:
+    from pydantic.v1 import PositiveFloat, PositiveInt
+except ModuleNotFoundError:
+    from pydantic import PositiveFloat, PositiveInt
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
