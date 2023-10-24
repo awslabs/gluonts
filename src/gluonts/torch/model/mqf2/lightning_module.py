@@ -13,7 +13,6 @@
 
 from typing import Dict
 
-import lightning.pytorch as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
