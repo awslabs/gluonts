@@ -27,9 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 def _linear_interpolation(
-    xs: np.ndarray, ys: np.ndarray, x: float
+    xs: List[float], ys: List[np.ndarray], x: float
 ) -> np.ndarray:
-    assert np.all(sorted(xs) == xs)
+    assert sorted(xs) == xs
     assert len(xs) == len(ys)
     assert len(xs) >= 2
 
@@ -638,8 +638,8 @@ class QuantileForecast(Forecast):
             return exp_tail_approximation.right(inference_quantile)
         else:
             return _linear_interpolation(
-                np.array(quantiles),
-                np.array(quantile_predictions),
+                quantiles,
+                quantile_predictions,
                 inference_quantile,
             )
 
