@@ -185,7 +185,7 @@ class RForecastPredictor(RBasePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> QuantileForecast:
         stats_dict = {"mean": forecast_dict["mean"]}
 

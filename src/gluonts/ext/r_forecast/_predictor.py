@@ -215,7 +215,7 @@ class RBasePredictor(RepresentablePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> Forecast:
         """
         Returns object of type `gluonts.model.Forecast`.
@@ -261,5 +261,5 @@ class RBasePredictor(RepresentablePredictor):
                 forecast_dict=forecast_dict,
                 forecast_start_date=forecast_start(data),
                 item_id=data.get("item_id", None),
-                info=data.get("info", None),
+                info=info,
             )

@@ -246,7 +246,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> SampleForecast:
         samples = np.array(forecast_dict["samples"])
 
