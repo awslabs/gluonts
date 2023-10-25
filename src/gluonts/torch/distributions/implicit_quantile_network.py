@@ -17,7 +17,7 @@ from typing import Dict, Optional, Tuple, Callable
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Distribution, Beta
+from torch.distributions import Distribution, Beta, constraints
 
 from gluonts.core.component import validated
 from gluonts.torch.distributions import DistributionOutput
@@ -114,7 +114,7 @@ class ImplicitQuantileNetwork(Distribution):
         corresponding outputs.
     """
 
-    arg_constraints = {}
+    arg_constraints: Dict[str, constraints.Constraint] = {}
 
     def __init__(
         self, outputs: torch.Tensor, taus: torch.Tensor, validate_args=None
