@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def _linear_interpolation(
     xs: np.ndarray, ys: np.ndarray, x: float
 ) -> np.ndarray:
-    assert sorted(xs) == xs
+    assert np.all(sorted(xs) == xs)
     assert len(xs) == len(ys)
     assert len(xs) >= 2
 
