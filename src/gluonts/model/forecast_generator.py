@@ -153,24 +153,25 @@ class SampleForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
-            outputs: Union[np.ndarray, List[np.ndarray]] = predict_to_numpy(
-                prediction_net, inputs
-            )
+            outputs = predict_to_numpy(prediction_net, inputs)
+            if output_transform is not None:
+                outputs = output_transform(batch, outputs)
             if num_samples:
                 num_collected_samples = outputs[0].shape[0]
                 collected_samples = [outputs]
                 while num_collected_samples < num_samples:
                     outputs = predict_to_numpy(prediction_net, inputs)
+                    if output_transform is not None:
+                        outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
+                outputs = np.stack(
+                    [
+                        np.concatenate(s)[:num_samples]
+                        for s in zip(*collected_samples)
+                    ]
+                )
                 assert len(outputs[0]) == num_samples
-            assert isinstance(outputs, np.ndarray)
-            if output_transform is not None:
-                outputs = output_transform(batch, outputs)
             i = -1
             for i, output in enumerate(outputs):
                 yield SampleForecast(
