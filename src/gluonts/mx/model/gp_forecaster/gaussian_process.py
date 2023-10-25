@@ -335,7 +335,7 @@ class GaussianProcess:
         mean: Optional[Tensor] = None,
         std: Optional[Tensor] = None,
         samples: Optional[Tensor] = None,
-        axis: Optional[List] = None,
+        axis: Optional[Tuple[float, float, float, float]] = None,
     ) -> None:
         """
         This method plots the sampled GP distribution at the test points in

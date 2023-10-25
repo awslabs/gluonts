@@ -362,7 +362,7 @@ class QRX:
             preds = self.model.predict(x_test)
             predicted_values = [
                 self._get_and_cache_quantile_computation(
-                    self.get_closest_pt(self.sorted_train_preds, pred),
+                    self.get_closest_pt(self.sorted_train_preds, pred),  # type: ignore
                     quantile,
                 )
                 for pred in preds
@@ -378,7 +378,7 @@ class QRX:
                 )
                 predicted_values.append(
                     self._get_and_cache_quantile_computation(
-                        closest_pred, quantile
+                        closest_pred, quantile  # type: ignore
                     )
                 )
         return predicted_values

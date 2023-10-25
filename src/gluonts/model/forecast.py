@@ -14,7 +14,7 @@
 import re
 import logging
 from dataclasses import field
-from typing import Callable, Dict, List, Optional, Union, Tuple
+from typing import Callable, Dict, List, Optional, Union, Tuple, Sequence
 
 import numpy as np
 import pandas as pd
@@ -436,7 +436,7 @@ class SampleForecast(Forecast):
         self.samples = samples
         self._sorted_samples_value = None
         self._mean = None
-        self._dim = None
+        self._dim: Optional[int] = None
         self.item_id = item_id
         self.info = info
 
@@ -472,6 +472,7 @@ class SampleForecast(Forecast):
         """
         if self._mean is None:
             self._mean = np.mean(self.samples, axis=0)
+        assert self._mean is not None
         return self._mean
 
     @property
@@ -543,7 +544,7 @@ class SampleForecast(Forecast):
         return QuantileForecast(
             forecast_arrays=np.array(
                 [
-                    self.quantile(q) if q != "mean" else self.mean()
+                    self.quantile(q) if q != "mean" else self.mean
                     for q in quantiles
                 ]
             ),
@@ -596,7 +597,7 @@ class QuantileForecast(Forecast):
         ]
         self.item_id = item_id
         self.info = info
-        self._dim = None
+        self._dim: Optional[int] = None
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
@@ -637,7 +638,9 @@ class QuantileForecast(Forecast):
             return exp_tail_approximation.right(inference_quantile)
         else:
             return _linear_interpolation(
-                quantiles, quantile_predictions, inference_quantile
+                np.array(quantiles),
+                np.array(quantile_predictions),
+                inference_quantile,
             )
 
     def copy_dim(self, dim: int) -> "QuantileForecast":

@@ -77,7 +77,7 @@ class GluonPredictor(Predictor):
     def __init__(
         self,
         input_names: List[str],
-        prediction_net: BlockType,
+        prediction_net,
         batch_size: int,
         prediction_length: int,
         ctx: mx.Context,
@@ -102,7 +102,7 @@ class GluonPredictor(Predictor):
         self.dtype = dtype
 
     @property
-    def network(self) -> BlockType:
+    def network(self):
         return self.prediction_net
 
     def hybridize(self, batch: DataBatch) -> None:
@@ -238,7 +238,7 @@ class SymbolBlockPredictor(GluonPredictor):
         export_symb_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(
+    def deserialize(  # type: ignore
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "SymbolBlockPredictor":
         ctx = ctx if ctx is not None else get_mxnet_context()
@@ -288,7 +288,7 @@ class RepresentableBlockPredictor(GluonPredictor):
 
     def __init__(
         self,
-        prediction_net: BlockType,
+        prediction_net,
         batch_size: int,
         prediction_length: int,
         ctx: mx.Context,
@@ -319,6 +319,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         dataset: Optional[Dataset] = None,
     ) -> SymbolBlockPredictor:
         if batch is None:
+            assert dataset is not None
             data_loader = InferenceDataLoader(
                 dataset,
                 transform=self.input_transform,
@@ -358,7 +359,7 @@ class RepresentableBlockPredictor(GluonPredictor):
         export_repr_block(self.prediction_net, path, "prediction_net")
 
     @classmethod
-    def deserialize(
+    def deserialize(  # type: ignore
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "RepresentableBlockPredictor":
         ctx = ctx if ctx is not None else get_mxnet_context()
