@@ -23,11 +23,8 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
+from gluonts.pydantic import PositiveInt
 
-try:
-    from pydantic.v1 import PositiveInt
-except ModuleNotFoundError:
-    from pydantic import PositiveInt
 
 class MeanPredictor(RepresentablePredictor):
     """

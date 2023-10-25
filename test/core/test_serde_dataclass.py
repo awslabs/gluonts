@@ -14,11 +14,7 @@
 from typing import List
 
 from gluonts.core import serde
-
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
+from gluonts.pydantic import BaseModel
 
 
 @serde.dataclass

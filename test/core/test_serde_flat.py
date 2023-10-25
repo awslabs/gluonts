@@ -13,11 +13,7 @@
 
 from gluonts.core import serde
 from gluonts.core.component import equals
-
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
+from gluonts.pydantic import BaseModel
 
 
 class A(BaseModel):

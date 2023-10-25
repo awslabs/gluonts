@@ -20,12 +20,9 @@ import numpy as np
 import pandas as pd
 
 from gluonts.core.component import validated
+from gluonts.pydantic import dataclass
 from gluonts import maybe
 
-try:
-    from pydantic.v1.dataclasses import dataclass
-except ModuleNotFoundError:
-    from pydantic.dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 

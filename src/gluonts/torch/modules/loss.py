@@ -13,10 +13,7 @@
 
 import torch
 
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
+from gluonts.pydantic import BaseModel
 
 
 class DistributionLoss(BaseModel):

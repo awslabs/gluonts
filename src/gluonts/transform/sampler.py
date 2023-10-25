@@ -16,11 +16,8 @@ from typing import Tuple
 import numpy as np
 
 from gluonts.dataset.stat import ScaleHistogram
+from gluonts.pydantic import BaseModel
 
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
 
 class InstanceSampler(BaseModel):
     """

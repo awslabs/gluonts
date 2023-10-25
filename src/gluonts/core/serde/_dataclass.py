@@ -25,12 +25,7 @@ from typing import (
 )
 
 from gluonts.itertools import select
-
-try:
-    import pydantic.v1 as pydantic
-except ModuleNotFoundError:
-    import pydantic
-    import pydantic.dataclasses
+from gluonts.pydantic import pydantic, dataclass as pydantic_dataclass
 
 T = TypeVar("T")
 
@@ -155,7 +150,7 @@ def _dataclass(
         arbitrary_types_allowed = True
 
     # make `cls` a dataclass
-    pydantic.dataclasses.dataclass(
+    pydantic_dataclass(
         init=init,
         repr=repr,
         eq=eq,

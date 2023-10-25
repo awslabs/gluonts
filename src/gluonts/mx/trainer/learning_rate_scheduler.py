@@ -22,13 +22,10 @@ from mxnet import gluon
 import mxnet.gluon.nn as nn
 
 from gluonts.core.component import validated
+from gluonts.pydantic import dataclass
 
 from .callback import Callback
 
-try:
-    from pydantic.v1.dataclasses import dataclass
-except ModuleNotFoundError:
-    from pydantic.dataclasses import dataclass
 
 @dataclass
 class Objective:

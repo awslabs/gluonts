@@ -26,12 +26,8 @@ from gluonts.evaluation import Evaluator, backtest_metrics
 from gluonts.ext.naive_2 import Naive2Predictor
 from gluonts.model.predictor import Predictor
 from gluonts.model.seasonal_naive import SeasonalNaivePredictor
+from gluonts.pydantic import PositiveInt
 from gluonts.time_feature import get_seasonality
-
-try:
-    from pydantic.v1 import PositiveInt
-except ModuleNotFoundError:
-    from pydantic import PositiveInt
 
 def generate_random_dataset(
     num_ts: int, start_time: str, freq: str, min_length: int, max_length: int

@@ -15,10 +15,7 @@ from typing import List, Union, Optional
 
 import numpy as np
 
-try:
-    from pydantic.v1 import BaseModel, root_validator
-except ModuleNotFoundError:
-    from pydantic import BaseModel, root_validator
+from gluonts.pydantic import BaseModel, root_validator
 
 class FeatureImportanceResult(BaseModel):
     target: List[Union[List[float], float]]

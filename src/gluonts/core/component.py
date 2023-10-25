@@ -22,11 +22,7 @@ import numpy as np
 
 from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
-
-try:
-    from pydantic.v1 import BaseConfig, BaseModel, ValidationError, create_model
-except ModuleNotFoundError:
-    from pydantic import BaseConfig, BaseModel, ValidationError, create_model
+from gluonts.pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
 
 logger = logging.getLogger(__name__)

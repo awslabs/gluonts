@@ -21,11 +21,7 @@ from typing import Any, NamedTuple, cast
 from toolz.dicttoolz import valmap
 
 from gluonts.core import fqname_for
-
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
+from gluonts.pydantic import BaseModel
 
 bad_type_msg = textwrap.dedent(
     """

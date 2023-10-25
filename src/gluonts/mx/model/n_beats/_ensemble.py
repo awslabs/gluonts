@@ -32,14 +32,10 @@ from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
+from gluonts.pydantic import ValidationError
 
 from ._estimator import NBEATSEstimator
 from ._network import VALID_LOSS_FUNCTIONS
-
-try:
-    from pydantic.v1 import ValidationError
-except ModuleNotFoundError:
-    from pydantic import ValidationError
 
 # None is also a valid parameter
 AGGREGATION_METHODS = "median", "mean", "none"

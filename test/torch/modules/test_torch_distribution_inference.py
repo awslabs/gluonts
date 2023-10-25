@@ -34,6 +34,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
 
+from gluonts.pydantic import PositiveFloat, PositiveInt
 from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
@@ -46,11 +47,6 @@ from gluonts.torch.distributions import (
     StudentTOutput,
 )
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-
-try:
-    from pydantic.v1 import PositiveFloat, PositiveInt
-except ModuleNotFoundError:
-    from pydantic import PositiveFloat, PositiveInt
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32

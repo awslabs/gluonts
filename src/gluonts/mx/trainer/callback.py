@@ -25,11 +25,7 @@ from mxnet import gluon
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx.util import copy_parameters
-
-try:
-    from pydantic.v1 import BaseModel, PrivateAttr
-except ModuleNotFoundError:
-    from pydantic import BaseModel, PrivateAttr
+from gluonts.pydantic import BaseModel, PrivateAttr
 
 logger = logging.getLogger(__name__)
 

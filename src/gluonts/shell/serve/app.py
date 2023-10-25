@@ -26,12 +26,8 @@ from flask import Flask, Response, jsonify, request
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.jsonl import encode_json
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.pydantic import BaseModel, Field
 from gluonts.shell.util import forecaster_type_by_name
-
-try:
-    from pydantic.v1 import BaseModel, Field
-except ModuleNotFoundError:
-    from pydantic import BaseModel, Field
 
 logger = logging.getLogger("gluonts.serve")
 

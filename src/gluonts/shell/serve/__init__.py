@@ -23,13 +23,9 @@ from gluonts.core import fqname_for
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv
+from gluonts.pydantic import BaseSettings
 
 from .app import make_app
-
-try:
-    from pydantic.v1 import BaseSettings
-except ModuleNotFoundError:
-    from pydantic import BaseSettings
 
 logging.basicConfig(
     level=logging.INFO,

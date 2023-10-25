@@ -24,6 +24,7 @@ from gluonts.itertools import (
     batcher,
     rows_to_columns,
 )
+from gluonts.pydantic import BaseModel
 from gluonts.transform import (
     AdhocTransform,
     Identity,
@@ -31,11 +32,6 @@ from gluonts.transform import (
     Transformation,
     Valmap,
 )
-
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

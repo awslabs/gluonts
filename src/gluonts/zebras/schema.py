@@ -17,16 +17,12 @@ from typing import Any, Callable, Optional, Union, Type, Dict
 import numpy as np
 
 from gluonts.itertools import partition
+from gluonts.pydantic import parse_obj_as, BaseModel
 
 from ._freq import Freq
 from ._period import Period
 from ._time_frame import time_frame, TimeFrame
 from ._split_frame import split_frame, SplitFrame
-
-try:
-    from pydantic.v1 import parse_obj_as, BaseModel
-except ModuleNotFoundError:
-    from pydantic import parse_obj_as, BaseModel
 
 
 """

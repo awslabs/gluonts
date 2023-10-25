@@ -27,15 +27,11 @@ from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.schema import Translator
 from gluonts.exceptions import GluonTSDataError
+from gluonts.pydantic import pydantic
 
 
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl, DatasetWriter
-
-try:
-    import pydantic.v1 as pydantic
-except ModuleNotFoundError:
-    import pydantic
 
 arrow: Optional[ModuleType]
 

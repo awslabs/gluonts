@@ -76,12 +76,7 @@ import itertools
 from operator import attrgetter
 from typing import Any
 
-try:
-    import pydantic.v1 as pydantic
-    from pydantic.v1.utils import deep_update
-except ModuleNotFoundError:
-    import pydantic
-    from pydantic.utils import deep_update
+from gluonts.pydantic import pydantic, deep_update
 
 
 class ListElement:

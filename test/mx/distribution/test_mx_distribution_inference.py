@@ -83,11 +83,7 @@ from gluonts.mx.distribution.transformed_distribution import (
 from gluonts.mx.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
 )
-
-try:
-    from pydantic.v1 import PositiveFloat, PositiveInt
-except ModuleNotFoundError:
-    from pydantic import PositiveFloat, PositiveInt
+from gluonts.pydantic import PositiveFloat, PositiveInt
 
 pytestmark = pytest.mark.timeout(60)
 NUM_SAMPLES = 2000

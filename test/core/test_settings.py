@@ -12,11 +12,8 @@
 # permissions and limitations under the License.
 
 from gluonts.core.settings import Settings, let
+from gluonts.pydantic import BaseModel
 
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
 
 class MySettings(Settings):
     foo: str = "bar"

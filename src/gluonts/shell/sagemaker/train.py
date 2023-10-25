@@ -16,14 +16,12 @@ import shutil
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from gluonts.pydantic import BaseModel
+
 from .dyn import install_and_restart
 from .params import decode_sagemaker_parameters
 from .nested_params import decode_nested_parameters
 
-try:
-    from pydantic.v1 import BaseModel
-except ModuleNotFoundError:
-    from pydantic import BaseModel
 
 class DataConfig(BaseModel):
     ContentType: Optional[str] = None
