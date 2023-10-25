@@ -14,7 +14,7 @@
 import re
 import logging
 from dataclasses import field
-from typing import Callable, Dict, List, Optional, Union, Tuple, Sequence
+from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
