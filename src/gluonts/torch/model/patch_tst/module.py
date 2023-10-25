@@ -30,7 +30,7 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
 
     def __init__(self, num_positions: int, embedding_dim: int) -> None:
         super().__init__(num_positions, embedding_dim)
-        self.weight = self._init_weight(self.weight)
+        self.weight = self._init_weight(self.weight)  # type: ignore
 
     @staticmethod
     def _init_weight(out: torch.Tensor) -> torch.Tensor:
