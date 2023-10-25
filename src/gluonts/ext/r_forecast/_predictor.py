@@ -91,7 +91,7 @@ class RBasePredictor(RepresentablePredictor):
         self,
         freq: str,
         prediction_length: int,
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         save_info: bool = False,
         r_file_prefix: str = "",
@@ -261,5 +261,5 @@ class RBasePredictor(RepresentablePredictor):
                 forecast_dict=forecast_dict,
                 forecast_start_date=forecast_start(data),
                 item_id=data.get("item_id", None),
-                info=info,
+                info=data.get("info", None),
             )

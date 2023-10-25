@@ -49,7 +49,7 @@ class PyTorchLightningEstimator(Estimator):
     @validated()
     def __init__(
         self,
-        trainer_kwargs: Dict[str, Any],
+        trainer_kwargs: Optional[Dict[str, Any]],
         lead_time: int = 0,
     ) -> None:
         super().__init__(lead_time=lead_time)

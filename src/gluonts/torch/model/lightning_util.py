@@ -17,7 +17,4 @@ import lightning.pytorch as pl
 
 
 def has_validation_loop(trainer: pl.Trainer):
-    if version.parse(pl.__version__) < version.parse("2.0.0"):
-        assert hasattr(trainer._data_connector, "_val_dataloader_source")
-        return trainer._data_connector._val_dataloader_source.is_defined()
     return trainer.fit_loop.epoch_loop.val_loop._data_source.is_defined()
