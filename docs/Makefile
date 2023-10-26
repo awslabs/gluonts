@@ -23,7 +23,7 @@ apidoc:
 		--module-first \
 		-o api/gluonts \
 		../src/gluonts \
-		../src/gluonts/nursery/*
+		../src/gluonts/nursery/* \
 		../src/gluonts/pydantic.py
 
 	@rm -Rf api/gluonts/modules.rst
