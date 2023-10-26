@@ -22,6 +22,7 @@ from gluonts.core import serde
 from gluonts.core.component import equals
 from gluonts.pydantic import BaseModel
 
+
 class CategoricalFeatureInfo(BaseModel):
     name: str
     cardinality: int

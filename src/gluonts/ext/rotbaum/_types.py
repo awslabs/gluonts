@@ -17,6 +17,7 @@ import numpy as np
 
 from gluonts.pydantic import BaseModel, root_validator
 
+
 class FeatureImportanceResult(BaseModel):
     target: List[Union[List[float], float]]
     feat_static_cat: List[Union[List[float], float]]

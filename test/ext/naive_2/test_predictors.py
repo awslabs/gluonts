@@ -29,6 +29,7 @@ from gluonts.model.seasonal_naive import SeasonalNaivePredictor
 from gluonts.pydantic import PositiveInt
 from gluonts.time_feature import get_seasonality
 
+
 def generate_random_dataset(
     num_ts: int, start_time: str, freq: str, min_length: int, max_length: int
 ) -> Dataset:

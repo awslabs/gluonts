@@ -34,6 +34,7 @@ if PYDANTIC_V2:
         Field,
         parse_obj_as,
         PositiveFloat,
+        BaseSettings,
     )
     from pydantic.v1.error_wrappers import ValidationError, display_errors
     from pydantic.v1.utils import deep_update
@@ -50,6 +51,7 @@ else:
         Field,
         parse_obj_as,
         PositiveFloat,
+        BaseSettings,
     )
     from pydantic.error_wrappers import ValidationError, display_errors  # noqa
     from pydantic.utils import deep_update  # noqa

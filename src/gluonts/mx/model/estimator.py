@@ -33,6 +33,7 @@ from gluonts.pydantic import ValidationError
 from gluonts.transform import Transformation
 from mxnet.gluon import HybridBlock
 
+
 class TrainOutput(NamedTuple):
     transformation: Transformation
     trained_net: HybridBlock
