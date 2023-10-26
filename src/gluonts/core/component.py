@@ -257,7 +257,7 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error for
+    pydantic.v1.error_wrappers.ValidationError: 1 validation error for
     ComplexNumberModel
     y
       none is not an allowed value (type=type_error.none.not_allowed)
