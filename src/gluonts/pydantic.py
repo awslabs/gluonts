@@ -12,18 +12,12 @@
 # permissions and limitations under the License.
 
 
-"""
-This modules contains pydantic imports, which are used throughout the codebase.
-"""
+"""This modules contains pydantic imports, which are used throughout the codebase."""
 
-try:
+from pydantic import __version__
+
+if __version__.startswith("2"):
     import pydantic.v1 as pydantic
-
-    PYDANTIC_V2 = True
-except ModuleNotFoundError:
-    PYDANTIC_V1 = False
-
-if PYDANTIC_V2:
     from pydantic.v1 import (
         BaseConfig,
         BaseModel,
@@ -40,8 +34,8 @@ if PYDANTIC_V2:
     from pydantic.v1.utils import deep_update
     from pydantic.v1.dataclasses import dataclass
 else:
-    import pydantic  # noqa
-    from pydantic import (  # noqa
+    import pydantic
+    from pydantic import (
         BaseConfig,
         BaseModel,
         create_model,
@@ -53,6 +47,26 @@ else:
         PositiveFloat,
         BaseSettings,
     )
-    from pydantic.error_wrappers import ValidationError, display_errors  # noqa
-    from pydantic.utils import deep_update  # noqa
-    from pydantic.dataclasses import dataclass  # noqa
+    from pydantic.error_wrappers import ValidationError, display_errors
+    from pydantic.utils import deep_update
+    from pydantic.dataclasses import dataclass
+
+
+__all__ = [
+    "BaseConfig",
+    "BaseModel",
+    "BaseSettings",
+    "Field",
+    "PositiveFloat",
+    "PositiveInt",
+    "PrivateAttr",
+    "ValidationError",
+    "__version__",
+    "create_model",
+    "dataclass",
+    "deep_update",
+    "display_errors",
+    "parse_obj_as",
+    "pydantic",
+    "root_validator",
+]
