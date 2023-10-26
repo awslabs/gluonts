@@ -20,7 +20,7 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional
+from typing import TYPE_CHECKING, Callable, Iterator, Optional, Dict, Any
 
 import numpy as np
 
@@ -116,6 +116,7 @@ class Predictor:
 
         tpe = locate(tpe_str)
         assert tpe is not None, f"Cannot locate {tpe_str}."
+        assert isinstance(tpe, type)
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
@@ -179,7 +180,7 @@ class RepresentablePredictor(Predictor):
             print(dump_json(self), file=fp)
 
     @classmethod
-    def deserialize(cls, path: Path) -> "RepresentablePredictor":
+    def deserialize(cls, path: Path) -> "RepresentablePredictor":  # type: ignore
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
 
@@ -257,8 +258,8 @@ class ParallelizedPredictor(Predictor):
         )
         self._chunk_size = chunk_size
         self._num_running_workers = 0
-        self._input_queues = []
-        self._output_queue = None
+        self._input_queues: list = []
+        self._output_queue: Optional[mp.Queue] = None
 
     def _grouper(self, iterable, n):
         iterator = iter(iterable)
@@ -305,7 +306,7 @@ class ParallelizedPredictor(Predictor):
             self._send_idx = 0
             self._next_idx = 0
 
-            self._data_buffer = {}
+            self._data_buffer: Dict[int, Any] = {}
 
             worker_ids = list(range(self._num_workers))
 

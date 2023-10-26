@@ -64,7 +64,7 @@ class StudentTOutput(DistributionOutput):
     distr_cls: type = StudentT
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
     ):
         epsilon = torch.finfo(scale.dtype).eps

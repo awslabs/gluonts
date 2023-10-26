@@ -37,7 +37,7 @@ def resolve_device(
 def copy_parameters(
     net_source: torch.nn.Module,
     net_dest: torch.nn.Module,
-    strict: Optional[bool] = True,
+    strict: bool = True,
 ) -> None:
     """
     Copies parameters from one network to another.

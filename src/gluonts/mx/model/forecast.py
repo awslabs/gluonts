@@ -82,6 +82,7 @@ class DistributionForecast(Forecast):
             return self._mean
         else:
             self._mean = self.distribution.mean.asnumpy()
+            assert isinstance(self._mean, np.ndarray)
             return self._mean
 
     @property
@@ -107,7 +108,7 @@ class DistributionForecast(Forecast):
     def to_quantile_forecast(self, quantiles: List[Union[float, str]]):
         return QuantileForecast(
             forecast_arrays=np.array([self.quantile(q) for q in quantiles]),
-            forecast_keys=quantiles,
+            forecast_keys=[str(Quantile.parse(level)) for level in quantiles],
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,

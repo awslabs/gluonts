@@ -157,7 +157,7 @@ class GeneralizedParetoOutput(DistributionOutput):
         )
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         xi: torch.Tensor,
         beta: torch.Tensor,
@@ -170,7 +170,7 @@ class GeneralizedParetoOutput(DistributionOutput):
     def distribution(
         self,
         distr_args,
-        loc: Optional[torch.Tensor] = 0,
+        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> GeneralizedPareto:
         return self.distr_cls(

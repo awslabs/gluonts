@@ -21,7 +21,7 @@ from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 
 
-def seasonality_test(past_ts_data: np.array, season_length: int) -> bool:
+def seasonality_test(past_ts_data: np.ndarray, season_length: int) -> bool:
     """
     Test the time series for seasonal patterns by performing a 90% auto-
     correlation test.

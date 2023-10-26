@@ -22,15 +22,13 @@ from gluonts.torch.modules.feature import (
 
 
 class FeatureEmbedder(BaseFeatureEmbedder):
-    def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
+    def forward(self, features: torch.Tensor) -> List[torch.Tensor]:  # type: ignore
         concat_features = super().forward(features=features)
 
         if self._num_features > 1:
-            features = torch.chunk(concat_features, self._num_features, dim=-1)
+            return torch.chunk(concat_features, self._num_features, dim=-1)
         else:
-            features = [concat_features]
-
-        return features
+            return [concat_features]
 
 
 class FeatureProjector(nn.Module):
@@ -316,7 +314,7 @@ class TemporalFusionDecoder(nn.Module):
         self,
         x: torch.Tensor,
         static: torch.Tensor,
-        mask: Optional[torch.Tensor] = None,
+        mask: torch.Tensor,
     ) -> torch.Tensor:
         expanded_static = static.repeat(
             (1, self.context_length + self.prediction_length, 1)

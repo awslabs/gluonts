@@ -18,8 +18,9 @@ from torch.distributions import AffineTransform, TransformedDistribution
 from torch.distributions.normal import Normal
 
 from gluonts.core.component import validated
-
-from .distribution_output import DistributionOutput
+from gluonts.itertools import prod
+from gluonts.torch.distributions import DistributionOutput
+from gluonts.torch.model.mqf2.module import PICNN
 
 
 class MQF2Distribution(torch.distributions.Distribution):
@@ -60,7 +61,7 @@ class MQF2Distribution(torch.distributions.Distribution):
 
     def __init__(
         self,
-        picnn: torch.nn.Module,
+        picnn: PICNN,
         hidden_state: torch.Tensor,
         prediction_length: int,
         is_energy_score: bool = True,
@@ -86,7 +87,7 @@ class MQF2Distribution(torch.distributions.Distribution):
             if len(self.hidden_state.shape) > 2
             else 1
         )
-        self.numel_batch = MQF2Distribution.get_numel(self.batch_shape)
+        self.numel_batch = prod(self.batch_shape)
 
         # mean zero and std one
         mu = torch.tensor(
@@ -211,7 +212,7 @@ class MQF2Distribution(torch.distributions.Distribution):
         numel_batch = self.numel_batch
         prediction_length = self.prediction_length
 
-        num_samples_per_batch = MQF2Distribution.get_numel(sample_shape)
+        num_samples_per_batch = prod(sample_shape)
         num_samples = num_samples_per_batch * numel_batch
 
         hidden_state_repeat = self.hidden_state.repeat_interleave(
@@ -265,20 +266,14 @@ class MQF2Distribution(torch.distributions.Distribution):
 
         return result
 
-    @staticmethod
-    def get_numel(tensor_shape: torch.Size) -> int:
-        # Auxiliary function
-        # compute number of elements specified in a torch.Size()
-        return torch.prod(torch.tensor(tensor_shape)).item()
-
     @property
     def batch_shape(self) -> torch.Size:
         # last dimension is the hidden state size
         return self.hidden_state.shape[:-1]
 
     @property
-    def event_shape(self) -> Tuple:
-        return ()
+    def event_shape(self) -> torch.Size:
+        return torch.Size()
 
     @property
     def event_dim(self) -> int:
@@ -311,18 +306,17 @@ class MQF2DistributionOutput(DistributionOutput):
         self.beta = beta
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         hidden_state: torch.Tensor,
     ) -> Tuple:
         # A null function to be called by ArgProj
         return ()
 
-    def distribution(
+    def distribution(  # type: ignore
         self,
         picnn: torch.nn.Module,
         hidden_state: torch.Tensor,
-        loc: Optional[torch.Tensor] = 0,
         scale: Optional[torch.Tensor] = None,
     ) -> MQF2Distribution:
         distr = self.distr_cls(
@@ -339,7 +333,7 @@ class MQF2DistributionOutput(DistributionOutput):
             return distr
         else:
             return TransformedMQF2Distribution(
-                distr, [AffineTransform(loc=loc, scale=scale)]
+                distr, [AffineTransform(loc=0.0, scale=scale)]
             )
 
     @property
@@ -369,6 +363,8 @@ class TransformedMQF2Distribution(TransformedDistribution):
             assert isinstance(t, AffineTransform), "Not an AffineTransform"
             z = t._inverse(y)
             scale *= t.scale
+
+        assert isinstance(scale, torch.Tensor)
 
         return z, scale
 

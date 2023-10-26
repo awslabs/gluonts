@@ -142,7 +142,7 @@ class Chain:
     This is a thin wrapper around ``itertools.chain``.
     """
 
-    iterables: Collection[Iterable]
+    iterables: Collection[SizedIterable]
 
     def __iter__(self):
         yield from itertools.chain.from_iterable(self.iterables)
@@ -179,7 +179,7 @@ class Fuse:
     ``Collection``s.
     """
 
-    collections: List[Collection]
+    collections: List[Sequence]
     _lengths: List[int] = field(default_factory=list)
 
     def __post_init__(self):
@@ -263,7 +263,7 @@ class Fuse:
         return f"Fuse<size={len(self)}>"
 
 
-def split(xs: Collection, indices: List[int]) -> List[Collection]:
+def split(xs: Sequence, indices: List[int]) -> List[Sequence]:
     """Split ``xs`` into subsets given ``indices``.
 
     >>> split("abcdef", [1, 3])
@@ -282,7 +282,7 @@ def split(xs: Collection, indices: List[int]) -> List[Collection]:
     ]
 
 
-def split_into(xs: Collection, n: int) -> Collection:
+def split_into(xs: Sequence, n: int) -> Sequence:
     """Split ``xs`` into ``n`` parts of similar size.
 
     >>> split_into("abcd", 2)
@@ -726,7 +726,7 @@ def replace(values: Sequence[T], idx: int, value: T) -> Sequence[T]:
     xs = list(values)
     xs[idx] = value
 
-    return type(values)(xs)
+    return type(values)(xs)  # type: ignore
 
 
 def chop(

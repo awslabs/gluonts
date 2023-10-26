@@ -91,7 +91,7 @@ class RBasePredictor(RepresentablePredictor):
         self,
         freq: str,
         prediction_length: int,
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         save_info: bool = False,
         r_file_prefix: str = "",
@@ -215,7 +215,7 @@ class RBasePredictor(RepresentablePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> Forecast:
         """
         Returns object of type `gluonts.model.Forecast`.

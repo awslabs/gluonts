@@ -70,7 +70,7 @@ class CausalDilatedResidualLayer(nn.Module):
                 kernel_size=1,
             )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         u = self.conv_sigmoid(x) * self.conv_tanh(x)
         s = self.conv_skip(u)
         if not self.return_dense_output:
@@ -186,6 +186,7 @@ class WaveNet(nn.Module):
             bias=True,
         )
         with torch.no_grad():
+            assert self.conv_project.bias is not None
             self.conv_project.bias.zero_()
 
         self.conv1 = nn.Conv1d(
@@ -308,8 +309,7 @@ class WaveNet(nn.Module):
     def base_net(
         self,
         inputs: torch.Tensor,
-        prediction_mode: bool = False,
-        queues: List[torch.Tensor] = None,
+        queues: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward pass through the WaveNet.
 
@@ -318,9 +318,6 @@ class WaveNet(nn.Module):
         inputs
             A tensor of inputs
             Shape: (batch_size, num_residual_channels, sequence_length)
-        prediction_mode, optional
-            Flag indicating whether the network is being used
-            for prediction, by default False
         queues, optional
             Convolutional queues containing past computations.
             This speeds up predictions and must be provided
@@ -329,6 +326,7 @@ class WaveNet(nn.Module):
 
         [Paine et al., 2016] "Fast wavenet generation algorithm."
            arXiv preprint arXiv:1611.09482 (2016).
+
         Returns
         -------
             A tensor containing the unnormalized outputs of the network of
@@ -336,17 +334,12 @@ class WaveNet(nn.Module):
             convolutional queues for each layer. The queue corresponding to
             layer `l` has shape: (batch_size, num_residual_channels, 2^l).
         """
-        if prediction_mode:
-            assert (
-                queues is not None
-            ), "Queues cannot be empty in prediction mode!"
-
         skip_outs = []
         queues_next = []
         out = inputs
         for i, layer in enumerate(self.residuals):
             skip, out = layer(out)
-            if prediction_mode:
+            if queues is not None:
                 trimmed_skip = skip
                 if i + 1 < len(self.residuals):
                     out = torch.cat([queues[i], out], dim=-1)
@@ -419,7 +412,7 @@ class WaveNet(nn.Module):
         input_embedding = self.target_feature_embedding(
             target=full_target[..., :-1], features=full_features[..., 1:]
         )
-        logits, _ = self.base_net(input_embedding, prediction_mode=False)
+        logits, _ = self.base_net(input_embedding)
         labels = full_target[..., self.receptive_field :]
         loss_weight = torch.cat(
             [past_observed_values, future_observed_values], dim=-1
@@ -563,9 +556,7 @@ class WaveNet(nn.Module):
                     current_features, num_parallel_samples, dim=0
                 ),
             )
-            logits, queues = self.base_net(
-                input_embedding, prediction_mode=True, queues=queues
-            )
+            logits, queues = self.base_net(input_embedding, queues=queues)
 
             if temperature > 0.0:
                 probs = torch.softmax(logits / temperature, dim=-1)

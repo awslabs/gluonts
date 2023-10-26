@@ -74,8 +74,9 @@ class DistributionForecast(Forecast):
         if self._mean is not None:
             return self._mean
         else:
-            self._mean = self.distribution.mean.cpu().numpy()
-            return self._mean
+            _mean = self.distribution.mean.cpu().numpy()
+            self._mean = _mean
+            return _mean
 
     @property
     def mean_ts(self) -> pd.Series:
@@ -96,7 +97,9 @@ class DistributionForecast(Forecast):
 
     def to_sample_forecast(self, num_samples: int = 200) -> SampleForecast:
         return SampleForecast(
-            samples=self.distribution.sample((num_samples,)).cpu().numpy(),
+            samples=self.distribution.sample(torch.Size((num_samples,)))
+            .cpu()
+            .numpy(),
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
