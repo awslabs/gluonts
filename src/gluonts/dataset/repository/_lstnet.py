@@ -141,7 +141,10 @@ def generate_lstnet_dataset(
         pd.read_csv(ds_info.url, header=None),  # type: ignore
     )
 
-    assert df.shape == (ds_info.num_time_steps, ds_info.num_series,), (
+    assert df.shape == (
+        ds_info.num_time_steps,
+        ds_info.num_series,
+    ), (
         "expected num_time_steps/num_series"
         f" {(ds_info.num_time_steps, ds_info.num_series)} but got {df.shape}"
     )
