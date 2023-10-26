@@ -20,6 +20,7 @@ from gluonts.torch.model.deepar.module import DeepARModel
 
 from cpflows.flows import ActNorm
 from cpflows.icnn import PICNN
+
 from .distribution import MQF2DistributionOutput
 from .icnn_utils import DeepConvexNet, SequentialNet
 

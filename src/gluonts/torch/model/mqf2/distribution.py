@@ -19,9 +19,8 @@ from torch.distributions.normal import Normal
 
 from gluonts.core.component import validated
 from gluonts.itertools import prod
+from gluonts.torch.distributions import DistributionOutput
 from gluonts.torch.model.mqf2.module import PICNN
-
-from ...distributions.distribution_output import DistributionOutput
 
 
 class MQF2Distribution(torch.distributions.Distribution):

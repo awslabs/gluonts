@@ -13,13 +13,14 @@
 
 from typing import Dict
 
+import lightning.pytorch as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import lightning.pytorch as pl
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
-from . import MQF2MultiHorizonModel
+
+from .module import MQF2MultiHorizonModel
 
 
 class MQF2MultiHorizonLightningModule(pl.LightningModule):

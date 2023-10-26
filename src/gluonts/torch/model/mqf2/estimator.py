@@ -18,7 +18,7 @@ from gluonts.time_feature import TimeFeature
 from gluonts.torch.model.deepar.estimator import DeepAREstimator
 from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
 
-from . import MQF2MultiHorizonLightningModule
+from .lightning_module import MQF2MultiHorizonLightningModule
 from .distribution import MQF2DistributionOutput
 
 
