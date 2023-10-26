@@ -267,7 +267,7 @@ def validated(base_model=None):
     accessed through the ``Model`` attribute of the decorated initializer.
 
     >>> ComplexNumber.__init__.Model
-    <class 'pydantic.main.ComplexNumberModel'>
+    <class 'pydantic.v1.main.ComplexNumberModel'>
 
     The Pydantic model is synthesized automatically from on the parameter
     names and types of the decorated initializer. In the ``ComplexNumber``
