@@ -24,7 +24,7 @@ apidoc:
 		-o api/gluonts \
 		../src/gluonts \
 		../src/gluonts/nursery/*
-                ../src/gluonts/pydantic.py
+		../src/gluonts/pydantic.py
 
 	@rm -Rf api/gluonts/modules.rst
 	@sed -i"" -e "s/gluonts package/API Docs/" api/gluonts/gluonts.rst
