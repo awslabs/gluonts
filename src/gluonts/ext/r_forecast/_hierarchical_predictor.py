@@ -32,7 +32,7 @@ HIERARCHICAL_POINT_FORECAST_METHODS = [
     "erm",
 ]
 
-HIERARCHICAL_SAMPLE_FORECAST_METHODS = []  # TODO: Add `depbu_mint`.
+HIERARCHICAL_SAMPLE_FORECAST_METHODS: List[str] = []  # TODO: Add `depbu_mint`.
 
 SUPPORTED_HIERARCHICAL_METHODS = (
     HIERARCHICAL_POINT_FORECAST_METHODS + HIERARCHICAL_SAMPLE_FORECAST_METHODS
@@ -200,6 +200,8 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         else:
             hier_ts = self._hts_pkg.gts(y_bottom_ts, groups=nodes)
 
+        assert isinstance(self.params["num_samples"], int)
+
         forecast = self._r_method(hier_ts, r_params)
 
         all_forecasts = list(forecast)
@@ -244,7 +246,7 @@ class RHierarchicalForecastPredictor(RBasePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> SampleForecast:
         samples = np.array(forecast_dict["samples"])
 

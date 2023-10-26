@@ -16,16 +16,16 @@ from sklearn.metrics import auc
 
 
 def bounded_pr_auc(
-    precisions: np.array, recalls: np.array, lower_bound: float = 0
+    precisions: np.ndarray, recalls: np.ndarray, lower_bound: float = 0
 ) -> float:
     """
     Bounded PR AUC --> AUC when recall > lower_bound.
 
     Parameters
     ----------
-    precisions : np.array
+    precisions : np.ndarray
         precisions of different thresholds
-    recalls : np.array
+    recalls : np.ndarray
         recalls of different thresholds
     lower_bound : float
         lower bound of recalls

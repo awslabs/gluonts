@@ -70,7 +70,7 @@ class CanonicalNetworkBase(HybridBlock):
 
 
 class CanonicalTrainingNetwork(CanonicalNetworkBase):
-    def hybrid_forward(
+    def hybrid_forward(  # type: ignore
         self,
         F,
         feat_static_cat: Tensor,  # (batch_size, num_features)
@@ -121,7 +121,7 @@ class CanonicalPredictionNetwork(CanonicalNetworkBase):
         self.prediction_len = prediction_len
         self.num_parallel_samples = num_parallel_samples
 
-    def hybrid_forward(
+    def hybrid_forward(  # type: ignore
         self,
         F,
         feat_static_cat: Tensor,

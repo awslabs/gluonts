@@ -92,7 +92,9 @@ class TemporalFusionTransformerModel(nn.Module):
         self.target_proj = nn.Linear(in_features=1, out_features=self.d_var)
         # Past-only dynamic features
         if self.d_past_feat_dynamic_real:
-            self.past_feat_dynamic_proj = FeatureProjector(
+            self.past_feat_dynamic_proj: Optional[
+                FeatureProjector
+            ] = FeatureProjector(
                 feature_dims=self.d_past_feat_dynamic_real,
                 embedding_dims=[self.d_var]
                 * len(self.d_past_feat_dynamic_real),
@@ -101,7 +103,9 @@ class TemporalFusionTransformerModel(nn.Module):
             self.past_feat_dynamic_proj = None
 
         if self.c_past_feat_dynamic_cat:
-            self.past_feat_dynamic_embed = FeatureEmbedder(
+            self.past_feat_dynamic_embed: Optional[
+                FeatureEmbedder
+            ] = FeatureEmbedder(
                 cardinalities=self.c_past_feat_dynamic_cat,
                 embedding_dims=[self.d_var]
                 * len(self.c_past_feat_dynamic_cat),
@@ -111,7 +115,9 @@ class TemporalFusionTransformerModel(nn.Module):
 
         # Known dynamic features
         if self.d_feat_dynamic_real:
-            self.feat_dynamic_proj = FeatureProjector(
+            self.feat_dynamic_proj: Optional[
+                FeatureProjector
+            ] = FeatureProjector(
                 feature_dims=self.d_feat_dynamic_real,
                 embedding_dims=[self.d_var] * len(self.d_feat_dynamic_real),
             )
@@ -119,7 +125,9 @@ class TemporalFusionTransformerModel(nn.Module):
             self.feat_dynamic_proj = None
 
         if self.c_feat_dynamic_cat:
-            self.feat_dynamic_embed = FeatureEmbedder(
+            self.feat_dynamic_embed: Optional[
+                FeatureEmbedder
+            ] = FeatureEmbedder(
                 cardinalities=self.c_feat_dynamic_cat,
                 embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
             )
@@ -128,7 +136,9 @@ class TemporalFusionTransformerModel(nn.Module):
 
         # Static features
         if self.d_feat_static_real:
-            self.feat_static_proj = FeatureProjector(
+            self.feat_static_proj: Optional[
+                FeatureProjector
+            ] = FeatureProjector(
                 feature_dims=self.d_feat_static_real,
                 embedding_dims=[self.d_var] * len(self.d_feat_static_real),
             )
@@ -136,7 +146,9 @@ class TemporalFusionTransformerModel(nn.Module):
             self.feat_static_proj = None
 
         if self.c_feat_static_cat:
-            self.feat_static_embed = FeatureEmbedder(
+            self.feat_static_embed: Optional[
+                FeatureEmbedder
+            ] = FeatureEmbedder(
                 cardinalities=self.c_feat_static_cat,
                 embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
             )
@@ -262,12 +274,12 @@ class TemporalFusionTransformerModel(nn.Module):
         self,
         past_target: torch.Tensor,  # [N, T]
         past_observed_values: torch.Tensor,  # [N, T]
-        feat_static_real: torch.Tensor,  # [N, D_sr]
-        feat_static_cat: torch.Tensor,  # [N, D_sc]
-        feat_dynamic_real: torch.Tensor,  # [N, T + H, D_dr]
-        feat_dynamic_cat: torch.Tensor,  # [N, T + H, D_dc]
-        past_feat_dynamic_real: torch.Tensor,  # [N, T, D_pr]
-        past_feat_dynamic_cat: torch.Tensor,  # [N, T, D_pc]
+        feat_static_real: Optional[torch.Tensor],  # [N, D_sr]
+        feat_static_cat: Optional[torch.Tensor],  # [N, D_sc]
+        feat_dynamic_real: Optional[torch.Tensor],  # [N, T + H, D_dr]
+        feat_dynamic_cat: Optional[torch.Tensor],  # [N, T + H, D_dc]
+        past_feat_dynamic_real: Optional[torch.Tensor],  # [N, T, D_pr]
+        past_feat_dynamic_cat: Optional[torch.Tensor],  # [N, T, D_pc]
     ) -> Tuple[
         List[torch.Tensor],
         List[torch.Tensor],

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 import numpy as np
 import pandas as pd
@@ -79,7 +79,7 @@ class RForecastPredictor(RBasePredictor):
         freq: str,
         prediction_length: int,
         method_name: str = "ets",
-        period: int = None,
+        period: Optional[int] = None,
         trunc_length: Optional[int] = None,
         save_info: bool = False,
         params: Dict = dict(),
@@ -100,7 +100,7 @@ class RForecastPredictor(RBasePredictor):
         self.method_name = method_name
         self._r_method = self._robjects.r[method_name]
 
-        self.params = {
+        self.params: Dict[str, Any] = {
             "prediction_length": self.prediction_length,
             "frequency": self.period,
         }
@@ -185,7 +185,7 @@ class RForecastPredictor(RBasePredictor):
         forecast_dict: Dict,
         forecast_start_date: pd.Timestamp,
         item_id: Optional[str],
-        info: Dict,
+        info: Optional[Dict],
     ) -> QuantileForecast:
         stats_dict = {"mean": forecast_dict["mean"]}
 

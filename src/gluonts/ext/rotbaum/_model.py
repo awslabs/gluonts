@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import copy
 import numpy as np
@@ -105,11 +105,7 @@ class QRX:
         else:
             self.model = self._create_xgboost_model(xgboost_params)
         self.min_bin_size = min_bin_size
-        self.sorted_train_preds = None
-        self.x_train_is_dataframe = None
-        self.id_to_bins = None
-        self.preds_to_id = None
-        self.quantile_dicts = defaultdict(dict)
+        self.quantile_dicts: Dict[Any, dict] = defaultdict(dict)
 
     @staticmethod
     def _create_xgboost_model(model_params: Optional[dict] = None):
@@ -157,6 +153,7 @@ class QRX:
         # doens't like lists
         if max_sample_size and x_train_is_dataframe:
             assert max_sample_size > 0
+            assert isinstance(x_train, pd.DataFrame)
             sample_size = min(max_sample_size, len(x_train))
             x_train = x_train.sample(
                 n=min(sample_size, len(x_train)),
@@ -295,7 +292,7 @@ class QRX:
         return dic
 
     @classmethod
-    def get_closest_pt(cls, sorted_list: List, num: int) -> int:
+    def get_closest_pt(cls, sorted_list: List[float], num: float) -> float:
         """
         Given a sorted list of floats, returns the number closest to num.
 
@@ -365,7 +362,7 @@ class QRX:
             preds = self.model.predict(x_test)
             predicted_values = [
                 self._get_and_cache_quantile_computation(
-                    self.get_closest_pt(self.sorted_train_preds, pred),
+                    self.get_closest_pt(self.sorted_train_preds, pred),  # type: ignore
                     quantile,
                 )
                 for pred in preds
@@ -381,7 +378,7 @@ class QRX:
                 )
                 predicted_values.append(
                     self._get_and_cache_quantile_computation(
-                        closest_pred, quantile
+                        closest_pred, quantile  # type: ignore
                     )
                 )
         return predicted_values

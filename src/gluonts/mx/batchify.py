@@ -21,7 +21,7 @@ from gluonts.dataset.common import DataBatch
 
 
 def pad_to_size(
-    x: np.array, size: int, axis: int = 0, is_right_pad: bool = True
+    x: np.ndarray, size: int, axis: int = 0, is_right_pad: bool = True
 ):
     """
     Pads `xs` with 0 on the right (default) on the specified axis, which is the

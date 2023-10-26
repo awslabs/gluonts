@@ -69,7 +69,7 @@ class NegativeBinomialOutput(DistributionOutput):
     distr_cls: type = NegativeBinomial
 
     @classmethod
-    def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):
+    def domain_map(cls, total_count: torch.Tensor, logits: torch.Tensor):  # type: ignore
         total_count = F.softplus(total_count)
         return total_count.squeeze(-1), logits.squeeze(-1)
 
