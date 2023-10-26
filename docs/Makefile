@@ -23,7 +23,7 @@ apidoc:
 		--module-first \
 		-o api/gluonts \
 		../src/gluonts \
-		setup* */bin/* test docs *pycache* *nursery*
+		../src/gluonts/nursery/*
 
 	@rm -Rf api/gluonts/modules.rst
 	@sed -i"" -e "s/gluonts package/API Docs/" api/gluonts/gluonts.rst
