@@ -43,9 +43,9 @@ class BinnedUniforms(Distribution):
         self,
         bins_lower_bound: float,
         bins_upper_bound: float,
-        logits: torch.tensor,
+        logits: torch.Tensor,
         numb_bins: int = 100,
-        validate_args: bool = None,
+        validate_args: Optional[bool] = None,
     ):
         assert bins_lower_bound < bins_upper_bound, (
             f"bins_lower_bound {bins_lower_bound} needs to less than "
@@ -62,7 +62,7 @@ class BinnedUniforms(Distribution):
 
         super(BinnedUniforms, self).__init__(
             batch_shape=logits.shape[:-1],
-            event_shape=logits.shape[-1],
+            event_shape=logits.shape[-1:],
             validate_args=validate_args,
         )
 
@@ -467,7 +467,7 @@ class BinnedUniformsOutput(DistributionOutput):
         )
 
     @classmethod
-    def domain_map(cls, logits: torch.Tensor) -> torch.Tensor:
+    def domain_map(cls, logits: torch.Tensor) -> torch.Tensor:  # type: ignore
         logits = torch.abs(logits)
 
         return logits
@@ -475,7 +475,7 @@ class BinnedUniformsOutput(DistributionOutput):
     def distribution(
         self,
         distr_args,
-        loc: Optional[torch.Tensor] = 0,
+        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> BinnedUniforms:
         return self.distr_cls(

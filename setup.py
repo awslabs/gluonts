@@ -57,18 +57,24 @@ class TypeCheckCommand(distutils.cmd.Command):
         # otherwise a module-not-found error is thrown
         import mypy.api
 
-        folders = [
-            str(p.parent.resolve()) for p in ROOT.glob("src/**/.typesafe")
+        excluded_folders = [
+            str(p.parent.relative_to(ROOT)) for p in ROOT.glob("src/**/.typeunsafe")
         ]
 
-        print(
-            "The following folders contain a `.typesafe` marker file "
-            "and will be type-checked with `mypy`:"
-        )
-        for folder in folders:
+        if len(excluded_folders) > 0:
+            print(
+                "The following folders contain a `.typeunsafe` marker file "
+                "and will *not* be type-checked with `mypy`:"
+            )
+        for folder in excluded_folders:
             print(f"  {folder}")
 
-        std_out, std_err, exit_code = mypy.api.run(folders)
+        args = [str(ROOT / "src")]
+        for folder in excluded_folders:
+            args.append("--exclude")
+            args.append(folder)
+
+        std_out, std_err, exit_code = mypy.api.run(args)
 
         print(std_out, file=sys.stdout)
         print(std_err, file=sys.stderr)
@@ -78,7 +84,7 @@ class TypeCheckCommand(distutils.cmd.Command):
                 f"""
                 Mypy command
 
-                    mypy {" ".join(folders)}
+                    mypy {" ".join(args)}
 
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run

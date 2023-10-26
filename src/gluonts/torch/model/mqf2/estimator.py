@@ -13,14 +13,13 @@
 
 from typing import List, Optional, Dict, Any
 
-from gluonts.torch.model.deepar.estimator import DeepAREstimator
-from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
-from gluonts.torch.distributions import MQF2DistributionOutput
-
-from . import MQF2MultiHorizonLightningModule
-
 from gluonts.core.component import validated
 from gluonts.time_feature import TimeFeature
+from gluonts.torch.model.deepar.estimator import DeepAREstimator
+from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
+
+from .lightning_module import MQF2MultiHorizonLightningModule
+from .distribution import MQF2DistributionOutput
 
 
 class MQF2MultiHorizonEstimator(DeepAREstimator):
@@ -183,7 +182,7 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
         self.threshold_input = threshold_input
         self.estimate_logdet = estimate_logdet
 
-    def create_lightning_module(self) -> MQF2MultiHorizonLightningModule:
+    def create_lightning_module(self) -> MQF2MultiHorizonLightningModule:  # type: ignore
         return MQF2MultiHorizonLightningModule(
             loss=self.loss,
             lr=self.lr,
