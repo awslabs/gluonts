@@ -16,7 +16,9 @@
 
 from pydantic import __version__
 
-if __version__.startswith("2"):
+PYDANTIC_V2 = __version__.startswith("2")
+
+if PYDANTIC_V2:
     import pydantic.v1 as pydantic
     from pydantic.v1 import (
         BaseConfig,
@@ -34,8 +36,8 @@ if __version__.startswith("2"):
     from pydantic.v1.utils import deep_update
     from pydantic.v1.dataclasses import dataclass
 else:
-    import pydantic
-    from pydantic import (
+    import pydantic  # type: ignore[no-redef]
+    from pydantic import (  # type: ignore[no-redef, assignment]
         BaseConfig,
         BaseModel,
         create_model,
@@ -47,9 +49,9 @@ else:
         PositiveFloat,
         BaseSettings,
     )
-    from pydantic.error_wrappers import ValidationError, display_errors
-    from pydantic.utils import deep_update
-    from pydantic.dataclasses import dataclass
+    from pydantic.error_wrappers import ValidationError, display_errors  # type: ignore[no-redef]
+    from pydantic.utils import deep_update  # type: ignore[no-redef]
+    from pydantic.dataclasses import dataclass  # type: ignore[no-redef]
 
 
 __all__ = [
