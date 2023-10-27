@@ -14,7 +14,8 @@
 from typing import List, Union, Optional
 
 import numpy as np
-from pydantic import BaseModel, root_validator
+
+from gluonts.pydantic import BaseModel, root_validator
 
 
 class FeatureImportanceResult(BaseModel):

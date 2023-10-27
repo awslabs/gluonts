@@ -139,6 +139,9 @@ class MetricDefinition(Protocol):
 
 
 class BaseMetricDefinition:
+    def __call__(self, axis):
+        raise NotImplementedError()
+
     def __add__(self, other) -> MetricDefinitionCollection:
         if isinstance(other, MetricDefinitionCollection):
             return other + self
@@ -154,7 +157,7 @@ class BaseMetricDefinition:
 
 @dataclass
 class MetricDefinitionCollection(BaseMetricDefinition):
-    metrics: List[MetricDefinition]
+    metrics: List[BaseMetricDefinition]
 
     def __call__(self, axis: Optional[int] = None) -> MetricCollection:
         return MetricCollection([metric(axis=axis) for metric in self.metrics])

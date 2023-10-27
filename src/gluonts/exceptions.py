@@ -13,7 +13,7 @@
 
 from typing import Any
 
-from pydantic.error_wrappers import ValidationError, display_errors
+from gluonts.pydantic import ValidationError, display_errors
 
 
 class GluonTSException(Exception):

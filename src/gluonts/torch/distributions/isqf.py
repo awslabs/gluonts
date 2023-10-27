@@ -429,7 +429,7 @@ class ISQF(torch.distributions.Distribution):
             mask_sum_s0_minus = torch.cat(
                 [
                     mask_sum_s0[..., 1:],
-                    torch.zeros_like(qk_y_expand, dtype=bool),
+                    torch.zeros_like(qk_y_expand, dtype=torch.bool),
                 ],
                 dim=-1,
             )
@@ -696,7 +696,7 @@ class ISQF(torch.distributions.Distribution):
         return sample
 
     @property
-    def batch_shape(self) -> torch.Size():
+    def batch_shape(self) -> torch.Size:
         return self.beta_l.shape
 
 
@@ -741,7 +741,7 @@ class ISQFOutput(DistributionOutput):
         }
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         spline_knots: torch.Tensor,
         spline_heights: torch.Tensor,
@@ -791,7 +791,7 @@ class ISQFOutput(DistributionOutput):
     def distribution(
         self,
         distr_args,
-        loc: Optional[torch.Tensor] = 0,
+        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> ISQF:
         """

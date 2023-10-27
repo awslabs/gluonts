@@ -43,7 +43,7 @@ class QuantileOutput(Output):
     def quantiles(self) -> List[float]:
         return self._quantiles
 
-    def domain_map(self, quantiles_pred: torch.Tensor):
+    def domain_map(self, quantiles_pred: torch.Tensor):  # type: ignore
         return quantiles_pred
 
     def quantile_loss(

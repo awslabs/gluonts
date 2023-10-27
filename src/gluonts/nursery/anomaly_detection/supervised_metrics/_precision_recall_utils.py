@@ -21,10 +21,10 @@ from .utils import labels_to_ranges
 
 
 class PrecisionRecallAndWeights(NamedTuple):
-    precisions: np.array
-    recalls: np.array
-    precision_weights: np.array
-    recall_weights: np.array
+    precisions: np.ndarray
+    recalls: np.ndarray
+    precision_weights: np.ndarray
+    recall_weights: np.ndarray
 
 
 def singleton_precision_recall(
@@ -63,7 +63,7 @@ def singleton_precision_recall(
 def precision_recall_curve_per_ts(
     labels: List[bool],
     scores: List[float],
-    thresholds: np.array,
+    thresholds: np.ndarray,
     partial_filter: Optional[Callable] = None,
     singleton_curve: bool = False,
     precision_recall_fn: Callable = buffered_precision_recall,
@@ -126,7 +126,7 @@ def aggregate_precision_recall_curve(
     label_score_iterable: Iterable
         An iterable that gives 2-tuples of np.arrays (of identical length),
         corresponding to `true_labels` and `pred_scores` respectively.
-    thresholds: np.array
+    thresholds: np.ndarray
         An np.array of score thresholds for which to compute precision recall values.
         If the filter_type argument is provided, these are the threshold values of
         the filter. If not, they will be applied as a single step hard threshold to

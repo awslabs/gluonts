@@ -65,7 +65,7 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
 
     def __init__(
         self,
-        prediction_net: BlockType,
+        prediction_net,
         batch_size: int,
         prediction_length: int,
         ctx: mx.Context,
@@ -92,7 +92,7 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
         if input_names is not None:
             self.input_names = input_names
 
-    def predict(
+    def predict(  # type: ignore
         self,
         dataset: Dataset,
         num_samples: Optional[int] = None,
@@ -121,7 +121,7 @@ class DeepRenewalProcessPredictor(RepresentableBlockPredictor):
             )
 
     @classmethod
-    def deserialize(
+    def deserialize(  # type: ignore
         cls, path: Path, ctx: Optional[mx.Context] = None
     ) -> "DeepRenewalProcessPredictor":
         repr_predictor = super().deserialize(path, ctx)

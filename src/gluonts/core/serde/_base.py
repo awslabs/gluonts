@@ -20,9 +20,8 @@ from typing import Any, NamedTuple, cast
 
 from toolz.dicttoolz import valmap
 
-from pydantic import BaseModel
-
 from gluonts.core import fqname_for
+from gluonts.pydantic import BaseModel
 
 bad_type_msg = textwrap.dedent(
     """

@@ -62,7 +62,7 @@ def _get_data_batch(
     seasonality: Optional[int] = None,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-) -> dict:
+) -> ChainMap:
     forecast_dict = BatchForecast(forecast, allow_nan=allow_nan_forecast)
 
     freq = forecast.start_date.freqstr
@@ -85,7 +85,7 @@ def _get_data_batch(
         ),
     }
 
-    return ChainMap(other_data, forecast_dict)
+    return ChainMap(other_data, forecast_dict)  # type: ignore
 
 
 def evaluate_forecasts_raw(

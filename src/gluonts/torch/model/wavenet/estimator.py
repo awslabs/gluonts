@@ -54,6 +54,7 @@ from .lightning_module import WaveNetLightningModule
 
 PREDICTION_INPUT_NAMES = [
     "feat_static_cat",
+    "feat_static_real",
     "past_target",
     "past_observed_values",
     "past_time_feat",
@@ -95,7 +96,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         num_batches_per_epoch: int = 50,
         num_parallel_samples: int = 100,
         negative_data: bool = False,
-        trainer_kwargs: Dict[str, Any] = None,
+        trainer_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         """WaveNet estimator that uses the architecture proposed in
         [Oord et al., 2016] with quantized targets. The model is trained

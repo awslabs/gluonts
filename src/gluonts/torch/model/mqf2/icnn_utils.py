@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 
 from cpflows.flows import SequentialFlow, DeepConvexFlow
 
@@ -110,10 +110,10 @@ class DeepConvexNet(DeepConvexFlow):
     def forward_transform(
         self,
         x: torch.Tensor,
-        logdet: Optional[torch.Tensor] = 0,
+        logdet: Optional[Union[float, torch.Tensor]] = 0.0,
         context: Optional[torch.Tensor] = None,
         extra: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if self.estimate_logdet:
             return self.forward_transform_stochastic(
                 x, logdet, context=context, extra=extra
