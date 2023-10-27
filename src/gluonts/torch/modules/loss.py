@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 import torch
-from pydantic import BaseModel
+
+from gluonts.pydantic import BaseModel
 
 
 class DistributionLoss(BaseModel):

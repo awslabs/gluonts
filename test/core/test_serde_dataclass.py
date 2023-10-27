@@ -13,9 +13,8 @@
 
 from typing import List
 
-from pydantic import BaseModel
-
 from gluonts.core import serde
+from gluonts.pydantic import BaseModel
 
 
 @serde.dataclass

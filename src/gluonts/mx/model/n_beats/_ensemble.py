@@ -20,7 +20,6 @@ from typing import Iterator, List, Optional
 
 import mxnet as mx
 import numpy as np
-from pydantic import ValidationError
 
 from gluonts.core import fqname_for
 from gluonts.core.component import from_hyperparameters, validated
@@ -33,6 +32,7 @@ from gluonts.model import Estimator, Predictor
 from gluonts.model.forecast import Forecast, SampleForecast
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
+from gluonts.pydantic import ValidationError
 
 from ._estimator import NBEATSEstimator
 from ._network import VALID_LOSS_FUNCTIONS

@@ -19,10 +19,15 @@ from functools import singledispatch
 from typing import Any, Type, TypeVar
 
 import numpy as np
-from pydantic import BaseConfig, BaseModel, ValidationError, create_model
 
 from gluonts.core import fqname_for
 from gluonts.exceptions import GluonTSHyperparametersError
+from gluonts.pydantic import (
+    BaseConfig,
+    BaseModel,
+    ValidationError,
+    create_model,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -252,7 +257,7 @@ def validated(base_model=None):
     >>> c = ComplexNumber(y=None)
     Traceback (most recent call last):
         ...
-    pydantic.error_wrappers.ValidationError: 1 validation error for
+    pydantic.v1.error_wrappers.ValidationError: 1 validation error for
     ComplexNumberModel
     y
       none is not an allowed value (type=type_error.none.not_allowed)
@@ -262,7 +267,7 @@ def validated(base_model=None):
     accessed through the ``Model`` attribute of the decorated initializer.
 
     >>> ComplexNumber.__init__.Model
-    <class 'pydantic.main.ComplexNumberModel'>
+    <class 'pydantic.v1.main.ComplexNumberModel'>
 
     The Pydantic model is synthesized automatically from on the parameter
     names and types of the decorated initializer. In the ``ComplexNumber``
