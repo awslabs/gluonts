@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Tuple, Type
+from typing import Optional, Tuple, Type
 
 import mxnet as mx
 import numpy as np
@@ -335,7 +335,7 @@ class GaussianProcess:
         mean: Optional[Tensor] = None,
         std: Optional[Tensor] = None,
         samples: Optional[Tensor] = None,
-        axis: Optional[List] = None,
+        axis: Optional[Tuple[float, float, float, float]] = None,
     ) -> None:
         """
         This method plots the sampled GP distribution at the test points in

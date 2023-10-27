@@ -16,7 +16,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-from pydantic import BaseModel
+from gluonts.pydantic import BaseModel
 
 from .dyn import install_and_restart
 from .params import decode_sagemaker_parameters

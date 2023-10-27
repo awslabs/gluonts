@@ -256,7 +256,7 @@ class TruncatedNormalOutput(DistributionOutput):
         }
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         loc: torch.Tensor,
         scale: torch.Tensor,
@@ -277,6 +277,9 @@ class TruncatedNormalOutput(DistributionOutput):
         scale: Optional[torch.Tensor] = None,
     ) -> Distribution:
         (loc, scale) = distr_args
+
+        assert isinstance(loc, torch.Tensor)
+        assert isinstance(scale, torch.Tensor)
 
         return TruncatedNormal(
             loc=loc,

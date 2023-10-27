@@ -18,6 +18,7 @@ import numpy as np
 
 def num_masked_target_values(data: Dict[str, np.ndarray]) -> np.ndarray:
     if np.ma.isMaskedArray(data["label"]):
+        assert isinstance(data["label"], np.ma.MaskedArray)
         return data["label"].mask.astype(float)
     else:
         return np.zeros(data["label"].shape)

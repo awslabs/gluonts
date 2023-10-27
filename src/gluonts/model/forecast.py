@@ -18,16 +18,17 @@ from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts.pydantic import dataclass
 from gluonts import maybe
+
 
 logger = logging.getLogger(__name__)
 
 
 def _linear_interpolation(
-    xs: np.ndarray, ys: np.ndarray, x: float
+    xs: List[float], ys: List[np.ndarray], x: float
 ) -> np.ndarray:
     assert sorted(xs) == xs
     assert len(xs) == len(ys)
@@ -247,8 +248,11 @@ class Forecast:
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
-    mean: np.ndarray
     _index = None
+
+    @property
+    def mean(self) -> np.ndarray:
+        raise NotImplementedError()
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
@@ -433,7 +437,7 @@ class SampleForecast(Forecast):
         self.samples = samples
         self._sorted_samples_value = None
         self._mean = None
-        self._dim = None
+        self._dim: Optional[int] = None
         self.item_id = item_id
         self.info = info
 
@@ -469,6 +473,7 @@ class SampleForecast(Forecast):
         """
         if self._mean is None:
             self._mean = np.mean(self.samples, axis=0)
+        assert self._mean is not None
         return self._mean
 
     @property
@@ -540,7 +545,7 @@ class SampleForecast(Forecast):
         return QuantileForecast(
             forecast_arrays=np.array(
                 [
-                    self.quantile(q) if q != "mean" else self.mean()
+                    self.quantile(q) if q != "mean" else self.mean
                     for q in quantiles
                 ]
             ),
@@ -593,7 +598,7 @@ class QuantileForecast(Forecast):
         ]
         self.item_id = item_id
         self.info = info
-        self._dim = None
+        self._dim: Optional[int] = None
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
@@ -634,7 +639,9 @@ class QuantileForecast(Forecast):
             return exp_tail_approximation.right(inference_quantile)
         else:
             return _linear_interpolation(
-                quantiles, quantile_predictions, inference_quantile
+                quantiles,
+                quantile_predictions,
+                inference_quantile,
             )
 
     def copy_dim(self, dim: int) -> "QuantileForecast":

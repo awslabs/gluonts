@@ -16,8 +16,8 @@ from typing import List, Optional
 import pytest
 import torch
 
-from gluonts.torch.distributions import MQF2DistributionOutput
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonLightningModule
+from gluonts.torch.model.mqf2.distribution import MQF2DistributionOutput
 
 
 @pytest.mark.parametrize(

@@ -60,9 +60,11 @@ In `setup.py`, you need to import and use this file like this:
     )
 """
 
+import os
 import subprocess
 from pathlib import Path
 
+FALLBACK_VERSION = os.environ.get("GLUONTS_FALLBACK_VERSION", "0.0.0")
 
 GIT_DESCRIBE = [
     "git",
@@ -250,4 +252,4 @@ def cmdclass():
     return {"sdist": sdist, "build_py": build_py}
 
 
-__version__ = get_version(fallback="0.0.0")
+__version__ = get_version(fallback=FALLBACK_VERSION)

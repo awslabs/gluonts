@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Type
+from typing import NamedTuple, Optional, Type, Union
 
 import numpy as np
 
@@ -29,9 +29,9 @@ from gluonts.model import Estimator, Predictor
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
-from gluonts.transform import Transformation
+from gluonts.pydantic import ValidationError
+from gluonts.transform import Transformation, TransformedDataset
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
 
 
 class TrainOutput(NamedTuple):
@@ -177,7 +177,9 @@ class GluonEstimator(Estimator):
         transformation = self.create_transformation()
 
         with env._let(max_idle_transforms=max(len(training_data), 100)):
-            transformed_training_data = transformation.apply(training_data)
+            transformed_training_data: Union[
+                TransformedDataset, Cached
+            ] = transformation.apply(training_data)
             if cache_data:
                 transformed_training_data = Cached(transformed_training_data)
 
@@ -190,9 +192,9 @@ class GluonEstimator(Estimator):
 
         if validation_data is not None:
             with env._let(max_idle_transforms=max(len(validation_data), 100)):
-                transformed_validation_data = transformation.apply(
-                    validation_data
-                )
+                transformed_validation_data: Union[
+                    TransformedDataset, Cached
+                ] = transformation.apply(validation_data)
                 if cache_data:
                     transformed_validation_data = Cached(
                         transformed_validation_data
@@ -243,7 +245,7 @@ class GluonEstimator(Estimator):
 
     def train_from(
         self,
-        predictor: Predictor,
+        predictor: GluonPredictor,
         training_data: Dataset,
         validation_data: Optional[Dataset] = None,
         shuffle_buffer_length: Optional[int] = None,

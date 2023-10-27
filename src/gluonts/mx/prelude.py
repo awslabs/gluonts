@@ -13,8 +13,10 @@
 
 # flake8: noqa: F401, F403
 
+from typing import List
+
 from .component import *
 from .serde import *
 from .model.forecast_generator import *
 
-__all__ = []
+__all__: List[str] = []

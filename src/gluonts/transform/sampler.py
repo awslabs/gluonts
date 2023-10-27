@@ -14,9 +14,9 @@
 from typing import Tuple
 
 import numpy as np
-from pydantic import BaseModel
 
 from gluonts.dataset.stat import ScaleHistogram
+from gluonts.pydantic import BaseModel
 
 
 class InstanceSampler(BaseModel):
