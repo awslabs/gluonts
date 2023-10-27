@@ -76,8 +76,7 @@ import itertools
 from operator import attrgetter
 from typing import Any
 
-import pydantic
-from pydantic.utils import deep_update
+from gluonts.pydantic import pydantic, deep_update
 
 
 class ListElement:

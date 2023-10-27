@@ -21,7 +21,6 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
-from pydantic import PositiveFloat, PositiveInt
 from scipy.special import softmax
 from torch.distributions import (
     Beta,
@@ -35,6 +34,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import SGD
 from torch.utils.data import DataLoader, TensorDataset
 
+from gluonts.pydantic import PositiveFloat, PositiveInt
 from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,

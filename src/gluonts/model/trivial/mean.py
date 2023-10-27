@@ -14,7 +14,6 @@
 from typing import Optional
 
 import numpy as np
-from pydantic import PositiveInt
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset
@@ -24,6 +23,7 @@ from gluonts.model.estimator import Estimator
 from gluonts.model.forecast import SampleForecast
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
+from gluonts.pydantic import PositiveInt
 
 
 class MeanPredictor(RepresentablePredictor):

@@ -22,7 +22,6 @@ from typing import List, Tuple
 import mxnet as mx
 import numpy as np
 import pytest
-from pydantic import PositiveFloat, PositiveInt
 
 from gluonts.mx.model.tpp.distribution import (
     Loglogistic,
@@ -84,6 +83,7 @@ from gluonts.mx.distribution.transformed_distribution import (
 from gluonts.mx.distribution.transformed_distribution_output import (
     TransformedDistributionOutput,
 )
+from gluonts.pydantic import PositiveFloat, PositiveInt
 
 pytestmark = pytest.mark.timeout(60)
 NUM_SAMPLES = 2000

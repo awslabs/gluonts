@@ -14,7 +14,6 @@
 from dataclasses import field
 from typing import Dict, Any, Optional
 
-from pydantic.dataclasses import dataclass
 from typing_extensions import Literal
 
 import numpy as np
@@ -23,6 +22,7 @@ from mxnet import gluon
 import mxnet.gluon.nn as nn
 
 from gluonts.core.component import validated
+from gluonts.pydantic import dataclass
 
 from .callback import Callback
 

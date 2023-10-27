@@ -29,9 +29,9 @@ from gluonts.model import Estimator, Predictor
 from gluonts.mx.model.predictor import GluonPredictor
 from gluonts.mx.trainer import Trainer
 from gluonts.mx.util import copy_parameters
+from gluonts.pydantic import ValidationError
 from gluonts.transform import Transformation, TransformedDataset
 from mxnet.gluon import HybridBlock
-from pydantic import ValidationError
 
 
 class TrainOutput(NamedTuple):
