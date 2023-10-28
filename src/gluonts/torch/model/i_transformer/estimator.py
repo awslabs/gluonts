@@ -104,6 +104,10 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during training.
     validation_sampler
         Controls the sampling of windows during validation.
+    nonnegative_pred_samples
+        Should final prediction samples be non-negative? If yes, an activation
+        function is applied to ensure non-negative. Observe that this is applied
+        only to the final samples and this is not applied during training.
     """
 
     @validated()
@@ -129,6 +133,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
+        nonnegative_pred_samples: bool = False,
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
@@ -157,6 +162,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         self.num_encoder_layers = num_encoder_layers
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
         self.train_sampler = train_sampler or ExpectedNumInstanceSampler(
             num_instances=1.0, min_future=prediction_length
@@ -201,6 +207,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
                 "num_encoder_layers": self.num_encoder_layers,
                 "distr_output": self.distr_output,
                 "scaling": self.scaling,
+                "nonnegative_pred_samples": self.nonnegative_pred_samples,
             },
         )
 

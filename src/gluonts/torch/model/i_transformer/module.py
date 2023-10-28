@@ -52,6 +52,10 @@ class ITransformerModel(nn.Module):
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
+    nonnegative_pred_samples
+        Should final prediction samples be non-negative? If yes, an activation
+        function is applied to ensure non-negative. Observe that this is applied
+        only to the final samples and this is not applied during training.
     """
 
     @validated()
@@ -68,6 +72,7 @@ class ITransformerModel(nn.Module):
         num_encoder_layers: int,
         scaling: Optional[str],
         distr_output=StudentTOutput(),
+        nonnegative_pred_samples: bool = False,
     ) -> None:
         super().__init__()
 
@@ -87,6 +92,7 @@ class ITransformerModel(nn.Module):
             self.scaler = StdScaler(keepdim=True, dim=1)
         else:
             self.scaler = NOPScaler(keepdim=True, dim=1)
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
         # project each variate plus mean and std to d_model dimension
         self.emebdding = nn.Linear(context_length + 2, d_model)

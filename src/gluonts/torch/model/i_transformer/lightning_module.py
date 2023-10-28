@@ -64,6 +64,8 @@ class ITransformerLightningModule(pl.LightningModule):
         distr = self.model.distr_output.distribution(distr_args, loc, scale)
 
         samples = distr.sample((self.num_parallel_samples,))
+        if self.model.nonnegative_pred_samples:
+            samples = torch.relu(samples)
         return samples.transpose(0, 1)
 
     def _compute_loss(self, batch):
