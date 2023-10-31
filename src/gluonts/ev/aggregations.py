@@ -11,10 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from __future__ import annotations
+
+
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
 import numpy as np
+
+from gluonts import maybe
 
 
 @dataclass
@@ -29,6 +34,9 @@ class Aggregation:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
+        raise NotImplementedError
+
+    def reduce(self, other) -> Aggregation:
         raise NotImplementedError
 
 
@@ -69,6 +77,15 @@ class Sum(Aggregation):
             return np.ma.copy(self.partial_result)
 
         return np.ma.concatenate(self.partial_result)
+
+    def reduce(self, other) -> Sum:
+        if self.axis is None or 0 in self.axis:
+            return Sum(self.axis, self.partial_result + other.partial_result)
+
+        return Sum(
+            self.axis,
+            np.concatenate([self.partial_result, other.partial_result]),
+        )
 
 
 @dataclass
@@ -119,3 +136,21 @@ class Mean(Aggregation):
             return self.partial_result / self.n
 
         return np.ma.concatenate(self.partial_result)
+
+    def reduce(self, other) -> Sum:
+        if self.axis is None or 0 in self.axis:
+            return Mean(
+                self.axis,
+                self.partial_result + other.partial_result,
+                self.n + other.n,
+            )
+
+        return Mean(
+            self.axis,
+            np.concatenate(
+                [
+                    maybe.unwrap_or(self.partial_result, []),
+                    maybe.unwrap_or(other.partial_result, []),
+                ]
+            ),
+        )
