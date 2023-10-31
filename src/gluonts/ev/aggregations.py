@@ -13,6 +13,7 @@
 
 from dataclasses import dataclass
 from typing import List, Optional, Union
+from typing_extensions import Self
 
 import numpy as np
 
@@ -25,7 +26,7 @@ class Aggregation:
         if isinstance(self.axis, int):
             self.axis = (self.axis,)
 
-    def step(self, values: np.ndarray) -> None:
+    def step(self, values: np.ndarray) -> Self:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
@@ -47,10 +48,10 @@ class Sum(Aggregation):
 
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> None:
+    def step(self, values: np.ndarray) -> Self:
         assert self.axis is None or isinstance(self.axis, tuple)
 
-        summed_values = np.ma.sum(values, axis=self.axis)
+        summed_values = np.nansum(values, axis=self.axis)
 
         if self.axis is None or 0 in self.axis:
             if self.partial_result is None:
@@ -62,13 +63,15 @@ class Sum(Aggregation):
             assert isinstance(self.partial_result, list)
             self.partial_result.append(summed_values)
 
+        return self
+
     def get(self) -> np.ndarray:
         assert self.axis is None or isinstance(self.axis, tuple)
 
         if self.axis is None or 0 in self.axis:
-            return np.ma.copy(self.partial_result)
+            return np.copy(self.partial_result)
 
-        return np.ma.concatenate(self.partial_result)
+        return np.concatenate(self.partial_result)
 
 
 @dataclass
@@ -89,7 +92,7 @@ class Mean(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: Optional[Union[int, np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> None:
+    def step(self, values: np.ndarray) -> Self:
         assert self.axis is None or isinstance(self.axis, tuple)
 
         if self.axis is None or 0 in self.axis:
@@ -110,6 +113,8 @@ class Mean(Aggregation):
             mean_values = np.ma.mean(values, axis=self.axis)
             assert isinstance(self.partial_result, list)
             self.partial_result.append(mean_values)
+
+        return self
 
     def get(self) -> np.ndarray:
         assert self.axis is None or isinstance(self.axis, tuple)
