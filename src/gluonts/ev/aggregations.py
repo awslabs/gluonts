@@ -25,7 +25,7 @@ class Aggregation:
         if isinstance(self.axis, int):
             self.axis = (self.axis,)
 
-    def step(self, values: np.ndarray) -> Self:
+    def step(self, values: np.ndarray) -> None:
         raise NotImplementedError
 
     def get(self) -> np.ndarray:
