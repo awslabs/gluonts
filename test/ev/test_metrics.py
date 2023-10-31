@@ -105,6 +105,7 @@ def test_metric_shape(metric: MetricDefinition, axis: Optional[tuple]):
     [
         ND(),
         MASE(),
+        NRMSE(),
         WeightedSumQuantileLoss(0.5),
         MeanWeightedSumQuantileLoss([0.1, 0.5, 0.9]),
         MeanScaledQuantileLoss(0.5),
@@ -121,6 +122,7 @@ def test_metric_inf(metric: MetricDefinition, axis: Optional[tuple]):
         "0.5": np.ones((1, time_series_length)),
         "0.1": np.ones((1, time_series_length)),
         "0.9": np.ones((1, time_series_length)),
+        "mean": np.ones((1, time_series_length)),
         "seasonal_error": 0.0,
     }
 
