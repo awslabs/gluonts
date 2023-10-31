@@ -13,7 +13,6 @@
 
 from dataclasses import dataclass
 from typing import List, Optional, Union
-from typing_extensions import Self
 
 import numpy as np
 
@@ -48,7 +47,7 @@ class Sum(Aggregation):
 
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> Self:
+    def step(self, values: np.ndarray) -> None:
         assert self.axis is None or isinstance(self.axis, tuple)
 
         summed_values = np.nansum(values, axis=self.axis)
@@ -62,8 +61,6 @@ class Sum(Aggregation):
                 self.partial_result = []
             assert isinstance(self.partial_result, list)
             self.partial_result.append(summed_values)
-
-        return self
 
     def get(self) -> np.ndarray:
         assert self.axis is None or isinstance(self.axis, tuple)
@@ -94,7 +91,7 @@ class Mean(Aggregation):
     partial_result: Optional[Union[List[np.ndarray], np.ndarray]] = None
     n: Optional[Union[int, np.ndarray]] = None
 
-    def step(self, values: np.ndarray) -> Self:
+    def step(self, values: np.ndarray) -> None:
         assert self.axis is None or isinstance(self.axis, tuple)
 
         if self.axis is None or 0 in self.axis:
@@ -115,8 +112,6 @@ class Mean(Aggregation):
             mean_values = np.ma.mean(values, axis=self.axis)
             assert isinstance(self.partial_result, list)
             self.partial_result.append(mean_values)
-
-        return self
 
     def get(self) -> np.ndarray:
         assert self.axis is None or isinstance(self.axis, tuple)
