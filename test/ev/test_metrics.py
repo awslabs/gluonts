@@ -105,6 +105,7 @@ def test_metric_shape(metric: MetricDefinition, axis: Optional[tuple]):
     [
         ND(),
         MASE(),
+        MAPE(),
         NRMSE(),
         WeightedSumQuantileLoss(0.5),
         MeanWeightedSumQuantileLoss([0.1, 0.5, 0.9]),
