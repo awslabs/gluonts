@@ -33,20 +33,24 @@ from gluonts.itertools import power_set
             np.zeros(9),
         ),
         (
-            np.ma.masked_invalid([
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-            ]),
+            np.ma.masked_invalid(
+                [
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                ]
+            ),
             0,
             np.zeros(5),
             np.zeros(9),
         ),
         (
-            np.ma.masked_invalid([
-                np.array([[0, np.nan], [0, 0]]),
-                np.array([[0, 5], [-5, np.nan]]),
-            ]),
+            np.ma.masked_invalid(
+                [
+                    np.array([[0, np.nan], [0, 0]]),
+                    np.array([[0, 5], [-5, np.nan]]),
+                ]
+            ),
             0,
             np.array([-5, 5]),
             np.array([0, 0, 5, -5]),
@@ -87,20 +91,24 @@ def test_Sum(value_stream, res_axis_none, res_axis_0, res_axis_1):
             np.zeros(9),
         ),
         (
-            np.ma.masked_invalid([
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-            ]),
+            np.ma.masked_invalid(
+                [
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                ]
+            ),
             np.nan,
             np.full(5, np.nan),
             np.full(9, np.nan),
         ),
         (
-            np.ma.masked_invalid([
-                np.array([[0, np.nan], [0, 0]]),
-                np.array([[0, 5], [-5, np.nan]]),
-            ]),
+            np.ma.masked_invalid(
+                [
+                    np.array([[0, np.nan], [0, 0]]),
+                    np.array([[0, 5], [-5, np.nan]]),
+                ]
+            ),
             0,
             np.array([-1.25, 2.5]),
             np.array([0, 0, 2.5, -5]),

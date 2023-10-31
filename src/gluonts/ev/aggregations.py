@@ -109,7 +109,7 @@ class Mean(Aggregation):
             if self.partial_result is None:
                 self.partial_result = []
 
-            mean_values = np.ma.mean(values, axis=self.axis)
+            mean_values = np.nanmean(values, axis=self.axis)
             assert isinstance(self.partial_result, list)
             self.partial_result.append(mean_values)
 
@@ -121,4 +121,4 @@ class Mean(Aggregation):
             return self.partial_result / self.n
 
         assert isinstance(self.partial_result, list)
-        return np.ma.concatenate(self.partial_result)
+        return np.concatenate(self.partial_result)
