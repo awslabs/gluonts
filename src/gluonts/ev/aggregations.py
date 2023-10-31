@@ -69,8 +69,10 @@ class Sum(Aggregation):
         assert self.axis is None or isinstance(self.axis, tuple)
 
         if self.axis is None or 0 in self.axis:
+            assert isinstance(self.partial_result, np.ndarray)
             return np.copy(self.partial_result)
 
+        assert isinstance(self.partial_result, list)
         return np.concatenate(self.partial_result)
 
 
@@ -123,4 +125,5 @@ class Mean(Aggregation):
             assert isinstance(self.partial_result, np.ndarray)
             return self.partial_result / self.n
 
+        assert isinstance(self.partial_result, list)
         return np.ma.concatenate(self.partial_result)
