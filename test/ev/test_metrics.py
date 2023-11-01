@@ -59,7 +59,7 @@ METRICS = [
     METRICS,
 )
 @pytest.mark.parametrize("axis", [None, (0, 1), (0,), (1,), ()])
-def test_metric(metric: MetricDefinition, axis: Optional[tuple]):
+def test_metric_shape(metric: MetricDefinition, axis: Optional[tuple]):
     input_length = 20
     label_length = 5
     num_entries = 7
@@ -98,3 +98,84 @@ def test_metric(metric: MetricDefinition, axis: Optional[tuple]):
         raise ValueError("unsupported axis")
 
     return metric_value
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        ND(),
+        MASE(),
+        MAPE(),
+        NRMSE(),
+        WeightedSumQuantileLoss(0.5),
+        MeanWeightedSumQuantileLoss([0.1, 0.5, 0.9]),
+        MeanScaledQuantileLoss(0.5),
+        AverageMeanScaledQuantileLoss([0.1, 0.5, 0.9]),
+    ],
+)
+@pytest.mark.parametrize("axis", [None, (0, 1), (0,), (1,), ()])
+def test_metric_inf(metric: MetricDefinition, axis: Optional[tuple]):
+    time_series_length = 3
+    number_of_entries = 2
+
+    data = {
+        "label": np.zeros((1, time_series_length)),
+        "0.5": np.ones((1, time_series_length)),
+        "0.1": np.ones((1, time_series_length)),
+        "0.9": np.ones((1, time_series_length)),
+        "mean": np.ones((1, time_series_length)),
+        "seasonal_error": 0.0,
+    }
+
+    evaluator = metric(axis=axis)
+    for _ in range(number_of_entries):
+        evaluator.update(data)
+
+    result = evaluator.get()
+    expected = np.full((number_of_entries, time_series_length), np.inf).sum(
+        axis=axis
+    )
+
+    assert result.shape == expected.shape
+    assert np.allclose(result, expected)
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        ND(),
+        MASE(),
+        MAPE(),
+        SMAPE(),
+        NRMSE(),
+        WeightedSumQuantileLoss(0.5),
+        MeanWeightedSumQuantileLoss([0.1, 0.5, 0.9]),
+        MeanScaledQuantileLoss(0.5),
+        AverageMeanScaledQuantileLoss([0.1, 0.5, 0.9]),
+    ],
+)
+@pytest.mark.parametrize("axis", [None, (0, 1), (0,), (1,), ()])
+def test_metric_nan(metric: MetricDefinition, axis: Optional[tuple]):
+    time_series_length = 3
+    number_of_entries = 2
+
+    data = {
+        "label": np.zeros((1, time_series_length)),
+        "0.5": np.zeros((1, time_series_length)),
+        "0.1": np.zeros((1, time_series_length)),
+        "0.9": np.zeros((1, time_series_length)),
+        "mean": np.zeros((1, time_series_length)),
+        "seasonal_error": 0.0,
+    }
+
+    evaluator = metric(axis=axis)
+    for _ in range(number_of_entries):
+        evaluator.update(data)
+
+    result = evaluator.get()
+    expected = np.full((number_of_entries, time_series_length), np.nan).sum(
+        axis=axis
+    )
+
+    assert result.shape == expected.shape
+    assert np.allclose(result, expected, equal_nan=True)
