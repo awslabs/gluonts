@@ -24,19 +24,33 @@ from gluonts.itertools import power_set
     [
         (
             [
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
+                np.full((3, 5), 0.0),
+                np.full((3, 5), 0.0),
+                np.full((3, 5), 0.0),
             ],
+            0.0,
+            np.zeros(5),
+            np.zeros(9),
+        ),
+        (
+            np.ma.masked_invalid(
+                [
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                ]
+            ),
             0,
             np.zeros(5),
             np.zeros(9),
         ),
         (
-            [
-                np.array([[0, np.nan], [0, 0]]),
-                np.array([[0, 5], [-5, np.nan]]),
-            ],
+            np.ma.masked_invalid(
+                [
+                    np.array([[0, np.nan], [0, 0]]),
+                    np.array([[0, 5], [-5, np.nan]]),
+                ]
+            ),
             0,
             np.array([-5, 5]),
             np.array([0, 0, 5, -5]),
@@ -58,7 +72,7 @@ def test_Sum(value_stream, res_axis_none, res_axis_0, res_axis_1):
     ):
         sum = Sum(axis=axis)
         for values in value_stream:
-            sum.step(np.ma.masked_invalid(values))
+            sum.step(values)
 
         np.testing.assert_almost_equal(sum.get(), expected_result)
 
@@ -68,19 +82,33 @@ def test_Sum(value_stream, res_axis_none, res_axis_0, res_axis_1):
     [
         (
             [
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
-                np.full((3, 5), np.nan),
+                np.full((3, 5), 0.0),
+                np.full((3, 5), 0.0),
+                np.full((3, 5), 0.0),
             ],
+            0.0,
+            np.zeros(5),
+            np.zeros(9),
+        ),
+        (
+            np.ma.masked_invalid(
+                [
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                    np.full((3, 5), np.nan),
+                ]
+            ),
             np.nan,
             np.full(5, np.nan),
             np.full(9, np.nan),
         ),
         (
-            [
-                np.array([[0, np.nan], [0, 0]]),
-                np.array([[0, 5], [-5, np.nan]]),
-            ],
+            np.ma.masked_invalid(
+                [
+                    np.array([[0, np.nan], [0, 0]]),
+                    np.array([[0, 5], [-5, np.nan]]),
+                ]
+            ),
             0,
             np.array([-1.25, 2.5]),
             np.array([0, 0, 2.5, -5]),
@@ -102,7 +130,7 @@ def test_Mean(value_stream, res_axis_none, res_axis_0, res_axis_1):
     ):
         mean = Mean(axis=axis)
         for values in value_stream:
-            mean.step(np.ma.masked_invalid(values))
+            mean.step(values)
 
         np.testing.assert_almost_equal(mean.get(), expected_result)
 
