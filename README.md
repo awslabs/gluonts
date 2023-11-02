@@ -68,6 +68,7 @@ plt.plot(df["1954":], color="black")
 for forecast in forecasts:
   forecast.plot()
 plt.legend(["True values"], loc="upper left", fontsize="xx-large")
+plt.show()
 ```
 
 ![[train-test]](https://ts.gluon.ai/static/README/forecasts.png)
