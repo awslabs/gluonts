@@ -77,7 +77,7 @@ class DummyValueImputation(MissingValueImputation):
         self.dummy_value = dummy_value
 
     def __call__(self, values: np.ndarray) -> np.ndarray:
-        nan_indices = np.where(np.isnan(values))
+        nan_indices = np.isnan(values)
         values[nan_indices] = self.dummy_value
         return values
 
