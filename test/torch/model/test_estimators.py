@@ -21,6 +21,7 @@ import pandas as pd
 import numpy as np
 
 from gluonts.dataset.repository import get_dataset
+from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.deepar import DeepAREstimator
 from gluonts.torch.model.deep_npts import (
@@ -32,6 +33,7 @@ from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.torch.model.d_linear import DLinearEstimator
+from gluonts.torch.model.i_transformer import ITransformerEstimator
 from gluonts.torch.model.patch_tst import PatchTSTEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
@@ -80,6 +82,12 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
+        lambda dataset: ITransformerEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
         lambda dataset: LagTSTEstimator(
             prediction_length=dataset.metadata.prediction_length,
             freq=dataset.metadata.freq,
@@ -123,17 +131,35 @@ def test_estimator_constant_dataset(
     estimator_constructor, use_validation_data: bool
 ):
     constant = get_dataset("constant")
-
     estimator = estimator_constructor(constant)
+
+    if isinstance(estimator, ITransformerEstimator):
+        train_grouper = MultivariateGrouper(
+            max_target_dim=int(
+                constant.metadata.feat_static_cat[0].cardinality
+            )
+        )
+
+        test_grouper = MultivariateGrouper(
+            num_test_dates=int(len(constant.test) / len(constant.train)),
+            max_target_dim=int(
+                constant.metadata.feat_static_cat[0].cardinality
+            ),
+        )
+        dataset_train = train_grouper(constant.train)
+        dataset_test = test_grouper(constant.test)
+    else:
+        dataset_train = constant.train
+        dataset_test = constant.test
 
     if use_validation_data:
         predictor = estimator.train(
-            training_data=constant.train,
-            validation_data=constant.train,
+            training_data=dataset_train,
+            validation_data=dataset_test,
         )
     else:
         predictor = estimator.train(
-            training_data=constant.train,
+            training_data=dataset_train,
         )
 
     with tempfile.TemporaryDirectory() as td:
@@ -142,7 +168,7 @@ def test_estimator_constant_dataset(
 
     assert predictor == predictor_copy
 
-    forecasts = predictor_copy.predict(constant.test)
+    forecasts = predictor_copy.predict(dataset_test)
 
     for f in islice(forecasts, 5):
         if isinstance(f, DistributionForecast):
@@ -247,6 +273,11 @@ def test_estimator_constant_dataset(
             num_batches_per_epoch=3,
             epochs=2,
         ),
+        lambda freq, prediction_length: ITransformerEstimator(
+            prediction_length=prediction_length,
+            batch_size=4,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
         lambda freq, prediction_length: WaveNetEstimator(
             freq=freq,
             prediction_length=prediction_length,
@@ -263,11 +294,19 @@ def test_estimator_constant_dataset(
 def test_estimator_with_features(estimator_constructor):
     freq = "1h"
     prediction_length = 12
+    estimator = estimator_constructor(freq, prediction_length)
+
+    if isinstance(estimator, ITransformerEstimator):
+        univariate = False
+    else:
+        univariate = True
 
     training_dataset = [
         {
             "start": pd.Period("2021-01-01 00:00:00", freq=freq),
-            "target": np.ones(200, dtype=np.float32),
+            "target": np.ones(200, dtype=np.float32)
+            if univariate
+            else np.ones((3, 200), dtype=np.float32),
             "feat_static_cat": np.array([0, 1], dtype=np.float32),
             "feat_static_real": np.array([42.0], dtype=np.float32),
             "feat_dynamic_real": np.ones((3, 200), dtype=np.float32),
@@ -275,7 +314,9 @@ def test_estimator_with_features(estimator_constructor):
         },
         {
             "start": pd.Period("2021-02-01 00:00:00", freq=freq),
-            "target": np.ones(100, dtype=np.float32),
+            "target": np.ones(100, dtype=np.float32)
+            if univariate
+            else np.ones((3, 100), dtype=np.float32),
             "feat_static_cat": np.array([1, 0], dtype=np.float32),
             "feat_static_real": np.array([1.0], dtype=np.float32),
             "feat_dynamic_real": np.ones((3, 100), dtype=np.float32),
@@ -286,7 +327,9 @@ def test_estimator_with_features(estimator_constructor):
     prediction_dataset = [
         {
             "start": pd.Period("2021-01-01 00:00:00", freq=freq),
-            "target": np.ones(200, dtype=np.float32),
+            "target": np.ones(200, dtype=np.float32)
+            if univariate
+            else np.ones((3, 200), dtype=np.float32),
             "feat_static_cat": np.array([0, 1], dtype=np.float32),
             "feat_static_real": np.array([42.0], dtype=np.float32),
             "feat_dynamic_real": np.ones(
@@ -296,7 +339,9 @@ def test_estimator_with_features(estimator_constructor):
         },
         {
             "start": pd.Period("2021-02-01 00:00:00", freq=freq),
-            "target": np.ones(100, dtype=np.float32),
+            "target": np.ones(100, dtype=np.float32)
+            if univariate
+            else np.ones((3, 100), dtype=np.float32),
             "feat_static_cat": np.array([1, 0], dtype=np.float32),
             "feat_static_real": np.array([1.0], dtype=np.float32),
             "feat_dynamic_real": np.ones(
@@ -305,8 +350,6 @@ def test_estimator_with_features(estimator_constructor):
             "__unused__": np.ones(5, dtype=np.float32),
         },
     ]
-
-    estimator = estimator_constructor(freq, prediction_length)
 
     predictor = estimator.train(
         training_data=training_dataset,
