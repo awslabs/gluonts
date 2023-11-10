@@ -83,7 +83,7 @@ def _get_data_batch(
     other_data["seasonal_error"] = np.array(seasonal_error_values)
 
     return ChainMap(
-        other_data, BatchForecast(forecast_batch, allow_nan=allow_nan_forecast)
+        other_data, BatchForecast(forecast_batch, allow_nan=allow_nan_forecast)  # type: ignore
     )
 
 
