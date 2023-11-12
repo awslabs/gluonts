@@ -50,12 +50,13 @@ class RotbaumForecast(Forecast):
         featurized_data: List,
         start_date: pd.Period,
         prediction_length: int,
+        item_id: Optional[str] = None,
     ):
         self.models = models
         self.featurized_data = featurized_data
         self.start_date = start_date
         self.prediction_length = prediction_length
-        self.item_id = None
+        self.item_id = item_id
         self.lead_time = None
 
     def quantile(self, q: float) -> np.ndarray:  # type: ignore
@@ -336,6 +337,7 @@ class TreePredictor(RepresentablePredictor):
                 [featurized_data],
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
+                item_id=ts.get("item_id"),
             )
 
     def explain(
