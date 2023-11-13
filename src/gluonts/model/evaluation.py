@@ -203,7 +203,7 @@ def evaluate_forecasts(
         )
         if index0 is not None:
             index0_repeated = np.take(index0, indices=index_arrays[0], axis=0)
-            index_arrays = (*zip(*index0_repeated), *index_arrays[1:])
+            index_arrays = (*zip(*index0_repeated), *index_arrays[1:])  # type: ignore
         index = pd.MultiIndex.from_arrays(index_arrays)
 
     flattened_metrics = valmap(np.ravel, metrics_values)
