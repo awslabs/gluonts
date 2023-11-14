@@ -492,7 +492,7 @@ class MeanSumQuantileLoss(BaseMetricDefinition):
             [quantile_loss for quantile_loss in quantile_losses.values()],
             axis=0,
         )
-        return np.ma.mean(stacked_quantile_losses, axis=0)
+        return np.mean(stacked_quantile_losses, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
@@ -515,7 +515,7 @@ class MeanWeightedSumQuantileLoss(BaseMetricDefinition):
             [quantile_loss for quantile_loss in quantile_losses.values()],
             axis=0,
         )
-        return np.ma.mean(stacked_quantile_losses, axis=0)
+        return np.mean(stacked_quantile_losses, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
@@ -538,7 +538,7 @@ class AverageMeanScaledQuantileLoss(BaseMetricDefinition):
             [quantile_loss for quantile_loss in quantile_losses.values()],
             axis=0,
         )
-        return np.ma.mean(stacked_quantile_losses, axis=0)
+        return np.mean(stacked_quantile_losses, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
@@ -565,7 +565,7 @@ class MAECoverage(BaseMetricDefinition):
             [np.abs(coverages[f"coverage[{q}]"] - q) for q in quantile_levels],
             axis=0,
         )
-        return np.ma.mean(intermediate_result, axis=0)
+        return np.mean(intermediate_result, axis=0)
 
     def __call__(self, axis: Optional[int] = None) -> DerivedMetric:
         return DerivedMetric(
