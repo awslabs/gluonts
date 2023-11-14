@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Tuple
+from typing import List, Sequence, Tuple
 
 from pandas.tseries.frequencies import to_offset
 
@@ -31,7 +31,7 @@ from gluonts.time_feature import (
 )
 
 
-def _make_block_diagonal(blocks: List[Tensor]) -> Tensor:
+def _make_block_diagonal(blocks: Sequence[Tensor]) -> Tensor:
     assert (
         len(blocks) > 0
     ), "You need at least one tensor to make a block-diagonal tensor"
