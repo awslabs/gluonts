@@ -28,6 +28,7 @@ from .model.estimator import PyTorchLightningEstimator
 from .model.predictor import PyTorchPredictor
 from .model.deep_npts import DeepNPTSEstimator
 from .model.deepar import DeepAREstimator
+from .model.tide import TiDEEstimator
 from .model.simple_feedforward import SimpleFeedForwardEstimator
 from .model.tft import TemporalFusionTransformerEstimator
 from .model.wavenet import WaveNetEstimator
