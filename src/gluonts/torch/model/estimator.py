@@ -156,18 +156,16 @@ class PyTorchLightningEstimator(Estimator):
         transformation = self.create_transformation()
 
         with env._let(max_idle_transforms=max(len(training_data), 100)):
-            transformed_training_data: Union[
-                Cached, TransformedDataset
-            ] = transformation.apply(training_data, is_train=True)
+            transformed_training_data: Dataset = transformation.apply(
+                training_data, is_train=True
+            )
             if cache_data:
                 transformed_training_data = Cached(transformed_training_data)
 
             training_network = self.create_lightning_module()
 
             training_data_loader = self.create_training_data_loader(
-                Cached(transformed_training_data)
-                if cache_data
-                else transformed_training_data,
+                transformed_training_data,
                 training_network,
                 shuffle_buffer_length=shuffle_buffer_length,
             )
@@ -176,9 +174,9 @@ class PyTorchLightningEstimator(Estimator):
 
         if validation_data is not None:
             with env._let(max_idle_transforms=max(len(validation_data), 100)):
-                transformed_validation_data: Union[
-                    Cached, TransformedDataset
-                ] = transformation.apply(validation_data, is_train=True)
+                transformed_validation_data: Dataset = transformation.apply(
+                    validation_data, is_train=True
+                )
                 if cache_data:
                     transformed_validation_data = Cached(
                         transformed_validation_data
