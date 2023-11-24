@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Iterable, Dict, Any, Union
+from typing import NamedTuple, Optional, Iterable, Dict, Any
 import logging
 
 import numpy as np
@@ -24,7 +24,7 @@ from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import Transformation, TransformedDataset
+from gluonts.transform import Transformation
 
 logger = logging.getLogger(__name__)
 
