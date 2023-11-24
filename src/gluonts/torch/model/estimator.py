@@ -17,7 +17,6 @@ import logging
 import numpy as np
 import lightning.pytorch as pl
 import torch.nn as nn
-import torch.utils.data
 
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
@@ -28,17 +27,6 @@ from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import Transformation, TransformedDataset
 
 logger = logging.getLogger(__name__)
-
-
-class IterableDataset(torch.utils.data.IterableDataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __iter__(self):
-        for num, el in enumerate(self.dataset, start=1):
-            print(num, len(el))
-            yield el
-        print("END")
 
 
 class TrainOutput(NamedTuple):
@@ -196,11 +184,9 @@ class PyTorchLightningEstimator(Estimator):
                         transformed_validation_data
                     )
 
-                validation_data_loader = IterableDataset(
-                    self.create_validation_data_loader(
-                        transformed_validation_data,
-                        training_network,
-                    )
+                validation_data_loader = self.create_validation_data_loader(
+                    transformed_validation_data,
+                    training_network,
                 )
 
         if from_predictor is not None:
