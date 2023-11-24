@@ -317,15 +317,19 @@ class Cached:
     """
 
     iterable: SizedIterable
+    _iterable: Iterable = field(init=False)
     cache: list = field(default_factory=list, init=False)
 
+    def __post_init__(self):
+        # ensure we only iterate once over the iterable
+        self._iterable = iter(self.iterable)
+
     def __iter__(self):
-        if not self.cache:
-            for element in self.iterable:
-                yield element
-                self.cache.append(element)
-        else:
-            yield from self.cache
+        yield from self.cache
+
+        for element in self._iterable:
+            self.cache.append(element)
+            yield element
 
     def __len__(self) -> int:
         return len(self.iterable)
