@@ -119,6 +119,16 @@ def test_pickle(iterable: Iterable, assert_content: bool):
         assert data == data_copy
 
 
+def test_cached_reentry():
+    data = Cached(range(10))
+
+    assert len(data) == 10
+    assert list(take(5, data)) == list(range(5))
+    assert len(data) == 10
+    assert list(take(10, data)) == list(range(10))
+    assert len(data) == 10
+
+
 @pytest.mark.parametrize(
     "given, expected",
     [

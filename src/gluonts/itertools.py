@@ -305,10 +305,9 @@ def split_into(xs: Sequence, n: int) -> Sequence:
 @dataclass
 class Cached:
     """
-    An iterable wrapper, which caches values in a list the first time it is
-    iterated.
+    An iterable wrapper, which caches values in a list while iterated.
 
-    The primary use-case for this is to avoid re-computing the element of the
+    The primary use-case for this is to avoid re-computing the elements of the
     sequence, in case the inner iterable does it on demand.
 
     This should be used to wrap deterministic iterables, i.e. iterables where
@@ -317,15 +316,21 @@ class Cached:
     """
 
     iterable: SizedIterable
-    cache: list = field(default_factory=list, init=False)
+    provider: Iterable = field(init=False)
+    consumed: list = field(default_factory=list, init=False)
+
+    def __post_init__(self):
+        # ensure we only iterate once over the iterable
+        self.provider = iter(self.iterable)
 
     def __iter__(self):
-        if not self.cache:
-            for element in self.iterable:
-                yield element
-                self.cache.append(element)
-        else:
-            yield from self.cache
+        # Yield already provided values first
+        yield from self.consumed
+
+        # Now yield remaining elements.
+        for element in self.provider:
+            self.consumed.append(element)
+            yield element
 
     def __len__(self) -> int:
         return len(self.iterable)
