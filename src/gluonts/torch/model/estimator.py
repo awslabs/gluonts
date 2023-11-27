@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Iterable, Dict, Any, Union
+from typing import NamedTuple, Optional, Iterable, Dict, Any
 import logging
 
 import numpy as np
@@ -24,7 +24,7 @@ from gluonts.env import env
 from gluonts.itertools import Cached
 from gluonts.model import Estimator, Predictor
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.transform import Transformation, TransformedDataset
+from gluonts.transform import Transformation
 
 logger = logging.getLogger(__name__)
 
@@ -156,18 +156,16 @@ class PyTorchLightningEstimator(Estimator):
         transformation = self.create_transformation()
 
         with env._let(max_idle_transforms=max(len(training_data), 100)):
-            transformed_training_data: Union[
-                Cached, TransformedDataset
-            ] = transformation.apply(training_data, is_train=True)
+            transformed_training_data: Dataset = transformation.apply(
+                training_data, is_train=True
+            )
             if cache_data:
                 transformed_training_data = Cached(transformed_training_data)
 
             training_network = self.create_lightning_module()
 
             training_data_loader = self.create_training_data_loader(
-                Cached(transformed_training_data)
-                if cache_data
-                else transformed_training_data,
+                transformed_training_data,
                 training_network,
                 shuffle_buffer_length=shuffle_buffer_length,
             )
@@ -176,9 +174,9 @@ class PyTorchLightningEstimator(Estimator):
 
         if validation_data is not None:
             with env._let(max_idle_transforms=max(len(validation_data), 100)):
-                transformed_validation_data: Union[
-                    Cached, TransformedDataset
-                ] = transformation.apply(validation_data, is_train=True)
+                transformed_validation_data: Dataset = transformation.apply(
+                    validation_data, is_train=True
+                )
                 if cache_data:
                     transformed_validation_data = Cached(
                         transformed_validation_data
