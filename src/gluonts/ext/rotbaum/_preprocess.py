@@ -454,7 +454,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             prefix = [None] * abs(starting_index)
         else:
             prefix = []
-        time_series_window = time_series["target"][starting_index:end_index]
+        time_series_window = time_series["target"] if prefix else time_series["target"][starting_index:end_index]     
         only_lag_features, transform_dict = self._pre_transform(
             time_series_window, self.subtract_mean, self.count_nans
         )
@@ -477,10 +477,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             list(
                 chain(
                     *[
-                        list(ent[0]) + list(ent[1].values())
+                        prefix + list(ent[0]) + list(ent[1].values())
                         for ent in [
                             self._pre_transform(
-                                ts[starting_index:end_index],
+                                ts if prefix else ts[starting_index:end_index],
                                 self.subtract_mean,
                                 self.count_nans,
                             )
