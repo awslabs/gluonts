@@ -59,3 +59,58 @@ def test_rotbaum_smoke(datasets):
     predictor = estimator.train(dataset_train)
     forecasts = list(predictor.predict(dataset_test))
     assert len(forecasts) == len(dataset_test)
+
+
+def test_short_history_item_pred(freq: str):
+
+    prediction_length = 7
+    freq = 'D'
+
+    dataset = ListDataset(
+        data_iter=[
+            {
+                "start": "2017-10-11",
+                "item_id": "item_1", 
+                "target": np.array([1., 9., 2., 0., 0., 1., 5., 3., 4., 2., 0., 0., 1., 6.]),
+                "feat_static_cat": np.array([0., 0.], dtype=float), 
+                "past_feat_dynamic_real": np.array(
+                    [
+                        [1.0222e+06 for i in range(14)],
+                        [750.0 for i in range(14)]
+                    ]
+                ),
+            },
+            {
+                "start": "2017-10-11",
+                "item_id": "item_2", 
+                "target": np.array([7.,  0.,  0., 23., 13.]),
+                "feat_static_cat": np.array([0., 1.], dtype=float), 
+                "past_feat_dynamic_real": np.array(
+                    [
+                        [0 for i in range(5)],
+                        [750.0 for i in range(5)]
+                    ]
+                ),
+            }
+        ],
+        freq=freq,
+    )
+
+
+    predictor = TreePredictor(
+        freq=freq,
+        prediction_length = prediction_length,
+        quantiles = [0.1, 0.5, 0.9],
+        max_n_datapts = 50000,
+        method = "QuantileRegression",
+        use_past_feat_dynamic_real = True,
+        use_feat_dynamic_real = False,
+        use_feat_dynamic_cat = False,
+        use_feat_static_real = False,
+        cardinality = "auto",
+    )
+    predictor = predictor.train(dataset)
+    forecasts = list(predictor.predict(dataset))
+    assert forecasts[1].quantile(0.5).shape[0] == prediction_length
+
+
