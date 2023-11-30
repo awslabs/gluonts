@@ -12,10 +12,12 @@
 # permissions and limitations under the License.
 
 import pytest
+import numpy as np
 
 from gluonts.ext.rotbaum import TreeEstimator
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
+from gluonts.dataset.common import ListDataset
 
 # TODO: Add support for categorical and dynamic features.
 
