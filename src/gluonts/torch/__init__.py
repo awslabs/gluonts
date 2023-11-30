@@ -11,29 +11,24 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-__all__ = [
-    "PyTorchLightningEstimator",
-    "PyTorchPredictor",
-    "DeepNPTSEstimator",
-    "DeepAREstimator",
-    "SimpleFeedForwardEstimator",
-    "TemporalFusionTransformerEstimator",
-    "WaveNetEstimator",
-    "DLinearEstimator",
-    "PatchTSTEstimator",
-    "LagTSTEstimator",
-]
+
 import torch
-from .model.estimator import PyTorchLightningEstimator
-from .model.predictor import PyTorchPredictor
-from .model.deep_npts import DeepNPTSEstimator
-from .model.deepar import DeepAREstimator
-from .model.simple_feedforward import SimpleFeedForwardEstimator
-from .model.tft import TemporalFusionTransformerEstimator
-from .model.wavenet import WaveNetEstimator
-from .model.d_linear import DLinearEstimator
-from .model.patch_tst import PatchTSTEstimator
-from .model.lag_tst import LagTSTEstimator
+
+from gluonts.meta.export import re_export
+
+__all__ = re_export(
+    __name__,
+    ".model.estimator:PyTorchLightningEstimator",
+    ".model.predictor:PyTorchPredictor",
+    ".model.deep_npts:DeepNPTSEstimator",
+    ".model.deepar:DeepAREstimator",
+    ".model.simple_feedforward:SimpleFeedForwardEstimator",
+    ".model.tft:TemporalFusionTransformerEstimator",
+    ".model.wavenet:WaveNetEstimator",
+    ".model.d_linear:DLinearEstimator",
+    ".model.patch_tst:PatchTSTEstimator",
+    ".model.lag_tst:LagTSTEstimator",
+)
 
 
 from . import prelude as _  # noqa
