@@ -61,7 +61,7 @@ def test_rotbaum_smoke(datasets):
     assert len(forecasts) == len(dataset_test)
 
 
-def test_short_history_item_pred(freq: str):
+def test_short_history_item_pred():
 
     prediction_length = 7
     freq = "D"
