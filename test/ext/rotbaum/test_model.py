@@ -34,7 +34,6 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
 
 
 def test_serialize(serialize_test, hyperparameters):
-    # serialize_test(TreeEstimator, hyperparameters)
     from gluonts.model.predictor import Predictor
 
     forecaster = from_hyperparameters(TreeEstimator, hyperparameters, dsinfo)
