@@ -14,7 +14,7 @@
 import pytest
 import numpy as np
 
-from gluonts.ext.rotbaum import TreeEstimator
+from gluonts.ext.rotbaum import TreeEstimator, TreePredictor
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
 from gluonts.dataset.common import ListDataset
