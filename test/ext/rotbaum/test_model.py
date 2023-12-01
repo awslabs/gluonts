@@ -34,4 +34,15 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
 
 
 def test_serialize(serialize_test, hyperparameters):
-    serialize_test(TreeEstimator, hyperparameters)
+    # serialize_test(TreeEstimator, hyperparameters)
+    from gluonts.model.predictor import Predictor
+
+    forecaster = from_hyperparameters(TreeEstimator, hyperparameters, dsinfo)
+
+    predictor_act = forecaster.train(dsinfo.train_ds)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        predictor_act.serialize(Path(temp_dir))
+        predictor_exp = Predictor.deserialize(Path(temp_dir))
+        assert predictor_act == predictor_exp
+        assert predictor_act.model_list == predictor_exp.model_list

@@ -340,6 +340,30 @@ class TreePredictor(RepresentablePredictor):
                 item_id=ts.get("item_id"),
             )
 
+    def serialize(self, path: Path) -> None:
+        """
+        This function calls parent class serialize() in order to serialize
+        the class name, version information and constuctor arguments. It
+        persists the tree predictor by pickling the model list that is
+        generated when pickling the TreePredictor.
+        """
+        super().serialize(path)
+        with (path / "predictor.pkl").open("wb") as f:
+            pickle.dump(self.model_list, f)
+
+    @classmethod
+    def deserialize(cls, path: Path) -> "RepresentablePredictor":
+        """
+        This function loads and returns the serialized model. It calls
+        parent class deserialize() to load the predictor class with the
+        serialized arguments. It then loads the trained model list by
+        reading the pickle file.
+        """
+        predictor = super().deserialize(path)
+        with (path / "predictor.pkl").open("rb") as f:
+            predictor.model_list = pickle.load(f)
+        return predictor
+
     def explain(
         self, importance_type: str = "gain", percentage: bool = True
     ) -> ExplanationResult:
