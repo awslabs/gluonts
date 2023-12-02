@@ -127,4 +127,3 @@ def test_short_history_item_pred():
     predictor = predictor.train(dataset)
     forecasts = list(predictor.predict(dataset))
     assert forecasts[1].quantile(0.5).shape[0] == prediction_length
-
