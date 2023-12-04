@@ -20,7 +20,7 @@ import xgboost
 import gc
 from collections import defaultdict
 
-from gluonts.core.component import validated
+from gluonts.core.component import equals, validated
 
 
 class QRF:
@@ -120,6 +120,13 @@ class QRX:
                 "objective": "reg:squarederror",
             }
         return xgboost.sklearn.XGBModel(**model_params)
+
+    def __eq__(self, that):
+        """
+        Two QRX instances are considered equal if they have the same
+        constructor arguments.
+        """
+        return equals(self, that)
 
     def fit(
         self,

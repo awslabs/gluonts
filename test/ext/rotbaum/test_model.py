@@ -11,10 +11,11 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-
+from pathlib import Path
 import pytest
+import tempfile
 
-from gluonts.ext.rotbaum import TreeEstimator
+from gluonts.ext.rotbaum import TreeEstimator, TreePredictor
 
 
 @pytest.fixture()
@@ -33,5 +34,20 @@ def test_accuracy(accuracy_test, hyperparameters, quantiles):
     accuracy_test(TreeEstimator, hyperparameters, accuracy=0.20)
 
 
-def test_serialize(serialize_test, hyperparameters):
-    serialize_test(TreeEstimator, hyperparameters)
+def test_serialize(serialize_test, hyperparameters, dsinfo):
+    forecaster = TreeEstimator.from_hyperparameters(
+        freq=dsinfo.freq,
+        **{
+            "prediction_length": dsinfo.prediction_length,
+            "num_parallel_samples": dsinfo.num_parallel_samples,
+        },
+        **hyperparameters,
+    )
+
+    predictor_act = forecaster.train(dsinfo.train_ds)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        predictor_act.serialize(Path(temp_dir))
+        predictor_exp = TreePredictor.deserialize(Path(temp_dir))
+        assert predictor_act == predictor_exp
+        assert predictor_act.model_list == predictor_exp.model_list

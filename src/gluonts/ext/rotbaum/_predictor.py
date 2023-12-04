@@ -13,12 +13,14 @@
 
 import concurrent.futures
 import logging
+import pickle
 from itertools import chain
 from typing import Iterator, List, Optional, Any, Dict
 from toolz import first
 
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from itertools import compress
 
 from gluonts.core.component import validated
@@ -339,6 +341,31 @@ class TreePredictor(RepresentablePredictor):
                 prediction_length=self.prediction_length,
                 item_id=ts.get("item_id"),
             )
+
+    def serialize(self, path: Path) -> None:
+        """
+        This function calls parent class serialize() in order to serialize
+        the class name, version information and constuctor arguments. It
+        persists the tree predictor by pickling the model list that is
+        generated when pickling the TreePredictor.
+        """
+        super().serialize(path)
+        with (path / "predictor.pkl").open("wb") as f:
+            pickle.dump(self.model_list, f)
+
+    @classmethod
+    def deserialize(cls, path: Path, **kwargs: Any) -> "TreePredictor":
+        """
+        This function loads and returns the serialized model. It loads
+        the predictor class with the serialized arguments. It then loads
+        the trained model list by reading the pickle file.
+        """
+
+        predictor = super().deserialize(path)
+        assert isinstance(predictor, cls)
+        with (path / "predictor.pkl").open("rb") as f:
+            predictor.model_list = pickle.load(f)
+        return predictor
 
     def explain(
         self, importance_type: str = "gain", percentage: bool = True
