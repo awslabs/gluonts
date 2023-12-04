@@ -166,93 +166,99 @@ def get_dataset(
     return src_dataset, tgt_dataset
 
 
-args = parse_configs()
-src_name = args.data.src_name
-tgt_name = args.data.tgt_name
-exp_name = f"{src_name[0].upper()}2{tgt_name[0].upper()}"
-with Path(__file__).parents[1].joinpath(
-    f"dumps/{exp_name}/defaults.json"
-).open("r") as f:
-    defaults = json.load(f)
-update_configs(args, defaults)
-src_dataset, tgt_dataset = get_dataset(**vars(args.data))
+def main():
+    args = parse_configs()
+    src_name = args.data.src_name
+    tgt_name = args.data.tgt_name
+    exp_name = f"{src_name[0].upper()}2{tgt_name[0].upper()}"
+    with Path(__file__).parents[1].joinpath(
+        f"dumps/{exp_name}/defaults.json"
+    ).open("r") as f:
+        defaults = json.load(f)
+    update_configs(args, defaults)
+    src_dataset, tgt_dataset = get_dataset(**vars(args.data))
 
-n_disc_layer = args.model.n_disc_layer
-delattr(args.model, "n_disc_layer")
-seed = getattr(args, "global").seed
+    n_disc_layer = args.model.n_disc_layer
+    delattr(args.model, "n_disc_layer")
+    seed = getattr(args, "global").seed
 
-pt.manual_seed(seed)
-S1 = AttentionEstimator.from_configs(
-    src_dataset.d_data,
-    src_dataset.d_feats,
-    horizon=_horizons[_freqs[src_name]],
-    **vars(args.model),
-)
-args.train.log_dir = f"dumps/{exp_name}/src"
-S1_trainer = AttentionTrainer.from_configs(
-    src_dataset,
-    S1,
-    **vars(args.train),
-)
-pt.cuda.manual_seed_all(seed)
-S1_trainer.fit()
-S1_evaluator = AttentionEvaluator.from_trainer(S1_trainer, "best")
-S1_evaluator.evaluate()
-print(S1_evaluator.metrics.test.value)
+    pt.manual_seed(seed)
+    S1 = AttentionEstimator.from_configs(
+        src_dataset.d_data,
+        src_dataset.d_feats,
+        horizon=_horizons[_freqs[src_name]],
+        **vars(args.model),
+    )
+    args.train.log_dir = f"dumps/{exp_name}/src"
+    S1_trainer = AttentionTrainer.from_configs(
+        src_dataset,
+        S1,
+        **vars(args.train),
+    )
+    pt.cuda.manual_seed_all(seed)
+    S1_trainer.fit()
+    S1_evaluator = AttentionEvaluator.from_trainer(S1_trainer, "best")
+    S1_evaluator.evaluate()
+    print(S1_evaluator.metrics.test.value)
 
-pt.manual_seed(seed)
-T0 = AttentionEstimator.from_configs(
-    tgt_dataset.d_data,
-    tgt_dataset.d_feats,
-    horizon=_horizons[_freqs[tgt_name]],
-    **vars(args.model),
-)
-args.train.log_dir = f"dumps/{exp_name}/tgt"
-T0_trainer = AttentionTrainer.from_configs(
-    tgt_dataset,
-    T0,
-    **vars(args.train),
-)
-pt.cuda.manual_seed_all(seed)
-T0_trainer.fit()
-T0_evaluator = AttentionEvaluator.from_trainer(T0_trainer, "best")
-T0_evaluator.evaluate()
-print(T0_evaluator.metrics.test.value)
+    pt.manual_seed(seed)
+    T0 = AttentionEstimator.from_configs(
+        tgt_dataset.d_data,
+        tgt_dataset.d_feats,
+        horizon=_horizons[_freqs[tgt_name]],
+        **vars(args.model),
+    )
+    args.train.log_dir = f"dumps/{exp_name}/tgt"
+    T0_trainer = AttentionTrainer.from_configs(
+        tgt_dataset,
+        T0,
+        **vars(args.train),
+    )
+    pt.cuda.manual_seed_all(seed)
+    T0_trainer.fit()
+    T0_evaluator = AttentionEvaluator.from_trainer(T0_trainer, "best")
+    T0_evaluator.evaluate()
+    print(T0_evaluator.metrics.test.value)
+
+    DA_dataset = DomAdaptDataset.from_domains(src_dataset, tgt_dataset)
+    T1 = S1.create_twin_estimator(
+        tgt_dataset.d_data,
+        tgt_dataset.d_feats,
+        horizon=_horizons[_freqs[tgt_name]],
+    )
+    DA = DomAdaptEstimator(S1, T1)
+    args.train.log_dir = f"dumps/{exp_name}/da"
+    DA_trainer = DomAdaptTrainer.from_configs(
+        DA_dataset,
+        DA,
+        **vars(args.train),
+    )
+    DA_trainer.fit()
+    DA_evaluator = DomAdaptEvaluator.from_trainer(DA_trainer, "best")
+    DA_evaluator.evaluate()
+    print(DA_evaluator.metrics.test.value)
+
+    S1_evaluator = AttentionEvaluator.from_trainer(S1_trainer, "best")
+    S2 = AdversarialEstimator.from_base(S1, n_disc_layer)
+    T2 = S2.create_twin_estimator(
+        tgt_dataset.d_data,
+        tgt_dataset.d_feats,
+        horizon=_horizons[_freqs[tgt_name]],
+    )
+    ADV = AdversarialDomAdaptEstimator(S2, T2)
+    args.train.log_dir = f"dumps/{exp_name}/adv"
+    ADV_trainer = AdversarialDomAdaptTrainer.from_configs(
+        DA_dataset,
+        ADV,
+        **vars(args.train),
+    )
+    ADV_trainer.fit()
+    ADV_evaluator = AdversarialDomAdaptEvaluator.from_trainer(
+        ADV_trainer, "best"
+    )
+    ADV_evaluator.evaluate()
+    print(ADV_evaluator.metrics.test.value)
 
 
-DA_dataset = DomAdaptDataset.from_domains(src_dataset, tgt_dataset)
-T1 = S1.create_twin_estimator(
-    tgt_dataset.d_data,
-    tgt_dataset.d_feats,
-    horizon=_horizons[_freqs[tgt_name]],
-)
-DA = DomAdaptEstimator(S1, T1)
-args.train.log_dir = f"dumps/{exp_name}/da"
-DA_trainer = DomAdaptTrainer.from_configs(
-    DA_dataset,
-    DA,
-    **vars(args.train),
-)
-DA_trainer.fit()
-DA_evaluator = DomAdaptEvaluator.from_trainer(DA_trainer, "best")
-DA_evaluator.evaluate()
-print(DA_evaluator.metrics.test.value)
-
-S1_evaluator = AttentionEvaluator.from_trainer(S1_trainer, "best")
-S2 = AdversarialEstimator.from_base(S1, n_disc_layer)
-T2 = S2.create_twin_estimator(
-    tgt_dataset.d_data,
-    tgt_dataset.d_feats,
-    horizon=_horizons[_freqs[tgt_name]],
-)
-ADV = AdversarialDomAdaptEstimator(S2, T2)
-args.train.log_dir = f"dumps/{exp_name}/adv"
-ADV_trainer = AdversarialDomAdaptTrainer.from_configs(
-    DA_dataset,
-    ADV,
-    **vars(args.train),
-)
-ADV_trainer.fit()
-ADV_evaluator = AdversarialDomAdaptEvaluator.from_trainer(ADV_trainer, "best")
-ADV_evaluator.evaluate()
-print(ADV_evaluator.metrics.test.value)
+if __name__ == "__main__":
+    main()

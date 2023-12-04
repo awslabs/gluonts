@@ -22,26 +22,34 @@ from gluonts.nursery.temporal_hierarchical_forecasting.eval.evaluation import (
 )
 
 
-dataset = get_dataset("exchange_rate", regenerate=False)
+EVALUATE_ALL_LEVELS = True
 
-estimator = COPDeepAREstimator(
-    freq=dataset.metadata.freq,
-    prediction_length=dataset.metadata.prediction_length,
-    base_estimator_name="DeepAREstimatorForCOP",
-    base_estimator_hps={},
-    trainer=Trainer(
-        epochs=100,
-        hybridize=False,
-    ),
-)
 
-predictor = estimator.train(dataset.train)
+def main():
+    dataset = get_dataset("exchange_rate", regenerate=False)
 
-results = evaluate_predictor(
-    predictor=predictor,
-    test_dataset=dataset.test,
-    evaluate_all_levels=EVALUATE_ALL_LEVELS,
-    freq=dataset.metadata.freq,
-)
+    estimator = COPDeepAREstimator(
+        freq=dataset.metadata.freq,
+        prediction_length=dataset.metadata.prediction_length,
+        base_estimator_name="DeepAREstimatorForCOP",
+        base_estimator_hps={},
+        trainer=Trainer(
+            epochs=100,
+            hybridize=False,
+        ),
+    )
 
-print(results)
+    predictor = estimator.train(dataset.train)
+
+    results = evaluate_predictor(
+        predictor=predictor,
+        test_dataset=dataset.test,
+        evaluate_all_levels=EVALUATE_ALL_LEVELS,
+        freq=dataset.metadata.freq,
+    )
+
+    print(results)
+
+
+if __name__ == "__main__":
+    main()

@@ -26,6 +26,7 @@ from gluonts.itertools import (
     columns_to_rows,
     rows_to_columns,
     select,
+    join_items,
 )
 
 from ._base import Pad, TimeBase
@@ -61,6 +62,42 @@ class TimeFrame(TimeBase):
             f"Expected: {len(self)}, got {len(self.index)}."
         )
 
+    def eq_shape(self, other: TimeFrame) -> bool:
+        if (
+            len(self) != len(other)
+            or self.index != other.index
+            or self.tdims != other.tdims
+            or self.columns.keys() != other.columns.keys()
+            or self.static.keys() != other.static.keys()
+        ):
+            return False
+
+        for _, left, right in join_items(self.columns, other.columns, "left"):
+            if left.shape != right.shape:
+                return False
+
+        for _, left, right in join_items(self.static, other.static, "left"):
+            if left.shape != right.shape:
+                return False
+
+        return True
+
+    def eq_to(self, other: TimeFrame) -> bool:
+        # not considered: Pad, metadata, default_tdim
+
+        if not self.eq_shape(other):
+            return False
+
+        for _, left, right in join_items(self.columns, other.columns, "left"):
+            if not np.array_equal(left, right):
+                return False
+
+        for _, left, right in join_items(self.static, other.static, "left"):
+            if not np.array_equal(left, right):
+                return False
+
+        return True
+
     def _time_view(self, column):
         """View of column with respect to time."""
 
@@ -84,13 +121,8 @@ class TimeFrame(TimeBase):
         )
 
     def __getitem__(self, idx: Union[slice, int, str]):
-        if isinstance(idx, slice):
-            subtype = maybe.or_(idx.start, idx.stop)
-        else:
-            subtype = None
-
-        if isinstance(idx, int) or isinstance(subtype, int):
-            return self.iloc[idx]
+        if isinstance(idx, (slice, int)):
+            return TimeBase.__getitem__(self, idx)
 
         assert isinstance(idx, str)
 

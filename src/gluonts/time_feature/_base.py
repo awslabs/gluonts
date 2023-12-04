@@ -17,31 +17,38 @@ import numpy as np
 import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
-from pydantic import BaseModel
+
+from gluonts.pydantic import BaseModel
 
 
 TimeFeature = Callable[[pd.PeriodIndex], np.ndarray]
+
+
+def _normalize(xs, num: float):
+    """Scale values of ``xs`` to [-0.5, 0.5]."""
+
+    return np.asarray(xs) / (num - 1) - 0.5
 
 
 def second_of_minute(index: pd.PeriodIndex) -> np.ndarray:
     """
     Second of minute encoded as value between [-0.5, 0.5]
     """
-    return index.second.values / 59.0 - 0.5
+    return _normalize(index.second, num=60)
 
 
 def second_of_minute_index(index: pd.PeriodIndex) -> np.ndarray:
     """
     Second of minute encoded as zero-based index, between 0 and 59.
     """
-    return index.second.astype(float).values
+    return np.asarray(index.second)
 
 
 def minute_of_hour(index: pd.PeriodIndex) -> np.ndarray:
     """
     Minute of hour encoded as value between [-0.5, 0.5]
     """
-    return index.minute.values / 59.0 - 0.5
+    return _normalize(index.minute, num=60)
 
 
 def minute_of_hour_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -49,7 +56,7 @@ def minute_of_hour_index(index: pd.PeriodIndex) -> np.ndarray:
     Minute of hour encoded as zero-based index, between 0 and 59.
     """
 
-    return index.minute.astype(float).values
+    return np.asarray(index.minute)
 
 
 def hour_of_day(index: pd.PeriodIndex) -> np.ndarray:
@@ -57,7 +64,7 @@ def hour_of_day(index: pd.PeriodIndex) -> np.ndarray:
     Hour of day encoded as value between [-0.5, 0.5]
     """
 
-    return index.hour.values / 23.0 - 0.5
+    return _normalize(index.hour, num=24)
 
 
 def hour_of_day_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -65,7 +72,7 @@ def hour_of_day_index(index: pd.PeriodIndex) -> np.ndarray:
     Hour of day encoded as zero-based index, between 0 and 23.
     """
 
-    return index.hour.astype(float).values
+    return np.asarray(index.hour)
 
 
 def day_of_week(index: pd.PeriodIndex) -> np.ndarray:
@@ -73,7 +80,7 @@ def day_of_week(index: pd.PeriodIndex) -> np.ndarray:
     Day of week encoded as value between [-0.5, 0.5]
     """
 
-    return index.dayofweek.values / 6.0 - 0.5
+    return _normalize(index.dayofweek, num=7)
 
 
 def day_of_week_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -81,7 +88,7 @@ def day_of_week_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of week encoded as zero-based index, between 0 and 6.
     """
 
-    return index.dayofweek.astype(float).values
+    return np.asarray(index.dayofweek)
 
 
 def day_of_month(index: pd.PeriodIndex) -> np.ndarray:
@@ -89,7 +96,8 @@ def day_of_month(index: pd.PeriodIndex) -> np.ndarray:
     Day of month encoded as value between [-0.5, 0.5]
     """
 
-    return (index.day.values - 1) / 30.0 - 0.5
+    # first day of month is `1`, thus we deduct one
+    return _normalize(index.day - 1, num=31)
 
 
 def day_of_month_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -97,7 +105,7 @@ def day_of_month_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of month encoded as zero-based index, between 0 and 11.
     """
 
-    return index.day.astype(float).values - 1
+    return np.asarray(index.day) - 1
 
 
 def day_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -105,7 +113,7 @@ def day_of_year(index: pd.PeriodIndex) -> np.ndarray:
     Day of year encoded as value between [-0.5, 0.5]
     """
 
-    return (index.dayofyear.values - 1) / 365.0 - 0.5
+    return _normalize(index.dayofyear - 1, num=366)
 
 
 def day_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -113,7 +121,7 @@ def day_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     Day of year encoded as zero-based index, between 0 and 365.
     """
 
-    return index.dayofyear.astype(float).values - 1
+    return np.asarray(index.dayofyear) - 1
 
 
 def month_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -121,7 +129,7 @@ def month_of_year(index: pd.PeriodIndex) -> np.ndarray:
     Month of year encoded as value between [-0.5, 0.5]
     """
 
-    return (index.month.values - 1) / 11.0 - 0.5
+    return _normalize(index.month - 1, num=12)
 
 
 def month_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -129,7 +137,7 @@ def month_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
     Month of year encoded as zero-based index, between 0 and 11.
     """
 
-    return index.month.astype(float).values - 1
+    return np.asarray(index.month) - 1
 
 
 def week_of_year(index: pd.PeriodIndex) -> np.ndarray:
@@ -145,7 +153,8 @@ def week_of_year(index: pd.PeriodIndex) -> np.ndarray:
         week = index.isocalendar().week
     except AttributeError:
         week = index.week
-    return (week.astype(float).values - 1) / 52.0 - 0.5
+
+    return _normalize(week - 1, num=53)
 
 
 def week_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
@@ -161,7 +170,8 @@ def week_of_year_index(index: pd.PeriodIndex) -> np.ndarray:
         week = index.isocalendar().week
     except AttributeError:
         week = index.week
-    return week.astype(float).values - 1
+
+    return np.asarray(week) - 1
 
 
 class Constant(BaseModel):

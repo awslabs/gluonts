@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
+import waitress
 
 from gluonts.env import env as gluonts_env
 from gluonts.shell.serve import Settings
@@ -82,12 +83,13 @@ def serve_command(
     else:
         forecaster_type = None
 
-    gunicorn_app = serve.make_gunicorn_app(
+    flask_app = serve.make_flask_app(
         env=env,
         forecaster_type=forecaster_type,
         settings=Settings(),
     )
-    gunicorn_app.run()
+
+    waitress.serve(flask_app, listen="*:8080")
 
 
 @cli.command(name="train")

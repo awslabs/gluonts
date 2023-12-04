@@ -11,9 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pydantic import BaseModel
-
 from gluonts.core.settings import Settings, let
+from gluonts.pydantic import BaseModel
 
 
 class MySettings(Settings):

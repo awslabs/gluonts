@@ -21,11 +21,11 @@ import time
 import mxnet.gluon.nn as nn
 import mxnet as mx
 from mxnet import gluon
-from pydantic import BaseModel, PrivateAttr
 
 # First-party imports
 from gluonts.core.component import validated
 from gluonts.mx.util import copy_parameters
+from gluonts.pydantic import BaseModel, PrivateAttr
 
 logger = logging.getLogger(__name__)
 

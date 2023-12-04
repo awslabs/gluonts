@@ -144,6 +144,10 @@ class DeepAREstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during training.
     validation_sampler
         Controls the sampling of windows during validation.
+    nonnegative_pred_samples
+        Should final prediction samples be non-negative? If yes, an activation
+        function is applied to ensure non-negative. Observe that this is applied
+        only to the final samples and this is not applied during training.
     """
 
     @validated()
@@ -166,7 +170,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         scaling: bool = True,
-        default_scale: float = 0.0,
+        default_scale: Optional[float] = None,
         lags_seq: Optional[List[int]] = None,
         time_features: Optional[List[TimeFeature]] = None,
         num_parallel_samples: int = 100,
@@ -176,6 +180,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
+        nonnegative_pred_samples: bool = False,
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
@@ -230,6 +235,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self.validation_sampler = validation_sampler or ValidationSplitSampler(
             min_future=prediction_length
         )
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
     @classmethod
     def derive_auto_fields(cls, train_iter):
@@ -397,6 +403,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
                 "scaling": self.scaling,
                 "default_scale": self.default_scale,
                 "num_parallel_samples": self.num_parallel_samples,
+                "nonnegative_pred_samples": self.nonnegative_pred_samples,
             },
         )
 
@@ -413,7 +420,5 @@ class DeepAREstimator(PyTorchLightningEstimator):
             prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            device=torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"
-            ),
+            device="auto",
         )

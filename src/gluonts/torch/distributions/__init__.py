@@ -20,6 +20,7 @@ from .distribution_output import (
     GammaOutput,
     NormalOutput,
     PoissonOutput,
+    LaplaceOutput,
 )
 from .generalized_pareto import GeneralizedPareto, GeneralizedParetoOutput
 from .implicit_quantile_network import (
@@ -27,7 +28,6 @@ from .implicit_quantile_network import (
     ImplicitQuantileNetworkOutput,
 )
 from .isqf import ISQF, ISQFOutput
-from .mqf2 import MQF2Distribution, MQF2DistributionOutput
 from .negative_binomial import NegativeBinomialOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
 from .spliced_binned_pareto import (
@@ -35,6 +35,7 @@ from .spliced_binned_pareto import (
     SplicedBinnedParetoOutput,
 )
 from .studentT import StudentTOutput
+from .truncated_normal import TruncatedNormal, TruncatedNormalOutput
 
 __all__ = [
     "AffineTransformed",
@@ -50,8 +51,7 @@ __all__ = [
     "ImplicitQuantileNetworkOutput",
     "ISQF",
     "ISQFOutput",
-    "MQF2Distribution",
-    "MQF2DistributionOutput",
+    "LaplaceOutput",
     "NegativeBinomialOutput",
     "NormalOutput",
     "PiecewiseLinear",
@@ -60,4 +60,6 @@ __all__ = [
     "SplicedBinnedPareto",
     "SplicedBinnedParetoOutput",
     "StudentTOutput",
+    "TruncatedNormal",
+    "TruncatedNormalOutput",
 ]

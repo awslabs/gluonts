@@ -17,14 +17,13 @@ from ipaddress import IPv4Address
 from typing import List, Optional, Type, Union
 
 from flask import Flask
-from gunicorn.app.base import BaseApplication
-from pydantic import BaseSettings
 
 import gluonts
 from gluonts.core import fqname_for
 from gluonts.model.estimator import Estimator
 from gluonts.model.predictor import Predictor
 from gluonts.shell.env import ServeEnv
+from gluonts.pydantic import BaseSettings
 
 from .app import make_app
 
@@ -94,32 +93,11 @@ class Settings(BaseSettings):
             return cpu_count
 
 
-class Application(BaseApplication):
-    def __init__(self, app, config) -> None:
-        self.app = app
-        self.config = config
-        BaseApplication.__init__(self)
-
-    def load_config(self) -> None:
-        for key, value in self.config.items():
-            if key in self.cfg.settings and value is not None:
-                self.cfg.set(key, value)
-
-    def init(self, parser, opts, args):
-        pass
-
-    def load(self) -> Flask:
-        return self.app
-
-    def stop(self, *args, **kwargs):
-        logger.info("Shutting down GluonTS scoring service")
-
-
-def make_gunicorn_app(
+def make_flask_app(
     env: ServeEnv,
     forecaster_type: Optional[Type[Union[Estimator, Predictor]]],
     settings: Settings,
-) -> Application:
+) -> Flask:
     if forecaster_type is not None:
         logger.info("Using dynamic predictor factory")
 
@@ -159,13 +137,4 @@ def make_gunicorn_app(
         settings=settings,
     )
 
-    gunicorn_app = Application(
-        app=flask_app,
-        config={
-            "bind": settings.sagemaker_server_bind,
-            "workers": settings.number_of_workers,
-            "timeout": settings.sagemaker_server_timeout,
-        },
-    )
-
-    return gunicorn_app
+    return flask_app

@@ -283,7 +283,7 @@ class LSTNetTrain(LSTNetBase):
         super().__init__(*args, **kwargs)
         self.loss_fn = loss.L1Loss()
 
-    def hybrid_forward(
+    def hybrid_forward(  # type: ignore
         self,
         F,
         past_target: Tensor,

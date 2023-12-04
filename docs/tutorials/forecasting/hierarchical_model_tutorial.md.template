@@ -105,7 +105,6 @@ estimator = DeepVARHierarchicalEstimator(
     freq=hts.freq,
     prediction_length=prediction_length,
     trainer=Trainer(epochs=2),
-    target_dim=hts.num_ts,
     S=S,
 )
 predictor = estimator.train(dataset)
@@ -159,7 +158,6 @@ estimator = DeepVARHierarchicalEstimator(
     freq=hts.freq,
     prediction_length=prediction_length,
     trainer=Trainer(epochs=2),
-    target_dim=hts.num_ts,
     S=S,
 )
 predictor = estimator.train(dataset_train)
@@ -233,7 +231,6 @@ estimator = DeepVARHierarchicalEstimator(
     freq=hts.freq,
     prediction_length=prediction_length,
     trainer=Trainer(epochs=2),
-    target_dim=hts_train.num_ts,
     S=S,
 )
 

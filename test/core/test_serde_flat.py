@@ -11,10 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pydantic import BaseModel
-
 from gluonts.core import serde
 from gluonts.core.component import equals
+from gluonts.pydantic import BaseModel
 
 
 class A(BaseModel):

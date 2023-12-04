@@ -12,18 +12,23 @@
 # permissions and limitations under the License.
 
 import re
+import logging
 from dataclasses import field
 from typing import Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
-from pydantic.dataclasses import dataclass
 
 from gluonts.core.component import validated
+from gluonts.pydantic import dataclass
+from gluonts import maybe
+
+
+logger = logging.getLogger(__name__)
 
 
 def _linear_interpolation(
-    xs: np.ndarray, ys: np.ndarray, x: float
+    xs: List[float], ys: List[np.ndarray], x: float
 ) -> np.ndarray:
     assert sorted(xs) == xs
     assert len(xs) == len(ys)
@@ -236,19 +241,22 @@ class Quantile:
 
 class Forecast:
     """
-    A abstract class representing predictions.
+    Abstract class representing predictions.
     """
 
     start_date: pd.Period
     item_id: Optional[str]
     info: Optional[Dict]
     prediction_length: int
-    mean: np.ndarray
     _index = None
+
+    @property
+    def mean(self) -> np.ndarray:
+        raise NotImplementedError()
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         """
-        Computes a quantile from the predicted distribution.
+        Compute a quantile from the predicted distribution.
 
         Parameters
         ----------
@@ -283,99 +291,73 @@ class Forecast:
 
     def plot(
         self,
-        prediction_intervals=(50.0, 90.0),
-        show_mean=False,
-        color="b",
-        label=None,
-        output_file=None,
-        *args,
-        **kwargs,
+        *,
+        intervals=(0.5, 0.9),
+        ax=None,
+        color=None,
+        name=None,
+        show_label=False,
     ):
         """
-        Plots the median of the forecast as well as prediction interval bounds
-        (requires matplotlib and pandas).
+        Plot median forecast and prediction intervals using ``matplotlib``.
 
-        Parameters
-        ----------
-        prediction_intervals : float or list of floats in [0, 100]
-            Prediction interval size(s). If a list, it will stack the error
-            plots for each prediction interval. Only relevant for error styles
-            with "ci" in the name.
-        show_mean : boolean
-            Whether to also show the mean of the forecast.
-        color : matplotlib color name or dictionary
-            The color used for plotting the forecast.
-        label : string
-            A label (prefix) that is used for the forecast
-        output_file : str or None, default None
-            Output path for the plot file. If None, plot is not saved to file.
-        args :
-            Other arguments are passed to main plot() call
-        kwargs :
-            Other keyword arguments are passed to main plot() call
+        By default the `0.5` and `0.9` prediction intervals are plotted. Other
+        intervals can be choosen by setting `intervals`.
+
+        This plots to the current axes object (via ``plt.gca()``), or to ``ax``
+        if provided. Similarly, the color is using matplotlibs internal color
+        cycle, if no explicit ``color`` is set.
+
+        One can set ``name`` to use it as the ``label`` for the median
+        forecast. Intervals are not labeled, unless ``show_label`` is set to
+        ``True``.
         """
-
-        # matplotlib==2.0.* gives errors in Brazil builds and has to be
-        # imported locally
         import matplotlib.pyplot as plt
 
-        label_prefix = "" if label is None else label + "-"
+        # Get current axes (gca), if not provided explicitly.
+        ax = maybe.unwrap_or_else(ax, plt.gca)
 
-        for c in prediction_intervals:
-            assert 0.0 <= c <= 100.0
+        # If no color is provided, we use matplotlib's internal color cycle.
+        # Note: This is an internal API and might change in the future.
+        color = maybe.unwrap_or_else(
+            color, lambda: ax._get_lines.get_next_color()
+        )
 
-        ps = [50.0] + [
-            50.0 + f * c / 2.0
-            for c in prediction_intervals
-            for f in [-1.0, +1.0]
-        ]
-        percentiles_sorted = sorted(set(ps))
+        # Plot median forecast
+        ax.plot(
+            self.index.to_timestamp(),
+            self.quantile(0.5),
+            color=color,
+            label=name,
+        )
 
-        def alpha_for_percentile(p):
-            return (p / 100.0) ** 0.3
+        # Plot prediction intervals
+        for interval in intervals:
+            if show_label:
+                if name is not None:
+                    label = f"{name}: {interval}"
+                else:
+                    label = interval
+            else:
+                label = None
 
-        ps_data = [self.quantile(p / 100.0) for p in percentiles_sorted]
-        i_p50 = len(percentiles_sorted) // 2
-
-        p50_data = ps_data[i_p50]
-        p50_series = pd.Series(data=p50_data, index=self.index)
-        p50_series.plot(color=color, ls="-", label=f"{label_prefix}median")
-
-        if show_mean:
-            mean_data = np.mean(self._sorted_samples, axis=0)
-            pd.Series(data=mean_data, index=self.index).plot(
-                color=color,
-                ls=":",
-                label=f"{label_prefix}mean",
-                *args,
-                **kwargs,
-            )
-
-        for i in range(len(percentiles_sorted) // 2):
-            ptile = percentiles_sorted[i]
-            alpha = alpha_for_percentile(ptile)
-            plt.fill_between(
-                self.index,
-                ps_data[i],
-                ps_data[-i - 1],
+            # Translate interval to low and high values. E.g for `0.9` we get
+            # `low = 0.05` and `high = 0.95`. (`interval + low + high == 1.0`)
+            # Also, higher interval values mean lower confidence, and thus we
+            # we use lower alpha values for them.
+            low = (1 - interval) / 2
+            ax.fill_between(
+                # TODO: `index` currently uses `pandas.Period`, but we need
+                # to pass a timestamp value to matplotlib. In the future this
+                # will use ``zebras.Periods`` and thus needs to be adapted.
+                self.index.to_timestamp(),
+                self.quantile(low),
+                self.quantile(1 - low),
+                # Clamp alpha betwen ~16% and 50%.
+                alpha=0.5 - interval / 3,
                 facecolor=color,
-                alpha=alpha,
-                interpolate=True,
-                *args,
-                **kwargs,
+                label=label,
             )
-            # Hack to create labels for the error intervals. Doesn't actually
-            # plot anything, because we only pass a single data point
-            pd.Series(data=p50_data[:1], index=self.index[:1]).plot(
-                color=color,
-                alpha=alpha,
-                linewidth=10,
-                label=f"{label_prefix}{100 - ptile * 2}%",
-                *args,
-                **kwargs,
-            )
-        if output_file:
-            plt.savefig(output_file)
 
     @property
     def index(self) -> pd.PeriodIndex:
@@ -389,13 +371,13 @@ class Forecast:
 
     def dim(self) -> int:
         """
-        Returns the dimensionality of the forecast object.
+        Return the dimensionality of the forecast object.
         """
         raise NotImplementedError()
 
     def copy_dim(self, dim: int):
         """
-        Returns a new Forecast object with only the selected sub-dimension.
+        Return a new Forecast object with only the selected sub-dimension.
 
         Parameters
         ----------
@@ -406,7 +388,7 @@ class Forecast:
 
     def copy_aggregate(self, agg_fun: Callable):
         """
-        Returns a new Forecast object with a time series aggregated over the
+        Return a new Forecast object with a time series aggregated over the
         dimension axis.
 
         Parameters
@@ -429,9 +411,11 @@ class SampleForecast(Forecast):
         Array of size (num_samples, prediction_length) (1D case) or
         (num_samples, prediction_length, target_dim) (multivariate case)
     start_date
-        start of the forecast
+        Start of the forecast.
+    item_id
+        Identifier of the item being forecasted.
     info
-        additional information that the forecaster may provide e.g. estimated
+        Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
     """
 
@@ -453,7 +437,7 @@ class SampleForecast(Forecast):
         self.samples = samples
         self._sorted_samples_value = None
         self._mean = None
-        self._dim = None
+        self._dim: Optional[int] = None
         self.item_id = item_id
         self.info = info
 
@@ -489,6 +473,7 @@ class SampleForecast(Forecast):
         """
         if self._mean is None:
             self._mean = np.mean(self.samples, axis=0)
+        assert self._mean is not None
         return self._mean
 
     @property
@@ -560,7 +545,7 @@ class SampleForecast(Forecast):
         return QuantileForecast(
             forecast_arrays=np.array(
                 [
-                    self.quantile(q) if q != "mean" else self.mean()
+                    self.quantile(q) if q != "mean" else self.mean
                     for q in quantiles
                 ]
             ),
@@ -585,8 +570,10 @@ class QuantileForecast(Forecast):
         A list of quantiles of the form '0.1', '0.9', etc.,
         and potentially 'mean'. Each entry corresponds to one array in
         forecast_arrays.
+    item_id
+        Identifier of the item being forecasted.
     info
-        additional information that the forecaster may provide e.g. estimated
+        Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
     """
 
@@ -611,7 +598,7 @@ class QuantileForecast(Forecast):
         ]
         self.item_id = item_id
         self.info = info
-        self._dim = None
+        self._dim: Optional[int] = None
 
         shape = self.forecast_array.shape
         assert shape[0] == len(self.forecast_keys), (
@@ -652,7 +639,9 @@ class QuantileForecast(Forecast):
             return exp_tail_approximation.right(inference_quantile)
         else:
             return _linear_interpolation(
-                quantiles, quantile_predictions, inference_quantile
+                quantiles,
+                quantile_predictions,
+                inference_quantile,
             )
 
     def copy_dim(self, dim: int) -> "QuantileForecast":
@@ -681,7 +670,11 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-
+        logger.warning(
+            "The mean prediction is not stored in the forecast data; "
+            "the median is being returned instead. "
+            "This behaviour may change in the future."
+        )
         return self.quantile("p50")
 
     def dim(self) -> int:
@@ -706,20 +699,3 @@ class QuantileForecast(Forecast):
                 f"info={self.info!r})",
             ]
         )
-
-    def plot(self, label=None, output_file=None, keys=None, *args, **kwargs):
-        import matplotlib.pyplot as plt
-
-        label_prefix = "" if label is None else label + "-"
-
-        if keys is None:
-            keys = self.forecast_keys
-
-        for k, v in zip(keys, self.forecast_array):
-            pd.Series(data=v, index=self.index).plot(
-                label=f"{label_prefix}q{k}",
-                *args,
-                **kwargs,
-            )
-        if output_file:
-            plt.savefig(output_file)

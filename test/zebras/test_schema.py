@@ -18,12 +18,12 @@ import numpy as np
 import gluonts.zebras as zb
 
 
-schema = zb.Schema(
-    {
-        "target": zb.Field(ndim=1, tdim=0, past_only=True),
-        "time_feat": zb.Field(ndim=2, tdim=-1, preprocess=np.atleast_2d),
-        "static_feat": zb.Field(ndim=1, preprocess=np.atleast_1d),
-    }
+schema = zb.schema.Schema(
+    target=zb.schema.TimeSeries(ndim=1, tdim=0),
+    time_feat=zb.schema.TimeSeries(
+        ndim=2, tdim=-1, preprocess=np.atleast_2d, past_only=False
+    ),
+    static_feat=zb.schema.Array(ndim=1, preprocess=np.atleast_1d),
 )
 
 
@@ -51,10 +51,10 @@ def test_schema_splitframe():
     short = [1, 2, 3, 4, 5]
     long = [1, 2, 3, 4, 5, 6, 7, 8]
     row = {"target": short, "time_feat": long, "static_feat": 1}
-    schema.load_splitframe(row)
+    schema.load_splitframe(row, future_length=3)
 
     row = {"target": short, "time_feat": [long, long], "static_feat": [1]}
-    schema.load_splitframe(row)
+    schema.load_splitframe(row, future_length=3)
 
 
 def test_schema_splitframe_error():

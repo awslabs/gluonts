@@ -709,22 +709,9 @@ print(f"0.5-quantile (median) of the future window:\n {forecast_entry.quantile(0
 
 
 ```python
-def plot_prob_forecasts(ts_entry, forecast_entry):
-    plot_length = 150 
-    prediction_intervals = (50.0, 90.0)
-    legend = ["observations", "median prediction"] + [f"{k}% prediction interval" for k in prediction_intervals][::-1]
-
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    ts_entry[-plot_length:].plot(ax=ax)  # plot the time series
-    forecast_entry.plot(prediction_intervals=prediction_intervals, color='g')
-    plt.grid(which="both")
-    plt.legend(legend, loc="upper left")
-    plt.show()
-```
-
-
-```python
-plot_prob_forecasts(ts_entry, forecast_entry)
+plt.plot(ts_entry[-150:].to_timestamp())
+forecast_entry.plot(show_label=True)
+plt.legend()
 ```
 
 ### Compute metrics
@@ -980,7 +967,9 @@ tss = list(ts_it)
 
 
 ```python
-plot_prob_forecasts(tss[0], forecasts[0])
+plt.plot(tss[0][-150:].to_timestamp())
+forecasts[0].plot(show_label=True)
+plt.legend()
 ```
 
 Observe that we cannot actually see any prediction intervals in the predictions. This is expected since the model that we defined does not do probabilistic forecasting but it just gives point estimates. By requiring 100 sample paths (defined in `make_evaluation_predictions`) in such a network, we get 100 times the same output.
@@ -1214,7 +1203,9 @@ tss = list(ts_it)
 
 
 ```python
-plot_prob_forecasts(tss[0], forecasts[0])
+plt.plot(tss[0][-150:].to_timestamp())
+forecasts[0].plot(show_label=True)
+plt.legend()
 ```
 
 ### Add features and scaling
@@ -1493,7 +1484,9 @@ tss = list(ts_it)
 
 
 ```python
-plot_prob_forecasts(tss[0], forecasts[0])
+plt.plot(tss[0][-150:].to_timestamp())
+forecasts[0].plot(show_label=True)
+plt.legend()
 ```
 
 ### From feedforward to RNN
@@ -1871,5 +1864,7 @@ tss = list(ts_it)
 
 
 ```python
-plot_prob_forecasts(tss[0], forecasts[0])
+plt.plot(tss[0][-150:].to_timestamp())
+forecasts[0].plot(show_label=True)
+plt.legend()
 ```

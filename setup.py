@@ -33,7 +33,7 @@ def get_version_cmdclass(version_file) -> dict:
 
     # When `_version.py` is replaced, it should still contain `__version__`,
     # but no longer "cmdclass".
-    if not "cmdclass" in globals_:
+    if "cmdclass" not in globals_:
         assert "__version__" in globals_
         return {}
 
@@ -57,24 +57,24 @@ class TypeCheckCommand(distutils.cmd.Command):
         # otherwise a module-not-found error is thrown
         import mypy.api
 
-        mypy_opts = [
-            "--allow-redefinition",
-            "--follow-imports=silent",
-            "--ignore-missing-imports",
+        excluded_folders = [
+            str(p.parent.relative_to(ROOT)) for p in ROOT.glob("src/**/.typeunsafe")
         ]
 
-        folders = [
-            str(p.parent.resolve()) for p in ROOT.glob("src/**/.typesafe")
-        ]
-
-        print(
-            "The following folders contain a `.typesafe` marker file "
-            "and will be type-checked with `mypy`:"
-        )
-        for folder in folders:
+        if len(excluded_folders) > 0:
+            print(
+                "The following folders contain a `.typeunsafe` marker file "
+                "and will *not* be type-checked with `mypy`:"
+            )
+        for folder in excluded_folders:
             print(f"  {folder}")
 
-        std_out, std_err, exit_code = mypy.api.run(mypy_opts + folders)
+        args = [str(ROOT / "src")]
+        for folder in excluded_folders:
+            args.append("--exclude")
+            args.append(folder)
+
+        std_out, std_err, exit_code = mypy.api.run(args)
 
         print(std_out, file=sys.stdout)
         print(std_err, file=sys.stderr)
@@ -84,7 +84,7 @@ class TypeCheckCommand(distutils.cmd.Command):
                 f"""
                 Mypy command
 
-                    mypy {" ".join(mypy_opts + folders)}
+                    mypy {" ".join(args)}
 
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run

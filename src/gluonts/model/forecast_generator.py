@@ -165,10 +165,12 @@ class SampleForecastGenerator(ForecastGenerator):
                         outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
-                outputs = [
-                    np.concatenate(s)[:num_samples]
-                    for s in zip(*collected_samples)
-                ]
+                outputs = np.stack(
+                    [
+                        np.concatenate(s)[:num_samples]
+                        for s in zip(*collected_samples)
+                    ]
+                )
                 assert len(outputs[0]) == num_samples
             i = -1
             for i, output in enumerate(outputs):

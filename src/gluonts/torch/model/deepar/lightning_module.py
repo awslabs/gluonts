@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -33,17 +33,16 @@ class DeepARLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        ``DeepARModel`` to be trained.
+    model_kwargs
+        Keyword arguments to construct the ``DeepARModel`` to be trained.
     loss
-        Loss function to be used for training,
-        default: ``NegativeLogLikelihood()``.
+        Loss function to be used for training.
     lr
-        Learning rate, default: ``1e-3``.
+        Learning rate.
     weight_decay
-        Weight decay regularization parameter, default: ``1e-8``.
+        Weight decay regularization parameter.
     patience
-        Patience parameter for learning rate scheduler, default: ``10``.
+        Patience parameter for learning rate scheduler.
     """
 
     @validated()

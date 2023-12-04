@@ -17,13 +17,13 @@ from gluonts.core import serde
 from gluonts.dataset.repository import datasets
 from gluonts.dataset.util import forecast_start, to_pandas
 from gluonts.evaluation import Evaluator, backtest_metrics
-from gluonts.model import SampleForecast, QuantileForecast
+from gluonts.model import QuantileForecast
 from gluonts.ext.r_forecast import (
     RForecastPredictor,
     R_IS_INSTALLED,
     RPY2_IS_INSTALLED,
-    UNIVARIATE_QUANTILE_FORECAST_METHODS,
     SUPPORTED_UNIVARIATE_METHODS,
+    UNIVARIATE_POINT_FORECAST_METHODS,
 )
 
 
@@ -51,29 +51,18 @@ def test_forecasts(method_name):
 
     dataset = datasets.get_dataset("constant")
 
-    (train_dataset, test_dataset, metadata) = (
-        dataset.train,
-        dataset.test,
-        dataset.metadata,
+    freq = dataset.metadata.freq
+    prediction_length = dataset.metadata.prediction_length
+
+    predictor = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        method_name=method_name,
     )
+    predictions = list(predictor.predict(dataset.train))
 
-    freq = metadata.freq
-    prediction_length = metadata.prediction_length
-
-    params = dict(
-        freq=freq, prediction_length=prediction_length, method_name=method_name
-    )
-
-    predictor = RForecastPredictor(**params)
-    predictions = list(predictor.predict(train_dataset))
-
-    forecast_type = (
-        QuantileForecast
-        if method_name in UNIVARIATE_QUANTILE_FORECAST_METHODS
-        else SampleForecast
-    )
     assert all(
-        isinstance(prediction, forecast_type) for prediction in predictions
+        isinstance(prediction, QuantileForecast) for prediction in predictions
     )
 
     assert all(prediction.freq == freq for prediction in predictions)
@@ -85,12 +74,14 @@ def test_forecasts(method_name):
 
     assert all(
         prediction.start_date == forecast_start(data)
-        for data, prediction in zip(train_dataset, predictions)
+        for data, prediction in zip(dataset.train, predictions)
     )
 
-    evaluator = Evaluator()
+    evaluator = Evaluator(
+        allow_nan_forecast=method_name in UNIVARIATE_POINT_FORECAST_METHODS
+    )
     agg_metrics, item_metrics = backtest_metrics(
-        test_dataset=test_dataset,
+        test_dataset=dataset.test,
         predictor=predictor,
         evaluator=evaluator,
     )
@@ -98,14 +89,17 @@ def test_forecasts(method_name):
     assert agg_metrics["NRMSE"] < TOLERANCE
     assert agg_metrics["RMSE"] < TOLERANCE
 
-    trunc_length = prediction_length
-
-    predictor = RForecastPredictor(**params, trunc_length=trunc_length)
-    predictions = list(predictor.predict(train_dataset))
+    predictor = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        method_name=method_name,
+        trunc_length=prediction_length,
+    )
+    predictions = list(predictor.predict(dataset.train))
 
     assert all(
         prediction.start_date == to_pandas(data).index[-1] + 1
-        for data, prediction in zip(train_dataset, predictions)
+        for data, prediction in zip(dataset.train, predictions)
     )
 
 

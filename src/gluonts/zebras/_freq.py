@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 
@@ -23,18 +23,33 @@ from gluonts import maybe
 
 NpFreq = Tuple[str, int]
 
+weekday_offsets = {
+    "MON": 0,
+    "TUE": 1,
+    "WED": 2,
+    "THU": 3,
+    "FRI": 4,
+    "SAT": 5,
+    "SUN": 6,
+}
 
-def _canonical_freqstr(n: int, name: str) -> str:
+
+def _canonical_freqstr(n: int, name: str, suffix: Optional[str] = None) -> str:
     """Canonical name of frequency.
 
     >>> _canonical_freqstr(1, "X")
     'X'
     >>> _canonical_freqstr(3, "X")
     '3X'
+    >>> _canonical_freqstr(3, "X", "Y")
+    '3X-Y'
 
     This allows us to easily string compare frequencies
     (solves ``"1X" != "X"``).
     """
+
+    if suffix:
+        name = f"{name}-{suffix}"
 
     if n == 1:
         return name
@@ -101,6 +116,7 @@ class Freq:
 
     name: str
     n: int
+    suffix: Optional[str] = None
 
     def __post_init__(self):
         self.name = _canonical_name(self.name)
@@ -134,20 +150,43 @@ class Freq:
                 raise ValueError(f"Invalid freq {freq}: {type(freq)}")
 
         match = maybe.expect(
-            re.match(r"(?P<n>\d+)?\s*(?P<freq>(?:\w|\-)+)", freq),
+            re.match(
+                r"(?P<n>\d+)?\s*(?P<freq>\w+)(?P<suffix>\-\w+)?",
+                freq.upper(),
+            ),
             f"Unsupported freq format {freq}",
         )
-        groups = match.groupdict()
 
-        name = groups["freq"].upper().split("-")[0]
+        groups = match.groupdict()
         n = maybe.map_or(groups["n"], int, 1)
 
-        return cls(name, n)
+        suffix = groups["suffix"]
+        if suffix is not None:
+            # remove leading `-` from `-MON`
+            suffix = suffix[1:]
+
+        return cls(groups["freq"], n, suffix)
 
     def to_pandas(self):
         from pandas.tseries.frequencies import to_offset
 
         return to_offset(str(self))
+
+    def align(self, timestamp: np.datetime64) -> np.datetime64:
+        """Align ``timestamp`` according to the frequency.
+
+        For example, for daily frequency, any timestamps that fall into the
+        same day align to the same value.
+        """
+        name, multiple = self.np_freq
+        timestamp = timestamp.astype(f"M8[{multiple}{name}]")
+
+        if self.name == "W":
+            offset = maybe.map_or(self.suffix, weekday_offsets.__getitem__, 0)
+            dayofweek = timestamp.astype(int) - 4
+            return timestamp - (dayofweek - offset) % 7
+
+        return timestamp
 
     def shift(self, start: np.datetime64, count: int) -> np.datetime64:
         if self.name == "B":
@@ -166,7 +205,7 @@ class Freq:
         return np.arange(start, count * self.step, self.step)
 
     def __str__(self) -> str:
-        return _canonical_freqstr(self.n, self.name)
+        return _canonical_freqstr(self.n, self.name, self.suffix)
 
 
 def freq(arg) -> Freq:

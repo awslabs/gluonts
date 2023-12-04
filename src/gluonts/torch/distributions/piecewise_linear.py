@@ -194,7 +194,7 @@ class PiecewiseLinear(torch.distributions.Distribution):
         return sample
 
     @property
-    def batch_shape(self) -> torch.Size():
+    def batch_shape(self) -> torch.Size:
         return self.gamma.shape
 
 
@@ -216,7 +216,7 @@ class PiecewiseLinearOutput(DistributionOutput):
         )
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         gamma: torch.Tensor,
         slopes: torch.Tensor,
@@ -231,7 +231,7 @@ class PiecewiseLinearOutput(DistributionOutput):
     def distribution(
         self,
         distr_args,
-        loc: Optional[torch.Tensor] = 0,
+        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> PiecewiseLinear:
         if scale is None:

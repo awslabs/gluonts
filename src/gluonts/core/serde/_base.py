@@ -20,9 +20,8 @@ from typing import Any, NamedTuple, cast
 
 from toolz.dicttoolz import valmap
 
-from pydantic import BaseModel
-
 from gluonts.core import fqname_for
+from gluonts.pydantic import BaseModel
 
 bad_type_msg = textwrap.dedent(
     """
@@ -309,7 +308,7 @@ def decode(r: Any) -> Any:
     """
 
     # structural recursion over the possible shapes of r
-    if type(r) == dict and "__kind__" in r:
+    if isinstance(r, dict) and "__kind__" in r:
         kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
 
@@ -331,10 +330,10 @@ def decode(r: Any) -> Any:
 
         raise ValueError(f"Unknown kind {kind}.")
 
-    if type(r) == dict:
+    if isinstance(r, dict):
         return valmap(decode, r)
 
-    if type(r) == list:
+    if isinstance(r, list):
         return list(map(decode, r))
 
     return r

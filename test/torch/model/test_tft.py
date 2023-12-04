@@ -16,10 +16,7 @@ from typing import List
 import torch
 import pytest
 
-from gluonts.torch.model.tft import (
-    TemporalFusionTransformerModel,
-    TemporalFusionTransformerLightningModule,
-)
+from gluonts.torch.model.tft import TemporalFusionTransformerLightningModule
 
 
 @pytest.mark.parametrize(

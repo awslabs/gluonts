@@ -50,11 +50,11 @@ class SplicedBinnedPareto(BinnedUniforms):
         self,
         bins_lower_bound: float,
         bins_upper_bound: float,
-        logits: torch.tensor,
-        upper_gp_xi: torch.tensor,
-        upper_gp_beta: torch.tensor,
-        lower_gp_xi: torch.tensor,
-        lower_gp_beta: torch.tensor,
+        logits: torch.Tensor,
+        upper_gp_xi: torch.Tensor,
+        upper_gp_beta: torch.Tensor,
+        lower_gp_xi: torch.Tensor,
+        lower_gp_beta: torch.Tensor,
         numb_bins: int = 100,
         tail_percentile_gen_pareto: float = 0.05,
         validate_args=None,
@@ -99,7 +99,7 @@ class SplicedBinnedPareto(BinnedUniforms):
     # TODO:
     #   - need another implementation of the mean dependent on the tails
 
-    def log_prob(self, x: torch.tensor, for_training=True):
+    def log_prob(self, x: torch.Tensor, for_training=True):
         """
         Arguments
         ----------
@@ -183,7 +183,7 @@ class SplicedBinnedPareto(BinnedUniforms):
         # one tends to train with the log-prob
         return torch.exp(self.log_prob(x, for_training=False))
 
-    def _inverse_cdf(self, quantiles: torch.tensor):
+    def _inverse_cdf(self, quantiles: torch.Tensor):
         """
         Inverse cdf of a tensor of quantile `quantiles`
         'quantiles' is of shape (*batch_shape) with values between (0.0, 1.0)
@@ -225,7 +225,7 @@ class SplicedBinnedPareto(BinnedUniforms):
 
         return icdf_value
 
-    def cdf(self, x: torch.tensor):
+    def cdf(self, x: torch.Tensor):
         """
         Cumulative density tensor for a tensor of data points `x`.
         'x' is expected to be of shape (*batch_shape)
@@ -312,7 +312,7 @@ class SplicedBinnedParetoOutput(DistributionOutput):
         )
 
     @classmethod
-    def domain_map(
+    def domain_map(  # type: ignore
         cls,
         logits: torch.Tensor,
         upper_gp_xi: torch.Tensor,
@@ -334,7 +334,7 @@ class SplicedBinnedParetoOutput(DistributionOutput):
     def distribution(
         self,
         distr_args,
-        loc: Optional[torch.Tensor] = 0,
+        loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> BinnedUniforms:
         return self.distr_cls(

@@ -13,13 +13,14 @@
 
 from typing import Dict
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
-from . import MQF2MultiHorizonModel
+
+from .module import MQF2MultiHorizonModel
 
 
 class MQF2MultiHorizonLightningModule(pl.LightningModule):
@@ -35,14 +36,14 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
 
     Parameters
     ----------
-    model
-        An MQF2MultiHorizonModel instance
+    model_kwargs
+        Keyword arguments to construct the ``MQF2MultiHorizonModel`` to be trained.
     loss
-        Distribution loss
+        Distribution loss.
     lr
-        Learning rate
+        Learning rate.
     weight_decay
-        Weight decay during training
+        Weight decay during training.
     patience
         Patience parameter for learning rate scheduler, default: ``10``.
     """

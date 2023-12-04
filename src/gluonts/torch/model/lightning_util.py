@@ -11,12 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from packaging import version
-
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 
 def has_validation_loop(trainer: pl.Trainer):
-    if version.parse(pl.__version__) < version.parse("2.0.0"):
-        return trainer._data_connector._val_dataloader_source.is_defined()
     return trainer.fit_loop.epoch_loop.val_loop._data_source.is_defined()

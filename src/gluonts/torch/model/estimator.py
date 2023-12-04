@@ -15,7 +15,7 @@ from typing import NamedTuple, Optional, Iterable, Dict, Any
 import logging
 
 import numpy as np
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 import torch.nn as nn
 
 from gluonts.core.component import validated
@@ -156,7 +156,7 @@ class PyTorchLightningEstimator(Estimator):
         transformation = self.create_transformation()
 
         with env._let(max_idle_transforms=max(len(training_data), 100)):
-            transformed_training_data = transformation.apply(
+            transformed_training_data: Dataset = transformation.apply(
                 training_data, is_train=True
             )
             if cache_data:
@@ -174,7 +174,7 @@ class PyTorchLightningEstimator(Estimator):
 
         if validation_data is not None:
             with env._let(max_idle_transforms=max(len(validation_data), 100)):
-                transformed_validation_data = transformation.apply(
+                transformed_validation_data: Dataset = transformation.apply(
                     validation_data, is_train=True
                 )
                 if cache_data:
@@ -187,8 +187,6 @@ class PyTorchLightningEstimator(Estimator):
                     training_network,
                 )
 
-        training_network = self.create_lightning_module()
-
         if from_predictor is not None:
             training_network.load_state_dict(
                 from_predictor.network.state_dict()
@@ -199,10 +197,14 @@ class PyTorchLightningEstimator(Estimator):
             monitor=monitor, mode="min", verbose=True
         )
 
-        custom_callbacks = self.trainer_kwargs.get("callbacks", [])
-        callbacks = [checkpoint] + custom_callbacks
-        trainer_kwargs = {**self.trainer_kwargs, "callbacks": callbacks}
-        trainer = pl.Trainer(**trainer_kwargs)
+        custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
+        trainer = pl.Trainer(
+            **{
+                "accelerator": "auto",
+                "callbacks": [checkpoint] + custom_callbacks,
+                **self.trainer_kwargs,
+            }
+        )
 
         trainer.fit(
             model=training_network,
@@ -211,10 +213,15 @@ class PyTorchLightningEstimator(Estimator):
             ckpt_path=ckpt_path,
         )
 
-        logger.info(f"Loading best model from {checkpoint.best_model_path}")
-        best_model = training_network.load_from_checkpoint(
-            checkpoint.best_model_path
-        )
+        if checkpoint.best_model_path != "":
+            logger.info(
+                f"Loading best model from {checkpoint.best_model_path}"
+            )
+            best_model = training_network.__class__.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = training_network
 
         return TrainOutput(
             transformation=transformation,

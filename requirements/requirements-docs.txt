@@ -15,4 +15,4 @@ click
 orjson
 black
 holidays~=0.9
-matplotlib
+matplotlib~=3.6

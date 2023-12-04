@@ -15,7 +15,7 @@ import concurrent.futures
 import logging
 from enum import Enum
 from itertools import chain, starmap
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union, Optional, Sequence
 
 import numpy as np
 
@@ -85,8 +85,8 @@ class PreprocessGeneric:
         self.max_n_datapts = max_n_datapts
         self.kwargs = kwargs
         self.num_samples = num_samples
-        self.feature_data = None
-        self.target_data = None
+        self.feature_data: Optional[list] = None
+        self.target_data: Optional[list] = None
         if seed is not None:
             np.random.seed(seed)
 
@@ -150,8 +150,10 @@ class PreprocessGeneric:
         if max_num_context_windows < 1:
             return [[]], [[]]
 
+        assert self.num_samples is not None
+
         if self.num_samples > 0:
-            locations = [
+            locations: Sequence[int] = [
                 np.random.randint(max_num_context_windows)
                 for _ in range(self.num_samples)
             ]
@@ -195,7 +197,7 @@ class PreprocessGeneric:
 
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
-    ) -> Tuple:
+    ) -> Optional[Tuple]:
         """
         Applies self.preprocess_from_single_ts for each time series in ts_list,
         and collates the results into self.feature_data and self.target_data.
@@ -217,10 +219,10 @@ class PreprocessGeneric:
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
 
-        if isinstance(self.cardinality, str):
+        if isinstance(self.cardinality, str):  # type: ignore
             self.cardinality = (
                 self.infer_cardinalities(ts_list)
-                if self.cardinality == "auto"
+                if self.cardinality == "auto"  # type: ignore
                 else []
             )
 
@@ -243,7 +245,9 @@ class PreprocessGeneric:
             )
         )
         if change_internal_variables:
-            self.feature_data, self.target_data = feature_data, target_data
+            self.feature_data = feature_data
+            self.target_data = target_data
+            return None
         else:
             return feature_data, target_data
 
@@ -271,7 +275,7 @@ class PreprocessGeneric:
             n_windows_per_time_series = -1
         return n_windows_per_time_series
 
-    def infer_cardinalities(self):
+    def infer_cardinalities(self, ts_list):
         raise NotImplementedError
 
 
@@ -336,7 +340,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
     @classmethod
     def _pre_transform(
         cls, time_series_window, subtract_mean, count_nans
-    ) -> Tuple:
+    ) -> list:
         """
         Makes features given time series window. Returns list of features, one
         for every step of the lag (equaling mean-adjusted lag features); and a

@@ -22,18 +22,16 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-import pydantic
-
 from gluonts import json
 from gluonts.itertools import Cached, Map
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.schema import Translator
 from gluonts.exceptions import GluonTSDataError
+from gluonts.pydantic import pydantic
 
 
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
 from . import jsonl, DatasetWriter
-
 
 arrow: Optional[ModuleType]
 
@@ -156,6 +154,7 @@ def FileDataset(
     pattern="*",
     levels=2,
     translate=None,
+    ignore_hidden=True,
 ) -> Dataset:
     path = Path(path)
 
@@ -167,6 +166,9 @@ def FileDataset(
     else:
         assert path.is_file()
         paths = [path]
+
+    if ignore_hidden:
+        paths = [path for path in paths if not path.name.startswith(".")]
 
     loaders = []
     for subpath in paths:

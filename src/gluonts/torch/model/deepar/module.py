@@ -28,6 +28,7 @@ from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import (
     lagged_sequence_values,
     repeat_along_dim,
+    take_last,
     unsqueeze_expand,
 )
 from gluonts.itertools import prod
@@ -85,6 +86,10 @@ class DeepARModel(nn.Module):
     num_parallel_samples
         Number of samples to produce when unrolling the RNN in the prediction
         time range.
+    nonnegative_pred_samples
+        Should final prediction samples be non-negative? If yes, an activation
+        function is applied to ensure non-negative. Observe that this is applied
+        only to the final samples and this is not applied during training.
     """
 
     @validated()
@@ -104,8 +109,9 @@ class DeepARModel(nn.Module):
         distr_output: DistributionOutput = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
-        default_scale: float = 0.0,
+        default_scale: Optional[float] = None,
         num_parallel_samples: int = 100,
+        nonnegative_pred_samples: bool = False,
     ) -> None:
         super().__init__()
 
@@ -153,6 +159,7 @@ class DeepARModel(nn.Module):
             dropout=dropout_rate,
             batch_first=True,
         )
+        self.nonnegative_pred_samples = nonnegative_pred_samples
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -235,7 +242,7 @@ class DeepARModel(nn.Module):
 
         time_feat = torch.cat(
             (
-                past_time_feat[..., -self.context_length + 1 :, :],
+                take_last(past_time_feat, dim=-2, num=self.context_length - 1),
                 future_time_feat,
             ),
             dim=-2,
@@ -349,6 +356,24 @@ class DeepARModel(nn.Module):
             sliced_params = [p[:, -trailing_n:] for p in params]
         return self.distr_output.distribution(sliced_params, scale=scale)
 
+    def post_process_samples(self, samples: torch.Tensor) -> torch.Tensor:
+        """
+        Method to enforce domain-specific constraints on the generated samples.
+        For example, we can enforce forecasts to be nonnegative.
+        Parameters
+        ----------
+        samples
+            Tensor of samples
+        Returns
+        -------
+            Tensor of processed samples with the same shape.
+        """
+
+        if self.nonnegative_pred_samples:
+            return torch.relu(samples)
+
+        return samples
+
     def forward(
         self,
         feat_static_cat: torch.Tensor,
@@ -450,6 +475,10 @@ class DeepARModel(nn.Module):
 
         future_samples_concat = torch.cat(future_samples, dim=1)
 
+        future_samples_concat = self.post_process_samples(
+            future_samples_concat
+        )
+
         return future_samples_concat.reshape(
             (-1, num_parallel_samples, self.prediction_length)
         )
@@ -534,14 +563,16 @@ class DeepARModel(nn.Module):
             )
         else:
             distr = self.output_distribution(params, scale)
-            context_target = past_target[:, -self.context_length + 1 :]
+            context_target = take_last(
+                past_target, dim=-1, num=self.context_length - 1
+            )
             target = torch.cat(
                 (context_target, future_target_reshaped),
                 dim=1,
             )
-            context_observed = past_observed_values[
-                :, -self.context_length + 1 :
-            ]
+            context_observed = take_last(
+                past_observed_values, dim=-1, num=self.context_length - 1
+            )
             observed_values = torch.cat(
                 (context_observed, future_observed_reshaped), dim=1
             )

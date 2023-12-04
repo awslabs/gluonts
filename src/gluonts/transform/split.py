@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 from pandas.tseries.offsets import BaseOffset
@@ -19,6 +19,7 @@ from pandas.tseries.offsets import BaseOffset
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
+from gluonts.zebras._util import pad_axis
 
 from ._base import FlatMapTransformation
 from .sampler import ContinuousTimePointSampler, InstanceSampler
@@ -26,24 +27,17 @@ from .sampler import ContinuousTimePointSampler, InstanceSampler
 
 class InstanceSplitter(FlatMapTransformation):
     """
-    Selects training instances, by slicing the target and other time series
-    like arrays at random points in training mode or at the last time point in
-    prediction mode. Assumption is that all time like arrays start at the same
-    time point.
+    Split instances from a dataset, by slicing the target and other time series
+    fields at points in time selected by the specified sampler. The assumption
+    is that all time series fields start at the same time point.
 
-    The target and each time_series_field is removed and instead two
-    corresponding fields with prefix `past_` and `future_` are included. E.g.
+    It is assumed that time axis is always the last axis.
 
-    If the target array is one-dimensional, the resulting instance has shape
-    (len_target). In the multi-dimensional case, the instance has shape (dim,
-    len_target).
+    The ``target_field`` and each field in ``time_series_fields`` are removed and
+    replaced by two new fields, with prefix `past_` and `future_` respectively.
 
-    target -> past_target and future_target
-
-    The transformation also adds a field 'past_is_pad' that indicates whether
-    values where padded or not.
-
-    Convention: time axis is always the last axis.
+    A ``past_is_pad`` is also added, that indicates whether values at a given
+    time point are padding or not.
 
     Parameters
     ----------
@@ -111,57 +105,60 @@ class InstanceSplitter(FlatMapTransformation):
     def _future(self, col_name):
         return f"future_{col_name}"
 
-    def flatmap_transform(
-        self, data: DataEntry, is_train: bool
-    ) -> Iterator[DataEntry]:
-        pl = self.future_length
-        lt = self.lead_time
+    def _split_array(
+        self, array: np.ndarray, idx: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        if idx >= self.past_length:
+            past_piece = array[..., idx - self.past_length : idx]
+        else:
+            past_piece = pad_axis(
+                array[..., :idx],
+                axis=-1,
+                left=self.past_length - idx,
+                value=self.dummy_value,
+            )
+
+        future_start = idx + self.lead_time
+        future_slice = slice(future_start, future_start + self.future_length)
+        future_piece = array[..., future_slice]
+
+        return past_piece, future_piece
+
+    def _split_instance(self, entry: DataEntry, idx: int) -> DataEntry:
         slice_cols = self.ts_fields + [self.target_field]
-        target = data[self.target_field]
+        dtype = entry[self.target_field].dtype
 
-        sampled_indices = self.instance_sampler(target)
+        entry = entry.copy()
 
-        for i in sampled_indices:
-            pad_length = max(self.past_length - i, 0)
-            d = data.copy()
-            for ts_field in slice_cols:
-                if i > self.past_length:
-                    # truncate to past_length
-                    past_piece = d[ts_field][..., i - self.past_length : i]
-                elif i < self.past_length:
-                    pad_block = (
-                        np.ones(
-                            d[ts_field].shape[:-1] + (pad_length,),
-                            dtype=d[ts_field].dtype,
-                        )
-                        * self.dummy_value
-                    )
-                    past_piece = np.concatenate(
-                        [pad_block, d[ts_field][..., :i]], axis=-1
-                    )
-                else:
-                    past_piece = d[ts_field][..., :i]
-                d[self._past(ts_field)] = past_piece
-                d[self._future(ts_field)] = d[ts_field][
-                    ..., i + lt : i + lt + pl
-                ]
-                del d[ts_field]
-            pad_indicator = np.zeros(self.past_length, dtype=target.dtype)
-            if pad_length > 0:
-                pad_indicator[:pad_length] = 1
+        for ts_field in slice_cols:
+            past_piece, future_piece = self._split_array(entry[ts_field], idx)
 
             if self.output_NTC:
-                for ts_field in slice_cols:
-                    d[self._past(ts_field)] = d[
-                        self._past(ts_field)
-                    ].transpose()
-                    d[self._future(ts_field)] = d[
-                        self._future(ts_field)
-                    ].transpose()
+                past_piece = past_piece.transpose()
+                future_piece = future_piece.transpose()
 
-            d[self._past(self.is_pad_field)] = pad_indicator
-            d[self.forecast_start_field] = d[self.start_field] + i + lt
-            yield d
+            entry[self._past(ts_field)] = past_piece
+            entry[self._future(ts_field)] = future_piece
+            del entry[ts_field]
+
+        pad_indicator = np.zeros(self.past_length, dtype=dtype)
+        pad_length = max(self.past_length - idx, 0)
+        pad_indicator[:pad_length] = 1
+
+        entry[self._past(self.is_pad_field)] = pad_indicator
+        entry[self.forecast_start_field] = (
+            entry[self.start_field] + idx + self.lead_time
+        )
+
+        return entry
+
+    def flatmap_transform(
+        self, entry: DataEntry, is_train: bool
+    ) -> Iterator[DataEntry]:
+        sampled_indices = self.instance_sampler(entry[self.target_field])
+
+        for idx in sampled_indices:
+            yield self._split_instance(entry, idx)
 
 
 class CanonicalInstanceSplitter(FlatMapTransformation):

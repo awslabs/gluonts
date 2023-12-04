@@ -22,13 +22,12 @@ from typing import Callable, Iterable, List, NamedTuple, Set, Tuple
 from typing_extensions import Literal
 
 from flask import Flask, Response, jsonify, request
-from pydantic import BaseModel, Field
 
 from gluonts.dataset.common import ListDataset
 from gluonts.dataset.jsonl import encode_json
 from gluonts.model.forecast import Forecast, Quantile
+from gluonts.pydantic import BaseModel, Field
 from gluonts.shell.util import forecaster_type_by_name
-
 
 logger = logging.getLogger("gluonts.serve")
 
@@ -37,6 +36,7 @@ OutputType = Literal["mean", "samples", "quantiles"]
 
 
 class ForecastConfig(BaseModel):
+    freq: str
     num_samples: int = Field(100, alias="num_eval_samples")
     output_types: Set[OutputType] = {"quantiles", "mean"}
     # FIXME: validate list elements

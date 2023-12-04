@@ -14,7 +14,7 @@
 import concurrent.futures
 import logging
 from itertools import chain
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Any, Dict
 from toolz import first
 
 import numpy as np
@@ -50,15 +50,16 @@ class RotbaumForecast(Forecast):
         featurized_data: List,
         start_date: pd.Period,
         prediction_length: int,
+        item_id: Optional[str] = None,
     ):
         self.models = models
         self.featurized_data = featurized_data
         self.start_date = start_date
         self.prediction_length = prediction_length
-        self.item_id = None
+        self.item_id = item_id
         self.lead_time = None
 
-    def quantile(self, q: float) -> np.ndarray:
+    def quantile(self, q: float) -> np.ndarray:  # type: ignore
         """
         Returns np.array, where the i^th entry is the estimate of the q
         quantile of the conditional distribution of the value of the i^th step
@@ -114,7 +115,7 @@ class TreePredictor(RepresentablePredictor):
         use_past_feat_dynamic_real: bool = False,
         use_feat_dynamic_real: bool = False,
         use_feat_dynamic_cat: bool = False,
-        cardinality: Cardinality = "auto",
+        cardinality: Cardinality = "auto",  # type: ignore
         one_hot_encode: bool = False,
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
@@ -177,7 +178,7 @@ class TreePredictor(RepresentablePredictor):
         self.min_bin_size = min_bin_size
         self.quantiles = quantiles
         self.model = model
-        self.model_list = None
+        self.model_list: Optional[list] = None
 
         logger.info(
             "If using the Evaluator class with a TreePredictor, set"
@@ -208,10 +209,10 @@ class TreePredictor(RepresentablePredictor):
         self.preprocess_object.preprocess_from_list(
             ts_list=list(training_data), change_internal_variables=True
         )
-        feature_data, target_data = (
-            self.preprocess_object.feature_data,
-            self.preprocess_object.target_data,
-        )
+
+        feature_data = self.preprocess_object.feature_data
+        target_data = np.array(self.preprocess_object.target_data)
+
         n_models = self.prediction_length
         logging.info(f"Length of forecast horizon: {n_models}")
         if self.method == "QuantileRegression":
@@ -232,6 +233,10 @@ class TreePredictor(RepresentablePredictor):
                 )
                 for _ in range(n_models)
             ]
+
+        assert self.model_list is not None
+        assert feature_data is not None
+
         if train_QRX_only_using_timestep != -1:
             assert (
                 0
@@ -244,7 +249,7 @@ class TreePredictor(RepresentablePredictor):
             )
             self.model_list[train_QRX_only_using_timestep].fit(
                 feature_data,
-                np.array(target_data)[:, train_QRX_only_using_timestep],
+                target_data[:, train_QRX_only_using_timestep],
             )
             self.model_list = [
                 QRX(
@@ -256,7 +261,6 @@ class TreePredictor(RepresentablePredictor):
                 else self.model_list[i]
                 for i in range(n_models)
             ]
-            target_data = np.array(target_data)
             with concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.max_workers
             ) as executor:
@@ -302,7 +306,7 @@ class TreePredictor(RepresentablePredictor):
                     )
         return self
 
-    def predict(
+    def predict(  # type: ignore
         self, dataset: Dataset, num_samples: Optional[int] = None
     ) -> Iterator[Forecast]:
         """
@@ -333,6 +337,7 @@ class TreePredictor(RepresentablePredictor):
                 [featurized_data],
                 start_date=forecast_start(ts),
                 prediction_length=self.prediction_length,
+                item_id=ts.get("item_id"),
             )
 
     def explain(
@@ -372,6 +377,9 @@ class TreePredictor(RepresentablePredictor):
             "supported for "
             "QuantileRegression"
         )
+
+        assert self.model_list is not None
+
         importances = np.array(
             [
                 [
@@ -399,7 +407,14 @@ class TreePredictor(RepresentablePredictor):
         )
         num_feat_dynamic_real = self.preprocess_object.num_feat_dynamic_real
         num_feat_dynamic_cat = self.preprocess_object.num_feat_dynamic_cat
-        coordinate_map = {}
+
+        assert num_feat_static_real is not None
+        assert num_feat_static_cat is not None
+        assert num_past_feat_dynamic_real is not None
+        assert num_feat_dynamic_real is not None
+        assert num_feat_dynamic_cat is not None
+
+        coordinate_map: Dict[str, Any] = {}
         coordinate_map["target"] = (0, dynamic_length)
         coordinate_map["feat_static_real"] = [
             (dynamic_length + i, dynamic_length + i + 1)

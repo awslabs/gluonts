@@ -20,13 +20,13 @@ import traceback
 from pathlib import Path
 from pydoc import locate
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Callable, Iterator, Optional
+from typing import TYPE_CHECKING, Callable, Iterator, Optional, Dict, Any
 
 import numpy as np
 
 import gluonts
 from gluonts.core import fqname_for
-from gluonts.core.component import equals, from_hyperparameters, validated
+from gluonts.core.component import equals, from_hyperparameters
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.model.forecast import Forecast
@@ -34,7 +34,7 @@ from gluonts.model.forecast import Forecast
 if TYPE_CHECKING:  # avoid circular import
     from gluonts.model.estimator import Estimator  # noqa
 
-
+logger = logging.getLogger(__name__)
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
 
@@ -77,11 +77,14 @@ class Predictor:
 
     def serialize(self, path: Path) -> None:
         # serialize Predictor type
-        with (path / "type.txt").open("w") as fp:
-            fp.write(fqname_for(self.__class__))
-        with (path / "version.json").open("w") as fp:
+        with (path / "gluonts-config.json").open("w") as fp:
             json.dump(
-                {"model": self.__version__, "gluonts": gluonts.__version__}, fp
+                {
+                    "model": self.__version__,
+                    "gluonts": gluonts.__version__,
+                    "type": fqname_for(self.__class__),
+                },
+                fp,
             )
 
     @classmethod
@@ -99,11 +102,21 @@ class Predictor:
             otherwise.
         """
         # deserialize Predictor type
-        with (path / "type.txt").open("r") as fp:
-            tpe_str = fp.readline()
+        if (path / "gluonts-config.json").exists():
+            with (path / "gluonts-config.json").open("r") as fp:
+                tpe_str = json.load(fp)["type"]
+        else:
+            logger.warning(
+                "Deserializing an old version of gluonts predictor. "
+                "Support for old gluonts predictors will be removed in v0.16. "
+                "Consider serializing this predictor again.",
+            )
+            with (path / "type.txt").open("r") as fp:
+                tpe_str = fp.readline()
 
         tpe = locate(tpe_str)
         assert tpe is not None, f"Cannot locate {tpe_str}."
+        assert isinstance(tpe, type)
 
         # ensure that predictor_cls is a subtype of Predictor
         if not issubclass(tpe, Predictor):
@@ -135,22 +148,17 @@ class Predictor:
 
 class RepresentablePredictor(Predictor):
     """
-    An abstract predictor that can be subclassed by models that are not based
-    on Gluon. Subclasses should have @validated() constructors.
-    (De)serialization and value equality are all implemented on top of the.
+    An abstract predictor that can be subclassed by framework-specific models.
+    Subclasses should have ``@validated()`` constructors:
+    (de)serialization and equality test are all implemented on top of its logic.
 
-    @validated() logic.
     Parameters
     ----------
     prediction_length
         Prediction horizon.
+    lead_time
+        Prediction lead time.
     """
-
-    @validated()
-    def __init__(self, prediction_length: int, lead_time: int = 0) -> None:
-        super().__init__(
-            lead_time=lead_time, prediction_length=prediction_length
-        )
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
         for item in dataset:
@@ -167,13 +175,12 @@ class RepresentablePredictor(Predictor):
         return equals(self, that)
 
     def serialize(self, path: Path) -> None:
-        # call Predictor.serialize() in order to serialize the class name
         super().serialize(path)
         with (path / "predictor.json").open("w") as fp:
             print(dump_json(self), file=fp)
 
     @classmethod
-    def deserialize(cls, path: Path) -> "RepresentablePredictor":
+    def deserialize(cls, path: Path) -> "RepresentablePredictor":  # type: ignore
         with (path / "predictor.json").open("r") as fp:
             return load_json(fp.read())
 
@@ -251,8 +258,8 @@ class ParallelizedPredictor(Predictor):
         )
         self._chunk_size = chunk_size
         self._num_running_workers = 0
-        self._input_queues = []
-        self._output_queue = None
+        self._input_queues: list = []
+        self._output_queue: Optional[mp.Queue] = None
 
     def _grouper(self, iterable, n):
         iterator = iter(iterable)
@@ -299,7 +306,7 @@ class ParallelizedPredictor(Predictor):
             self._send_idx = 0
             self._next_idx = 0
 
-            self._data_buffer = {}
+            self._data_buffer: Dict[int, Any] = {}
 
             worker_ids = list(range(self._num_workers))
 
@@ -370,7 +377,6 @@ class Localizer(Predictor):
         self.estimator = estimator
 
     def predict(self, dataset: Dataset, **kwargs) -> Iterator[Forecast]:
-        logger = logging.getLogger(__name__)
         for i, ts in enumerate(dataset, start=1):
             logger.info(f"training for time series {i} / {len(dataset)}")
             trained_pred = self.estimator.train([ts])

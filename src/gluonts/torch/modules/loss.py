@@ -12,7 +12,8 @@
 # permissions and limitations under the License.
 
 import torch
-from pydantic import BaseModel
+
+from gluonts.pydantic import BaseModel
 
 
 class DistributionLoss(BaseModel):
@@ -77,6 +78,7 @@ class CRPS(DistributionLoss):
     def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
+        assert hasattr(input, "crps")
         return input.crps(target)
 
 
@@ -84,9 +86,13 @@ class QuantileLoss(DistributionLoss):
     def __call__(
         self, input: torch.distributions.Distribution, target: torch.Tensor
     ) -> torch.Tensor:
+        assert hasattr(input, "quantile_loss")
         return input.quantile_loss(target)
 
 
 class EnergyScore(DistributionLoss):
-    def __call__(self, input, target: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self, input: torch.distributions.Distribution, target: torch.Tensor
+    ) -> torch.Tensor:
+        assert hasattr(input, "energy_score")
         return input.energy_score(target)

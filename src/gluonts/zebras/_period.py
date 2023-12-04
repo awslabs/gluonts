@@ -46,7 +46,7 @@ from __future__ import annotations
 import datetime
 import functools
 from dataclasses import dataclass
-from typing import Any, Union, Optional, cast, overload
+from typing import Any, Union, Optional, Tuple, cast, overload
 
 import numpy as np
 from dateutil.parser import parse as du_parse
@@ -165,6 +165,9 @@ class Period(_BasePeriod):
     def to_timestamp(self):
         return self.data.astype(object)
 
+    def unix_epoch(self) -> int:
+        return self.to_numpy().astype("M8[s]").astype(int)
+
     def __repr__(self) -> str:
         return f"Period<{self.data}, {self.freq}>"
 
@@ -174,6 +177,10 @@ class Period(_BasePeriod):
 
     def to_numpy(self) -> np.datetime64:
         return self.data
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self.data.shape
 
     def __array__(self) -> np.datetime64:
         return self.data
@@ -340,15 +347,20 @@ class Periods(_BasePeriod):
         if not isinstance(other, Periods):
             return False
 
-        return self.freq.n == other.freq.n and np.array_equal(
-            self.data, other.data
-        )
+        return len(self) == len(other) and self.start == other.start
 
     def to_numpy(self) -> np.ndarray:
         return self.data
 
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self.data.shape
+
     def __array__(self) -> np.ndarray:
         return self.data
+
+    def unix_epoch(self) -> np.ndarray:
+        return self.to_numpy().astype("M8[s]").astype(int)
 
 
 @serde.encode.register
@@ -406,12 +418,7 @@ def period(
         # TODO: should we add a check?
         data_ = data
 
-    if freq.name == "W":
-        period = Period(np.datetime64(data_, freq.np_freq), freq)
-        period.data -= cast(int, period.dayofweek)
-        return period
-
-    return Period(np.datetime64(data_, freq.np_freq), freq)
+    return Period(freq.align(np.datetime64(data_, freq.np_freq)), freq)
 
 
 def periods(

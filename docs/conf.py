@@ -118,3 +118,16 @@ html_favicon = "_static/gluonts.ico"
 
 # Enable Markdown
 source_suffix = [".rst", ".md"]
+
+# We want to execute the notebooks ourselves in the md2ipynb.py
+nbsphinx_execute = "never"
+
+# Add a `Download` at top of the document.
+nbsphinx_prolog = """
+.. raw:: html
+
+    <p>
+        <a href="./{{ env.docname.rsplit("/", 1)[-1] }}.ipynb">Download this notebook</a>
+    </p>
+
+"""
