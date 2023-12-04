@@ -24,6 +24,7 @@ from pathlib import Path
 from itertools import compress
 
 from gluonts.core.component import validated
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
@@ -354,14 +355,15 @@ class TreePredictor(RepresentablePredictor):
             pickle.dump(self.model_list, f)
 
     @classmethod
-    def deserialize(cls, path: Path) -> "RepresentablePredictor":
+    def deserialize(cls, path: Path, **kwargs: Any) -> "TreePredictor":
         """
-        This function loads and returns the serialized model. It calls
-        parent class deserialize() to load the predictor class with the
-        serialized arguments. It then loads the trained model list by
-        reading the pickle file.
+        This function loads and returns the serialized model. It loads
+        the predictor class with the serialized arguments. It then loads
+        the trained model list by reading the pickle file.
         """
-        predictor = super().deserialize(path)
+
+        with (path / "predictor.json").open("r") as fp:
+            predictor = load_json(fp.read())
         with (path / "predictor.pkl").open("rb") as f:
             predictor.model_list = pickle.load(f)
         return predictor
