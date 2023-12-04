@@ -24,7 +24,6 @@ from pathlib import Path
 from itertools import compress
 
 from gluonts.core.component import validated
-from gluonts.core.serde import load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
