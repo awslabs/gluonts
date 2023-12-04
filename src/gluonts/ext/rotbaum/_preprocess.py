@@ -460,7 +460,10 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             if self.use_feat_static_real
             else []
         )
-        if self.cardinality:
+        if (
+            self.cardinality
+            and time_series.get("feat_static_cat", None) is not None
+        ):
             feat_static_cat = (
                 self.encode_one_hot_all(time_series["feat_static_cat"])
                 if self.one_hot_encode
