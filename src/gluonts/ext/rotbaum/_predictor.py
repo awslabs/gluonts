@@ -362,8 +362,8 @@ class TreePredictor(RepresentablePredictor):
         the trained model list by reading the pickle file.
         """
 
-        with (path / "predictor.json").open("r") as fp:
-            predictor = load_json(fp.read())
+        predictor = super().deserialize(path)
+        assert isinstance(predictor, cls)
         with (path / "predictor.pkl").open("rb") as f:
             predictor.model_list = pickle.load(f)
         return predictor
