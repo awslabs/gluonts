@@ -351,7 +351,7 @@ class TreePredictor(RepresentablePredictor):
             pickle.dump(self.model_list, f)
 
     @classmethod
-    def deserialize(cls, path: Path, **kwargs: Any) -> "TreePredictor":
+    def deserialize(cls, path: Path, **kwargs) -> "TreePredictor":
         """
         This function loads and returns the serialized model. It loads
         the predictor class with the serialized arguments. It then loads
