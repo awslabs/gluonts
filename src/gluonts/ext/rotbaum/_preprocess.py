@@ -458,7 +458,6 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             time_series_window = time_series["target"][
                 starting_index:end_index
             ]
-        time_series_window = time_series["target"][starting_index:end_index]
         only_lag_features, transform_dict = self._pre_transform(
             time_series_window, self.subtract_mean, self.count_nans
         )
