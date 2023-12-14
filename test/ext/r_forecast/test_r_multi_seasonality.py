@@ -146,7 +146,7 @@ def test_compare_arimas():
 
     assert fourier_arima_eval_metrics["MASE"] < arima_eval_metrics["MASE"]
 
-## Below shows improvement in metric when proper x_regressors are included   
+## Below shows improvement in metric when proper x_regressors are included #   
 
 dataset_xreg = [
     {
