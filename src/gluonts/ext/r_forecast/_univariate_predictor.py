@@ -26,7 +26,6 @@ from .util import (
     interval_to_quantile_level,
 )
 
-
 UNIVARIATE_QUANTILE_FORECAST_METHODS = [
     "arima",
     "ets",
@@ -34,6 +33,7 @@ UNIVARIATE_QUANTILE_FORECAST_METHODS = [
     "thetaf",
     "stlar",
     "fourier.arima",
+    "fourier.arima.xreg",
 ]
 UNIVARIATE_POINT_FORECAST_METHODS = ["croston", "mlp"]
 SUPPORTED_UNIVARIATE_METHODS = (
@@ -136,7 +136,30 @@ class RForecastPredictor(RBasePredictor):
         r_params = self._robjects.vectors.ListVector(self.params)
         vec = self._robjects.FloatVector(data["target"])
         ts = make_ts(vec, frequency=self.period)
-        forecast = self._r_method(ts, r_params)
+
+        if (
+            "feat_dynamic_real" in data
+            and self.method_name == "fourier.arima.xreg"
+        ):
+            import rpy2.robjects.numpy2ri
+
+            rpy2.robjects.numpy2ri.activate()
+
+            data["feat_dynamic_real"] = np.transpose(data["feat_dynamic_real"])
+            nrow, ncol = data["feat_dynamic_real"].shape
+            xreg_in = self._robjects.r.matrix(
+                data["feat_dynamic_real"][: -self.prediction_length],
+                nrow=nrow - self.prediction_length,
+                ncol=ncol,
+            )
+            xreg_out = self._robjects.r.matrix(
+                data["feat_dynamic_real"][-self.prediction_length :],
+                nrow=self.prediction_length,
+                ncol=ncol,
+            )
+            forecast = self._r_method(ts, r_params, xreg_in, xreg_out)
+        else:
+            forecast = self._r_method(ts, r_params)
 
         forecast_dict = dict(zip(forecast.names, map(unlist, list(forecast))))
 

@@ -145,3 +145,80 @@ def test_compare_arimas():
     )
 
     assert fourier_arima_eval_metrics["MASE"] < arima_eval_metrics["MASE"]
+
+
+## Below shows improvement in metric when proper x_regressors are included #
+
+dataset_xreg = [
+    {
+        "start": pd.Period("1990-01-01 00", freq=freq),
+        "target": np.array(
+            [
+                item
+                for i in range(21)
+                for item in np.sin(
+                    2 * np.pi / period * np.arange(1, period + 1, 1)
+                )
+            ]
+        )
+        + np.random.normal(0, 0.5, period * 21)
+        + np.array(
+            [
+                item
+                for i in range(3)
+                for item in [0 for i in range(167)] + [8 for i in range(0, 1)]
+            ]
+        ),
+        "feat_dynamic_real": np.array(
+            [
+                [
+                    item
+                    for i in range(3)
+                    for item in [0 for i in range(167)]
+                    + [1 for i in range(0, 1)]
+                ]
+            ]
+        ),
+    }
+]
+
+
+def test_compare_arimas_xreg():
+    evaluator = Evaluator(quantiles=[0.1, 0.5, 0.9])
+    prediction_length = 24 * 7
+
+    fourier_arima = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        period=period,
+        params={
+            "quantiles": [0.50, 0.10, 0.90],
+            "output_types": ["mean", "quantiles"],
+        },
+        method_name="fourier.arima",
+    )
+    fourier_arima_eval_metrics, _ = backtest_metrics(
+        test_dataset=dataset_xreg, predictor=fourier_arima, evaluator=evaluator
+    )
+
+    fourier_arima_xreg = RForecastPredictor(
+        freq=freq,
+        prediction_length=prediction_length,
+        period=period,
+        params={
+            "quantiles": [0.50, 0.10, 0.90],
+            "output_types": ["mean", "quantiles"],
+        },
+        method_name="fourier.arima.xreg",
+    )
+
+    fourier_arima_xreg_eval_metrics, _ = backtest_metrics(
+        test_dataset=dataset_xreg,
+        predictor=fourier_arima_xreg,
+        evaluator=evaluator,
+    )
+
+    assert (
+        fourier_arima_xreg_eval_metrics["mean_wQuantileLoss"]
+        < fourier_arima_eval_metrics["mean_wQuantileLoss"]
+    )
