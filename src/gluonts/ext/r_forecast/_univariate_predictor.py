@@ -141,8 +141,8 @@ class RForecastPredictor(RBasePredictor):
             "feat_dynamic_real" in data
             and self.method_name == "fourier.arima.xreg"
         ):
-        
             import rpy2.robjects.numpy2ri
+
             rpy2.robjects.numpy2ri.activate()
 
             data["feat_dynamic_real"] = np.transpose(data["feat_dynamic_real"])
