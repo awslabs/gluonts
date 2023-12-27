@@ -18,6 +18,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from gluonts.core.component import validated
 from gluonts.itertools import select
 from gluonts.torch.model.lightning_util import has_validation_loop
+from gluonts.torch.modules.loss import DistributionLoss, QuantileLoss
 
 from .module import TemporalFusionTransformerModel
 
@@ -46,6 +47,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
     def __init__(
         self,
         model_kwargs: dict,
+        loss: DistributionLoss = QuantileLoss(),
         lr: float = 1e-3,
         patience: int = 10,
         weight_decay: float = 0.0,
@@ -53,6 +55,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = TemporalFusionTransformerModel(**model_kwargs)
+        self.loss = loss
         self.lr = lr
         self.patience = patience
         self.weight_decay = weight_decay
@@ -70,6 +73,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
             **select(self.inputs, batch, ignore_missing=True),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
+            loss=self.loss,
         ).mean()
 
         self.log(
@@ -90,6 +94,7 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
             **select(self.inputs, batch, ignore_missing=True),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
+            loss=self.loss,
         ).mean()
 
         self.log(
