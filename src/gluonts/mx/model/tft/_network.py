@@ -515,4 +515,4 @@ class TemporalFusionTransformerPredictionNetwork(
         )
 
         preds = self._postprocess(F, preds, offset, scale)
-        return preds, None, None
+        return (preds,), None, None

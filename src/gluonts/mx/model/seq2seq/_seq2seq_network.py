@@ -189,4 +189,4 @@ class Seq2SeqPredictionNetwork(Seq2SeqNetworkBase):
         )
         predictions = self.quantile_proj(scaled_decoder_output)
 
-        return predictions, None, None
+        return (predictions,), None, None
