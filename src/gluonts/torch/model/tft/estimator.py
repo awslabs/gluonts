@@ -22,7 +22,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
-from gluonts.torch.distributions import Output
+from gluonts.torch.distributions import Output, QuantileOutput
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import (
