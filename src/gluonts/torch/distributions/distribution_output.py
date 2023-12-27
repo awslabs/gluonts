@@ -14,14 +14,6 @@
 from typing import Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
-from gluonts.core.component import validated
-from gluonts.model.forecast_generator import (
-    DistributionForecastGenerator,
-    ForecastGenerator,
-)
-from gluonts.torch.distributions import AffineTransformed
-from gluonts.torch.modules.lambda_layer import LambdaLayer
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -33,6 +25,14 @@ from torch.distributions import (
     Normal,
     Poisson,
 )
+
+from gluonts.core.component import validated
+from gluonts.model.forecast_generator import (
+    DistributionForecastGenerator,
+    ForecastGenerator,
+)
+from gluonts.torch.distributions import AffineTransformed
+from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
 class PtArgProj(nn.Module):

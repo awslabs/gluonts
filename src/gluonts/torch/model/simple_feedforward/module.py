@@ -13,14 +13,14 @@
 
 from typing import List, Optional, Tuple
 
+import torch
+from torch import nn
+
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output, StudentTOutput
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
-
-import torch
-from torch import nn
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):

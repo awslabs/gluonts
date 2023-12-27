@@ -1,12 +1,12 @@
 from typing import Dict, List, Optional
 
+import torch
+from torch.distributions import Distribution, constraints
+
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     QuantileForecastGenerator,
 )
-
-import torch
-from torch.distributions import Distribution, constraints
 
 from .distribution_output import Output
 

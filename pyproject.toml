@@ -39,3 +39,18 @@ wrap-descriptions = 79
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
+
+[tool.isort]
+known_first_party = "gluonts"
+known_third_party = [
+    "mxnet",
+    "numpy",
+    "pandas",
+    "pytest",
+    "scipy",
+    "tqdm",
+    "torch",
+    "lightning",
+]
+line_length = 79
+profile = "black"

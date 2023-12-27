@@ -14,6 +14,8 @@
 from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
+import torch
+
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -39,8 +41,6 @@ from gluonts.transform import (
 )
 from gluonts.transform.sampler import InstanceSampler
 from gluonts.transform.split import TFTInstanceSplitter
-
-import torch
 
 from .lightning_module import TemporalFusionTransformerLightningModule
 

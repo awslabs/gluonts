@@ -12,11 +12,11 @@
 # permissions and limitations under the License.
 
 import lightning.pytorch as pl
+import torch
+
 from gluonts.core.component import validated
 from gluonts.itertools import select
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-
-import torch
 
 from .module import SimpleFeedForwardModel
 

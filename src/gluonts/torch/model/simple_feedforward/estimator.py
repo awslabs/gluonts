@@ -14,6 +14,8 @@
 from typing import Any, Dict, Iterable, List, Optional
 
 import lightning.pytorch as pl
+import torch
+
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -33,8 +35,6 @@ from gluonts.transform import (
     Transformation,
     ValidationSplitSampler,
 )
-
-import torch
 
 from .lightning_module import SimpleFeedForwardLightningModule
 
