@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from torch.distributions import Distribution, constraints
 
+from gluonts.core.component import validated
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     QuantileForecastGenerator,
@@ -50,6 +51,7 @@ class QuantileDistribution(Distribution):
 
 
 class QuantileOutput(Output):
+    @validated()
     def __init__(self, quantiles: List[float]) -> None:
         assert len(quantiles) > 0
         assert all(0.0 < q < 1.0 for q in quantiles)

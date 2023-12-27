@@ -153,11 +153,14 @@ class DLinearModel(nn.Module):
     def loss(
         self,
         past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
         loss: DistributionLoss = NegativeLogLikelihood(),
     ) -> torch.Tensor:
-        distr_args, loc, scale = self(past_target)
+        distr_args, loc, scale = self(
+            past_target=past_target, past_observed_values=past_observed_values
+        )
         distr = self.distr_output.distribution(distr_args, loc, scale)
         return weighted_average(
             loss(distr, future_target), weights=future_observed_values
