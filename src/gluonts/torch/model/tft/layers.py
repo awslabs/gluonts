@@ -13,13 +13,13 @@
 
 from typing import List, Optional, Tuple
 
+import torch
+import torch.nn as nn
+
 from gluonts.core.component import validated
 from gluonts.torch.modules.feature import (
     FeatureEmbedder as BaseFeatureEmbedder,
 )
-
-import torch
-import torch.nn as nn
 
 
 class FeatureEmbedder(BaseFeatureEmbedder):

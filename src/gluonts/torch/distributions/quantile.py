@@ -37,8 +37,6 @@ class QuantileDistribution(Distribution):
 
 
 class QuantileOutput(Output):
-    distr_cls: type = QuantileDistribution
-
     def __init__(self, quantiles: List[float]) -> None:
         assert len(quantiles) > 0
         assert all(0.0 < q < 1.0 for q in quantiles)

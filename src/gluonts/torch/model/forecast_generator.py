@@ -11,10 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import torch
+
 from gluonts.model.forecast_generator import make_distribution_forecast
 from gluonts.torch.model.forecast import DistributionForecast
-
-import torch
 
 
 @make_distribution_forecast.register(torch.distributions.Distribution)
