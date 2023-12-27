@@ -24,6 +24,8 @@ from gluonts.torch.util import unsqueeze_expand, lagged_sequence_values
 from gluonts.time_feature import get_lags_for_frequency
 from gluonts.torch.model.simple_feedforward import make_linear_layer
 from gluonts.torch.model.patch_tst import SinusoidalPositionalEmbedding
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+from gluonts.torch.util import weighted_average
 
 
 class LagTSTModel(nn.Module):
@@ -166,3 +168,16 @@ class LagTSTModel(nn.Module):
             flatten_out.reshape(-1, self.prediction_length, self.d_model)
         )
         return distr_args, loc, scale
+
+    def loss(
+        self,
+        past_target: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+        loss: DistributionLoss = NegativeLogLikelihood(),
+    ) -> torch.Tensor:
+        distr_args, loc, scale = self(past_target)
+        distr = self.distr_output.distribution(distr_args, loc, scale)
+        return weighted_average(
+            loss(distr, future_target), weights=future_observed_values
+        )

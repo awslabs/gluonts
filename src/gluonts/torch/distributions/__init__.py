@@ -19,6 +19,7 @@ from .distribution_output import (
     DistributionOutput,
     GammaOutput,
     NormalOutput,
+    Output,
     PoissonOutput,
     LaplaceOutput,
 )

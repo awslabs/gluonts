@@ -19,7 +19,7 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
-from gluonts.torch.distributions.distribution_output import Output
+from gluonts.torch.distributions import Output
 from gluonts.torch.distributions.quantile import QuantileOutput
 from gluonts.torch.modules.loss import DistributionLoss, QuantileLoss
 from gluonts.torch.scaler import StdScaler

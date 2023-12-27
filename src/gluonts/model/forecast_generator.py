@@ -117,7 +117,6 @@ class QuantileForecastGenerator(ForecastGenerator):
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
             (outputs,), loc, scale = prediction_net(*inputs.values())
-            breakpoint()
             if scale is not None:
                 outputs = outputs * scale[..., None]
             if loc is not None:

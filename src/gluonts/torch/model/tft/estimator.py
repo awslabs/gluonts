@@ -21,8 +21,8 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.model.forecast_generator import QuantileForecastGenerator
 from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
+from gluonts.torch.distributions import Output
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import (
@@ -93,6 +93,8 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     quantiles
         List of quantiles that the model will learn to predict.
         Defaults to [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    distr_output
+        Distribution output to use (default: ``QuantileOutput``).
     num_heads
         Number of attention heads in self-attention layer in the decoder.
     hidden_dim
@@ -142,6 +144,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         quantiles: Optional[List[float]] = None,
+        distr_output: Optional[Output] = None,
         num_heads: int = 4,
         hidden_dim: int = 32,
         variable_dim: int = 32,
@@ -402,7 +405,5 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",
-            forecast_generator=QuantileForecastGenerator(
-                quantiles=[str(q) for q in self.quantiles]
-            ),
+            forecast_generator=self.distr_output.forecast_generator,
         )

@@ -21,7 +21,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.model.forecast_generator import DistributionForecastGenerator
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
@@ -35,10 +34,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import (
-    DistributionOutput,
-    StudentTOutput,
-)
+from gluonts.torch.distributions import Output, StudentTOutput
 
 from .lightning_module import DLinearLightningModule
 
@@ -103,7 +99,7 @@ class DLinearEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Output = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
         kernel_size: int = 25,
         batch_size: int = 32,
@@ -242,9 +238,7 @@ class DLinearEstimator(PyTorchLightningEstimator):
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
             prediction_net=module,
-            forecast_generator=DistributionForecastGenerator(
-                self.distr_output
-            ),
+            forecast_generator=self.distr_output.forecast_generator,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",
