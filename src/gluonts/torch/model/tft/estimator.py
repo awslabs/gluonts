@@ -14,7 +14,6 @@
 from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
-import torch
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
@@ -25,8 +24,8 @@ from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.transform import (
-    AddObservedValuesIndicator,
     AddConstFeature,
+    AddObservedValuesIndicator,
     AddTimeFeatures,
     AsNumpyArray,
     Chain,
@@ -40,6 +39,8 @@ from gluonts.transform import (
 )
 from gluonts.transform.sampler import InstanceSampler
 from gluonts.transform.split import TFTInstanceSplitter
+
+import torch
 
 from .lightning_module import TemporalFusionTransformerLightningModule
 

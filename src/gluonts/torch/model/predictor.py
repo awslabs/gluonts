@@ -15,9 +15,6 @@ from pathlib import Path
 from typing import Iterator, List, Optional, Union
 
 import numpy as np
-import torch
-import torch.nn as nn
-
 from gluonts.core.component import validated
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.loader import InferenceDataLoader
@@ -25,17 +22,20 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
-    predict_to_numpy,
+    to_numpy,
 )
 from gluonts.model.predictor import OutputTransform, RepresentablePredictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.util import resolve_device
-from gluonts.transform import Transformation, SelectFields
+from gluonts.transform import SelectFields, Transformation
+
+import torch
+import torch.nn as nn
 
 
-@predict_to_numpy.register(nn.Module)
-def _(prediction_net: nn.Module, kwargs) -> np.ndarray:
-    return prediction_net(**kwargs).cpu().numpy()
+@to_numpy.register(torch.Tensor)
+def _(x: torch.Tensor) -> np.ndarray:
+    return x.cpu().detach().numpy()
 
 
 class PyTorchPredictor(RepresentablePredictor):

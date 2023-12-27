@@ -11,9 +11,17 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Optional, Tuple, Type
+from typing import Callable, Dict, List, Optional, Tuple, Type
 
 import numpy as np
+from gluonts.core.component import validated
+from gluonts.model.forecast_generator import (
+    DistributionForecastGenerator,
+    ForecastGenerator,
+)
+from gluonts.torch.distributions import AffineTransformed
+from gluonts.torch.modules.lambda_layer import LambdaLayer
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,14 +29,10 @@ from torch.distributions import (
     Beta,
     Distribution,
     Gamma,
+    Laplace,
     Normal,
     Poisson,
-    Laplace,
 )
-
-from gluonts.core.component import validated
-from gluonts.torch.distributions import AffineTransformed
-from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 
 class PtArgProj(nn.Module):
@@ -96,6 +100,10 @@ class Output:
         )
 
     def domain_map(self, *args: torch.Tensor):
+        raise NotImplementedError()
+
+    @property
+    def forecast_generator(self) -> ForecastGenerator:
         raise NotImplementedError()
 
 
@@ -173,6 +181,10 @@ class DistributionOutput(Output):
         define a distribution of the right event_shape.
         """
         raise NotImplementedError()
+
+    @property
+    def forecast_generator(self) -> ForecastGenerator:
+        return DistributionForecastGenerator(self)
 
 
 class NormalOutput(DistributionOutput):

@@ -11,14 +11,16 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Tuple, Optional
-
-import torch
-from torch import nn
+from typing import List, Optional, Tuple
 
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
-from gluonts.torch.distributions import StudentTOutput
+from gluonts.torch.distributions import Output, StudentTOutput
+from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+from gluonts.torch.util import weighted_average
+
+import torch
+from torch import nn
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):
@@ -57,7 +59,7 @@ class SimpleFeedForwardModel(nn.Module):
         prediction_length: int,
         context_length: int,
         hidden_dimensions: Optional[List[int]] = None,
-        distr_output=StudentTOutput(),
+        distr_output: Output = StudentTOutput(),
         batch_norm: bool = False,
     ) -> None:
         super().__init__()
@@ -114,3 +116,16 @@ class SimpleFeedForwardModel(nn.Module):
         )
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale
+
+    def loss(
+        self,
+        past_target: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+        loss: DistributionLoss = NegativeLogLikelihood(),
+    ) -> torch.Tensor:
+        distr_args, loc, scale = self(past_target)
+        distr = self.distr_output.distribution(distr_args, loc, scale)
+        return weighted_average(
+            loss(distr, future_target), weights=future_observed_values
+        )

@@ -12,10 +12,11 @@
 # permissions and limitations under the License.
 
 import lightning.pytorch as pl
-import torch
-
 from gluonts.core.component import validated
+from gluonts.itertools import select
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+
+import torch
 
 from .module import SimpleFeedForwardModel
 
@@ -54,30 +55,22 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
+        self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
         return self.model.forward(*args, **kwargs)
-
-    def _compute_loss(self, batch):
-        context = batch["past_target"]
-        target = batch["future_target"]
-        observed_target = batch["future_observed_values"]
-
-        assert context.shape[-1] == self.model.context_length
-        assert target.shape[-1] == self.model.prediction_length
-
-        distr_args, loc, scale = self.model(context)
-        distr = self.model.distr_output.distribution(distr_args, loc, scale)
-
-        return (
-            self.loss(distr, target) * observed_target
-        ).sum() / torch.maximum(torch.tensor(1.0), observed_target.sum())
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
         Execute training step.
         """
-        train_loss = self._compute_loss(batch)
+        train_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+            loss=self.loss,
+        ).mean()
+
         self.log(
             "train_loss",
             train_loss,
@@ -91,7 +84,13 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         """
         Execute validation step.
         """
-        val_loss = self._compute_loss(batch)
+        val_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+            loss=self.loss,
+        ).mean()
+
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
         )

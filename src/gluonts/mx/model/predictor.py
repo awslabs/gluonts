@@ -19,6 +19,7 @@ from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
+import gluonts.mx
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -26,7 +27,7 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
-    predict_to_numpy,
+    to_numpy,
 )
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.mx.batchify import batchify
@@ -43,9 +44,9 @@ from gluonts.mx.util import (
 from gluonts.transform import Transformation
 
 
-@predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, kwargs) -> np.ndarray:
-    return prediction_net(*kwargs.values()).asnumpy()
+@to_numpy.register(gluonts.mx.Tensor)
+def _(x: gluonts.mx.Tensor) -> np.ndarray:
+    return x.asnumpy()
 
 
 class GluonPredictor(Predictor):
