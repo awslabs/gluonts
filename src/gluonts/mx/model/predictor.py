@@ -19,7 +19,6 @@ from typing import Callable, Iterator, List, Optional, Type
 
 import mxnet as mx
 import numpy as np
-import gluonts.mx
 from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.dataset.loader import DataBatch, InferenceDataLoader
@@ -44,8 +43,13 @@ from gluonts.mx.util import (
 from gluonts.transform import Transformation
 
 
-@to_numpy.register(gluonts.mx.Tensor)
-def _(x: gluonts.mx.Tensor) -> np.ndarray:
+@to_numpy.register(mx.nd.NDArray)
+def _(x: mx.nd.NDArray) -> np.ndarray:
+    return x.asnumpy()
+
+
+@to_numpy.register(mx.sym.Symbol)
+def _(x: mx.sym.Symbol) -> np.ndarray:
     return x.asnumpy()
 
 
