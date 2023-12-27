@@ -57,12 +57,11 @@ class TemporalFusionTransformerModel(nn.Module):
         c_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
         d_past_feat_dynamic_real: Optional[List[int]] = None,  # Defaults to []
         c_past_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
-        distr_output: Optional[Output] = None,
-        quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
         d_hidden: int = 32,
         d_var: int = 32,
         dropout_rate: float = 0.1,
+        distr_output: Optional[Output] = None,
     ):
         super().__init__()
 
@@ -73,16 +72,11 @@ class TemporalFusionTransformerModel(nn.Module):
         self.d_var = d_var
         self.dropout_rate = dropout_rate
 
-        if distr_output is not None and quantiles is not None:
-            raise ValueError(
-                "Only one of `distr_output` and `quantiles` must be specified"
+        if distr_output is None:
+            distr_output = QuantileOutput(
+                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
             )
-        elif distr_output is not None:
-            self.distr_output = distr_output
-        else:
-            if quantiles is None:
-                quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-            self.distr_output = QuantileOutput(quantiles=quantiles)
+        self.distr_output = distr_output
         self.args_proj = self.distr_output.get_args_proj(
             in_features=self.d_hidden
         )
@@ -356,7 +350,7 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
         past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
         past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
-    ) -> torch.Tensor:
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
         (
             past_covariates,  # [[N, T, d_var], ...]
             future_covariates,  # [[N, H, d_var], ...]
@@ -425,9 +419,3 @@ class TemporalFusionTransformerModel(nn.Module):
         return weighted_average(
             loss(distr, future_target), weights=future_observed_values
         )
-
-        loss = self.output.quantile_loss(
-            y_true=future_target, y_pred=preds.transpose(1, 2)
-        )  # [N, T]
-        loss = weighted_average(loss, future_observed_values)  # [N]
-        return loss.mean()

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import torch
 from torch.distributions import Distribution, constraints
@@ -17,11 +17,11 @@ class QuantileDistribution(Distribution):
     def __init__(
         self,
         outputs: torch.Tensor,
-        quantiles: torch.Tensor,
+        quantiles: Union[List[float], torch.Tensor],
         validate_args=None,
     ):
         self.outputs = outputs
-        self.quantiles = torch.tensor(
+        self.quantiles = torch.as_tensor(
             quantiles, device=outputs.device, dtype=outputs.dtype
         )
         super().__init__(

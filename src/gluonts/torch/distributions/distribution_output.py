@@ -106,6 +106,23 @@ class Output:
     def forecast_generator(self) -> ForecastGenerator:
         raise NotImplementedError()
 
+    def distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
+        raise NotImplementedError()
+
+    @property
+    def value_in_support(self) -> float:
+        r"""
+        A float that will have a valid numeric value when computing the
+        log-loss of the corresponding distribution. By default 0.0.
+        This value will be used when padding data series.
+        """
+        return 0.0
+
 
 class DistributionOutput(Output):
     r"""
@@ -163,15 +180,6 @@ class DistributionOutput(Output):
         of the distributions that this object constructs.
         """
         return len(self.event_shape)
-
-    @property
-    def value_in_support(self) -> float:
-        r"""
-        A float that will have a valid numeric value when computing the
-        log-loss of the corresponding distribution. By default 0.0.
-        This value will be used when padding data series.
-        """
-        return 0.0
 
     def domain_map(self, *args: torch.Tensor):
         r"""

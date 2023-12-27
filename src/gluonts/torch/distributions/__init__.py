@@ -31,6 +31,7 @@ from .implicit_quantile_network import (
 from .isqf import ISQF, ISQFOutput
 from .negative_binomial import NegativeBinomialOutput
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
+from .quantile import QuantileOutput
 from .spliced_binned_pareto import (
     SplicedBinnedPareto,
     SplicedBinnedParetoOutput,
@@ -55,9 +56,11 @@ __all__ = [
     "LaplaceOutput",
     "NegativeBinomialOutput",
     "NormalOutput",
+    "Output",
     "PiecewiseLinear",
     "PiecewiseLinearOutput",
     "PoissonOutput",
+    "QuantileOutput",
     "SplicedBinnedPareto",
     "SplicedBinnedParetoOutput",
     "StudentTOutput",

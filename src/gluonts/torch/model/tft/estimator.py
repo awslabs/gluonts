@@ -179,9 +179,16 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             context_length if context_length is not None else prediction_length
         )
         # Model architecture
-        if quantiles is None:
-            quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        self.quantiles = quantiles
+        if distr_output is not None and quantiles is not None:
+            raise ValueError(
+                "Only one of `distr_output` and `quantiles` must be specified"
+            )
+        elif distr_output is not None:
+            self.distr_output = distr_output
+        else:
+            if quantiles is None:
+                quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            self.distr_output = QuantileOutput(quantiles=quantiles)
         self.num_heads = num_heads
         self.hidden_dim = hidden_dim
         self.variable_dim = variable_dim
@@ -378,7 +385,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
                 "d_var": self.variable_dim,
                 "d_hidden": self.hidden_dim,
                 "num_heads": self.num_heads,
-                "quantiles": self.quantiles,
+                "distr_output": self.distr_output,
                 "d_past_feat_dynamic_real": self.past_dynamic_dims,
                 "c_past_feat_dynamic_cat": self.past_dynamic_cardinalities,
                 "d_feat_dynamic_real": [1] * max(len(self.time_features), 1)
