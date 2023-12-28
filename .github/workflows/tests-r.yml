@@ -13,7 +13,7 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
-    if: contains(github.event.pull_request.labels.*.name, 'pr:test-r')
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'pr:test-r')
 
     steps:
     - uses: actions/checkout@v3
