@@ -1,5 +1,6 @@
 [project]
 name = "gluonts"
+dynamic = ["version"]
 
 [tool.black]
 line-length = 79
@@ -42,3 +43,7 @@ wrap-descriptions = 79
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
+
+[tool.setuptools.dynamic]
+version = {attr = "gluonts.__version__"}
+
