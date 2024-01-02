@@ -50,7 +50,7 @@ class PyTorchPredictor(RepresentablePredictor):
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
-        device: str = "auto",
+        device: Union[str, torch.device] = "auto",
     ) -> None:
         super().__init__(prediction_length, lead_time=lead_time)
         self.input_names = input_names
