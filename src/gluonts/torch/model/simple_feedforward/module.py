@@ -19,7 +19,6 @@ from torch import nn
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output, StudentTOutput
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import weighted_average
 
 
@@ -122,7 +121,6 @@ class SimpleFeedForwardModel(nn.Module):
         past_target: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-        loss: DistributionLoss = NegativeLogLikelihood(),
     ) -> torch.Tensor:
         distr_args, loc, scale = self(past_target)
         distr = self.distr_output.distribution(distr_args, loc, scale)

@@ -16,7 +16,6 @@ import torch
 
 from gluonts.core.component import validated
 from gluonts.itertools import select
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 from .module import SimpleFeedForwardModel
 
@@ -45,14 +44,12 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
     def __init__(
         self,
         model_kwargs: dict,
-        loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
     ):
         super().__init__()
         self.save_hyperparameters()
         self.model = SimpleFeedForwardModel(**model_kwargs)
-        self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.inputs = self.model.describe_inputs()
@@ -68,7 +65,6 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
             **select(self.inputs, batch),
             future_target=batch["future_target"],
             future_observed_values=batch["future_observed_values"],
-            loss=self.loss,
         ).mean()
 
         self.log(
@@ -88,7 +84,6 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
             **select(self.inputs, batch),
             future_target=batch["future_target"],
             future_observed_values=batch["future_observed_values"],
-            loss=self.loss,
         ).mean()
 
         self.log(

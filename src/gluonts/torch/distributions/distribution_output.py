@@ -11,11 +11,10 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Dict, Optional, Tuple, Type
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import (
     Beta,
@@ -32,96 +31,9 @@ from gluonts.model.forecast_generator import (
     ForecastGenerator,
 )
 from gluonts.torch.distributions import AffineTransformed
-from gluonts.torch.modules.lambda_layer import LambdaLayer
+from gluonts.torch.util import weighted_average
 
-
-class PtArgProj(nn.Module):
-    r"""
-    A PyTorch module that can be used to project from a dense layer
-    to PyTorch distribution arguments.
-
-    Parameters
-    ----------
-    in_features
-        Size of the incoming features.
-    dim_args
-        Dictionary with string key and int value
-        dimension of each arguments that will be passed to the domain
-        map, the names are not used.
-    domain_map
-        Function returning a tuple containing one tensor
-        a function or a nn.Module. This will be called with num_args
-        arguments and should return a tuple of outputs that will be
-        used when calling the distribution constructor.
-    """
-
-    def __init__(
-        self,
-        in_features: int,
-        args_dim: Dict[str, int],
-        domain_map: Callable[..., Tuple[torch.Tensor]],
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.args_dim = args_dim
-        self.proj = nn.ModuleList(
-            [nn.Linear(in_features, dim) for dim in args_dim.values()]
-        )
-        self.domain_map = domain_map
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
-        params_unbounded = [proj(x) for proj in self.proj]
-
-        return self.domain_map(*params_unbounded)
-
-
-class Output:
-    """
-    Class to connect a network to some output.
-    """
-
-    in_features: int
-    args_dim: Dict[str, int]
-    _dtype: Type = np.float32
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @dtype.setter
-    def dtype(self, dtype: Type):
-        self._dtype = dtype
-
-    def get_args_proj(self, in_features: int) -> nn.Module:
-        return PtArgProj(
-            in_features=in_features,
-            args_dim=self.args_dim,
-            domain_map=LambdaLayer(self.domain_map),
-        )
-
-    def domain_map(self, *args: torch.Tensor):
-        raise NotImplementedError()
-
-    @property
-    def forecast_generator(self) -> ForecastGenerator:
-        raise NotImplementedError()
-
-    def distribution(
-        self,
-        distr_args,
-        loc: Optional[torch.Tensor] = None,
-        scale: Optional[torch.Tensor] = None,
-    ) -> Distribution:
-        raise NotImplementedError()
-
-    @property
-    def value_in_support(self) -> float:
-        r"""
-        A float that will have a valid numeric value when computing the
-        log-loss of the corresponding distribution. By default 0.0.
-        This value will be used when padding data series.
-        """
-        return 0.0
+from .output import Output
 
 
 class DistributionOutput(Output):
@@ -164,6 +76,18 @@ class DistributionOutput(Output):
             return distr
         else:
             return AffineTransformed(distr, loc=loc, scale=scale)
+
+    def loss(
+        self,
+        target: torch.Tensor,
+        observed_values: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, ...],
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        distribution = self.distribution(distr_args, loc=loc, scale=scale)
+        nll_loss = -distribution.log_prob(target)
+        return weighted_average(nll_loss, weights=observed_values, dim=-1)
 
     @property
     def event_shape(self) -> Tuple:

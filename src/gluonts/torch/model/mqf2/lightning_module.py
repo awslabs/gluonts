@@ -18,7 +18,6 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.loss import DistributionLoss, EnergyScore
 
 from .module import MQF2MultiHorizonModel
 
@@ -52,7 +51,6 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
     def __init__(
         self,
         model_kwargs: dict,
-        loss: DistributionLoss = EnergyScore(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         patience: int = 10,
@@ -60,7 +58,6 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = MQF2MultiHorizonModel(**model_kwargs)
-        self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience

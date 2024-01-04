@@ -15,7 +15,6 @@ import lightning.pytorch as pl
 import torch
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 from .module import ITransformerModel
 
@@ -46,7 +45,6 @@ class ITransformerLightningModule(pl.LightningModule):
     def __init__(
         self,
         model_kwargs: dict,
-        loss: DistributionLoss = NegativeLogLikelihood(),
         num_parallel_samples: int = 100,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -54,7 +52,6 @@ class ITransformerLightningModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = ITransformerModel(**model_kwargs)
-        self.loss = loss
         self.num_parallel_samples = num_parallel_samples
         self.lr = lr
         self.weight_decay = weight_decay

@@ -20,10 +20,8 @@ import torch.nn as nn
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output
-from gluonts.torch.distributions.quantile import QuantileOutput
-from gluonts.torch.modules.loss import DistributionLoss, QuantileLoss
+from gluonts.torch.distributions.quantile_output import QuantileOutput
 from gluonts.torch.scaler import StdScaler
-from gluonts.torch.util import weighted_average
 
 from .layers import (
     FeatureEmbedder,
@@ -403,7 +401,6 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
         past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
         past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
-        loss: DistributionLoss = QuantileLoss(),
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
             past_target=past_target,
@@ -415,7 +412,10 @@ class TemporalFusionTransformerModel(nn.Module):
             past_feat_dynamic_real=past_feat_dynamic_real,
             past_feat_dynamic_cat=past_feat_dynamic_cat,
         )  # [N, Q, T]
-        distr = self.distr_output.distribution(distr_args, loc, scale)
-        return weighted_average(
-            loss(distr, future_target), weights=future_observed_values
+        return self.distr_output.loss(
+            target=future_target,
+            observed_values=future_observed_values,
+            distr_args=distr_args,
+            loc=loc,
+            scale=scale,
         )

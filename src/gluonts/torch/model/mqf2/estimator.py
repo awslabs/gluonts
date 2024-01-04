@@ -16,7 +16,6 @@ from typing import List, Optional, Dict, Any
 from gluonts.core.component import validated
 from gluonts.time_feature import TimeFeature
 from gluonts.torch.model.deepar.estimator import DeepAREstimator
-from gluonts.torch.modules.loss import NegativeLogLikelihood, EnergyScore
 
 from .lightning_module import MQF2MultiHorizonLightningModule
 from .distribution import MQF2DistributionOutput
@@ -148,8 +147,6 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
             beta=beta,
         )
 
-        loss = EnergyScore() if is_energy_score else NegativeLogLikelihood()
-
         super().__init__(
             freq=freq,
             prediction_length=prediction_length,
@@ -165,7 +162,6 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
             cardinality=cardinality,
             embedding_dimension=embedding_dimension,
             distr_output=distr_output,
-            loss=loss,
             scaling=scaling,
             lags_seq=lags_seq,
             time_features=time_features,
@@ -184,7 +180,6 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
 
     def create_lightning_module(self) -> MQF2MultiHorizonLightningModule:  # type: ignore
         return MQF2MultiHorizonLightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             model_kwargs={

@@ -21,7 +21,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
     AddObservedValuesIndicator,
@@ -100,7 +99,6 @@ class DLinearEstimator(PyTorchLightningEstimator):
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
         distr_output: Output = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
         kernel_size: int = 25,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
@@ -125,7 +123,6 @@ class DLinearEstimator(PyTorchLightningEstimator):
         self.weight_decay = weight_decay
         self.distr_output = distr_output
         self.scaling = scaling
-        self.loss = loss
         self.kernel_size = kernel_size
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
@@ -153,7 +150,6 @@ class DLinearEstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> pl.LightningModule:
         return DLinearLightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             model_kwargs={

@@ -25,7 +25,6 @@ from gluonts.time_feature import TimeFeature, time_features_from_frequency_str
 from gluonts.torch.distributions import Output, QuantileOutput
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.modules.loss import DistributionLoss, QuantileLoss
 from gluonts.transform import (
     AddConstFeature,
     AddObservedValuesIndicator,
@@ -146,7 +145,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         quantiles: Optional[List[float]] = None,
         distr_output: Optional[Output] = None,
-        loss: DistributionLoss = QuantileLoss(),
         num_heads: int = 4,
         hidden_dim: int = 32,
         variable_dim: int = 32,
@@ -191,7 +189,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             if quantiles is None:
                 quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
             self.distr_output = QuantileOutput(quantiles=quantiles)
-        self.loss = loss
         self.num_heads = num_heads
         self.hidden_dim = hidden_dim
         self.variable_dim = variable_dim
@@ -382,7 +379,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             lr=self.lr,
             patience=self.patience,
             weight_decay=self.weight_decay,
-            loss=self.loss,
             model_kwargs={
                 "context_length": self.context_length,
                 "prediction_length": self.prediction_length,

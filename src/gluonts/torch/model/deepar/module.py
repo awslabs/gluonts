@@ -24,7 +24,6 @@ from gluonts.torch.distributions import (
 )
 from gluonts.torch.scaler import Scaler, MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.torch.util import (
     lagged_sequence_values,
     repeat_along_dim,
@@ -502,7 +501,6 @@ class DeepARModel(nn.Module):
             future_time_feat=future_time_feat,
             future_target=future_target,
             future_observed_values=torch.ones_like(future_target),
-            loss=NegativeLogLikelihood(),
             future_only=True,
             aggregate_by=torch.sum,
         )
@@ -517,7 +515,6 @@ class DeepARModel(nn.Module):
         future_time_feat: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-        loss: DistributionLoss = NegativeLogLikelihood(),
         future_only: bool = False,
         aggregate_by=torch.mean,
     ) -> torch.Tensor:
@@ -555,11 +552,14 @@ class DeepARModel(nn.Module):
         )
 
         if future_only:
+            loss_values = self.distr_output.loss(
+                target=future_target_reshaped,
+                observed_values=future_observed_reshaped,
+                distr_args=params,
+                scale=scale,
+            )
             distr = self.output_distribution(
                 params, scale, trailing_n=self.prediction_length
-            )
-            loss_values = (
-                loss(distr, future_target_reshaped) * future_observed_reshaped
             )
         else:
             distr = self.output_distribution(params, scale)
@@ -576,11 +576,11 @@ class DeepARModel(nn.Module):
             observed_values = torch.cat(
                 (context_observed, future_observed_reshaped), dim=1
             )
-            loss_values = loss(distr, target) * observed_values
 
-        loss_values = loss_values.reshape(*batch_shape, *loss_values.shape[1:])
-
-        return aggregate_by(
-            loss_values,
-            dim=tuple(range(extra_dims + 1, len(future_target.shape))),
-        )
+            loss_values = self.distr_output.loss(
+                target=target,
+                observed_values=observed_values,
+                distr_args=params,
+                scale=scale,
+            )
+        return loss_values

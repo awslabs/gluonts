@@ -23,8 +23,6 @@ from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.util import unsqueeze_expand
 from gluonts.torch.model.simple_feedforward import make_linear_layer
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
-from gluonts.torch.util import weighted_average
 
 
 class SinusoidalPositionalEmbedding(nn.Embedding):
@@ -220,12 +218,14 @@ class PatchTSTModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-        loss: DistributionLoss = NegativeLogLikelihood(),
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
             past_target=past_target, past_observed_values=past_observed_values
         )
-        distr = self.distr_output.distribution(distr_args, loc, scale)
-        return weighted_average(
-            loss(distr, future_target), weights=future_observed_values
+        return self.distr_output.loss(
+            target=future_target,
+            observed_values=future_observed_values,
+            distr_args=distr_args,
+            loc=loc,
+            scale=scale,
         )
