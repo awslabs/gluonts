@@ -72,9 +72,6 @@ class DLinearEstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     kernel_size
     batch_size
         The size of the batches to be used for training (default: 32).

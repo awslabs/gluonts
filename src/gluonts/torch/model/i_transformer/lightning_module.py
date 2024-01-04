@@ -54,6 +54,7 @@ class ITransformerLightningModule(pl.LightningModule):
         self.num_parallel_samples = num_parallel_samples
         self.lr = lr
         self.weight_decay = weight_decay
+        self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
         distr_args, loc, scale = self.model.forward(*args, **kwargs)

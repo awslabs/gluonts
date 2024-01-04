@@ -44,8 +44,8 @@ class DistributionOutput(Output):
     distr_cls: type
 
     @validated()
-    def __init__(self) -> None:
-        pass
+    def __init__(self, beta: float = 0.0) -> None:
+        self.beta = beta
 
     def _base_distribution(self, distr_args):
         return self.distr_cls(*distr_args)
@@ -86,8 +86,11 @@ class DistributionOutput(Output):
         scale: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         distribution = self.distribution(distr_args, loc=loc, scale=scale)
-        nll_loss = -distribution.log_prob(target)
-        return weighted_average(nll_loss, weights=observed_values, dim=-1)
+        nll = -distribution.log_prob(target)
+        if self.beta > 0.0:
+            variance = distribution.variance
+            nll = nll * (variance.detach() ** self.beta)
+        return weighted_average(nll, weights=observed_values, dim=-1)
 
     @property
     def event_shape(self) -> Tuple:

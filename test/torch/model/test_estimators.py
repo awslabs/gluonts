@@ -37,7 +37,6 @@ from gluonts.torch.model.patch_tst import PatchTSTEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
 from gluonts.torch.model.wavenet import WaveNetEstimator
-from gluonts.torch.modules.loss import NegativeLogLikelihood, QuantileLoss
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
 
@@ -47,10 +46,10 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: DeepAREstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
+            distr_output=StudentTOutput(beta=0.1),
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
-            loss=NegativeLogLikelihood(beta=0.1),
             scaling=False,
         ),
         lambda dataset: DeepAREstimator(
@@ -78,7 +77,6 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: SimpleFeedForwardEstimator(
             prediction_length=dataset.metadata.prediction_length,
             distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
-            loss=QuantileLoss(),
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -92,7 +90,6 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: DLinearEstimator(
             prediction_length=dataset.metadata.prediction_length,
             distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
-            loss=QuantileLoss(),
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -108,7 +105,6 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
             distr_output=StudentTOutput(),
-            loss=NegativeLogLikelihood(),
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -138,7 +134,6 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: PatchTSTEstimator(
             prediction_length=dataset.metadata.prediction_length,
             distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
-            loss=QuantileLoss(),
             patch_len=16,
             batch_size=4,
             num_batches_per_epoch=3,
@@ -191,6 +186,7 @@ def test_estimator_constant_dataset(
         lambda freq, prediction_length: DeepAREstimator(
             freq=freq,
             prediction_length=prediction_length,
+            distr_output=StudentTOutput(beta=0.1),
             batch_size=4,
             num_batches_per_epoch=3,
             num_feat_dynamic_real=3,
@@ -198,7 +194,6 @@ def test_estimator_constant_dataset(
             num_feat_static_cat=2,
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
-            loss=NegativeLogLikelihood(beta=0.1),
         ),
         lambda freq, prediction_length: DeepAREstimator(
             freq=freq,
@@ -210,7 +205,6 @@ def test_estimator_constant_dataset(
             num_feat_static_cat=2,
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
-            loss=QuantileLoss(),
             distr_output=ImplicitQuantileNetworkOutput(),
         ),
         lambda freq, prediction_length: MQF2MultiHorizonEstimator(
