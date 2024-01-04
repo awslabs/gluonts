@@ -34,7 +34,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import DistributionOutput, StudentTOutput
+from gluonts.torch.distributions import Output, StudentTOutput
 
 from .lightning_module import ITransformerLightningModule
 
@@ -89,9 +89,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
     num_parallel_samples
         Number of samples per time series to that the resulting predictor
         should produce (default: 100).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 32).
     num_batches_per_epoch
@@ -124,7 +121,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Output = StudentTOutput(),
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,

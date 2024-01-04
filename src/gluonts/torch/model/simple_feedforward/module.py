@@ -119,11 +119,17 @@ class SimpleFeedForwardModel(nn.Module):
     def loss(
         self,
         past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
     ) -> torch.Tensor:
-        distr_args, loc, scale = self(past_target)
-        distr = self.distr_output.distribution(distr_args, loc, scale)
-        return weighted_average(
-            loss(distr, future_target), weights=future_observed_values
+        distr_args, loc, scale = self(
+            past_target=past_target, past_observed_values=past_observed_values
+        )
+        return self.distr_output.loss(
+            target=future_target,
+            observed_values=future_observed_values,
+            distr_args=distr_args,
+            loc=loc,
+            scale=scale,
         )
