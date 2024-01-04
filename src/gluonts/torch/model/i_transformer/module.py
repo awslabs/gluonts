@@ -179,3 +179,21 @@ class ITransformerModel(nn.Module):
         # project to distribution arguments
         distr_args = self.args_proj(projection_out_transpose)
         return distr_args, loc, scale
+
+    def loss(
+        self,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+    ) -> torch.Tensor:
+        distr_args, loc, scale = self(
+            past_target=past_target, past_observed_values=past_observed_values
+        )
+        return self.distr_output.loss(
+            target=future_target,
+            observed_values=future_observed_values,
+            distr_args=distr_args,
+            loc=loc,
+            scale=scale,
+        )

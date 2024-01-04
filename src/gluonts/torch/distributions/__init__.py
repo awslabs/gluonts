@@ -19,7 +19,6 @@ from .distribution_output import (
     DistributionOutput,
     GammaOutput,
     NormalOutput,
-    Output,
     PoissonOutput,
     LaplaceOutput,
 )
@@ -30,6 +29,7 @@ from .implicit_quantile_network import (
 )
 from .isqf import ISQF, ISQFOutput
 from .negative_binomial import NegativeBinomialOutput
+from .output import Output
 from .piecewise_linear import PiecewiseLinear, PiecewiseLinearOutput
 from .quantile_output import QuantileOutput
 from .spliced_binned_pareto import (

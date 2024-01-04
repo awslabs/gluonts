@@ -15,6 +15,7 @@ import lightning.pytorch as pl
 import torch
 
 from gluonts.core.component import validated
+from gluonts.itertools import select
 
 from .module import ITransformerModel
 
@@ -31,8 +32,6 @@ class ITransformerLightningModule(pl.LightningModule):
     ----------
     model_kwargs
         Keyword arguments to construct the ``ITransformerModel`` to be trained.
-    loss
-        Loss function to be used for training.
     num_parallel_samples:
         Number of evaluation samples per time series to sample during inference.
     lr
@@ -65,27 +64,16 @@ class ITransformerLightningModule(pl.LightningModule):
             samples = torch.relu(samples)
         return samples.transpose(0, 1)
 
-    def _compute_loss(self, batch):
-        context = batch["past_target"]
-        past_observed_values = batch["past_observed_values"]
-        target = batch["future_target"]
-        observed_target = batch["future_observed_values"]
-
-        assert context.shape[1] == self.model.context_length
-        assert target.shape[1] == self.model.prediction_length
-
-        distr_args, loc, scale = self.model(context, past_observed_values)
-        distr = self.model.distr_output.distribution(distr_args, loc, scale)
-
-        return (
-            self.loss(distr, target) * observed_target
-        ).sum() / observed_target.sum().clamp_min(1.0)
-
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
         Execute training step.
         """
-        train_loss = self._compute_loss(batch)
+        train_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+        ).mean()
+
         self.log(
             "train_loss",
             train_loss,
@@ -99,7 +87,12 @@ class ITransformerLightningModule(pl.LightningModule):
         """
         Execute validation step.
         """
-        val_loss = self._compute_loss(batch)
+        val_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+        ).mean()
+
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
         )
