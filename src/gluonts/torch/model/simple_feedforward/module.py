@@ -19,7 +19,6 @@ from torch import nn
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output, StudentTOutput
-from gluonts.torch.util import weighted_average
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):

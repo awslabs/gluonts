@@ -73,9 +73,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_norm
         Whether to apply batch normalization.
     batch_size

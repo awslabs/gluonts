@@ -502,7 +502,6 @@ class DeepARModel(nn.Module):
             future_target=future_target,
             future_observed_values=torch.ones_like(future_target),
             future_only=True,
-            aggregate_by=torch.sum,
         )
 
     def loss(
@@ -516,11 +515,9 @@ class DeepARModel(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
         future_only: bool = False,
-        aggregate_by=torch.mean,
     ) -> torch.Tensor:
         extra_dims = len(future_target.shape) - len(past_target.shape)
         extra_shape = future_target.shape[:extra_dims]
-        batch_shape = future_target.shape[: extra_dims + 1]
 
         repeats = prod(extra_shape)
         feat_static_cat = repeat_along_dim(feat_static_cat, 0, repeats)
@@ -558,11 +555,7 @@ class DeepARModel(nn.Module):
                 distr_args=params,
                 scale=scale,
             )
-            distr = self.output_distribution(
-                params, scale, trailing_n=self.prediction_length
-            )
         else:
-            distr = self.output_distribution(params, scale)
             context_target = take_last(
                 past_target, dim=-1, num=self.context_length - 1
             )

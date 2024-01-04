@@ -90,9 +90,6 @@ class LagTSTEstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 32).
     num_batches_per_epoch

@@ -112,9 +112,6 @@ class DeepAREstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     scaling
         Whether to automatically scale the target values (default: true).
     default_scale
