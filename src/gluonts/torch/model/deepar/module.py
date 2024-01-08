@@ -552,7 +552,9 @@ class DeepARModel(nn.Module):
         )
 
         if future_only:
-            sliced_params = [p[:, -self.prediction_length :] for p in params]
+            sliced_params = tuple(
+                [p[:, -self.prediction_length :] for p in params]
+            )
             loss_values = self.distr_output.loss(
                 target=future_target_reshaped,
                 distr_args=sliced_params,

@@ -212,15 +212,17 @@ class MQF2MultiHorizonModel(DeepARModel):
 
     def loss(
         self,
-        future_target,
-        future_observed_values,
         feat_static_cat: torch.Tensor,
         feat_static_real: torch.Tensor,
         past_time_feat: torch.Tensor,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
-    ):
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+        future_only: bool = False,
+        aggregate_by=torch.mean,
+    ) -> torch.Tensor:
         _, scale, hidden_state, _, _ = self.unroll_lagged_rnn(
             feat_static_cat,
             feat_static_real,
@@ -238,4 +240,6 @@ class MQF2MultiHorizonModel(DeepARModel):
         context_target = past_target[:, -self.context_length + 1 :]
         target = torch.cat((context_target, future_target), dim=1)
 
-        return distr.loss(target)
+        return aggregate_by(
+            distr.loss(target) * future_observed_values, dim=-1
+        )

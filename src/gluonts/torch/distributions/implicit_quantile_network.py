@@ -201,7 +201,9 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     def domain_map(cls, *args):
         return args
 
-    def distribution(self, distr_args, loc=0, scale=None) -> Distribution:
+    def distribution(
+        self, distr_args, loc=0, scale=None
+    ) -> ImplicitQuantileNetwork:
         (outputs, taus) = distr_args
 
         if scale is not None:
