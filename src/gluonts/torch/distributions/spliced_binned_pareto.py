@@ -281,7 +281,7 @@ class SplicedBinnedParetoOutput(DistributionOutput):
         num_bins: int,
         tail_percentile_gen_pareto: float,
     ) -> None:
-        super().__init__(self)
+        super().__init__()
 
         assert (
             tail_percentile_gen_pareto > 0 and tail_percentile_gen_pareto < 0.5
