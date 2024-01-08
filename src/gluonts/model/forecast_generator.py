@@ -45,9 +45,8 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
-# different deep learning frameworks generate predictions and the tensor to
-# numpy conversion differently, use a dispatching function to prevent needing
-# a ForecastGenerators for each framework
+# Convert tensors from different deep learning frameworks to numpy. We use a dispatching
+# function to prevent needing a ForecastGenerators for each framework.
 @singledispatch
 def to_numpy(x) -> np.ndarray:
     raise NotImplementedError
