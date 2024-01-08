@@ -240,6 +240,4 @@ class MQF2MultiHorizonModel(DeepARModel):
         context_target = past_target[:, -self.context_length + 1 :]
         target = torch.cat((context_target, future_target), dim=1)
 
-        return aggregate_by(
-            distr.loss(target) * future_observed_values, dim=-1
-        )
+        return aggregate_by(distr.loss(target), dim=-1)
