@@ -19,6 +19,7 @@ from torch import nn
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output, StudentTOutput
+from gluonts.torch.util import weighted_average
 
 
 def mean_abs_scaling(seq, min_scale=1e-5):
@@ -118,17 +119,14 @@ class SimpleFeedForwardModel(nn.Module):
     def loss(
         self,
         past_target: torch.Tensor,
-        past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
     ) -> torch.Tensor:
-        distr_args, loc, scale = self(
-            past_target=past_target, past_observed_values=past_observed_values
-        )
-        return self.distr_output.loss(
+        distr_args, loc, scale = self(past_target=past_target)
+        loss = self.distr_output.loss(
             target=future_target,
-            observed_values=future_observed_values,
             distr_args=distr_args,
             loc=loc,
             scale=scale,
         )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

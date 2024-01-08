@@ -31,7 +31,6 @@ from gluonts.model.forecast_generator import (
     ForecastGenerator,
 )
 from gluonts.torch.distributions import AffineTransformed
-from gluonts.torch.util import weighted_average
 
 from .output import Output
 
@@ -80,7 +79,6 @@ class DistributionOutput(Output):
     def loss(
         self,
         target: torch.Tensor,
-        observed_values: torch.Tensor,
         distr_args: Tuple[torch.Tensor, ...],
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
@@ -90,7 +88,7 @@ class DistributionOutput(Output):
         if self.beta > 0.0:
             variance = distribution.variance
             nll = nll * (variance.detach() ** self.beta)
-        return weighted_average(nll, weights=observed_values, dim=-1)
+        return nll
 
     @property
     def event_shape(self) -> Tuple:

@@ -21,6 +21,7 @@ from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.model.simple_feedforward import make_linear_layer
+from gluonts.torch.util import weighted_average
 
 
 class MovingAvg(nn.Module):
@@ -158,10 +159,7 @@ class DLinearModel(nn.Module):
         distr_args, loc, scale = self(
             past_target=past_target, past_observed_values=past_observed_values
         )
-        return self.distr_output.loss(
-            target=future_target,
-            observed_values=future_observed_values,
-            distr_args=distr_args,
-            loc=loc,
-            scale=scale,
+        loss = self.distr_output.loss(
+            target=future_target, distr_args=distr_args, loc=loc, scale=scale
         )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

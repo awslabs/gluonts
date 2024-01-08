@@ -502,6 +502,7 @@ class DeepARModel(nn.Module):
             future_target=future_target,
             future_observed_values=torch.ones_like(future_target),
             future_only=True,
+            aggregate_by=torch.sum,
         )
 
     def loss(
@@ -515,9 +516,11 @@ class DeepARModel(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
         future_only: bool = False,
+        aggregate_by=torch.mean,
     ) -> torch.Tensor:
         extra_dims = len(future_target.shape) - len(past_target.shape)
         extra_shape = future_target.shape[:extra_dims]
+        batch_shape = future_target.shape[: extra_dims + 1]
 
         repeats = prod(extra_shape)
         feat_static_cat = repeat_along_dim(feat_static_cat, 0, repeats)
@@ -549,12 +552,13 @@ class DeepARModel(nn.Module):
         )
 
         if future_only:
+            sliced_params = [p[:, -self.prediction_length :] for p in params]
             loss_values = self.distr_output.loss(
                 target=future_target_reshaped,
-                observed_values=future_observed_reshaped,
-                distr_args=params,
+                distr_args=sliced_params,
                 scale=scale,
             )
+            loss_values = loss_values * future_observed_reshaped
         else:
             context_target = take_last(
                 past_target, dim=-1, num=self.context_length - 1
@@ -569,11 +573,14 @@ class DeepARModel(nn.Module):
             observed_values = torch.cat(
                 (context_observed, future_observed_reshaped), dim=1
             )
-
             loss_values = self.distr_output.loss(
-                target=target,
-                observed_values=observed_values,
-                distr_args=params,
-                scale=scale,
+                target=target, distr_args=params, scale=scale
             )
-        return loss_values
+            loss_values = loss_values * observed_values
+
+        loss_values = loss_values.reshape(*batch_shape, *loss_values.shape[1:])
+
+        return aggregate_by(
+            loss_values,
+            dim=tuple(range(extra_dims + 1, len(future_target.shape))),
+        )

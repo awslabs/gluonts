@@ -22,6 +22,7 @@ from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import Output
 from gluonts.torch.distributions.quantile_output import QuantileOutput
 from gluonts.torch.scaler import StdScaler
+from gluonts.torch.util import weighted_average
 
 from .layers import (
     FeatureEmbedder,
@@ -412,10 +413,10 @@ class TemporalFusionTransformerModel(nn.Module):
             past_feat_dynamic_real=past_feat_dynamic_real,
             past_feat_dynamic_cat=past_feat_dynamic_cat,
         )  # [N, Q, T]
-        return self.distr_output.loss(
+        loss = self.distr_output.loss(
             target=future_target,
-            observed_values=future_observed_values,
             distr_args=distr_args,
             loc=loc,
             scale=scale,
         )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

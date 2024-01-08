@@ -20,7 +20,6 @@ from gluonts.model.forecast_generator import (
     ForecastGenerator,
     QuantileForecastGenerator,
 )
-from gluonts.torch.util import weighted_average
 
 from .distribution_output import Output
 
@@ -48,7 +47,6 @@ class QuantileOutput(Output):
     def loss(
         self,
         target: torch.Tensor,
-        observed_values: torch.Tensor,
         distr_args: Tuple[torch.Tensor, ...],
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
@@ -65,8 +63,7 @@ class QuantileOutput(Output):
             device=quantile_preds.device,
             dtype=quantile_preds.dtype,
         )
-        quantile_loss = 2 * (
+        return 2 * (
             (target - quantile_preds)
             * ((target <= quantile_preds).float() - quantiles)
         ).abs().mean(dim=-1)
-        return weighted_average(quantile_loss, weights=observed_values, dim=-1)

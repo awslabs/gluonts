@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License").
+# You may not use this file except in compliance with the License.
+# A copy of the License is located at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# or in the "license" file accompanying this file. This file is distributed
+# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied. See the License for the specific language governing
+# permissions and limitations under the License.
+
 from typing import Callable, Dict, Optional, Tuple, Type
 
 import numpy as np
@@ -67,12 +80,28 @@ class Output:
     def loss(
         self,
         target: torch.Tensor,
-        observed_values: torch.Tensor,
         distr_args: Tuple[torch.Tensor, ...],
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Compute loss for target data given network output."""
+        """Compute loss for target data given network output.
+
+        Parameters
+        ----------
+        target
+            Values of the target time series for which loss is to be computed.
+        distr_args
+            Arguments that can be used to construct the output distribution.
+        loc
+            Location parameter of the distribution, optional.
+        scale
+            Scale parameter of the distribution, optional.
+
+        Returns
+        -------
+        loss_values
+            Values of the loss, has same shape as target.
+        """
         raise NotImplementedError()
 
     @property
