@@ -303,7 +303,6 @@ class MQF2DistributionOutput(DistributionOutput):
         self.is_energy_score = is_energy_score
         self.threshold_input = threshold_input
         self.es_num_samples = es_num_samples
-        self.beta = beta
 
     @classmethod
     def domain_map(  # type: ignore

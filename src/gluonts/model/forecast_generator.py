@@ -116,10 +116,11 @@ class QuantileForecastGenerator(ForecastGenerator):
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
             (outputs,), loc, scale = prediction_net(*inputs.values())
+            outputs = to_numpy(output)
             if scale is not None:
-                outputs = outputs * scale[..., None]
+                outputs = outputs * to_numpy(scale[..., None])
             if loc is not None:
-                outputs = outputs + loc[..., None]
+                outputs = outputs + to_numpy(loc[..., None])
 
             if output_transform is not None:
                 log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
@@ -127,7 +128,7 @@ class QuantileForecastGenerator(ForecastGenerator):
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             i = -1
-            for i, output in enumerate(to_numpy(outputs)):
+            for i, output in enumerate(outputs):
                 yield QuantileForecast(
                     output.T,
                     start_date=batch[FieldName.FORECAST_START][i],
