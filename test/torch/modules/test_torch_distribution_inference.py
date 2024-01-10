@@ -46,7 +46,6 @@ from gluonts.torch.distributions import (
     SplicedBinnedParetoOutput,
     StudentTOutput,
 )
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
@@ -75,7 +74,6 @@ def maximum_likelihood_estimate_sgd(
     init_biases: List[np.ndarray] = None,
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
-    loss: DistributionLoss = NegativeLogLikelihood(),
 ):
     arg_proj = distr_output.get_args_proj(in_features=1)
     if init_biases is not None:

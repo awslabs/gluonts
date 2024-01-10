@@ -14,6 +14,7 @@
 import pytest
 import torch
 
+from gluonts.torch.distributions import QuantileOutput
 from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
@@ -77,7 +78,7 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
             TemporalFusionTransformerModel(
                 context_length=24,
                 prediction_length=12,
-                quantiles=[0.2, 0.25, 0.5, 0.9, 0.95],
+                distr_output=QuantileOutput([0.2, 0.25, 0.5, 0.9, 0.95]),
                 d_past_feat_dynamic_real=[1],
                 d_feat_dynamic_real=[2, 5],
                 d_feat_static_real=[3, 1, 1],
@@ -86,8 +87,8 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
                 c_feat_static_cat=[2, 2],
             ),
             4,
-            (4, 5, 12),  # (batch_size, len(quantiles), prediction_length)
-            torch.float,
+            [[(4, 12, 5)], (4, 1), (4, 1)],
+            [[torch.float], torch.float, torch.float],
         ),
     ],
 )

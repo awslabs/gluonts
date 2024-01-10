@@ -21,8 +21,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.model.forecast_generator import DistributionForecastGenerator
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
     AddObservedValuesIndicator,
@@ -35,7 +33,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import DistributionOutput, StudentTOutput
+from gluonts.torch.distributions import Output, StudentTOutput
 
 from .lightning_module import LagTSTLightningModule
 
@@ -92,9 +90,6 @@ class LagTSTEstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 32).
     num_batches_per_epoch
@@ -125,8 +120,7 @@ class LagTSTEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
-        distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
+        distr_output: Output = StudentTOutput(),
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
@@ -149,7 +143,6 @@ class LagTSTEstimator(PyTorchLightningEstimator):
         self.lr = lr
         self.weight_decay = weight_decay
         self.distr_output = distr_output
-        self.loss = loss
         self.scaling = scaling
         self.lags_seq = lags_seq
         self.d_model = d_model
@@ -185,7 +178,6 @@ class LagTSTEstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> pl.LightningModule:
         return LagTSTLightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             model_kwargs={
@@ -270,9 +262,7 @@ class LagTSTEstimator(PyTorchLightningEstimator):
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
             prediction_net=module,
-            forecast_generator=DistributionForecastGenerator(
-                self.distr_output
-            ),
+            forecast_generator=self.distr_output.forecast_generator,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",

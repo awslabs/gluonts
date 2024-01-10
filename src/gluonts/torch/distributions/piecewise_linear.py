@@ -203,7 +203,7 @@ class PiecewiseLinearOutput(DistributionOutput):
 
     @validated()
     def __init__(self, num_pieces: int) -> None:
-        super().__init__(self)
+        super().__init__()
 
         assert (
             isinstance(num_pieces, int) and num_pieces > 1

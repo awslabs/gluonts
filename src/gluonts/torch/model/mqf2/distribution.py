@@ -292,7 +292,7 @@ class MQF2DistributionOutput(DistributionOutput):
         es_num_samples: int = 50,
         beta: float = 1.0,
     ) -> None:
-        super().__init__(self)
+        super().__init__(self, beta=beta)
         # A null args_dim to be called by PtArgProj
         self.args_dim = cast(
             Dict[str, int],
@@ -303,7 +303,6 @@ class MQF2DistributionOutput(DistributionOutput):
         self.is_energy_score = is_energy_score
         self.threshold_input = threshold_input
         self.es_num_samples = es_num_samples
-        self.beta = beta
 
     @classmethod
     def domain_map(  # type: ignore
@@ -333,7 +332,9 @@ class MQF2DistributionOutput(DistributionOutput):
             return distr
         else:
             return TransformedMQF2Distribution(
-                distr, [AffineTransform(loc=0.0, scale=scale)]
+                distr,
+                [AffineTransform(loc=0.0, scale=scale)],
+                is_energy_score=self.is_energy_score,
             )
 
     @property
@@ -347,11 +348,13 @@ class TransformedMQF2Distribution(TransformedDistribution):
         self,
         base_distribution: MQF2Distribution,
         transforms: List[AffineTransform],
+        is_energy_score: bool = True,
         validate_args: bool = False,
     ) -> None:
         super().__init__(
             base_distribution, transforms, validate_args=validate_args
         )
+        self.is_energy_score = is_energy_score
 
     def scale_input(
         self, y: torch.Tensor
@@ -395,3 +398,9 @@ class TransformedMQF2Distribution(TransformedDistribution):
         repeated_scale = self.repeat_scale(scale)
 
         return loss * (repeated_scale**beta)
+
+    def loss(self, z: torch.Tensor) -> torch.Tensor:
+        if self.is_energy_score:
+            return self.energy_score(z)
+        else:
+            return -self.log_prob(z)

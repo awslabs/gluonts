@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import logging
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -18,7 +19,8 @@ import torch.nn as nn
 
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
-from gluonts.torch.modules.quantile_output import QuantileOutput
+from gluonts.torch.distributions import Output
+from gluonts.torch.distributions.quantile_output import QuantileOutput
 from gluonts.torch.scaler import StdScaler
 from gluonts.torch.util import weighted_average
 
@@ -30,6 +32,8 @@ from .layers import (
     TemporalFusionEncoder,
     VariableSelectionNetwork,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TemporalFusionTransformerModel(nn.Module):
@@ -52,11 +56,11 @@ class TemporalFusionTransformerModel(nn.Module):
         c_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
         d_past_feat_dynamic_real: Optional[List[int]] = None,  # Defaults to []
         c_past_feat_dynamic_cat: Optional[List[int]] = None,  # Defaults to []
-        quantiles: Optional[List[float]] = None,
         num_heads: int = 4,
         d_hidden: int = 32,
         d_var: int = 32,
         dropout_rate: float = 0.1,
+        distr_output: Optional[Output] = None,
     ):
         super().__init__()
 
@@ -66,9 +70,15 @@ class TemporalFusionTransformerModel(nn.Module):
         self.d_hidden = d_hidden
         self.d_var = d_var
         self.dropout_rate = dropout_rate
-        if quantiles is None:
-            quantiles = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-        self.quantiles = quantiles
+
+        if distr_output is None:
+            distr_output = QuantileOutput(
+                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            )
+        self.distr_output = distr_output
+        self.args_proj = self.distr_output.get_args_proj(
+            in_features=self.d_hidden
+        )
 
         self.d_feat_static_real = d_feat_static_real or [1]
         self.d_feat_dynamic_real = d_feat_dynamic_real or [1]
@@ -202,8 +212,6 @@ class TemporalFusionTransformerModel(nn.Module):
             num_heads=self.num_heads,
             dropout=self.dropout_rate,
         )
-        self.output = QuantileOutput(quantiles=self.quantiles)
-        self.output_proj = self.output.get_args_proj(in_features=self.d_hidden)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -341,7 +349,7 @@ class TemporalFusionTransformerModel(nn.Module):
         feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T + H, D_dc]
         past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
         past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
-    ) -> torch.Tensor:
+    ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
         (
             past_covariates,  # [[N, T, d_var], ...]
             future_covariates,  # [[N, H, d_var], ...]
@@ -379,9 +387,8 @@ class TemporalFusionTransformerModel(nn.Module):
         decoding = self.temporal_decoder(
             encoding, c_enrichment, past_observed_values
         )  # [N, H, d_hidden]
-        preds = self.output_proj(decoding)
-        output = preds * scale.unsqueeze(-1) + loc.unsqueeze(-1)
-        return output.transpose(1, 2)  # [N, Q, H]
+        distr_args = self.args_proj(decoding)
+        return distr_args, loc, scale
 
     def loss(
         self,
@@ -396,7 +403,7 @@ class TemporalFusionTransformerModel(nn.Module):
         past_feat_dynamic_real: Optional[torch.Tensor] = None,  # [N, T, D_pr]
         past_feat_dynamic_cat: Optional[torch.Tensor] = None,  # [N, T, D_pc]
     ) -> torch.Tensor:
-        preds = self.forward(
+        distr_args, loc, scale = self(
             past_target=past_target,
             past_observed_values=past_observed_values,
             feat_static_real=feat_static_real,
@@ -406,8 +413,10 @@ class TemporalFusionTransformerModel(nn.Module):
             past_feat_dynamic_real=past_feat_dynamic_real,
             past_feat_dynamic_cat=past_feat_dynamic_cat,
         )  # [N, Q, T]
-        loss = self.output.quantile_loss(
-            y_true=future_target, y_pred=preds.transpose(1, 2)
-        )  # [N, T]
-        loss = weighted_average(loss, future_observed_values)  # [N]
-        return loss.mean()
+        loss = self.distr_output.loss(
+            target=future_target,
+            distr_args=distr_args,
+            loc=loc,
+            scale=scale,
+        )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)
