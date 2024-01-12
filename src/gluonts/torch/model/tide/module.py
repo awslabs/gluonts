@@ -22,6 +22,7 @@ from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import DistributionOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.model.simple_feedforward import make_linear_layer
+from gluonts.torch.util import weighted_average
 
 
 class ResBlock(nn.Module):
@@ -427,3 +428,27 @@ class TiDEModel(nn.Module):
 
         distr_args = self.args_proj(out)
         return distr_args, loc, scale
+
+    def loss(
+        self,
+        feat_static_real: torch.Tensor,
+        feat_static_cat: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+    ):
+        distr_args, loc, scale = self(
+            feat_static_real=feat_static_real,
+            feat_static_cat=feat_static_cat,
+            past_time_feat=past_time_feat,
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            future_time_feat=future_time_feat,
+        )
+        loss = self.distr_output.loss(
+            target=future_target, distr_args=distr_args, loc=loc, scale=scale
+        )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

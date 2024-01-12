@@ -16,7 +16,7 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
+
 from gluonts.itertools import select
 from gluonts.torch.model.lightning_util import has_validation_loop
 
@@ -36,8 +36,6 @@ class TiDELightningModule(pl.LightningModule):
     ----------
     model_kwargs
         Keyword arguments to construct the ``TiDEModel`` to be trained.
-    loss
-        Loss function to be used for training.
     lr
         Learning rate.
     weight_decay
@@ -50,7 +48,6 @@ class TiDELightningModule(pl.LightningModule):
     def __init__(
         self,
         model_kwargs: dict,
-        loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         patience: int = 10,
@@ -58,31 +55,23 @@ class TiDELightningModule(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = TiDEModel(**model_kwargs)
-        self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
         self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
-        return self.model.forward(*args, **kwargs)
-
-    def _compute_loss(self, batch):
-        future_target = batch["future_target"]
-        future_observed_target = batch["future_observed_values"]
-
-        distr_args, loc, scale = self.model(**select(self.inputs, batch))
-        distr = self.model.distr_output.distribution(distr_args, loc, scale)
-
-        return (
-            self.loss(distr, future_target) * future_observed_target
-        ).sum() / future_observed_target.sum().clamp_min(1.0)
+        return self.model(*args, **kwargs)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
         Execute training step.
         """
-        train_loss = self._compute_loss(batch)
+        train_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+        ).mean()
         self.log(
             "train_loss",
             train_loss,
@@ -96,7 +85,12 @@ class TiDELightningModule(pl.LightningModule):
         """
         Execute validation step.
         """
-        val_loss = self._compute_loss(batch)
+        val_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+        ).mean()
+
         self.log(
             "val_loss", val_loss, on_epoch=True, on_step=False, prog_bar=True
         )

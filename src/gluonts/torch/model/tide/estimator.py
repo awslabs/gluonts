@@ -22,10 +22,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
 from gluonts.model.forecast_generator import DistributionForecastGenerator
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.time_feature import (
-    TimeFeature,
-    time_features_from_frequency_str,
     minute_of_hour,
     hour_of_day,
     day_of_month,
@@ -42,17 +39,12 @@ from gluonts.transform import (
     AsNumpyArray,
     AddObservedValuesIndicator,
     AddTimeFeatures,
-    AddAgeFeature,
     VstackFeatures,
     InstanceSplitter,
     ValidationSplitSampler,
     TestSplitSampler,
     ExpectedNumInstanceSampler,
-    MissingValueImputation,
-    DummyValueImputation,
     InstanceSampler,
-    InstanceSplitter,
-    SelectFields,
 )
 
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
@@ -60,7 +52,6 @@ from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import (
     DistributionOutput,
     StudentTOutput,
-    NormalOutput,
 )
 
 from .lightning_module import TiDELightningModule
@@ -144,9 +135,6 @@ class TiDEEstimator(PyTorchLightningEstimator):
         (default: StudentTOutput()).
     scaling
         Which scaling method to use to scale the target values (default: mean).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 128).
     num_batches_per_epoch
@@ -174,7 +162,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
         num_layers_encoder: Optional[int] = None,
         num_layers_decoder: Optional[int] = None,
         decoder_output_dim: Optional[int] = None,
-        dropout_rate: float = 0.2,
+        dropout_rate: Optional[float] = None,
         num_feat_dynamic_proj: Optional[int] = None,
         num_feat_dynamic_real: int = 0,
         num_feat_static_real: int = 0,
@@ -187,7 +175,6 @@ class TiDEEstimator(PyTorchLightningEstimator):
         patience: int = 10,
         scaling: Optional[str] = "mean",
         distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
@@ -204,18 +191,18 @@ class TiDEEstimator(PyTorchLightningEstimator):
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.context_length = context_length or 4 * prediction_length
-        self.feat_proj_hidden_dim = feat_proj_hidden_dim or 40
-        self.encoder_hidden_dim = encoder_hidden_dim or 40
-        self.decoder_hidden_dim = decoder_hidden_dim or 40
-        self.temporal_hidden_dim = temporal_hidden_dim or 40
-        self.distr_hidden_dim = distr_hidden_dim or 40
-        self.num_layers_encoder = num_layers_encoder or 2
-        self.num_layers_decoder = num_layers_decoder or 2
-        self.decoder_output_dim = decoder_output_dim or 8
+        self.context_length = context_length or 2 * prediction_length
+        self.feat_proj_hidden_dim = feat_proj_hidden_dim or 4
+        self.encoder_hidden_dim = encoder_hidden_dim or 4
+        self.decoder_hidden_dim = decoder_hidden_dim or 4
+        self.temporal_hidden_dim = temporal_hidden_dim or 4
+        self.distr_hidden_dim = distr_hidden_dim or 4
+        self.num_layers_encoder = num_layers_encoder or 1
+        self.num_layers_decoder = num_layers_decoder or 1
+        self.decoder_output_dim = decoder_output_dim or 4
         self.dropout_rate = dropout_rate or 0.3
 
-        self.num_feat_dynamic_proj = num_feat_dynamic_proj or 4
+        self.num_feat_dynamic_proj = num_feat_dynamic_proj or 2
         self.num_feat_dynamic_real = num_feat_dynamic_real
         self.num_feat_static_real = num_feat_static_real
         self.num_feat_static_cat = num_feat_static_cat
@@ -231,7 +218,6 @@ class TiDEEstimator(PyTorchLightningEstimator):
         self.patience = patience
         self.distr_output = distr_output
         self.scaling = scaling
-        self.loss = loss
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
 
@@ -314,7 +300,6 @@ class TiDEEstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> pl.LightningModule:
         return TiDELightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             patience=self.patience,
