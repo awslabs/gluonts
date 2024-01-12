@@ -266,7 +266,7 @@ class TiDEModel(nn.Module):
         self.embedding_dimension = (
             embedding_dimension
             if embedding_dimension is not None or cardinality is None
-            else [min(16, (cat + 1) // 2) for cat in cardinality]
+            else [16 for cat in cardinality]
         )
         self.feat_proj_hidden_dim = feat_proj_hidden_dim
         self.num_layers_encoder = num_layers_encoder

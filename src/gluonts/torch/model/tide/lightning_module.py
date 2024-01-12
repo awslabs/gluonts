@@ -13,10 +13,13 @@
 
 import lightning.pytorch as pl
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
 from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.itertools import select
+from gluonts.torch.model.lightning_util import has_validation_loop
+
 
 from .module import TiDEModel
 
@@ -39,6 +42,8 @@ class TiDELightningModule(pl.LightningModule):
         Learning rate.
     weight_decay
         Weight decay regularization parameter.
+    patience
+        Patience parameter for learning rate scheduler.
     """
 
     @validated()
@@ -48,6 +53,7 @@ class TiDELightningModule(pl.LightningModule):
         loss: DistributionLoss = NegativeLogLikelihood(),
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
+        patience: int = 10,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -55,6 +61,7 @@ class TiDELightningModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.weight_decay = weight_decay
+        self.patience = patience
         self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
@@ -99,8 +106,24 @@ class TiDELightningModule(pl.LightningModule):
         """
         Returns the optimizer to use.
         """
-        return torch.optim.Adam(
+        optimizer = torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+        monitor = (
+            "val_loss" if has_validation_loop(self.trainer) else "train_loss"
+        )
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": ReduceLROnPlateau(
+                    optimizer=optimizer,
+                    mode="min",
+                    factor=0.5,
+                    patience=self.patience,
+                ),
+                "monitor": monitor,
+            },
+        }

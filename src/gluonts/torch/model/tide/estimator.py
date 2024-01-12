@@ -137,6 +137,8 @@ class TiDEEstimator(PyTorchLightningEstimator):
         Learning rate (default: ``1e-3``).
     weight_decay
         Weight decay regularization parameter (default: ``1e-8``).
+    patience
+        Patience parameter for learning rate scheduler (default: 10).
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
@@ -182,6 +184,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
         layer_norm: bool = False,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
+        patience: int = 10,
         scaling: Optional[str] = "mean",
         distr_output: DistributionOutput = StudentTOutput(),
         loss: DistributionLoss = NegativeLogLikelihood(),
@@ -225,6 +228,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
 
         self.lr = lr
         self.weight_decay = weight_decay
+        self.patience = patience
         self.distr_output = distr_output
         self.scaling = scaling
         self.loss = loss
@@ -313,6 +317,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
             loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
+            patience=self.patience,
             model_kwargs={
                 "context_length": self.context_length,
                 "prediction_length": self.prediction_length,
