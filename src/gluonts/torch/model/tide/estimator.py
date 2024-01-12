@@ -89,27 +89,27 @@ class TiDEEstimator(PyTorchLightningEstimator):
         Length of the prediction horizon.
     context_length
         Number of time steps prior to prediction time that the model
-        takes as inputs (default: ``4 * prediction_length``).
+        takes as inputs (default: ``prediction_length``).
     feat_proj_hidden_dim
-        Size of the feature projection layer (default: 40).
+        Size of the feature projection layer (default: 4).
     encoder_hidden_dim
-        Size of the dense encoder layer (default: 40).
+        Size of the dense encoder layer (default: 4).
     decoder_hidden_dim
-        Size of the dense decoder layer (default: 40).
+        Size of the dense decoder layer (default: 4).
     temporal_hidden_dim
-        Size of the temporal decoder layer (default: 40).
+        Size of the temporal decoder layer (default: 4).
     distr_hidden_dim
-        Size of the distribution projection layer (default: 40).
+        Size of the distribution projection layer (default: 4).
     num_layers_encoder
-        Number of layers in dense encoder (default: 2).
+        Number of layers in dense encoder (default: 1).
     num_layers_decoder
-        Number of layers in dense decoder (default: 2).
+        Number of layers in dense decoder (default: 1).
     decoder_output_dim
-        Output size of dense decoder (default: 8).
+        Output size of dense decoder (default: 4).
     dropout_rate
         Dropout regularization parameter (default: 0.3).
     num_feat_dynamic_proj
-        Output size of feature projection layer (default: 4).
+        Output size of feature projection layer (default: 2).
     num_feat_dynamic_real
         Number of dynamic real features in the data (default: 0).
     num_feat_static_real
@@ -136,7 +136,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
     scaling
         Which scaling method to use to scale the target values (default: mean).
     batch_size
-        The size of the batches to be used for training (default: 128).
+        The size of the batches to be used for training (default: 32).
     num_batches_per_epoch
         Number of batches to be processed in each training epoch
         (default: 50).
@@ -191,7 +191,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.context_length = context_length or 2 * prediction_length
+        self.context_length = context_length or prediction_length
         self.feat_proj_hidden_dim = feat_proj_hidden_dim or 4
         self.encoder_hidden_dim = encoder_hidden_dim or 4
         self.decoder_hidden_dim = decoder_hidden_dim or 4
@@ -209,10 +209,13 @@ class TiDEEstimator(PyTorchLightningEstimator):
         self.cardinality = (
             cardinality if cardinality and num_feat_static_cat > 0 else [1]
         )
-        self.embedding_dimension = embedding_dimension
+        self.embedding_dimension = (
+            embedding_dimension
+            if embedding_dimension is not None or self.cardinality is None
+            else [16 for cat in self.cardinality]
+        )
 
         self.layer_norm = layer_norm
-
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience

@@ -264,11 +264,7 @@ class TiDEModel(nn.Module):
         self.num_feat_dynamic_proj = num_feat_dynamic_proj
         self.num_feat_static_real = num_feat_static_real
         self.num_feat_static_cat = num_feat_static_cat
-        self.embedding_dimension = (
-            embedding_dimension
-            if embedding_dimension is not None or cardinality is None
-            else [16 for cat in cardinality]
-        )
+        self.embedding_dimension = embedding_dimension
         self.feat_proj_hidden_dim = feat_proj_hidden_dim
         self.num_layers_encoder = num_layers_encoder
         self.num_layers_decoder = num_layers_decoder
