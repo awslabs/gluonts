@@ -121,7 +121,7 @@ class TiDEEstimator(PyTorchLightningEstimator):
         This must be set if ``num_feat_static_cat > 0`` (default: None).
     embedding_dimension
         Dimension of the embeddings for categorical features
-        (default: ``[min(16, (cat+1)//2) for cat in cardinality]``).
+        (default: ``[16 for cat in cardinality]``).
     layer_norm
         Enable layer normalization or not (default: False).
     lr

@@ -231,7 +231,7 @@ class TiDEModel(nn.Module):
         num_feat_static_real: int,
         num_feat_static_cat: int,
         cardinality: List[int],
-        embedding_dimension: Optional[List[int]],
+        embedding_dimension: List[int],
         feat_proj_hidden_dim: int,
         encoder_hidden_dim: int,
         decoder_hidden_dim: int,
@@ -253,10 +253,7 @@ class TiDEModel(nn.Module):
         assert num_feat_static_real > 0
         assert num_feat_static_cat > 0
         assert len(cardinality) == num_feat_static_cat
-        assert (
-            embedding_dimension is None
-            or len(embedding_dimension) == num_feat_static_cat
-        )
+        assert len(embedding_dimension) == num_feat_static_cat
 
         self.context_length = context_length
         self.prediction_length = prediction_length
@@ -275,17 +272,9 @@ class TiDEModel(nn.Module):
         self.decoder_output_dim = decoder_output_dim
         self.dropout_rate = dropout_rate
 
-        # TODO: add decomposition like dlinear
-        # self.decomposition = SeriesDecomp(kernel_size)
-
-        # TODO: the bottleneck is here, the flattened feature is too long,
-        # e.g. H=720,L=720,d=4, then the feature is 5760 dim
         self.proj_flatten_dim = (
             context_length + prediction_length
         ) * num_feat_dynamic_proj
-        # TODO: the above issue makes the encoder input dim too high, which is
-        # 720 + 1 (embedded cat dimention) + 5760=6481, if we add TS
-        # embedding, this is even longer
         encoder_input_dim = (
             context_length
             + num_feat_static_real

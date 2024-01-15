@@ -16,6 +16,7 @@ __all__ = [
     "PyTorchPredictor",
     "DeepNPTSEstimator",
     "DeepAREstimator",
+    "TiDEEstimator",
     "SimpleFeedForwardEstimator",
     "TemporalFusionTransformerEstimator",
     "WaveNetEstimator",
