@@ -95,6 +95,7 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
         future_time_feat = batch["future_time_feat"]
         future_target = batch["future_target"]
         past_observed_values = batch["past_observed_values"]
+        future_observed_values = batch["future_observed_values"]
 
         picnn = self.model.picnn
 
@@ -106,6 +107,7 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
             past_observed_values,
             future_time_feat,
             future_target,
+            future_observed_values,
         )
 
         hidden_state = hidden_state[:, : self.model.context_length]
