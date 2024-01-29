@@ -23,10 +23,10 @@ jobs:
       run: |
         python -m pip install -U pip setuptools wheel
         python -m pip install -U "Cython<3.0"
-        pip install .
-        pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-rotbaum.txt
-        pip install -r requirements/requirements-rotbaum-extra-methods.txt
+        pip install . \
+          -r requirements/requirements-test.txt \
+          -r requirements/requirements-rotbaum.txt \
+          -r requirements/requirements-rotbaum-extra-methods.txt
     - name: Test with pytest
       run: |
         pytest -n2 --timeout 120 --doctest-modules test/ext/rotbaum

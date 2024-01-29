@@ -18,7 +18,6 @@ jobs:
         python-version: '3.8'
     - name: Install dependencies
       run: |
-        python -m pip install -U pip
         python -m pip install setuptools wheel
     - name: Create `dist` folder
       run: |
