@@ -1,3 +1,40 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gluonts"
+authors = [
+    {name = "Amazon", email = "gluon-ts-dev@amazon.com"},
+]
+maintainers = [
+    {name = "Amazon", email = "gluon-ts-dev@amazon.com"},
+]
+description = "Probabilistic time series modeling in Python."
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["deep learning", "machine learning", "AI", "TS"]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+#dependencies = []  # todo: consider adding
+dynamic = ["version"]
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["gluonts*"]  # package names should match these glob patterns (["*"] by default)
+#exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = true  # set false to disable scanning PEP 420 namespaces (true by default)
+include-package-data = true  # to include package data (false by default)
+
+[project.urls]
+documentation = " https://ts.gluon.ai/stable/"
+repository = "https://github.com/awslabs/gluonts/"
+
+[tool.setuptools.dynamic]
+version = {attr = "gluonts.__version__"}
+
 [tool.black]
 line-length = 79
 
@@ -18,13 +55,9 @@ filterwarnings = "ignore"
 
 [tool.ruff]
 line-length = 79
-
 ignore = [
-    # line-length is handled by black
-    "E501",
-
-    # TODO: remove usage of `l`
-    "E741"
+    "E501",  # line-length is handled by black
+    "E741",  # TODO: remove usage of `l`
 ]
 
 exclude = ["src/gluonts/nursery"]
@@ -54,3 +87,6 @@ known_third_party = [
 ]
 line_length = 79
 profile = "black"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
