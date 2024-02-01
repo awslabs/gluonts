@@ -188,9 +188,11 @@ class DeepVARTrainingNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                scale.log()
-                if len(self.target_shape) == 0
-                else scale.squeeze(1).log(),
+                (
+                    scale.log()
+                    if len(self.target_shape) == 0
+                    else scale.squeeze(1).log()
+                ),
             ),
             dim=1,
         )

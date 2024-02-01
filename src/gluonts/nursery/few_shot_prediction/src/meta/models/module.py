@@ -109,7 +109,7 @@ class MetaLightningModule(pl.LightningModule):
                     verbose=True,
                 ),
                 "monitor": self.lr_scheduler_monitor,
-                "frequency": 1
+                "frequency": 1,
                 # If "monitor" references validation metrics, then "frequency" should be set to a
                 # multiple of "trainer.check_val_every_n_epoch".
             },

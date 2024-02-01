@@ -216,12 +216,16 @@ class CausalDeepARNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                scale.log()
-                if len(self.target_shape) == 0
-                else scale.squeeze(1).log(),
-                control_scale.log()
-                if len(self.target_shape) == 0
-                else control_scale.squeeze(1).log(),
+                (
+                    scale.log()
+                    if len(self.target_shape) == 0
+                    else scale.squeeze(1).log()
+                ),
+                (
+                    control_scale.log()
+                    if len(self.target_shape) == 0
+                    else control_scale.squeeze(1).log()
+                ),
             ),
             dim=1,
         )

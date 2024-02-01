@@ -36,6 +36,7 @@ class SplicedBinnedPareto(BinnedUniforms):
             each tail. Default value is 0.05. NB: This symmetric percentile
             can still represent asymmetric upper and lower tails.
     """
+
     arg_constraints = {
         "logits": constraints.real,
         "lower_gp_xi": constraints.positive,

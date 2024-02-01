@@ -127,9 +127,11 @@ def generate_m4_dataset(
 
     start_dates = list(meta_df.StartingDate)
     start_dates = [
-        sd
-        if pd.Timestamp(sd) <= pd.Timestamp("2022")
-        else str(pd.Timestamp("1900"))
+        (
+            sd
+            if pd.Timestamp(sd) <= pd.Timestamp("2022")
+            else str(pd.Timestamp("1900"))
+        )
         for sd in start_dates
     ]
 

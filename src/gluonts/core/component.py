@@ -296,12 +296,16 @@ def validated(base_model=None):
         init_params = inspect.signature(init).parameters
         init_fields = {
             param.name: (
-                param.annotation
-                if param.annotation != inspect.Parameter.empty
-                else Any,
-                param.default
-                if param.default != inspect.Parameter.empty
-                else ...,
+                (
+                    param.annotation
+                    if param.annotation != inspect.Parameter.empty
+                    else Any
+                ),
+                (
+                    param.default
+                    if param.default != inspect.Parameter.empty
+                    else ...
+                ),
             )
             for param in init_params.values()
             if param.name != "self"

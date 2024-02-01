@@ -309,9 +309,11 @@ class WaveNetEstimator(GluonEstimator):
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=instance_sampler,
             past_length=self.context_length,
-            future_length=self.prediction_length
-            if mode == "test"
-            else self.train_window_length,
+            future_length=(
+                self.prediction_length
+                if mode == "test"
+                else self.train_window_length
+            ),
             output_NTC=False,
             time_series_fields=[
                 FieldName.FEAT_TIME,
