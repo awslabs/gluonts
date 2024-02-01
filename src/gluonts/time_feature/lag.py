@@ -105,9 +105,9 @@ def get_lags_for_frequency(
     # normalize offset name, so that both `W` and `W-SUN` refer to `W`
     offset_name = norm_freq_str(offset.name)
 
-    if offset_name == "A":
+    if offset_name in ["A", "Y", "YE"]:
         lags = []
-    elif offset_name == "Q":
+    elif offset_name in ["Q", "QE"]:
         assert (
             offset.n == 1
         ), "Only multiple 1 is supported for quarterly. Use x month instead."
