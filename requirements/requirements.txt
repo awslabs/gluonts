@@ -1,5 +1,5 @@
 numpy~=1.16
-pandas>=1.0,<3
+pandas>=1.0,<2.2.0  # todo: unpin when resolved deprecated frequency
 pydantic>=1.7,<3
 tqdm~=4.23
 toolz~=0.10
