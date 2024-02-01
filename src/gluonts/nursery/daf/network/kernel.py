@@ -105,17 +105,21 @@ class AttentionKernel(Attention):
             _query_weight = nn.Parameter(Tensor(d_hidden, d_hidden))
             self._query_weights.append(_query_weight)
             self._key_weights.append(
-                _query_weight
-                if self.symmetric
-                else nn.Parameter(Tensor(d_hidden, d_hidden)),
+                (
+                    _query_weight
+                    if self.symmetric
+                    else nn.Parameter(Tensor(d_hidden, d_hidden))
+                ),
             )
             if self.bias:
                 _query_bias = nn.Parameter(Tensor(d_hidden))
                 self._query_biases.append(_query_bias)
                 self._key_biases.append(
-                    _query_bias
-                    if self.symmetric
-                    else nn.Parameter(Tensor(d_hidden)),
+                    (
+                        _query_bias
+                        if self.symmetric
+                        else nn.Parameter(Tensor(d_hidden))
+                    ),
                 )
             else:
                 self._query_biases.append(None)

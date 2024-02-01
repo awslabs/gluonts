@@ -16,9 +16,9 @@ from tsbench.config import EnsembleConfig, ModelConfig
 from ._base import Recommender
 
 RECOMMENDER_REGISTRY: Dict[str, Type[Recommender[ModelConfig]]] = {}
-ENSEMBLE_RECOMMENDER_REGISTRY: Dict[
-    str, Type[Recommender[EnsembleConfig]]
-] = {}
+ENSEMBLE_RECOMMENDER_REGISTRY: Dict[str, Type[Recommender[EnsembleConfig]]] = (
+    {}
+)
 
 R = TypeVar("R", bound=Type[Recommender[ModelConfig]])
 E = TypeVar("E", bound=Type[Recommender[EnsembleConfig]])

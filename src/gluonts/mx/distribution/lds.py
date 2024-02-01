@@ -409,9 +409,11 @@ class LDS(Distribution):
             #   (num_samples, batch_size, latent_dim, latent_dim)
             # innovation_coeff_t: (num_samples, batch_size, 1, latent_dim)
             emission_coeff_t, transition_coeff_t, innovation_coeff_t = (
-                _broadcast_param(coeff, axes=[0], sizes=[num_samples])
-                if num_samples is not None
-                else coeff
+                (
+                    _broadcast_param(coeff, axes=[0], sizes=[num_samples])
+                    if num_samples is not None
+                    else coeff
+                )
                 for coeff in [
                     self.emission_coeff[t],
                     self.transition_coeff[t],
@@ -458,9 +460,11 @@ class LDS(Distribution):
             if scale is None
             else F.broadcast_mul(
                 samples,
-                scale.expand_dims(axis=1).expand_dims(axis=0)
-                if num_samples is not None
-                else scale.expand_dims(axis=1),
+                (
+                    scale.expand_dims(axis=1).expand_dims(axis=0)
+                    if num_samples is not None
+                    else scale.expand_dims(axis=1)
+                ),
             )
         )
 

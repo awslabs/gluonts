@@ -132,9 +132,11 @@ class QuantileForecastGenerator(ForecastGenerator):
                 yield QuantileForecast(
                     output.T,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
                 )
@@ -181,9 +183,11 @@ class SampleForecastGenerator(ForecastGenerator):
                 yield SampleForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
@@ -221,9 +225,11 @@ class DistributionForecastGenerator(ForecastGenerator):
                 yield make_distribution_forecast(
                     distr,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])

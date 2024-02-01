@@ -113,6 +113,7 @@ class ZeroInflatedBeta(ZeroAndOneInflatedBeta):
         `(*batch_shape, *event_shape)`.
     F
     """
+
     is_reparameterizable = False
 
     @validated()
@@ -145,6 +146,7 @@ class OneInflatedBeta(ZeroAndOneInflatedBeta):
         `(*batch_shape, *event_shape)`.
     F
     """
+
     is_reparameterizable = False
 
     @validated()

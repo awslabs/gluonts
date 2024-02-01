@@ -66,9 +66,9 @@ def main(
         tracker,
         ensemble_size=size,
         ensemble_weighting=weighting,
-        config_class=MODEL_REGISTRY[model_class]
-        if model_class is not None
-        else None,
+        config_class=(
+            MODEL_REGISTRY[model_class] if model_class is not None else None
+        ),
     )
     df, configs = evaluator.run()
 

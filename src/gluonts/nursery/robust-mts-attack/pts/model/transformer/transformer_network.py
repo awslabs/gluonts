@@ -206,9 +206,11 @@ class TransformerNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                torch.log(scale)
-                if len(self.target_shape) == 0
-                else torch.log(scale.squeeze(1)),
+                (
+                    torch.log(scale)
+                    if len(self.target_shape) == 0
+                    else torch.log(scale.squeeze(1))
+                ),
             ),
             dim=1,
         )

@@ -80,9 +80,7 @@ class GaussianDiffusion(nn.Module):
             if beta_schedule == "linear":
                 betas = np.linspace(1e-4, beta_end, diff_steps)
             elif beta_schedule == "quad":
-                betas = (
-                    np.linspace(1e-4**0.5, beta_end**0.5, diff_steps) ** 2
-                )
+                betas = np.linspace(1e-4**0.5, beta_end**0.5, diff_steps) ** 2
             elif beta_schedule == "const":
                 betas = beta_end * np.ones(diff_steps)
             elif beta_schedule == "jsd":  # 1/T, 1/(T-1), 1/(T-2), ..., 1

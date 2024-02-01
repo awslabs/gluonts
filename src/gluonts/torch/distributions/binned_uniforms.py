@@ -35,6 +35,7 @@ class BinnedUniforms(Distribution):
             These are softmaxed. The tensor is of shape (*batch_shape,)
         validate_args (bool) from the pytorch Distribution class
     """
+
     arg_constraints = {"logits": constraints.real}
     support = constraints.real
     has_rsample = False

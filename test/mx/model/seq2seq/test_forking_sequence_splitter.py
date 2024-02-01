@@ -125,9 +125,11 @@ def test_forking_sequence_with_features(is_train) -> None:
                 pred_length=10,
             ),
             ForkingSequenceSplitter(
-                instance_sampler=ValidationSplitSampler(min_future=dec_len)
-                if is_train
-                else TSplitSampler(),
+                instance_sampler=(
+                    ValidationSplitSampler(min_future=dec_len)
+                    if is_train
+                    else TSplitSampler()
+                ),
                 enc_len=enc_len,
                 dec_len=dec_len,
                 num_forking=num_forking,

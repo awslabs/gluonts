@@ -213,9 +213,11 @@ class SelfAttentionNetwork(HybridBlock):
                 covariates.append(
                     feat_static_real.expand_dims(axis=1).repeat(
                         axis=1,
-                        repeats=self.context_length
-                        if is_past
-                        else self.prediction_length,
+                        repeats=(
+                            self.context_length
+                            if is_past
+                            else self.prediction_length
+                        ),
                     )
                 )
             if len(covariates) > 0:
@@ -231,9 +233,11 @@ class SelfAttentionNetwork(HybridBlock):
                 categories.append(
                     feat_static_cat.expand_dims(axis=1).repeat(
                         axis=1,
-                        repeats=self.context_length
-                        if is_past
-                        else self.prediction_length,
+                        repeats=(
+                            self.context_length
+                            if is_past
+                            else self.prediction_length
+                        ),
                     )
                 )
             if len(categories) > 0:

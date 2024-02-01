@@ -170,12 +170,14 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
                 supps_size=self.support_set_size,
                 length=self.support_length,
                 dataset=self.dataset,
-                cheat_query=cheat_query[0]
-                if np.random.rand() < self.cheat
-                else None,
-                index_iterator=self.index_iterator
-                if self.catch22_nn is None
-                else iter(self.catch22_nn[query_idx]),
+                cheat_query=(
+                    cheat_query[0] if np.random.rand() < self.cheat else None
+                ),
+                index_iterator=(
+                    self.index_iterator
+                    if self.catch22_nn is None
+                    else iter(self.catch22_nn[query_idx])
+                ),
             )
             yield Triplet(support_set, query_past, query_future)
 
@@ -311,9 +313,11 @@ class SequentialTripletDataset(Dataset[Triplet]):  # type: ignore
             # but this will be slower
             # seed=self.seed + index if self.seed else None,
             cheat_query=cheat_query if np.random.rand() < self.cheat else None,
-            index_iterator=self.index_iterator
-            if self.catch22_nn is None
-            else iter(self.catch22_nn[query_past[0].item_id]),
+            index_iterator=(
+                self.index_iterator
+                if self.catch22_nn is None
+                else iter(self.catch22_nn[query_past[0].item_id])
+            ),
         )
         return Triplet(support_set, query_past, query_future)
 

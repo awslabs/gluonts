@@ -177,9 +177,9 @@ class GluonEstimator(Estimator):
         transformation = self.create_transformation()
 
         with env._let(max_idle_transforms=max(len(training_data), 100)):
-            transformed_training_data: Union[
-                TransformedDataset, Cached
-            ] = transformation.apply(training_data)
+            transformed_training_data: Union[TransformedDataset, Cached] = (
+                transformation.apply(training_data)
+            )
             if cache_data:
                 transformed_training_data = Cached(transformed_training_data)
 

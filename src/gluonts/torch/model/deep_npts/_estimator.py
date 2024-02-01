@@ -343,9 +343,11 @@ class DeepNPTSEstimator(Estimator):
         )
 
         data_loader = self.training_data_loader(
-            transformed_dataset
-            if not cache_data
-            else Cached(transformed_dataset),
+            (
+                transformed_dataset
+                if not cache_data
+                else Cached(transformed_dataset)
+            ),
             batch_size=self.batch_size,
             num_batches_per_epoch=self.num_batches_per_epoch,
         )
