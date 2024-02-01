@@ -147,7 +147,7 @@ def get_lags_for_frequency(
         )
     else:
         raise ValueError(
-            f"invalid frequency | `freq_str={freq_str}` -> `offset_name={offset_name}`"
+            f"invalid frequency: {freq_str=}, {offset_name=}"
         )
 
     # flatten lags list and filter
