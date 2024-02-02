@@ -226,9 +226,11 @@ class WaveNetEstimator(GluonEstimator):
                 self.freq,
                 {
                     "H": 7 * 24,
+                    "h": 7 * 24,
                     "D": 7,
                     "W": 52,
                     "M": 12,
+                    "ME": 12,
                     "B": 7 * 5,
                     "min": 24 * 60,
                 },
