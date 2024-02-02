@@ -23,7 +23,7 @@ jobs:
       run: |
         git clone https://github.com/awslabs/gluonts --branch $(curl https://api.github.com/repos/awslabs/gluonts/releases/latest | grep tag_name | cut -d : -f 2,3 | tr -d \"\ | tr -d \,\ )
         cd gluon-ts
-        python -m pip install pip==20.2
+        pip install pip==20.2
         pip install "mxnet~=1.8.0" "torch==1.10.0" "pytorch-lightning~=1.5" \
           -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip install -e ".[shell]" \
