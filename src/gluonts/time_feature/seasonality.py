@@ -22,11 +22,15 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_SEASONALITIES = {
     "S": 3600,  # 1 hour
+    "s": 3600,  # 1 hour
     "T": 1440,  # 1 day
+    "min": 1440,  # 1 day
     "H": 24,  # 1 day
+    "h": 24,  # 1 day
     "D": 1,  # 1 day
     "W": 1,  # 1 week
     "M": 12,
+    "ME": 12,
     "B": 5,
     "Q": 4,
 }
@@ -36,7 +40,7 @@ def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
     """
     Return the seasonality of a given frequency:
 
-    >>> get_seasonality("2H")
+    >>> get_seasonality("2h")
     12
     """
     offset = pd.tseries.frequencies.to_offset(freq)

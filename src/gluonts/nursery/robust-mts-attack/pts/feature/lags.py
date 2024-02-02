@@ -22,13 +22,13 @@ def lags_for_fourier_time_features_from_frequency(
     offset = to_offset(freq_str)
     multiple, granularity = offset.n, offset.name
 
-    if granularity == "M":
+    if granularity in ("M", "ME"):
         lags = [[1, 12]]
     elif granularity == "D":
         lags = [[1, 7, 14]]
     elif granularity == "B":
         lags = [[1, 2]]
-    elif granularity == "H":
+    elif granularity in ("H", "h"):
         lags = [[1, 24, 168]]
     elif granularity in ("T", "min"):
         lags = [[1, 4, 12, 24, 48]]
