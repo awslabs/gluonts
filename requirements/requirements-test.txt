@@ -1,4 +1,4 @@
-pandas>=1.1
+pandas>=1.1,<2.2.0
 flaky~=3.6
 pytest-cov==2.6.*
 pytest-timeout~=1.3
