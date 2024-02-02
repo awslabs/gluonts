@@ -221,7 +221,11 @@ class DeepARModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
         future_target: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,]:
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]:
         context = past_target[..., -self.context_length :]
         observed_context = past_observed_values[..., -self.context_length :]
 

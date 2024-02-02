@@ -194,9 +194,11 @@ class TransformerNetwork(mx.gluon.HybridBlock):
         # prediction too(batch_size, num_features + prod(target_shape))
         static_feat = F.concat(
             embedded_cat,
-            F.log(scale)
-            if len(self.target_shape) == 0
-            else F.log(scale.squeeze(axis=1)),
+            (
+                F.log(scale)
+                if len(self.target_shape) == 0
+                else F.log(scale.squeeze(axis=1))
+            ),
             dim=1,
         )
 

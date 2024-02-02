@@ -180,21 +180,21 @@ class ForkingSequenceSplitter(FlatMapTransformation):
                         # (Fortran) ordering with strides =
                         # (dtype, dtype*n_rows)
                         stride = decoder_fields.strides
-                        out[self._future(ts_field)][
-                            pad_length_dec:
-                        ] = as_strided(
-                            decoder_fields,
-                            shape=(
-                                self.num_forking - pad_length_dec,
-                                self.dec_len,
-                                ts_len,
-                            ),
-                            # strides for 2D array expanded to 3D array of
-                            # shape (dim1, dim2, dim3) =(1, n_rows, n_cols).
-                            # For transposed data, strides = (dtype, dtype *
-                            # dim1, dtype*dim1*dim2) = (dtype, dtype,
-                            # dtype*n_rows).
-                            strides=stride[0:1] + stride,
+                        out[self._future(ts_field)][pad_length_dec:] = (
+                            as_strided(
+                                decoder_fields,
+                                shape=(
+                                    self.num_forking - pad_length_dec,
+                                    self.dec_len,
+                                    ts_len,
+                                ),
+                                # strides for 2D array expanded to 3D array of
+                                # shape (dim1, dim2, dim3) =(1, n_rows, n_cols).
+                                # For transposed data, strides = (dtype, dtype *
+                                # dim1, dtype*dim1*dim2) = (dtype, dtype,
+                                # dtype*n_rows).
+                                strides=stride[0:1] + stride,
+                            )
                         )
 
                     # edge case for prediction_length = 1

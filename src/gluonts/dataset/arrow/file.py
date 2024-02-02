@@ -51,16 +51,13 @@ class File:
             return ArrowStreamFile(path)
 
     @abc.abstractmethod
-    def metadata(self) -> Dict[str, str]:
-        ...
+    def metadata(self) -> Dict[str, str]: ...
 
     @abc.abstractmethod
-    def __iter__(self):
-        ...
+    def __iter__(self): ...
 
     @abc.abstractmethod
-    def __len__(self):
-        ...
+    def __len__(self): ...
 
 
 @dataclass

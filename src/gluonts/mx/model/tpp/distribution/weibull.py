@@ -34,6 +34,7 @@ class Weibull(TPPDistribution):
     parameter :math:`\lambda > 0` and the shape parameter :math:`k > 0`, and
     :math:`\lambda = b^{-1/k}`.
     """
+
     is_reparametrizable = True
 
     @validated()

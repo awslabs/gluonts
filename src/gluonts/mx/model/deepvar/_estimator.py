@@ -91,10 +91,12 @@ class FourierDateFeatures:
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     features = {
         "M": ["weekofyear"],
+        "ME": ["weekofyear"],
         "W": ["daysinmonth", "weekofyear"],
         "D": ["dayofweek"],
         "B": ["dayofweek", "dayofyear"],
         "H": ["hour", "dayofweek"],
+        "h": ["hour", "dayofweek"],
         "min": ["minute", "hour", "dayofweek"],
         "T": ["minute", "hour", "dayofweek"],
     }
@@ -114,13 +116,13 @@ def get_lags_for_frequency(
 ) -> List[int]:
     offset = to_offset(freq_str)
 
-    if offset.name == "M":
+    if offset.name in ["M", "ME"]:
         lags = [[1, 12]]
     elif offset.name == "D":
         lags = [[1, 7, 14]]
     elif offset.name == "B":
         lags = [[1, 2]]
-    elif offset.name == "H":
+    elif offset.name in ["H", "h"]:
         lags = [[1, 24, 168]]
     elif offset.name in ("min", "T"):
         lags = [[1, 4, 12, 24, 48]]
@@ -304,9 +306,9 @@ class DeepVAREstimator(GluonEstimator):
         self.scaling = scaling
 
         if self.use_marginal_transformation:
-            self.output_transform: Optional[
-                Callable
-            ] = cdf_to_gaussian_forward_transform
+            self.output_transform: Optional[Callable] = (
+                cdf_to_gaussian_forward_transform
+            )
         else:
             self.output_transform = None
 

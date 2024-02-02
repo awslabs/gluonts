@@ -101,9 +101,7 @@ class GPArgProj(gluon.HybridBlock):
         D_vector = self.proj[1](x_plus_w).squeeze(axis=-1)
 
         d_bias = (
-            0.0
-            if self.sigma_init == 0.0
-            else inv_softplus(self.sigma_init**2)
+            0.0 if self.sigma_init == 0.0 else inv_softplus(self.sigma_init**2)
         )
 
         D_positive = (

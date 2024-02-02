@@ -177,12 +177,14 @@ def schedule(
             tags=[
                 {"Key": "Experiment", "Value": experiment},
             ],
-            instance_type="local"
-            if local
-            else (
-                configuration["__instance_type__"]
-                if "__instance_type__" in configuration
-                else instance_type
+            instance_type=(
+                "local"
+                if local
+                else (
+                    configuration["__instance_type__"]
+                    if "__instance_type__" in configuration
+                    else instance_type
+                )
             ),
             instance_count=1,
             volume_size=30,

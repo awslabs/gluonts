@@ -133,9 +133,11 @@ def main():
             )
             best_perturbation = attack.attack_batch(
                 batch,
-                true_future_target=future_target
-                if device == "cpu"
-                else torch.from_numpy(future_target).float().to(device),
+                true_future_target=(
+                    future_target
+                    if device == "cpu"
+                    else torch.from_numpy(future_target).float().to(device)
+                ),
             )
 
             batch_res = AttackResults(

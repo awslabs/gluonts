@@ -187,6 +187,7 @@ class TPPDistributionOutput(DistributionOutput):
     1. Location param cannot be specified (all distributions must start at 0).
     2. The return type is either TPPDistribution or TPPTransformedDistribution.
     """
+
     distr_cls: type
 
     def distribution(

@@ -263,13 +263,13 @@ def calc_loss(
             if (
                 true_future_target[:, attack_idx][..., target_items] != 0
             ).prod() == 0:
-                mape[attack_type][
-                    testset_idx : testset_idx + batch_size
-                ] = np.abs(
-                    forecasts[attack_type][i][:, :, attack_idx][
-                        ..., target_items
-                    ].mean(1)
-                    - true_future_target[:, attack_idx][..., target_items]
+                mape[attack_type][testset_idx : testset_idx + batch_size] = (
+                    np.abs(
+                        forecasts[attack_type][i][:, :, attack_idx][
+                            ..., target_items
+                        ].mean(1)
+                        - true_future_target[:, attack_idx][..., target_items]
+                    )
                 )
                 mse[attack_type][testset_idx : testset_idx + batch_size] = (
                     forecasts[attack_type][i][:, :, attack_idx][
@@ -290,14 +290,14 @@ def calc_loss(
                         j, testset_idx : testset_idx + batch_size
                     ] = quantile_loss(true, pred, quantile)
             else:
-                mape[attack_type][
-                    testset_idx : testset_idx + batch_size
-                ] = np.abs(
-                    forecasts[attack_type][i][:, :, attack_idx][
-                        ..., target_items
-                    ].mean(1)
-                    / true_future_target[:, attack_idx][..., target_items]
-                    - 1
+                mape[attack_type][testset_idx : testset_idx + batch_size] = (
+                    np.abs(
+                        forecasts[attack_type][i][:, :, attack_idx][
+                            ..., target_items
+                        ].mean(1)
+                        / true_future_target[:, attack_idx][..., target_items]
+                        - 1
+                    )
                 )
                 mse[attack_type][testset_idx : testset_idx + batch_size] = (
                     mape[attack_type][testset_idx : testset_idx + batch_size]

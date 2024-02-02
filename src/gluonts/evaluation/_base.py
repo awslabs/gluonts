@@ -378,9 +378,9 @@ class Evaluator:
         return {
             "item_id": forecast.item_id,
             "forecast_start": forecast.start_date,
-            "MSE": mse(pred_target, mean_fcst)
-            if mean_fcst is not None
-            else None,
+            "MSE": (
+                mse(pred_target, mean_fcst) if mean_fcst is not None else None
+            ),
             "abs_error": abs_error(pred_target, median_fcst),
             "abs_target_sum": abs_target_sum(pred_target),
             "abs_target_mean": abs_target_mean(pred_target),
