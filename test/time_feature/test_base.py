@@ -17,15 +17,15 @@ from gluonts.time_feature import norm_freq_str
 
 
 def test_norm_freq_str():
-    assert norm_freq_str(to_offset("Y").name) == "A"
-    assert norm_freq_str(to_offset("YS").name) == "A"
-    assert norm_freq_str(to_offset("A").name) == "A"
-    assert norm_freq_str(to_offset("AS").name) == "A"
+    assert norm_freq_str(to_offset("Y").name) in ["A", "YE"]
+    assert norm_freq_str(to_offset("YS").name) in ["A", "Y"]
+    assert norm_freq_str(to_offset("A").name) in ["A", "YE"]
+    assert norm_freq_str(to_offset("AS").name) in ["A", "Y"]
 
-    assert norm_freq_str(to_offset("Q").name) == "Q"
+    assert norm_freq_str(to_offset("Q").name) in ["Q", "QE"]
     assert norm_freq_str(to_offset("QS").name) == "Q"
 
-    assert norm_freq_str(to_offset("M").name) == "M"
-    assert norm_freq_str(to_offset("MS").name) == "M"
+    assert norm_freq_str(to_offset("M").name) in ["M", "ME"]
+    assert norm_freq_str(to_offset("MS").name) in ["M", "ME"]
 
-    assert norm_freq_str(to_offset("S").name) == "S"
+    assert norm_freq_str(to_offset("S").name) in ["S", "s"]

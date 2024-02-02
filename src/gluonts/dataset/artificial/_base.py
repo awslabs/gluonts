@@ -112,7 +112,7 @@ class ConstantDataset(ArtificialDataset):
         self,
         num_timeseries: int = 10,
         num_steps: int = 30,
-        freq: str = "1H",
+        freq: str = "1h",
         start: str = "2000-01-01 00:00:00",
         # Generates constant dataset of 0s with explicit NaN missing values
         is_nan: bool = False,
