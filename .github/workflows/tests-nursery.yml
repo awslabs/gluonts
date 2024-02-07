@@ -29,15 +29,16 @@ jobs:
       run: pip install mxnet~=1.7.0
     - name: Install other dependencies
       run: |
-        python -m pip install -U pip
-        pip install torch==1.10.0+cpu --no-cache-dir -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install pytorch-lightning~=1.5
-        pip install -e ".[shell]"
-        pip install -r requirements/requirements-test.txt
-        pip install -r requirements/requirements-extras-sagemaker-sdk.txt
-        pip install -r requirements/requirements-extras-m-competitions.txt
-        pip install -r requirements/requirements-extras-anomaly-evaluation.txt
-        pip install -r requirements/requirements-extras-autogluon.txt
+        pip install "torch==1.10.0" "pytorch-lightning~=1.5" \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install 
+        pip install -e ".[shell]" \
+          -r requirements/requirements-test.txt \
+          -r requirements/requirements-extras-sagemaker-sdk.txt \
+          -r requirements/requirements-extras-m-competitions.txt \
+          -r requirements/requirements-rotbaum.txt \
+          -r requirements/requirements-extras-anomaly-evaluation.txt \
+          -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules test/nursery
