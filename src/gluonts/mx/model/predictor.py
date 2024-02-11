@@ -26,7 +26,7 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
-    predict_to_numpy,
+    to_numpy,
 )
 from gluonts.model.predictor import OutputTransform, Predictor
 from gluonts.mx.batchify import batchify
@@ -43,9 +43,14 @@ from gluonts.mx.util import (
 from gluonts.transform import Transformation
 
 
-@predict_to_numpy.register(mx.gluon.Block)
-def _(prediction_net: mx.gluon.Block, kwargs) -> np.ndarray:
-    return prediction_net(*kwargs.values()).asnumpy()
+@to_numpy.register(mx.nd.NDArray)
+def _(x: mx.nd.NDArray) -> np.ndarray:
+    return x.asnumpy()
+
+
+@to_numpy.register(mx.sym.Symbol)
+def _(x: mx.sym.Symbol) -> np.ndarray:
+    return x.asnumpy()
 
 
 class GluonPredictor(Predictor):

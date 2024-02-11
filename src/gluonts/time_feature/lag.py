@@ -105,14 +105,14 @@ def get_lags_for_frequency(
     # normalize offset name, so that both `W` and `W-SUN` refer to `W`
     offset_name = norm_freq_str(offset.name)
 
-    if offset_name == "A":
+    if offset_name in ["A", "Y", "YE"]:
         lags = []
-    elif offset_name == "Q":
+    elif offset_name in ["Q", "QE"]:
         assert (
             offset.n == 1
         ), "Only multiple 1 is supported for quarterly. Use x month instead."
         lags = _make_lags_for_month(offset.n * 3.0)
-    elif offset_name == "M":
+    elif offset_name in ["M", "ME"]:
         lags = _make_lags_for_month(offset.n)
     elif offset_name == "W":
         lags = _make_lags_for_week(offset.n)
@@ -124,14 +124,14 @@ def get_lags_for_frequency(
         lags = _make_lags_for_day(
             offset.n, days_in_week=5, days_in_month=22
         ) + _make_lags_for_week(offset.n / 5.0)
-    elif offset_name == "H":
+    elif offset_name in ["H", "h"]:
         lags = (
             _make_lags_for_hour(offset.n)
             + _make_lags_for_day(offset.n / 24)
             + _make_lags_for_week(offset.n / (24 * 7))
         )
     # minutes
-    elif offset_name == "T":
+    elif offset_name in ["T", "min"]:
         lags = (
             _make_lags_for_minute(offset.n)
             + _make_lags_for_hour(offset.n / 60)
@@ -139,14 +139,14 @@ def get_lags_for_frequency(
             + _make_lags_for_week(offset.n / (60 * 24 * 7))
         )
     # second
-    elif offset_name == "S":
+    elif offset_name in ["S", "s"]:
         lags = (
             _make_lags_for_second(offset.n)
             + _make_lags_for_minute(offset.n / 60)
             + _make_lags_for_hour(offset.n / (60 * 60))
         )
     else:
-        raise Exception("invalid frequency")
+        raise ValueError(f"invalid frequency: {freq_str=}, {offset_name=}")
 
     # flatten lags list and filter
     lags = [

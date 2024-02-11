@@ -254,13 +254,17 @@ class TreePredictor(RepresentablePredictor):
                 target_data[:, train_QRX_only_using_timestep],
             )
             self.model_list = [
-                QRX(
-                    xgboost_params=self.model_params,
-                    min_bin_size=self.min_bin_size,
-                    model=self.model_list[train_QRX_only_using_timestep].model,
+                (
+                    QRX(
+                        xgboost_params=self.model_params,
+                        min_bin_size=self.min_bin_size,
+                        model=self.model_list[
+                            train_QRX_only_using_timestep
+                        ].model,
+                    )
+                    if i != train_QRX_only_using_timestep
+                    else self.model_list[i]
                 )
-                if i != train_QRX_only_using_timestep
-                else self.model_list[i]
                 for i in range(n_models)
             ]
             with concurrent.futures.ThreadPoolExecutor(

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Type
+from typing import List, Tuple, Type
 
 import numpy as np
 from mxnet.gluon import HybridBlock, nn
@@ -487,7 +487,7 @@ class TemporalFusionTransformerPredictionNetwork(
         feat_dynamic_cat: Tensor,
         feat_static_real: Tensor,
         feat_static_cat: Tensor,
-    ):
+    ) -> Tuple[Tuple[Tensor, ...], Tensor, Tensor]:
         (
             past_covariates,
             future_covariates,
@@ -515,5 +515,4 @@ class TemporalFusionTransformerPredictionNetwork(
         )
 
         preds = self._postprocess(F, preds, offset, scale)
-        preds = F.swapaxes(preds, dim1=1, dim2=2)
-        return preds
+        return (preds,), None, None

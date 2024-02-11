@@ -116,6 +116,7 @@ class BoxCoxTransform(Bijection):
         `tol_lambda_1`
     F
     """
+
     arg_names = ["box_cox.lambda_1", "box_cox.lambda_2"]
 
     @validated()

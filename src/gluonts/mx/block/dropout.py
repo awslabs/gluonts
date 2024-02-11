@@ -231,9 +231,11 @@ class RNNZoneoutCell(ModifierCell):
         # mask as output, instead of simply copy output to the first element
         # in case that the base cell is ResidualCell
         new_states = [
-            F.where(output_mask, next_states[0], states[0])
-            if p_outputs != 0.0
-            else next_states[0]
+            (
+                F.where(output_mask, next_states[0], states[0])
+                if p_outputs != 0.0
+                else next_states[0]
+            )
         ]
         new_states.extend(
             [

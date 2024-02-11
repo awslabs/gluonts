@@ -330,12 +330,10 @@ class Periods(_BasePeriod):
         return len(self.data)
 
     @overload
-    def __getitem__(self, idx: int) -> Period:
-        ...
+    def __getitem__(self, idx: int) -> Period: ...
 
     @overload
-    def __getitem__(self, idx: slice) -> Periods:
-        ...
+    def __getitem__(self, idx: slice) -> Periods: ...
 
     def __getitem__(self, idx):
         if _is_number(idx):

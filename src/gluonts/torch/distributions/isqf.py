@@ -722,7 +722,7 @@ class ISQFOutput(DistributionOutput):
     ) -> None:
         # ISQF reduces to IQF when num_pieces = 1
 
-        super().__init__(self)
+        super().__init__()
 
         assert (
             isinstance(num_pieces, int) and num_pieces > 0

@@ -102,9 +102,11 @@ class NBEATSEnsemblePredictor(Predictor):
                 output,
                 start_date=start_date,
                 freq=start_date.freqstr,
-                item_id=item[FieldName.ITEM_ID]
-                if FieldName.ITEM_ID in item
-                else None,
+                item_id=(
+                    item[FieldName.ITEM_ID]
+                    if FieldName.ITEM_ID in item
+                    else None
+                ),
                 info=item["info"] if "info" in item else None,
             )
 

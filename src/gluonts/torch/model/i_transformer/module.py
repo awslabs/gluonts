@@ -20,6 +20,7 @@ from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
+from gluonts.torch.util import weighted_average
 
 
 class ITransformerModel(nn.Module):
@@ -179,3 +180,18 @@ class ITransformerModel(nn.Module):
         # project to distribution arguments
         distr_args = self.args_proj(projection_out_transpose)
         return distr_args, loc, scale
+
+    def loss(
+        self,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+    ) -> torch.Tensor:
+        distr_args, loc, scale = self(
+            past_target=past_target, past_observed_values=past_observed_values
+        )
+        loss = self.distr_output.loss(
+            target=future_target, distr_args=distr_args, loc=loc, scale=scale
+        )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

@@ -57,12 +57,12 @@ def get_mixed_pattern(unit_length=16, num_duplicates=1000):
             for j in range(num_duplicates):
                 context = torch.arange(context_length, dtype=torch.float)
                 for i in range(1, pattern_number):
-                    context[
-                        unit_length * (i - 1) : unit_length * i
-                    ] = _get_mixed_pattern(
-                        context[unit_length * (i - 1) : unit_length * i]
-                        - unit_length * (i - 1),
-                        pattern[(gid + i) % pattern_number],
+                    context[unit_length * (i - 1) : unit_length * i] = (
+                        _get_mixed_pattern(
+                            context[unit_length * (i - 1) : unit_length * i]
+                            - unit_length * (i - 1),
+                            pattern[(gid + i) % pattern_number],
+                        )
                     )
                 ts_sample = torch.cat(
                     [

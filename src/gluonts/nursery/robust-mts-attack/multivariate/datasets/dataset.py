@@ -121,9 +121,11 @@ def make_multivariate_dataset(
         align_data=False, num_test_dates=num_test_dates, max_target_dim=dim
     )
     return MultivariateDatasetInfo(
-        dataset_name
-        if dataset_benchmark_name is None
-        else dataset_benchmark_name,
+        (
+            dataset_name
+            if dataset_benchmark_name is None
+            else dataset_benchmark_name
+        ),
         grouper_train(train_ds),
         grouper_test(test_ds),
         prediction_length,

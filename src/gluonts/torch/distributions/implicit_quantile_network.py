@@ -201,14 +201,27 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     def domain_map(cls, *args):
         return args
 
-    def distribution(self, distr_args, loc=0, scale=None) -> Distribution:
+    def distribution(
+        self, distr_args, loc=0, scale=None
+    ) -> ImplicitQuantileNetwork:
         (outputs, taus) = distr_args
 
-        if scale is None:
-            return self.distr_cls(outputs=outputs, taus=taus)
-        else:
-            return self.distr_cls(outputs=loc + outputs * scale, taus=taus)
+        if scale is not None:
+            outputs = outputs * scale
+        if loc is not None:
+            outputs = outputs + loc
+        return self.distr_cls(outputs=outputs, taus=taus)
 
     @property
     def event_shape(self):
         return ()
+
+    def loss(
+        self,
+        target: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, ...],
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        distribution = self.distribution(distr_args, loc=loc, scale=scale)
+        return distribution.quantile_loss(target)

@@ -15,6 +15,7 @@ from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
+
 from gluonts.core.component import validated
 from gluonts.torch.modules.feature import (
     FeatureEmbedder as BaseFeatureEmbedder,
@@ -79,7 +80,7 @@ class FeatureProjector(nn.Module):
         if self._num_features > 1:
             feature_slices = torch.split(features, self.feature_dims, dim=-1)
         else:
-            feature_slices = [features]
+            feature_slices = tuple([features])
 
         return [
             proj(feat_slice)

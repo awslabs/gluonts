@@ -37,6 +37,7 @@ class GeneralizedPareto(Distribution):
         Tensor containing the beta scale parameters. The tensor is of
         shape (*batch_shape, 1)
     """
+
     arg_constraints = {
         "xi": constraints.positive,
         "beta": constraints.positive,

@@ -45,11 +45,10 @@ def log_once(msg):
         LOG_CACHE.add(msg)
 
 
-# different deep learning frameworks generate predictions and the tensor to
-# numpy conversion differently, use a dispatching function to prevent needing
-# a ForecastGenerators for each framework
+# Convert tensors from different deep learning frameworks to numpy. We use a dispatching
+# function to prevent needing a ForecastGenerators for each framework.
 @singledispatch
-def predict_to_numpy(prediction_net, kwargs) -> np.ndarray:
+def to_numpy(x) -> np.ndarray:
     raise NotImplementedError
 
 
@@ -116,21 +115,28 @@ class QuantileForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
-            outputs = predict_to_numpy(prediction_net, inputs)
-            if output_transform is not None:
-                outputs = output_transform(batch, outputs)
+            (outputs,), loc, scale = prediction_net(*inputs.values())
+            outputs = to_numpy(outputs)
+            if scale is not None:
+                outputs = outputs * to_numpy(scale[..., None])
+            if loc is not None:
+                outputs = outputs + to_numpy(loc[..., None])
 
+            if output_transform is not None:
+                log_once(OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG)
             if num_samples:
                 log_once(NOT_SAMPLE_BASED_MSG)
 
             i = -1
             for i, output in enumerate(outputs):
                 yield QuantileForecast(
-                    output,
+                    output.T,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
                 )
@@ -153,14 +159,14 @@ class SampleForecastGenerator(ForecastGenerator):
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
-            outputs = predict_to_numpy(prediction_net, inputs)
+            outputs = to_numpy(prediction_net(*inputs.values()))
             if output_transform is not None:
                 outputs = output_transform(batch, outputs)
             if num_samples:
                 num_collected_samples = outputs[0].shape[0]
                 collected_samples = [outputs]
                 while num_collected_samples < num_samples:
-                    outputs = predict_to_numpy(prediction_net, inputs)
+                    outputs = to_numpy(prediction_net(*inputs.values()))
                     if output_transform is not None:
                         outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
@@ -177,9 +183,11 @@ class SampleForecastGenerator(ForecastGenerator):
                 yield SampleForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
@@ -217,9 +225,11 @@ class DistributionForecastGenerator(ForecastGenerator):
                 yield make_distribution_forecast(
                     distr,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])

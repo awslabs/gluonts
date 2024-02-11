@@ -21,7 +21,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     AsNumpyArray,
     Transformation,
@@ -35,7 +34,7 @@ from gluonts.transform import (
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import DistributionOutput, StudentTOutput
+from gluonts.torch.distributions import Output, StudentTOutput
 
 from .lightning_module import ITransformerLightningModule
 
@@ -90,9 +89,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
     num_parallel_samples
         Number of samples per time series to that the resulting predictor
         should produce (default: 100).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 32).
     num_batches_per_epoch
@@ -125,8 +121,7 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
-        distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
+        distr_output: Output = StudentTOutput(),
         num_parallel_samples: int = 100,
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
@@ -151,7 +146,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
         self.weight_decay = weight_decay
         self.distr_output = distr_output
         self.num_parallel_samples = num_parallel_samples
-        self.loss = loss
         self.scaling = scaling
         self.d_model = d_model
         self.nhead = nhead
@@ -191,7 +185,6 @@ class ITransformerEstimator(PyTorchLightningEstimator):
 
     def create_lightning_module(self) -> pl.LightningModule:
         return ITransformerLightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             num_parallel_samples=self.num_parallel_samples,

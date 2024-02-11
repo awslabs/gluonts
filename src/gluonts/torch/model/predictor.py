@@ -25,17 +25,17 @@ from gluonts.model.forecast import Forecast
 from gluonts.model.forecast_generator import (
     ForecastGenerator,
     SampleForecastGenerator,
-    predict_to_numpy,
+    to_numpy,
 )
 from gluonts.model.predictor import OutputTransform, RepresentablePredictor
 from gluonts.torch.batchify import batchify
 from gluonts.torch.util import resolve_device
-from gluonts.transform import Transformation, SelectFields
+from gluonts.transform import SelectFields, Transformation
 
 
-@predict_to_numpy.register(nn.Module)
-def _(prediction_net: nn.Module, kwargs) -> np.ndarray:
-    return prediction_net(**kwargs).cpu().numpy()
+@to_numpy.register(torch.Tensor)
+def _(x: torch.Tensor) -> np.ndarray:
+    return x.cpu().detach().numpy()
 
 
 class PyTorchPredictor(RepresentablePredictor):
@@ -50,7 +50,7 @@ class PyTorchPredictor(RepresentablePredictor):
         forecast_generator: ForecastGenerator = SampleForecastGenerator(),
         output_transform: Optional[OutputTransform] = None,
         lead_time: int = 0,
-        device: str = "auto",
+        device: Union[str, torch.device] = "auto",
     ) -> None:
         super().__init__(prediction_length, lead_time=lead_time)
         self.input_names = input_names

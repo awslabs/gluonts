@@ -13,31 +13,35 @@
 
 import lightning.pytorch as pl
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from gluonts.core.component import validated
+
 from gluonts.itertools import select
+from gluonts.torch.model.lightning_util import has_validation_loop
 
-from .module import SimpleFeedForwardModel
+
+from .module import TiDEModel
 
 
-class SimpleFeedForwardLightningModule(pl.LightningModule):
+class TiDELightningModule(pl.LightningModule):
     """
     A ``pl.LightningModule`` class that can be used to train a
-    ``SimpleFeedForwardModel`` with PyTorch Lightning.
+    ``TiDEModel`` with PyTorch Lightning.
 
-    This is a thin layer around a (wrapped) ``SimpleFeedForwardModel`` object,
+    This is a thin layer around a (wrapped) ``TiDEModel`` object,
     that exposes the methods to evaluate training and validation loss.
 
     Parameters
     ----------
     model_kwargs
-        Keyword arguments to construct the ``SimpleFeedForwardModel`` to be trained.
-    loss
-        Loss function to be used for training.
+        Keyword arguments to construct the ``TiDEModel`` to be trained.
     lr
         Learning rate.
     weight_decay
         Weight decay regularization parameter.
+    patience
+        Patience parameter for learning rate scheduler.
     """
 
     @validated()
@@ -46,16 +50,18 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         model_kwargs: dict,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
+        patience: int = 10,
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.model = SimpleFeedForwardModel(**model_kwargs)
+        self.model = TiDEModel(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay
+        self.patience = patience
         self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
-        return self.model.forward(*args, **kwargs)
+        return self.model(*args, **kwargs)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
         """
@@ -66,7 +72,6 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
             future_target=batch["future_target"],
             future_observed_values=batch["future_observed_values"],
         ).mean()
-
         self.log(
             "train_loss",
             train_loss,
@@ -95,8 +100,24 @@ class SimpleFeedForwardLightningModule(pl.LightningModule):
         """
         Returns the optimizer to use.
         """
-        return torch.optim.Adam(
+        optimizer = torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,
             weight_decay=self.weight_decay,
         )
+        monitor = (
+            "val_loss" if has_validation_loop(self.trainer) else "train_loss"
+        )
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": ReduceLROnPlateau(
+                    optimizer=optimizer,
+                    mode="min",
+                    factor=0.5,
+                    patience=self.patience,
+                ),
+                "monitor": monitor,
+            },
+        }

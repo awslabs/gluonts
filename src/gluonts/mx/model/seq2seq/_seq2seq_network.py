@@ -11,6 +11,8 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from typing import Tuple
+
 import mxnet as mx
 
 from gluonts.core.component import validated
@@ -157,7 +159,7 @@ class Seq2SeqPredictionNetwork(Seq2SeqNetworkBase):
         feat_static_cat: Tensor,
         past_feat_dynamic_real: Tensor,
         future_feat_dynamic_real: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tuple[Tensor, ...], Tensor, Tensor]:
         """
 
         Parameters
@@ -185,6 +187,6 @@ class Seq2SeqPredictionNetwork(Seq2SeqNetworkBase):
             past_feat_dynamic_real=past_feat_dynamic_real,
             future_feat_dynamic_real=future_feat_dynamic_real,
         )
-        predictions = self.quantile_proj(scaled_decoder_output).swapaxes(2, 1)
+        predictions = self.quantile_proj(scaled_decoder_output)
 
-        return predictions
+        return (predictions,), None, None

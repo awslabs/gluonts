@@ -529,11 +529,11 @@ class AddAggregateLags(MapTransformation):
         lags = np.vstack(
             [
                 agg_vals[
-                    -(l * self.ratio - self.half_window + len(t)) : -(
-                        l * self.ratio - self.half_window
+                    -(l * self.ratio - self.half_window + len(t)) : (
+                        -(l * self.ratio - self.half_window)
+                        if -(l * self.ratio - self.half_window) != 0
+                        else None
                     )
-                    if -(l * self.ratio - self.half_window) != 0
-                    else None
                 ]
                 for l in self.valid_lags
             ]

@@ -52,15 +52,17 @@ def batchify_with_dict(
     is_right_pad: bool = True,
 ) -> DataBatch:
     return {
-        key: stack(
-            data=[item[key] for item in data],
-            ctx=ctx,
-            dtype=dtype,
-            variable_length=variable_length,
-            is_right_pad=is_right_pad,
+        key: (
+            stack(
+                data=[item[key] for item in data],
+                ctx=ctx,
+                dtype=dtype,
+                variable_length=variable_length,
+                is_right_pad=is_right_pad,
+            )
+            if not isinstance(data[0][key], dict)
+            else batchify_with_dict(data=[item[key] for item in data])
         )
-        if not isinstance(data[0][key], dict)
-        else batchify_with_dict(data=[item[key] for item in data])
         for key in data[0].keys()
     }
 
