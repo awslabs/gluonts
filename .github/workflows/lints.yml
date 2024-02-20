@@ -17,7 +17,7 @@ jobs:
     - name: Ruff (Flake8)
       if: matrix.check == 'ruff'
       working-directory: src/
-      run: ruff check --show-fixes --exit-non-zero-on-fix gluonts
+      run: ruff check .
     - name: Docformatter
       if: matrix.check == 'docformatter'
       run: docformatter --check -r src/
