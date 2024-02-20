@@ -13,7 +13,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install .
-        # install also `black[jupyter]`
+        # todo: install also `black[jupyter]`
         pip install click "black==24.01" "mypy==1.8.0" \
             types-python-dateutil types-waitress types-PyYAML
     - name: Style check
