@@ -172,13 +172,13 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
         self.past_dynamic_feature_dims = {}
         for name in self.past_dynamic_features:
             if name in self.dynamic_cardinalities:
-                self.past_dynamic_cardinalities[
-                    name
-                ] = self.dynamic_cardinalities.pop(name)
+                self.past_dynamic_cardinalities[name] = (
+                    self.dynamic_cardinalities.pop(name)
+                )
             elif name in self.dynamic_feature_dims:
-                self.past_dynamic_feature_dims[
-                    name
-                ] = self.dynamic_feature_dims.pop(name)
+                self.past_dynamic_feature_dims[name] = (
+                    self.dynamic_feature_dims.pop(name)
+                )
             else:
                 raise ValueError(
                     f"Feature name {name} is not provided in feature dicts"

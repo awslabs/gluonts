@@ -18,10 +18,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install .
-        pip install click black mypy
-        pip install types-python-dateutil
-        pip install types-waitress
-        pip install types-PyYAML
+        pip install click "black==24.01" "mypy==1.8.0" \
+            types-python-dateutil types-waitress types-PyYAML
     - name: Style and type checks
       run: |
         just black

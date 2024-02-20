@@ -102,65 +102,66 @@ class TemporalFusionTransformerModel(nn.Module):
         self.target_proj = nn.Linear(in_features=1, out_features=self.d_var)
         # Past-only dynamic features
         if self.d_past_feat_dynamic_real:
-            self.past_feat_dynamic_proj: Optional[
-                FeatureProjector
-            ] = FeatureProjector(
-                feature_dims=self.d_past_feat_dynamic_real,
-                embedding_dims=[self.d_var]
-                * len(self.d_past_feat_dynamic_real),
+            self.past_feat_dynamic_proj: Optional[FeatureProjector] = (
+                FeatureProjector(
+                    feature_dims=self.d_past_feat_dynamic_real,
+                    embedding_dims=[self.d_var]
+                    * len(self.d_past_feat_dynamic_real),
+                )
             )
         else:
             self.past_feat_dynamic_proj = None
 
         if self.c_past_feat_dynamic_cat:
-            self.past_feat_dynamic_embed: Optional[
-                FeatureEmbedder
-            ] = FeatureEmbedder(
-                cardinalities=self.c_past_feat_dynamic_cat,
-                embedding_dims=[self.d_var]
-                * len(self.c_past_feat_dynamic_cat),
+            self.past_feat_dynamic_embed: Optional[FeatureEmbedder] = (
+                FeatureEmbedder(
+                    cardinalities=self.c_past_feat_dynamic_cat,
+                    embedding_dims=[self.d_var]
+                    * len(self.c_past_feat_dynamic_cat),
+                )
             )
         else:
             self.past_feat_dynamic_embed = None
 
         # Known dynamic features
         if self.d_feat_dynamic_real:
-            self.feat_dynamic_proj: Optional[
-                FeatureProjector
-            ] = FeatureProjector(
-                feature_dims=self.d_feat_dynamic_real,
-                embedding_dims=[self.d_var] * len(self.d_feat_dynamic_real),
+            self.feat_dynamic_proj: Optional[FeatureProjector] = (
+                FeatureProjector(
+                    feature_dims=self.d_feat_dynamic_real,
+                    embedding_dims=[self.d_var]
+                    * len(self.d_feat_dynamic_real),
+                )
             )
         else:
             self.feat_dynamic_proj = None
 
         if self.c_feat_dynamic_cat:
-            self.feat_dynamic_embed: Optional[
-                FeatureEmbedder
-            ] = FeatureEmbedder(
-                cardinalities=self.c_feat_dynamic_cat,
-                embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
+            self.feat_dynamic_embed: Optional[FeatureEmbedder] = (
+                FeatureEmbedder(
+                    cardinalities=self.c_feat_dynamic_cat,
+                    embedding_dims=[self.d_var] * len(self.c_feat_dynamic_cat),
+                )
             )
         else:
             self.feat_dynamic_embed = None
 
         # Static features
         if self.d_feat_static_real:
-            self.feat_static_proj: Optional[
-                FeatureProjector
-            ] = FeatureProjector(
-                feature_dims=self.d_feat_static_real,
-                embedding_dims=[self.d_var] * len(self.d_feat_static_real),
+            self.feat_static_proj: Optional[FeatureProjector] = (
+                FeatureProjector(
+                    feature_dims=self.d_feat_static_real,
+                    embedding_dims=[self.d_var] * len(self.d_feat_static_real),
+                )
             )
         else:
             self.feat_static_proj = None
 
         if self.c_feat_static_cat:
-            self.feat_static_embed: Optional[
-                FeatureEmbedder
-            ] = FeatureEmbedder(
-                cardinalities=self.c_feat_static_cat,
-                embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
+            self.feat_static_embed: Optional[FeatureEmbedder] = (
+                FeatureEmbedder(
+                    cardinalities=self.c_feat_static_cat,
+                    embedding_dims=[self.d_var] * len(self.c_feat_static_cat),
+                )
             )
         else:
             self.feat_static_embed = None

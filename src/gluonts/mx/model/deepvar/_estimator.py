@@ -306,9 +306,9 @@ class DeepVAREstimator(GluonEstimator):
         self.scaling = scaling
 
         if self.use_marginal_transformation:
-            self.output_transform: Optional[
-                Callable
-            ] = cdf_to_gaussian_forward_transform
+            self.output_transform: Optional[Callable] = (
+                cdf_to_gaussian_forward_transform
+            )
         else:
             self.output_transform = None
 
