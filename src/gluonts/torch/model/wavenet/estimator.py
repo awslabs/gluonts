@@ -264,60 +264,56 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             remove_field_names.append(FieldName.FEAT_STATIC_REAL)
         if self.num_feat_dynamic_real == 0:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
-        return Chain(
-            [
-                RemoveFields(field_names=remove_field_names),
-                (
-                    SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
-                    if self.num_feat_static_cat == 0
-                    else Identity()
+        return Chain([
+            RemoveFields(field_names=remove_field_names),
+            (
+                SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
+                if self.num_feat_static_cat == 0
+                else Identity()
+            ),
+            (
+                SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])
+                if self.num_feat_static_real == 0
+                else Identity()
+            ),
+            AsNumpyArray(
+                field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=int
+            ),
+            AsNumpyArray(
+                field=FieldName.FEAT_STATIC_REAL,
+                expected_ndim=1,
+                dtype=np.float32,
+            ),
+            AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+            AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+            ),
+            AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=self.time_features,
+                pred_length=self.prediction_length,
+            ),
+            AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_AGE,
+                pred_length=self.prediction_length,
+            ),
+            VstackFeatures(
+                output_field=FieldName.FEAT_TIME,
+                input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
+                + (
+                    [FieldName.FEAT_DYNAMIC_REAL]
+                    if self.num_feat_dynamic_real > 0
+                    else []
                 ),
-                (
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
-                    )
-                    if self.num_feat_static_real == 0
-                    else Identity()
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=int
-                ),
-                AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_REAL,
-                    expected_ndim=1,
-                    dtype=np.float32,
-                ),
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                ),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=self.time_features,
-                    pred_length=self.prediction_length,
-                ),
-                AddAgeFeature(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_AGE,
-                    pred_length=self.prediction_length,
-                ),
-                VstackFeatures(
-                    output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE]
-                    + (
-                        [FieldName.FEAT_DYNAMIC_REAL]
-                        if self.num_feat_dynamic_real > 0
-                        else []
-                    ),
-                ),
-                AsNumpyArray(
-                    FieldName.FEAT_TIME, expected_ndim=2, dtype=np.float32
-                ),
-            ]
-        )
+            ),
+            AsNumpyArray(
+                FieldName.FEAT_TIME, expected_ndim=2, dtype=np.float32
+            ),
+        ])
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
@@ -348,7 +344,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: WaveNetLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter("training").apply(

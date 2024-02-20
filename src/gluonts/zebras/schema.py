@@ -247,13 +247,11 @@ class Schema:
 
             columns = {self.time_series_ref: ref}
 
-            columns.update(
-                {
-                    name: field.load_from(data, name, length=length)
-                    for name, field in self.columns.items()
-                    if name != self.time_series_ref
-                }
-            )
+            columns.update({
+                name: field.load_from(data, name, length=length)
+                for name, field in self.columns.items()
+                if name != self.time_series_ref
+            })
 
         else:
             columns = {}

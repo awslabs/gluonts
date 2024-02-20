@@ -132,17 +132,15 @@ class PointProcessSampleForecast(Forecast):
         )
 
     def __repr__(self):
-        return ", ".join(
-            [
-                f"PointProcessSampleForecast({self.samples!r})",
-                f"{self.valid_length!r}",
-                f"{self.start_date!r}",
-                f"{self.end_date!r}",
-                f"{self.freq!r}",
-                f"item_id={self.item_id!r}",
-                f"info={self.info!r})",
-            ]
-        )
+        return ", ".join([
+            f"PointProcessSampleForecast({self.samples!r})",
+            f"{self.valid_length!r}",
+            f"{self.start_date!r}",
+            f"{self.end_date!r}",
+            f"{self.freq!r}",
+            f"item_id={self.item_id!r}",
+            f"info={self.info!r})",
+        ])
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         raise NotImplementedError(

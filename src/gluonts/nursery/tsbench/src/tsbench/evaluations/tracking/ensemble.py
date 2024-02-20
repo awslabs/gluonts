@@ -39,12 +39,10 @@ class EnsembleTracker(Tracker[EnsembleConfig]):
                 continue
             with Path(file).open("rb") as f:
                 data = pickle.load(f)
-                configurations.extend(
-                    [
-                        Config(frozenset(x["configurations"]), x["dataset"])
-                        for x in data
-                    ]
-                )
+                configurations.extend([
+                    Config(frozenset(x["configurations"]), x["dataset"])
+                    for x in data
+                ])
                 performances.extend([x["performance"] for x in data])
 
         self.performance_map: Dict[Config[EnsembleConfig], Performance] = dict(

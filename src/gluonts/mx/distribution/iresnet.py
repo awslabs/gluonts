@@ -65,7 +65,7 @@ class InvertibleResnetHybridBlock(BijectionHybridBlock):
         coeff: float = 0.9,
         use_caching: bool = True,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         assert len(event_shape) == 1
@@ -199,9 +199,6 @@ def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionHybridBlock:
     -------
 
     """
-    return ComposedBijectionHybridBlock(
-        [
-            InvertibleResnetHybridBlock(**block_kwargs)
-            for _ in range(num_blocks)
-        ]
-    )
+    return ComposedBijectionHybridBlock([
+        InvertibleResnetHybridBlock(**block_kwargs) for _ in range(num_blocks)
+    ])

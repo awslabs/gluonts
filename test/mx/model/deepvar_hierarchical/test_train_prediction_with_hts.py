@@ -89,9 +89,7 @@ def test_train_prediction(features_df: Optional[pd.DataFrame]):
     forecasts = list(predictor.predict(predictor_input))
 
     assert len(forecasts) == len(dataset)
-    assert all(
-        [
-            forecast.samples.shape == (100, PREDICTION_LENGTH, hts.num_ts)
-            for forecast in forecasts
-        ]
-    )
+    assert all([
+        forecast.samples.shape == (100, PREDICTION_LENGTH, hts.num_ts)
+        for forecast in forecasts
+    ])

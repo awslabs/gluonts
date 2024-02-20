@@ -297,39 +297,35 @@ def main(
     # add callback that only works with attention
     attention_models = ["iwata", "cnn_iwata", "tcn"]
     if model_name in attention_models:
-        callbacks.extend(
-            [
-                ForecastSupportSetAttentionPlotLoggerCallback(
-                    log_batch_train,
-                    quantiles=quantiles,
-                    split="train",
-                    every_n_epochs=log_plot_every_n_epochs,
-                ),
-                ForecastSupportSetAttentionPlotLoggerCallback(
-                    log_batch_val,
-                    quantiles=quantiles,
-                    split="val",
-                    every_n_epochs=log_plot_every_n_epochs,
-                ),
-            ]
-        )
+        callbacks.extend([
+            ForecastSupportSetAttentionPlotLoggerCallback(
+                log_batch_train,
+                quantiles=quantiles,
+                split="train",
+                every_n_epochs=log_plot_every_n_epochs,
+            ),
+            ForecastSupportSetAttentionPlotLoggerCallback(
+                log_batch_val,
+                quantiles=quantiles,
+                split="val",
+                every_n_epochs=log_plot_every_n_epochs,
+            ),
+        ])
     else:
-        callbacks.extend(
-            [
-                ForecastPlotLoggerCallback(
-                    log_batch_val,
-                    quantiles=quantiles,
-                    split="val",
-                    every_n_epochs=log_plot_every_n_epochs,
-                ),
-                ForecastPlotLoggerCallback(
-                    log_batch_train,
-                    quantiles=quantiles,
-                    split="train",
-                    every_n_epochs=log_plot_every_n_epochs,
-                ),
-            ]
-        )
+        callbacks.extend([
+            ForecastPlotLoggerCallback(
+                log_batch_val,
+                quantiles=quantiles,
+                split="val",
+                every_n_epochs=log_plot_every_n_epochs,
+            ),
+            ForecastPlotLoggerCallback(
+                log_batch_train,
+                quantiles=quantiles,
+                split="train",
+                every_n_epochs=log_plot_every_n_epochs,
+            ),
+        ])
 
     # -------------------- train model ---------------------------------------------------
     trainer = pl.Trainer(

@@ -40,19 +40,17 @@ def test_tft_modules(
     prediction_length = 6
     context_length = 12
 
-    lightning_module = TemporalFusionTransformerLightningModule(
-        {
-            "context_length": context_length,
-            "prediction_length": prediction_length,
-            "d_past_feat_dynamic_real": d_past_feat_dynamic_real,
-            "c_past_feat_dynamic_cat": c_past_feat_dynamic_cat,
-            "d_feat_dynamic_real": d_feat_dynamic_real,
-            "c_feat_dynamic_cat": c_feat_dynamic_cat,
-            "d_feat_static_real": d_feat_static_real,
-            "c_feat_static_cat": c_feat_static_cat,
-            "distr_output": QuantileOutput(quantiles),
-        }
-    )
+    lightning_module = TemporalFusionTransformerLightningModule({
+        "context_length": context_length,
+        "prediction_length": prediction_length,
+        "d_past_feat_dynamic_real": d_past_feat_dynamic_real,
+        "c_past_feat_dynamic_cat": c_past_feat_dynamic_cat,
+        "d_feat_dynamic_real": d_feat_dynamic_real,
+        "c_feat_dynamic_cat": c_feat_dynamic_cat,
+        "d_feat_static_real": d_feat_static_real,
+        "c_feat_static_cat": c_feat_static_cat,
+        "distr_output": QuantileOutput(quantiles),
+    })
     model = lightning_module.model
 
     feat_static_cat = torch.zeros(

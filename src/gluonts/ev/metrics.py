@@ -124,12 +124,9 @@ class DerivedMetric(Metric):
         return self
 
     def get(self) -> np.ndarray:
-        return self.post_process(
-            **{
-                name: evaluator.get()
-                for name, evaluator in self.metrics.items()
-            }
-        )
+        return self.post_process(**{
+            name: evaluator.get() for name, evaluator in self.metrics.items()
+        })
 
 
 @runtime_checkable

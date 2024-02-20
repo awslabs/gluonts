@@ -31,12 +31,10 @@ class FeatureEmbedder(nn.Module):
             embedding = nn.Embedding(c, d)
             return embedding
 
-        self.__embedders = nn.ModuleList(
-            [
-                create_embedding(c, d)
-                for c, d in zip(cardinalities, embedding_dims)
-            ]
-        )
+        self.__embedders = nn.ModuleList([
+            create_embedding(c, d)
+            for c, d in zip(cardinalities, embedding_dims)
+        ])
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         if self.__num_features > 1:

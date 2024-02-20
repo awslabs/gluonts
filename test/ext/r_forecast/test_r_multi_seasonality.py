@@ -34,32 +34,24 @@ freq = "H"
 period = 24
 
 ## two weeks of data
-dataset = [
-    {
-        "start": pd.Period("1990-01-01 00", freq=freq),
-        "target": np.array(
-            [
-                item
-                for i in range(70)
-                for item in np.sin(
-                    2 * np.pi / period * np.arange(1, period + 1, 1)
-                )
-            ]
-        )
-        + np.random.normal(0, 0.5, period * 70)
-        + np.array(
-            [
-                item
-                for i in range(10)
-                for item in [0 for i in range(5 * 24)]
-                + [8 for i in range(4)]
-                + [0 for i in range(20)]
-                + [8 for i in range(4)]
-                + [0 for i in range(20)]
-            ]
-        ),
-    }
-]
+dataset = [{
+    "start": pd.Period("1990-01-01 00", freq=freq),
+    "target": np.array([
+        item
+        for i in range(70)
+        for item in np.sin(2 * np.pi / period * np.arange(1, period + 1, 1))
+    ])
+    + np.random.normal(0, 0.5, period * 70)
+    + np.array([
+        item
+        for i in range(10)
+        for item in [0 for i in range(5 * 24)]
+        + [8 for i in range(4)]
+        + [0 for i in range(20)]
+        + [8 for i in range(4)]
+        + [0 for i in range(20)]
+    ]),
+}]
 
 
 def no_quantile_crossing(
@@ -149,38 +141,25 @@ def test_compare_arimas():
 
 ## Below shows improvement in metric when proper x_regressors are included #
 
-dataset_xreg = [
-    {
-        "start": pd.Period("1990-01-01 00", freq=freq),
-        "target": np.array(
-            [
-                item
-                for i in range(21)
-                for item in np.sin(
-                    2 * np.pi / period * np.arange(1, period + 1, 1)
-                )
-            ]
-        )
-        + np.random.normal(0, 0.5, period * 21)
-        + np.array(
-            [
-                item
-                for i in range(3)
-                for item in [0 for i in range(167)] + [8 for i in range(0, 1)]
-            ]
-        ),
-        "feat_dynamic_real": np.array(
-            [
-                [
-                    item
-                    for i in range(3)
-                    for item in [0 for i in range(167)]
-                    + [1 for i in range(0, 1)]
-                ]
-            ]
-        ),
-    }
-]
+dataset_xreg = [{
+    "start": pd.Period("1990-01-01 00", freq=freq),
+    "target": np.array([
+        item
+        for i in range(21)
+        for item in np.sin(2 * np.pi / period * np.arange(1, period + 1, 1))
+    ])
+    + np.random.normal(0, 0.5, period * 21)
+    + np.array([
+        item
+        for i in range(3)
+        for item in [0 for i in range(167)] + [8 for i in range(0, 1)]
+    ]),
+    "feat_dynamic_real": np.array([[
+        item
+        for i in range(3)
+        for item in [0 for i in range(167)] + [1 for i in range(0, 1)]
+    ]]),
+}]
 
 
 def test_compare_arimas_xreg():

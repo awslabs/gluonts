@@ -38,14 +38,12 @@ class FeatureProjector(nn.Module):
             self.feature_slices = feature_dims
         self.feature_dims = feature_dims
 
-        self._projector = nn.ModuleList(
-            [
-                nn.Linear(in_features=in_feature, out_features=out_features)
-                for in_feature, out_features in zip(
-                    self.feature_dims, embedding_dims
-                )
-            ]
-        )
+        self._projector = nn.ModuleList([
+            nn.Linear(in_features=in_feature, out_features=out_features)
+            for in_feature, out_features in zip(
+                self.feature_dims, embedding_dims
+            )
+        ])
 
     def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
         if self.__num_features > 1:
@@ -160,12 +158,10 @@ class VariableSelectionNetwork(nn.Module):
             dropout=dropout,
         )
 
-        self.variable_network = nn.ModuleList(
-            [
-                GatedResidualNetwork(d_hidden=d_hidden, dropout=dropout)
-                for _ in range(n_vars)
-            ]
-        )
+        self.variable_network = nn.ModuleList([
+            GatedResidualNetwork(d_hidden=d_hidden, dropout=dropout)
+            for _ in range(n_vars)
+        ])
 
     def forward(
         self,

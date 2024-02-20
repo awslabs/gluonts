@@ -66,22 +66,20 @@ class LSTMEstimator(PTSEstimator):
     # transformation that includes time features, age feature, observed values
     # indicator, etc.
     def create_transformation(self, is_full_batch=False) -> Transformation:
-        return Chain(
-            [
-                InstanceSplitter(
-                    target_field=FieldName.TARGET,
-                    is_pad_field=FieldName.IS_PAD,
-                    start_field=FieldName.START,
-                    forecast_start_field=FieldName.FORECAST_START,
-                    # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
-                    train_sampler=CustomUniformSampler(),
-                    past_length=self.context_length,
-                    future_length=self.prediction_length,
-                    is_full_batch=is_full_batch,
-                    time_series_fields=[],  # [FieldName.FEAT_DYNAMIC_REAL]
-                )
-            ]
-        )
+        return Chain([
+            InstanceSplitter(
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
+                # train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                train_sampler=CustomUniformSampler(),
+                past_length=self.context_length,
+                future_length=self.prediction_length,
+                is_full_batch=is_full_batch,
+                time_series_fields=[],  # [FieldName.FEAT_DYNAMIC_REAL]
+            )
+        ])
 
     # defines the network, we get to see one batch to initialize it.
     # the network should return at least one tensor that is used as a loss to minimize in the training loop.

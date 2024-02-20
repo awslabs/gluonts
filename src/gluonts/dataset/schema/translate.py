@@ -141,14 +141,12 @@ class TokenStream:
 
     @classmethod
     def from_str(cls, s):
-        stream = cls(
-            [
-                Token(name, value, match)
-                for match in re.finditer(cls.RX, s)
-                for name, value in valfilter(bool, match.groupdict()).items()
-                if name != "WHITESPACE"
-            ]
-        )
+        stream = cls([
+            Token(name, value, match)
+            for match in re.finditer(cls.RX, s)
+            for name, value in valfilter(bool, match.groupdict()).items()
+            if name != "WHITESPACE"
+        ])
 
         for token in stream:
             if token.name == "INVALID":

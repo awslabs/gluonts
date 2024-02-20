@@ -88,17 +88,13 @@ class CustomDateFeatureSet:
         dates
             Pandas series with Datetimeindex timestamps.
         """
-        return np.vstack(
-            [
-                np.hstack(
-                    [
-                        self.kernel_function((index - ref_date).days)
-                        for index in dates
-                    ]
-                )
-                for ref_date in self.reference_dates
-            ]
-        ).sum(0, keepdims=True)
+        return np.vstack([
+            np.hstack([
+                self.kernel_function((index - ref_date).days)
+                for index in dates
+            ])
+            for ref_date in self.reference_dates
+        ]).sum(0, keepdims=True)
 
 
 class CustomHolidayFeatureSet:
@@ -170,16 +166,12 @@ class CustomHolidayFeatureSet:
         dates
             Pandas series with Datetimeindex timestamps.
         """
-        return np.vstack(
-            [
-                np.hstack(
-                    [
-                        self.kernel_function(
-                            distance_to_holiday(custom_holiday)(index)
-                        )
-                        for index in dates
-                    ]
+        return np.vstack([
+            np.hstack([
+                self.kernel_function(
+                    distance_to_holiday(custom_holiday)(index)
                 )
-                for custom_holiday in self.custom_holidays
-            ]
-        )
+                for index in dates
+            ])
+            for custom_holiday in self.custom_holidays
+        ])

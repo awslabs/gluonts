@@ -229,12 +229,10 @@ class ParquetFile(File):
         self.decoder = ArrowDecoder.from_schema(self.reader.schema_arrow)
 
         if not self._row_group_sizes:
-            self._row_group_sizes = np.cumsum(
-                [
-                    self.reader.metadata.row_group(row_group).num_rows
-                    for row_group in range(self.reader.metadata.num_row_groups)
-                ]
-            )
+            self._row_group_sizes = np.cumsum([
+                self.reader.metadata.row_group(row_group).num_rows
+                for row_group in range(self.reader.metadata.num_row_groups)
+            ])
 
     def location_for(self, idx):
         if idx == 0:

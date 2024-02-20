@@ -233,20 +233,18 @@ def test_multivariate_sampling(distr, params, dim, serialize_fn) -> None:
     )
 
 
-test_cases_pwl_sqf = [
-    (
-        PiecewiseLinear,
-        {
-            "gamma": mx.nd.array([2]).repeat(axis=0, repeats=2),
-            "slopes": mx.nd.array([[3, 1, 3, 0.2, 5, 4]]).repeat(
-                axis=0, repeats=2
-            ),
-            "knot_spacings": mx.nd.array(
-                [[0.3, 0.2, 0.2, 0.15, 0.1, 0.05]]
-            ).repeat(axis=0, repeats=2),
-        },
-    )
-]
+test_cases_pwl_sqf = [(
+    PiecewiseLinear,
+    {
+        "gamma": mx.nd.array([2]).repeat(axis=0, repeats=2),
+        "slopes": mx.nd.array([[3, 1, 3, 0.2, 5, 4]]).repeat(
+            axis=0, repeats=2
+        ),
+        "knot_spacings": mx.nd.array(
+            [[0.3, 0.2, 0.2, 0.15, 0.1, 0.05]]
+        ).repeat(axis=0, repeats=2),
+    },
+)]
 
 
 @pytest.mark.parametrize("distr, params", test_cases_pwl_sqf)

@@ -101,18 +101,14 @@ class Evaluation:
                 Metric(0, 0)
                 if m == "num_model_parameters"
                 else Metric(
-                    np.mean(
-                        [
-                            metric[m] if m in metric else np.nan
-                            for metric in metrics
-                        ]
-                    ),
-                    np.std(
-                        [
-                            metric[m] if m in metric else np.nan
-                            for metric in metrics
-                        ]
-                    ),
+                    np.mean([
+                        metric[m] if m in metric else np.nan
+                        for metric in metrics
+                    ]),
+                    np.std([
+                        metric[m] if m in metric else np.nan
+                        for metric in metrics
+                    ]),
                 )
             )
             for m in Performance.metrics()

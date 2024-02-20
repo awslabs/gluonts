@@ -104,7 +104,7 @@ def evaluate_forecasts_raw(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> dict:
     """
     Evaluate ``forecasts`` by comparing them with ``test_data``, according
@@ -147,12 +147,10 @@ def evaluate_forecasts_raw(
         input_batches, label_batches, forecast_batches
     ):
         if 0 not in axis:
-            index_data.extend(
-                [
-                    (forecast.item_id, forecast.start_date)
-                    for forecast in forecast_batch
-                ]
-            )
+            index_data.extend([
+                (forecast.item_id, forecast.start_date)
+                for forecast in forecast_batch
+            ])
 
         data_batch = _get_data_batch(
             input_batch,
@@ -189,7 +187,7 @@ def evaluate_forecasts(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Evaluate ``forecasts`` by comparing them with ``test_data``, according
@@ -243,7 +241,7 @@ def evaluate_model(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Evaluate ``model`` when applied to ``test_data``, according

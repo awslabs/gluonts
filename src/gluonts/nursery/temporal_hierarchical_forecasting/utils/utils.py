@@ -355,12 +355,10 @@ def naive_reconcilation_mat(S: np.ndarray, nodes: List):
         M[:, start_ix:end_ix] = M[:, start_ix:end_ix] / row_sum[None, :]
         return M
 
-    mapping_matrices = np.array(
-        [
-            mapping_matrix_at_level(level=level)
-            for level in range(len(cum_num_nodes_per_level))
-        ]
-    )
+    mapping_matrices = np.array([
+        mapping_matrix_at_level(level=level)
+        for level in range(len(cum_num_nodes_per_level))
+    ])
 
     mean_mapping_matrix = np.mean(mapping_matrices, axis=0)
     reconciliation_mat = np.matmul(S, mean_mapping_matrix)

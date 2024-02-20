@@ -42,13 +42,11 @@ def extract_dataset(dataset_name: str):
 
 def pivot_dataset(dataset):
     ds_list = list(dataset)
-    return [
-        {
-            "item": "0",
-            "start": ds_list[0]["start"],
-            "target": np.vstack([d["target"] for d in ds_list]),
-        }
-    ]
+    return [{
+        "item": "0",
+        "start": ds_list[0]["start"],
+        "target": np.vstack([d["target"] for d in ds_list]),
+    }]
 
 
 class MultivariateDatasetInfo(NamedTuple):
@@ -240,16 +238,14 @@ def taxi_30min(max_target_dim: int = None):
     )
 
 
-datasets = OrderedDict(
-    [
-        ("solar", solar),
-        ("exchange_rate", exchange_rate),
-        ("electricity", electricity),
-        ("traffic", traffic),
-        ("wikipedia", wiki),
-        ("taxi_30min", taxi_30min),
-    ]
-)
+datasets = OrderedDict([
+    ("solar", solar),
+    ("exchange_rate", exchange_rate),
+    ("electricity", electricity),
+    ("traffic", traffic),
+    ("wikipedia", wiki),
+    ("taxi_30min", taxi_30min),
+])
 
 if __name__ == "__main__":
     extract_dataset("electricity_nips")

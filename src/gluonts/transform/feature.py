@@ -192,12 +192,10 @@ class RollingMeanValueImputation(MissingValueImputation):
         last_value_imputation = LastValueImputation()
         value_no_nans = last_value_imputation(values)
 
-        adjusted_values_to_causality = np.concatenate(
-            (
-                np.repeat(value_no_nans[0], self.window_size + 1),
-                value_no_nans[:-1],
-            )
-        )
+        adjusted_values_to_causality = np.concatenate((
+            np.repeat(value_no_nans[0], self.window_size + 1),
+            value_no_nans[:-1],
+        ))
 
         cumsum = np.cumsum(adjusted_values_to_causality)
 
@@ -519,25 +517,23 @@ class AddAggregateLags(MapTransformation):
         # compute the aggregate lags for each time point of the time series
         agg_vals = np.concatenate(
             [
-                np.zeros(
-                    (max(self.valid_lags) * self.ratio + self.half_window + 1,)
-                ),
+                np.zeros((
+                    max(self.valid_lags) * self.ratio + self.half_window + 1,
+                )),
                 t_agg.values,
             ],
             axis=0,
         )
-        lags = np.vstack(
-            [
-                agg_vals[
-                    -(l * self.ratio - self.half_window + len(t)) : (
-                        -(l * self.ratio - self.half_window)
-                        if -(l * self.ratio - self.half_window) != 0
-                        else None
-                    )
-                ]
-                for l in self.valid_lags
+        lags = np.vstack([
+            agg_vals[
+                -(l * self.ratio - self.half_window + len(t)) : (
+                    -(l * self.ratio - self.half_window)
+                    if -(l * self.ratio - self.half_window) != 0
+                    else None
+                )
             ]
-        )
+            for l in self.valid_lags
+        ])
 
         # update the data entry
         data[self.feature_name] = np.nan_to_num(lags)

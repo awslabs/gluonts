@@ -31,13 +31,11 @@ def ensure_binning_monotonicity(bin_centers: np.ndarray):
 def bin_edges_from_bin_centers(bin_centers: np.ndarray):
     lower_edge = -np.inf
     upper_edge = np.inf
-    bin_edges = np.concatenate(
-        [
-            [lower_edge],
-            (bin_centers[1:] + bin_centers[:-1]) / 2.0,
-            [upper_edge],
-        ]
-    )
+    bin_edges = np.concatenate([
+        [lower_edge],
+        (bin_centers[1:] + bin_centers[:-1]) / 2.0,
+        [upper_edge],
+    ])
     return bin_edges
 
 

@@ -74,12 +74,10 @@ def explode_key_values(
     """
     all_combinations = {
         primary: (
-            itertools.product(
-                *[
-                    [(option["key"], value) for value in option["values"]]
-                    for option in choices
-                ]
-            )
+            itertools.product(*[
+                [(option["key"], value) for value in option["values"]]
+                for option in choices
+            ])
             if choices
             else []
         )
@@ -95,12 +93,9 @@ def explode_key_values(
             primary_config = {primary_key: primary}
             for key, value in item:
                 if isinstance(key, (list, tuple)):
-                    primary_config.update(
-                        {
-                            process_key(primary, k): v
-                            for k, v in zip(key, value)
-                        }
-                    )
+                    primary_config.update({
+                        process_key(primary, k): v for k, v in zip(key, value)
+                    })
                 else:
                     primary_config[process_key(primary, key)] = value
             configs.append(primary_config)
@@ -137,12 +132,10 @@ def _generate_configurations(config: TextIO) -> List[Any]:
     for seed in seeds:
         for dataset in datasets:
             for model_config in configs:
-                all_configurations.append(
-                    {
-                        "seed": seed,
-                        "dataset": dataset,
-                        **model_config,
-                    }
-                )
+                all_configurations.append({
+                    "seed": seed,
+                    "dataset": dataset,
+                    **model_config,
+                })
 
     return all_configurations

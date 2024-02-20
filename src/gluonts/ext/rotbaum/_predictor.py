@@ -411,19 +411,15 @@ class TreePredictor(RepresentablePredictor):
 
         assert self.model_list is not None
 
-        importances = np.array(
+        importances = np.array([
             [
-                [
-                    self.model_list[time_stamp]
-                    .models[quantile]
-                    .booster_.feature_importance(
-                        importance_type=importance_type
-                    )
-                    for time_stamp in range(self.prediction_length)
-                ]
-                for quantile in self.quantiles
+                self.model_list[time_stamp]
+                .models[quantile]
+                .booster_.feature_importance(importance_type=importance_type)
+                for time_stamp in range(self.prediction_length)
             ]
-        ).transpose((2, 1, 0))
+            for quantile in self.quantiles
+        ]).transpose((2, 1, 0))
         # The shape is: (features, pred_length, quantiles)
         importances = importances.mean(axis=2)  # Average over quantiles
         # The shape of importances is: (features, pred_length)
@@ -463,17 +459,15 @@ class TreePredictor(RepresentablePredictor):
         )
 
         for i in range(num_feat_static_cat):
-            coordinate_map["feat_static_cat"].append(
-                (
-                    dynamic_length
-                    + num_feat_static_real
-                    + static_cat_features_so_far,
-                    dynamic_length
-                    + num_feat_static_real
-                    + static_cat_features_so_far
-                    + cardinality[i],
-                )
-            )
+            coordinate_map["feat_static_cat"].append((
+                dynamic_length
+                + num_feat_static_real
+                + static_cat_features_so_far,
+                dynamic_length
+                + num_feat_static_real
+                + static_cat_features_so_far
+                + cardinality[i],
+            ))
             static_cat_features_so_far += cardinality[i]
 
         coordinate_map["past_feat_dynamic_real"] = [
@@ -523,13 +517,11 @@ class TreePredictor(RepresentablePredictor):
         )
         logger.info(f"shape of importance matrix is: {importances.shape}")
         assert (
-            sum(
-                [
-                    sum([coor[1] - coor[0] for coor in coordinate_map[key]])
-                    for key in coordinate_map
-                    if key != "target"
-                ]
-            )
+            sum([
+                sum([coor[1] - coor[0] for coor in coordinate_map[key]])
+                for key in coordinate_map
+                if key != "target"
+            ])
             + coordinate_map["target"][1]
             - coordinate_map["target"][0]
         ) == importances.shape[

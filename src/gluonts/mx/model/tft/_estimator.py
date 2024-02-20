@@ -200,12 +200,10 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
     def create_transformation(self) -> Transformation:
         transforms = (
             [AsNumpyArray(field=FieldName.TARGET, expected_ndim=1)]
-            + (
-                [
-                    AsNumpyArray(field=name, expected_ndim=1)
-                    for name in self.static_cardinalities.keys()
-                ]
-            )
+            + ([
+                AsNumpyArray(field=name, expected_ndim=1)
+                for name in self.static_cardinalities.keys()
+            ])
             + [
                 AsNumpyArray(field=name, expected_ndim=1)
                 for name in chain(
@@ -241,17 +239,13 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_CAT,
-                        value=[0.0],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
-                    ),
-                ]
-            )
+            transforms.extend([
+                SetField(
+                    output_field=FieldName.FEAT_STATIC_CAT,
+                    value=[0.0],
+                ),
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+            ])
 
         if self.static_feature_dims:
             transforms.append(
@@ -262,17 +256,15 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_STATIC_REAL,
-                        value=[0.0],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
-                    ),
-                ]
-            )
+            transforms.extend([
+                SetField(
+                    output_field=FieldName.FEAT_STATIC_REAL,
+                    value=[0.0],
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_STATIC_REAL, expected_ndim=1
+                ),
+            ])
 
         if self.dynamic_cardinalities:
             transforms.append(
@@ -282,22 +274,20 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.FEAT_DYNAMIC_CAT,
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.FEAT_DYNAMIC_CAT,
-                        expected_ndim=2,
-                    ),
-                    BroadcastTo(
-                        field=FieldName.FEAT_DYNAMIC_CAT,
-                        ext_length=self.prediction_length,
-                    ),
-                ]
-            )
+            transforms.extend([
+                SetField(
+                    output_field=FieldName.FEAT_DYNAMIC_CAT,
+                    value=[[0.0]],
+                ),
+                AsNumpyArray(
+                    field=FieldName.FEAT_DYNAMIC_CAT,
+                    expected_ndim=2,
+                ),
+                BroadcastTo(
+                    field=FieldName.FEAT_DYNAMIC_CAT,
+                    ext_length=self.prediction_length,
+                ),
+            ])
 
         input_fields = [FieldName.FEAT_TIME]
         if self.dynamic_feature_dims:
@@ -317,19 +307,17 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
-                        expected_ndim=2,
-                    ),
-                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC + "_cat"),
-                ]
-            )
+            transforms.extend([
+                SetField(
+                    output_field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                    value=[[0.0]],
+                ),
+                AsNumpyArray(
+                    field=FieldName.PAST_FEAT_DYNAMIC + "_cat",
+                    expected_ndim=2,
+                ),
+                BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC + "_cat"),
+            ])
 
         if self.past_dynamic_feature_dims:
             transforms.append(
@@ -339,18 +327,16 @@ class TemporalFusionTransformerEstimator(GluonEstimator):
                 )
             )
         else:
-            transforms.extend(
-                [
-                    SetField(
-                        output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
-                        value=[[0.0]],
-                    ),
-                    AsNumpyArray(
-                        field=FieldName.PAST_FEAT_DYNAMIC_REAL, expected_ndim=2
-                    ),
-                    BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL),
-                ]
-            )
+            transforms.extend([
+                SetField(
+                    output_field=FieldName.PAST_FEAT_DYNAMIC_REAL,
+                    value=[[0.0]],
+                ),
+                AsNumpyArray(
+                    field=FieldName.PAST_FEAT_DYNAMIC_REAL, expected_ndim=2
+                ),
+                BroadcastTo(field=FieldName.PAST_FEAT_DYNAMIC_REAL),
+            ])
 
         return Chain(transforms)
 

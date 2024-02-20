@@ -300,22 +300,20 @@ class AdversarialDomAdaptTrainer(DomAdaptTrainer):
             **kwargs,
         )
         del self.optimizer
-        self.optimizer = optimizer(
-            [
-                {
-                    "params": chain(
-                        self.model.src.generative_parameters(),
-                        self.model.tgt.generative_parameters(),
-                    )
-                },
-                {
-                    "params": chain(
-                        self.model.src.discriminative_parameters(),
-                        self.model.tgt.discriminative_parameters(),
-                    )
-                },
-            ]
-        )
+        self.optimizer = optimizer([
+            {
+                "params": chain(
+                    self.model.src.generative_parameters(),
+                    self.model.tgt.generative_parameters(),
+                )
+            },
+            {
+                "params": chain(
+                    self.model.src.discriminative_parameters(),
+                    self.model.tgt.discriminative_parameters(),
+                )
+            },
+        ])
 
     def _train(self, *data):
         self.model.generative()

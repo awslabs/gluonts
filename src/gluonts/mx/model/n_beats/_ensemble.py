@@ -353,12 +353,10 @@ class NBEATSEnsembleEstimator(Estimator):
         self.freq = freq
         self.prediction_length = prediction_length
 
-        assert meta_loss_function is None or all(
-            [
-                loss_function in VALID_LOSS_FUNCTIONS
-                for loss_function in meta_loss_function
-            ]
-        ), (
+        assert meta_loss_function is None or all([
+            loss_function in VALID_LOSS_FUNCTIONS
+            for loss_function in meta_loss_function
+        ]), (
             "Each loss function has to be one of the following:"
             f" {VALID_LOSS_FUNCTIONS}."
         )

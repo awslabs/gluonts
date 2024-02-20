@@ -233,15 +233,13 @@ def generate_pts_m5_dataset(
     meta_file = dataset_path / "metadata.json"
     with open(meta_file, "w") as f:
         f.write(
-            json.dumps(
-                {
-                    "freq": pandas_freq,
-                    "prediction_length": prediction_length,
-                    "feat_static_cat": feat_static_cat,
-                    "feat_dynamic_real": feat_dynamic_real,
-                    "cardinality": len(train_ds),
-                }
-            )
+            json.dumps({
+                "freq": pandas_freq,
+                "prediction_length": prediction_length,
+                "feat_static_cat": feat_static_cat,
+                "feat_dynamic_real": feat_dynamic_real,
+                "cardinality": len(train_ds),
+            })
         )
 
     # Build testing set

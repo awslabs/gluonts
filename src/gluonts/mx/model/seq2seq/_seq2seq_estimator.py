@@ -123,30 +123,26 @@ class Seq2SeqEstimator(GluonEstimator):
         self.num_parallel_samples = num_parallel_samples
 
     def create_transformation(self) -> transform.Transformation:
-        return transform.Chain(
-            [
-                transform.AsNumpyArray(
-                    field=FieldName.TARGET, expected_ndim=1
-                ),
-                transform.AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=time_features_from_frequency_str(self.freq),
-                    pred_length=self.prediction_length,
-                ),
-                transform.VstackFeatures(
-                    output_field=FieldName.FEAT_DYNAMIC_REAL,
-                    input_fields=[FieldName.FEAT_TIME],
-                ),
-                transform.SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                transform.AsNumpyArray(
-                    field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
-                ),
-            ]
-        )
+        return transform.Chain([
+            transform.AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+            transform.AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=time_features_from_frequency_str(self.freq),
+                pred_length=self.prediction_length,
+            ),
+            transform.VstackFeatures(
+                output_field=FieldName.FEAT_DYNAMIC_REAL,
+                input_fields=[FieldName.FEAT_TIME],
+            ),
+            transform.SetFieldIfNotPresent(
+                field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+            ),
+            transform.AsNumpyArray(
+                field=FieldName.FEAT_STATIC_CAT, expected_ndim=1
+            ),
+        ])
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]

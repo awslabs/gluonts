@@ -714,12 +714,10 @@ class RandomCat:
             probs = [self.prob_fun(x, length=c) for c in self.cardinalities]
             global_state[field_name] = probs
         probs = global_state[field_name]
-        cats = np.array(
-            [
-                np.random.choice(np.arange(len(probs[i])), p=probs[i])
-                for i in range(len(probs))
-            ]
-        )
+        cats = np.array([
+            np.random.choice(np.arange(len(probs[i])), p=probs[i])
+            for i in range(len(probs))
+        ])
         return cats
 
 

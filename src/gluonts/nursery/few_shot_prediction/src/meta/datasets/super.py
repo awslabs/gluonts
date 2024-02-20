@@ -195,20 +195,16 @@ class SuperDataModule(pl.LightningDataModule):
 
     def get_log_batches(self, n_logging_samples: int) -> Tuple[TripletBatch]:
         its_train = cycle(
-            list(
-                [
-                    iter(dm.sampling_triplet_dataset("train"))
-                    for dm in self.data_modules_train
-                ]
-            )
+            list([
+                iter(dm.sampling_triplet_dataset("train"))
+                for dm in self.data_modules_train
+            ])
         )
         its_val = cycle(
-            list(
-                [
-                    iter(dm.sequential_triplet_dataset("val"))
-                    for dm in self.data_modules_val
-                ]
-            )
+            list([
+                iter(dm.sequential_triplet_dataset("val"))
+                for dm in self.data_modules_val
+            ])
         )
 
         def get_log_batch(its):

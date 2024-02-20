@@ -209,13 +209,11 @@ class DeepARNetwork(nn.Module):
 
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
-        input_lags = lags_scaled.reshape(
-            (
-                -1,
-                subsequences_length,
-                len(self.lags_seq) * prod(self.target_shape),
-            )
-        )
+        input_lags = lags_scaled.reshape((
+            -1,
+            subsequences_length,
+            len(self.lags_seq) * prod(self.target_shape),
+        ))
 
         # (batch_size, sub_seq_len, input_dim)
         inputs = torch.cat(
@@ -440,13 +438,11 @@ class DeepARPredictionNetwork(DeepARNetwork):
         samples = torch.cat(future_samples, dim=1)
 
         # (batch_size, num_samples, prediction_length, *target_shape)
-        return samples.reshape(
-            (
-                (-1, self.num_parallel_samples)
-                + (self.prediction_length,)
-                + self.target_shape
-            )
-        )
+        return samples.reshape((
+            (-1, self.num_parallel_samples)
+            + (self.prediction_length,)
+            + self.target_shape
+        ))
 
     # noinspection PyMethodOverriding,PyPep8Naming
     def forward(

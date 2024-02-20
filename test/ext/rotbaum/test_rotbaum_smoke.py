@@ -72,31 +72,27 @@ def test_short_history_item_pred():
             {
                 "start": "2017-10-11",
                 "item_id": "item_1",
-                "target": np.array(
-                    [
-                        1.0,
-                        9.0,
-                        2.0,
-                        0.0,
-                        0.0,
-                        1.0,
-                        5.0,
-                        3.0,
-                        4.0,
-                        2.0,
-                        0.0,
-                        0.0,
-                        1.0,
-                        6.0,
-                    ]
-                ),
+                "target": np.array([
+                    1.0,
+                    9.0,
+                    2.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    5.0,
+                    3.0,
+                    4.0,
+                    2.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    6.0,
+                ]),
                 "feat_static_cat": np.array([0.0, 0.0], dtype=float),
-                "past_feat_dynamic_real": np.array(
-                    [
-                        [1.0222e06 for i in range(14)],
-                        [750.0 for i in range(14)],
-                    ]
-                ),
+                "past_feat_dynamic_real": np.array([
+                    [1.0222e06 for i in range(14)],
+                    [750.0 for i in range(14)],
+                ]),
             },
             {
                 "start": "2017-10-11",

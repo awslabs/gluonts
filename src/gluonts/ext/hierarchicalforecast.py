@@ -96,13 +96,11 @@ def unpivot(df: pd.DataFrame) -> pd.DataFrame:
     """
 
     n, k = df.shape
-    return pd.DataFrame(
-        {
-            "unique_id": np.asarray(df.columns).repeat(n),
-            "ds": np.tile(np.asarray(df.index), k),
-            "y": df.to_numpy().ravel("F"),
-        }
-    )
+    return pd.DataFrame({
+        "unique_id": np.asarray(df.columns).repeat(n),
+        "ds": np.tile(np.asarray(df.index), k),
+        "y": df.to_numpy().ravel("F"),
+    })
 
 
 def format_reconciled_forecasts(
@@ -243,16 +241,14 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
         kwargs = {}
-        if self.config.intervals is not None and all(
-            [
-                proportion not in _build_fn_name(self.hrec.reconcilers[0])
-                for proportion in [
-                    "forecast_proportions",
-                    "average_proportions",
-                    "proportion_averages",
-                ]
+        if self.config.intervals is not None and all([
+            proportion not in _build_fn_name(self.hrec.reconcilers[0])
+            for proportion in [
+                "forecast_proportions",
+                "average_proportions",
+                "proportion_averages",
             ]
-        ):
+        ]):
             kwargs["level"] = self.config.intervals
 
         Y_df = format_data_entry(entry, self.S)
@@ -300,17 +296,15 @@ class HierarchicalForecastPredictor(RepresentablePredictor):
             fcst_col_names = self.config.statsforecast_keys
 
         # prepare for QuantileForecast format
-        forecast_arrays = np.array(
-            [
-                format_reconciled_forecasts(
-                    df=Y_hat_df_rec,
-                    fcst_col_name=fcst_col_names[e],
-                    prediction_length=self.prediction_length,
-                    S=self.S,
-                )
-                for e, k in enumerate(self.config.statsforecast_keys)
-            ]
-        )
+        forecast_arrays = np.array([
+            format_reconciled_forecasts(
+                df=Y_hat_df_rec,
+                fcst_col_name=fcst_col_names[e],
+                prediction_length=self.prediction_length,
+                S=self.S,
+            )
+            for e, k in enumerate(self.config.statsforecast_keys)
+        ])
 
         return QuantileForecast(
             forecast_arrays=forecast_arrays,

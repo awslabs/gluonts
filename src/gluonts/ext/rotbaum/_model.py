@@ -142,7 +142,7 @@ class QRX:
         # XGBoost, but True if one uses lightgbm.
         model_is_already_trained: bool = False,  # True if there is no need to
         # train self.model
-        **kwargs
+        **kwargs,
     ):
         """
         Fits self.model and partitions R^n into cells.
@@ -180,12 +180,10 @@ class QRX:
         if not model_is_already_trained:
             self.model.fit(x_train, y_train, **kwargs)
         y_train_pred = self.model.predict(x_train)
-        df = pd.DataFrame(
-            {
-                "y_true": y_train,
-                "y_pred": y_train_pred,
-            }
-        ).reset_index(drop=True)
+        df = pd.DataFrame({
+            "y_true": y_train,
+            "y_pred": y_train_pred,
+        }).reset_index(drop=True)
         self.sorted_train_preds = sorted(df["y_pred"].unique())
         cell_values_dict = self.preprocess_df(
             df, min_bin_size=self.min_bin_size

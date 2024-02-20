@@ -414,12 +414,10 @@ def test_split_date(
 @pytest.mark.parametrize(
     "dataset",
     [
-        [
-            {
-                "start": pd.Period("2021-03-01", freq="D"),
-                "target": np.ones(shape=(28,)),
-            }
-        ],
+        [{
+            "start": pd.Period("2021-03-01", freq="D"),
+            "target": np.ones(shape=(28,)),
+        }],
     ],
 )
 @pytest.mark.parametrize(

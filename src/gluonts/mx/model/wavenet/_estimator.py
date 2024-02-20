@@ -265,35 +265,31 @@ class WaveNetEstimator(GluonEstimator):
         )
 
     def create_transformation(self) -> transform.Transformation:
-        return Chain(
-            [
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
-                AddObservedValuesIndicator(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.OBSERVED_VALUES,
-                ),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=time_features_from_frequency_str(self.freq),
-                    pred_length=self.prediction_length,
-                ),
-                AddAgeFeature(
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_AGE,
-                    pred_length=self.prediction_length,
-                ),
-                VstackFeatures(
-                    output_field=FieldName.FEAT_TIME,
-                    input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
-                ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-            ]
-        )
+        return Chain([
+            AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+            AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+            ),
+            AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=time_features_from_frequency_str(self.freq),
+                pred_length=self.prediction_length,
+            ),
+            AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_AGE,
+                pred_length=self.prediction_length,
+            ),
+            VstackFeatures(
+                output_field=FieldName.FEAT_TIME,
+                input_fields=[FieldName.FEAT_TIME, FieldName.FEAT_AGE],
+            ),
+            SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0.0]),
+            AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+        ])
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]

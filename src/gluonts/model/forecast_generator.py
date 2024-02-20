@@ -94,7 +94,7 @@ class ForecastGenerator:
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
 
@@ -111,7 +111,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
@@ -155,7 +155,7 @@ class SampleForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
@@ -171,12 +171,10 @@ class SampleForecastGenerator(ForecastGenerator):
                         outputs = output_transform(batch, outputs)
                     collected_samples.append(outputs)
                     num_collected_samples += outputs[0].shape[0]
-                outputs = np.stack(
-                    [
-                        np.concatenate(s)[:num_samples]
-                        for s in zip(*collected_samples)
-                    ]
-                )
+                outputs = np.stack([
+                    np.concatenate(s)[:num_samples]
+                    for s in zip(*collected_samples)
+                ])
                 assert len(outputs[0]) == num_samples
             i = -1
             for i, output in enumerate(outputs):
@@ -205,7 +203,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)

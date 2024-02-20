@@ -44,34 +44,30 @@ def test_forking_sequence_splitter() -> None:
     enc_len = 5
     dec_len = 3
 
-    trans = transform.Chain(
-        [
-            transform.AddAgeFeature(
-                target_field=FieldName.TARGET,
-                output_field="age",
-                pred_length=dec_len,
-            ),
-            ForkingSequenceSplitter(
-                instance_sampler=ValidationSplitSampler(min_future=dec_len),
-                enc_len=enc_len,
-                dec_len=dec_len,
-                encoder_series_fields=["age"],
-            ),
-        ]
-    )
+    trans = transform.Chain([
+        transform.AddAgeFeature(
+            target_field=FieldName.TARGET,
+            output_field="age",
+            pred_length=dec_len,
+        ),
+        ForkingSequenceSplitter(
+            instance_sampler=ValidationSplitSampler(min_future=dec_len),
+            enc_len=enc_len,
+            dec_len=dec_len,
+            encoder_series_fields=["age"],
+        ),
+    ])
 
     out = trans(ds, is_train=True)
     transformed_data = next(iter(out))
 
-    future_target = np.array(
-        [
-            [13.0, 14.0, 15.0],
-            [14.0, 15.0, 16.0],
-            [15.0, 16.0, 17.0],
-            [16.0, 17.0, 18.0],
-            [17.0, 18.0, 19.0],
-        ]
-    )
+    future_target = np.array([
+        [13.0, 14.0, 15.0],
+        [14.0, 15.0, 16.0],
+        [15.0, 16.0, 17.0],
+        [16.0, 17.0, 18.0],
+        [17.0, 18.0, 19.0],
+    ])
     assert (
         np.linalg.norm(future_target - transformed_data["future_target"])
         < 1e-5
@@ -110,37 +106,35 @@ def test_forking_sequence_with_features(is_train) -> None:
     num_time_feat_daily_freq = 3
     num_age_feat = 1
 
-    trans = transform.Chain(
-        [
-            transform.AddAgeFeature(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_AGE,
-                pred_length=10,
+    trans = transform.Chain([
+        transform.AddAgeFeature(
+            target_field=FieldName.TARGET,
+            output_field=FieldName.FEAT_AGE,
+            pred_length=10,
+        ),
+        transform.AddTimeFeatures(
+            start_field=FieldName.START,
+            target_field=FieldName.TARGET,
+            output_field=FieldName.FEAT_TIME,
+            time_features=time_features_from_frequency_str("D"),
+            pred_length=10,
+        ),
+        ForkingSequenceSplitter(
+            instance_sampler=(
+                ValidationSplitSampler(min_future=dec_len)
+                if is_train
+                else TSplitSampler()
             ),
-            transform.AddTimeFeatures(
-                start_field=FieldName.START,
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_TIME,
-                time_features=time_features_from_frequency_str("D"),
-                pred_length=10,
-            ),
-            ForkingSequenceSplitter(
-                instance_sampler=(
-                    ValidationSplitSampler(min_future=dec_len)
-                    if is_train
-                    else TSplitSampler()
-                ),
-                enc_len=enc_len,
-                dec_len=dec_len,
-                num_forking=num_forking,
-                encoder_series_fields=[
-                    FieldName.FEAT_AGE,
-                    FieldName.FEAT_TIME,
-                ],
-                decoder_series_fields=[FieldName.FEAT_TIME],
-            ),
-        ]
-    )
+            enc_len=enc_len,
+            dec_len=dec_len,
+            num_forking=num_forking,
+            encoder_series_fields=[
+                FieldName.FEAT_AGE,
+                FieldName.FEAT_TIME,
+            ],
+            decoder_series_fields=[FieldName.FEAT_TIME],
+        ),
+    ])
 
     out = trans(iter(ds), is_train=is_train)
     transformed_data = next(iter(out))

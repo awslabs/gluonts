@@ -49,7 +49,7 @@ class PreprocessGeneric:
         max_n_datapts: int = 400000,
         seed: Optional[int] = None,
         num_samples: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Parameters
@@ -168,15 +168,13 @@ class PreprocessGeneric:
                     feature_data.append(
                         list(featurized_data) + [forecast_horizon_index]
                     )
-                    target_data.append(
-                        [
-                            time_series["target"][
-                                starting_index
-                                + self.context_window_size
-                                + forecast_horizon_index
-                            ]
+                    target_data.append([
+                        time_series["target"][
+                            starting_index
+                            + self.context_window_size
+                            + forecast_horizon_index
                         ]
-                    )
+                    ])
             else:
                 featurized_data = self.make_features(
                     altered_time_series, starting_index
@@ -296,7 +294,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         one_hot_encode: bool = True,
         subtract_mean: bool = True,
         count_nans: bool = False,
-        **kwargs
+        **kwargs,
     ):
         if one_hot_encode:
             assert cardinality != "ignore" or (
@@ -313,7 +311,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             stratify_targets=stratify_targets,
             n_ignore_last=n_ignore_last,
             num_samples=num_samples,
-            **kwargs
+            **kwargs,
         )
 
         self.use_feat_static_real = use_feat_static_real
@@ -481,41 +479,37 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
 
         past_feat_dynamic_real = (
             list(
-                chain(
-                    *[
-                        prefix + list(ent[0]) + list(ent[1].values())
-                        for ent in [
-                            self._pre_transform(
-                                ts if prefix else ts[starting_index:end_index],
-                                self.subtract_mean,
-                                self.count_nans,
-                            )
-                            for ts in time_series["past_feat_dynamic_real"]
-                        ]
+                chain(*[
+                    prefix + list(ent[0]) + list(ent[1].values())
+                    for ent in [
+                        self._pre_transform(
+                            ts if prefix else ts[starting_index:end_index],
+                            self.subtract_mean,
+                            self.count_nans,
+                        )
+                        for ts in time_series["past_feat_dynamic_real"]
                     ]
-                )
+                ])
             )
             if self.use_past_feat_dynamic_real
             else []
         )
         feat_dynamic_real = (
             list(
-                chain(
-                    *[
-                        list(ent[0]) + list(ent[1].values())
-                        for ent in [
-                            self._pre_transform(
-                                ts[
-                                    starting_index : end_index
-                                    + self.forecast_horizon
-                                ],
-                                self.subtract_mean,
-                                self.count_nans,
-                            )
-                            for ts in time_series["feat_dynamic_real"]
-                        ]
+                chain(*[
+                    list(ent[0]) + list(ent[1].values())
+                    for ent in [
+                        self._pre_transform(
+                            ts[
+                                starting_index : end_index
+                                + self.forecast_horizon
+                            ],
+                            self.subtract_mean,
+                            self.count_nans,
+                        )
+                        for ts in time_series["feat_dynamic_real"]
                     ]
-                )
+                ])
             )
             if self.use_feat_dynamic_real
             else []

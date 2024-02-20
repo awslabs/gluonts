@@ -61,14 +61,12 @@ class ConfigTransformer(TransformerMixin):
             add_catch_22_features: Whether a dataset's catch22 features ought to be added.
             tracker: An optional tracker to obtain the performance of Seasonal Naïve.
         """
-        assert any(
-            [
-                add_model_features,
-                add_dataset_statistics,
-                add_seasonal_naive_performance,
-                add_catch22_features,
-            ]
-        ), "ConfigTransformer must be given at least some group of features."
+        assert any([
+            add_model_features,
+            add_dataset_statistics,
+            add_seasonal_naive_performance,
+            add_catch22_features,
+        ]), "ConfigTransformer must be given at least some group of features."
         assert (
             not add_seasonal_naive_performance or tracker is not None
         ), "Tracker must be set if seasonal naive performance is used."
@@ -337,12 +335,10 @@ class ModelEncoder(Encoder):
         if self.transform_full_config:
             return cast(
                 npt.NDArray[np.float32],
-                self.pipeline.transform(
-                    [
-                        x.model.asdict()
-                        for x in cast(List[Config[ModelConfig]], X)
-                    ]
-                ),
+                self.pipeline.transform([
+                    x.model.asdict()
+                    for x in cast(List[Config[ModelConfig]], X)
+                ]),
             )
         return cast(
             npt.NDArray[np.float32],
@@ -383,16 +379,14 @@ class DatasetStatisticsEncoder(Encoder):
     def fit(
         self, X: list[Config[ModelConfig]], _y: Any = None
     ) -> DatasetStatisticsEncoder:
-        self.pipeline.fit(
-            [
-                {
-                    **x.dataset.stats(),
-                    "frequency": x.dataset.meta.freq,
-                    "prediction_length": x.dataset.meta.prediction_length,
-                }
-                for x in X
-            ]
-        )
+        self.pipeline.fit([
+            {
+                **x.dataset.stats(),
+                "frequency": x.dataset.meta.freq,
+                "prediction_length": x.dataset.meta.prediction_length,
+            }
+            for x in X
+        ])
         return self
 
     def transform(
@@ -430,14 +424,12 @@ class SeasonalNaivePerformanceEncoder(Encoder):
     def _get_performance_array(
         self, X: list[Config[ModelConfig]]
     ) -> npt.NDArray[np.float32]:
-        return np.array(
-            [
-                self.tracker.get_performance(
-                    Config(SeasonalNaiveModelConfig(), x.dataset)
-                ).ncrps.mean
-                for x in X
-            ]
-        )[:, None]
+        return np.array([
+            self.tracker.get_performance(
+                Config(SeasonalNaiveModelConfig(), x.dataset)
+            ).ncrps.mean
+            for x in X
+        ])[:, None]
 
 
 class DatasetCatch22Encoder(Encoder):

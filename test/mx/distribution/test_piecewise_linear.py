@@ -67,12 +67,12 @@ def test_values(
 ):
     distr = serialize_fn(distr)
     target = mx.nd.array(target).reshape(shape=(len(target),))
-    expected_target_cdf = np.array(expected_target_cdf).reshape(
-        (len(expected_target_cdf),)
-    )
-    expected_target_crps = np.array(expected_target_crps).reshape(
-        (len(expected_target_crps),)
-    )
+    expected_target_cdf = np.array(expected_target_cdf).reshape((
+        len(expected_target_cdf),
+    ))
+    expected_target_crps = np.array(expected_target_crps).reshape((
+        len(expected_target_crps),
+    ))
 
     assert all(np.isclose(distr.cdf(target).asnumpy(), expected_target_cdf))
     assert all(np.isclose(distr.crps(target).asnumpy(), expected_target_crps))

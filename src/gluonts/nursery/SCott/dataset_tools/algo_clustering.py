@@ -124,19 +124,15 @@ def KMeans_inside_dataset(
             0, len(target) - len_sample, prediction_length
         ):
             ts_slice = target[ts_sample_start : ts_sample_start + len_sample]
-            feature = torch.cat(
-                (
-                    feature,
-                    torch.Tensor(
-                        [
-                            ts_slice.mean(),
-                            ts_slice.var(),
-                            index % 7,
-                            index // 90,
-                        ]
-                    ),
-                )
-            )
+            feature = torch.cat((
+                feature,
+                torch.Tensor([
+                    ts_slice.mean(),
+                    ts_slice.var(),
+                    index % 7,
+                    index // 90,
+                ]),
+            ))
             index += 1
     feature = feature.reshape(index, 4)
     feature = _get_pre_features(feature).contiguous()
@@ -154,20 +150,16 @@ def KMeans_inside_dataset(
         ):
             ts_slice = target[ts_sample_start : ts_sample_start + len_sample]
             gid = cl[sample_id]
-            dataset_group[gid].append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
-            whole_data.append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
+            dataset_group[gid].append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
+            whole_data.append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
             unsplit_start += pd.Timedelta(hours=prediction_length)
             sample_id += 1
     print(len(whole_data))
@@ -228,18 +220,14 @@ def KMeans_m5_dataset(
         # import pdb;pdb.set_trace()
         gid = cl[sample_id]
         unsplit_start = pd.Timestamp("1990-01-01")
-        dataset_group[gid].append(
-            {
-                "target": ts_slice,
-                "start": unsplit_start,
-            }  # , 'feat_static_cat': train_entry['feat_static_cat']}
-        )
-        whole_data.append(
-            {
-                "target": ts_slice,
-                "start": unsplit_start,
-            }  # , 'feat_static_cat': train_entry['feat_static_cat']}
-        )
+        dataset_group[gid].append({
+            "target": ts_slice,
+            "start": unsplit_start,
+        })  # , 'feat_static_cat': train_entry['feat_static_cat']}
+        whole_data.append({
+            "target": ts_slice,
+            "start": unsplit_start,
+        })  # , 'feat_static_cat': train_entry['feat_static_cat']}
         sample_id += 1
     print(len(whole_data))
     ret["group_ratio"] = [len(i) / len(whole_data) for i in dataset_group]

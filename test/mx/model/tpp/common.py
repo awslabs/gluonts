@@ -22,13 +22,11 @@ def point_process_dataset():
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
     lds = ListDataset(
-        [
-            {
-                "target": np.c_[ia_times, marks].T,
-                "start": pd.Timestamp("2011-01-01 00:00:00"),
-                "end": pd.Timestamp("2011-01-01 03:00:00"),
-            }
-        ],
+        [{
+            "target": np.c_[ia_times, marks].T,
+            "start": pd.Timestamp("2011-01-01 00:00:00"),
+            "end": pd.Timestamp("2011-01-01 03:00:00"),
+        }],
         freq="H",
         one_dim_target=False,
         use_timestamp=True,

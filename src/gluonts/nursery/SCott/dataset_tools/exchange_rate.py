@@ -58,20 +58,16 @@ def group_exchangerate_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
-            dataset_group[gid].append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
+            train_full_data.append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
+            dataset_group[gid].append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
             unsplit_start += pd.Timedelta("1D") * prediction_length
     # get ready the test data
     for i in range(int(num_ts * 0.2)):
@@ -84,13 +80,11 @@ def group_exchangerate_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": test_entry["feat_static_cat"],
-                }
-            )
+            test_full_data.append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": test_entry["feat_static_cat"],
+            })
     print("total number of training examples: ", len(train_full_data))
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
     print("ratio for each group: ", ret["group_ratio"])

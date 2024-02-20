@@ -132,11 +132,9 @@ def sample_datasets(
             random_state=random_state.randint(low=0, high=10000),
         )
         folds.append((train_split, val_split, test_split))
-        assert not any(
-            [
-                set(train_split) & (set(val_split)),
-                set(train_split) & set(test_split),
-                set(val_split) & set(test_split),
-            ]
-        ), "Splits should not intersect!"
+        assert not any([
+            set(train_split) & (set(val_split)),
+            set(train_split) & set(test_split),
+            set(val_split) & set(test_split),
+        ]), "Splits should not intersect!"
     return folds

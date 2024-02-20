@@ -63,12 +63,9 @@ class MetaLightningModule(pl.LightningModule):
             self.val_quantile_width = nn.ModuleList(
                 [quantile_width.clone() for _ in range(len(val_dataset_names))]
             )
-            self.test_quantile_width = nn.ModuleList(
-                [
-                    quantile_width.clone()
-                    for _ in range(len(test_dataset_names))
-                ]
-            )
+            self.test_quantile_width = nn.ModuleList([
+                quantile_width.clone() for _ in range(len(test_dataset_names))
+            ])
 
         self.val_dataset_names = val_dataset_names
         (

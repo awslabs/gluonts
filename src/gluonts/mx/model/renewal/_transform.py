@@ -51,13 +51,9 @@ class AddAxisLength(SimpleTransformation):
 
     def transform(self, data: DataEntry) -> DataEntry:
         target = data[self.target_field]
-        data[self.output_field] = np.array(
-            [
-                (
-                    len(target)
-                    if isinstance(target, list)
-                    else target.shape[self.axis]
-                )
-            ]
-        )
+        data[self.output_field] = np.array([(
+            len(target)
+            if isinstance(target, list)
+            else target.shape[self.axis]
+        )])
         return data

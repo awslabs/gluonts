@@ -134,43 +134,41 @@ def test_get_features_dataframe(
 
 @pytest.mark.parametrize(
     "dataset, freq, prediction_length",
-    [
-        (
-            ListDataset(
-                [
-                    {
-                        "start": "1750-01-07 00:00:00",
-                        "target": np.array(
-                            [
-                                1089.2,
-                                1078.91,
-                                1099.88,
-                                35790.55,
-                                34096.95,
-                                34906.95,
-                            ],
-                        ),
-                    },
-                    {
-                        "start": "1750-01-07 00:00:00",
-                        "target": np.array(
-                            [
-                                1099.2,
-                                1098.91,
-                                1069.88,
-                                35990.55,
-                                34076.95,
-                                34766.95,
-                            ],
-                        ),
-                    },
-                ],
-                freq="W-TUE",
-            ),
-            "W-TUE",
-            2,
-        )
-    ],
+    [(
+        ListDataset(
+            [
+                {
+                    "start": "1750-01-07 00:00:00",
+                    "target": np.array(
+                        [
+                            1089.2,
+                            1078.91,
+                            1099.88,
+                            35790.55,
+                            34096.95,
+                            34906.95,
+                        ],
+                    ),
+                },
+                {
+                    "start": "1750-01-07 00:00:00",
+                    "target": np.array(
+                        [
+                            1099.2,
+                            1098.91,
+                            1069.88,
+                            35990.55,
+                            34076.95,
+                            34766.95,
+                        ],
+                    ),
+                },
+            ],
+            freq="W-TUE",
+        ),
+        "W-TUE",
+        2,
+    )],
 )
 @pytest.mark.parametrize("lag_indices", [[], [1, 2, 5]])
 @pytest.mark.parametrize("disable_auto_regression", [False, True])

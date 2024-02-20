@@ -157,12 +157,10 @@ TEST_CASES = [
 
 TEST_CASES_WITHOUT_VARIANCE = [
     (
-        MixtureDistributionOutput(
-            [
-                MultivariateGaussianOutput(dim=5),
-                MultivariateGaussianOutput(dim=5),
-            ]
-        ),
+        MixtureDistributionOutput([
+            MultivariateGaussianOutput(dim=5),
+            MultivariateGaussianOutput(dim=5),
+        ]),
         mx.nd.random.normal(shape=(3, 4, 10)),
         [None, mx.nd.ones(shape=(3, 4, 5))],
         [None],

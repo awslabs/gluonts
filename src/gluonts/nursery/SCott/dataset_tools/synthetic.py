@@ -64,24 +64,20 @@ def get_mixed_pattern(unit_length=16, num_duplicates=1000):
                             pattern[(gid + i) % pattern_number],
                         )
                     )
-                ts_sample = torch.cat(
-                    [
-                        context,
-                        _get_mixed_pattern(
-                            torch.arange(prediction_length, dtype=torch.float),
-                            pattern[gid],
-                        ),
-                    ]
-                )
+                ts_sample = torch.cat([
+                    context,
+                    _get_mixed_pattern(
+                        torch.arange(prediction_length, dtype=torch.float),
+                        pattern[gid],
+                    ),
+                ])
                 whole_data.append({"target": ts_sample, "start": start})
                 if j % 5 == 0:
-                    val_data.append(
-                        {
-                            "target": ts_sample
-                            + torch.normal(0, 1, ts_sample.shape),
-                            "start": start,
-                        }
-                    )
+                    val_data.append({
+                        "target": ts_sample
+                        + torch.normal(0, 1, ts_sample.shape),
+                        "start": start,
+                    })
                 dataset_group[m * 4 + gid].append(
                     {"target": ts_sample, "start": start}
                 )

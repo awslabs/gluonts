@@ -102,12 +102,10 @@ def test_climatological_forecaster(
         kernel_type=KernelType.uniform,
     )
 
-    dataset = [
-        {
-            "start": pd.Period(train_ts.index[0], freq=freq),
-            "target": train_ts.values,
-        }
-    ]
+    dataset = [{
+        "start": pd.Period(train_ts.index[0], freq=freq),
+        "target": train_ts.values,
+    }]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -267,12 +265,10 @@ def test_npts_forecaster(
         use_seasonal_model=use_seasonal_model,
     )
 
-    dataset = [
-        {
-            "start": pd.Period(train_ts.index[0], freq=freq),
-            "target": train_ts.values,
-        }
-    ]
+    dataset = [{
+        "start": pd.Period(train_ts.index[0], freq=freq),
+        "target": train_ts.values,
+    }]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)
@@ -417,12 +413,9 @@ def test_npts_custom_features(
         freq=train_ts.index.freq,
     )
     # Dummy feature defining 52 seasons
-    feat_dynamic_real = [
-        [
-            (ix % 52) / 51.0 - 0.5
-            for ix, timestamp in enumerate(full_time_index)
-        ]
-    ]
+    feat_dynamic_real = [[
+        (ix % 52) / 51.0 - 0.5 for ix, timestamp in enumerate(full_time_index)
+    ]]
 
     predictor = NPTSPredictor(
         prediction_length=pred_length,
@@ -433,13 +426,11 @@ def test_npts_custom_features(
         use_default_time_features=False,  # disable default time features
     )
 
-    dataset = [
-        {
-            "start": pd.Period(train_ts.index[0], freq=freq),
-            "target": train_ts.values,
-            "feat_dynamic_real": np.array(feat_dynamic_real),
-        }
-    ]
+    dataset = [{
+        "start": pd.Period(train_ts.index[0], freq=freq),
+        "target": train_ts.values,
+        "feat_dynamic_real": np.array(feat_dynamic_real),
+    }]
 
     # validate that the predictor works with targets with NaNs
     _test_nans_in_target(predictor, dataset)

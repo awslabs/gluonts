@@ -67,13 +67,11 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
             tracker, predict, output_normalization, impute_simulatable
         )
 
-        self.use_dataset_features = any(
-            [
-                use_simple_dataset_features,
-                use_seasonal_naive_performance,
-                use_catch22_features,
-            ]
-        )
+        self.use_dataset_features = any([
+            use_simple_dataset_features,
+            use_seasonal_naive_performance,
+            use_catch22_features,
+        ])
         if self.use_dataset_features:
             self.config_transformer = ConfigTransformer(
                 add_model_features=False,
@@ -97,26 +95,22 @@ class NonparametricSurrogate(Surrogate[ModelConfig], DatasetFeaturesMixin):
 
         # Then, we assign the model performances and dataset features
         self.model_performances_ = {
-            model: np.stack(
-                [
-                    p["performance"]
-                    for p in sorted(
-                        data,
-                        key=lambda x: x["dataset"].name(),  # type: ignore
-                    )
-                ]
-            )
+            model: np.stack([
+                p["performance"]
+                for p in sorted(
+                    data,
+                    key=lambda x: x["dataset"].name(),  # type: ignore
+                )
+            ])
             for model, data in performances.items()
         }
 
         # We use the seasonal naive model config here since it is ignored anyway
         if self.use_dataset_features:
-            self.dataset_features_ = self.config_transformer.fit_transform(
-                [
-                    Config(SeasonalNaiveModelConfig(), d)
-                    for d in sorted(datasets, key=lambda x: x.name())  # type: ignore
-                ]
-            )
+            self.dataset_features_ = self.config_transformer.fit_transform([
+                Config(SeasonalNaiveModelConfig(), d)
+                for d in sorted(datasets, key=lambda x: x.name())  # type: ignore
+            ])
 
     def _predict(
         self, X: List[Config[ModelConfig]]

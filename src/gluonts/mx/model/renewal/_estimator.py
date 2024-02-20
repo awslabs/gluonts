@@ -181,22 +181,20 @@ class DeepRenewalProcessEstimator(GluonEstimator):
 
     @staticmethod
     def _create_post_split_transform():
-        return Chain(
-            [
-                CountTrailingZeros(
-                    new_field="time_remaining",
-                    target_field="past_target",
-                    as_array=True,
-                ),
-                ToIntervalSizeFormat(
-                    target_field="past_target", discard_first=True
-                ),
-                RenameFields({"future_target": "sparse_future"}),
-                AsNumpyArray(field="past_target", expected_ndim=2),
-                SwapAxes(input_fields=["past_target"], axes=(0, 1)),
-                AddAxisLength(target_field="past_target", axis=0),
-            ]
-        )
+        return Chain([
+            CountTrailingZeros(
+                new_field="time_remaining",
+                target_field="past_target",
+                as_array=True,
+            ),
+            ToIntervalSizeFormat(
+                target_field="past_target", discard_first=True
+            ),
+            RenameFields({"future_target": "sparse_future"}),
+            AsNumpyArray(field="past_target", expected_ndim=2),
+            SwapAxes(input_fields=["past_target"], axes=(0, 1)),
+            AddAxisLength(target_field="past_target", axis=0),
+        ])
 
     def _stack_fn(self) -> Callable:
         return partial(

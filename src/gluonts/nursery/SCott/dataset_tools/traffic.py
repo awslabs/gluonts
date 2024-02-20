@@ -70,20 +70,16 @@ def group_traffic_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": t,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
-            dataset_group[gid].append(
-                {
-                    "target": ts_slice,
-                    "start": t,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
+            train_full_data.append({
+                "target": ts_slice,
+                "start": t,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
+            dataset_group[gid].append({
+                "target": ts_slice,
+                "start": t,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
             unsplit_start += pd.Timedelta(hours=prediction_length)
 
     # get ready the test data
@@ -97,13 +93,11 @@ def group_traffic_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": test_entry["feat_static_cat"],
-                }
-            )
+            test_full_data.append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": test_entry["feat_static_cat"],
+            })
 
     print("total number of training examples: ", len(train_full_data))
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
@@ -164,20 +158,16 @@ def group_traffic_mb(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": t,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
-            dataset_group[gid].append(
-                {
-                    "target": ts_slice,
-                    "start": t,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                }
-            )
+            train_full_data.append({
+                "target": ts_slice,
+                "start": t,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
+            dataset_group[gid].append({
+                "target": ts_slice,
+                "start": t,
+                "feat_static_cat": train_entry["feat_static_cat"],
+            })
             unsplit_start += pd.Timedelta(hours=prediction_length)
 
     # get ready the test data
@@ -191,13 +181,11 @@ def group_traffic_mb(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append(
-                {
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": test_entry["feat_static_cat"],
-                }
-            )
+            test_full_data.append({
+                "target": ts_slice,
+                "start": unsplit_start,
+                "feat_static_cat": test_entry["feat_static_cat"],
+            })
 
     print("total number of training examples: ", len(train_full_data))
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]

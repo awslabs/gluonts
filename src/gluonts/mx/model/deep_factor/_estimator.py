@@ -168,22 +168,18 @@ class DeepFactorEstimator(GluonEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return Chain(
-            [
-                AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
-                AddTimeFeatures(
-                    start_field=FieldName.START,
-                    target_field=FieldName.TARGET,
-                    output_field=FieldName.FEAT_TIME,
-                    time_features=time_features_from_frequency_str(self.freq),
-                    pred_length=self.prediction_length,
-                ),
-                SetFieldIfNotPresent(
-                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
-                ),
-                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-            ]
-        )
+        return Chain([
+            AsNumpyArray(field=FieldName.TARGET, expected_ndim=1),
+            AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field=FieldName.FEAT_TIME,
+                time_features=time_features_from_frequency_str(self.freq),
+                pred_length=self.prediction_length,
+            ),
+            SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0.0]),
+            AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+        ])
 
     def _create_instance_splitter(self, mode: str):
         return transform.InstanceSplitter(

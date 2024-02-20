@@ -108,25 +108,23 @@ class TimeSeriesInstant(object):
         return self.target.shape[1]
 
     def __eq__(self, other) -> bool:
-        return all(
-            [
-                isinstance(other, TimeSeriesInstant),
-                np.array_equal(self.target, other.target),
-                np.array_equal(self.timestamp, other.timestamp),
-                self.series_name == other.series_name,
-                np.array_equal(self.target_names, other.target_names),
-                _dict_equal(
-                    self.categorical_features,
-                    other.categorical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.numerical_features,
-                    other.numerical_features,
-                    np.array_equal,
-                ),
-            ]
-        )
+        return all([
+            isinstance(other, TimeSeriesInstant),
+            np.array_equal(self.target, other.target),
+            np.array_equal(self.timestamp, other.timestamp),
+            self.series_name == other.series_name,
+            np.array_equal(self.target_names, other.target_names),
+            _dict_equal(
+                self.categorical_features,
+                other.categorical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.numerical_features,
+                other.numerical_features,
+                np.array_equal,
+            ),
+        ])
 
     def __repr__(self):
         string = f"time = {self.timestamp:%Y-%m-%d %H:%M:%S}\n"
@@ -291,45 +289,43 @@ class TimeSeries(Sequence[TimeSeriesInstant]):
         }
 
     def __eq__(self, other):
-        return all(
-            [
-                isinstance(other, TimeSeries),
-                np.array_equal(self.target, other.target),
-                np.array_equal(self.time_index, other.time_index),
-                self.series_name == other.series_name,
-                np.array_equal(self.target_names, other.target_names),
-                _dict_equal(
-                    self.static_categorical_features,
-                    other.static_categorical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.static_numerical_features,
-                    other.static_numerical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.revealed_categorical_features,
-                    other.revealed_categorical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.revealed_numerical_features,
-                    other.revealed_numerical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.observed_categorical_features,
-                    other.observed_categorical_features,
-                    np.array_equal,
-                ),
-                _dict_equal(
-                    self.observed_numerical_features,
-                    other.observed_numerical_features,
-                    np.array_equal,
-                ),
-            ]
-        )
+        return all([
+            isinstance(other, TimeSeries),
+            np.array_equal(self.target, other.target),
+            np.array_equal(self.time_index, other.time_index),
+            self.series_name == other.series_name,
+            np.array_equal(self.target_names, other.target_names),
+            _dict_equal(
+                self.static_categorical_features,
+                other.static_categorical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.static_numerical_features,
+                other.static_numerical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.revealed_categorical_features,
+                other.revealed_categorical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.revealed_numerical_features,
+                other.revealed_numerical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.observed_categorical_features,
+                other.observed_categorical_features,
+                np.array_equal,
+            ),
+            _dict_equal(
+                self.observed_numerical_features,
+                other.observed_numerical_features,
+                np.array_equal,
+            ),
+        ])
 
     def __len__(self):
         return len(self.target)
@@ -562,16 +558,14 @@ class TimeSeriesCorpus(Sequence[TimeSeries]):
         self, instances: List[TimeSeries]
     ) -> List[TimeSeries]:
         def _consistent(ts1: TimeSeries, ts2: TimeSeries) -> bool:
-            return all(
-                [
-                    np.array_equal(ts1.target_names, ts2.target_names),
-                    ts1._static_features == ts2._static_features,
-                    ts1._revealed_features == ts2._revealed_features,
-                    ts1._observed_features == ts2._observed_features,
-                    ts1._categorical_features == ts2._categorical_features,
-                    ts1._numerical_features == ts2._numerical_features,
-                ]
-            )
+            return all([
+                np.array_equal(ts1.target_names, ts2.target_names),
+                ts1._static_features == ts2._static_features,
+                ts1._revealed_features == ts2._revealed_features,
+                ts1._observed_features == ts2._observed_features,
+                ts1._categorical_features == ts2._categorical_features,
+                ts1._numerical_features == ts2._numerical_features,
+            ])
 
         cats = defaultdict(list)
         nums = defaultdict(list)

@@ -234,39 +234,35 @@ class CheatArtificialDataModule(pl.LightningDataModule):
     def val_dataloader(self) -> DataLoader[TripletBatch]:
         splits = [self.splits.val(d_name) for d_name in self.dataset_names_val]
 
-        return list(
-            [
-                DataLoader(
-                    TripletDataset(
-                        queries=split.data(), support_sets=split.support_set()
-                    ),
-                    collate_fn=TripletBatch.collate,
-                    batch_size=self.batch_size_val_test,
-                    num_workers=self.num_workers,
-                    pin_memory=True,
-                )
-                for split in splits
-            ]
-        )
+        return list([
+            DataLoader(
+                TripletDataset(
+                    queries=split.data(), support_sets=split.support_set()
+                ),
+                collate_fn=TripletBatch.collate,
+                batch_size=self.batch_size_val_test,
+                num_workers=self.num_workers,
+                pin_memory=True,
+            )
+            for split in splits
+        ])
 
     def test_dataloader(self) -> DataLoader[TripletBatch]:
         splits = [
             self.splits.test(d_name) for d_name in self.dataset_names_test
         ]
-        return list(
-            [
-                DataLoader(
-                    TripletDataset(
-                        queries=split.data(), support_sets=split.support_set()
-                    ),
-                    collate_fn=TripletBatch.collate,
-                    batch_size=self.batch_size_val_test,
-                    num_workers=self.num_workers,
-                    pin_memory=True,
-                )
-                for split in splits
-            ]
-        )
+        return list([
+            DataLoader(
+                TripletDataset(
+                    queries=split.data(), support_sets=split.support_set()
+                ),
+                collate_fn=TripletBatch.collate,
+                batch_size=self.batch_size_val_test,
+                num_workers=self.num_workers,
+                pin_memory=True,
+            )
+            for split in splits
+        ])
 
     def generate(self) -> None:
         if self.root.exists():
@@ -301,18 +297,14 @@ class CheatArtificialDataModule(pl.LightningDataModule):
         always_cheat=True,
         query_length_scale=5.0,
     ) -> None:
-        queries, support_sets = zip(
-            *[
-                self.generate_artificial_tuplets(
-                    item_id=i,
-                    always_cheat=always_cheat,
-                    query_length_scale=query_length_scale,
-                )
-                for i in tqdm(
-                    range(n_samples), desc="generating artificial data"
-                )
-            ]
-        )
+        queries, support_sets = zip(*[
+            self.generate_artificial_tuplets(
+                item_id=i,
+                always_cheat=always_cheat,
+                query_length_scale=query_length_scale,
+            )
+            for i in tqdm(range(n_samples), desc="generating artificial data")
+        ])
         _write_data_to_file(self.root / split / "data.json", queries)
         _write_data_to_file(
             self.root / split / ".support_set.json", support_sets
@@ -585,14 +577,12 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
             for d_name in self.dataset_names_train
         ]
 
-        datasets = ConcatDataset(
-            [
-                TripletDataset(
-                    queries=split.data(), support_sets=split.support_set()
-                )
-                for split in splits
-            ]
-        )
+        datasets = ConcatDataset([
+            TripletDataset(
+                queries=split.data(), support_sets=split.support_set()
+            )
+            for split in splits
+        ])
 
         return DataLoader(
             datasets,
@@ -638,19 +628,15 @@ class CheatCounterfactualArtificialDataModule(CheatArtificialDataModule):
         query_length_scale: float = 5.0,
         counterfactual_size: int = 0,
     ) -> None:
-        queries, support_sets = zip(
-            *[
-                self.generate_artificial_tuplets(
-                    item_id=i,
-                    always_cheat=always_cheat,
-                    query_length_scale=query_length_scale,
-                    counterfactual_size=counterfactual_size,
-                )
-                for i in tqdm(
-                    range(n_samples), desc="generating artificial data"
-                )
-            ]
-        )
+        queries, support_sets = zip(*[
+            self.generate_artificial_tuplets(
+                item_id=i,
+                always_cheat=always_cheat,
+                query_length_scale=query_length_scale,
+                counterfactual_size=counterfactual_size,
+            )
+            for i in tqdm(range(n_samples), desc="generating artificial data")
+        ])
         _write_data_to_file(self.root / split / "data.json", queries)
         _write_data_to_file(
             self.root / split / ".support_set.json", support_sets

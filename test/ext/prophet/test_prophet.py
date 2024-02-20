@@ -32,18 +32,14 @@ def test_feat_dynamic_real_success(freq: str):
     params = dict(prediction_length=3, prophet_params=dict(n_changepoints=20))
 
     dataset = ListDataset(
-        data_iter=[
-            {
-                "start": "2017-01-01",
-                "target": np.array([1.0, 2.0, 3.0, 4.0]),
-                "feat_dynamic_real": np.array(
-                    [
-                        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-                        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-                    ]
-                ),
-            }
-        ],
+        data_iter=[{
+            "start": "2017-01-01",
+            "target": np.array([1.0, 2.0, 3.0, 4.0]),
+            "feat_dynamic_real": np.array([
+                [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+                [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+            ]),
+        }],
         freq=freq,
     )
 
@@ -61,18 +57,14 @@ def test_feat_dynamic_real_bad_size():
     params = dict(prediction_length=3, prophet_params={})
 
     dataset = ListDataset(
-        data_iter=[
-            {
-                "start": "2017-01-01",
-                "target": np.array([1.0, 2.0, 3.0, 4.0]),
-                "feat_dynamic_real": np.array(
-                    [
-                        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-                        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
-                    ]
-                ),
-            }
-        ],
+        data_iter=[{
+            "start": "2017-01-01",
+            "target": np.array([1.0, 2.0, 3.0, 4.0]),
+            "feat_dynamic_real": np.array([
+                [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            ]),
+        }],
         freq="1D",
     )
 
