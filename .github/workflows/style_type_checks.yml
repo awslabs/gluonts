@@ -9,20 +9,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: extractions/setup-just@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.8'
+    - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
         pip install .
         pip install click "black[jupyter]==24.01" "mypy==1.8.0" \
             types-python-dateutil types-waitress types-PyYAML
-    - name: Style and type checks
-      run: |
-        just black
-        just mypy
+    - name: Style check
+      run: just black
+    - name: Type check
+      run: just mypy
     - name: Check license headers
       run: just license
