@@ -5,6 +5,9 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: ["ruff", "docformatter"]
 
     steps:
     - uses: actions/checkout@v3
@@ -12,8 +15,9 @@ jobs:
     - name: Install tools
       run: pip install "ruff==0.2.2" "docformatter[tomli]==1.5.0"
     - name: Ruff (Flake8)
+      if: matrix.check == 'ruff'
       working-directory: src/
-      run: ruff gluonts
-    - name: DocFormatter
-      working-directory: src/
-      run: docformatter -r gluonts
+      run: ruff check --show-fixes --exit-non-zero-on-fix gluonts
+    - name: Docformatter
+      if: matrix.check == 'docformatter'
+      run: docformatter --check -r src/
