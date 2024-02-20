@@ -1,24 +1,19 @@
-name: Flake8 & Docformat
+name: Ruff & Docformat
 
 on: [push, pull_request]
 
 jobs:
-  flake8:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        pip install ruff
-        pip install docformatter[tomli]==1.5.0
+    - uses: actions/setup-python@v4
+    - name: Install tools
+      run: pip install "ruff==0.2.2" "docformatter[tomli]==1.5.0"
     - name: Ruff (Flake8)
-      run: |
-        ruff src
+      working-directory: src/
+      run: ruff gluonts
     - name: DocFormatter
-      run: |
-        docformatter -r src/gluonts
+      working-directory: src/
+      run: docformatter -r gluonts
