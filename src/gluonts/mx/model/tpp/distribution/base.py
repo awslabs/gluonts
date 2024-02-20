@@ -128,7 +128,7 @@ class TPPTransformedDistribution(TransformedDistribution):
         r"""
         Logarithm of the survival function.
 
-        :math:`\log S(y) = \log(1 - CDF(y))`.
+        :math:`\log S(y) = \log(1 - CDF(y))`
         """
         x = y
         for t in self.transforms[::-1]:

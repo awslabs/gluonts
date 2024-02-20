@@ -399,6 +399,7 @@ class ISQF(Distribution):
             Axis along which to expand
             For details of input_alpha shape and axis,
             refer to the description in quantile_internal
+
         Returns
         -------
         Tensor

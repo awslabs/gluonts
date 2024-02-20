@@ -358,13 +358,13 @@ class Distribution:
 
         Parameters
         ----------
-        level
+        level:
             Level values to use for computing the quantiles.
             `level` should be a 1d tensor of level values between 0 and 1.
 
         Returns
         -------
-        quantiles
+        quantiles:
             Quantile values corresponding to the levels passed.
             The return shape is
 
