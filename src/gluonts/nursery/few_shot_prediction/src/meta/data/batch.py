@@ -34,9 +34,9 @@ class SeriesBatch:
     )  # shape [batch, num_sequences, max_sequence_length]
     lengths: torch.Tensor  # shape [batch]
     split_sections: torch.Tensor  # shape [batch]
-    scales: Optional[torch.Tensor] = (
-        None  # shape[batch, 2] contains mean and std the ts has been scaled with
-    )
+    scales: Optional[
+        torch.Tensor
+    ] = None  # shape[batch, 2] contains mean and std the ts has been scaled with
 
     @classmethod
     def from_lists(
