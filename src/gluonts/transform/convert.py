@@ -907,8 +907,9 @@ class ToIntervalSizeFormat(FlatMapTransformation):
 
 
 class QuantizeMeanScaled(SimpleTransformation):
-    """Rescale and quantize the target variable.
-    Requires `past_target_field`, and `future_target_field` to be present.
+    """
+    Rescale and quantize the target variable. Requires `past_target_field`, and
+    `future_target_field` to be present.
 
     The mean absolute value of the past_target is used to rescale
     past_target and future_target. Then the bin_edges are used to quantize

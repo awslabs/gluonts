@@ -197,8 +197,8 @@ class Distribution:
         r"""
         Number of event dimensions, i.e., length of the `event_shape` tuple.
 
-        This is `0` for distributions over scalars, `1` over vectors,
-        `2` over matrices, and so on.
+        This is `0` for distributions over scalars, `1` over vectors, `2` over
+        matrices, and so on.
         """
         raise NotImplementedError()
 
@@ -276,7 +276,8 @@ class Distribution:
 
     def cdf(self, x: Tensor) -> Tensor:
         r"""
-        Return the value of the cumulative distribution function evaluated at x
+        Return the value of the cumulative distribution function evaluated at
+        x.
         """
         raise NotImplementedError()
 
@@ -353,7 +354,6 @@ class Distribution:
 
     def quantile(self, level: Tensor) -> Tensor:
         r"""
-
         Calculates quantiles for the given levels.
 
         Parameters

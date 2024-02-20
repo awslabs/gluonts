@@ -126,7 +126,8 @@ class TPPTransformedDistribution(TransformedDistribution):
 
     def log_survival(self, y: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function
+        Logarithm of the survival function.
+
         :math:`\log S(y) = \log(1 - CDF(y))`.
         """
         x = y

@@ -30,9 +30,11 @@ from meta.common import tensor_to_np
 @dataclass
 class DatasetSplits:
     """
-    The dataset splits provide train, validation and test data for a particular dataset. Calling
-    any of the functions here, is a noop. Data is only loaded once a particular representation of
-    the data is accessed.
+    The dataset splits provide train, validation and test data for a particular
+    dataset.
+
+    Calling any of the functions here, is a noop. Data is only loaded once a
+    particular representation of the data is accessed.
     """
 
     _metadata: MetaData
@@ -65,7 +67,9 @@ class DatasetSplits:
 
     def val(self, name: str = "") -> DatasetSplit:
         """
-        Returns the validation data for the dataset. This is the same as :meth:`train(False)`.
+        Returns the validation data for the dataset.
+
+        This is the same as :meth:`train(False)`.
         """
         return DatasetSplit(
             self._metadata,
@@ -93,8 +97,8 @@ class DatasetSplits:
 @dataclass
 class DatasetSplit:
     """
-    A dataset split provides all the representations for a particular split (train/val/test) of a
-    dataset.
+    A dataset split provides all the representations for a particular split
+    (train/val/test) of a dataset.
     """
 
     _metadata: MetaData
@@ -106,8 +110,9 @@ class DatasetSplit:
 
     def data(self, evaluation: bool = False) -> TimeSeriesDataset:
         """
-        Returns a time series dataset for the dataset split. This loads the associated JSON file and
-        is, thus, potentially slow.
+        Returns a time series dataset for the dataset split.
+
+        This loads the associated JSON file and is, thus, potentially slow.
         """
         gluonts = FileDataset(
             self._directory / self._split, freq=self._metadata.freq
@@ -170,8 +175,8 @@ class DatasetSplit:
 
     def prepare(self) -> None:
         """
-        Prepares all required representations provided that the GluonTS dataset is already
-        generated.
+        Prepares all required representations provided that the GluonTS dataset
+        is already generated.
         """
         target = self._directory / "numpy" / self._split
         if self._split == "train":
@@ -202,9 +207,11 @@ class DatasetSplit:
 @dataclass
 class EvaluationDataset:
     """
-    The evaluation dataset is a simple dataset representation that contains a two-dimensional array
-    of future values as well as a two-dimensional (masked) array of the past values that a model
-    sees during training. This representation is very efficient for evaluation.
+    The evaluation dataset is a simple dataset representation that contains a
+    two-dimensional array of future values as well as a two-dimensional
+    (masked) array of the past values that a model sees during training.
+
+    This representation is very efficient for evaluation.
     """
 
     future: np.ndarray

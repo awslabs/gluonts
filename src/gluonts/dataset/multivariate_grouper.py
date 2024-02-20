@@ -92,7 +92,7 @@ class MultivariateGrouper:
         The preprocess function iterates over the dataset to gather data that
         is necessary for alignment.
 
-        This includes     1) Storing first/last timestamp in the dataset     2)
+        This includes     1) Storing first/last timestamp in the dataset 2)
         Storing the frequency of the dataset
         """
         for data in dataset:

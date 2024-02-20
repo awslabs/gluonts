@@ -18,12 +18,13 @@ from torch import nn as nn
 
 
 class ImplicitQuantileModule(nn.Module):
-    """See arXiv: 1806.06923
-    This module, in combination with quantile loss,
+    """
+    See arXiv: 1806.06923 This module, in combination with quantile loss,
     learns how to generate the quantile of the distribution of the target.
-    A quantile value, tau, is randomly generated with a Uniform([0, 1])).
-    This quantile value is embedded in this module and also passed to the quantile loss:
-    this should force the model to learn the appropriate quantile.
+
+    A quantile value, tau, is randomly generated with a Uniform([0, 1])). This
+    quantile value is embedded in this module and also passed to the quantile
+    loss: this should force the model to learn the appropriate quantile.
     """
 
     def __init__(self, in_features, output_domain_cls):
@@ -46,7 +47,11 @@ class ImplicitQuantileModule(nn.Module):
 
 
 class QuantileLayer(nn.Module):
-    """Define quantile embedding layer, i.e. phi in the IQN paper (arXiv: 1806.06923)."""
+    """
+    Define quantile embedding layer.
+
+    i.e. phi in the IQN paper (arXiv: 1806.06923)
+    """
 
     def __init__(self, num_output):
         super(QuantileLayer, self).__init__()

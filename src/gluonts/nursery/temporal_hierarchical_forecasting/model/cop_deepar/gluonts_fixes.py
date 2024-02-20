@@ -69,8 +69,10 @@ def batchify_with_dict(
 
 class RepresentableBlockPredictorBatchifyWithDict(RepresentableBlockPredictor):
     """
-    We need the stack function `batchify_with_dict` in order to pass the features at the aggregated level properly
-    during prediction. Gluonts does not allow this without changing the line corresponding to the
+    We need the stack function `batchify_with_dict` in order to pass the
+    features at the aggregated level properly during prediction.
+
+    Gluonts does not allow this without changing the line corresponding to the
     `InferenceDataLoader` in the `predict` function.
     """
 

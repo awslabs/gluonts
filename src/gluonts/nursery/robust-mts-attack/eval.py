@@ -101,7 +101,7 @@ if __name__ == "__main__":
         )
         with torch.no_grad():
             """
-            Clean data
+            Clean data.
             """
             inputs = dict(
                 [(key, batch[key]) for key in PREDICTION_INPUT_NAMES]

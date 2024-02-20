@@ -99,6 +99,7 @@ class EncoderDecoderMetaModel(MetaModel):
 class IwataKumagaiEcDcConfig:
     """
     Configuration class for a LSTMEncoderFeedforwardDecoder.
+
     See also:
         :class:`LSTMEncoderFeedforwardDecoder`
     """
@@ -130,9 +131,11 @@ class IwataKumagaiEcDc(
     EncoderDecoderMetaModel, Configurable[IwataKumagaiEcDcConfig]
 ):
     """
-    The base model from the paper https://arxiv.org/abs/2009.14379 by Iwata and Kumagai.
-    Differences are quantile prediction and (optionally) longer prediction window.
+    The base model from the paper https://arxiv.org/abs/2009.14379 by Iwata and
+    Kumagai.
 
+    Differences are quantile prediction and (optionally) longer prediction
+    window.
     """
 
     def __init__(self, config: IwataKumagaiEcDcConfig):
@@ -175,6 +178,7 @@ class IwataKumagaiEcDc(
 class CNNLSTMEcDcConfig:
     """
     Configuration class for a LSTMEncoderFeedforwardDecoder.
+
     See also:
         :class:`LSTMEncoderFeedforwardDecoder`
     """
@@ -239,6 +243,7 @@ class CNNLSTMEcDc(EncoderDecoderMetaModel, Configurable[CNNLSTMEcDcConfig]):
 class TcnEcDcConfig:
     """
     Configuration class for a  TcnEcDc.
+
     See also:
         :class:` TcnEcDc`
     """
@@ -271,6 +276,7 @@ class TcnEcDcConfig:
 class TcnEcDc(EncoderDecoderMetaModel, Configurable[TcnEcDcConfig]):
     """
     Shared WaveNet-like encoder for query and support set.
+
     Multi-head attention to match the encoded query and support set.
     Feedforward decoder for multi-step quantile prediction.
     """

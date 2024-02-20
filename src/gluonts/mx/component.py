@@ -27,9 +27,8 @@ from gluonts.core.component import (
 def equals_parameter_dict(
     this: mx.gluon.ParameterDict, that: mx.gluon.ParameterDict
 ) -> bool:
-    """
-    Structural equality check between two :class:`~mxnet.gluon.ParameterDict`
-    objects.
+    """Structural equality check between two
+    :class:`~mxnet.gluon.ParameterDict` objects.
 
     Two parameter dictionaries ``this`` and ``that`` are considered
     *structurally equal* if the following conditions are satisfied:

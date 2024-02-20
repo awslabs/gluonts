@@ -50,7 +50,9 @@ class MetricCollection:
     metrics: List[Metric]
 
     def update(self, data: Mapping[str, np.ndarray]) -> Self:
-        """Update metrics using a single data instance."""
+        """
+        Update metrics using a single data instance.
+        """
 
         for metric in self.metrics:
             metric.update(data)
@@ -58,7 +60,9 @@ class MetricCollection:
         return self
 
     def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> Self:
-        """Update metrics using a stream of data instances."""
+        """
+        Update metrics using a stream of data instances.
+        """
 
         for element in stream:
             self.update(element)
@@ -74,12 +78,16 @@ class Metric:
     name: str
 
     def update(self, data: Mapping[str, np.ndarray]) -> Self:
-        """Update metric using a single data instance."""
+        """
+        Update metric using a single data instance.
+        """
 
         raise NotImplementedError
 
     def update_all(self, stream: Iterator[Mapping[str, np.ndarray]]) -> Self:
-        """Update metric using a stream of data instances."""
+        """
+        Update metric using a stream of data instances.
+        """
 
         for element in stream:
             self.update(element)
@@ -92,7 +100,9 @@ class Metric:
 
 @dataclass
 class DirectMetric(Metric):
-    """A Metric which uses a single function and aggregation strategy."""
+    """
+    A Metric which uses a single function and aggregation strategy.
+    """
 
     stat: Callable
     aggregate: Aggregation
@@ -108,10 +118,11 @@ class DirectMetric(Metric):
 
 @dataclass
 class DerivedMetric(Metric):
-    """A Metric that is computed using other metrics.
+    """
+    A Metric that is computed using other metrics.
 
-    A derived metric updates multiple, simpler metrics independently and in
-    the end combines their results as defined in `post_process`.
+    A derived metric updates multiple, simpler metrics independently and in the
+    end combines their results as defined in `post_process`.
     """
 
     metrics: Dict[str, Metric]
@@ -237,7 +248,9 @@ sum_absolute_error = SumAbsoluteError()
 
 @dataclass
 class MAE(BaseMetricDefinition):
-    """Mean Absolute Error"""
+    """
+    Mean Absolute Error.
+    """
 
     forecast_type: str = "0.5"
 
@@ -254,7 +267,9 @@ mae = MAE()
 
 @dataclass
 class MSE(BaseMetricDefinition):
-    """Mean Squared Error"""
+    """
+    Mean Squared Error.
+    """
 
     forecast_type: str = "mean"
 
@@ -295,7 +310,9 @@ class Coverage(BaseMetricDefinition):
 
 @dataclass
 class MAPE(BaseMetricDefinition):
-    """Mean Absolute Percentage Error"""
+    """
+    Mean Absolute Percentage Error.
+    """
 
     forecast_type: str = "0.5"
 
@@ -314,7 +331,9 @@ mape = MAPE()
 
 @dataclass
 class SMAPE(BaseMetricDefinition):
-    """Symmetric Mean Absolute Percentage Error"""
+    """
+    Symmetric Mean Absolute Percentage Error.
+    """
 
     forecast_type: str = "0.5"
 
@@ -334,7 +353,9 @@ smape = SMAPE()
 
 @dataclass
 class MSIS(BaseMetricDefinition):
-    """Mean Scaled Interval Score"""
+    """
+    Mean Scaled Interval Score.
+    """
 
     alpha: float = 0.05
 
@@ -351,7 +372,9 @@ msis = MSIS()
 
 @dataclass
 class MASE(BaseMetricDefinition):
-    """Mean Absolute Scaled Error"""
+    """
+    Mean Absolute Scaled Error.
+    """
 
     forecast_type: str = "0.5"
 
@@ -382,7 +405,9 @@ class MeanScaledQuantileLoss(BaseMetricDefinition):
 
 @dataclass
 class ND(BaseMetricDefinition):
-    """Normalized Deviation"""
+    """
+    Normalized Deviation.
+    """
 
     forecast_type: str = "0.5"
 
@@ -410,7 +435,9 @@ nd = ND()
 
 @dataclass
 class RMSE(BaseMetricDefinition):
-    """Root Mean Squared Error"""
+    """
+    Root Mean Squared Error.
+    """
 
     forecast_type: str = "mean"
 
@@ -435,7 +462,9 @@ rmse = RMSE()
 
 @dataclass
 class NRMSE(BaseMetricDefinition):
-    """RMSE, normalized by the mean absolute label"""
+    """
+    RMSE, normalized by the mean absolute label.
+    """
 
     forecast_type: str = "mean"
 
@@ -582,7 +611,9 @@ class MAECoverage(BaseMetricDefinition):
 
 @dataclass
 class OWA(BaseMetricDefinition):
-    """Overall Weighted Average"""
+    """
+    Overall Weighted Average.
+    """
 
     forecast_type: str = "0.5"
 

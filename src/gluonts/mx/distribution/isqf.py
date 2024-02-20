@@ -29,8 +29,8 @@ class ISQF(Distribution):
     r"""
     Distribution class for the Incremental (Spline) Quantile Function in the
     paper ``Learning Quantile Functions without Quantile Crossing for
-    Distribution-free Time Series Forecasting``
-    by Park, Robinson, Aubet, Kan, Gasthaus, Wang
+    Distribution-free Time Series Forecasting`` by Park, Robinson, Aubet, Kan,
+    Gasthaus, Wang.
 
     Parameters
     ----------
@@ -136,8 +136,8 @@ class ISQF(Distribution):
         F, quantile_knots: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         r"""
-        Function to parametrize the x or y positions
-        of the num_qk quantile knots
+        Function to parametrize the x or y positions of the num_qk quantile
+        knots.
 
         Parameters
         ----------
@@ -233,7 +233,7 @@ class ISQF(Distribution):
         F, beta: Tensor, qk_x: Tensor, qk_y: Tensor
     ) -> Tuple[Tensor, Tensor]:
         r"""
-        Function to parametrize the tail parameters
+        Function to parametrize the tail parameters.
 
         Note that the exponential tails are given by
         q(alpha)
@@ -388,8 +388,8 @@ class ISQF(Distribution):
         axis: Optional[int] = None,
     ) -> Tensor:
         r"""
-        Evaluates the spline functions at the
-        quantile levels contained in alpha
+        Evaluates the spline functions at the quantile levels contained in
+        alpha.
 
         Parameters
         ----------
@@ -486,9 +486,9 @@ class ISQF(Distribution):
 
     def cdf_spline(self, z: Tensor) -> Tensor:
         r"""
-        For observations z and splines defined in [qk_x[k], qk_x[k+1]]
-        Computes the quantile level alpha_tilde such that
-        alpha_tilde
+        For observations z and splines defined in [qk_x[k], qk_x[k+1]] Computes
+        the quantile level alpha_tilde such that alpha_tilde.
+
         = q^{-1}(z) if z is in-between qk_x[k] and qk_x[k+1]
         = qk_x[k] if z<qk_x[k]
         = qk_x[k+1] if z>qk_x[k+1]
@@ -565,8 +565,8 @@ class ISQF(Distribution):
 
     def cdf_tail(self, z: Tensor, left_tail: bool = True) -> Tensor:
         r"""
-        Computes the quantile level alpha_tilde such that
-        alpha_tilde
+        Computes the quantile level alpha_tilde such that alpha_tilde.
+
         = q^{-1}(z) if z is in the tail region
         = qk_x_l or qk_x_r if z is in the non-tail region
         Parameters
@@ -828,7 +828,7 @@ class ISQF(Distribution):
 
 class ISQFOutput(DistributionOutput):
     r"""
-    DistributionOutput class for the Incremental (Spline) Quantile Function
+    DistributionOutput class for the Incremental (Spline) Quantile Function.
 
     Parameters
     ----------

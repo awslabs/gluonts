@@ -150,8 +150,8 @@ class PeriodicKernelOutput(KernelOutputDict):
     @classmethod
     def domain_map(cls, F, amplitude, length_scale, frequency):
         r"""
-        This function applies the softmax to the Periodic Kernel
-        hyper-parameters.
+        This function applies the softmax to the Periodic Kernel hyper-
+        parameters.
 
         Parameters
         ----------

@@ -17,8 +17,8 @@
 
 def broadcast_shape(*shapes, **kwargs):
     """
-    Similar to ``np.broadcast()`` but for shapes.
-    Equivalent to ``np.broadcast(*map(np.empty, shapes)).shape``.
+    Similar to ``np.broadcast()`` but for shapes. Equivalent to
+    ``np.broadcast(*map(np.empty, shapes)).shape``.
 
     :param tuple shapes: shapes of tensors.
     :param bool strict: whether to use extend-but-not-resize broadcasting.

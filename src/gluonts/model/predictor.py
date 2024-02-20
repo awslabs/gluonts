@@ -149,8 +149,8 @@ class Predictor:
 class RepresentablePredictor(Predictor):
     """
     An abstract predictor that can be subclassed by framework-specific models.
-    Subclasses should have ``@validated()`` constructors:
-    (de)serialization and equality test are all implemented on top of its logic.
+    Subclasses should have ``@validated()`` constructors: (de)serialization and
+    equality test are all implemented on top of its logic.
 
     Parameters
     ----------

@@ -105,7 +105,6 @@ class Cyclic:
         >>> s = Cyclic([1, 2, 3, 4]).stream()
         >>> assert list(take(5, s)) == [1, 2, 3, 4, 1]
         >>> assert list(take(5, s)) == [2, 3, 4, 1, 2]
-
         """
         return iter(self)
 
@@ -160,7 +159,8 @@ class _SubIndex(NamedTuple):
 
 @dataclass
 class Fuse:
-    """Fuse collections together to act as single collections.
+    """
+    Fuse collections together to act as single collections.
 
     >>> a = [0, 1, 2]
     >>> b = [3, 4, 5]
@@ -209,8 +209,9 @@ class Fuse:
         return Fuse(items)
 
     def _location_for(self, idx, side="right") -> _SubIndex:
-        """Map global index to pair of index to collection and index within
-        that collection.
+        """
+        Map global index to pair of index to collection and index within that
+        collection.
 
         >>> fuse = Fuse([[0, 0], [1, 1]])
         >>> fuse._location_for(0)
@@ -221,7 +222,6 @@ class Fuse:
         _SubIndex(item=1, local=0)
         >>> fuse._location_for(3)
         _SubIndex(item=1, local=1)
-
         """
         if idx == 0 or not self:
             return _SubIndex(0, 0)
@@ -262,7 +262,8 @@ class Fuse:
 
 
 def split(xs: Sequence, indices: List[int]) -> List[Sequence]:
-    """Split ``xs`` into subsets given ``indices``.
+    """
+    Split ``xs`` into subsets given ``indices``.
 
     >>> split("abcdef", [1, 3])
     ['a', 'bc', 'def']
@@ -281,13 +282,13 @@ def split(xs: Sequence, indices: List[int]) -> List[Sequence]:
 
 
 def split_into(xs: Sequence, n: int) -> Sequence:
-    """Split ``xs`` into ``n`` parts of similar size.
+    """
+    Split ``xs`` into ``n`` parts of similar size.
 
     >>> split_into("abcd", 2)
     ['ab', 'cd']
     >>> split_into("abcd", 3)
     ['ab', 'c', 'd']
-
     """
 
     bucket_size, remainder = divmod(len(xs), n)
@@ -336,8 +337,9 @@ class Cached:
 
 @dataclass
 class PickleCached:
-    """A caching wrapper for ``iterable`` using ``pickle`` to store cached
-    values on disk.
+    """
+    A caching wrapper for ``iterable`` using ``pickle`` to store cached values
+    on disk.
 
     See :class:`Cached` for more information.
     """
@@ -659,7 +661,9 @@ _no_default = object()
 
 @curry
 def pluck_attr(seq, name, default=_no_default):
-    """Get attribute ``name`` from elements in ``seq``."""
+    """
+    Get attribute ``name`` from elements in ``seq``.
+    """
 
     if default is _no_default:
         return [getattr(el, name) for el in seq]
@@ -696,7 +700,6 @@ def join_items(left, right, how="outer", default=None):
     * ``right``: use only keys from ``right``
 
     If a key is not present in either input, ``default`` is chosen instead.
-
     """
 
     if how == "outer":
@@ -718,13 +721,13 @@ def join_items(left, right, how="outer", default=None):
 
 
 def replace(values: Sequence[T], idx: int, value: T) -> Sequence[T]:
-    """Replace value at index ``idx`` with ``value``.
+    """
+    Replace value at index ``idx`` with ``value``.
 
     Like ``setitem``, but for tuples.
 
     >>> replace((1, 2, 3, 4), -1, 99)
     (1, 2, 3, 99)
-
     """
     xs = list(values)
     xs[idx] = value

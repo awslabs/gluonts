@@ -41,7 +41,8 @@ SUPPORTED_HIERARCHICAL_METHODS = (
 
 class RHierarchicalForecastPredictor(RBasePredictor):
     """
-    Wrapper for calling the `R hts package
+    Wrapper for calling the `R hts package.
+
     <https://www.r-pkg.org/pkg/hts>`_.
 
     In order to use it you need to install R and rpy2. You also need the R `hts` package which

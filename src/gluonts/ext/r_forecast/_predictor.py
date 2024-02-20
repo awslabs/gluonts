@@ -57,8 +57,8 @@ R -e 'install.packages(c("hts"), repos="https://cloud.r-project.org")'
 
 class RBasePredictor(RepresentablePredictor):
     """
-    The `RBasePredictor` is a thin wrapper for calling R packages.
-    In order to use it you need to install R and rpy2.
+    The `RBasePredictor` is a thin wrapper for calling R packages. In order to
+    use it you need to install R and rpy2.
 
     Note that specific R packages need to be installed, depending
     on which wrapper one needs to run.
@@ -140,7 +140,6 @@ class RBasePredictor(RepresentablePredictor):
         -------
         Dictionary
             Forecasts saved in a dictionary.
-
         """
         raise NotImplementedError()
 
@@ -156,7 +155,6 @@ class RBasePredictor(RepresentablePredictor):
         Returns
         -------
         Tuple[Dict, List]:
-
         """
         buf = []
 
@@ -184,8 +182,8 @@ class RBasePredictor(RepresentablePredictor):
 
     def _preprocess_data(self, data: Dict) -> Dict:
         """
-        Preprocessing of target time series, e.g., truncating length or
-        slicing bottom time series in case of hierarchical forecasting etc.
+        Preprocessing of target time series, e.g., truncating length or slicing
+        bottom time series in case of hierarchical forecasting etc.
 
         Parameters
         ----------
@@ -195,7 +193,6 @@ class RBasePredictor(RepresentablePredictor):
         Returns
         -------
         Dict
-
         """
         raise NotImplementedError()
 
@@ -206,7 +203,6 @@ class RBasePredictor(RepresentablePredictor):
 
         Returns
         -------
-
         """
         return
 
@@ -235,7 +231,6 @@ class RBasePredictor(RepresentablePredictor):
         -------
         Forecast
             Sample based or quantile based forecasts.
-
         """
         raise NotImplementedError()
 

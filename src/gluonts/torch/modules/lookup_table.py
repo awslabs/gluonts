@@ -18,7 +18,8 @@ from gluonts.core.component import validated
 
 
 class LookupValues(nn.Module):
-    """A lookup table mapping bin indices to values.
+    """
+    A lookup table mapping bin indices to values.
 
     Parameters
     ----------
