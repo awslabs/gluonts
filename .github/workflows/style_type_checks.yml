@@ -22,9 +22,9 @@ jobs:
         pip install types-python-dateutil
         pip install types-waitress
         pip install types-PyYAML
-    - name: Style check
-      run: just black
-    - name: Type check
-      run: just mypy
+    - name: Style and type checks
+      run: |
+        just black
+        just mypy
     - name: Check license headers
       run: just license
