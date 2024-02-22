@@ -177,17 +177,21 @@ class DeepTPPEstimator(GluonEstimator):
 
         assert isinstance(instance_sampler, ContinuousTimePointSampler)
 
-        return Chain([
-            ContinuousTimeInstanceSplitter(
-                past_interval_length=self.context_interval_length,
-                future_interval_length=self.prediction_interval_length,
-                instance_sampler=instance_sampler,
-            ),
-            RenameFields({
-                "past_target": "target",
-                "past_valid_length": "valid_length",
-            }),
-        ])
+        return Chain(
+            [
+                ContinuousTimeInstanceSplitter(
+                    past_interval_length=self.context_interval_length,
+                    future_interval_length=self.prediction_interval_length,
+                    instance_sampler=instance_sampler,
+                ),
+                RenameFields(
+                    {
+                        "past_target": "target",
+                        "past_valid_length": "valid_length",
+                    }
+                ),
+            ]
+        )
 
     def create_training_data_loader(
         self,

@@ -120,14 +120,16 @@ class EpsilonTheta(nn.Module):
         self.cond_upsampler = CondUpsampler(
             target_dim=target_dim, cond_length=cond_length
         )
-        self.residual_layers = nn.ModuleList([
-            ResidualBlock(
-                residual_channels=residual_channels,
-                dilation=2 ** (i % dilation_cycle_length),
-                hidden_size=residual_hidden,
-            )
-            for i in range(residual_layers)
-        ])
+        self.residual_layers = nn.ModuleList(
+            [
+                ResidualBlock(
+                    residual_channels=residual_channels,
+                    dilation=2 ** (i % dilation_cycle_length),
+                    hidden_size=residual_hidden,
+                )
+                for i in range(residual_layers)
+            ]
+        )
         self.skip_projection = nn.Conv1d(
             residual_channels, residual_channels, 3
         )

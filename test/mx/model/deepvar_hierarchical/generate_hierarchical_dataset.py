@@ -73,11 +73,13 @@ def sine7(seq_length: int, prediction_length: int):
     )
 
     train_dataset = ListDataset(
-        [{
-            "start": index[0],
-            "item_id": "all_items",
-            "target": Y[:, :-prediction_length],
-        }],
+        [
+            {
+                "start": index[0],
+                "item_id": "all_items",
+                "target": Y[:, :-prediction_length],
+            }
+        ],
         freq=index.freqstr,
         one_dim_target=False,
     )

@@ -41,16 +41,18 @@ def test_mqf2_modules(
 
     distr_output = MQF2DistributionOutput(prediction_length)
 
-    lightning_module = MQF2MultiHorizonLightningModule({
-        "freq": "1H",
-        "context_length": context_length,
-        "prediction_length": prediction_length,
-        "num_feat_dynamic_real": num_feat_dynamic_real,
-        "num_feat_static_real": num_feat_static_real,
-        "num_feat_static_cat": num_feat_static_cat,
-        "cardinality": cardinality,
-        "distr_output": distr_output,
-    })
+    lightning_module = MQF2MultiHorizonLightningModule(
+        {
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "distr_output": distr_output,
+        }
+    )
     model = lightning_module.model
 
     feat_static_cat = torch.zeros(

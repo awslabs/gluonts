@@ -209,17 +209,21 @@ class ArtificialDataModule(pl.LightningDataModule):
     def generate_split(
         self, split: Literal["train", "val", "test"], n_samples: int
     ) -> None:
-        queries, support_sets = zip(*[
-            generate_artificial_tuplets(
-                dataset_name=self.dataset_name,
-                context_length=self.context_length,
-                support_length=self.support_length,
-                prediction_length=self.prediction_length,
-                support_set_size=self.support_set_size,
-                item_id=i,
-            )
-            for i in tqdm(range(n_samples), desc="generating artificial data")
-        ])
+        queries, support_sets = zip(
+            *[
+                generate_artificial_tuplets(
+                    dataset_name=self.dataset_name,
+                    context_length=self.context_length,
+                    support_length=self.support_length,
+                    prediction_length=self.prediction_length,
+                    support_set_size=self.support_set_size,
+                    item_id=i,
+                )
+                for i in tqdm(
+                    range(n_samples), desc="generating artificial data"
+                )
+            ]
+        )
         _write_data_to_file(self.root / split / "data.json", queries)
         _write_data_to_file(
             self.root / split / ".support_set.json", support_sets

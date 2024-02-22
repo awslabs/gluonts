@@ -287,14 +287,16 @@ class ForkingSeq2SeqEstimator(GluonEstimator):
         if not self.use_feat_static_cat:
             remove_field_names.append(FieldName.FEAT_STATIC_CAT)
 
-        chain.extend([
-            RemoveFields(field_names=remove_field_names),
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-                dtype=self.dtype,
-            ),
-        ])
+        chain.extend(
+            [
+                RemoveFields(field_names=remove_field_names),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
+                ),
+            ]
+        )
 
         # --- TRANSFORMATION CHAIN FOR DYNAMIC FEATURES ---
 

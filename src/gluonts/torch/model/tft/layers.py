@@ -56,10 +56,12 @@ class FeatureProjector(nn.Module):
         self.feature_dims = feature_dims
         self._num_features = len(feature_dims)
 
-        self._projectors = nn.ModuleList([
-            nn.Linear(out_features=d, in_features=c)
-            for c, d in zip(feature_dims, embedding_dims)
-        ])
+        self._projectors = nn.ModuleList(
+            [
+                nn.Linear(out_features=d, in_features=c)
+                for c, d in zip(feature_dims, embedding_dims)
+            ]
+        )
 
     def forward(self, features: torch.Tensor) -> List[torch.Tensor]:
         """
@@ -187,10 +189,12 @@ class VariableSelectionNetwork(nn.Module):
             d_static=self.d_hidden if add_static else None,
             dropout=dropout,
         )
-        self.variable_networks = nn.ModuleList([
-            GatedResidualNetwork(d_hidden=d_hidden, dropout=dropout)
-            for _ in range(num_vars)
-        ])
+        self.variable_networks = nn.ModuleList(
+            [
+                GatedResidualNetwork(d_hidden=d_hidden, dropout=dropout)
+                for _ in range(num_vars)
+            ]
+        )
 
     def forward(
         self,

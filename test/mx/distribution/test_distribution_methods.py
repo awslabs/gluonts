@@ -147,10 +147,12 @@ test_cases = [
     (
         EmpiricalDistribution,
         {
-            "samples": mx.nd.stack(*[
-                mx.nd.arange(start=0, stop=20, step=2),
-                mx.nd.arange(start=100, stop=0, step=-10),
-            ]).transpose(),
+            "samples": mx.nd.stack(
+                *[
+                    mx.nd.arange(start=0, stop=20, step=2),
+                    mx.nd.arange(start=100, stop=0, step=-10),
+                ]
+            ).transpose(),
             "event_dim": 1,
         },
     ),
@@ -252,10 +254,12 @@ test_cases_quantile = [
     (
         EmpiricalDistribution,
         {
-            "samples": mx.nd.stack(*[
-                mx.nd.arange(start=0, stop=20, step=2),
-                mx.nd.arange(start=100, stop=0, step=-10),
-            ]).transpose(),
+            "samples": mx.nd.stack(
+                *[
+                    mx.nd.arange(start=0, stop=20, step=2),
+                    mx.nd.arange(start=100, stop=0, step=-10),
+                ]
+            ).transpose(),
             "event_dim": 1,
         },
     ),

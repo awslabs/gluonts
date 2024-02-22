@@ -38,10 +38,12 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
         Features are not interleaved. The cos features are in the 2nd half of the vector. [dim // 2:]
         """
         n_pos, dim = out.shape
-        position_enc = np.array([
-            [pos / np.power(10000, 2 * (j // 2) / dim) for j in range(dim)]
-            for pos in range(n_pos)
-        ])
+        position_enc = np.array(
+            [
+                [pos / np.power(10000, 2 * (j // 2) / dim) for j in range(dim)]
+                for pos in range(n_pos)
+            ]
+        )
         # set early to avoid an error in pytorch-1.8+
         out.requires_grad = False
 

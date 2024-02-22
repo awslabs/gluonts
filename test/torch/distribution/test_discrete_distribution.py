@@ -62,24 +62,30 @@ def test_rps(values, probs, obs, rps):
     [
         # Duplicate values occur (i) only in the middle (ii) at the extremes
         (
-            torch.tensor([
-                [-1.0, 0.0, 0.0, 0.0, 2.0, 2.0, 5.0],
-                [-1.0, -1.0, 0.0, 0.0, 2.0, 5.0, 5.0],
-            ]),
-            torch.tensor([
-                [0.1, 0.12, 0.03, 0.15, 0.05, 0.15, 0.4],
-                [0.15, 0.05, 0.13, 0.12, 0.05, 0.27, 0.23],
-            ]),
+            torch.tensor(
+                [
+                    [-1.0, 0.0, 0.0, 0.0, 2.0, 2.0, 5.0],
+                    [-1.0, -1.0, 0.0, 0.0, 2.0, 5.0, 5.0],
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0.1, 0.12, 0.03, 0.15, 0.05, 0.15, 0.4],
+                    [0.15, 0.05, 0.13, 0.12, 0.05, 0.27, 0.23],
+                ]
+            ),
         )
     ],
 )
 @pytest.mark.parametrize(
     "probs_adjusted",
     [
-        torch.tensor([
-            [0.1, 0.0, 0.0, 0.3, 0.0, 0.2, 0.4],
-            [0.0, 0.2, 0.0, 0.25, 0.05, 0.0, 0.5],
-        ]),
+        torch.tensor(
+            [
+                [0.1, 0.0, 0.0, 0.3, 0.0, 0.2, 0.4],
+                [0.0, 0.2, 0.0, 0.25, 0.05, 0.0, 0.5],
+            ]
+        ),
     ],
 )
 def test_probs_duplicate_values(values, probs, probs_adjusted):

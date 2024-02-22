@@ -49,29 +49,33 @@ class Installer:
             shutil.copytree(path, self.packages / path.name)
 
     def pip_install(self, path: Path):
-        subprocess.check_call([
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "--target",
-            str(self.packages),
-            str(path),
-        ])
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--target",
+                str(self.packages),
+                str(path),
+            ]
+        )
 
     def install_requirement(self, path: Path):
-        subprocess.check_call([
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "--target",
-            str(self.packages),
-            "--requirement",
-            str(path),
-        ])
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "--target",
+                str(self.packages),
+                "--requirement",
+                str(path),
+            ]
+        )
 
     def install(self, path):
         if path.is_file():

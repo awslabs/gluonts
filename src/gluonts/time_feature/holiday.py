@@ -215,10 +215,16 @@ class SpecialDateFeatureSet:
         dates
             Pandas series with Datetimeindex timestamps.
         """
-        return np.vstack([
-            np.hstack([
-                self.kernel_function(SPECIAL_DATE_FEATURES[feat_name](index))
-                for index in dates
-            ])
-            for feat_name in self.feature_names
-        ])
+        return np.vstack(
+            [
+                np.hstack(
+                    [
+                        self.kernel_function(
+                            SPECIAL_DATE_FEATURES[feat_name](index)
+                        )
+                        for index in dates
+                    ]
+                )
+                for feat_name in self.feature_names
+            ]
+        )

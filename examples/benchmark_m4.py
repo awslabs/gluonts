@@ -95,15 +95,17 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(results)
 
-    sub_df = df[[
-        "dataset",
-        "estimator",
-        "RMSE",
-        "mean_wQuantileLoss",
-        "MASE",
-        "sMAPE",
-        "OWA",
-        "MSIS",
-    ]]
+    sub_df = df[
+        [
+            "dataset",
+            "estimator",
+            "RMSE",
+            "mean_wQuantileLoss",
+            "MASE",
+            "sMAPE",
+            "OWA",
+            "MSIS",
+        ]
+    ]
 
     print(sub_df.to_string())

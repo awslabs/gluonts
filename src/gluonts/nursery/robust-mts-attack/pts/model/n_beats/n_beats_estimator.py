@@ -158,20 +158,22 @@ class NBEATSEstimator:
     # that can be digested by our model by only splitting the target in two, a
     # conditioning part and a to-predict part, for each training example.
     def create_transformation(self) -> Transformation:
-        return Chain([
-            RemoveFields(
-                field_names=[
-                    FieldName.FEAT_STATIC_REAL,
-                    FieldName.FEAT_DYNAMIC_REAL,
-                    FieldName.FEAT_DYNAMIC_CAT,
-                ]
-            ),
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-                dtype=self.dtype,
-            ),
-        ])
+        return Chain(
+            [
+                RemoveFields(
+                    field_names=[
+                        FieldName.FEAT_STATIC_REAL,
+                        FieldName.FEAT_DYNAMIC_REAL,
+                        FieldName.FEAT_DYNAMIC_CAT,
+                    ]
+                ),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                    dtype=self.dtype,
+                ),
+            ]
+        )
 
     def create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]

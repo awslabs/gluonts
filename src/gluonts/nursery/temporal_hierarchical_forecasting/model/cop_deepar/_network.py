@@ -226,10 +226,12 @@ class COPNetwork(mx.gluon.HybridBlock):
                 mx.nd.zeros_like(future_observed_values_agg),
             )
 
-            target_related_feat_agg.update({
-                "future_target": future_target_agg,
-                "future_observed_values": future_observed_values_agg,
-            })
+            target_related_feat_agg.update(
+                {
+                    "future_target": future_target_agg,
+                    "future_observed_values": future_observed_values_agg,
+                }
+            )
 
         return target_related_feat_agg
 
@@ -421,12 +423,14 @@ class COPDeepARTrainingNetwork(COPNetwork):
             ) // window_size
 
             embeddings_at_all_levels_ls.append(
-                rnn_outputs.reshape((
-                    rnn_outputs.shape[0],
-                    num_windows,
-                    -1,
-                    rnn_outputs.shape[-1],
-                ))
+                rnn_outputs.reshape(
+                    (
+                        rnn_outputs.shape[0],
+                        num_windows,
+                        -1,
+                        rnn_outputs.shape[-1],
+                    )
+                )
             )
 
             target_at_all_levels_ls.append(
@@ -831,11 +835,13 @@ class COPDeepARPredictionNetwork(COPNetwork):
             )
 
             reconciled_samples_at_bottom_level = (
-                reconciled_samples_at_bottom_level.reshape((
-                    reconciled_samples_at_bottom_level.shape[0],
-                    reconciled_samples_at_bottom_level.shape[1],
-                    -1,
-                ))
+                reconciled_samples_at_bottom_level.reshape(
+                    (
+                        reconciled_samples_at_bottom_level.shape[0],
+                        reconciled_samples_at_bottom_level.shape[1],
+                        -1,
+                    )
+                )
             )
 
             return reconciled_samples_at_bottom_level

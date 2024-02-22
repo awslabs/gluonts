@@ -127,13 +127,15 @@ def get_data_batches(predictor, test_data):
             "seasonal_error": np.array(
                 [seasonal_error(input_["target"], seasonality=seasonality)]
             ),
-            "naive_2": np.array([
-                naive_2(
-                    input_["target"],
-                    len(label["target"]),
-                    season_length=seasonality,
-                )
-            ]),
+            "naive_2": np.array(
+                [
+                    naive_2(
+                        input_["target"],
+                        len(label["target"]),
+                        season_length=seasonality,
+                    )
+                ]
+            ),
         }
 
         yield ChainMap(other_data, forecast_batch)
@@ -166,9 +168,12 @@ def get_new_metrics(test_data, predictor, quantile_levels):
         + MeanSumQuantileLoss([quantile.value for quantile in quantiles])
         + MeanWeightedSumQuantileLoss(
             [quantile.value for quantile in quantiles]
-        ).add(*[
-            WeightedSumQuantileLoss(q=quantile.value) for quantile in quantiles
-        ])
+        ).add(
+            *[
+                WeightedSumQuantileLoss(q=quantile.value)
+                for quantile in quantiles
+            ]
+        )
     )
 
     # mask invalid values

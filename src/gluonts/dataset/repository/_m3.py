@@ -163,19 +163,23 @@ def generate_m3_dataset(
         start = str(pd.Period(time_stamp, freq=subset.freq))
         cat = [i, cat_map[category]]
 
-        train_data.append({
-            "target": target[: -subset.prediction_length],
-            "start": start,
-            "feat_static_cat": cat,
-            "item_id": series,
-        })
+        train_data.append(
+            {
+                "target": target[: -subset.prediction_length],
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
+        )
 
-        test_data.append({
-            "target": target,
-            "start": start,
-            "feat_static_cat": cat,
-            "item_id": series,
-        })
+        test_data.append(
+            {
+                "target": target,
+                "start": start,
+                "feat_static_cat": cat,
+                "item_id": series,
+            }
+        )
 
     meta = MetaData(
         **metadata(

@@ -139,13 +139,15 @@ def statistics():
     )
     n_total_normalized = n_total / sum(n_total)
 
-    datasets, lengths_normalized, n_total_normalized = zip(*(
-        sorted(
-            list(zip(datasets, lengths_normalized, n_total_normalized)),
-            key=lambda x: x[1],
-            reverse=True,
+    datasets, lengths_normalized, n_total_normalized = zip(
+        *(
+            sorted(
+                list(zip(datasets, lengths_normalized, n_total_normalized)),
+                key=lambda x: x[1],
+                reverse=True,
+            )
         )
-    ))
+    )
 
     x = np.arange(len(datasets))
 

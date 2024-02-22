@@ -230,11 +230,13 @@ class RNNZoneoutCell(ModifierCell):
         # only for RNN, the first element of states is output. Use the same
         # mask as output, instead of simply copy output to the first element
         # in case that the base cell is ResidualCell
-        new_states = [(
-            F.where(output_mask, next_states[0], states[0])
-            if p_outputs != 0.0
-            else next_states[0]
-        )]
+        new_states = [
+            (
+                F.where(output_mask, next_states[0], states[0])
+                if p_outputs != 0.0
+                else next_states[0]
+            )
+        ]
         new_states.extend(
             [
                 F.where(mask(p_states, new_s), new_s, old_s)

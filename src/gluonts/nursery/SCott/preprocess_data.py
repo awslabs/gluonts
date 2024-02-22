@@ -64,20 +64,24 @@ def get_mixed_pattern(unit_length=16, num_duplicates=1000):
                             pattern[(gid + i) % pattern_number],
                         )
                     )
-                ts_sample = torch.cat([
-                    context,
-                    _get_mixed_pattern(
-                        torch.arange(prediction_length, dtype=torch.float),
-                        pattern[gid],
-                    ),
-                ])
+                ts_sample = torch.cat(
+                    [
+                        context,
+                        _get_mixed_pattern(
+                            torch.arange(prediction_length, dtype=torch.float),
+                            pattern[gid],
+                        ),
+                    ]
+                )
                 whole_data.append({"target": ts_sample, "start": start})
                 if j % 5 == 0:
-                    val_data.append({
-                        "target": ts_sample
-                        + torch.normal(0, 1, ts_sample.shape),
-                        "start": start,
-                    })
+                    val_data.append(
+                        {
+                            "target": ts_sample
+                            + torch.normal(0, 1, ts_sample.shape),
+                            "start": start,
+                        }
+                    )
                 dataset_group[m * 4 + gid].append(
                     {"target": ts_sample, "start": start}
                 )
@@ -153,16 +157,20 @@ def group_electricity_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": np.array([gid]),
-            })
-            dataset_group[gid].append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": np.array([gid]),
-            })
+            train_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": np.array([gid]),
+                }
+            )
+            dataset_group[gid].append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": np.array([gid]),
+                }
+            )
             unsplit_start += pd.Timedelta(hours=prediction_length)
 
     # get ready the test data
@@ -176,11 +184,13 @@ def group_electricity_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": test_entry["feat_static_cat"],
-            })
+            test_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": test_entry["feat_static_cat"],
+                }
+            )
 
     print(
         "Generating the electricity training data, the total number of"
@@ -238,16 +248,20 @@ def group_electricity_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
-            dataset_group[gid].append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
+            train_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
+            dataset_group[gid].append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
             unsplit_start += pd.Timedelta(hours=prediction_length)
 
     # get ready the test data
@@ -261,11 +275,13 @@ def group_electricity_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": test_entry["feat_static_cat"],
-            })
+            test_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": test_entry["feat_static_cat"],
+                }
+            )
 
     print("total number of training examples: ", len(train_full_data))
     ret["group_ratio"] = [len(i) / len(train_full_data) for i in dataset_group]
@@ -322,16 +338,20 @@ def group_exchangerate_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
-            dataset_group[gid].append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
+            train_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
+            dataset_group[gid].append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
             unsplit_start += pd.Timedelta("1D") * prediction_length
     # get ready the test data
     for i in range(int(num_ts * 0.2)):
@@ -344,11 +364,13 @@ def group_exchangerate_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": test_entry["feat_static_cat"],
-            })
+            test_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": test_entry["feat_static_cat"],
+                }
+            )
     print(
         "Generating the exchange rate training data, the total number of"
         " training examples:",
@@ -419,16 +441,20 @@ def group_traffic_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            train_full_data.append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
-            dataset_group[gid].append({
-                "target": ts_slice,
-                "start": t,
-                "feat_static_cat": train_entry["feat_static_cat"],
-            })
+            train_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
+            dataset_group[gid].append(
+                {
+                    "target": ts_slice,
+                    "start": t,
+                    "feat_static_cat": train_entry["feat_static_cat"],
+                }
+            )
             unsplit_start += pd.Timedelta(hours=prediction_length)
 
     # get ready the test data
@@ -442,11 +468,13 @@ def group_traffic_cv(
             ts_slice = unsplit_ts[
                 ts_sample_start : ts_sample_start + len_sample
             ]
-            test_full_data.append({
-                "target": ts_slice,
-                "start": unsplit_start,
-                "feat_static_cat": test_entry["feat_static_cat"],
-            })
+            test_full_data.append(
+                {
+                    "target": ts_slice,
+                    "start": unsplit_start,
+                    "feat_static_cat": test_entry["feat_static_cat"],
+                }
+            )
 
     print(
         "Generating the traffic training data, the total number of training"

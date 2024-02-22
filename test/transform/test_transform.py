@@ -371,45 +371,47 @@ def test_Transformation():
 
     pred_length = 10
 
-    t = transform.Chain([
-        transform.AddTimeFeatures(
-            start_field=FieldName.START,
-            target_field=FieldName.TARGET,
-            output_field="time_feat",
-            time_features=[
-                time_feature.day_of_week,
-                time_feature.day_of_month,
-                time_feature.month_of_year,
-            ],
-            pred_length=pred_length,
-        ),
-        transform.AddAgeFeature(
-            target_field=FieldName.TARGET,
-            output_field="age",
-            pred_length=pred_length,
-            log_scale=True,
-        ),
-        transform.AddObservedValuesIndicator(
-            target_field=FieldName.TARGET, output_field="observed_values"
-        ),
-        transform.VstackFeatures(
-            output_field="dynamic_feat",
-            input_fields=["age", "time_feat"],
-            drop_inputs=True,
-        ),
-        transform.InstanceSplitter(
-            target_field=FieldName.TARGET,
-            is_pad_field=FieldName.IS_PAD,
-            start_field=FieldName.START,
-            forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=transform.ExpectedNumInstanceSampler(
-                num_instances=4
+    t = transform.Chain(
+        [
+            transform.AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field="time_feat",
+                time_features=[
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
+                ],
+                pred_length=pred_length,
             ),
-            past_length=train_length,
-            future_length=pred_length,
-            time_series_fields=["dynamic_feat", "observed_values"],
-        ),
-    ])
+            transform.AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field="age",
+                pred_length=pred_length,
+                log_scale=True,
+            ),
+            transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET, output_field="observed_values"
+            ),
+            transform.VstackFeatures(
+                output_field="dynamic_feat",
+                input_fields=["age", "time_feat"],
+                drop_inputs=True,
+            ),
+            transform.InstanceSplitter(
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
+                instance_sampler=transform.ExpectedNumInstanceSampler(
+                    num_instances=4
+                ),
+                past_length=train_length,
+                future_length=pred_length,
+                time_series_fields=["dynamic_feat", "observed_values"],
+            ),
+        ]
+    )
 
     assert_serializable(t)
 
@@ -438,52 +440,54 @@ def test_multi_dim_transformation(is_train):
     first_dim[-1] = np.nan
     second_dim[0] = np.nan
 
-    t = transform.Chain([
-        transform.AddTimeFeatures(
-            start_field=FieldName.START,
-            target_field=FieldName.TARGET,
-            output_field="time_feat",
-            time_features=[
-                time_feature.day_of_week,
-                time_feature.day_of_month,
-                time_feature.month_of_year,
-            ],
-            pred_length=pred_length,
-        ),
-        transform.AddAgeFeature(
-            target_field=FieldName.TARGET,
-            output_field="age",
-            pred_length=pred_length,
-            log_scale=True,
-        ),
-        transform.AddObservedValuesIndicator(
-            target_field=FieldName.TARGET,
-            output_field="observed_values",
-            imputation_method=None,
-        ),
-        transform.VstackFeatures(
-            output_field="dynamic_feat",
-            input_fields=["age", "time_feat"],
-            drop_inputs=True,
-        ),
-        transform.InstanceSplitter(
-            target_field=FieldName.TARGET,
-            is_pad_field=FieldName.IS_PAD,
-            start_field=FieldName.START,
-            forecast_start_field=FieldName.FORECAST_START,
-            instance_sampler=(
-                transform.ExpectedNumInstanceSampler(
-                    num_instances=4, min_future=pred_length
-                )
-                if is_train
-                else transform.TestSplitSampler()
+    t = transform.Chain(
+        [
+            transform.AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field="time_feat",
+                time_features=[
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
+                ],
+                pred_length=pred_length,
             ),
-            past_length=train_length,
-            future_length=pred_length,
-            time_series_fields=["dynamic_feat", "observed_values"],
-            output_NTC=False,
-        ),
-    ])
+            transform.AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field="age",
+                pred_length=pred_length,
+                log_scale=True,
+            ),
+            transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field="observed_values",
+                imputation_method=None,
+            ),
+            transform.VstackFeatures(
+                output_field="dynamic_feat",
+                input_fields=["age", "time_feat"],
+                drop_inputs=True,
+            ),
+            transform.InstanceSplitter(
+                target_field=FieldName.TARGET,
+                is_pad_field=FieldName.IS_PAD,
+                start_field=FieldName.START,
+                forecast_start_field=FieldName.FORECAST_START,
+                instance_sampler=(
+                    transform.ExpectedNumInstanceSampler(
+                        num_instances=4, min_future=pred_length
+                    )
+                    if is_train
+                    else transform.TestSplitSampler()
+                ),
+                past_length=train_length,
+                future_length=pred_length,
+                time_series_fields=["dynamic_feat", "observed_values"],
+                output_NTC=False,
+            ),
+        ]
+    )
 
     assert_serializable(t)
 
@@ -633,14 +637,16 @@ def test_cdf_to_gaussian_transformation():
 
         ds = gluonts.dataset.common.ListDataset(
             # Mimic output from InstanceSplitter
-            [{
-                "start": "2012-01-01",
-                "target": multi_dim_target,
-                "past_target": multi_dim_target,
-                "future_target": multi_dim_target,
-                "past_is_pad": past_is_pad,
-                f"past_{FieldName.OBSERVED_VALUES}": past_observed_target,
-            }],
+            [
+                {
+                    "start": "2012-01-01",
+                    "target": multi_dim_target,
+                    "past_target": multi_dim_target,
+                    "future_target": multi_dim_target,
+                    "past_is_pad": past_is_pad,
+                    f"past_{FieldName.OBSERVED_VALUES}": past_observed_target,
+                }
+            ],
             freq="1D",
             one_dim_target=False,
         )
@@ -735,11 +741,13 @@ def point_process_dataset():
     marks = np.array([0, 1, 2, 0, 1, 2, 2, 2])
 
     return ListDataset(
-        [{
-            "target": np.c_[ia_times, marks].T,
-            "start": pd.Timestamp("2011-01-01 00:00:00"),
-            "end": pd.Timestamp("2011-01-01 03:00:00"),
-        }],
+        [
+            {
+                "target": np.c_[ia_times, marks].T,
+                "start": pd.Timestamp("2011-01-01 00:00:00"),
+                "end": pd.Timestamp("2011-01-01 03:00:00"),
+            }
+        ],
         freq="H",
         one_dim_target=False,
         use_timestamp=True,
@@ -877,14 +885,16 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
 
     iter_de = splitter(point_process_dataset, is_train=True)
 
-    assert all([
-        (
-            pd.Timestamp("2011-01-01 01:15:00")
-            <= d["forecast_start"]
-            <= pd.Timestamp("2011-01-01 01:45:00")
-        )
-        for d in iter_de
-    ])
+    assert all(
+        [
+            (
+                pd.Timestamp("2011-01-01 01:15:00")
+                <= d["forecast_start"]
+                <= pd.Timestamp("2011-01-01 01:45:00")
+            )
+            for d in iter_de
+        ]
+    )
 
 
 def test_ctsplitter_train_short_intervals(point_process_dataset):

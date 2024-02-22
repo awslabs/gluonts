@@ -293,11 +293,13 @@ class Evaluator:
         # Thus we set dtype=np.float64 to convert masked values back to NaNs
         # which are handled correctly by pandas Dataframes during
         # aggregation.
-        metrics_per_ts = metrics_per_ts.astype({
-            col: np.float64
-            for col in metrics_per_ts.columns
-            if col not in ["item_id", "forecast_start"]
-        })
+        metrics_per_ts = metrics_per_ts.astype(
+            {
+                col: np.float64
+                for col in metrics_per_ts.columns
+                if col not in ["item_id", "forecast_start"]
+            }
+        )
 
         return self.get_aggregate_metrics(metrics_per_ts)
 
@@ -534,18 +536,26 @@ class Evaluator:
                 totals[f"QuantileLoss[{quantile}]"] / totals["abs_target_sum"]
             )
 
-        totals["mean_absolute_QuantileLoss"] = np.array([
-            totals[f"QuantileLoss[{quantile}]"] for quantile in self.quantiles
-        ]).mean()
+        totals["mean_absolute_QuantileLoss"] = np.array(
+            [
+                totals[f"QuantileLoss[{quantile}]"]
+                for quantile in self.quantiles
+            ]
+        ).mean()
 
-        totals["mean_wQuantileLoss"] = np.array([
-            totals[f"wQuantileLoss[{quantile}]"] for quantile in self.quantiles
-        ]).mean()
+        totals["mean_wQuantileLoss"] = np.array(
+            [
+                totals[f"wQuantileLoss[{quantile}]"]
+                for quantile in self.quantiles
+            ]
+        ).mean()
 
-        totals["MAE_Coverage"] = np.mean([
-            np.abs(totals[f"Coverage[{quantile}]"] - np.array([q.value]))
-            for q in self.quantiles
-        ])
+        totals["MAE_Coverage"] = np.mean(
+            [
+                np.abs(totals[f"Coverage[{quantile}]"] - np.array([q.value]))
+                for q in self.quantiles
+            ]
+        )
 
         # Compute OWA if required
         if self.calculate_owa:

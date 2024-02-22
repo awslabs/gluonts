@@ -532,19 +532,23 @@ class SampleForecast(Forecast):
         return self._dim
 
     def __repr__(self):
-        return ", ".join([
-            f"SampleForecast({self.samples!r})",
-            f"{self.start_date!r}",
-            f"item_id={self.item_id!r}",
-            f"info={self.info!r})",
-        ])
+        return ", ".join(
+            [
+                f"SampleForecast({self.samples!r})",
+                f"{self.start_date!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
+            ]
+        )
 
     def to_quantile_forecast(self, quantiles: List[str]) -> "QuantileForecast":
         return QuantileForecast(
-            forecast_arrays=np.array([
-                self.quantile(q) if q != "mean" else self.mean
-                for q in quantiles
-            ]),
+            forecast_arrays=np.array(
+                [
+                    self.quantile(q) if q != "mean" else self.mean
+                    for q in quantiles
+                ]
+            ),
             start_date=self.start_date,
             forecast_keys=quantiles,
             item_id=self.item_id,
@@ -686,10 +690,12 @@ class QuantileForecast(Forecast):
         return self._dim
 
     def __repr__(self):
-        return ", ".join([
-            f"QuantileForecast({self.forecast_array!r})",
-            f"start_date={self.start_date!r}",
-            f"forecast_keys={self.forecast_keys!r}",
-            f"item_id={self.item_id!r}",
-            f"info={self.info!r})",
-        ])
+        return ", ".join(
+            [
+                f"QuantileForecast({self.forecast_array!r})",
+                f"start_date={self.start_date!r}",
+                f"forecast_keys={self.forecast_keys!r}",
+                f"item_id={self.item_id!r}",
+                f"info={self.info!r})",
+            ]
+        )

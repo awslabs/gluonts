@@ -25,15 +25,21 @@ from gluonts.transform import (
     AddObservedValuesIndicator,
 )
 
-ds1 = [{
-    "start": pd.Period("2020/01/01", freq="1D"),
-    "target": np.array([1, 2, 3, np.nan, 5, np.nan, 7, np.nan, np.nan, 10]),
-}]
+ds1 = [
+    {
+        "start": pd.Period("2020/01/01", freq="1D"),
+        "target": np.array(
+            [1, 2, 3, np.nan, 5, np.nan, 7, np.nan, np.nan, 10]
+        ),
+    }
+]
 ds2 = ListDataset(
-    [{
-        "start": "2020/01/01",
-        "target": [1, 2, 3, np.nan, 5, np.nan, 7, np.nan, np.nan, 10],
-    }],
+    [
+        {
+            "start": "2020/01/01",
+            "target": [1, 2, 3, np.nan, 5, np.nan, 7, np.nan, np.nan, 10],
+        }
+    ],
     freq="1D",
 )
 

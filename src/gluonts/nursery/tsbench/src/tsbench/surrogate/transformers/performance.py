@@ -112,10 +112,13 @@ class PerformanceEncoder:
     def inverse_transform(
         self, X: npt.NDArray[np.float32], _y: Any = None
     ) -> list[Performance]:
-        df = pd.DataFrame(X, columns=self.feature_names_).assign(**{
-            col: np.nan
-            for col in set(self.all_feature_names_) - set(self.feature_names_)
-        })
+        df = pd.DataFrame(X, columns=self.feature_names_).assign(
+            **{
+                col: np.nan
+                for col in set(self.all_feature_names_)
+                - set(self.feature_names_)
+            }
+        )
         return [
             Performance.from_dict(row.to_dict()) for _, row in df.iterrows()
         ]

@@ -244,39 +244,43 @@ class GPVAREstimator(GluonEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return Chain([
-            AsNumpyArray(
-                field=FieldName.TARGET,
-                expected_ndim=1 + len(self.distr_output.event_shape),
-            ),
-            # maps the target to (1, T) if the target data is uni
-            # dimensional
-            ExpandDimArray(
-                field=FieldName.TARGET,
-                axis=0 if self.distr_output.event_shape[0] == 1 else None,
-            ),
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-            ),
-            AddTimeFeatures(
-                start_field=FieldName.START,
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_TIME,
-                time_features=self.time_features,
-                pred_length=self.prediction_length,
-            ),
-            VstackFeatures(
-                output_field=FieldName.FEAT_TIME,
-                input_fields=[FieldName.FEAT_TIME],
-            ),
-            SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0.0]),
-            TargetDimIndicator(
-                field_name=FieldName.TARGET_DIM_INDICATOR,
-                target_field=FieldName.TARGET,
-            ),
-            AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-        ])
+        return Chain(
+            [
+                AsNumpyArray(
+                    field=FieldName.TARGET,
+                    expected_ndim=1 + len(self.distr_output.event_shape),
+                ),
+                # maps the target to (1, T) if the target data is uni
+                # dimensional
+                ExpandDimArray(
+                    field=FieldName.TARGET,
+                    axis=0 if self.distr_output.event_shape[0] == 1 else None,
+                ),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                ),
+                AddTimeFeatures(
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
+                    time_features=self.time_features,
+                    pred_length=self.prediction_length,
+                ),
+                VstackFeatures(
+                    output_field=FieldName.FEAT_TIME,
+                    input_fields=[FieldName.FEAT_TIME],
+                ),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_STATIC_CAT, value=[0.0]
+                ),
+                TargetDimIndicator(
+                    field_name=FieldName.TARGET_DIM_INDICATOR,
+                    target_field=FieldName.TARGET,
+                ),
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+            ]
+        )
 
     def _create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
@@ -309,14 +313,16 @@ class GPVAREstimator(GluonEstimator):
                     target_dim=self.target_dim,
                 )
                 if self.use_marginal_transformation
-                else RenameFields({
-                    f"past_{FieldName.TARGET}": (
-                        f"past_{FieldName.TARGET}_cdf"
-                    ),
-                    f"future_{FieldName.TARGET}": (
-                        f"future_{FieldName.TARGET}_cdf"
-                    ),
-                })
+                else RenameFields(
+                    {
+                        f"past_{FieldName.TARGET}": (
+                            f"past_{FieldName.TARGET}_cdf"
+                        ),
+                        f"future_{FieldName.TARGET}": (
+                            f"future_{FieldName.TARGET}_cdf"
+                        ),
+                    }
+                )
             )
             + SampleTargetDim(
                 field_name=FieldName.TARGET_DIM_INDICATOR,

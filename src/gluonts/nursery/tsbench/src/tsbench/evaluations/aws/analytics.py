@@ -373,11 +373,13 @@ def _fetch_training_jobs(
         "MaxResults": 100,
         "Resource": "TrainingJob",
         "SearchExpression": {
-            "Filters": [{
-                "Name": "Tags.Experiment",
-                "Operator": "Equals",
-                "Value": experiment,
-            }],
+            "Filters": [
+                {
+                    "Name": "Tags.Experiment",
+                    "Operator": "Equals",
+                    "Value": experiment,
+                }
+            ],
         },
     }
 

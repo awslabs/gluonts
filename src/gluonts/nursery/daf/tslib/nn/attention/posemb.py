@@ -63,10 +63,12 @@ class LearnablePositionalEmbedding(nn.Module):
         self.max_len = max_len
         self.sub_shape = sub_shape
 
-        self._weights = nn.ParameterList([
-            nn.Parameter(Tensor(size, dim))
-            for size, dim in zip(self.sub_shape, self.d_sub_embeds)
-        ])
+        self._weights = nn.ParameterList(
+            [
+                nn.Parameter(Tensor(size, dim))
+                for size, dim in zip(self.sub_shape, self.d_sub_embeds)
+            ]
+        )
         self._reset_parameters()
 
     def _reset_parameters(self):

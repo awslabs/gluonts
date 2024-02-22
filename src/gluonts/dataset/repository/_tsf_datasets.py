@@ -201,23 +201,27 @@ def convert_data(
         #   timestamps
         # - `item_id` is added for all datasets ... many datasets provide
         #   the "series_name"
-        test_data.append({
-            "target": data_entry["target"],
-            "start": str(
-                data_entry.get("start_timestamp", default_start_timestamp)
-            ),
-            "item_id": data_entry.get("series_name", i),
-            "feat_static_cat": [i],
-        })
+        test_data.append(
+            {
+                "target": data_entry["target"],
+                "start": str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                "item_id": data_entry.get("series_name", i),
+                "feat_static_cat": [i],
+            }
+        )
 
-        train_data.append({
-            "target": data_entry["target"][:-train_offset],
-            "start": str(
-                data_entry.get("start_timestamp", default_start_timestamp)
-            ),
-            "item_id": data_entry.get("series_name", i),
-            "feat_static_cat": [i],
-        })
+        train_data.append(
+            {
+                "target": data_entry["target"][:-train_offset],
+                "start": str(
+                    data_entry.get("start_timestamp", default_start_timestamp)
+                ),
+                "item_id": data_entry.get("series_name", i),
+                "feat_static_cat": [i],
+            }
+        )
 
     return train_data, test_data
 

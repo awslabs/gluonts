@@ -71,16 +71,20 @@ def get_m4_by_freq(
                     continue
                 nu = 1 + sum(ts_slice) / len_sample
                 ts_slice = [i / nu for i in ts_slice]
-                whole_data.append({
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                })
-                dataset_group[i].append({
-                    "target": ts_slice,
-                    "start": unsplit_start,
-                    "feat_static_cat": train_entry["feat_static_cat"],
-                })
+                whole_data.append(
+                    {
+                        "target": ts_slice,
+                        "start": unsplit_start,
+                        "feat_static_cat": train_entry["feat_static_cat"],
+                    }
+                )
+                dataset_group[i].append(
+                    {
+                        "target": ts_slice,
+                        "start": unsplit_start,
+                        "feat_static_cat": train_entry["feat_static_cat"],
+                    }
+                )
                 # unsplit_start += pd.Timedelta(hours=prediction_length*hours_factor[i])
                 unsplit_start += pd.Timedelta(hours=prediction_length)
     # for j in range(len(dataset_group)):
@@ -136,14 +140,18 @@ def get_temperature_data(
             nu = 1 + sum(ts_slice) / len(ts_slice)
             ts_slice /= nu
             if torch.sum(torch.isnan(ts_slice)).item() == 0:
-                dataset_group[gid].append({
-                    "target": ts_slice,
-                    "start": pd.Timestamp(datetime[index]),
-                })
-                whole_data.append({
-                    "target": ts_slice,
-                    "start": pd.Timestamp(datetime[index]),
-                })
+                dataset_group[gid].append(
+                    {
+                        "target": ts_slice,
+                        "start": pd.Timestamp(datetime[index]),
+                    }
+                )
+                whole_data.append(
+                    {
+                        "target": ts_slice,
+                        "start": pd.Timestamp(datetime[index]),
+                    }
+                )
             if num_samples == samples_per_ts:
                 break
     random.shuffle(whole_data)
@@ -231,12 +239,14 @@ def get_group_data_by_var(name, num_groups, len_sample=9):
                 )
             )
             continue
-            dataset_group[group_id].append({
-                "target": unsplit_ts[
-                    ts_sample_start : ts_sample_start + len_sample
-                ],
-                "start": unsplit_start,
-            })
+            dataset_group[group_id].append(
+                {
+                    "target": unsplit_ts[
+                        ts_sample_start : ts_sample_start + len_sample
+                    ],
+                    "start": unsplit_start,
+                }
+            )
             unsplit_start += pd.Timedelta(hours=1)
     import pdb
 
@@ -295,14 +305,18 @@ def get_group_data_by_duplicate(name, num_duplicates, num_groups):
             {"target": train_entry["target"], "start": train_entry["start"]}
         )
         for j in range(num_duplicates):
-            dataset_group[i % num_groups].append({
-                "target": train_entry["target"],
-                "start": train_entry["start"],
-            })
-            whole_data_list.append({
-                "target": train_entry["target"],
-                "start": train_entry["start"],
-            })
+            dataset_group[i % num_groups].append(
+                {
+                    "target": train_entry["target"],
+                    "start": train_entry["start"],
+                }
+            )
+            whole_data_list.append(
+                {
+                    "target": train_entry["target"],
+                    "start": train_entry["start"],
+                }
+            )
     random.shuffle(whole_data_list)
     random.shuffle(no_duplicate_whole_data_list)
     ret.append(
@@ -328,10 +342,12 @@ def get_whole_data_by_duplicate(name, num_duplicates):
             {"target": train_entry["target"], "start": train_entry["start"]}
         )
         for j in range(num_duplicates):
-            dataset_group.append({
-                "target": train_entry["target"],
-                "start": train_entry["start"],
-            })
+            dataset_group.append(
+                {
+                    "target": train_entry["target"],
+                    "start": train_entry["start"],
+                }
+            )
     random.shuffle(dataset_group)
     random.shuffle(no_duplicate_whole_data_list)
     ret.append(
@@ -350,10 +366,12 @@ def get_group_data(name):
         train_entry = next(it)
         dataset_group.append(
             ListDataset(
-                [{
-                    "target": train_entry["target"],
-                    "start": train_entry["start"],
-                }],
+                [
+                    {
+                        "target": train_entry["target"],
+                        "start": train_entry["start"],
+                    }
+                ],
                 freq=dataset.metadata.freq,
             )
         )
@@ -402,20 +420,24 @@ def get_synthetic_data(model_name=None, num_groups=8, mean_boundary=1):
             prediction = net.get_distr(ts_slice).sample((5000,))
             prediction = sum(prediction) / len(prediction)
             ts = torch.cat([ts, prediction], dim=1)
-        whole_data_list.append({
-            "target": ts.view(
-                len(ts[0]),
-            )[context_length:],
-            "start": start,
-        })
+        whole_data_list.append(
+            {
+                "target": ts.view(
+                    len(ts[0]),
+                )[context_length:],
+                "start": start,
+            }
+        )
         dataset_group.append(
             ListDataset(
-                [{
-                    "target": ts.view(
-                        len(ts[0]),
-                    )[context_length:],
-                    "start": start,
-                }],
+                [
+                    {
+                        "target": ts.view(
+                            len(ts[0]),
+                        )[context_length:],
+                        "start": start,
+                    }
+                ],
                 freq="1H",
             )
         )
@@ -586,18 +608,22 @@ def get_synthetic_data_linear_simple(
         )
         for j in range(num_duplicates):
             ts += torch.normal(0, 0.01, size=ts.shape)
-            whole_data_list.append({
-                "target": ts.view(
-                    len(ts[0]),
-                ),
-                "start": start,
-            })
-            pattern_group.append({
-                "target": ts.view(
-                    len(ts[0]),
-                ),
-                "start": start,
-            })
+            whole_data_list.append(
+                {
+                    "target": ts.view(
+                        len(ts[0]),
+                    ),
+                    "start": start,
+                }
+            )
+            pattern_group.append(
+                {
+                    "target": ts.view(
+                        len(ts[0]),
+                    ),
+                    "start": start,
+                }
+            )
         dataset_group.append(ListDataset(pattern_group, freq="1D"))
 
     random.shuffle(whole_data_list)
@@ -632,26 +658,32 @@ def get_synthetic_data_sin(
             1, num_time_steps
         )
         ts += torch.FloatTensor((gid + 1) * base).view(1, num_time_steps)
-        no_duplicate_whole_data_list.append({
-            "target": ts.view(
-                len(ts[0]),
-            ),
-            "start": start,
-        })
+        no_duplicate_whole_data_list.append(
+            {
+                "target": ts.view(
+                    len(ts[0]),
+                ),
+                "start": start,
+            }
+        )
         for j in range(num_duplicates):
             ts += torch.normal(0, 0.1, size=ts.shape)
-            whole_data_list.append({
-                "target": ts.view(
-                    len(ts[0]),
-                ),
-                "start": start,
-            })
-            pattern_group.append({
-                "target": ts.view(
-                    len(ts[0]),
-                ),
-                "start": start,
-            })
+            whole_data_list.append(
+                {
+                    "target": ts.view(
+                        len(ts[0]),
+                    ),
+                    "start": start,
+                }
+            )
+            pattern_group.append(
+                {
+                    "target": ts.view(
+                        len(ts[0]),
+                    ),
+                    "start": start,
+                }
+            )
         dataset_group.append(ListDataset(pattern_group, freq="1D"))
 
     random.shuffle(whole_data_list)

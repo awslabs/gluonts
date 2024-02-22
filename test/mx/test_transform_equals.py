@@ -131,54 +131,58 @@ def test_continuous_time_splitter():
 
 
 def test_chain():
-    chain = transform.Chain([
-        transform.AddTimeFeatures(
-            start_field=FieldName.START,
-            target_field=FieldName.TARGET,
-            output_field="time_feat",
-            time_features=[
-                time_feature.day_of_week,
-                time_feature.day_of_month,
-                time_feature.month_of_year,
-            ],
-            pred_length=10,
-        ),
-        transform.AddAgeFeature(
-            target_field=FieldName.TARGET,
-            output_field="age",
-            pred_length=10,
-            log_scale=True,
-        ),
-        transform.AddObservedValuesIndicator(
-            target_field=FieldName.TARGET, output_field="observed_values"
-        ),
-    ])
+    chain = transform.Chain(
+        [
+            transform.AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field="time_feat",
+                time_features=[
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
+                ],
+                pred_length=10,
+            ),
+            transform.AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field="age",
+                pred_length=10,
+                log_scale=True,
+            ),
+            transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET, output_field="observed_values"
+            ),
+        ]
+    )
 
     assert equals(chain, clone(chain))
     assert not equals(chain, clone(chain, {"transformations": []}))
 
-    another_chain = transform.Chain([
-        transform.AddTimeFeatures(
-            start_field=FieldName.START,
-            target_field=FieldName.TARGET,
-            output_field="time_feat",
-            time_features=[
-                time_feature.day_of_week,
-                time_feature.day_of_month,
-                time_feature.month_of_year,
-            ],
-            pred_length=10,
-        ),
-        transform.AddAgeFeature(
-            target_field=FieldName.TARGET,
-            output_field="age",
-            pred_length=10,
-            log_scale=False,
-        ),
-        transform.AddObservedValuesIndicator(
-            target_field=FieldName.TARGET, output_field="observed_values"
-        ),
-    ])
+    another_chain = transform.Chain(
+        [
+            transform.AddTimeFeatures(
+                start_field=FieldName.START,
+                target_field=FieldName.TARGET,
+                output_field="time_feat",
+                time_features=[
+                    time_feature.day_of_week,
+                    time_feature.day_of_month,
+                    time_feature.month_of_year,
+                ],
+                pred_length=10,
+            ),
+            transform.AddAgeFeature(
+                target_field=FieldName.TARGET,
+                output_field="age",
+                pred_length=10,
+                log_scale=False,
+            ),
+            transform.AddObservedValuesIndicator(
+                target_field=FieldName.TARGET, output_field="observed_values"
+            ),
+        ]
+    )
     assert not equals(chain, another_chain)
 
 

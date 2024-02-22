@@ -231,9 +231,12 @@ def test_as_stacked_batches():
 
 def test_as_stacked_batches_iter():
     step = 10
-    data = iter([
-        {"x": np.arange(start, start + step)} for start in range(0, 100, step)
-    ])
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
 
     stream = as_stacked_batches(data, batch_size=2)
 
@@ -252,9 +255,12 @@ def test_as_stacked_batches_iter():
 
 def test_as_stacked_batches_iter_num_batches():
     step = 10
-    data = iter([
-        {"x": np.arange(start, start + step)} for start in range(0, 100, step)
-    ])
+    data = iter(
+        [
+            {"x": np.arange(start, start + step)}
+            for start in range(0, 100, step)
+        ]
+    )
 
     stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)
 
@@ -275,10 +281,12 @@ def test_as_stacked_batches_iter_num_batches():
 def test_as_stacked_batches_num_batches_iter_cycle():
     step = 10
     data = iter(
-        Cyclic([
-            {"x": np.arange(start, start + step)}
-            for start in range(0, 100, step)
-        ])
+        Cyclic(
+            [
+                {"x": np.arange(start, start + step)}
+                for start in range(0, 100, step)
+            ]
+        )
     )
 
     stream = as_stacked_batches(data, batch_size=2, num_batches_per_epoch=3)

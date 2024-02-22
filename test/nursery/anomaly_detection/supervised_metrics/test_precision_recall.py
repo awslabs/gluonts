@@ -373,24 +373,26 @@ def test_buffered_precision_recall(test_case):
 @pytest.fixture
 def labels_and_scores() -> List[Tuple[np.array, np.array]]:
     label1 = np.array([0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0])
-    scores1 = np.array([
-        0.2,
-        0.3,
-        0.5,
-        0.7,
-        4,
-        2.5,
-        0.3,
-        0.2,
-        0.7,
-        0.3,
-        0.2,
-        4,
-        3,
-        8,
-        0.2,
-        0.1,
-    ])
+    scores1 = np.array(
+        [
+            0.2,
+            0.3,
+            0.5,
+            0.7,
+            4,
+            2.5,
+            0.3,
+            0.2,
+            0.7,
+            0.3,
+            0.2,
+            4,
+            3,
+            8,
+            0.2,
+            0.1,
+        ]
+    )
 
     label2 = np.array([0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0])
     scores2 = np.array(

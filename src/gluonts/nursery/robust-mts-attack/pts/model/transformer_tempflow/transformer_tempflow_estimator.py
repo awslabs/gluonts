@@ -146,45 +146,49 @@ class TransformerTempFlowEstimator(PyTorchEstimator):
         if not self.use_feat_dynamic_real:
             remove_field_names.append(FieldName.FEAT_DYNAMIC_REAL)
 
-        return Chain([
-            RemoveFields(field_names=remove_field_names),
-            AsNumpyArray(
-                field=FieldName.TARGET,
-                expected_ndim=2,
-            ),
-            # maps the target to (1, T)
-            # if the target data is uni dimensional
-            ExpandDimArray(
-                field=FieldName.TARGET,
-                axis=None,
-            ),
-            AddObservedValuesIndicator(
-                target_field=FieldName.TARGET,
-                output_field=FieldName.OBSERVED_VALUES,
-            ),
-            AddTimeFeatures(
-                start_field=FieldName.START,
-                target_field=FieldName.TARGET,
-                output_field=FieldName.FEAT_TIME,
-                time_features=self.time_features,
-                pred_length=self.prediction_length,
-            ),
-            VstackFeatures(
-                output_field=FieldName.FEAT_TIME,
-                input_fields=[FieldName.FEAT_TIME]
-                + (
-                    [FieldName.FEAT_DYNAMIC_REAL]
-                    if self.use_feat_dynamic_real
-                    else []
+        return Chain(
+            [
+                RemoveFields(field_names=remove_field_names),
+                AsNumpyArray(
+                    field=FieldName.TARGET,
+                    expected_ndim=2,
                 ),
-            ),
-            SetFieldIfNotPresent(field=FieldName.FEAT_STATIC_CAT, value=[0]),
-            TargetDimIndicator(
-                field_name="target_dimension_indicator",
-                target_field=FieldName.TARGET,
-            ),
-            AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
-        ])
+                # maps the target to (1, T)
+                # if the target data is uni dimensional
+                ExpandDimArray(
+                    field=FieldName.TARGET,
+                    axis=None,
+                ),
+                AddObservedValuesIndicator(
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.OBSERVED_VALUES,
+                ),
+                AddTimeFeatures(
+                    start_field=FieldName.START,
+                    target_field=FieldName.TARGET,
+                    output_field=FieldName.FEAT_TIME,
+                    time_features=self.time_features,
+                    pred_length=self.prediction_length,
+                ),
+                VstackFeatures(
+                    output_field=FieldName.FEAT_TIME,
+                    input_fields=[FieldName.FEAT_TIME]
+                    + (
+                        [FieldName.FEAT_DYNAMIC_REAL]
+                        if self.use_feat_dynamic_real
+                        else []
+                    ),
+                ),
+                SetFieldIfNotPresent(
+                    field=FieldName.FEAT_STATIC_CAT, value=[0]
+                ),
+                TargetDimIndicator(
+                    field_name="target_dimension_indicator",
+                    target_field=FieldName.TARGET,
+                ),
+                AsNumpyArray(field=FieldName.FEAT_STATIC_CAT, expected_ndim=1),
+            ]
+        )
 
     def create_instance_splitter(self, mode: str):
         assert mode in ["training", "validation", "test"]
@@ -208,10 +212,12 @@ class TransformerTempFlowEstimator(PyTorchEstimator):
                 FieldName.OBSERVED_VALUES,
             ],
         ) + (
-            RenameFields({
-                f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
-                f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
-            })
+            RenameFields(
+                {
+                    f"past_{FieldName.TARGET}": f"past_{FieldName.TARGET}_cdf",
+                    f"future_{FieldName.TARGET}": f"future_{FieldName.TARGET}_cdf",
+                }
+            )
         )
 
     def create_training_network(

@@ -235,10 +235,12 @@ def calc_loss(
     target_items,
     quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
 ):
-    testset_size = sum([
-        attack_data[i].true_future_target.shape[0]
-        for i in range(len(attack_data))
-    ])
+    testset_size = sum(
+        [
+            attack_data[i].true_future_target.shape[0]
+            for i in range(len(attack_data))
+        ]
+    )
     mse = {
         key: np.zeros((testset_size, len(attack_idx), len(target_items)))
         for key in forecasts.keys()

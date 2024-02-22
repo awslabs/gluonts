@@ -224,11 +224,13 @@ class TransformerNetwork(nn.Module):
 
         # from (batch_size, sub_seq_len, *target_shape, num_lags)
         # to (batch_size, sub_seq_len, prod(target_shape) * num_lags)
-        input_lags = lags_scaled.reshape((
-            -1,
-            subsequences_length,
-            len(self.lags_seq) * prod(self.target_shape),
-        ))
+        input_lags = lags_scaled.reshape(
+            (
+                -1,
+                subsequences_length,
+                len(self.lags_seq) * prod(self.target_shape),
+            )
+        )
 
         # (batch_size, sub_seq_len, input_dim)
         inputs = torch.cat(
@@ -423,11 +425,13 @@ class TransformerPredictionNetwork(TransformerNetwork):
         samples = torch.cat(future_samples, dim=1)
 
         # (batch_size, num_samples, *target_shape, prediction_length)
-        return samples.reshape((
-            (-1, self.num_parallel_samples)
-            + self.target_shape
-            + (self.prediction_length,)
-        ))
+        return samples.reshape(
+            (
+                (-1, self.num_parallel_samples)
+                + self.target_shape
+                + (self.prediction_length,)
+            )
+        )
 
     def forward(
         self,

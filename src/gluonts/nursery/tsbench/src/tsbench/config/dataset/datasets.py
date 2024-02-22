@@ -1026,14 +1026,16 @@ class RossmannDatasetConfig(KaggleDatasetConfig):
         series = []
         for i, store_data in data.groupby("Store"):
             sorted_data = store_data.sort_values("Date")
-            series.append({
-                "item_id": int(i) - 1,
-                "start": sorted_data.Date.min(),
-                "target": sorted_data.Sales.to_list(),
-                "feat_static_cat": [
-                    int(i) - 1,
-                ],
-            })
+            series.append(
+                {
+                    "item_id": int(i) - 1,
+                    "start": sorted_data.Date.min(),
+                    "target": sorted_data.Sales.to_list(),
+                    "feat_static_cat": [
+                        int(i) - 1,
+                    ],
+                }
+            )
 
         return metadata, series
 
@@ -1092,18 +1094,20 @@ class CorporacionFavoritaDatasetConfig(KaggleDatasetConfig):
                 sorted_data.unit_sales.to_numpy(),
                 index=pd.DatetimeIndex(sorted_data.date),
             )
-            series.append({
-                "item_id": i,
-                "start": sorted_data.date.min(),
-                "target": sales.resample("D")
-                .first()
-                .fillna(value=0)
-                .to_list(),
-                "feat_static_cat": [
-                    int(store_id) - 1,
-                    int(item_id),
-                ],
-            })
+            series.append(
+                {
+                    "item_id": i,
+                    "start": sorted_data.date.min(),
+                    "target": sales.resample("D")
+                    .first()
+                    .fillna(value=0)
+                    .to_list(),
+                    "feat_static_cat": [
+                        int(store_id) - 1,
+                        int(item_id),
+                    ],
+                }
+            )
 
         return metadata, series
 
@@ -1159,15 +1163,17 @@ class WalmartDatasetConfig(KaggleDatasetConfig):
         ):
             department_id = np.where(department_ids == department)[0][0]
             sorted_data = group_data.sort_values("Date")
-            series.append({
-                "item_id": i,
-                "start": sorted_data.Date.min(),
-                "target": sorted_data.Weekly_Sales.to_list(),
-                "feat_static_cat": [
-                    int(store_id) - 1,
-                    int(department_id),
-                ],
-            })
+            series.append(
+                {
+                    "item_id": i,
+                    "start": sorted_data.Date.min(),
+                    "target": sorted_data.Weekly_Sales.to_list(),
+                    "feat_static_cat": [
+                        int(store_id) - 1,
+                        int(department_id),
+                    ],
+                }
+            )
 
         return metadata, series
 
@@ -1221,16 +1227,18 @@ class RestaurantDatasetConfig(KaggleDatasetConfig):
                 sorted_data.visitors.to_numpy(),
                 index=pd.DatetimeIndex(sorted_data.visit_date),
             )
-            series.append({
-                "item_id": i,
-                "start": sorted_data.visit_date.min(),
-                "target": visitors.resample("D")
-                .first()
-                .fillna(value=0)
-                .to_list(),
-                "feat_static_cat": [
-                    int(store_id),
-                ],
-            })
+            series.append(
+                {
+                    "item_id": i,
+                    "start": sorted_data.visit_date.min(),
+                    "target": visitors.resample("D")
+                    .first()
+                    .fillna(value=0)
+                    .to_list(),
+                    "feat_static_cat": [
+                        int(store_id),
+                    ],
+                }
+            )
 
         return metadata, series

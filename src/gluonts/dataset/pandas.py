@@ -221,15 +221,17 @@ class PandasDataset:
         return len(self._data_entries)
 
     def __repr__(self) -> str:
-        info = ", ".join([
-            f"size={len(self)}",
-            f"freq={self.freq}",
-            f"num_feat_dynamic_real={self.num_feat_dynamic_real}",
-            f"num_past_feat_dynamic_real={self.num_past_feat_dynamic_real}",
-            f"num_feat_static_real={self.num_feat_static_real}",
-            f"num_feat_static_cat={self.num_feat_static_cat}",
-            f"static_cardinalities={self.static_cardinalities}",
-        ])
+        info = ", ".join(
+            [
+                f"size={len(self)}",
+                f"freq={self.freq}",
+                f"num_feat_dynamic_real={self.num_feat_dynamic_real}",
+                f"num_past_feat_dynamic_real={self.num_past_feat_dynamic_real}",
+                f"num_feat_static_real={self.num_feat_static_real}",
+                f"num_feat_static_cat={self.num_feat_static_cat}",
+                f"static_cardinalities={self.static_cardinalities}",
+            ]
+        )
         return f"PandasDataset<{info}>"
 
     @classmethod

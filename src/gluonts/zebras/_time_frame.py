@@ -204,19 +204,23 @@ class TimeFrame(TimeBase):
             head = self.head(5)
             tail = self.tail(5)
 
-            columns.update({
-                col: [
-                    *(move_axis(head[col], col)),
-                    f"[ ... {len(self) - 10} ... ]",
-                    *(move_axis(tail[col], col)),
-                ]
-                for col in self.columns
-            })
+            columns.update(
+                {
+                    col: [
+                        *(move_axis(head[col], col)),
+                        f"[ ... {len(self) - 10} ... ]",
+                        *(move_axis(tail[col], col)),
+                    ]
+                    for col in self.columns
+                }
+            )
         else:
-            columns.update({
-                name: move_axis(values, name)
-                for name, values in self.columns.items()
-            })
+            columns.update(
+                {
+                    name: move_axis(values, name)
+                    for name, values in self.columns.items()
+                }
+            )
 
         return columns
 
@@ -229,10 +233,14 @@ class TimeFrame(TimeBase):
         ]
 
         if self.static:
-            html.extend([
-                "<h3>Static Data</h3>",
-                html_table({name: [val] for name, val in self.static.items()}),
-            ])
+            html.extend(
+                [
+                    "<h3>Static Data</h3>",
+                    html_table(
+                        {name: [val] for name, val in self.static.items()}
+                    ),
+                ]
+            )
 
         return "\n".join(html)
 

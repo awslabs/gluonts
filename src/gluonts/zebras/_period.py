@@ -114,9 +114,12 @@ class _BasePeriod:
     def week(self) -> np.ndarray:
         # Note: In Python 3.9 `isocalendar()` returns a named tuple, but we
         # need to support 3.7 and 3.8, so we use index one for the week.
-        return np.array([
-            cal.isocalendar()[1] for cal in self.data.astype(datetime.datetime)
-        ])
+        return np.array(
+            [
+                cal.isocalendar()[1]
+                for cal in self.data.astype(datetime.datetime)
+            ]
+        )
 
     def __add__(self, other):
         if _is_number(other):

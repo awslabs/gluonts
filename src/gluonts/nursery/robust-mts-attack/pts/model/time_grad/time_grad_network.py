@@ -565,12 +565,14 @@ class TimeGradPredictionNetwork(TimeGradTrainingNetwork):
         samples = torch.cat(future_samples, dim=1)
 
         # (batch_size, num_samples, prediction_length, target_dim)
-        return samples.reshape((
-            -1,
-            self.num_parallel_samples,
-            self.prediction_length,
-            self.target_dim,
-        ))
+        return samples.reshape(
+            (
+                -1,
+                self.num_parallel_samples,
+                self.prediction_length,
+                self.target_dim,
+            )
+        )
 
     def forward(
         self,

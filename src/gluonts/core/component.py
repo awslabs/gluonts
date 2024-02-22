@@ -355,11 +355,13 @@ def validated(base_model=None):
             # __init_args__ is not already set in order to avoid overriding a
             # value set by a subclass initializer in super().__init__ calls
             if not getattr(self, "__init_args__", {}):
-                self.__init_args__ = OrderedDict({
-                    name: arg
-                    for name, arg in sorted(all_args.items())
-                    if not skip_encoding(arg)
-                })
+                self.__init_args__ = OrderedDict(
+                    {
+                        name: arg
+                        for name, arg in sorted(all_args.items())
+                        if not skip_encoding(arg)
+                    }
+                )
                 self.__class__.__getnewargs_ex__ = validated_getnewargs_ex
                 self.__class__.__repr__ = validated_repr
 

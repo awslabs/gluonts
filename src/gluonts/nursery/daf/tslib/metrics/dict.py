@@ -193,10 +193,12 @@ class MeterDict(object):
         main_str = "\n".join(
             [f"{name}: {repr(meter)}" for name, meter in self._meters.items()]
         )
-        child_str = "\n".join([
-            f"{name}:\n{_add_spaces(repr(meterdict))}"
-            for name, meterdict in self._meterdicts.items()
-        ])
+        child_str = "\n".join(
+            [
+                f"{name}:\n{_add_spaces(repr(meterdict))}"
+                for name, meterdict in self._meterdicts.items()
+            ]
+        )
         if child_str:
             main_str = "\n".join([main_str, child_str])
         return main_str

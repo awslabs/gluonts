@@ -26,10 +26,12 @@ def test_simplefeedforward_symbol_block_serde():
     with tempfile.TemporaryDirectory(
         prefix="gluonts-predictor-temp-"
     ) as temp_dir:
-        dataset = [{
-            "start": pd.Period("2022-01-01", freq="D"),
-            "target": np.random.normal(size=(200)),
-        }]
+        dataset = [
+            {
+                "start": pd.Period("2022-01-01", freq="D"),
+                "target": np.random.normal(size=(200)),
+            }
+        ]
 
         estimator = SimpleFeedForwardEstimator(
             prediction_length=10,

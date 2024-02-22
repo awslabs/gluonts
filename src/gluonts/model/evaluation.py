@@ -147,10 +147,12 @@ def evaluate_forecasts_raw(
         input_batches, label_batches, forecast_batches
     ):
         if 0 not in axis:
-            index_data.extend([
-                (forecast.item_id, forecast.start_date)
-                for forecast in forecast_batch
-            ])
+            index_data.extend(
+                [
+                    (forecast.item_id, forecast.start_date)
+                    for forecast in forecast_batch
+                ]
+            )
 
         data_batch = _get_data_batch(
             input_batch,

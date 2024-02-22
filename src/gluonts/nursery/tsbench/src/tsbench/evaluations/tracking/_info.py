@@ -142,24 +142,34 @@ def extract_job_infos(
             ]
 
             # And average the performance
-            averaged_performance = Performance(**{
-                metric: Metric(
-                    np.mean([getattr(p, metric).mean for p in performances]),
-                    np.std([getattr(p, metric).mean for p in performances]),
-                )
-                for metric in Performance.metrics()
-            })
+            averaged_performance = Performance(
+                **{
+                    metric: Metric(
+                        np.mean(
+                            [getattr(p, metric).mean for p in performances]
+                        ),
+                        np.std(
+                            [getattr(p, metric).mean for p in performances]
+                        ),
+                    )
+                    for metric in Performance.metrics()
+                }
+            )
 
             # Get validation scores if available
             try:
-                val_ncrps = np.mean([
-                    job.metrics[c]["evaluation"]["val_ncrps"]
-                    for (job, c) in zip(jobs, choices)
-                ])
-                val_loss = np.mean([
-                    job.metrics[c]["evaluation"]["val_loss"]
-                    for (job, c) in zip(jobs, choices)
-                ]).item()
+                val_ncrps = np.mean(
+                    [
+                        job.metrics[c]["evaluation"]["val_ncrps"]
+                        for (job, c) in zip(jobs, choices)
+                    ]
+                )
+                val_loss = np.mean(
+                    [
+                        job.metrics[c]["evaluation"]["val_loss"]
+                        for (job, c) in zip(jobs, choices)
+                    ]
+                ).item()
                 val_scores = ValidationScores(val_ncrps, val_loss)
             except KeyError:
                 val_scores = None

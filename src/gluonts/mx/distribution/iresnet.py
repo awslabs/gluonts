@@ -199,6 +199,9 @@ def iresnet(num_blocks: int, **block_kwargs) -> ComposedBijectionHybridBlock:
     -------
 
     """
-    return ComposedBijectionHybridBlock([
-        InvertibleResnetHybridBlock(**block_kwargs) for _ in range(num_blocks)
-    ])
+    return ComposedBijectionHybridBlock(
+        [
+            InvertibleResnetHybridBlock(**block_kwargs)
+            for _ in range(num_blocks)
+        ]
+    )

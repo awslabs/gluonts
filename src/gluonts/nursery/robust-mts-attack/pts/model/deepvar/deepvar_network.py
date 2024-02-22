@@ -596,12 +596,14 @@ class DeepVARPredictionNetwork(DeepVARTrainingNetwork):
         samples = torch.cat(future_samples, dim=1)
         locs = torch.cat(loc, dim=1)
         # (batch_size, num_samples, prediction_length, target_dim)
-        return samples.reshape((
-            -1,
-            self.num_parallel_samples,
-            self.prediction_length,
-            self.target_dim,
-        ))  # , locs.reshape(
+        return samples.reshape(
+            (
+                -1,
+                self.num_parallel_samples,
+                self.prediction_length,
+                self.target_dim,
+            )
+        )  # , locs.reshape(
         # -1,
         #     self.num_parallel_samples,
         #     self.prediction_length,

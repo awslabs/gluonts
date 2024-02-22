@@ -110,10 +110,12 @@ class AddTimeFeaturesAtAggregateLevels(SimpleTransformation):
         )
 
         # shape: (T, num_features)
-        full_time_feat = np.array([
-            feat_map(full_date_range)
-            for feat_map in time_features_from_frequency_str(freq)
-        ]).T
+        full_time_feat = np.array(
+            [
+                feat_map(full_date_range)
+                for feat_map in time_features_from_frequency_str(freq)
+            ]
+        ).T
 
         age_feature = np.log10(
             2.0 + np.arange(num_periods, dtype=agg_estimator.dtype)

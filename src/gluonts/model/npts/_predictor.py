@@ -205,10 +205,14 @@ class NPTSPredictor(RepresentablePredictor):
 
             custom_features: Optional[np.ndarray]
             if "feat_dynamic_real" in data.keys():
-                custom_features = np.array([
-                    dynamic_feature[-train_length - self.prediction_length :]
-                    for dynamic_feature in data["feat_dynamic_real"]
-                ])
+                custom_features = np.array(
+                    [
+                        dynamic_feature[
+                            -train_length - self.prediction_length :
+                        ]
+                        for dynamic_feature in data["feat_dynamic_real"]
+                    ]
+                )
             else:
                 custom_features = None
 

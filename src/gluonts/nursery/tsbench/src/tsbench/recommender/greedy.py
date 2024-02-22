@@ -88,16 +88,20 @@ class GreedyRecommender(Recommender[ModelConfig]):
             transformer = QuantileTransformer(
                 n_quantiles=min(1000, self.metrics.shape[0])
             )
-            self.metrics = np.stack([
-                transformer.fit_transform(dataset_metrics)
-                for dataset_metrics in self.metrics
-            ])
+            self.metrics = np.stack(
+                [
+                    transformer.fit_transform(dataset_metrics)
+                    for dataset_metrics in self.metrics
+                ]
+            )
         else:
             transformer = StandardScaler()
-            self.metrics = np.stack([
-                transformer.fit_transform(dataset_metrics)
-                for dataset_metrics in self.metrics
-            ])
+            self.metrics = np.stack(
+                [
+                    transformer.fit_transform(dataset_metrics)
+                    for dataset_metrics in self.metrics
+                ]
+            )
 
     def recommend(
         self,
@@ -119,10 +123,12 @@ class GreedyRecommender(Recommender[ModelConfig]):
         # true Pareto front.
         if not self.enforce_single_objective and len(self.objectives) > 1:
             reference = np.ones(len(self.objectives))
-            hypervolumes = np.array([
-                pygmo.hypervolume(dataset_metrics).compute(reference)  # type: ignore
-                for dataset_metrics in self.metrics
-            ])
+            hypervolumes = np.array(
+                [
+                    pygmo.hypervolume(dataset_metrics).compute(reference)  # type: ignore
+                    for dataset_metrics in self.metrics
+                ]
+            )
 
         available_choices = list(range(len(model_configs)))
         result = []
@@ -146,12 +152,14 @@ class GreedyRecommender(Recommender[ModelConfig]):
                 else:
                     # Otherwise, we need to compute the hypervolumes for all datasets
                     reference = np.ones(len(self.objectives))
-                    config_hypervolumes = np.array([
-                        pygmo.hypervolume(  # type: ignore
-                            dataset_performances,
-                        ).compute(reference)
-                        for dataset_performances in all_performances
-                    ])
+                    config_hypervolumes = np.array(
+                        [
+                            pygmo.hypervolume(  # type: ignore
+                                dataset_performances,
+                            ).compute(reference)
+                            for dataset_performances in all_performances
+                        ]
+                    )
                     # And then compute the cumulative hypervolume error
                     error = (hypervolumes - config_hypervolumes).sum()  # type: ignore
 
@@ -169,8 +177,10 @@ class GreedyRecommender(Recommender[ModelConfig]):
 
 
 def _dummy_performance() -> Performance:
-    return Performance.from_dict({
-        mm: np.nan
-        for m in Performance.metrics()
-        for mm in [f"{m}_mean", f"{m}_std"]
-    })
+    return Performance.from_dict(
+        {
+            mm: np.nan
+            for m in Performance.metrics()
+            for mm in [f"{m}_mean", f"{m}_std"]
+        }
+    )

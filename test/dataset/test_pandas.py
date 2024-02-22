@@ -241,36 +241,42 @@ def _testcase_dataframes_without_index(
     dtype=np.float32,
 ):
     dataframes = [
-        pd.DataFrame.from_dict({
-            "timestamp": pd.period_range(
-                "2021-01-01 00:00:00", periods=10, freq=freq
-            )
-            .map(str)
-            .to_list(),
-            "A": 1 + np.arange(10, dtype=dtype),
-            "B": 2 + np.arange(10, dtype=dtype),
-            "C": 3 + np.arange(10, dtype=dtype),
-        }),
-        pd.DataFrame.from_dict({
-            "timestamp": pd.period_range(
-                "2021-01-02 00:00:00", periods=20, freq=freq
-            )
-            .map(str)
-            .to_list(),
-            "A": 1 + np.arange(20, dtype=dtype),
-            "B": 2 + np.arange(20, dtype=dtype),
-            "C": 3 + np.arange(20, dtype=dtype),
-        }),
-        pd.DataFrame.from_dict({
-            "timestamp": pd.period_range(
-                "2021-01-03 00:00:00", periods=30, freq=freq
-            )
-            .map(str)
-            .to_list(),
-            "A": 1 + np.arange(30, dtype=dtype),
-            "B": 2 + np.arange(30, dtype=dtype),
-            "C": 3 + np.arange(30, dtype=dtype),
-        }),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": pd.period_range(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                )
+                .map(str)
+                .to_list(),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ),
     ]
 
     dataset = pandas.PandasDataset(
@@ -301,30 +307,36 @@ def _testcase_dataframes_with_index(
     dtype=np.float32,
 ):
     dataframes = [
-        pd.DataFrame.from_dict({
-            "timestamp": index_type(
-                "2021-01-01 00:00:00", periods=10, freq=freq
-            ),
-            "A": 1 + np.arange(10, dtype=dtype),
-            "B": 2 + np.arange(10, dtype=dtype),
-            "C": 3 + np.arange(10, dtype=dtype),
-        }).set_index("timestamp"),
-        pd.DataFrame.from_dict({
-            "timestamp": index_type(
-                "2021-01-02 00:00:00", periods=20, freq=freq
-            ),
-            "A": 1 + np.arange(20, dtype=dtype),
-            "B": 2 + np.arange(20, dtype=dtype),
-            "C": 3 + np.arange(20, dtype=dtype),
-        }).set_index("timestamp"),
-        pd.DataFrame.from_dict({
-            "timestamp": index_type(
-                "2021-01-03 00:00:00", periods=30, freq=freq
-            ),
-            "A": 1 + np.arange(30, dtype=dtype),
-            "B": 2 + np.arange(30, dtype=dtype),
-            "C": 3 + np.arange(30, dtype=dtype),
-        }).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-01 00:00:00", periods=10, freq=freq
+                ),
+                "A": 1 + np.arange(10, dtype=dtype),
+                "B": 2 + np.arange(10, dtype=dtype),
+                "C": 3 + np.arange(10, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-02 00:00:00", periods=20, freq=freq
+                ),
+                "A": 1 + np.arange(20, dtype=dtype),
+                "B": 2 + np.arange(20, dtype=dtype),
+                "C": 3 + np.arange(20, dtype=dtype),
+            }
+        ).set_index("timestamp"),
+        pd.DataFrame.from_dict(
+            {
+                "timestamp": index_type(
+                    "2021-01-03 00:00:00", periods=30, freq=freq
+                ),
+                "A": 1 + np.arange(30, dtype=dtype),
+                "B": 2 + np.arange(30, dtype=dtype),
+                "C": 3 + np.arange(30, dtype=dtype),
+            }
+        ).set_index("timestamp"),
     ]
 
     print(type(dataframes[0].index))

@@ -103,10 +103,12 @@ class AttentionEstimator(nn.Module):
     @property
     def tie_layers(self) -> bool:
         return (self.n_layer == 1) or (
-            all([
-                (a.encoder is b.encoder) and (a.decoder is b.decoder)
-                for a, b in product(self.blocks[:1], self.blocks[1:])
-            ])
+            all(
+                [
+                    (a.encoder is b.encoder) and (a.decoder is b.decoder)
+                    for a, b in product(self.blocks[:1], self.blocks[1:])
+                ]
+            )
         )
 
     def register_loss_func(self, func: LossFunction) -> None:

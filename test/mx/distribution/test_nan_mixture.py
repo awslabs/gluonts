@@ -63,10 +63,12 @@ sigma_grad_true[x_gauss != x_gauss] = 0
 sigma_grad_true[p == 1] = 0
 params_gauss_grad = {"mu": mu_grad_true, "sigma": sigma_grad_true}
 
-p_cat = np.array([
-    [[[0.1, 0.9], [0.9, 0.1], [0.5, 0.5]]],
-    [[[0.9, 0.1], [0.05, 0.95], [0.45, 0.55]]],
-])
+p_cat = np.array(
+    [
+        [[[0.1, 0.9], [0.9, 0.1], [0.5, 0.5]]],
+        [[[0.9, 0.1], [0.05, 0.95], [0.45, 0.55]]],
+    ]
+)
 params_cat = {"log_probs": mx.nd.array(np.log(p_cat))}
 
 x_cat = np.array([[[np.nan, 0, 1]], [[np.nan, 0, np.nan]]])

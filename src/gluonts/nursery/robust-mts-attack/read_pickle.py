@@ -53,10 +53,12 @@ def create_table(path):
                 "+-",
                 np.asarray(result.mse[key]).std() * c,
             )
-            mse.append((
-                np.asarray(result.mse[key]).mean(),
-                np.asarray(result.mse[key]).std() * c,
-            ))
+            mse.append(
+                (
+                    np.asarray(result.mse[key]).mean(),
+                    np.asarray(result.mse[key]).std() * c,
+                )
+            )
 
         print("mape loss:")
         for key in result.mape.keys():
@@ -66,10 +68,12 @@ def create_table(path):
                 "+-",
                 np.asarray(result.mape[key]).std() * c,
             )
-            mape.append((
-                np.asarray(result.mape[key]).mean(),
-                np.asarray(result.mape[key]).std() * c,
-            ))
+            mape.append(
+                (
+                    np.asarray(result.mape[key]).mean(),
+                    np.asarray(result.mape[key]).std() * c,
+                )
+            )
 
         print("wQL:")
         for key in result.ql.keys():
@@ -79,10 +83,12 @@ def create_table(path):
                 "+-",
                 np.asarray(result.ql[key]).std() * c,
             )
-            wql.append((
-                np.asarray(result.ql[key]).mean(),
-                np.asarray(result.ql[key]).std() * c,
-            ))
+            wql.append(
+                (
+                    np.asarray(result.ql[key]).mean(),
+                    np.asarray(result.ql[key]).std() * c,
+                )
+            )
 
     with open("table_" + types + ".txt", "w") as f:
         for i in range(len(mse)):
