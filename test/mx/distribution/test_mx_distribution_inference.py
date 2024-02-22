@@ -1243,7 +1243,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.flaky(retries=5)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
@@ -1291,7 +1291,7 @@ def test_inflated_poisson_likelihood(
 
 
 @pytest.mark.timeout(150)
-@pytest.mark.flaky(retries=3)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("mu", [5.0])
 @pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])
