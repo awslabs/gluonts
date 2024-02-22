@@ -14,7 +14,7 @@ jobs:
       run: |
         pip install .
         # todo: install also `black[jupyter]`
-        pip install click "black==24.01" "mypy==1.8.0" \
+        pip install click "black==24.02" "mypy==1.8.0" \
             types-python-dateutil types-waitress types-PyYAML
     - name: Style check
       run: just black
