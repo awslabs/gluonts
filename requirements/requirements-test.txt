@@ -7,5 +7,5 @@ pytest-rerunfailures >=13.0, <14.0
 ujson
 orjson
 requests
-holidays >=0.9, <0.10
+holidays >=0.9
 matplotlib >=3.6, <3.7
