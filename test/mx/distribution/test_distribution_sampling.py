@@ -148,7 +148,7 @@ DISTRIBUTIONS_WITHOUT_STDDEV = [Loglogistic, Weibull]
 
 @pytest.mark.parametrize("distr_class, params", test_cases)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 def test_sampling(distr_class, params, serialize_fn) -> None:
     distr = distr_class(**params)
     distr = serialize_fn(distr)
@@ -204,7 +204,7 @@ test_cases_multivariate = [
 ]
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("distr, params, dim", test_cases_multivariate)
 @pytest.mark.parametrize("serialize_fn", serialize_fn_list)
 def test_multivariate_sampling(distr, params, dim, serialize_fn) -> None:
@@ -260,7 +260,7 @@ def test_piecewise_linear_sampling(distr, params, serialize_fn):
     assert samples.shape == (num_samples, 2)
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("alpha, beta", [(0.3, 0.9), (1.5, 1.7)])
 @pytest.mark.parametrize("zero_probability, one_probability", [(0.1, 0.2)])
 def test_inflated_beta_sampling(

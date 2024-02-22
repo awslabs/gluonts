@@ -105,7 +105,7 @@ CONSTANT_DATASET_FREQ = dataset_info.metadata.freq
 CONSTANT_DATASET_PREDICTION_LENGTH = dataset_info.prediction_length
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize(
     "predictor, accuracy",
     [

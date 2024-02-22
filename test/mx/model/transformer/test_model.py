@@ -32,7 +32,7 @@ def hyperparameters():
     )
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize):
     hyperparameters.update(num_batches_per_epoch=80, hybridize=hybridize)

@@ -31,7 +31,7 @@ def hyperparameters():
     )
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("sampling", [True, False])
 def test_accuracy(accuracy_test, hyperparameters, hybridize, sampling):

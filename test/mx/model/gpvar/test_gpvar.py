@@ -92,7 +92,7 @@ def test_gpvar_proj():
     assert distr.mean.shape == (batch, dim)
 
 
-@pytest.mark.flaky(retries=3, delay=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("target_dim_sample", [None, 2])
 @pytest.mark.parametrize("use_marginal_transformation", [True, False])
