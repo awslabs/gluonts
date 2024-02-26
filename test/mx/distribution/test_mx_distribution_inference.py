@@ -15,6 +15,7 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
+import random
 from functools import reduce
 
 from typing import List, Tuple
@@ -1256,6 +1257,9 @@ def test_inflated_poisson_likelihood(
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    random.seed(0)
+    np.random.seed(0)
+    mx.random.seed(0)
     # generate samples
     num_samples = 2000  # Required for convergence
 
