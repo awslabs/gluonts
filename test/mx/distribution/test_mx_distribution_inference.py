@@ -22,7 +22,6 @@ from typing import List, Tuple
 import mxnet as mx
 import numpy as np
 import pytest
-from lightning import seed_everything
 
 from gluonts.mx.model.tpp.distribution import (
     Loglogistic,
@@ -1257,7 +1256,6 @@ def test_inflated_poisson_likelihood(
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
-    seed_everything(42)
     # generate samples
     num_samples = 2000  # Required for convergence
 
