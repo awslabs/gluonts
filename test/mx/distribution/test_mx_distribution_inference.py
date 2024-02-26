@@ -22,6 +22,7 @@ from typing import List, Tuple
 import mxnet as mx
 import numpy as np
 import pytest
+from lightning import seed_everything
 
 from gluonts.mx.model.tpp.distribution import (
     Loglogistic,
@@ -1243,7 +1244,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.flaky(retries=9)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
@@ -1255,6 +1256,7 @@ def test_inflated_poisson_likelihood(
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    seed_everything(42)
     # generate samples
     num_samples = 2000  # Required for convergence
 
