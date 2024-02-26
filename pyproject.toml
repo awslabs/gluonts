@@ -5,6 +5,7 @@ line-length = 79
 minversion = "6.0"
 timeout = 60
 addopts = """
+    --color=yes
     --doctest-modules
     --ignore src/gluonts/block.py
     --ignore src/gluonts/distribution.py
