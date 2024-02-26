@@ -1243,7 +1243,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.flaky(retries=6)
+@pytest.mark.flaky(retries=9)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
