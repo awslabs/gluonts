@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 import pandas as pd
 import numpy as np
+from lightning import seed_everything
 
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
@@ -309,6 +310,7 @@ def test_estimator_constant_dataset(
     ],
 )
 def test_estimator_with_features(estimator_constructor):
+    seed_everything(42)
     freq = "1h"
     prediction_length = 12
 
