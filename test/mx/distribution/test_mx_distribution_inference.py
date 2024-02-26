@@ -758,6 +758,7 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    seed_everything(42)
     # test instance
     mu, alpha = mu_alpha
 

@@ -19,6 +19,8 @@ from typing import List
 
 import numpy as np
 import pytest
+from lightning import seed_everything
+
 import torch
 import torch.nn as nn
 from scipy.special import softmax
@@ -297,6 +299,7 @@ def test_neg_binomial(total_count: float, logit: float) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    seed_everything(42)
     # generate samples
     total_counts = torch.zeros((NUM_SAMPLES,)) + total_count
     logits = torch.zeros((NUM_SAMPLES,)) + logit
