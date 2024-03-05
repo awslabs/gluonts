@@ -33,8 +33,9 @@ def register_data_module(cls: M) -> M:
 def get_data_module(name: str, **kwargs: Any) -> pl.LightningDataModule:
     """
     This method creates the data module with the specified name. The provided
-    keyword arguments must contain ALL arguments required by the model configuration.
-    Superfluous arguments may be provided and are simply ignored.
+    keyword arguments must contain ALL arguments required by the model
+    configuration. Superfluous arguments may be provided and are simply
+    ignored.
 
     Parameters
     ----------

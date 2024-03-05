@@ -74,7 +74,8 @@ class PyTorchEstimator(Estimator):
 
     def create_instance_splitter(self, mode: str) -> Transformation:
         """
-        Create and return the instance splitter needed for training, validation or testing.
+        Create and return the instance splitter needed for training, validation
+        or testing.
 
         Returns
         -------

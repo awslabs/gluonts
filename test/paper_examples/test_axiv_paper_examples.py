@@ -20,7 +20,7 @@ from gluonts.dataset.field_names import FieldName
 def test_listing_1():
     """
     Test GluonTS paper examples from arxiv paper:
-    https://arxiv.org/abs/1906.05264
+    https://arxiv.org/abs/1906.05264.
 
     Listing 1
     """
@@ -56,7 +56,7 @@ def test_listing_1():
 def test_appendix_c():
     """
     Test GluonTS paper examples from arxiv paper:
-    https://arxiv.org/abs/1906.05264
+    https://arxiv.org/abs/1906.05264.
 
     Appendix C
     """

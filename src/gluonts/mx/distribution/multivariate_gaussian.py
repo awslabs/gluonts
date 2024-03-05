@@ -26,8 +26,8 @@ from .distribution_output import DistributionOutput
 
 class MultivariateGaussian(Distribution):
     r"""
-    Multivariate Gaussian distribution, specified by the mean vector
-    and the Cholesky factor of its covariance matrix.
+    Multivariate Gaussian distribution, specified by the mean vector and the
+    Cholesky factor of its covariance matrix.
 
     Parameters
     ----------
@@ -104,8 +104,8 @@ class MultivariateGaussian(Distribution):
         self, num_samples: Optional[int] = None, dtype=np.float32
     ) -> Tensor:
         r"""
-        Draw samples from the multivariate Gaussian distributions.
-        Internally, Cholesky factorization of the covariance matrix is used:
+        Draw samples from the multivariate Gaussian distributions. Internally,
+        Cholesky factorization of the covariance matrix is used:
 
             sample = L v + mu,
 

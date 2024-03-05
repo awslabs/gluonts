@@ -29,7 +29,8 @@ class SupportSetQueryAttention(nn.Module, ABC):
         self, query: SeriesBatch, supps: SeriesBatch
     ) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         """
-        Each query attends to each time point in each series of its support set.
+        Each query attends to each time point in each series of its support
+        set.
 
         Note that we cannot use a canonical attention mechanism here because of the composition of the batches.
         The support time series are stacked along the batch dimension. Suppose a fixed support set size `x`

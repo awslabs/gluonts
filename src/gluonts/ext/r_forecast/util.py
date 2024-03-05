@@ -31,7 +31,9 @@ def unlist(l):
 
 
 def interval_to_quantile_level(interval_level: int, side: str) -> float:
-    """Convert a prediction interval level (upper or lower) into a quantile level."""
+    """
+    Convert a prediction interval level (upper or lower) into a quantile level.
+    """
     if side == "upper":
         level = 50 + interval_level / 2
     elif side == "lower":
@@ -42,6 +44,8 @@ def interval_to_quantile_level(interval_level: int, side: str) -> float:
 
 
 def quantile_to_interval_level(quantile_level: float) -> Tuple[int, str]:
-    """Convert a quantile level into a prediction interval level (upper or lower)."""
+    """
+    Convert a quantile level into a prediction interval level (upper or lower).
+    """
     side = "upper" if quantile_level >= 0.5 else "lower"
     return round(200 * abs(0.5 - quantile_level)), side

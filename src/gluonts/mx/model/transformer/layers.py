@@ -491,6 +491,7 @@ class TransformerFeedForward(HybridBlock):
 class TransformerProcessBlock(HybridBlock):
     r"""
     Block to perform pre/post processing on layer inputs.
+
     The processing steps are determined by the sequence argument, which can
     contain one of the three operations:
     n: layer normalization

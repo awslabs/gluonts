@@ -379,7 +379,8 @@ class _Timer:
 
 
 class TrainingTimeLimit(BaseModel, Callback):
-    """Limit time spent for training.
+    """
+    Limit time spent for training.
 
     This is useful when ensuring that training for a given model doesn't
     exceed a budget, for example when doing AutoML.

@@ -12,7 +12,9 @@
 # permissions and limitations under the License.
 
 
-"""This modules contains pydantic imports, which are used throughout the codebase."""
+"""
+This modules contains pydantic imports, which are used throughout the codebase.
+"""
 
 from pydantic import __version__
 

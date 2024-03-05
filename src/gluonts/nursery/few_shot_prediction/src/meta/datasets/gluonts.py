@@ -138,7 +138,8 @@ class GluonTSDataModule(pl.LightningDataModule):
     @property
     def root(self) -> Path:
         """
-        Returns the directory where all the data pertaining to this dataset is stored.
+        Returns the directory where all the data pertaining to this dataset is
+        stored.
         """
         return self.data_dir / "datasets" / self.dataset_name
 

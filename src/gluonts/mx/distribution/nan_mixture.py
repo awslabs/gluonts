@@ -27,7 +27,7 @@ from .mixture import MixtureDistribution
 class NanMixture(MixtureDistribution):
     r"""
     A mixture distribution of a NaN-valued Deterministic distribution and
-    Distribution
+    Distribution.
 
     Parameters
     ----------

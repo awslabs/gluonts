@@ -45,7 +45,9 @@ def init_weights(module: nn.Module, scale: float = 1.0):
 
 
 class FeatureEmbedder(nn.Module):
-    """Creates a feature embedding for the static categorical features."""
+    """
+    Creates a feature embedding for the static categorical features.
+    """
 
     @validated()
     def __init__(
@@ -98,8 +100,9 @@ class FeatureEmbedder(nn.Module):
 
 
 class DeepNPTSNetwork(nn.Module):
-    """Base class implementing a simple feed-forward neural network that takes
-    in static and dynamic features and produces `num_hidden_nodes` independent
+    """
+    Base class implementing a simple feed-forward neural network that takes in
+    static and dynamic features and produces `num_hidden_nodes` independent
     outputs. These outputs are then used by derived classes to construct the
     forecast distribution for a single time step.
 
@@ -210,8 +213,8 @@ class DeepNPTSNetwork(nn.Module):
 
 class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
     """
-    Extends `DeepNTPSNetwork` by implementing the output layer which
-    converts the outputs from the base network into probabilities of length
+    Extends `DeepNTPSNetwork` by implementing the output layer which converts
+    the outputs from the base network into probabilities of length
     `context_length`. These probabilities together with the past values in the
     context window constitute the one-step-ahead forecast distribution.
     Specifically, the forecast is always one of the values observed in the
@@ -269,11 +272,11 @@ class DeepNPTSNetworkDiscrete(DeepNPTSNetwork):
 
 class DeepNPTSNetworkSmooth(DeepNPTSNetwork):
     """
-    Extends `DeepNTPSNetwork` by implementing the output layer which
-    converts the outputs from the base network into a smoothed mixture
-    distribution. The components of the mixture are Gaussians centered around
-    the observations in the context window. The mixing probabilities as well as
-    the width of the Gaussians are predicted by the network.
+    Extends `DeepNTPSNetwork` by implementing the output layer which converts
+    the outputs from the base network into a smoothed mixture distribution. The
+    components of the mixture are Gaussians centered around the observations in
+    the context window. The mixing probabilities as well as the width of the
+    Gaussians are predicted by the network.
 
     This mixture distribution represents the one-step-ahead forecast
     distribution. Note that the forecast can contain values not observed in the
@@ -345,7 +348,8 @@ class DeepNPTSMultiStepNetwork(nn.Module):
         past_time_feat: torch.Tensor,
         future_time_feat: torch.Tensor,
     ):
-        """Generates samples from the forecast distribution.
+        """
+        Generates samples from the forecast distribution.
 
         Parameters
         ----------

@@ -25,7 +25,7 @@ from torch.distributions import Normal as Gaussian
 
 class ResidualBlock(nn.Module):
     """
-    Network module wrapped by residual connection
+    Network module wrapped by residual connection.
 
     Args
     ----------

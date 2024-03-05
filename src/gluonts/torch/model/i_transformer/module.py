@@ -25,8 +25,8 @@ from gluonts.torch.util import weighted_average
 
 class ITransformerModel(nn.Module):
     """
-    Module implementing the iTransformer model for multivariate forecasting as described in
-    https://arxiv.org/abs/2310.06625 extended to be probabilistic.
+    Module implementing the iTransformer model for multivariate forecasting as
+    described in https://arxiv.org/abs/2310.06625 extended to be probabilistic.
 
     Parameters
     ----------

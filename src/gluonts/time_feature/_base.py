@@ -25,7 +25,9 @@ TimeFeature = Callable[[pd.PeriodIndex], np.ndarray]
 
 
 def _normalize(xs, num: float):
-    """Scale values of ``xs`` to [-0.5, 0.5]."""
+    """
+    Scale values of ``xs`` to [-0.5, 0.5].
+    """
 
     return np.asarray(xs) / (num - 1) - 0.5
 

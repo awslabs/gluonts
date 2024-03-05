@@ -331,8 +331,9 @@ def split_frame(
     metadata=None,
     default_tdim=-1,
 ):
-    """Create a ``zebras.SplitFrame`` where columns can either be `past`,
-    `future` or `full`, which spans both past and future.
+    """
+    Create a ``zebras.SplitFrame`` where columns can either be `past`, `future`
+    or `full`, which spans both past and future.
 
     ``past_length`` and ``future_length`` is derived from the input data if
     possible or default to ``0`` in case no respective data is available. It is

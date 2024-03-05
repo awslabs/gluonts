@@ -36,7 +36,8 @@ M4_PREDICTION_LENGTHS = {
 @register_data_module
 class M4DataModule(GluonTSDataModule):
     """
-    A data module which provides a frequency-category split of the M4 dataset as a standalone dataset.
+    A data module which provides a frequency-category split of the M4 dataset
+    as a standalone dataset.
     """
 
     def __init__(self, **kwargs):

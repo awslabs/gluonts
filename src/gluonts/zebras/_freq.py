@@ -35,7 +35,8 @@ weekday_offsets = {
 
 
 def _canonical_freqstr(n: int, name: str, suffix: Optional[str] = None) -> str:
-    """Canonical name of frequency.
+    """
+    Canonical name of frequency.
 
     >>> _canonical_freqstr(1, "X")
     'X'
@@ -173,7 +174,8 @@ class Freq:
         return to_offset(str(self))
 
     def align(self, timestamp: np.datetime64) -> np.datetime64:
-        """Align ``timestamp`` according to the frequency.
+        """
+        Align ``timestamp`` according to the frequency.
 
         For example, for daily frequency, any timestamps that fall into the
         same day align to the same value.

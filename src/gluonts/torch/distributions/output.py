@@ -23,8 +23,8 @@ from gluonts.torch.modules.lambda_layer import LambdaLayer
 
 class PtArgProj(nn.Module):
     r"""
-    A PyTorch module that can be used to project from a dense layer
-    to PyTorch distribution arguments.
+    A PyTorch module that can be used to project from a dense layer to PyTorch
+    distribution arguments.
 
     Parameters
     ----------
@@ -84,7 +84,8 @@ class Output:
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Compute loss for target data given network output.
+        """
+        Compute loss for target data given network output.
 
         Parameters
         ----------
@@ -117,17 +118,20 @@ class Output:
 
     def domain_map(self, *args: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         r"""
-        Converts arguments to the right shape and domain. The domain depends
-        on the type of distribution, while the correct shape is obtained by
-        reshaping the trailing axis in such a way that the returned tensors
-        define a distribution of the right event_shape.
+        Converts arguments to the right shape and domain.
+
+        The domain depends on the type of distribution, while the correct shape
+        is obtained by reshaping the trailing axis in such a way that the
+        returned tensors define a distribution of the right event_shape.
         """
         raise NotImplementedError()
 
     @property
     def value_in_support(self) -> float:
         r"""
-        A float value that is valid for computing the loss of the
-        corresponding output. By default 0.0.
+        A float value that is valid for computing the loss of the corresponding
+        output.
+
+        By default 0.0.
         """
         return 0.0

@@ -51,7 +51,8 @@ def pad_axis(
 
 
 def _replace(obj, **kwargs):
-    """Copy and replace dataclass instance.
+    """
+    Copy and replace dataclass instance.
 
     Compared to ``dataclasses.replace`` this first creates a copy where each
     field in the object is copied. Thus, each field of the returned object is

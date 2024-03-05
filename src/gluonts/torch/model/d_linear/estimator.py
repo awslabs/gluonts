@@ -48,7 +48,8 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 class DLinearEstimator(PyTorchLightningEstimator):
     """
     An estimator training the d-linear model form the paper
-    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic forecasting.
+    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic
+    forecasting.
 
     This class is uses the model defined in ``DLinearModel``,
     and wraps it into a ``DLinearLightningModule`` for training

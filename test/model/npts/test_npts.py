@@ -560,8 +560,8 @@ def _test_nans_in_target(predictor: NPTSPredictor, dataset: Dataset) -> None:
 
 def _inject_nans_in_target(data_entry: DataEntry, p: float) -> DataEntry:
     """
-    Returns a copy of the given `data_entry` where approximately `p` percent
-    of the target values are NaNs.
+    Returns a copy of the given `data_entry` where approximately `p` percent of
+    the target values are NaNs.
 
     Parameters
     ----------

@@ -66,7 +66,8 @@ class Max(Objective):
 
 @dataclass
 class Patience:
-    """Simple patience tracker.
+    """
+    Simple patience tracker.
 
     Given an `Objective`, it will check whether the metric has improved and
     update its patience count. A better value sets the patience back to zero.
@@ -110,11 +111,11 @@ class Patience:
 class MetricAttentiveScheduler:
     """
     This scheduler decreases the learning rate based on the value of some
-    validation metric to be optimized (maximized or minimized). The value
-    of such metric is provided by calling the `step` method on the scheduler.
-    A `patience` parameter must be provided, and the scheduler will reduce
-    the learning rate if no improvement in the metric is done before
-    `patience` observations of the metric.
+    validation metric to be optimized (maximized or minimized). The value of
+    such metric is provided by calling the `step` method on the scheduler. A
+    `patience` parameter must be provided, and the scheduler will reduce the
+    learning rate if no improvement in the metric is done before `patience`
+    observations of the metric.
 
     Examples:
 
@@ -196,11 +197,11 @@ class MetricAttentiveScheduler:
 class LearningRateReduction(Callback):
     """
     This Callback decreases the learning rate based on the value of some
-    validation metric to be optimized (maximized or minimized). The value
-    of such metric is provided by calling the `step` method on the scheduler.
-    A `patience` parameter must be provided, and the scheduler will reduce
-    the learning rate if no improvement in the metric is done before
-    `patience` observations of the metric.
+    validation metric to be optimized (maximized or minimized). The value of
+    such metric is provided by calling the `step` method on the scheduler. A
+    `patience` parameter must be provided, and the scheduler will reduce the
+    learning rate if no improvement in the metric is done before `patience`
+    observations of the metric.
 
     Examples:
 

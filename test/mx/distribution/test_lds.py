@@ -54,6 +54,7 @@ def test_lds_likelihood(data_filename):
     """
     Test to check that likelihood is correctly computed for different
     innovation state space models (ISSM).
+
     Note that ISSM is a special case of LDS.
     """
     with gzip.GzipFile(data_filename, "r") as fp:

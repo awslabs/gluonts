@@ -22,7 +22,8 @@ from torch import nn
 
 class Attention(nn.Module):
     """
-    Base class of attention modules
+    Base class of attention modules.
+
     *NOTE*: d_hidden must be divisible by n_head
 
     Parameters
@@ -61,7 +62,7 @@ class Attention(nn.Module):
 
     def _split_head(self, x: Tensor) -> Tensor:
         """
-        Split hidden state into multi-heads
+        Split hidden state into multi-heads.
 
         Args
         ----------
@@ -77,7 +78,7 @@ class Attention(nn.Module):
 
     def _merge_head(self, x: Tensor) -> Tensor:
         """
-        Merge multi-heads into one hidden state
+        Merge multi-heads into one hidden state.
 
         Args
         ----------

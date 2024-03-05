@@ -39,7 +39,7 @@ from meta.metrics.numpy import compute_metrics
 @dataclass(frozen=True)
 class CheatMetaData:
     """
-    Meta data for a cheating dataset
+    Meta data for a cheating dataset.
     """
 
     context_length_multiple: int
@@ -76,8 +76,8 @@ class CheatMetaData:
 @register_data_module
 class CheatArtificialDataModule(pl.LightningDataModule):
     """
-    A data module which provides datasets with different
-    ground truth / counter factual injection modes for the support set.
+    A data module which provides datasets with different ground truth / counter
+    factual injection modes for the support set.
 
     Parameters
     ----------
@@ -200,7 +200,8 @@ class CheatArtificialDataModule(pl.LightningDataModule):
     @property
     def root(self) -> Path:
         """
-        Returns the directory where all the data pertaining to this dataset is stored.
+        Returns the directory where all the data pertaining to this dataset is
+        stored.
         """
         return self.data_dir / "artificial" / self.dataset_name
 
@@ -491,7 +492,7 @@ class CheatArtificialDataModule(pl.LightningDataModule):
 @dataclass(frozen=True)
 class CheatCounterfactual(CheatMetaData):
     """
-    Meta data for a cheating dataset
+    Meta data for a cheating dataset.
     """
 
     counterfactual_size: int

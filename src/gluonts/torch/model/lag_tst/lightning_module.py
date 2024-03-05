@@ -22,8 +22,8 @@ from .module import LagTSTModel
 
 class LagTSTLightningModule(pl.LightningModule):
     """
-    A ``pl.LightningModule`` class that can be used to train a
-    ``LagTSTModel`` with PyTorch Lightning.
+    A ``pl.LightningModule`` class that can be used to train a ``LagTSTModel``
+    with PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``LagTSTModel`` object,
     that exposes the methods to evaluate training and validation loss.

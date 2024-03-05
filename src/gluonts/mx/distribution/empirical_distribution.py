@@ -161,7 +161,8 @@ class EmpiricalDistribution(Distribution):
         )
 
     def crps_univariate(self, x: Tensor) -> Tensor:
-        r"""Compute the *continuous rank probability score* (CRPS) of `obs`
+        r"""
+        Compute the *continuous rank probability score* (CRPS) of `obs`
         according to the empirical distribution.
 
         The last dimension of `obs` specifies the "event dimension" of the

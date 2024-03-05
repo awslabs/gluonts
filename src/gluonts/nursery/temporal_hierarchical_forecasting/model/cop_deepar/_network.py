@@ -134,7 +134,8 @@ class COPNetwork(mx.gluon.HybridBlock):
         future_observed_values: Optional[Tensor] = None,
     ) -> Dict:
         """
-        Aggregate target at the given aggregate level along with updating observed value and pad indicators.
+        Aggregate target at the given aggregate level along with updating
+        observed value and pad indicators.
 
         :param agg_level:
         :param past_target:
@@ -341,8 +342,8 @@ class COPDeepARTrainingNetwork(COPNetwork):
         agg_features_dict: Dict,
     ) -> Tensor:
         """
-        Computes the loss for training COPDeepAR, all inputs tensors representing
-        time series have NTC layout.
+        Computes the loss for training COPDeepAR, all inputs tensors
+        representing time series have NTC layout.
 
         Parameters
         ----------
@@ -359,7 +360,6 @@ class COPDeepARTrainingNetwork(COPNetwork):
 
         Returns loss with shape (batch_size, context + prediction_length, 1)
         -------
-
         """
 
         embeddings_at_all_levels_ls = []

@@ -26,7 +26,7 @@ from .distribution_output import DistributionOutput
 class Dirichlet(Distribution):
     r"""
     Dirichlet distribution, specified by the concentration vector alpha of
-    length d. https://en.wikipedia.org/wiki/Dirichlet_distribution
+    length d. https://en.wikipedia.org/wiki/Dirichlet_distribution.
 
     The Dirichlet distribution is defined on the open (d-1)-simplex, which
     means that a sample (or observation) x = (x_0,..., x_{d-1}) must satisfy:

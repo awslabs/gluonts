@@ -29,8 +29,8 @@ from .transformed_distribution import TransformedDistribution
 
 class TransformedDistributionOutput(DistributionOutput):
     r"""
-    Class to connect a network to a distribution that is transformed
-    by a sequence of learnable bijections.
+    Class to connect a network to a distribution that is transformed by a
+    sequence of learnable bijections.
     """
 
     @validated()

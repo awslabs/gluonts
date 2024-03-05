@@ -101,7 +101,6 @@ class ISSM:
         * dimension of the latent state
         * transition and innovation coefficients of the transition model
         * emission coefficient of the observation model
-
     """
 
     @validated()

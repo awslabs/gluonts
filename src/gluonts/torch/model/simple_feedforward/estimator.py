@@ -86,7 +86,6 @@ class SimpleFeedForwardEstimator(PyTorchLightningEstimator):
         Controls the sampling of windows during training.
     validation_sampler
         Controls the sampling of windows during validation.
-
     """
 
     @validated()

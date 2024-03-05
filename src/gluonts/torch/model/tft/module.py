@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 
 
 class TemporalFusionTransformerModel(nn.Module):
-    """Temporal Fusion Transformer neural network.
+    """
+    Temporal Fusion Transformer neural network.
 
     Partially based on the implementation in github.com/kashif/pytorch-transformer-ts.
 

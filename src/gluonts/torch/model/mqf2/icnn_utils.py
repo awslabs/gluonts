@@ -32,9 +32,9 @@ from torch.distributions.normal import Normal
 
 class DeepConvexNet(DeepConvexFlow):
     r"""
-    Class that takes a partially input convex neural network (picnn)
-    as input and equips it with functions of logdet
-    computation (both estimation and exact computation)
+    Class that takes a partially input convex neural network (picnn) as input
+    and equips it with functions of logdet computation (both estimation and
+    exact computation)
 
     This class is based on DeepConvexFlow of the CP-Flow
     repo (https://github.com/CW-Huang/CP-Flow)
@@ -126,8 +126,8 @@ class DeepConvexNet(DeepConvexFlow):
 
 class SequentialNet(SequentialFlow):
     r"""
-    Class that combines a list of DeepConvexNet and ActNorm
-    layers and provides energy score computation
+    Class that combines a list of DeepConvexNet and ActNorm layers and provides
+    energy score computation.
 
     This class is based on SequentialFlow of the CP-Flow repo
     (https://github.com/CW-Huang/CP-Flow)

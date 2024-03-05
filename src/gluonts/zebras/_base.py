@@ -28,7 +28,8 @@ LeftOrRight = Literal["l", "r"]
 
 
 class Pad(NamedTuple):
-    """Indicator for padded values.
+    """
+    Indicator for padded values.
 
     >>> from gluonts.zebras import time_series
     >>> ts = time_series([1, 2, 3]).pad(0, left=2, right=2)
@@ -36,7 +37,6 @@ class Pad(NamedTuple):
     >>> assert list(ts) == [0, 0, 1, 2, 3, 0, 0]
     >>> assert ts._pad.left == 2
     >>> assert ts._pad.right == 2
-
     """
 
     left: int = 0
@@ -115,7 +115,8 @@ class TimeBase:
         pad: LeftOrRight = "l",
         skip: LeftOrRight = "r",
     ) -> TimeBase:
-        """Force time frame to have length ``length``.
+        """
+        Force time frame to have length ``length``.
 
         This pads or slices the time frame, depending on whether its size is
         smaller or bigger than the required length.

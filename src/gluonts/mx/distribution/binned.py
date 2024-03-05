@@ -26,8 +26,8 @@ from .distribution_output import DistributionOutput
 
 class Binned(Distribution):
     r"""
-    A binned distribution defined by a set of bins via
-    bin centers and bin probabilities.
+    A binned distribution defined by a set of bins via bin centers and bin
+    probabilities.
 
     Parameters
     ----------

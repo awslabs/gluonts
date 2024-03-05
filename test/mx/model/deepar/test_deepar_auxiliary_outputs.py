@@ -26,7 +26,7 @@ prediction_length = ds_info.prediction_length
 
 def test_distribution():
     """
-    Makes sure additional tensors can be accessed and have expected shapes
+    Makes sure additional tensors can be accessed and have expected shapes.
     """
     prediction_length = ds_info.prediction_length
 

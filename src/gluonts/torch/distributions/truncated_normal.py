@@ -32,7 +32,8 @@ CONST_LOG_SQRT_2PI_E = 0.5 * math.log(2 * math.pi * math.e)
 
 
 class TruncatedNormal(Distribution):
-    """Implements a Truncated Normal distribution with location scaling.
+    """
+    Implements a Truncated Normal distribution with location scaling.
 
     Location scaling prevents the location to be "too far" from 0, which ultimately
     leads to numerically unstable samples and poor gradient computation (e.g. gradient explosion).

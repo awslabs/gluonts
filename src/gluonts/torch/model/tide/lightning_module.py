@@ -26,8 +26,8 @@ from .module import TiDEModel
 
 class TiDELightningModule(pl.LightningModule):
     """
-    A ``pl.LightningModule`` class that can be used to train a
-    ``TiDEModel`` with PyTorch Lightning.
+    A ``pl.LightningModule`` class that can be used to train a ``TiDEModel``
+    with PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``TiDEModel`` object,
     that exposes the methods to evaluate training and validation loss.

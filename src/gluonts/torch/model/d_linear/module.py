@@ -26,7 +26,7 @@ from gluonts.torch.util import weighted_average
 
 class MovingAvg(nn.Module):
     """
-    Moving average block to highlight the trend of time series
+    Moving average block to highlight the trend of time series.
     """
 
     def __init__(self, kernel_size, stride):
@@ -48,7 +48,7 @@ class MovingAvg(nn.Module):
 
 class SeriesDecomp(nn.Module):
     """
-    Series decomposition block
+    Series decomposition block.
     """
 
     def __init__(self, kernel_size):
@@ -64,7 +64,8 @@ class SeriesDecomp(nn.Module):
 class DLinearModel(nn.Module):
     """
     Module implementing a feed-forward model form the paper
-    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic forecasting.
+    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic
+    forecasting.
 
     Parameters
     ----------

@@ -27,7 +27,8 @@ class Decoder(nn.Module, ABC):
         self, query: torch.Tensor, value: torch.Tensor
     ) -> torch.Tensor:
         """
-        Forecast from encoded (query, support set) (typically via attention) and encoded queries.
+        Forecast from encoded (query, support set) (typically via attention)
+        and encoded queries.
 
         Parameters
         ----------
@@ -55,7 +56,6 @@ class FeedForwardQuantileDecoder(Decoder):
     Returns
     -------
     torch.Tensor: predictions of size [batch, prediction_length, num_quantiles]
-
     """
 
     def __init__(

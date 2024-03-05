@@ -56,8 +56,8 @@ class SqueezeChannels(torch.nn.Module):
 
 class CausalConvolution(torch.nn.Module):
     """
-    A single causal convolution applies the causal convolution itself, weight normalization, and
-    an activation function.
+    A single causal convolution applies the causal convolution itself, weight
+    normalization, and an activation function.
     """
 
     def __init__(
@@ -88,8 +88,8 @@ class CausalConvolution(torch.nn.Module):
 
     def forward(self, sequences: torch.Tensor) -> torch.Tensor:
         """
-        Computes the causal convolution for the provided sequence. Inputs are padded such that
-        the output sequence length
+        Computes the causal convolution for the provided sequence. Inputs are
+        padded such that the output sequence length.
 
         Args:
             sequences: Tensor of shape `[batch_size, in_channels, sequence_length]`.

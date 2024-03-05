@@ -27,8 +27,8 @@ from .bijection import AffineTransformation
 
 class TransformedDistribution(Distribution):
     r"""
-    A distribution obtained by applying a sequence of transformations on top
-    of a base distribution.
+    A distribution obtained by applying a sequence of transformations on top of
+    a base distribution.
     """
 
     @validated()

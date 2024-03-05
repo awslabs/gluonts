@@ -202,7 +202,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.end == period("2021-12-31", "D")
-
         """
 
         return self[-1]
@@ -213,7 +212,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.head(5) == periods("2021-01-01", "D", 5)
-
         """
 
         return self[:count]
@@ -224,7 +222,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.tail(5) == periods("2021-12-27", "D", 5)
-
         """
 
         return self[-count:]
@@ -235,7 +232,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.future(5) == periods("2022-01-01", "D", 5)
-
         """
         return (self.end + 1).periods(count)
 
@@ -245,7 +241,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.past(5) == periods("2020-12-27", "D", 5)
-
         """
 
         return (self.start - count).periods(count)
@@ -256,7 +251,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.prepend(5) == periods("2020-12-27", "D", 370)
-
         """
         return Periods(
             np.concatenate([self.past(count).data, self.data]),
@@ -269,7 +263,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.extend(5) == periods("2021", "D", 370)
-
         """
         return Periods(
             np.concatenate([self.data, self.future(count).data]),
@@ -286,7 +279,8 @@ class Periods(_BasePeriod):
 
     @classmethod
     def from_pandas(cls, index):
-        """Turn ``pandas.PeriodIndex`` or ``pandas.DatetimeIndex`` into
+        """
+        Turn ``pandas.PeriodIndex`` or ``pandas.DatetimeIndex`` into
         ``Periods``.
         """
 
@@ -313,7 +307,6 @@ class Periods(_BasePeriod):
 
         >>> p = periods("2021", "D", 365)
         >>> assert p.index_of(period("2021-02-01", "D")) == 31
-
         """
 
         if isinstance(period, str):
@@ -375,7 +368,8 @@ def _encode_zebras_periods(v: Periods):
 def period(
     data: Union[Period, str], freq: Optional[Union[Freq, str]] = None
 ) -> Period:
-    """Create a ``zebras.Period`` object that represents a period of time.
+    """
+    Create a ``zebras.Period`` object that represents a period of time.
 
     Parameters
     ----------
@@ -422,7 +416,8 @@ def period(
 def periods(
     start: Union[Period, str], freq: Union[Freq, str], count: int
 ) -> Period:
-    """Create a ``zebras.Periods`` object that represents multiple consecutive
+    """
+    Create a ``zebras.Periods`` object that represents multiple consecutive
     periods of time.
 
     Parameters

@@ -63,9 +63,9 @@ LOSS_SCALING_MAP: Dict[str, Callable] = {
 
 class DeepNPTSEstimator(Estimator):
     """
-    Construct a DeepNPTS estimator. This is a tunable extension of NPTS
-    where the sampling probabilities are learned from the data. This is a
-    global-model unlike NPTS.
+    Construct a DeepNPTS estimator. This is a tunable extension of NPTS where
+    the sampling probabilities are learned from the data. This is a global-
+    model unlike NPTS.
 
     Currently two variants of the model are implemented:
     (i) `DeepNPTSNetworkDiscrete`: the forecast distribution is a discrete

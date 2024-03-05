@@ -17,9 +17,11 @@ import numpy as np
 def seasonal_error(
     time_series: np.ndarray, seasonality: int, time_axis=0
 ) -> np.ndarray:
-    """The mean abs. difference of a time series, shifted by its seasonality.
+    """
+    The mean abs. difference of a time series, shifted by its seasonality.
 
-    Some metrics use the seasonal error for normalization."""
+    Some metrics use the seasonal error for normalization.
+    """
 
     time_length = time_series.shape[time_axis]
 

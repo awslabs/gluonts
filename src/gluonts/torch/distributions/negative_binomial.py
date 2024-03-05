@@ -27,9 +27,11 @@ from .distribution_output import DistributionOutput
 
 class NegativeBinomial(TorchNegativeBinomial):
     """
-    Negative binomial distribution with `total_count` and `probs` or `logits` parameters.
+    Negative binomial distribution with `total_count` and `probs` or `logits`
+    parameters.
 
-    Based on torch.distributions.NegativeBinomial, with added `cdf` and `icdf` methods.
+    Based on torch.distributions.NegativeBinomial, with added `cdf` and `icdf`
+    methods.
     """
 
     def __init__(

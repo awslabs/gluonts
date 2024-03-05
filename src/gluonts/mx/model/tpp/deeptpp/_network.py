@@ -228,10 +228,9 @@ class DeepTPPPredictionNetwork(DeepTPPNetworkBase):
         past_target: Tensor,
         past_valid_length: Tensor,
     ) -> Tuple[Tensor, Tensor]:
-        """
-        Draw forward samples from the model. At each step, we sample an inter-
-        event time and feed it into the RNN to obtain the parameters for the
-        next distribution over the inter-event time.
+        """Draw forward samples from the model. At each step, we sample an
+        inter- event time and feed it into the RNN to obtain the parameters for
+        the next distribution over the inter-event time.
 
         Parameters
         ----------

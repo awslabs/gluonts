@@ -195,7 +195,7 @@ def main(
     **kwargs: int,
 ):
     """
-    Trains a model in the meta learning framework
+    Trains a model in the meta learning framework.
     """
     args_to_save = locals()
     random.seed(seed)

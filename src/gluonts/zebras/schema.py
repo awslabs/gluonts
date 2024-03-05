@@ -50,7 +50,6 @@ in a ``zebras.schema.Schema``:
 class Field(BaseModel):
     """
     Specification for user provided input data.
-
     """
 
     required: bool = True
@@ -155,7 +154,8 @@ class TimeSeries(Field):
     past_only: bool = True
 
     def _load(self, value, length: Optional[int] = None) -> np.ndarray:
-        """Load field ``name`` from ``data`` and apply validation.
+        """
+        Load field ``name`` from ``data`` and apply validation.
 
         Note: We do the lookup of the value in this function, since the field
         can be optional.
@@ -216,7 +216,8 @@ class Schema:
                 )
 
     def _load_static(self, data: Dict[str, Any]) -> Dict[str, np.ndarray]:
-        """Helper to load static data from ``data``.
+        """
+        Helper to load static data from ``data``.
 
         Used by ``load_timeframe`` and ``load_splitframe``.
         """

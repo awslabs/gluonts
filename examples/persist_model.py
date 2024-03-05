@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 """
-This example shows how to serialize and deserialize a model
+This example shows how to serialize and deserialize a model.
 """
 import os
 import pprint

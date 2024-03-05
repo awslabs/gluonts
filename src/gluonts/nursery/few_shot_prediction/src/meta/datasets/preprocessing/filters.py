@@ -27,7 +27,8 @@ class Filter(ABC):
     @abstractmethod
     def __call__(self, items: List[Item]) -> List[Item]:
         """
-        Filters the given items and returns the ones that should be kept in the dataset.
+        Filters the given items and returns the ones that should be kept in the
+        dataset.
 
         Args:
             items:  The items to filter.
@@ -42,8 +43,9 @@ class Filter(ABC):
 
 class ConstantTargetFilter(Filter):
     """
-    A filter which removes items having only constant target values. This filter should be used
-    whenever metrics such as the MASE are required.
+    A filter which removes items having only constant target values.
+
+    This filter should be used whenever metrics such as the MASE are required.
     """
 
     def __init__(self, prediction_length: int, required_length: int = 0):
@@ -67,7 +69,8 @@ class ConstantTargetFilter(Filter):
 
 class AbsoluteValueFilter(Filter):
     """
-    A filter which removes items having absolute average values of more than the provided value.
+    A filter which removes items having absolute average values of more than
+    the provided value.
     """
 
     def __init__(self, value: float):

@@ -26,8 +26,8 @@ from .module import MQF2MultiHorizonModel
 class MQF2MultiHorizonLightningModule(pl.LightningModule):
     r"""
     LightningModule class for the model MQF2 proposed in the paper
-    ``Multivariate Quantile Function Forecaster``
-    by Kan, Aubet, Januschowski, Park, Benidis, Ruthotto, Gasthaus
+    ``Multivariate Quantile Function Forecaster`` by Kan, Aubet, Januschowski,
+    Park, Benidis, Ruthotto, Gasthaus.
 
     This is the multi-horizon (multivariate in time step) variant of MQF2
 

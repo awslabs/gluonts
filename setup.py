@@ -41,7 +41,9 @@ def get_version_cmdclass(version_file) -> dict:
 
 
 class TypeCheckCommand(distutils.cmd.Command):
-    """A custom command to run MyPy on the project sources."""
+    """
+    A custom command to run MyPy on the project sources.
+    """
 
     description = "run MyPy on Python source files"
     user_options = []

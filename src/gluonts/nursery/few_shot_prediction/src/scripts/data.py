@@ -100,7 +100,9 @@ def artificial(
 
 @main.command()
 def statistics():
-    """Compute statistics of real-world datasets."""
+    """
+    Compute statistics of real-world datasets.
+    """
 
     path_to_data = Path.home() / ".mxnet" / "gluon-ts" / "datasets"
     path_save_plots = Path.home() / "data" / "plots"

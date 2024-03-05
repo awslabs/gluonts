@@ -25,7 +25,7 @@ from .genpareto import GenPareto
 
 class Binned(torch.nn.Module):
     r"""
-    Binned univariate distribution designed as an nn.Module
+    Binned univariate distribution designed as an nn.Module.
 
     Arguments
     ----------

@@ -21,7 +21,8 @@ from torch import Tensor, nn
 
 class GeLU(nn.Module):
     """
-    Gaussian error Linear Unit
+    Gaussian error Linear Unit.
+
     y = 1/2 * x * (1 + tanh(\sqrt{2/pi} * (x + 0.044715*x^3)))
     """
 
@@ -40,7 +41,8 @@ class GeLU(nn.Module):
 
 class Swish(nn.Sigmoid):
     """
-    Swish activation by google https://arxiv.org/pdf/1710.05941v1.pdf
+    Swish activation by google https://arxiv.org/pdf/1710.05941v1.pdf.
+
     y = \sigma(x) * x
     """
 
@@ -50,7 +52,7 @@ class Swish(nn.Sigmoid):
 
 class PositiveSoftplus(nn.Softplus):
     """
-    Softplus function that ensures a strictly positive activation
+    Softplus function that ensures a strictly positive activation.
 
     Parameters
     ----------
@@ -59,7 +61,6 @@ class PositiveSoftplus(nn.Softplus):
     beta: float
 
     threshold: float
-
     """
 
     def __init__(
@@ -78,7 +79,8 @@ class PositiveSoftplus(nn.Softplus):
 
 class GatedLinearUnit(nn.Module):
     """
-    Gated Linear Unit activation proposed by https://arxiv.org/pdf/1612.08083.pdf
+    Gated Linear Unit activation proposed by
+    https://arxiv.org/pdf/1612.08083.pdf.
 
     Parameters
     ----------

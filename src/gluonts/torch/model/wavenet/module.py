@@ -83,7 +83,8 @@ class CausalDilatedResidualLayer(nn.Module):
 
 
 class WaveNet(nn.Module):
-    """The WaveNet model.
+    """
+    The WaveNet model.
 
     Parameters
     ----------
@@ -226,7 +227,8 @@ class WaveNet(nn.Module):
         future_observed_values: Optional[torch.Tensor],
         scale: torch.Tensor,
     ) -> torch.Tensor:
-        """Prepares the inputs for the network by repeating static feature and
+        """
+        Prepares the inputs for the network by repeating static feature and
         concatenating it with time features and observed value indicator.
 
         Parameters
@@ -286,7 +288,8 @@ class WaveNet(nn.Module):
     def target_feature_embedding(
         self, target: torch.Tensor, features: torch.Tensor
     ) -> torch.Tensor:
-        """Provides a joint embedding for the target and features.
+        """
+        Provides a joint embedding for the target and features.
 
         Parameters
         ----------
@@ -311,7 +314,8 @@ class WaveNet(nn.Module):
         inputs: torch.Tensor,
         queues: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
-        """Forward pass through the WaveNet.
+        """
+        Forward pass through the WaveNet.
 
         Parameters
         ----------
@@ -368,7 +372,8 @@ class WaveNet(nn.Module):
         future_observed_values: torch.Tensor,
         scale: torch.Tensor,
     ) -> torch.Tensor:
-        """Computes the training loss for the wavenet model.
+        """
+        Computes the training loss for the wavenet model.
 
         Parameters
         ----------
@@ -428,7 +433,8 @@ class WaveNet(nn.Module):
     def _initialize_conv_queues(
         self, past_target: torch.Tensor, features: torch.Tensor
     ) -> List[torch.Tensor]:
-        """Initialize the convolutional queues to speed up predictions.
+        """
+        Initialize the convolutional queues to speed up predictions.
 
         Parameters
         ----------
@@ -469,7 +475,8 @@ class WaveNet(nn.Module):
         num_parallel_samples: Optional[int] = None,
         temperature: Optional[float] = None,
     ) -> torch.Tensor:
-        """Generate predictions from the WaveNet model.
+        """
+        Generate predictions from the WaveNet model.
 
         Parameters
         ----------

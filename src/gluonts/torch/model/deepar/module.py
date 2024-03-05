@@ -337,7 +337,7 @@ class DeepARModel(nn.Module):
         self, params, scale=None, trailing_n=None
     ) -> torch.distributions.Distribution:
         """
-        Instantiate the output distribution
+        Instantiate the output distribution.
 
         Parameters
         ----------

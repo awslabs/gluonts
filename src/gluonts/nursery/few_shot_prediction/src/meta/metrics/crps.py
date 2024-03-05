@@ -18,7 +18,8 @@ from torchmetrics import Metric
 
 class CRPS(Metric):
     """
-    Same as mean_weighted_quantile_loss in meta.evaluation.metrics just for pytorch
+    Same as mean_weighted_quantile_loss in meta.evaluation.metrics just for
+    pytorch.
 
     Parameters
     ----------
