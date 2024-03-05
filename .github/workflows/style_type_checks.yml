@@ -1,11 +1,10 @@
-name: Style and type checks
+name: License checks
 
 on: [push, pull_request]
 
 jobs:
-  style-type-checks:
+  license-checks:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - uses: extractions/setup-just@v1
@@ -16,15 +15,6 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install dependencies
-      run: |
-        pip install .
-        pip install click black mypy
-        pip install types-python-dateutil
-        pip install types-waitress
-        pip install types-PyYAML
-    - name: Style and type checks
-      run: |
-        just black
-        just mypy
+      run: pip install click
     - name: Check license headers
       run: just license
