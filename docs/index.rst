@@ -11,6 +11,7 @@
    getting_started/background
    getting_started/concepts
    getting_started/models
+   getting_started/metrics
 
 .. toctree::
    :name: Tutorials
