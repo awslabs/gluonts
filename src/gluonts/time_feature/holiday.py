@@ -78,44 +78,25 @@ CyberMonday = Holiday(
     offset=[pd.DateOffset(weekday=TH(4)), Day(4)],
 )
 
-NEW_YEARS_DAY = "new_years_day"
-MARTIN_LUTHER_KING_DAY = "martin_luther_king_day"
-SUPERBOWL = "superbowl"
-PRESIDENTS_DAY = "presidents_day"
-GOOD_FRIDAY = "good_friday"
-EASTER_SUNDAY = "easter_sunday"
-EASTER_MONDAY = "easter_monday"
-MOTHERS_DAY = "mothers_day"
-INDEPENDENCE_DAY = "independence_day"
-LABOR_DAY = "labor_day"
-MEMORIAL_DAY = "memorial_day"
-COLUMBUS_DAY = "columbus_day"
-THANKSGIVING = "thanksgiving"
-CHRISTMAS_EVE = "christmas_eve"
-CHRISTMAS_DAY = "christmas_day"
-NEW_YEARS_EVE = "new_years_eve"
-BLACK_FRIDAY = "black_friday"
-CYBER_MONDAY = "cyber_monday"
-
 SPECIAL_DATE_FEATURES = {
-    NEW_YEARS_DAY: distance_to_holiday(NewYearsDay),
-    MARTIN_LUTHER_KING_DAY: distance_to_holiday(USMartinLutherKingJr),
-    SUPERBOWL: distance_to_holiday(SuperBowl),
-    PRESIDENTS_DAY: distance_to_holiday(USPresidentsDay),
-    GOOD_FRIDAY: distance_to_holiday(GoodFriday),
-    EASTER_SUNDAY: distance_to_holiday(EasterSunday),
-    EASTER_MONDAY: distance_to_holiday(EasterMonday),
-    MOTHERS_DAY: distance_to_holiday(MothersDay),
-    INDEPENDENCE_DAY: distance_to_holiday(IndependenceDay),
-    LABOR_DAY: distance_to_holiday(USLaborDay),
-    MEMORIAL_DAY: distance_to_holiday(USMemorialDay),
-    COLUMBUS_DAY: distance_to_holiday(USColumbusDay),
-    THANKSGIVING: distance_to_holiday(USThanksgivingDay),
-    CHRISTMAS_EVE: distance_to_holiday(ChristmasEve),
-    CHRISTMAS_DAY: distance_to_holiday(ChristmasDay),
-    NEW_YEARS_EVE: distance_to_holiday(NewYearsEve),
-    BLACK_FRIDAY: distance_to_holiday(BlackFriday),
-    CYBER_MONDAY: distance_to_holiday(CyberMonday),
+    "new_years_day": distance_to_holiday(NewYearsDay),
+    "martin_luther_king_day": distance_to_holiday(USMartinLutherKingJr),
+    "superbowl": distance_to_holiday(SuperBowl),
+    "presidents_day": distance_to_holiday(USPresidentsDay),
+    "good_friday": distance_to_holiday(GoodFriday),
+    "easter_sunday": distance_to_holiday(EasterSunday),
+    "easter_monday": distance_to_holiday(EasterMonday),
+    "mothers_day": distance_to_holiday(MothersDay),
+    "independence_day": distance_to_holiday(IndependenceDay),
+    "labor_day": distance_to_holiday(USLaborDay),
+    "memorial_day": distance_to_holiday(USMemorialDay),
+    "columbus_day": distance_to_holiday(USColumbusDay),
+    "thanksgiving": distance_to_holiday(USThanksgivingDay),
+    "christmas_eve": distance_to_holiday(ChristmasEve),
+    "christmas_day": distance_to_holiday(ChristmasDay),
+    "new_years_eve": distance_to_holiday(NewYearsEve),
+    "black_friday": distance_to_holiday(BlackFriday),
+    "cyber_monday": distance_to_holiday(CyberMonday),
 }
 
 
