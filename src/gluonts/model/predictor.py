@@ -75,6 +75,10 @@ class Predictor:
         """
         raise NotImplementedError
 
+    def predict_one(self, entry: DataEntry, **kwargs) -> Forecast:
+        for forecast in self.predict([entry], **kwargs):
+            return forecast
+
     def serialize(self, path: Path) -> None:
         # serialize Predictor type
         with (path / "gluonts-config.json").open("w") as fp:
