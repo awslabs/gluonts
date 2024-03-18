@@ -1,0 +1,5 @@
+setuptools>=51.1.0
+wheel
+setuptools_scm[toml]
+black
+mypy
