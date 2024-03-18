@@ -129,7 +129,52 @@ def test_model_config(
                 start=pd.Period("2021-02-03 00", freq="H"),
                 target=np.random.normal(loc=10, scale=0.5, size=(100,)),
             )
-        ]
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0, 1.2]),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(1, 53)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0]),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 50)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_static_real=np.array([3.0, 6.0]),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 53)
+                ),
+            )
+        ],
+        [
+            dict(
+                start=pd.Period("2021-02-03 00", freq="H"),
+                target=np.random.normal(loc=3, scale=1.0, size=(50,)),
+                feat_dynamic_real=np.random.normal(
+                    loc=0.1, scale=0.2, size=(2, 50)
+                ),
+            )
+        ],
     ],
 )
 def test_predictor_working(
