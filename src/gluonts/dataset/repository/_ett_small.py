@@ -13,7 +13,6 @@
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
