@@ -25,6 +25,7 @@ from gluonts.dataset.jsonl import JsonLinesWriter
 from ._artificial import generate_artificial_dataset
 from ._airpassengers import generate_airpassengers_dataset
 from ._ercot import generate_ercot_dataset
+from ._ett_small import generate_ett_small_dataset
 from ._gp_copula_2019 import generate_gp_copula_dataset
 from ._lstnet import generate_lstnet_dataset
 from ._m3 import generate_m3_dataset
@@ -243,6 +244,18 @@ dataset_recipes = {
         dataset_name="vehicle_trips_without_missing",
     ),
     "ercot": partial(generate_ercot_dataset),
+    "ett_small_15min": partial(
+        generate_ett_small_dataset,
+        base_file_name="ETTm",
+        freq="15min",
+        prediction_length=24,
+    ),
+    "ett_small_1h": partial(
+        generate_ett_small_dataset,
+        base_file_name="ETTh",
+        freq="1h",
+        prediction_length=24,
+    ),
 }
 
 
