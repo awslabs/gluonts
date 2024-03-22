@@ -92,7 +92,7 @@ def main(
         input_flags=inputs,
         output_normalization=outputs["normalization"],
         impute_simulatable=outputs["imputation"],
-        **(_config[surrogate] if surrogate in _config else {})
+        **(_config[surrogate] if surrogate in _config else {}),
     )
 
     # And evaluate it

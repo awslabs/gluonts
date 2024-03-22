@@ -312,7 +312,7 @@ class GaussianDiffusion(nn.Module):
             cond.reshape(B * T, 1, -1),
             time,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         return loss

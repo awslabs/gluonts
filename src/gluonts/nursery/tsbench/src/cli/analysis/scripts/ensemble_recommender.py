@@ -100,7 +100,7 @@ def main(
             surrogate[surrogate["name"]]
             if surrogate["name"] in surrogate
             else {}
-        )
+        ),
     )
 
     # Then, we can create the recommender

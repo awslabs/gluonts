@@ -23,7 +23,7 @@ class GNN(mx.gluon.HybridBlock):
         num_layers: int,
         adj_matrix: Tensor,
         use_mlp: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 

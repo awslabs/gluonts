@@ -309,7 +309,7 @@ class GroupSelfAttention(SelfAttention):
         value: Tensor,
         shape: Tensor,
         *,
-        mask: Optional[BoolTensor] = None
+        mask: Optional[BoolTensor] = None,
     ) -> Tensor:
         q, k, v = self._compute_qkv(value, shape)
         score = self._compute_attn_score(q, k, mask)

@@ -91,7 +91,7 @@ def test_train_script(dataset_name, custom_dataset):
         estimator = estimator_cls.from_hyperparameters(
             prediction_length=dataset.metadata.prediction_length,
             freq=dataset.metadata.freq,
-            **hyperparameters
+            **hyperparameters,
         )
         serialized = serde.dump_json(estimator)
         with open(temp_dir_path / "estimator.json", "w") as estimator_file:

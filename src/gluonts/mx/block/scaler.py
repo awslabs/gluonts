@@ -121,7 +121,7 @@ class MeanScaler(Scaler):
         minimum_scale: float = 1e-10,
         default_scale: Optional[float] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.minimum_scale = minimum_scale

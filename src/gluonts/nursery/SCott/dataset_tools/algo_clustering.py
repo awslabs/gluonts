@@ -232,14 +232,14 @@ def KMeans_m5_dataset(
             {
                 "target": ts_slice,
                 "start": unsplit_start,
-            }  # , 'feat_static_cat': train_entry['feat_static_cat']}
-        )
+            }
+        )  # , 'feat_static_cat': train_entry['feat_static_cat']}
         whole_data.append(
             {
                 "target": ts_slice,
                 "start": unsplit_start,
-            }  # , 'feat_static_cat': train_entry['feat_static_cat']}
-        )
+            }
+        )  # , 'feat_static_cat': train_entry['feat_static_cat']}
         sample_id += 1
     print(len(whole_data))
     ret["group_ratio"] = [len(i) / len(whole_data) for i in dataset_group]

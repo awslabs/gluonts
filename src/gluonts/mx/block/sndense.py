@@ -51,7 +51,7 @@ class SNDense(mx.gluon.HybridBlock):
         dtype="float32",
         num_power_iter: int = 1,
         ctx: Optional[mx.Context] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self._coeff = coeff

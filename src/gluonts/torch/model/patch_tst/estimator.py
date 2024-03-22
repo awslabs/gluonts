@@ -229,7 +229,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: PatchTSTLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter(module, "training").apply(

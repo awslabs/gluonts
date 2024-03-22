@@ -34,7 +34,7 @@ release:
   python setup.py sdist
 
 black:
-  black --check src test examples
+  black --check --color src test examples
 
 mypy:
   python setup.py type_check
