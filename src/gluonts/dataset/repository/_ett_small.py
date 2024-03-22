@@ -47,6 +47,7 @@ def generate_ett_small_dataset(
             test.append(
                 {
                     "start": start,
+                    "item_id": col,
                     "target": df[col].values,
                 }
             )
@@ -60,6 +61,7 @@ def generate_ett_small_dataset(
             train.append(
                 {
                     "start": start,
+                    "item_id": col,
                     "target": df[col].values[:-prediction_length],
                 }
             )
