@@ -29,7 +29,9 @@ def generate_ercot_dataset(dataset_path: Path, dataset_writer: DatasetWriter):
     train = [
         {
             "start": start,
-            "target": df[region].to_numpy(dtype=np.float64)[:-prediction_length],
+            "target": df[region].to_numpy(dtype=np.float64)[
+                :-prediction_length
+            ],
         }
         for region in regions
     ]

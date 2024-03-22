@@ -242,9 +242,7 @@ dataset_recipes = {
         generate_forecasting_dataset,
         dataset_name="vehicle_trips_without_missing",
     ),
-    "ercot": partial(
-        generate_ercot_dataset
-    ),
+    "ercot": partial(generate_ercot_dataset),
 }
 
 
