@@ -24,6 +24,7 @@ from gluonts.dataset.jsonl import JsonLinesWriter
 
 from ._artificial import generate_artificial_dataset
 from ._airpassengers import generate_airpassengers_dataset
+from ._ercot import generate_ercot_dataset
 from ._gp_copula_2019 import generate_gp_copula_dataset
 from ._lstnet import generate_lstnet_dataset
 from ._m3 import generate_m3_dataset
@@ -241,6 +242,7 @@ dataset_recipes = {
         generate_forecasting_dataset,
         dataset_name="vehicle_trips_without_missing",
     ),
+    "ercot": partial(generate_ercot_dataset),
 }
 
 
