@@ -52,6 +52,7 @@ class DistributionForecast(Forecast):
         start_date: pd.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[pd.DatetimeIndex, pd.PeriodIndex]] = None,
     ) -> None:
         self.distribution = distribution
         self.shape = distribution.batch_shape + distribution.event_shape
@@ -65,6 +66,8 @@ class DistributionForecast(Forecast):
         self.start_date = start_date
 
         self._mean = None
+        if index is not None:
+            self._index = index[-self.prediction_length :]
 
     @property
     def mean(self) -> np.ndarray:
@@ -103,4 +106,5 @@ class DistributionForecast(Forecast):
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )

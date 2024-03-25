@@ -46,3 +46,5 @@ class FieldName:
     FORECAST_START = "forecast_start"
 
     TARGET_DIM_INDICATOR = "target_dimension_indicator"
+
+    INDEX = "index"
