@@ -113,7 +113,11 @@ def generate_m5_dataset(
     ]
 
     # Build target series
-    train_ids = sales_train_validation["item_id"]
+    train_ids = (
+        sales_train_validation["item_id"].str
+        + "_"
+        + sales_train_validation["store_id"].str
+    )
     train_df = sales_train_validation.drop(
         ["id", "item_id", "dept_id", "cat_id", "store_id", "state_id"],
         axis=1,
