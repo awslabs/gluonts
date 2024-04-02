@@ -39,7 +39,7 @@ def generate_ett_small_dataset(
         dfs.append(df)
 
     test = []
-    for df in dfs:
+    for region, df in enumerate(dfs):
         start = pd.Period(df["date"][0], freq=freq)
         for col in df.columns:
             if col in ["date"]:
@@ -47,13 +47,13 @@ def generate_ett_small_dataset(
             test.append(
                 {
                     "start": start,
-                    "item_id": col,
+                    "item_id": f"{col}_{region}",
                     "target": df[col].values,
                 }
             )
 
     train = []
-    for df in dfs:
+    for region, df in enumerate(dfs):
         start = pd.Period(df["date"][0], freq=freq)
         for col in df.columns:
             if col in ["date"]:
@@ -61,7 +61,7 @@ def generate_ett_small_dataset(
             train.append(
                 {
                     "start": start,
-                    "item_id": col,
+                    "item_id": f"{col}_{region}",
                     "target": df[col].values[:-prediction_length],
                 }
             )
