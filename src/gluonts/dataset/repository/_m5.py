@@ -113,11 +113,12 @@ def generate_m5_dataset(
     ]
 
     # Compute unique ID in case `id` column is missing
-    sales_train_validation["id"] = (
-        sales_train_validation["item_id"].astype("str")
-        + "_"
-        + sales_train_validation["store_id"].astype("str")
-    )
+    if "id" not in sales_train_validation.columns:
+        sales_train_validation["id"] = (
+            sales_train_validation["item_id"].astype("str")
+            + "_"
+            + sales_train_validation["store_id"].astype("str")
+        )
     # Build target series
     train_ids = sales_train_validation["id"]
     train_df = sales_train_validation.drop(
