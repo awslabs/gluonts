@@ -20,7 +20,7 @@ filterwarnings = "ignore"
 [tool.ruff]
 line-length = 79
 
-ignore = [
+lint.ignore = [
     # line-length is handled by black
     "E501",
 
