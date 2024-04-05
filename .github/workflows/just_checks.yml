@@ -5,6 +5,9 @@ on: [push, pull_request]
 jobs:
   license-checks:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        just_cmd: ["license", "mypy"]
     steps:
     - uses: actions/checkout@v3
     - uses: extractions/setup-just@v1
@@ -16,5 +19,5 @@ jobs:
         python-version: '3.8'
     - name: Install dependencies
       run: pip install click
-    - name: Check license headers
-      run: just license
+    - name: Check ${{ matrix.just_cmd }}
+      run: just ${{ matrix.just_cmd }}
