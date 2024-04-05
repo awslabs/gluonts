@@ -146,4 +146,4 @@ def test_projection_mat(D):
 )
 def test_projection_mat_expected_fail(D):
     with pytest.raises(AssertionError):
-        p = projection_mat(S=S, D=D)
+        projection_mat(S=S, D=D)

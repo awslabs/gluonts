@@ -110,7 +110,7 @@ def test_predictor_serialization(
 ):
     train_datasets = sine7(nonnegative=True)
 
-    (train_dataset, test_dataset, metadata) = (
+    _, _, metadata = (
         train_datasets.train,
         train_datasets.test,
         train_datasets.metadata,
@@ -152,7 +152,7 @@ def test_predictor_working(
         bias=1,
     )
 
-    (train_dataset, test_dataset, metadata) = (
+    _, test_dataset, metadata = (
         train_datasets.train,
         train_datasets.test,
         train_datasets.metadata,

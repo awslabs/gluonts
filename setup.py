@@ -58,7 +58,8 @@ class TypeCheckCommand(distutils.cmd.Command):
         import mypy.api
 
         excluded_folders = [
-            str(p.parent.relative_to(ROOT)) for p in ROOT.glob("src/**/.typeunsafe")
+            str(p.parent.relative_to(ROOT))
+            for p in ROOT.glob("src/**/.typeunsafe")
         ]
 
         if len(excluded_folders) > 0:

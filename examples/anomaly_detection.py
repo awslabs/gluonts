@@ -17,7 +17,6 @@ The model is first trained and then time-points with the largest negative log-li
 
 """
 import numpy as np
-from itertools import islice
 from functools import partial
 import mxnet as mx
 import matplotlib.pyplot as plt

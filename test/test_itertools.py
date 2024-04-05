@@ -289,7 +289,7 @@ def test_join_items():
     ]
 
     with pytest.raises(Exception):
-        oin_items(left, right, "strict")
+        oin_items(left, right, "strict")  # noqa: F821
 
 
 @pytest.mark.parametrize(
