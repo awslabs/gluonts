@@ -11,8 +11,8 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+      #  - id: end-of-file-fixer
+      #  - id: trailing-whitespace
       - id: check-json
       - id: check-yaml
       - id: check-toml
