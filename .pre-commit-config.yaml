@@ -45,7 +45,7 @@ repos:
         args: ["--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.3.0
     hooks:
       - id: black
         name: Format code with Black
