@@ -104,7 +104,7 @@ def evaluate_forecasts_raw(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> dict:
     """
     Evaluate ``forecasts`` by comparing them with ``test_data``, according
@@ -189,7 +189,7 @@ def evaluate_forecasts(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Evaluate ``forecasts`` by comparing them with ``test_data``, according
@@ -243,7 +243,7 @@ def evaluate_model(
     batch_size: int = 100,
     mask_invalid_label: bool = True,
     allow_nan_forecast: bool = False,
-    seasonality: Optional[int] = None
+    seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Evaluate ``model`` when applied to ``test_data``, according
