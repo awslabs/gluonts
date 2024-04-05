@@ -1,4 +1,4 @@
-name: License checks
+name: Type & license checks
 
 on: [push, pull_request]
 
