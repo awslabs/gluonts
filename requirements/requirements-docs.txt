@@ -3,6 +3,7 @@ ipykernel~=6.5
 nbconvert~=6.5.1
 nbsphinx~=0.8.8
 notedown
+lxml~=5.1.0
 pytest-runner~=2.11
 recommonmark
 sphinx~=4.0

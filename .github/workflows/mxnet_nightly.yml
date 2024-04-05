@@ -36,4 +36,4 @@ jobs:
           -r requirements/requirements-extras-autogluon.txt
     - name: Test with pytest
       run: |
-        pytest -m 'not (gpu or serial)' --cov src/gluonts --cov-report=term --cov-report xml test
+        pytest -m 'not (gpu or serial)' --cov=gluonts --cov-report=term --cov-report xml test

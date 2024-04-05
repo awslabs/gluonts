@@ -114,6 +114,8 @@ mx.random.seed(35120171)
 def test_mixture(
     distr1: Distribution, distr2: Distribution, p: Tensor, serialize_fn
 ) -> None:
+    np.random.seed(0)
+    mx.random.seed(0)
     # sample from component distributions, and select samples
     samples1 = distr1.sample(num_samples=NUM_SAMPLES_LARGE)
     samples2 = distr2.sample(num_samples=NUM_SAMPLES_LARGE)
