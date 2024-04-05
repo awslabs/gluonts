@@ -142,7 +142,7 @@ class QRX:
         # XGBoost, but True if one uses lightgbm.
         model_is_already_trained: bool = False,  # True if there is no need to
         # train self.model
-        **kwargs
+        **kwargs,
     ):
         """
         Fits self.model and partitions R^n into cells.

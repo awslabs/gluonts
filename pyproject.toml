@@ -1,10 +1,12 @@
 [tool.black]
+target-version = ['py38']
 line-length = 79
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 timeout = 60
 addopts = """
+    --color=yes
     --doctest-modules
     --ignore src/gluonts/block.py
     --ignore src/gluonts/distribution.py
@@ -19,7 +21,7 @@ filterwarnings = "ignore"
 [tool.ruff]
 line-length = 79
 
-ignore = [
+lint.ignore = [
     # line-length is handled by black
     "E501",
 

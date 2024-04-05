@@ -26,7 +26,8 @@ Both `dump` and `bdump` expose a `nl` interpreter, which appends a newline
 character if set to `True`.
 """
 
-__all__ = [  # noqa
+# ruff: noqa: F822
+__all__ = [
     "variant",
     "dump",
     "dumps",

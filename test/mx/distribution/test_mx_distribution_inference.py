@@ -15,6 +15,7 @@
 Test that maximizing likelihood allows to correctly recover distribution parameters for all
 distributions exposed to the user.
 """
+import random
 from functools import reduce
 
 from typing import List, Tuple
@@ -536,7 +537,7 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("rank", [0, 1])
 def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
@@ -604,7 +605,7 @@ def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
     ), f"sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_empirical_distribution(hybridize: bool) -> None:
     r"""
@@ -757,6 +758,9 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    random.seed(0)
+    np.random.seed(0)
+    mx.random.seed(0)
     # test instance
     mu, alpha = mu_alpha
 
@@ -1243,7 +1247,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.flaky(max_runs=6, min_passes=1)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
@@ -1255,8 +1259,11 @@ def test_inflated_poisson_likelihood(
     """
     Test to check that maximizing the likelihood recovers the parameters
     """
+    random.seed(0)
+    np.random.seed(0)
+    mx.random.seed(0)
     # generate samples
-    num_samples = 1000  # Required for convergence
+    num_samples = 2000  # Required for convergence
 
     distr = ZeroInflatedPoissonOutput().distribution(
         distr_args=[
@@ -1291,7 +1298,7 @@ def test_inflated_poisson_likelihood(
 
 
 @pytest.mark.timeout(150)
-@pytest.mark.flaky(max_runs=6, min_passes=1)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("mu", [5.0])
 @pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])

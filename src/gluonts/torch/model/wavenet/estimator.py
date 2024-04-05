@@ -348,7 +348,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: WaveNetLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter("training").apply(
