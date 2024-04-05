@@ -644,7 +644,7 @@ class Maybe(ABC, Generic[T]):
     @abstractmethod
     def zip(self, other: OptionalOrMaybe[U]) -> Maybe[Tuple[T, U]]:
         """
-        
+        Abstract zip.
         """
 
     @abstractmethod
