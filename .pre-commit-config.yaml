@@ -11,23 +11,23 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      #  - id: end-of-file-fixer
-      #  - id: trailing-whitespace
-      #  - id: check-json
-      #  - id: check-yaml
-      #  - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
       #  - id: check-docstring-first
       #  - id: check-executables-have-shebangs
       #  - id: check-case-conflict
       #  - id: check-added-large-files
       - id: detect-private-key
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.1.9"
-    hooks:
-      - id: ruff
-        name: Run Ruff (Flake8)
-        args: ["--fix", "--preview"]
+  #- repo: https://github.com/astral-sh/ruff-pre-commit
+  #  rev: "v0.1.9"
+  #  hooks:
+  #    - id: ruff
+  #      name: Run Ruff (Flake8)
+  #      args: ["--fix", "--preview"]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
@@ -36,16 +36,16 @@ repos:
         name: Run MyPy
         args: ["--show-error-codes"]
 
-  - repo: https://github.com/PyCQA/docformatter
-    rev: v1.5.0
-    hooks:
-      - id: docformatter
-        name: Format docstrings with Docformatter
-        additional_dependencies: [tomli]
-        args: ["--in-place"]
+  #- repo: https://github.com/PyCQA/docformatter
+  #  rev: v1.5.0
+  #  hooks:
+  #    - id: docformatter
+  #      name: Format docstrings with Docformatter
+  #      additional_dependencies: [tomli]
+  #      args: ["--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 24.3.0
+    rev: 24.2.0
     hooks:
       - id: black
         name: Format code with Black
