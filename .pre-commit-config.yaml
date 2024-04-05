@@ -22,12 +22,12 @@ repos:
       #  - id: check-added-large-files
       - id: detect-private-key
 
-  #- repo: https://github.com/astral-sh/ruff-pre-commit
-  #  rev: "v0.1.9"
-  #  hooks:
-  #    - id: ruff
-  #      name: Run Ruff (Flake8)
-  #      args: ["--fix", "--preview"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.3
+    hooks:
+      - id: ruff
+        name: Run Ruff (Flake8)
+        args: ["--fix"]
 
   #- repo: https://github.com/PyCQA/docformatter
   #  rev: v1.5.0
