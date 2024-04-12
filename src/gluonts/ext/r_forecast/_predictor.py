@@ -200,9 +200,6 @@ class RBasePredictor(RepresentablePredictor):
         """
         Prints warning messages (once per whole dataset), e.g., if default
         parameters are overridden.
-
-        Returns
-        -------
         """
         return
 

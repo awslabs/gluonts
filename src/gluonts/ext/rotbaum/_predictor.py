@@ -349,7 +349,7 @@ class TreePredictor(RepresentablePredictor):
     def serialize(self, path: Path) -> None:
         """
         This function calls parent class serialize() in order to serialize the
-        class name, version information and constuctor arguments.
+        class name, version information and constructor arguments.
 
         It persists the tree predictor by pickling the model list that is
         generated when pickling the TreePredictor.
@@ -377,8 +377,8 @@ class TreePredictor(RepresentablePredictor):
         self, importance_type: str = "gain", percentage: bool = True
     ) -> ExplanationResult:
         """
-        This function only works for self.method == "QuantileRegression", and
-        uses lightgbm's feature importance functionality. It takes the mean
+        This function only works for ``self.method == "QuantileRegression"``,
+        and uses lightgbm's feature importance functionality. It takes the mean
         feature importance across quantiles and timestamps in the forecast
         horizon; and then adds these mean values across all of the feature
         coordinates that are associated to "target", "feat_static_real",

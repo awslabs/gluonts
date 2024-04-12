@@ -23,7 +23,8 @@ class GeLU(nn.Module):
     """
     Gaussian error Linear Unit.
 
-    y = 1/2 * x * (1 + tanh(\sqrt{2/pi} * (x + 0.044715*x^3)))
+    .. math::
+        y = 1/2 * x * (1 + tanh(\sqrt{2/pi} * (x + 0.044715*x^3)))
     """
 
     def forward(self, x: Tensor) -> Tensor:
@@ -43,7 +44,8 @@ class Swish(nn.Sigmoid):
     """
     Swish activation by google https://arxiv.org/pdf/1710.05941v1.pdf.
 
-    y = \sigma(x) * x
+    .. math::
+        y = \sigma(x) * x
     """
 
     def forward(self, x: Tensor) -> Tensor:
@@ -59,7 +61,6 @@ class PositiveSoftplus(nn.Softplus):
     margin : float
         the minimum value of activation. when =0, same as vanilla softplus
     beta: float
-
     threshold: float
     """
 

@@ -277,7 +277,7 @@ class CheatLossPlotLoggerCallback(LossPlotLoggerCallback):
 
 class MacroCRPSPlotCallback(Callback):
     """
-    A callback that stores plots of the validation losses and a macro- averaged
+    A callback that stores plots of the validation losses and a macro-averaged
     validation loss curve every n epochs.
 
     Args:

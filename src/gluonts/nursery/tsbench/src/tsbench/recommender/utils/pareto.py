@@ -108,7 +108,7 @@ def argsort_nondominated(
 ) -> Union[List[int], List[List[int]]]:
     """
     Performs a multi-objective sort by iteratively computing the Pareto front
-    and sparsifying the items within the Pareto front. This is a non- dominated
+    and sparsifying the items within the Pareto front. This is a non-dominated
     sort leveraging an epsilon-net. All metrics are normalized using quantile
     normalization.
 

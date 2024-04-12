@@ -570,6 +570,7 @@ class ISQF(Distribution):
 
         = q^{-1}(z) if z is in the tail region
         = qk_x_l or qk_x_r if z is in the non-tail region
+
         Parameters
         ----------
         z
@@ -577,6 +578,7 @@ class ISQF(Distribution):
         left_tail
             If True, compute alpha_tilde for the left tail
             Otherwise, compute alpha_tilde for the right tail
+
         Returns
         -------
         alpha_tilde
@@ -596,7 +598,8 @@ class ISQF(Distribution):
 
     def crps_tail(self, z: Tensor, left_tail: bool = True) -> Tensor:
         r"""
-        Compute CRPS in analytical form for left/right tails
+        Compute CRPS in analytical form for left/right tails.
+
         Parameters
         ----------
         z
@@ -604,6 +607,7 @@ class ISQF(Distribution):
         left_tail
             If True, compute CRPS for the left tail
             Otherwise, compute CRPS for the right tail
+
         Returns
         -------
         Tensor

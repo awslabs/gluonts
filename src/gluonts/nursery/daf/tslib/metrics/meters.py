@@ -66,14 +66,14 @@ class Meter(ABC):
     @abstractmethod
     def value(self):
         """
-        read currently measured metric.
+        Read currently measured metric.
         """
         pass
 
     @property
     def is_optimal(self) -> bool:
         """
-        indicates whether the current metric reaches optimality.
+        Indicates whether the current metric reaches optimality.
 
         Raises
         ------
@@ -114,7 +114,7 @@ class Timer(Meter):
     @property
     def value(self) -> float:
         """
-        elapsed time in seconds since instantiation or last restart call.
+        Elapsed time in seconds since instantiation or last restart call.
         """
         return time.time() - self.start_time
 
@@ -136,7 +136,7 @@ class NumericalAverageMeter(Meter):
 
     def update(self, value: Union[Tensor, float]) -> None:
         """
-        add the current value to be further averaged.
+        Add the current value to be further averaged.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class NumericalAverageMeter(Meter):
     @property
     def value(self) -> float:
         """
-        average of all values added since instantiation or last restart call.
+        Average of all values added since instantiation or last restart call.
 
         Returns
         -------
@@ -184,7 +184,7 @@ class BatchAverageMeter(NumericalAverageMeter):
 
     def update(self, values: Tensor) -> None:
         """
-        add a batch of values to be further averaged.
+        Add a batch of values to be further averaged.
 
         Parameters
         ----------
@@ -210,7 +210,8 @@ class MeanDeviationMeter(Meter):
     Maintains a stream of deviation and base values, and compute the ratio of
     their sums e.g. WAPE in demand forecasting.
 
-    MD = \sigma{deviation} / \sigma{base}
+    .. math::
+        MD = \sigma{deviation} / \sigma{base}
 
     Call .restart() to clear added values and to start a new round of averaging
     """
@@ -259,14 +260,15 @@ class RootMeanSquareDeviationMeter(MeanDeviationMeter):
     Maintains a stream of deviation and base values, and compute the following
     ratio.
 
-    MD = \sqrt{\sigma{deviation^2}} / \sqrt{\sigma{base^2}}
+    .. math::
+        MD = \sqrt{\sigma{deviation^2}} / \sqrt{\sigma{base^2}}
 
     Call .restart() to clear added values and to start a new round of averaging
     """
 
     def update(self, deviation: Tensor, base: Tensor) -> None:
         """
-        add new deviation and base values.
+        Add new deviation and base values.
 
         Parameters
         ----------

@@ -161,9 +161,9 @@ class DistributionOutput(Output):
     def value_in_support(self) -> float:
         r"""
         A float that will have a valid numeric value when computing the log-
-        loss of the corresponding distribution.
+        loss of the corresponding distribution; by default 0.0.
 
-        By default 0.0. This value will be used when padding data series.
+        This value will be used when padding data series.
         """
         return 0.0
 

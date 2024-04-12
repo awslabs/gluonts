@@ -72,7 +72,7 @@ class Method(Op):
 @dataclass
 class GetAttr(Op):
     """
-    Invokes ``obj.name``
+    Invokes ``obj.name``.
     """
 
     obj: Op

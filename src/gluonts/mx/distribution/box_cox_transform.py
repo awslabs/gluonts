@@ -25,8 +25,9 @@ from .distribution import getF, softplus
 
 class BoxCoxTransform(Bijection):
     r"""
-    Implements Box-Cox transformation of a uni-variate random variable. The
-    Box-Cox transformation of an observation :math:`z` is given by.
+    Implements Box-Cox transformation of a uni-variate random variable.
+
+    The Box-Cox transformation of an observation :math:`z` is given by:
 
     .. math::
 

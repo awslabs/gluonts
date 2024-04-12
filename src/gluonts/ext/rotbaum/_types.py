@@ -33,9 +33,6 @@ class FeatureImportanceResult(BaseModel):
         share the same dimensionality For example, time aligned results with
         dimension of (features, pred_length), the pred_length shall be the
         same.
-
-        :param values:
-        :return:
         """
         dim = np.array(values.get("target")).ndim
         assert (

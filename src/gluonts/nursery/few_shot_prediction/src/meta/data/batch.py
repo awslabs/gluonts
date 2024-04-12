@@ -139,7 +139,7 @@ class SeriesBatch:
     def first_n(self, n: int) -> SeriesBatch:
         """
         Choose the first n splits of the sequences as defined by
-        split_sections.
+        ``split_sections``.
 
         Self.sequences has thus sum(split_section[i], i=0, ..., n-1) elements.
         """

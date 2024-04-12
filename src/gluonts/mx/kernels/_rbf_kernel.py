@@ -120,7 +120,7 @@ class RBFKernelOutput(KernelOutputDict):
 
     def domain_map(self, F, amplitude, length_scale):
         """
-        This function applies the softmax to the RBF Kernel hyper- parameters.
+        This function applies the softmax to the RBF Kernel hyper-parameters.
 
         Parameters
         ----------

@@ -65,7 +65,7 @@ class Attention(nn.Module):
         Split hidden state into multi-heads.
 
         Args
-        ----------
+        ----
             x : Tensor [batch, length, d_hidden]
 
         Returns
