@@ -21,12 +21,8 @@ classifiers = [
 #dependencies = []  # todo: consider adding
 dynamic = ["version"]
 
-[tool.setuptools.packages.find]
-where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["gluonts*"]  # package names should match these glob patterns (["*"] by default)
-#exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
-namespaces = true  # set false to disable scanning PEP 420 namespaces (true by default)
-include-package-data = true  # to include package data (false by default)
+[tool.setuptools]
+package-dir = {"" = "src"}   # directory containing all the packages (e.g.  src/mypkg1, src/mypkg2)
 
 [project.urls]
 documentation = " https://ts.gluon.ai/stable/"
@@ -71,6 +67,7 @@ make-summary-multi-line = true
 wrap-descriptions = 79
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
@@ -89,6 +86,3 @@ known_third_party = [
 ]
 line_length = 79
 profile = "black"
-
-[tool.mypy]
-plugins = ["pydantic.mypy"]
