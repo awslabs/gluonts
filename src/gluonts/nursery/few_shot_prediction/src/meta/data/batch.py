@@ -29,12 +29,14 @@ class SeriesBatch:
     and the splits sizes indicating the corresponding base dataset.
     """
 
-    sequences: torch.Tensor  # shape [batch, num_sequences, max_sequence_length]
+    sequences: (
+        torch.Tensor
+    )  # shape [batch, num_sequences, max_sequence_length]
     lengths: torch.Tensor  # shape [batch]
     split_sections: torch.Tensor  # shape [batch]
-    scales: Optional[
-        torch.Tensor
-    ] = None  # shape[batch, 2] contains mean and std the ts has been scaled with
+    scales: Optional[torch.Tensor] = (
+        None  # shape[batch, 2] contains mean and std the ts has been scaled with
+    )
 
     @classmethod
     def from_lists(
@@ -61,9 +63,11 @@ class SeriesBatch:
             pad_sequence(values, batch_first=True),
             lengths=torch.as_tensor([len(s) for s in series]),
             split_sections=torch.as_tensor(split_sections),
-            scales=torch.stack([s.scale for s in series])
-            if series[0].scale is not None
-            else None,
+            scales=(
+                torch.stack([s.scale for s in series])
+                if series[0].scale is not None
+                else None
+            ),
         )
 
     def pin_memory(self):

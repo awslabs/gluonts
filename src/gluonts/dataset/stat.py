@@ -418,12 +418,12 @@ def calculate_dataset_statistics(ts_dataset: Any) -> DatasetStatistics:
         max_target_length=max_target_length,
         min_target=min_target,
         num_missing_values=num_missing_values,
-        feat_static_real=observed_feat_static_real
-        if observed_feat_static_real
-        else [],
-        feat_static_cat=observed_feat_static_cat
-        if observed_feat_static_cat
-        else [],
+        feat_static_real=(
+            observed_feat_static_real if observed_feat_static_real else []
+        ),
+        feat_static_cat=(
+            observed_feat_static_cat if observed_feat_static_cat else []
+        ),
         num_past_feat_dynamic_real=num_past_feat_dynamic_real,
         num_feat_dynamic_real=num_feat_dynamic_real,
         num_feat_dynamic_cat=num_feat_dynamic_cat,

@@ -73,14 +73,16 @@ def explode_key_values(
     into independent configurations.
     """
     all_combinations = {
-        primary: itertools.product(
-            *[
-                [(option["key"], value) for value in option["values"]]
-                for option in choices
-            ]
+        primary: (
+            itertools.product(
+                *[
+                    [(option["key"], value) for value in option["values"]]
+                    for option in choices
+                ]
+            )
+            if choices
+            else []
         )
-        if choices
-        else []
         for primary, choices in mapping.items()
     }
 

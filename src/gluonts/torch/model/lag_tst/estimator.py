@@ -225,7 +225,7 @@ class LagTSTEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: LagTSTLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter(module, "training").apply(

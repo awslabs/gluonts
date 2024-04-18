@@ -572,9 +572,11 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         static_feat = F.concat(
             embedded_cat,
             feat_static_real,
-            F.log(scale)
-            if len(self.target_shape) == 0
-            else F.log(scale.squeeze(axis=1)),
+            (
+                F.log(scale)
+                if len(self.target_shape) == 0
+                else F.log(scale.squeeze(axis=1))
+            ),
             dim=1,
         )
 
@@ -603,9 +605,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         begin_state = self.rnn.begin_state(
             func=F.zeros,
             dtype=self.dtype,
-            batch_size=inputs.shape[0]
-            if isinstance(inputs, mx.nd.NDArray)
-            else 0,
+            batch_size=(
+                inputs.shape[0] if isinstance(inputs, mx.nd.NDArray) else 0
+            ),
         )
 
         unroll_results = self.imputation_rnn_unroll(
@@ -726,9 +728,11 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         static_feat = F.concat(
             embedded_cat,
             feat_static_real,
-            F.log(scale)
-            if len(self.target_shape) == 0
-            else F.log(scale.squeeze(axis=1)),
+            (
+                F.log(scale)
+                if len(self.target_shape) == 0
+                else F.log(scale.squeeze(axis=1))
+            ),
             dim=1,
         )
 
@@ -757,9 +761,9 @@ class DeepARNetwork(mx.gluon.HybridBlock):
         begin_state = self.rnn.begin_state(
             func=F.zeros,
             dtype=self.dtype,
-            batch_size=inputs.shape[0]
-            if isinstance(inputs, mx.nd.NDArray)
-            else 0,
+            batch_size=(
+                inputs.shape[0] if isinstance(inputs, mx.nd.NDArray) else 0
+            ),
         )
         state = begin_state
         # This is a dummy computation to avoid deferred initialization error

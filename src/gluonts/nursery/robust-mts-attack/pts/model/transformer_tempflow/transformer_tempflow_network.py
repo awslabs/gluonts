@@ -165,7 +165,11 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         future_time_feat: Optional[torch.Tensor],
         future_target_cdf: Optional[torch.Tensor],
         target_dimension_indicator: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor,]:
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ]:
         """
         Unrolls the RNN encoder over past and, if present, future data.
         Returns outputs and state of the encoder, plus the scale of

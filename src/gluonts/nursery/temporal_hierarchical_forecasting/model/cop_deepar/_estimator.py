@@ -238,10 +238,11 @@ class COPDeepAREstimator(GluonEstimator):
 
             # adapt window_length if RollingMeanValueImputation is used
             if isinstance(imputation_method, RollingMeanValueImputation):
-                base_estimator_hps_agg[
-                    "imputation_method"
-                ] = RollingMeanValueImputation(
-                    window_size=imputation_method.window_size // agg_multiple
+                base_estimator_hps_agg["imputation_method"] = (
+                    RollingMeanValueImputation(
+                        window_size=imputation_method.window_size
+                        // agg_multiple
+                    )
                 )
 
             # Hack to enforce correct serialization of lags_seq and history length

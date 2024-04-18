@@ -14,6 +14,7 @@
 """
 This example shows how to do anomaly detection with DeepAR.
 The model is first trained and then time-points with the largest negative log-likelihood are plotted.
+
 """
 import numpy as np
 from itertools import islice

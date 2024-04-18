@@ -94,7 +94,7 @@ class ForecastGenerator:
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         raise NotImplementedError()
 
@@ -111,7 +111,7 @@ class QuantileForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
@@ -132,9 +132,11 @@ class QuantileForecastGenerator(ForecastGenerator):
                 yield QuantileForecast(
                     output.T,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
                 )
@@ -153,7 +155,7 @@ class SampleForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
@@ -181,9 +183,11 @@ class SampleForecastGenerator(ForecastGenerator):
                 yield SampleForecast(
                     output,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
@@ -201,7 +205,7 @@ class DistributionForecastGenerator(ForecastGenerator):
         input_names: List[str],
         output_transform: Optional[OutputTransform],
         num_samples: Optional[int],
-        **kwargs
+        **kwargs,
     ) -> Iterator[Forecast]:
         for batch in inference_data_loader:
             inputs = select(input_names, batch, ignore_missing=True)
@@ -221,9 +225,11 @@ class DistributionForecastGenerator(ForecastGenerator):
                 yield make_distribution_forecast(
                     distr,
                     start_date=batch[FieldName.FORECAST_START][i],
-                    item_id=batch[FieldName.ITEM_ID][i]
-                    if FieldName.ITEM_ID in batch
-                    else None,
+                    item_id=(
+                        batch[FieldName.ITEM_ID][i]
+                        if FieldName.ITEM_ID in batch
+                        else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])

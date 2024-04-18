@@ -54,9 +54,11 @@ class GMMModel(gluon.HybridBlock):
                 "log_prior_",
                 shape=(num_clusters,),
                 lr_mult=lr_mult,
-                init=mx.init.Constant(np.log(1 / self.num_clusters))
-                if log_prior_ is None
-                else mx.init.Constant(log_prior_),
+                init=(
+                    mx.init.Constant(np.log(1 / self.num_clusters))
+                    if log_prior_ is None
+                    else mx.init.Constant(log_prior_)
+                ),
             )
 
             self.mu_ = self.params.get(

@@ -267,12 +267,18 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         return Chain(
             [
                 RemoveFields(field_names=remove_field_names),
-                SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
-                if self.num_feat_static_cat == 0
-                else Identity(),
-                SetField(output_field=FieldName.FEAT_STATIC_REAL, value=[0.0])
-                if self.num_feat_static_real == 0
-                else Identity(),
+                (
+                    SetField(output_field=FieldName.FEAT_STATIC_CAT, value=[0])
+                    if self.num_feat_static_cat == 0
+                    else Identity()
+                ),
+                (
+                    SetField(
+                        output_field=FieldName.FEAT_STATIC_REAL, value=[0.0]
+                    )
+                    if self.num_feat_static_real == 0
+                    else Identity()
+                ),
                 AsNumpyArray(
                     field=FieldName.FEAT_STATIC_CAT, expected_ndim=1, dtype=int
                 ),
@@ -342,7 +348,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: WaveNetLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter("training").apply(

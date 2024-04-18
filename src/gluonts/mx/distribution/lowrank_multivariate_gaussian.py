@@ -408,9 +408,7 @@ class LowrankMultivariateGaussianOutput(DistributionOutput):
         """
 
         d_bias = (
-            inv_softplus(self.sigma_init**2)
-            if self.sigma_init > 0.0
-            else 0.0
+            inv_softplus(self.sigma_init**2) if self.sigma_init > 0.0 else 0.0
         )
 
         # sigma_minimum helps avoiding cholesky problems, we could also jitter

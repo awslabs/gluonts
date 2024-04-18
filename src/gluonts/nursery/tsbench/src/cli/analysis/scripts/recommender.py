@@ -123,7 +123,7 @@ def main(
                 surrogate[surrogate["name"]]
                 if surrogate["name"] in surrogate
                 else {}
-            )
+            ),
         )
     elif recommender == "optimal":
         recommender_args["tracker"] = tracker

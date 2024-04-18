@@ -142,7 +142,7 @@ class QRX:
         # XGBoost, but True if one uses lightgbm.
         model_is_already_trained: bool = False,  # True if there is no need to
         # train self.model
-        **kwargs
+        **kwargs,
     ):
         """
         Fits self.model and partitions R^n into cells.
@@ -340,11 +340,11 @@ class QRX:
             The quantile of the associated true value bin.
         """
         if feature_vector_in_train not in self.quantile_dicts[quantile]:
-            self.quantile_dicts[quantile][
-                feature_vector_in_train
-            ] = np.percentile(
-                self.id_to_bins[self.preds_to_id[feature_vector_in_train]],
-                quantile * 100,
+            self.quantile_dicts[quantile][feature_vector_in_train] = (
+                np.percentile(
+                    self.id_to_bins[self.preds_to_id[feature_vector_in_train]],
+                    quantile * 100,
+                )
             )
         return self.quantile_dicts[quantile][feature_vector_in_train]
 
