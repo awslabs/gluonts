@@ -331,8 +331,9 @@ class BinnedUniforms(Distribution):
         Cumulative density tensor for a tensor of data points `x`.
 
         'x' is expected to be of shape (*batch_shape). The cdf is composed of 2
-        parts:     the cdf up to the bin the cdf within the bin that the point
-        falls into (modeled with a uniform distribution)
+        parts:
+        - the cdf up to the bin
+        - the cdf within the bin that the point falls into (modeled with a uniform distribution)
         """
 
         bins_prob = self.bins_prob
