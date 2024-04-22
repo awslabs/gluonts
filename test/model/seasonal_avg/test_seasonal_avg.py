@@ -27,12 +27,14 @@ def get_prediction(
     prediction_length=1,
     season_length=1,
     num_seasons=1,
+    agg_fun=np.nanmean,
     imputation_method=LastValueImputation(),
 ):
     pred = SeasonalAveragePredictor(
         prediction_length=prediction_length,
         season_length=season_length,
         num_seasons=num_seasons,
+        agg_fun=agg_fun,
         imputation_method=imputation_method,
     )
     item = {
@@ -46,43 +48,81 @@ def get_prediction(
 
 @pytest.mark.parametrize(
     "data, expected_output, prediction_length, season_length, "
-    "num_seasons, imputation_method",
+    "num_seasons, agg_fun, imputation_method",
     [
         # same as seasonal naive
-        ([1, 1, 1], [1], 1, 1, 1, LastValueImputation()),
-        ([1, 10, 2, 20], [1.5, 15], 2, 2, 2, LastValueImputation()),
+        ([1, 1, 1], [1], 1, 1, 1, np.nanmean, LastValueImputation()),
+        ([1, 10, 2, 20], [1.5, 15], 2, 2, 2, np.nanmean, LastValueImputation()),
         # check predictions repeat seasonally
-        ([1, 10, 2, 20], [1.5, 15, 1.5, 15], 4, 2, 2, LastValueImputation()),
-        ([1, 10, 2, 20], [1.5, 15, 1.5], 3, 2, 2, LastValueImputation()),
+        ([1, 10, 2, 20], [1.5, 15, 1.5, 15], 4, 2, 2, np.nanmean,
+         LastValueImputation()),
+        ([1, 10, 2, 20], [1.5, 15, 1.5], 3, 2, 2, np.nanmean,
+         LastValueImputation()),
+        ([1, 10, 2, 20, 3, 30], [2, 20, 2, 20], 4, 2, 3, np.nanmedian,
+         LastValueImputation()),
+        ([1, 10, 2, 20, 3, 30], [2, 20, 2], 3, 2, 3, np.nanmedian,
+         LastValueImputation()),
         # data is shorter than season length
-        ([1, 2, 3], [2], 1, 4, 1, LastValueImputation()),
+        ([1, 2, 3], [2], 1, 4, 1, np.nanmean, LastValueImputation()),
+        ([10, 1, 100], [10], 1, 4, 1, np.nanmedian, LastValueImputation()),
         # data not available for all seasons
-        ([1, 2, 3, 4, 5], [3, 3, 3, 3], 4, 4, 2, LastValueImputation()),
-        ([np.nan], [0], 1, 1, 2, LastValueImputation()),
-        ([1, 4, np.nan], [3], 1, 3, 2, LastValueImputation()),
-        ([1, 10, np.nan, 1, 10, np.nan], [1, 10, 10], 3, 3, 2,
+        ([1, 2, 3, 4, 5], [3] * 4, 4, 4, 2, np.nanmean, LastValueImputation()),
+        ([10, 20, 40, 50, 21], [21] * 4, 4, 4, 2, np.nanmedian,
+         LastValueImputation()),
+        ([np.nan], [0], 1, 1, 2, np.nanmean, LastValueImputation()),
+        ([np.nan], [0], 1, 1, 2, np.nanmedian, LastValueImputation()),
+        ([1, 4, np.nan], [3], 1, 3, 2, np.nanmean, LastValueImputation()),
+        ([1, 4, np.nan], [4], 1, 3, 2, np.nanmedian, LastValueImputation()),
+        ([1, 10, np.nan, 1, 10, np.nan], [1, 10, 10], 3, 3, 2, np.nanmean,
+         LastValueImputation()),
+        ([1, 10, np.nan, 1, 10, np.nan], [1, 10, 10], 3, 3, 2, np.nanmedian,
          LastValueImputation()),
         ([1, 10, np.nan, 1, 10, np.nan], [1, 10, 10, 1, 10], 5, 3, 2,
-         LastValueImputation()),
-        ([1, 3, np.nan], [np.nan], 1, 1, 1, LeavesMissingValues()),
-        ([1, 3, np.nan], [np.nan] * 2, 2, 1, 1, LeavesMissingValues()),
-        ([1, 3, np.nan], [3], 1, 1, 2, LeavesMissingValues()),
-        ([1, 3, np.nan], [3], 1, 2, 1, LeavesMissingValues()),
-        ([1, 3, np.nan], [3, np.nan], 2, 2, 1, LeavesMissingValues()),
+         np.nanmean, LastValueImputation()),
+        ([1, 10, np.nan, 1, 10, np.nan], [1, 10, 10, 1, 10], 5, 3, 2,
+         np.nanmedian, LastValueImputation()),
+        ([1, 3, np.nan], [np.nan], 1, 1, 1, np.nanmean, LeavesMissingValues()),
+        ([1, 3, np.nan], [np.nan], 1, 1, 1, np.nanmedian,
+         LeavesMissingValues()),
+        ([1, 3, np.nan], [np.nan] * 2, 2, 1, 1, np.nanmean,
+         LeavesMissingValues()),
+        ([1, 3, np.nan], [np.nan] * 2, 2, 1, 1, np.nanmedian,
+         LeavesMissingValues()),
+        ([1, 3, np.nan], [3], 1, 1, 2, np.nanmean, LeavesMissingValues()),
+        ([1, 3, np.nan], [3], 1, 1, 2, np.nanmedian, LeavesMissingValues()),
+        ([1, 3, np.nan], [3], 1, 2, 1, np.nanmean, LeavesMissingValues()),
+        ([1, 3, np.nan], [3], 1, 2, 1, np.nanmedian, LeavesMissingValues()),
+        ([1, 3, np.nan], [3, np.nan], 2, 2, 1, np.nanmean,
+         LeavesMissingValues()),
+        ([1, 3, np.nan], [3, np.nan], 2, 2, 1, np.nanmedian,
+         LeavesMissingValues()),
         # check if `nanmean` works when some seasons have missing values
-        ([1, 3, np.nan], [3, 3], 2, 1, 2, LeavesMissingValues()),
-        ([1, 3, np.nan], [3, 3, 3], 3, 1, 2, LeavesMissingValues()),
+        ([1, 3, np.nan], [3, 3], 2, 1, 2, np.nanmean, LeavesMissingValues()),
+        ([1, 3, np.nan], [3, 3, 3], 3, 1, 2, np.nanmean, LeavesMissingValues()),
+        # check if `mean` works when some seasons have missing values
+        ([1, 3, np.nan], [np.nan] * 2, 2, 1, 2, np.mean, LeavesMissingValues()),
+        ([1, 3, np.nan], [np.nan] * 3, 3, 1, 2, np.mean, LeavesMissingValues()),
+        # check if `nanmedian` works when some seasons have missing values
+        ([1, 3, np.nan], [3, 3], 2, 1, 2, np.nanmedian, LeavesMissingValues()),
+        ([1, 3, np.nan], [3, 3, 3], 3, 1, 2, np.nanmedian, 
+         LeavesMissingValues()),
+        # check if `mean` works when some seasons have missing values
+        ([1, 3, np.nan], [np.nan] * 2, 2, 1, 2, np.median, 
+         LeavesMissingValues()),
+        ([1, 3, np.nan], [np.nan] * 3, 3, 1, 2, np.median, 
+         LeavesMissingValues()),
     ],
 )
 def test_predictor(
     data, expected_output, prediction_length, season_length,
-        num_seasons, imputation_method
+        num_seasons, agg_fun, imputation_method
 ):
     prediction = get_prediction(
         data,
         prediction_length=prediction_length,
         season_length=season_length,
         num_seasons=num_seasons,
+        agg_fun=agg_fun,
         imputation_method=imputation_method,
     )
     assert prediction.samples.shape == (1, prediction_length)
