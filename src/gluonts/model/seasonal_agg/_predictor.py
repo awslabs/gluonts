@@ -27,7 +27,7 @@ from gluonts.transform.feature import (
 )
 
 
-class SeasonalAveragePredictor(RepresentablePredictor):
+class SeasonalAggregatePredictor(RepresentablePredictor):
     """
     Seasonal average forecaster.
 

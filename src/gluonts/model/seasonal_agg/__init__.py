@@ -11,6 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from ._predictor import SeasonalAveragePredictor
+from ._predictor import SeasonalAggregatePredictor
 
-__all__ = ["SeasonalAveragePredictor"]
+__all__ = ["SeasonalAggregatePredictor"]

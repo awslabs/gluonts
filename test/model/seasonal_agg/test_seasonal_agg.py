@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from gluonts.model.seasonal_avg import SeasonalAveragePredictor
+from gluonts.model.seasonal_agg import SeasonalAggregatePredictor
 from gluonts.transform.feature import LastValueImputation, LeavesMissingValues
 
 FREQ = "D"
@@ -30,7 +30,7 @@ def get_prediction(
     agg_fun=np.nanmean,
     imputation_method=LastValueImputation(),
 ):
-    pred = SeasonalAveragePredictor(
+    pred = SeasonalAggregatePredictor(
         prediction_length=prediction_length,
         season_length=season_length,
         num_seasons=num_seasons,
