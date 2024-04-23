@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 
@@ -32,7 +32,7 @@ class SeasonalAggregatePredictor(RepresentablePredictor):
     Seasonal aggegate forecaster.
 
     For each time series :math:`y`, this predictor produces a forecast
-    :math:`\\tilde{y}(T+k) = f\big(y(T+k-h), y(T+k-2h), \ldots,
+    :math:`\\tilde{y}(T+k) = f\big(y(T+k-h), y(T+k-2h), ...,
     y(T+k-mh)\big)`, where :math:`T` is the forecast time,
     :math:`k = 0, ...,` `prediction_length - 1`, :math:`m =`num_seasons`,
     :math:`h =`season_length` and :math:`f =`agg_fun`.
