@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 
@@ -47,7 +47,10 @@ class SeasonalAggregatePredictor(RepresentablePredictor):
     prediction_length
         Number of time points to predict.
     season_length
-        Seasonality used to make predictions.
+        Seasonality used to make predictions. If this is an integer, then a
+        fixed sesasonlity is applied; if this is a function, then it will be
+        called on each given entry's ``freq`` attribute of the ``"start"``
+        field, and the returned seasonality will be used.
     num_seasons
         Number of seasons to aggregate.
     agg_fun
@@ -62,7 +65,7 @@ class SeasonalAggregatePredictor(RepresentablePredictor):
     def __init__(
         self,
         prediction_length: int,
-        season_length: int,
+        season_length: Union[int, Callable],
         num_seasons: int,
         agg_fun: Callable = np.nanmean,
         imputation_method: MissingValueImputation = LastValueImputation(),
@@ -74,7 +77,7 @@ class SeasonalAggregatePredictor(RepresentablePredictor):
         ), "The value of `season_length` should be > 0"
 
         assert (
-            not isinstance(num_seasons, int) or num_seasons > 0
+            isinstance(num_seasons, int) and num_seasons > 0
         ), "The value of `num_seasons` should be > 0"
 
         self.prediction_length = prediction_length
