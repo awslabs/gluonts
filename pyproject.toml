@@ -1,3 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gluonts"
+authors = [
+    {name = "Amazon", email = "gluon-ts-dev@amazon.com"},
+]
+maintainers = [
+    {name = "Amazon", email = "gluon-ts-dev@amazon.com"},
+]
+description = "Probabilistic time series modeling in Python."
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["deep learning", "machine learning", "AI", "TS"]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+#dependencies = []  # todo: consider adding
+dynamic = ["version"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}   # directory containing all the packages (e.g.  src/mypkg1, src/mypkg2)
+
+[project.urls]
+documentation = " https://ts.gluon.ai/stable/"
+repository = "https://github.com/awslabs/gluonts/"
+
+[tool.setuptools.dynamic]
+version = {attr = "gluonts.__version__"}
+
 [tool.black]
 target-version = ['py38']
 line-length = 79
@@ -20,13 +53,9 @@ filterwarnings = "ignore"
 
 [tool.ruff]
 line-length = 79
-
-lint.ignore = [
-    # line-length is handled by black
-    "E501",
-
-    # TODO: remove usage of `l`
-    "E741"
+ignore = [
+    "E501",  # line-length is handled by black
+    "E741",  # TODO: remove usage of `l`
 ]
 
 exclude = ["src/gluonts/nursery"]
@@ -38,6 +67,7 @@ make-summary-multi-line = true
 wrap-descriptions = 79
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
