@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -95,6 +95,7 @@ class PatchTSTModel(nn.Module):
         d_model: int,
         nhead: int,
         dim_feedforward: int,
+        use_feat_dynamic_real: bool,
         dropout: float,
         activation: str,
         norm_first: bool,
@@ -114,6 +115,7 @@ class PatchTSTModel(nn.Module):
         self.d_model = d_model
         self.padding_patch = padding_patch
         self.distr_output = distr_output
+        self.use_feat_dynamic_real = use_feat_dynamic_real
 
         if scaling == "mean":
             self.scaler = MeanScaler(keepdim=True)
@@ -157,6 +159,19 @@ class PatchTSTModel(nn.Module):
         self.args_proj = self.distr_output.get_args_proj(d_model)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
+        if self.use_feat_dynamic_real:
+            input_spec_feat = {
+                "past_feat_dynamic_real": Input(
+                    shape=(batch_size, self.context_length), dtype=torch.float
+                ),
+                "future_feat_dynamic_real": Input(
+                    shape=(batch_size, self.prediction_length),
+                    dtype=torch.float
+                ),
+            }
+        else:
+            input_spec_feat = {}
+
         return InputSpec(
             {
                 "past_target": Input(
@@ -165,6 +180,7 @@ class PatchTSTModel(nn.Module):
                 "past_observed_values": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float
                 ),
+                **input_spec_feat,
             },
             torch.zeros,
         )
@@ -173,7 +189,11 @@ class PatchTSTModel(nn.Module):
         self,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
+        past_feat_dynamic_real: Optional[torch.Tensor] = None,
+        future_feat_dynamic_real: Optional[torch.Tensor] = None,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
+        if self.use_feat_dynamic_real:
+            assert future_feat_dynamic_real is not None
         # scale the input
         past_target_scaled, loc, scale = self.scaler(
             past_target, past_observed_values
@@ -218,9 +238,14 @@ class PatchTSTModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
+        past_feat_dynamic_real: Optional[torch.Tensor] = None,
+        future_feat_dynamic_real: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
-            past_target=past_target, past_observed_values=past_observed_values
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_feat_dynamic_real=past_feat_dynamic_real,
+            future_feat_dynamic_real=future_feat_dynamic_real,
         )
         loss = self.distr_output.loss(
             target=future_target, distr_args=distr_args, loc=loc, scale=scale
