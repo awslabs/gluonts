@@ -161,10 +161,10 @@ class PatchTSTModel(nn.Module):
     def describe_inputs(self, batch_size=1) -> InputSpec:
         if self.use_feat_dynamic_real:
             input_spec_feat = {
-                "past_feat_dynamic_real": Input(
+                "past_time_feat": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float
                 ),
-                "future_feat_dynamic_real": Input(
+                "future_time_feat": Input(
                     shape=(batch_size, self.prediction_length),
                     dtype=torch.float
                 ),
@@ -189,11 +189,11 @@ class PatchTSTModel(nn.Module):
         self,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
-        past_feat_dynamic_real: Optional[torch.Tensor] = None,
-        future_feat_dynamic_real: Optional[torch.Tensor] = None,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
         if self.use_feat_dynamic_real:
-            assert future_feat_dynamic_real is not None
+            assert future_time_feat is not None
         # scale the input
         past_target_scaled, loc, scale = self.scaler(
             past_target, past_observed_values
@@ -238,14 +238,14 @@ class PatchTSTModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
-        past_feat_dynamic_real: Optional[torch.Tensor] = None,
-        future_feat_dynamic_real: Optional[torch.Tensor] = None,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
             past_target=past_target,
             past_observed_values=past_observed_values,
-            past_feat_dynamic_real=past_feat_dynamic_real,
-            future_feat_dynamic_real=future_feat_dynamic_real,
+            past_time_feat=past_time_feat,
+            future_time_feat=future_time_feat,
         )
         loss = self.distr_output.loss(
             target=future_target, distr_args=distr_args, loc=loc, scale=scale

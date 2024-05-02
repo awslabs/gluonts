@@ -30,6 +30,7 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
+    RenameFields,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -179,6 +180,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
                 else []
             ),
             allow_missing=True,
+        ) + RenameFields(
+            {
+                FieldName.FEAT_DYNAMIC_REAL: FieldName.FEAT_TIME
+            }
         ) + AddObservedValuesIndicator(
             target_field=FieldName.TARGET,
             output_field=FieldName.OBSERVED_VALUES,
@@ -227,7 +232,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             past_length=self.context_length,
             future_length=self.prediction_length,
             time_series_fields=[FieldName.OBSERVED_VALUES] + (
-                [FieldName.FEAT_DYNAMIC_REAL] if self.use_feat_dynamic_real
+                [FieldName.FEAT_TIME] if self.use_feat_dynamic_real
                 else []
             ),
             dummy_value=self.distr_output.value_in_support,
@@ -249,8 +254,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
             field_names=TRAINING_INPUT_NAMES + (
-                ["past_feat_dynamic_real", "future_feat_dynamic_real"] if
-                self.use_feat_dynamic_real else []
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}"
+                ] if self.use_feat_dynamic_real else []
             ),
             output_type=torch.tensor,
             num_batches_per_epoch=self.num_batches_per_epoch,
@@ -266,8 +273,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             instances,
             batch_size=self.batch_size,
             field_names=TRAINING_INPUT_NAMES + (
-                ["past_feat_dynamic_real", "future_feat_dynamic_real"] if
-                self.use_feat_dynamic_real else []
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}"
+                ] if self.use_feat_dynamic_real else []
             ),
             output_type=torch.tensor,
         )
@@ -280,8 +289,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES + (
-                ["past_feat_dynamic_real", "future_feat_dynamic_real"] if
-                self.use_feat_dynamic_real else []
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}"
+                ] if self.use_feat_dynamic_real else []
             ),
             prediction_net=module,
             forecast_generator=self.distr_output.forecast_generator,
