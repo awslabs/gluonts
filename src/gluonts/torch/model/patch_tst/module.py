@@ -131,8 +131,7 @@ class PatchTSTModel(nn.Module):
 
         # project from patch_len + 2 features (loc and scale) to d_model
         self.patch_proj = make_linear_layer(
-            patch_len + 2 + self.num_feat_dynamic_real * patch_len,
-            d_model
+            patch_len + 2 + self.num_feat_dynamic_real * patch_len, d_model
         )
 
         self.positional_encoding = SinusoidalPositionalEmbedding(
@@ -168,16 +167,17 @@ class PatchTSTModel(nn.Module):
                     shape=(
                         batch_size,
                         self.context_length,
-                        self.num_feat_dynamic_real
-                    ), dtype=torch.float
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
                 ),
                 "future_time_feat": Input(
                     shape=(
                         batch_size,
                         self.prediction_length,
-                        self.num_feat_dynamic_real
+                        self.num_feat_dynamic_real,
                     ),
-                    dtype=torch.float
+                    dtype=torch.float,
                 ),
             }
         else:
@@ -220,7 +220,7 @@ class PatchTSTModel(nn.Module):
             time_feat = take_last(
                 torch.cat((past_time_feat, future_time_feat), dim=1),
                 dim=1,
-                num=self.context_length
+                num=self.context_length,
             )
 
             # (bs x T x d) --> (bs x d x T) because the 1D padding is done on
