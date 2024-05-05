@@ -79,6 +79,8 @@ class PatchTSTModel(nn.Module):
         Number of time points to predict.
     context_length
         Number of time steps prior to prediction time that the model.
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
@@ -129,7 +131,8 @@ class PatchTSTModel(nn.Module):
             self.padding_patch_layer = nn.ReplicationPad1d((0, self.stride))
             self.patch_num += 1
 
-        # project from patch_len + 2 features (loc and scale) to d_model
+        # project from `patch_len` + 2 features (`loc` and `scale`) +
+        # `num_feat_dynamic_real` x `patch_len` to d_model
         self.patch_proj = make_linear_layer(
             patch_len + 2 + self.num_feat_dynamic_real * patch_len, d_model
         )

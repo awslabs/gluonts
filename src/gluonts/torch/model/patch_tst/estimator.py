@@ -75,6 +75,8 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         Number of attention heads in the Transformer encoder which must divide d_model.
     dim_feedforward
         Size of hidden layers in the Transformer encoder.
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
     dropout
         Dropout probability in the Transformer encoder.
     activation
