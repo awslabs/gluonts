@@ -299,7 +299,7 @@ def test_estimator_constant_dataset(
         lambda freq, prediction_length: PatchTSTEstimator(
             prediction_length=prediction_length,
             context_length=2 * prediction_length,
-            use_feat_dynamic_real=True,
+            num_feat_dynamic_real=3,
             patch_len=16,
             batch_size=4,
             num_batches_per_epoch=3,
@@ -308,7 +308,7 @@ def test_estimator_constant_dataset(
         lambda freq, prediction_length: PatchTSTEstimator(
             prediction_length=prediction_length,
             context_length=2 * prediction_length,
-            use_feat_dynamic_real=True,
+            num_feat_dynamic_real=3,
             distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
             patch_len=16,
             batch_size=4,
