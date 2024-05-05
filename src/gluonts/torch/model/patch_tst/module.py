@@ -220,6 +220,8 @@ class PatchTSTModel(nn.Module):
 
         # do patching for time features as well
         if self.num_feat_dynamic_real > 0:
+            # shift time features by `prediction_length` so that they are
+            # aligned with the target input.
             time_feat = take_last(
                 torch.cat((past_time_feat, future_time_feat), dim=1),
                 dim=1,
