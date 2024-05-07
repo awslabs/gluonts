@@ -19,9 +19,8 @@ import torch
 
 class DiscreteDistribution(torch.distributions.Distribution):
     """
-    Implements discrete distribution where the underlying random variable
-    takes a value from the finite set `values` with the corresponding
-    probabilities.
+    Implements discrete distribution where the underlying random variable takes
+    a value from the finite set `values` with the corresponding probabilities.
 
     Note: `values` can have duplicates in which case the probability mass
     of duplicates is added up.
@@ -127,7 +126,6 @@ class DiscreteDistribution(torch.distributions.Distribution):
 
         Returns
         -------
-
         """
         if self._validate_args:
             self._validate_sample(obs)

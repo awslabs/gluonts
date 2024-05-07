@@ -27,7 +27,7 @@ from .posemb import SinusoidalPositionalEmbedding
 
 class SelfAttention(Attention):
     """
-    Self-attention module with q,k,v from the same input
+    Self-attention module with q,k,v from the same input.
 
     Parameters
     ----------
@@ -228,9 +228,10 @@ class SelfAttention(Attention):
 
 class GroupSelfAttention(SelfAttention):
     """
-    Self-attention module with q,k from the same input tensor.
-    The input tensor is the concatenation of `n_groups` of slightly different feature maps.
-    Thus the projections are 1x1 group convolutions.
+    Self-attention module with q,k from the same input tensor. The input tensor
+    is the concatenation of `n_groups` of slightly different feature maps. Thus
+    the projections are 1x1 group convolutions.
+
     *NOTE*: d_qk, d_hidden, n_head must be divisible by n_groups
     """
 

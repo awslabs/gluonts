@@ -17,7 +17,9 @@ from pytorch_lightning import Callback, Trainer, LightningModule
 class ParameterCountCallback(Callback):  # type: ignore
     """
     This callback allows counting model parameters during training.
-    The output is printed to the console and can be retrieved from the log files.
+
+    The output is printed to the console and can be retrieved from the log
+    files.
     """
 
     def __init__(self) -> None:

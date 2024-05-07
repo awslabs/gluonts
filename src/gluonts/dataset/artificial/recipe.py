@@ -1063,10 +1063,10 @@ def normalized_ar1(tau, x0=None, norm="minmax", sigma=1.0):
     r"""
     Returns an ar1 process with an auto correlation time of tau.
 
-    norm can be
-    None -> no normalization
-    'minmax' -> min_max_scaled
-    'standard' -> 0 mean, unit variance
+    norm can be:
+      - None -> no normalization
+      - 'minmax' -> min_max_scaled
+      - 'standard' -> 0 mean, unit variance
     """
     assert norm in [None, "minmax", "standard"]
     phi = lifted_numpy.exp(-1.0 / tau)

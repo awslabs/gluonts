@@ -23,11 +23,13 @@ from .dataset import TimeSeries, TimeSeriesDataset
 
 
 class WeightedIndexIterator:
-    """Iterator that caches a number of indices sampled according to given weights.
+    """
+    Iterator that caches a number of indices sampled according to given
+    weights.
 
-    This gives a great performance speedup since np.random.choice is the bottleneck
-    of the data loading. This class samples and caches a certain number of indices and
-    return them until new ones need to be sampled.
+    This gives a great performance speedup since np.random.choice is the
+    bottleneck of the data loading. This class samples and caches a certain
+    number of indices and return them until new ones need to be sampled.
     """
 
     def __init__(self, weights: np.ndarray, num_cache: int = 1024):
@@ -58,7 +60,8 @@ class WeightedIndexIterator:
 @dataclass
 class Triplet:
     """
-    A triplet is composed of a support set, observed queries, and corresponding (unobserved) future queries.
+    A triplet is composed of a support set, observed queries, and corresponding
+    (unobserved) future queries.
     """
 
     support_set: List[
@@ -77,7 +80,8 @@ class Triplet:
 
 class TripletDataset(Dataset[Triplet]):
     """
-    The triplet dataset gets a list of queries and corresponding support set and returns them as triplets.
+    The triplet dataset gets a list of queries and corresponding support set
+    and returns them as triplets.
     """
 
     def __init__(
@@ -104,9 +108,11 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
     """
     The sampling triplet dataset randomly samples support sets and past queries
     along with their future prediction horizon.
-    All three sets consist of time series windows sliced from the original time series. The support set time series
-    end before the prediction horizon begins to avoid time leakage.
-    The dataset yields infinitely many items. Support set time series length is for now context_length.
+
+    All three sets consist of time series windows sliced from the original time
+    series. The support set time series end before the prediction horizon
+    begins to avoid time leakage. The dataset yields infinitely many items.
+    Support set time series length is for now context_length.
     """
 
     def __init__(
@@ -225,9 +231,11 @@ class SamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
 
 class SequentialTripletDataset(Dataset[Triplet]):  # type: ignore
     """
-    The sequential triplet dataset traverses the dataset and uses the last prediction length slice as future query.
-    The support set is sampled randomly. The length of dataset is the number of times series
-    divided by the number of queries.
+    The sequential triplet dataset traverses the dataset and uses the last
+    prediction length slice as future query.
+
+    The support set is sampled randomly. The length of dataset is the number of
+    times series divided by the number of queries.
     """
 
     def __init__(
@@ -386,11 +394,13 @@ def sample_supps(
 
 class SuperSamplingTripletDataset(IterableDataset[Triplet]):  # type: ignore
     """
-    The super sampling triplet dataset randomly samples support sets and past queries
-    along with their future prediction horizon from a list of sampling datasets.
-    First a sampling dataset is randomly chosen.
-    Then the chosen triplet dataset samples support, query past and query future set.
-    The dataset yields infinitely many items.
+    The super sampling triplet dataset randomly samples support sets and past
+    queries along with their future prediction horizon from a list of sampling
+    datasets.
+
+    First a sampling dataset is randomly chosen. Then the chosen triplet
+    dataset samples support, query past and query future set. The dataset
+    yields infinitely many items.
     """
 
     def __init__(

@@ -1,0 +1,23 @@
+name: Ruff & Docformat
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: ["ruff", "docformatter"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+    - name: Install tools
+      run: pip install "ruff==0.2.2" "docformatter[tomli]==1.5.0"
+    - name: Ruff (Flake8)
+      if: matrix.check == 'ruff'
+      working-directory: src/
+      run: ruff check .
+    - name: Docformatter
+      if: matrix.check == 'docformatter'
+      run: docformatter --check -r src/

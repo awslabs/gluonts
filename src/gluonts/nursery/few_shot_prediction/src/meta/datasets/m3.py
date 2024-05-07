@@ -29,7 +29,8 @@ from meta.datasets.registry import register_data_module
 @register_data_module
 class M3DataModule(GluonTSDataModule):
     """
-    A data module which provides a frequency-category split of the M3 dataset as a standalone dataset.
+    A data module which provides a frequency-category split of the M3 dataset
+    as a standalone dataset.
     """
 
     def __init__(self, **kwargs):

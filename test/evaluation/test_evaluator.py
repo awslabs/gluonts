@@ -662,7 +662,7 @@ def rmsle(target, forecast):
     r"""
     .. math::
 
-        rmsle = sqrt(mean(square(log(Y+1) - log(Y_hat+1))))
+    rmsle = sqrt(mean(square(log(Y+1) - log(Y_hat+1))))
     """
     return np.sqrt(
         np.mean(np.square(np.log(target + 1) - np.log(forecast + 1)))

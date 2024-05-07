@@ -25,9 +25,9 @@ from gluonts.torch.model.mqf2.module import PICNN
 
 class MQF2Distribution(torch.distributions.Distribution):
     r"""
-    Distribution class for the model MQF2 proposed in the paper
-    ``Multivariate Quantile Function Forecaster``
-    by Kan, Aubet, Januschowski, Park, Benidis, Ruthotto, Gasthaus
+    Distribution class for the model MQF2 proposed in the paper ``Multivariate
+    Quantile Function Forecaster`` by Kan, Aubet, Januschowski, Park, Benidis,
+    Ruthotto, Gasthaus.
 
     Parameters
     ----------

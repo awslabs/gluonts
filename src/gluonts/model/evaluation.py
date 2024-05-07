@@ -34,9 +34,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BatchForecast:
     """
-    Wrapper around ``Forecast`` objects, that adds a batch dimension
-    to arrays returned by ``__getitem__``, for compatibility with
-    ``gluonts.ev``.
+    Wrapper around ``Forecast`` objects, that adds a batch dimension to arrays
+    returned by ``__getitem__``, for compatibility with ``gluonts.ev``.
     """
 
     forecasts: List[Forecast]
@@ -107,8 +106,8 @@ def evaluate_forecasts_raw(
     seasonality: Optional[int] = None,
 ) -> dict:
     """
-    Evaluate ``forecasts`` by comparing them with ``test_data``, according
-    to ``metrics``.
+    Evaluate ``forecasts`` by comparing them with ``test_data``, according to
+    ``metrics``.
 
     .. note:: This feature is experimental and may be subject to changes.
 
@@ -192,8 +191,8 @@ def evaluate_forecasts(
     seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
-    Evaluate ``forecasts`` by comparing them with ``test_data``, according
-    to ``metrics``.
+    Evaluate ``forecasts`` by comparing them with ``test_data``, according to
+    ``metrics``.
 
     .. note:: This feature is experimental and may be subject to changes.
 
@@ -246,8 +245,7 @@ def evaluate_model(
     seasonality: Optional[int] = None,
 ) -> pd.DataFrame:
     """
-    Evaluate ``model`` when applied to ``test_data``, according
-    to ``metrics``.
+    Evaluate ``model`` when applied to ``test_data``, according to ``metrics``.
 
     .. note:: This feature is experimental and may be subject to changes.
 

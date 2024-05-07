@@ -30,6 +30,7 @@ def weighted_average(
     """
     Computes the weighted average of a given tensor across a given dim, masking
     values associated with weight zero,
+
     meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
 
     Parameters

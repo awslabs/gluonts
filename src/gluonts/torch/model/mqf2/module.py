@@ -52,9 +52,9 @@ class MQF2MultiHorizonModel(DeepARModel):
         estimate_logdet: bool = False,
     ) -> None:
         r"""
-        Model class for the model MQF2 proposed in the paper
-        ``Multivariate Quantile Function Forecaster``
-        by Kan, Aubet, Januschowski, Park, Benidis, Ruthotto, Gasthaus
+        Model class for the model MQF2 proposed in the paper ``Multivariate
+        Quantile Function Forecaster`` by Kan, Aubet, Januschowski, Park,
+        Benidis, Ruthotto, Gasthaus.
 
         This is the multi-horizon (multivariate in time step) variant of MQF2
 

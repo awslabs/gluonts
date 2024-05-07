@@ -196,8 +196,8 @@ def _check_freqs(deltas: List[pd.Timedelta]):
 
 def freqs_to_agg_mulitples(freq_strs: List[str]) -> List[int]:
     """
-    Returns aggregation multiples that are used to construct
-    aggregation matrix.
+    Returns aggregation multiples that are used to construct aggregation
+    matrix.
 
     Parameters
     ----------

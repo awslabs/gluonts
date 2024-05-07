@@ -99,7 +99,9 @@ class TimeFrame(TimeBase):
         return True
 
     def _time_view(self, column):
-        """View of column with respect to time."""
+        """
+        View of column with respect to time.
+        """
 
         return AxisView(self.columns[column], self.tdims[column])
 
@@ -246,7 +248,9 @@ class TimeFrame(TimeBase):
 
     @classmethod
     def from_pandas(cls, df):
-        """Turn ``pandas.DataFrame`` into ``TimeFrame``."""
+        """
+        Turn ``pandas.DataFrame`` into ``TimeFrame``.
+        """
         import pandas as pd
 
         try:
@@ -300,7 +304,8 @@ class TimeFrame(TimeBase):
         return _replace(self, columns=columns, static=static)
 
     def rename(self, mapping=None, **kwargs):
-        """Rename ``columns`` of ``TimeFrame``.
+        """
+        Rename ``columns`` of ``TimeFrame``.
 
         The keys in ``mapping`` denote the target column names, i.e.
         ``rename({"target": "source"})``. For convenience one can use keyword
@@ -320,7 +325,8 @@ class TimeFrame(TimeBase):
         return _replace(self, columns=columns, tdims=tdims)
 
     def rename_static(self, mapping=None, **kwargs):
-        """Rename ``static`` fields of ``TimeFrame``.
+        """
+        Rename ``static`` fields of ``TimeFrame``.
 
         The keys in ``mapping`` denote the target column names, i.e.
         ``rename({"target": "source"})``. For convenience one can use keyword
@@ -383,7 +389,8 @@ class TimeFrame(TimeBase):
         n: Optional[int] = None,
         pad_value=0.0,
     ):
-        """Create rolling split of past/future pairs.
+        """
+        Create rolling split of past/future pairs.
 
         Parameters
         ----------
@@ -605,8 +612,9 @@ def time_frame(
     default_tdim: int = -1,
     metadata: Optional[Mapping] = None,
 ):
-    """Create a ``zebras.TimeFrame`` object that represents one
-    or more time series.
+    """
+    Create a ``zebras.TimeFrame`` object that represents one or more time
+    series.
 
     Parameters
     ----------

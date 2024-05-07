@@ -254,7 +254,8 @@ class IMAPAPredictor(StatsForecastPredictor):
 
 class DynamicOptimizedThetaPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``DynamicOptimizedTheta`` model from `statsforecast`_.
+    A predictor wrapping the ``DynamicOptimizedTheta`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -350,7 +351,8 @@ class OptimizedThetaPredictor(StatsForecastPredictor):
 
 class RandomWalkWithDriftPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``RandomWalkWithDrift`` model from `statsforecast`_.
+    A predictor wrapping the ``RandomWalkWithDrift`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -362,7 +364,8 @@ class RandomWalkWithDriftPredictor(StatsForecastPredictor):
 
 class SeasonalExponentialSmoothingPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``SeasonalExponentialSmoothing`` model from `statsforecast`_.
+    A predictor wrapping the ``SeasonalExponentialSmoothing`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -374,7 +377,8 @@ class SeasonalExponentialSmoothingPredictor(StatsForecastPredictor):
 
 class SeasonalExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``SeasonalExponentialSmoothingOptimized`` model from `statsforecast`_.
+    A predictor wrapping the ``SeasonalExponentialSmoothingOptimized`` model
+    from `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -398,7 +402,8 @@ class SeasonalNaivePredictor(StatsForecastPredictor):
 
 class SeasonalWindowAveragePredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``SeasonalWindowAverage`` model from `statsforecast`_.
+    A predictor wrapping the ``SeasonalWindowAverage`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -410,7 +415,8 @@ class SeasonalWindowAveragePredictor(StatsForecastPredictor):
 
 class SimpleExponentialSmoothingPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``SimpleExponentialSmoothing`` model from `statsforecast`_.
+    A predictor wrapping the ``SimpleExponentialSmoothing`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 
@@ -422,7 +428,8 @@ class SimpleExponentialSmoothingPredictor(StatsForecastPredictor):
 
 class SimpleExponentialSmoothingOptimizedPredictor(StatsForecastPredictor):
     """
-    A predictor wrapping the ``SimpleExponentialSmoothingOptimized`` model from `statsforecast`_.
+    A predictor wrapping the ``SimpleExponentialSmoothingOptimized`` model from
+    `statsforecast`_.
 
     See :class:`StatsForecastPredictor` for the list of arguments.
 

@@ -76,7 +76,6 @@ def log_det(F, batch_D: Tensor, batch_capacitance_tril: Tensor) -> Tensor:
 
     Returns
     -------
-
     """
     log_D = batch_D.log().sum(axis=-1)
     log_C = 2 * F.linalg.sumlogdiag(batch_capacitance_tril)
@@ -87,7 +86,7 @@ def mahalanobis_distance(
     F, W: Tensor, D: Tensor, capacitance_tril: Tensor, x: Tensor
 ) -> Tensor:
     r"""
-    Uses the Woodbury matrix identity
+    Uses the Woodbury matrix identity.
 
     .. math::
         (W W^T + D)^{-1} = D^{-1} - D^{-1} W C^{-1} W^T D^{-1},
@@ -109,7 +108,6 @@ def mahalanobis_distance(
 
     Returns
     -------
-
     """
     xx = x.expand_dims(axis=-1)
 
@@ -166,8 +164,8 @@ def lowrank_log_likelihood(
 
 class LowrankMultivariateGaussian(Distribution):
     r"""
-    Multivariate Gaussian distribution, with covariance matrix parametrized
-    as the sum of a diagonal matrix and a low-rank matrix
+    Multivariate Gaussian distribution, with covariance matrix parametrized as
+    the sum of a diagonal matrix and a low-rank matrix.
 
     .. math::
         \Sigma = D + W W^T
