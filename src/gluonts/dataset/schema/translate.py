@@ -44,7 +44,9 @@ class Op:
 
 @dataclass
 class Get(Op):
-    """Extracts the field ``name`` from the input."""
+    """
+    Extracts the field ``name`` from the input.
+    """
 
     name: str
 
@@ -69,7 +71,9 @@ class Method(Op):
 
 @dataclass
 class GetAttr(Op):
-    """Invokes ``obj.name``"""
+    """
+    Invokes ``obj.name``.
+    """
 
     obj: Op
     name: str
@@ -298,7 +302,8 @@ def parse(x: Union[str, list]) -> Op:
 
 @dataclass
 class Translator:
-    """Simple translation for GluonTS Datasets.
+    """
+    Simple translation for GluonTS Datasets.
 
     A given translator transforms an input dictionary (data-entry) into an
     output dictionary.

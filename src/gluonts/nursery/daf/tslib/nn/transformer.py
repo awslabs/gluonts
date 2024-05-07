@@ -38,7 +38,7 @@ else:
 
 class PositionwiseFFN(nn.Module):
     """
-    Positionwise feedforward network in transformers
+    Positionwise feedforward network in transformers.
     """
 
     def __init__(

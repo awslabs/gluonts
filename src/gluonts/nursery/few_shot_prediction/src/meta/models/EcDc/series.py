@@ -31,6 +31,7 @@ from .components import (
 class LSTMEncoderFeedforwardDecoderConfig:
     """
     Configuration class for a LSTMEncoderFeedforwardDecoder.
+
     See also:
         :class:`LSTMEncoderFeedforwardDecoder`
     """

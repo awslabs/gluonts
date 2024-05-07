@@ -27,7 +27,7 @@ from .posemb import SinusoidalPositionalEmbedding
 
 class InterAttention(Attention):
     """
-    Inter-attention module with k,v from source and q from target
+    Inter-attention module with k,v from source and q from target.
 
     Parameters
     ----------

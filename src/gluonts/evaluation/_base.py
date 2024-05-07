@@ -108,8 +108,9 @@ def aggregate_valid(
 def validate_forecast(
     forecast: Forecast, quantiles: Iterable[Quantile]
 ) -> bool:
-    """Validates a Forecast object by checking it for `NaN` values.
-    The supplied quantiles and mean (if available) are checked.
+    """
+    Validates a Forecast object by checking it for `NaN` values. The supplied
+    quantiles and mean (if available) are checked.
 
     Parameters
     ----------
@@ -767,7 +768,8 @@ class MultivariateEvaluator(Evaluator):
         fcst_iterator: Iterable[Forecast],
         num_series=None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
-        """Compute accuracy metrics for multivariate forecasts.
+        """
+        Compute accuracy metrics for multivariate forecasts.
 
         Parameters
         ----------

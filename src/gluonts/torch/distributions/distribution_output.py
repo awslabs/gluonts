@@ -93,25 +93,26 @@ class DistributionOutput(Output):
     @property
     def event_shape(self) -> Tuple:
         r"""
-        Shape of each individual event contemplated by the distributions
-        that this object constructs.
+        Shape of each individual event contemplated by the distributions that
+        this object constructs.
         """
         raise NotImplementedError()
 
     @property
     def event_dim(self) -> int:
         r"""
-        Number of event dimensions, i.e., length of the `event_shape` tuple,
-        of the distributions that this object constructs.
+        Number of event dimensions, i.e., length of the `event_shape` tuple, of
+        the distributions that this object constructs.
         """
         return len(self.event_shape)
 
     def domain_map(self, *args: torch.Tensor):
         r"""
-        Converts arguments to the right shape and domain. The domain depends
-        on the type of distribution, while the correct shape is obtained by
-        reshaping the trailing axis in such a way that the returned tensors
-        define a distribution of the right event_shape.
+        Converts arguments to the right shape and domain.
+
+        The domain depends on the type of distribution, while the correct shape
+        is obtained by reshaping the trailing axis in such a way that the
+        returned tensors define a distribution of the right event_shape.
         """
         raise NotImplementedError()
 

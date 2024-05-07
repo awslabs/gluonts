@@ -146,6 +146,7 @@ class JsonLinesFile:
     def _line_starts(self):
         """
         Calculate the position for each line in the file.
+
         This information can be used with ``file.seek`` to directly jump to a
         specific line in the file.
         """

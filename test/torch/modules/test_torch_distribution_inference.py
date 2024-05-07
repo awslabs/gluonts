@@ -12,8 +12,8 @@
 # permissions and limitations under the License.
 
 """
-Test that maximizing likelihood allows to correctly recover distribution parameters for all
-distributions exposed to the user.
+Test that maximizing likelihood allows to correctly recover distribution
+parameters for all distributions exposed to the user.
 """
 from typing import List
 
@@ -65,7 +65,7 @@ def inv_softplus(y: np.ndarray) -> np.ndarray:
 
 def inv_softmax(y: np.ndarray) -> np.ndarray:
     """
-    Inverse of the scipy.special.softmax
+    Inverse of the scipy.special.softmax.
     """
     return np.log(y)
 
@@ -111,8 +111,9 @@ def compare_logits(
     logits_true: np.array, logits_hat: np.array, TOL: int = 0.3
 ):
     """
-    Since logits {x_i} and logits {x_i + K} will result in the same probabilities {exp(x_i)/(sum_j exp(x_j))},
-    one needs to apply softmax and inv_softmax before comparing logits within a certain tolerance
+    Since logits {x_i} and logits {x_i + K} will result in the same
+    probabilities {exp(x_i)/(sum_j exp(x_j))}, one needs to apply softmax and
+    inv_softmax before comparing logits within a certain tolerance.
     """
     param_true = inv_softmax(softmax(logits_true, axis=-1))
     param_hat = inv_softmax(softmax(logits_hat, axis=-1))
@@ -125,7 +126,7 @@ def compare_logits(
 @pytest.mark.parametrize("concentration1, concentration0", [(3.75, 1.25)])
 def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -164,7 +165,7 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
 @pytest.mark.parametrize("concentration, rate", [(3.75, 1.25)])
 def test_gamma_likelihood(concentration: float, rate: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -264,7 +265,7 @@ def test_studentT_likelihood(df: float, loc: float, scale: float):
 @pytest.mark.parametrize("rate", [1.0])
 def test_poisson(rate: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
     # generate samples
     rates = torch.zeros((NUM_SAMPLES,)) + rate
@@ -297,7 +298,7 @@ def test_poisson(rate: float) -> None:
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 def test_neg_binomial(total_count: float, logit: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
     seed_everything(42)
     # generate samples

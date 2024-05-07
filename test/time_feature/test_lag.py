@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 """
-Test the lags computed for different frequencies
+Test the lags computed for different frequencies.
 """
 
 import gluonts.time_feature.lag as date_feature_set

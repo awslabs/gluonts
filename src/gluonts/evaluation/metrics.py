@@ -65,8 +65,9 @@ def mse(target: np.ndarray, forecast: np.ndarray) -> float:
 
 def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
-    .. math::
+    Absolute error.
 
+    .. math::
         abs\_error = sum(|Y - \hat{Y}|)
     """
     return np.sum(np.abs(target - forecast))
@@ -74,8 +75,9 @@ def abs_error(target: np.ndarray, forecast: np.ndarray) -> float:
 
 def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
     r"""
-    .. math::
+    Quantile loss.
 
+    .. math::
         quantile\_loss = 2 * sum(|(Y - \hat{Y}) * (Y <= \hat{Y}) - q|)
     """
     return 2 * np.sum(np.abs((forecast - target) * ((target <= forecast) - q)))
@@ -83,8 +85,9 @@ def quantile_loss(target: np.ndarray, forecast: np.ndarray, q: float) -> float:
 
 def coverage(target: np.ndarray, forecast: np.ndarray) -> float:
     r"""
-    .. math::
+    coverage.
 
+    .. math::
         coverage = mean(Y <= \hat{Y})
     """
     return float(np.mean(target <= forecast))
@@ -156,8 +159,9 @@ def msis(
 
 def abs_target_sum(target) -> float:
     r"""
-    .. math::
+    Absolute target sum.
 
+    .. math::
         abs\_target\_sum = sum(|Y|)
     """
     return np.sum(np.abs(target))
@@ -165,8 +169,9 @@ def abs_target_sum(target) -> float:
 
 def abs_target_mean(target) -> float:
     r"""
-    .. math::
+    Absolute target mean.
 
+    .. math::
         abs\_target\_mean = mean(|Y|)
     """
     return np.mean(np.abs(target))
@@ -174,7 +179,7 @@ def abs_target_mean(target) -> float:
 
 def num_masked_values(target) -> float:
     """
-    Count number of masked values in target
+    Count number of masked values in target.
     """
     if np.ma.isMaskedArray(target):
         return np.ma.count_masked(target)

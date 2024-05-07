@@ -23,8 +23,8 @@ def resolve_device(
     """
     Resolves a torch device to the most appropriate one.
 
-    The ``"auto"`` device is resolved to ``"cuda"`` if CUDA is available,
-    and to ``"cpu"`` otherwise. Otherwise the device is unchanged.
+    The ``"auto"`` device is resolved to ``"cuda"`` if CUDA is available, and
+    to ``"cpu"`` otherwise. Otherwise the device is unchanged.
     """
     if device == "auto":
         if torch.cuda.is_available():

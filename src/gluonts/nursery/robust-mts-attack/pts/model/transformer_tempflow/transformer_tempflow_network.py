@@ -171,11 +171,10 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
         torch.Tensor,
     ]:
         """
-        Unrolls the RNN encoder over past and, if present, future data.
-        Returns outputs and state of the encoder, plus the scale of
-        past_target_cdf and a vector of static features that was constructed
-        and fed as input to the encoder. All tensor arguments should have NTC
-        layout.
+        Unrolls the RNN encoder over past and, if present, future data. Returns
+        outputs and state of the encoder, plus the scale of past_target_cdf and
+        a vector of static features that was constructed and fed as input to
+        the encoder. All tensor arguments should have NTC layout.
 
         Parameters
         ----------
@@ -211,7 +210,6 @@ class TransformerTempFlowTrainingNetwork(nn.Module):
             Scaled lags(batch_size, sub_seq_len, target_dim, num_lags)
         inputs
             inputs to the RNN
-
         """
 
         past_observed_values = torch.min(
