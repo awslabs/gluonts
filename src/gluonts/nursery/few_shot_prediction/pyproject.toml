@@ -27,7 +27,7 @@ catch22 = "^0.2.0"
 seaborn = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
-black = "^21.7b0"
+black = "^24.3.0"
 isort = "^5.9.3"
 jupyter = "^1.0.0"
 pylint = "^2.10.2"
