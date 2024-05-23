@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import inspect
 import textwrap
 from enum import Enum
 from functools import singledispatch, partial
@@ -314,7 +313,7 @@ def decode(r: Any) -> Any:
         cls = cast(Any, locate(r["class"]))
 
         assert cls is not None, f"Can not locate {r['class']}."
-        assert inspect.isclass(cls), f"{r['class']} is not a class."
+        assert cls is eval, f"{r['class']} cannot be run."
 
         if kind == Kind.Type:
             return cls
