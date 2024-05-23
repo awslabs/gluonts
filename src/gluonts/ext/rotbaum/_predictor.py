@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import concurrent.futures
-import json
 import logging
 from itertools import chain
 from typing import Iterator, List, Optional, Any, Dict
