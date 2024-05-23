@@ -321,8 +321,10 @@ def decode(r: Any) -> Any:
         kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
 
-        assert cls is not None, f"Can not locate {r['class']}."
-        assert cls not in decode_disallow, f"{r['class']} cannot be run."
+        if cls is None:
+            raise ValueError(f"Cannot locate {r['class']}.")
+        if cls in decode_disallow:
+            raise ValueError(f"{r['class']} cannot be run.")
 
         if kind == Kind.Type:
             return cls
