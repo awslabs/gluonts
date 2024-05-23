@@ -290,6 +290,9 @@ def encode_partial(v: partial) -> Any:
 decode_disallow = [
     eval,
     exec,
+    compile,
+    open,
+    input,
 ]
 
 
