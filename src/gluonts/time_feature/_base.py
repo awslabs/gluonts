@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from packaging.version import Version
 from typing import Any, Callable, Dict, List
 
 import numpy as np
@@ -196,7 +197,10 @@ def norm_freq_str(freq_str: str) -> str:
     # Note: Secondly ("S") frequency exists, where we don't want to remove the
     # "S"!
     if len(base_freq) >= 2 and base_freq.endswith("S"):
-        return base_freq[:-1]
+        base_freq = base_freq[:-1]
+        # In pandas >= 2.2, period end frequencies have been renamed, e.g. "M" -> "ME"
+        if Version(pd.__version__) >= Version("2.2.0"):
+            base_freq += "E"
 
     return base_freq
 
