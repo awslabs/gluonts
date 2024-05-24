@@ -16,7 +16,7 @@ from pandas.tseries.frequencies import to_offset
 
 from gluonts.time_feature import norm_freq_str
 
-from common import M, Q, S, Y
+from .common import M, Q, S, Y
 
 
 @pytest.mark.parametrize(

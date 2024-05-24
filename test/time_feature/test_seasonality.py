@@ -15,7 +15,7 @@ import pytest
 
 from gluonts.time_feature import get_seasonality
 
-from common import H, M, Q, Y
+from .common import H, M, Q, Y
 
 TEST_CASES = [
     ("30min", 48),

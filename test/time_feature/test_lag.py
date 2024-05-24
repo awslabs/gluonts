@@ -19,7 +19,7 @@ import pytest
 
 import gluonts.time_feature.lag as date_feature_set
 
-from common import H, M, Q, Y
+from .common import H, M, Q, Y
 
 # These are the expected lags for common frequencies and corner cases.
 # By default all frequencies have the following lags: [1, 2, 3, 4, 5, 6, 7].
@@ -210,8 +210,7 @@ EXPECTED_LAGS = {
     + [335, 336, 337, 503, 504, 505, 671, 672, 673, 719, 720, 721],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0)
-    "6"
-    + H: [
+    ("6" + H): [
         1,
         2,
         3,
@@ -242,24 +241,21 @@ EXPECTED_LAGS = {
     + [224, 336],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last year (delta = 1)
-    "12"
-    + H: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    "12" + H: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     + [27, 28, 29, 41, 42, 43, 55, 56, 57]
     + [59, 60, 61]
     + [112, 168]
     + [727, 728, 729],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last 3 years (delta = 1)
-    "23"
-    + H: [1, 2, 3, 4, 5, 6, 7, 8]
+    "23" + H: [1, 2, 3, 4, 5, 6, 7, 8]
     + [13, 14, 15, 20, 21, 22, 28, 29]
     + [30, 31, 32]
     + [58, 87]
     + [378, 379, 380, 758, 759, 760, 1138, 1139, 1140],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last 3 years (delta = 1)
-    "25"
-    + H: [1, 2, 3, 4, 5, 6, 7]
+    "25" + H: [1, 2, 3, 4, 5, 6, 7]
     + [12, 13, 14, 19, 20, 21, 25, 26, 27]
     + [28, 29]
     + [53, 80]
