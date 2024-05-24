@@ -13,7 +13,6 @@
 
 import concurrent.futures
 import logging
-import pickle
 from itertools import chain
 from typing import Iterator, List, Optional, Any, Dict
 from toolz import first
@@ -24,6 +23,7 @@ from pathlib import Path
 from itertools import compress
 
 from gluonts.core.component import validated
+from gluonts.core.serde import dump_json, load_json
 from gluonts.dataset.common import Dataset
 from gluonts.dataset.util import forecast_start
 from gluonts.model.forecast import Forecast
@@ -355,8 +355,8 @@ class TreePredictor(RepresentablePredictor):
         generated when pickling the TreePredictor.
         """
         super().serialize(path)
-        with (path / "predictor.pkl").open("wb") as f:
-            pickle.dump(self.model_list, f)
+        with (path / "model_list.json").open("w") as fp:
+            print(dump_json(self.model_list), file=fp)
 
     @classmethod
     def deserialize(cls, path: Path, **kwargs: Any) -> "TreePredictor":
@@ -369,8 +369,8 @@ class TreePredictor(RepresentablePredictor):
 
         predictor = super().deserialize(path)
         assert isinstance(predictor, cls)
-        with (path / "predictor.pkl").open("rb") as f:
-            predictor.model_list = pickle.load(f)
+        with (path / "model_list.json").open("r") as fp:
+            predictor.model_list = load_json(fp.read())
         return predictor
 
     def explain(
