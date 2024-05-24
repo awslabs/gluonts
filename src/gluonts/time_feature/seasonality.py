@@ -33,6 +33,7 @@ DEFAULT_SEASONALITIES = {
     "ME": 12,
     "B": 5,
     "Q": 4,
+    "QE": 4,
 }
 
 

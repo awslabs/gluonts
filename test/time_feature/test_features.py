@@ -16,7 +16,6 @@ import pandas as pd
 import pytest
 
 from gluonts import zebras as zb
-
 from gluonts.time_feature import (
     Constant,
     TimeFeature,

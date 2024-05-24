@@ -15,25 +15,42 @@ import pytest
 
 from gluonts.time_feature import get_seasonality
 
+from .common import H, M, Q, Y
 
-@pytest.mark.parametrize(
-    "freq, expected_seasonality",
-    [
-        ("30min", 48),
-        ("1H", 24),
-        ("H", 24),
-        ("2H", 12),
-        ("3H", 8),
-        ("4H", 6),
-        ("15H", 1),
-        ("5B", 1),
-        ("1B", 5),
-        ("2W", 1),
-        ("3M", 4),
-        ("1D", 1),
-        ("7D", 1),
-        ("8D", 1),
-    ],
-)
+TEST_CASES = [
+    ("30min", 48),
+    ("5B", 1),
+    ("1B", 5),
+    ("2W", 1),
+    ("1D", 1),
+    ("7D", 1),
+    ("8D", 1),
+    # Monthly
+    ("MS", 12),
+    ("3MS", 4),
+    (M, 12),
+    ("3" + M, 4),
+    # Quarterly
+    ("QS", 4),
+    ("2QS", 2),
+    (Q, 4),
+    ("2" + Q, 2),
+    ("3" + Q, 1),
+    # Hourly
+    ("1" + H, 24),
+    (H, 24),
+    ("2" + H, 12),
+    ("3" + H, 8),
+    ("4" + H, 6),
+    ("15" + H, 1),
+    # Yearly
+    (Y, 1),
+    ("2" + Y, 1),
+    ("YS", 1),
+    ("2YS", 1),
+]
+
+
+@pytest.mark.parametrize("freq, expected_seasonality", TEST_CASES)
 def test_get_seasonality(freq, expected_seasonality):
     assert get_seasonality(freq) == expected_seasonality
