@@ -256,17 +256,13 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     Unsupported frequency {freq_str}
 
     The following frequencies are supported:
-
-        Y   - yearly
-            alias: A
-        Q   - quarterly
-        M   - monthly
-        W   - weekly
-        D   - daily
-        B   - business days
-        H   - hourly
-        T   - minutely
-            alias: min
-        S   - secondly
+    
     """
+
+    for offset_cls in features_by_offsets:
+        offset = offset_cls()
+        supported_freq_msg += (
+            f"\t{offset.freqstr.split('-')[0]} - {offset_cls.__name__}"
+        )
+
     raise RuntimeError(supported_freq_msg)
