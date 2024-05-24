@@ -142,3 +142,26 @@ def test_serde_method():
 def test_np_str_dtype():
     a = np.array(["foo"])
     serde.decode(serde.encode(a.dtype)) == a.dtype
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        {"__kind__": 42, "class": cls_str}
+        for cls_str in [
+            "builtins.eval",
+            "builtins.exec",
+            "builtins.compile",
+            "builtins.open",
+            "builtins.input",
+            "eval",
+            "exec",
+            "compile",
+            "open",
+            "input",
+        ]
+    ],
+)
+def test_decode_disallow(obj):
+    with pytest.raises(ValueError):
+        serde.decode(obj)
