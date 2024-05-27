@@ -33,8 +33,8 @@ NPTS                                                         | Local        | Un
 
 <!-- Links to bibliography -->
 
-[Nie2023]: https://arxiv.org/pdf/2211.14730
-[Zeng2023]: https://arxiv.org/pdf/2205.13504.pdf
+[Nie2023]: https://arxiv.org/abs/2211.14730
+[Zeng2023]: https://arxiv.org/abs/2205.13504
 [Rangapuram2021]: https://proceedings.mlr.press/v139/rangapuram21a.html
 [Salinas2020]: https://doi.org/10.1016/j.ijforecast.2019.07.001
 [Rangapuram2018]: https://papers.nips.cc/paper/2018/hash/5cf68969fb67aa6082363a6d4e6468e2-Abstract.html
