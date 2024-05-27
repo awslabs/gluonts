@@ -36,20 +36,7 @@ if not R_IS_INSTALLED or not RPY2_IS_INSTALLED:
 TOLERANCE = 1e-6
 
 
-@pytest.mark.parametrize(
-    "method_name",
-    [
-        (
-            method_name
-            if method_name != "fourier.arima.xreg"
-            else pytest.param(
-                "fourier.arima.xreg",
-                marks=pytest.mark.xfail(reason="Known bug"),
-            )
-        )
-        for method_name in SUPPORTED_UNIVARIATE_METHODS
-    ],
-)
+@pytest.mark.parametrize("method_name", SUPPORTED_UNIVARIATE_METHODS)
 def test_forecasts(method_name):
     if method_name == "mlp":
         # https://stackoverflow.com/questions/56254321/error-in-ifncol-matrix-rep-argument-is-of-length-zero
@@ -60,6 +47,10 @@ def test_forecasts(method_name):
         pytest.xfail(
             "MLP currently does not work because "
             "the `neuralnet` package is not yet updated with a known bug fix in ` bips-hb/neuralnet`"
+        )
+    if method_name == "fourier.arima.xreg":
+        pytest.xfail(
+            "Method `fourier.arima.xreg` does not work because of a known issue."
         )
 
     dataset = datasets.get_dataset("constant")
