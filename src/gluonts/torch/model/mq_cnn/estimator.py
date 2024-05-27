@@ -619,13 +619,10 @@ class MQCNNEstimator(PyTorchLightningEstimator):
             else []
         )
 
-        decoder_series_fields = (
-            [
-                FieldName.FEAT_DYNAMIC,
-                FieldName.FEAT_DYNAMIC_CAT,
-            ]
-            + ([FieldName.OBSERVED_VALUES] if mode != "test" else [])
-        )
+        decoder_series_fields = [
+            FieldName.FEAT_DYNAMIC,
+            FieldName.FEAT_DYNAMIC_CAT,
+        ] + ([FieldName.OBSERVED_VALUES] if mode != "test" else [])
 
         decoder_disabled_fields = (
             [FieldName.FEAT_DYNAMIC, FieldName.FEAT_DYNAMIC_CAT]
