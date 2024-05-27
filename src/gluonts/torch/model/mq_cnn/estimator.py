@@ -536,16 +536,12 @@ class MQCNNEstimator(PyTorchLightningEstimator):
 
         # now we map all the dynamic input of length context_length + prediction_length onto FieldName.FEAT_DYNAMIC
         # we exclude past_feat_dynamic_real since its length is only context_length
-        if len(dynamic_feat_fields) > 1:
+        if len(dynamic_feat_fields) > 0:
             transforms.append(
                 VstackFeatures(
                     output_field=FieldName.FEAT_DYNAMIC,
                     input_fields=dynamic_feat_fields,
                 )
-            )
-        elif len(dynamic_feat_fields) == 1:
-            transforms.append(
-                RenameFields({dynamic_feat_fields[0]: FieldName.FEAT_DYNAMIC})
             )
 
         if not self.use_feat_dynamic_cat:
