@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from pytorch_lightning import LightningModule
+import lightning.pytorch as pl
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from gluonts.torch.model.lightning_util import has_validation_loop
@@ -21,7 +21,7 @@ from gluonts.core.component import validated
 from .module import MQCNNModel
 
 
-class MQCNNLightningModule(LightningModule):
+class MQCNNLightningModule(pl.LightningModule):
     """
     A ``pl.LightningModule`` class that can be used to train a
     ``MQCNNModel`` with PyTorch Lightning.

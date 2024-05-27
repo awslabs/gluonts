@@ -74,7 +74,7 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         Length of the prediction, also known as 'horizon'.
     context_length (int, optional):
         Number of time units that condition the predictions, also known as 'lookback period'.
-        Defaults to None.
+        Defaults to `4 * prediction_length`.
     num_forking (int, optional):
         Decides how much forking to do in the decoder.
         (default: context_length if None)
@@ -282,7 +282,11 @@ class MQCNNEstimator(PyTorchLightningEstimator):
 
         self.freq = freq
         self.prediction_length = prediction_length
-        self.context_length = context_length
+        self.context_length = self.context_length = (
+            context_length
+            if context_length is not None
+            else 4 * self.prediction_length
+        )
         self.num_forking = (
             min(num_forking, self.context_length)
             if num_forking is not None
@@ -400,7 +404,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
             self.enc_cnn_init_dim += sum(self.embedding_dimension_dynamic)
             self.dec_future_init_dim += sum(self.embedding_dimension_dynamic)
         else:
-            self.cardinality_dynamic = 0
+            self.cardinality_dynamic = [0]
+            self.embedding_dimension_dynamic = [0]
 
         if self.use_past_feat_dynamic_real:
             assert (
@@ -431,14 +436,14 @@ class MQCNNEstimator(PyTorchLightningEstimator):
             )
             self.enc_mlp_init_dim += sum(self.embedding_dimension_static)
         else:
-            self.cardinality_static = 0
-            self.embedding_dimension_static = 0
+            self.cardinality_static = [0]
+            self.embedding_dimension_static = [0]
 
         self.joint_embedding_dimension = joint_embedding_dimension
         if self.joint_embedding_dimension is None:
             feat_static_dim = sum(self.embedding_dimension_static)
             self.joint_embedding_dimension = int(
-                channels_seq[-1] * max(np.sqrt(feat_static_dim), 1)
+                self.channels_seq[-1] * max(np.sqrt(feat_static_dim), 1)
             )
 
         if self.use_feat_static_real:
@@ -623,7 +628,7 @@ class MQCNNEstimator(PyTorchLightningEstimator):
                 FieldName.FEAT_DYNAMIC,
                 FieldName.FEAT_DYNAMIC_CAT,
             ]
-            + ([FieldName.OBSERVED_VALUES] if mode != "test" else []),
+            + ([FieldName.OBSERVED_VALUES] if mode != "test" else [])
         )
 
         decoder_disabled_fields = (
