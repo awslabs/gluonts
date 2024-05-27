@@ -164,14 +164,14 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
-        # lambda dataset: MQCNNEstimator(
-        #     freq=dataset.metadata.freq,
-        #     distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
-        #     prediction_length=dataset.metadata.prediction_length,
-        #     batch_size=4,
-        #     num_batches_per_epoch=3,
-        #     trainer_kwargs=dict(max_epochs=2),
-        # ),
+        lambda dataset: MQCNNEstimator(
+            freq=dataset.metadata.freq,
+            distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
     ],
 )
 @pytest.mark.parametrize("use_validation_data", [False, True])
@@ -343,17 +343,17 @@ def test_estimator_constant_dataset(
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
         ),
-        # lambda freq, prediction_length: MQCNNEstimator(
-        #     freq=freq,
-        #     prediction_length=prediction_length,
-        #     batch_size=4,
-        #     num_batches_per_epoch=3,
-        #     num_feat_dynamic_real=3,
-        #     num_feat_static_real=1,
-        #     num_feat_static_cat=2,
-        #     cardinality=[2, 2],
-        #     trainer_kwargs=dict(max_epochs=2),
-        # ),
+        lambda freq, prediction_length: MQCNNEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
     ],
 )
 def test_estimator_with_features(estimator_constructor):

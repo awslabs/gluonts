@@ -36,7 +36,6 @@ from gluonts.transform import (
     AddAgeFeature,
     AddTimeFeatures,
     AddObservedValuesIndicator,
-    Chain,
     RenameFields,
     SetField,
     ExpectedNumInstanceSampler,
@@ -150,6 +149,11 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         (default: if None, channels_seq[-1] * sqrt(feat_static_dim)),
         where feat_static_dim is appx sum(embedding_dimension_static))
         Defaults to None.
+    time_features (list, optional):
+        List of time features, from :py:mod:`gluonts.time_feature`, to use as
+        inputs to the model in addition to the provided data.
+        Defaults to None, in which case these are automatically determined based
+        on freq.
     encoder_mlp_dim_seq (List[int], optional):
         The dimensionalities of the MLP layers of the encoder for static features (default: [] if None)
         Defaults to None.
@@ -243,6 +247,7 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         scaling: Optional[bool] = None,
         scaling_decoder_dynamic_feature: bool = False,
         joint_embedding_dimension: Optional[int] = None,
+        time_features: Optional[list] = None,
         encoder_mlp_dim_seq: Optional[List[int]] = None,
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         decoder_hidden_dim: Optional[int] = None,
