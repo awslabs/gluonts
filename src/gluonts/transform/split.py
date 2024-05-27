@@ -578,7 +578,9 @@ class TFTInstanceSplitter(InstanceSplitter):
 
 
 class ForkingSequenceSplitter(FlatMapTransformation):
-    """Forking sequence splitter used by MQ-CNN Model"""
+    """
+    Forking sequence splitter used by MQ-CNN Model.
+    """
 
     @validated()
     def __init__(
@@ -597,7 +599,8 @@ class ForkingSequenceSplitter(FlatMapTransformation):
         start_input_field: str = FieldName.TARGET,
         lead_time: int = 0,
     ) -> None:
-        """Creates forking sequences
+        """
+        Creates forking sequences.
 
         Args:
             instance_sampler ([type]):

@@ -456,7 +456,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
             self.feat_static_real_dim = 0
 
     def create_transformation(self) -> Chain:
-        """Creates transformation to be applied to input dataset
+        """
+        Creates transformation to be applied to input dataset.
 
         Returns:
             Chain:
@@ -577,7 +578,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         return Chain(transforms)
 
     def _create_instance_splitter(self, mode: str) -> Chain:
-        """Creates instance splitter to be applied to the dataset
+        """
+        Creates instance splitter to be applied to the dataset.
 
         Args:
             mode (str): `training`, `validation` or `test`
@@ -676,7 +678,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         shuffle_buffer_length: Optional[int] = None,
         **kwargs,
     ) -> Iterable:
-        """Creates data loader for the training dataset
+        """
+        Creates data loader for the training dataset.
 
         Args:
             data (Dataset): training dataset
@@ -706,7 +709,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         module: MQCNNLightningModule,
         **kwargs,
     ) -> Iterable:
-        """Creates data loader for the validation dataset
+        """
+        Creates data loader for the validation dataset.
 
         Args:
             data (Dataset): validation dataset
@@ -769,7 +773,8 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         transformation: Transformation,
         module: MQCNNLightningModule,
     ) -> PyTorchPredictor:
-        """Creates predictor for inference
+        """
+        Creates predictor for inference.
 
         Args:
             transformation (Transformation): transformation to be applied to data input to predictor

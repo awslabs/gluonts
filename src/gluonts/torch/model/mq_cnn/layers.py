@@ -253,8 +253,9 @@ class HierarchicalCausalConv1DEncoder(nn.Module):
 
 class Enc2Dec(nn.Module):
     """
-    Integrates the encoder_output_static, encoder_output_dynamic and future_features_dynamic
-    and passes them through as the dynamic input to the decoder.
+    Integrates the encoder_output_static, encoder_output_dynamic and
+    future_features_dynamic and passes them through as the dynamic input to the
+    decoder.
 
     Parameters:
     ------------
@@ -439,7 +440,8 @@ class ForkingMLPDecoder(nn.Module):
         return local_mlp
 
     def forward(self, encoded_input: Tensor, future_input: Tensor) -> Tensor:
-        """Forward pass for MQCNN decoder
+        """
+        Forward pass for MQCNN decoder.
 
         Args:
             encoded_input (Tensor):
