@@ -379,10 +379,12 @@ class MQCNNEstimator(PyTorchLightningEstimator):
         )
 
         assert (
-            len(channels_seq) == len(dilation_seq) == len(kernel_size_seq)
+            len(self.channels_seq)
+            == len(self.dilation_seq)
+            == len(self.kernel_size_seq)
         ), (
-            f"mismatch CNN configurations: {len(channels_seq)} vs. "
-            f"{len(dilation_seq)} vs. {len(kernel_size_seq)}"
+            f"mismatch CNN configurations: {len(self.channels_seq)} vs. "
+            f"{len(self.dilation_seq)} vs. {len(self.kernel_size_seq)}"
         )
 
         self.use_residual = use_residual
