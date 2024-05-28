@@ -22,17 +22,15 @@ filterwarnings = "ignore"
 line-length = 79
 
 lint.ignore = [
-    # line-length is handled by black
-    "E501",
-
-    # TODO: remove usage of `l`
-    "E741"
+    "E501",  # line-length is handled by black
+    "E741"  # TODO: remove usage of `l`
 ]
 
 exclude = ["src/gluonts/nursery"]
 
 
 [tool.docformatter]
+black = true
 pre-summary-newline = true
 make-summary-multi-line = true
 wrap-descriptions = 79

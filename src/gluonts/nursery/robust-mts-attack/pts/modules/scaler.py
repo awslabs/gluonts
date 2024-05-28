@@ -124,8 +124,8 @@ class MeanScaler(Scaler):
 
 class NOPScaler(Scaler):
     """
-    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e.,
-    no scaling is applied upon calling the ``NOPScaler``.
+    The ``NOPScaler`` assigns a scale equals to 1 to each input item, i.e., no
+    scaling is applied upon calling the ``NOPScaler``.
     """
 
     @validated()

@@ -24,8 +24,8 @@ from .module import DeepARModel
 
 class DeepARLightningModule(pl.LightningModule):
     """
-    A ``pl.LightningModule`` class that can be used to train a
-    ``DeepARModel`` with PyTorch Lightning.
+    A ``pl.LightningModule`` class that can be used to train a ``DeepARModel``
+    with PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``DeepARModel`` object,
     that exposes the methods to evaluate training and validation loss.

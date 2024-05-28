@@ -205,9 +205,9 @@ class ISQF(torch.distributions.Distribution):
         beta: torch.Tensor, qk_x: torch.Tensor, qk_y: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
-        Function to parameterize the tail parameters
-        Note that the exponential tails are given by
-        q(alpha)
+        Function to parameterize the tail parameters Note that the exponential
+        tails are given by q(alpha)
+
         = a_l log(alpha) + b_l if left tail
         = a_r log(1-alpha) + b_r if right tail
         where
@@ -391,9 +391,9 @@ class ISQF(torch.distributions.Distribution):
 
     def cdf_spline(self, z: torch.Tensor) -> torch.Tensor:
         r"""
-        For observations z and splines defined in [qk_x[k], qk_x[k+1]]
-        Computes the quantile level alpha_tilde such that
-        alpha_tilde
+        For observations z and splines defined in [qk_x[k], qk_x[k+1]] Computes
+        the quantile level alpha_tilde such that alpha_tilde.
+
         = q^{-1}(z) if z is in-between qk_x[k] and qk_x[k+1]
         = qk_x[k] if z<qk_x[k]
         = qk_x[k+1] if z>qk_x[k+1]
@@ -467,8 +467,8 @@ class ISQF(torch.distributions.Distribution):
         self, z: torch.Tensor, left_tail: bool = True
     ) -> torch.Tensor:
         r"""
-        Computes the quantile level alpha_tilde such that
-        alpha_tilde
+        Computes the quantile level alpha_tilde such that alpha_tilde.
+
         = q^{-1}(z) if z is in the tail region
         = qk_x_l or qk_x_r if z is in the non-tail region
         Parameters

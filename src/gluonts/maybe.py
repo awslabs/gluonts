@@ -35,7 +35,6 @@ https://doc.rust-lang.org/stable/std/option/enum.Option.html
     compared to their Rust counterparts.
 
     ``do`` is not implemented in Rust but mimics ``toolz.do`` instead.
-
 """
 
 from __future__ import annotations
@@ -90,7 +89,8 @@ def unbox(val: OptionalOrMaybe[T]) -> Optional[T]:
 
 
 def flatten(val: Optional[Optional[T]]) -> Optional[T]:
-    """Flatten nested optional value.
+    """
+    Flatten nested optional value.
 
     Note: This just returns the value, but changes the type from
     ``Optional[Optional[T]]`` to ``Optional[T].``
@@ -110,7 +110,6 @@ def expect(val: OptionalOrMaybe[T], msg: str) -> T:
     Traceback (most recent call last):
         ...
     ValueError: My message
-
     """
     return box(val).expect(msg)
 
@@ -123,7 +122,6 @@ def do(val: OptionalOrMaybe[T], fn: Callable[[T], U]) -> Optional[T]:
     a
     'a'
     >>> do(None, print)
-
     """
     return box(val).do(fn).unbox()
 
@@ -160,7 +158,6 @@ def map_or(val: OptionalOrMaybe[T], fn: Callable[[T], U], default: U) -> U:
     1
     >>> map_or(None, len, 0)
     0
-
     """
     return box(val).map_or(fn, default)
 
@@ -179,7 +176,6 @@ def map_or_else(
     [1]
     >>> map_or_else(None, lambda n: [n], list)
     []
-
     """
     return box(val).map_or_else(fn, factory)
 
@@ -194,7 +190,6 @@ def unwrap(val: OptionalOrMaybe[T]) -> T:
     Traceback (most recent call last):
         ...
     ValueError: Trying to unwrap `None` value.
-
     """
     return box(val).expect("Trying to unwrap `None` value.")
 
@@ -207,7 +202,6 @@ def unwrap_or(val: OptionalOrMaybe[T], default: T) -> T:
     1
     >>> unwrap_or(None, 2)
     2
-
     """
     return box(val).unwrap_or(default)
 
@@ -220,7 +214,6 @@ def unwrap_or_else(val: OptionalOrMaybe[T], factory: Callable[[], T]) -> T:
     [1, 2, 3]
     >>> unwrap_or_else(None, list)
     []
-
     """
 
     return box(val).unwrap_or_else(factory)
@@ -237,7 +230,6 @@ def and_(val: OptionalOrMaybe[T], other: OptionalOrMaybe[U]) -> Optional[U]:
     2
     >>> and_(1, None)
     >>> and_(None, 2)
-
     """
     return box(val).and_(other).unbox()
 
@@ -329,15 +321,15 @@ def xor(val: OptionalOrMaybe[T], other: OptionalOrMaybe[T]) -> Optional[T]:
     2
     >>> xor(1, 2)
     >>> xor(None, None)
-
     """
     return box(val).xor(other).unbox()
 
 
 def iter(val: OptionalOrMaybe[T]) -> List[T]:
     """
-    Wrap ``val`` into a list, if it is not ``None``. Allows to use for loops
-    on optional values.
+    Wrap ``val`` into a list, if it is not ``None``.
+
+    Allows to use for loops on optional values.
     """
     return box(val).iter()
 
@@ -363,7 +355,6 @@ def zip_with(
     3
     >>> zip_with(1, None, add)
     >>> zip_with(None, 2, add)
-
     """
     return box(val).zip_with(other, fn).unbox()
 
@@ -378,7 +369,6 @@ class Maybe(ABC, Generic[T]):
         1
         >>> Some(None).unbox() is None
         True
-
         """
 
     @abstractmethod
@@ -400,7 +390,6 @@ class Maybe(ABC, Generic[T]):
         Traceback (most recent call last):
             ...
         ValueError: My message
-
         """
 
     @abstractmethod
@@ -432,7 +421,6 @@ class Maybe(ABC, Generic[T]):
 
         >>> Some(10).map(divmod, 3)
         Some((3, 1))
-
         """
 
     @abstractmethod
@@ -448,7 +436,6 @@ class Maybe(ABC, Generic[T]):
         1
         >>> Nothing.map_or(len, 0)
         0
-
         """
 
     @abstractmethod
@@ -468,7 +455,6 @@ class Maybe(ABC, Generic[T]):
         [1]
         >>> Nothing.map_or_else(lambda n: [n], list)
         []
-
         """
 
     @abstractmethod
@@ -482,7 +468,6 @@ class Maybe(ABC, Generic[T]):
         Traceback (most recent call last):
             ...
         ValueError: Trying to unwrap `None` value.
-
         """
 
     @abstractmethod
@@ -494,7 +479,6 @@ class Maybe(ABC, Generic[T]):
         1
         >>> Nothing.unwrap_or(2)
         2
-
         """
 
     @abstractmethod
@@ -507,7 +491,6 @@ class Maybe(ABC, Generic[T]):
         [1, 2, 3]
         >>> Nothing.unwrap_or_else(list)
         []
-
         """
 
     @abstractmethod
@@ -524,7 +507,6 @@ class Maybe(ABC, Generic[T]):
         Nothing
         >>> Nothing.and_(2)
         Nothing
-
         """
 
     def __and__(self, other: OptionalOrMaybe[U]) -> Maybe[U]:
@@ -540,7 +522,6 @@ class Maybe(ABC, Generic[T]):
         Nothing
         >>> Nothing & 2
         Nothing
-
         """
         return self.and_(other)
 
@@ -563,7 +544,6 @@ class Maybe(ABC, Generic[T]):
         Nothing
         >>> Nothing.and_then(lambda xs: xs[0] if xs else None)
         Nothing
-
         """
 
     @abstractmethod
@@ -577,7 +557,6 @@ class Maybe(ABC, Generic[T]):
         Some(1)
         >>> Nothing.or_(2)
         Some(2)
-
         """
 
     def __or__(self, default: Optional[T]) -> Maybe[T]:
@@ -590,7 +569,6 @@ class Maybe(ABC, Generic[T]):
         Some(1)
         >>> Nothing | 2
         Some(2)
-
         """
 
         return self.or_(default)
@@ -604,7 +582,6 @@ class Maybe(ABC, Generic[T]):
         Some([42])
         >>> Nothing.or_else(list)
         Some([])
-
         """
 
     @abstractmethod
@@ -619,7 +596,6 @@ class Maybe(ABC, Generic[T]):
         False
         >>> Nothing.contains(3)
         False
-
         """
 
     @abstractmethod
@@ -635,14 +611,13 @@ class Maybe(ABC, Generic[T]):
         Some(2)
         >>> Nothing.filter(is_even)
         Nothing
-
         """
 
     @abstractmethod
     def xor(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
         """
-        Return either ``val`` or ``other`` if the other is ``None``. Also return
-        ``None`` if both are not ``None``.
+        Return either ``val`` or ``other`` if the other is ``None``. Also
+        return ``None`` if both are not ``None``.
 
         >>> xor(1, None)
         1
@@ -650,7 +625,6 @@ class Maybe(ABC, Generic[T]):
         2
         >>> xor(1, 2)
         >>> xor(None, None)
-
         """
 
     def __xor__(self, other: OptionalOrMaybe[T]) -> Maybe[T]:
@@ -659,8 +633,9 @@ class Maybe(ABC, Generic[T]):
     @abstractmethod
     def iter(self) -> List[T]:
         """
-        Wrap ``val`` into a list, if it is not ``None``. Allows to use for loops
-        on optional values.
+        Wrap ``val`` into a list, if it is not ``None``.
+
+        Allows to use for loops on optional values.
         """
 
     def __iter__(self):
@@ -668,14 +643,16 @@ class Maybe(ABC, Generic[T]):
 
     @abstractmethod
     def zip(self, other: OptionalOrMaybe[U]) -> Maybe[Tuple[T, U]]:
-        """ """
+        """
+        Abstract zip.
+        """
 
     @abstractmethod
     def zip_with(
         self, other: OptionalOrMaybe[U], fn: Callable[[T, U], R]
     ) -> Maybe[R]:
-        """
-        Apply function to two optional values, if neither of them is ``None``:
+        """Apply function to two optional values, if neither of them is
+        ``None``:
 
         >>> add = lambda left, right: left + right
         >>> Some(1).zip_with(2, add)
@@ -684,12 +661,12 @@ class Maybe(ABC, Generic[T]):
         Nothing
         >>> Nothing.zip_with(2, add)
         Nothing
-
         """
 
     @abstractmethod
     def flatten(self: "Maybe[OptionalOrMaybe[T]]") -> Maybe[T]:
-        """Flatten nested optional value.
+        """
+        Flatten nested optional value.
 
         Note: This just returns the value, but changes the type from
         ``Optional[Optional[T]]`` to ``Optional[T].``

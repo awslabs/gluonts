@@ -29,10 +29,10 @@ class FeatureImportanceResult(BaseModel):
     @root_validator()
     def check_shape(cls, values):
         """
-        Validate the second dimension is the same for 2d results and all fields share the same dimensionality
-        For example, time aligned results with dimension of (features, pred_length), the pred_length shall be the same
-        :param values:
-        :return:
+        Validate the second dimension is the same for 2d results and all fields
+        share the same dimensionality For example, time aligned results with
+        dimension of (features, pred_length), the pred_length shall be the
+        same.
         """
         dim = np.array(values.get("target")).ndim
         assert (

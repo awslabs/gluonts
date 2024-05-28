@@ -26,7 +26,9 @@ from gluonts.torch.model.simple_feedforward import make_linear_layer
 
 
 class SinusoidalPositionalEmbedding(nn.Embedding):
-    """This module produces sinusoidal positional embeddings of any length."""
+    """
+    This module produces sinusoidal positional embeddings of any length.
+    """
 
     def __init__(self, num_positions: int, embedding_dim: int) -> None:
         super().__init__(num_positions, embedding_dim)
@@ -35,7 +37,9 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
     @staticmethod
     def _init_weight(out: torch.Tensor) -> torch.Tensor:
         """
-        Features are not interleaved. The cos features are in the 2nd half of the vector. [dim // 2:]
+        Features are not interleaved.
+
+        The cos features are in the 2nd half of the vector. [dim // 2:]
         """
         n_pos, dim = out.shape
         position_enc = np.array(
@@ -57,7 +61,9 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
     def forward(  # type: ignore
         self, input_ids_shape: torch.Size, past_key_values_length: int = 0
     ) -> torch.Tensor:
-        """`input_ids_shape` is expected to be [bsz x seqlen x ...]."""
+        """
+        `input_ids_shape` is expected to be [bsz x seqlen x ...].
+        """
         _, seq_len = input_ids_shape[:2]
         positions = torch.arange(
             past_key_values_length,

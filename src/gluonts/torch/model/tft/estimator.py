@@ -63,7 +63,8 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
     """
-    Estimator class to train a Temporal Fusion Transformer (TFT) model, as described in [LAL+21]_.
+    Estimator class to train a Temporal Fusion Transformer (TFT) model, as
+    described in [LAL+21]_.
 
     TFT internally performs feature selection when making forecasts. For this
     reason, the dimensions of real-valued features can be grouped together if

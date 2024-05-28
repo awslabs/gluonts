@@ -178,6 +178,7 @@ class SplicedBinnedPareto(BinnedUniforms):
     def pdf(self, x):
         """
         Probability for a tensor of data points `x`.
+
         'x' is to have shape (*batch_shape)
         """
         # By default we put the for training parameter of the pdf on false as
@@ -186,8 +187,8 @@ class SplicedBinnedPareto(BinnedUniforms):
 
     def _inverse_cdf(self, quantiles: torch.Tensor):
         """
-        Inverse cdf of a tensor of quantile `quantiles`
-        'quantiles' is of shape (*batch_shape) with values between (0.0, 1.0)
+        Inverse cdf of a tensor of quantile `quantiles` 'quantiles' is of shape
+        (*batch_shape) with values between (0.0, 1.0)
         """
 
         # The quantiles for the body of the distribution:
@@ -229,6 +230,7 @@ class SplicedBinnedPareto(BinnedUniforms):
     def cdf(self, x: torch.Tensor):
         """
         Cumulative density tensor for a tensor of data points `x`.
+
         'x' is expected to be of shape (*batch_shape)
         """
         for i in range(0, len(x.shape)):

@@ -36,20 +36,20 @@ class Bijection:
 
     def f(self, x: Tensor) -> Tensor:
         r"""
-        Forward transformation x -> y
+        Forward transformation x -> y.
         """
         raise NotImplementedError
 
     def f_inv(self, y: Tensor) -> Tensor:
         r"""
-        Inverse transformation y -> x
+        Inverse transformation y -> x.
         """
         raise NotImplementedError
 
     def log_abs_det_jac(self, x: Tensor, y: Tensor) -> Tensor:
         r"""
         Receives (x, y) and returns log of the absolute value of the Jacobian
-        determinant
+        determinant.
 
         .. math::
             \log |dy/dx|

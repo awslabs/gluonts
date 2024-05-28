@@ -26,7 +26,8 @@ Item = Dict[str, Any]
 
 class Transform(ABC):
     """
-    A transform enables transforming the set of time series contained in a dataset.
+    A transform enables transforming the set of time series contained in a
+    dataset.
     """
 
     @abstractmethod
@@ -44,8 +45,10 @@ class Transform(ABC):
 
 class ItemIDTransform(Transform):
     """
-    Adds an id to the time series. For rolling test sets
-    the time series that are an extension of each other have the same id.
+    Adds an id to the time series.
+
+    For rolling test sets the time series that are an extension of each other
+    have the same id.
     """
 
     def __init__(self, required_length: int = 0):
@@ -68,8 +71,8 @@ def read_transform_write(
     source: Optional[Path] = None,
 ) -> None:
     """
-    Reads the dataset from the provided path, applies the given transform and writes it back to the
-    same file.
+    Reads the dataset from the provided path, applies the given transform and
+    writes it back to the same file.
 
     Args:
         file: The path from where to read the data.

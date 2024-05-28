@@ -48,8 +48,9 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class ITransformerEstimator(PyTorchLightningEstimator):
     """
-    An estimator training the iTransformer model for multivariate forecasting as described in
-    https://arxiv.org/abs/2310.06625 extended to be probabilistic.
+    An estimator training the iTransformer model for multivariate forecasting
+    as described in https://arxiv.org/abs/2310.06625 extended to be
+    probabilistic.
 
     This class uses the model defined in ``ITransformerModel``,
     and wraps it into a ``ITransformerLightningModule`` for training

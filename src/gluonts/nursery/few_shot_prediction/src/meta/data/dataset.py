@@ -22,8 +22,8 @@ from torch.utils.data import Dataset
 @dataclass
 class TimeSeries:
     """
-    A time series contains the time series data along with metadata about the time series as well
-    as static and dynamic features.
+    A time series contains the time series data along with metadata about the
+    time series as well as static and dynamic features.
     """
 
     dataset_name: str
@@ -103,7 +103,10 @@ class TimeSeriesDataset(Dataset[TimeSeries]):
 
     def rescale_dataset(self, series: torch.Tensor):
         """
-        Redo standardization. The series must contain the same time series in the same order as the dataset.
+        Redo standardization.
+
+        The series must contain the same time series in the same order as the
+        dataset.
         """
         return (
             (series * self.stds.unsqueeze(2)) + self.means.unsqueeze(2)

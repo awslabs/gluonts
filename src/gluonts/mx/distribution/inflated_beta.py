@@ -96,9 +96,8 @@ class ZeroAndOneInflatedBeta(MixtureDistribution):
 
 
 class ZeroInflatedBeta(ZeroAndOneInflatedBeta):
-    r"""
-    Zero Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari:
-    Inflated Beta Distributions
+    r"""Zero Inflated Beta distribution as in Raydonal Ospina, Silvia L.P.
+    Ferrari: Inflated Beta Distributions.
 
     Parameters
     ----------
@@ -129,9 +128,8 @@ class ZeroInflatedBeta(ZeroAndOneInflatedBeta):
 
 
 class OneInflatedBeta(ZeroAndOneInflatedBeta):
-    r"""
-    One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P. Ferrari:
-    Inflated Beta Distributions
+    r"""One Inflated Beta distribution as in Raydonal Ospina, Silvia L.P.
+    Ferrari: Inflated Beta Distributions.
 
     Parameters
     ----------

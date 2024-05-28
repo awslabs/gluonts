@@ -20,7 +20,8 @@ from .module import WaveNet
 
 
 class WaveNetLightningModule(pl.LightningModule):
-    """LightningModule wrapper over WaveNet.
+    """
+    LightningModule wrapper over WaveNet.
 
     Parameters
     ----------

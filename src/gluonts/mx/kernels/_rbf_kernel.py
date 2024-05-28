@@ -85,8 +85,8 @@ class RBFKernelOutput(KernelOutputDict):
         self, F, past_target: Tensor, past_time_feat: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        This function returns the scales for the GP RBF Kernel hyper-parameters
-        by using the standard deviations of the past_target and
+        This function returns the scales for the GP RBF Kernel hyper-
+        parameters by using the standard deviations of the past_target and
         past_time_features.
 
         Parameters

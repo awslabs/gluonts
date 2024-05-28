@@ -25,8 +25,9 @@ def plot_forecast_supportset_attention(
     quantiles: List[str],
 ) -> plt.Figure:
     """
-    Plots the provided forecasts for each sample with confidence intervals using all provided quantiles.
-    Furthermore, plots the time series in the support set of this sample aligned with their attention scores.
+    Plots the provided forecasts for each sample with confidence intervals
+    using all provided quantiles. Furthermore, plots the time series in the
+    support set of this sample aligned with their attention scores.
 
     Parameters
     ----------
@@ -101,7 +102,8 @@ def plot_quantile_forecast(
     quantiles: List[str],
 ) -> plt.Figure:
     """
-    Plots the provided forecasts for each sample with confidence intervals using all provided quantiles.
+    Plots the provided forecasts for each sample with confidence intervals
+    using all provided quantiles.
 
     Parameters
     ----------
@@ -144,7 +146,8 @@ def _plot_quantile_forecast(
     quantiles: List[str],
 ):
     """
-    Plots the provided forecast with confidence intervals using all provided quantiles.
+    Plots the provided forecast with confidence intervals using all provided
+    quantiles.
 
     Parameters
     ----------

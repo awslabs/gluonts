@@ -475,12 +475,13 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
 
 
 class TFTInstanceSplitter(InstanceSplitter):
-    """Instance splitter used by the Temporal Fusion Transformer model.
+    """
+    Instance splitter used by the Temporal Fusion Transformer model.
 
-    Unlike ``InstanceSplitter``, this class returns known dynamic features as
-    a single tensor of shape [..., context_length + prediction_length, ...]
-    without splitting it into past & future parts. Moreover, this class supports
-    dynamic features that are known in the past.
+    Unlike ``InstanceSplitter``, this class returns known dynamic features as a
+    single tensor of shape [..., context_length + prediction_length, ...]
+    without splitting it into past & future parts. Moreover, this class
+    supports dynamic features that are known in the past.
     """
 
     @validated()

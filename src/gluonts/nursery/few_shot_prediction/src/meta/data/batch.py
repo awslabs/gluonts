@@ -25,8 +25,9 @@ from meta.common.torch import tensor_to_np
 @dataclass
 class SeriesBatch:
     """
-    A batch of series from different base datasets, represented by the padded batch, the lengths of the series
-    and the splits sizes indicating the corresponding base dataset.
+    A batch of series from different base datasets, represented by the padded
+    batch, the lengths of the series and the splits sizes indicating the
+    corresponding base dataset.
     """
 
     sequences: (
@@ -106,7 +107,10 @@ class SeriesBatch:
 
     def rescale(self) -> SeriesBatch:
         """
-        Redo standardization. The series must contain the same time series in the same order as the dataset.
+        Redo standardization.
+
+        The series must contain the same time series in the same order as the
+        dataset.
         """
         m = self.scales[:, 0].unsqueeze(1)
         std = self.scales[:, 1].unsqueeze(1)
@@ -118,8 +122,11 @@ class SeriesBatch:
 
     def one_per_split(self) -> SeriesBatch:
         """
-        Choose the first element of every split section and return the resulting series batch.
-        This method should only be used on query (past and future) series batches.
+        Choose the first element of every split section and return the
+        resulting series batch.
+
+        This method should only be used on query (past and future) series
+        batches.
         """
         splits = torch.split(self.sequences, self.split_sections.tolist())
         lengths = torch.split(self.lengths, self.split_sections.tolist())
@@ -131,7 +138,9 @@ class SeriesBatch:
 
     def first_n(self, n: int) -> SeriesBatch:
         """
-        Choose the first n splits of the sequences as defined by split_sections.
+        Choose the first n splits of the sequences as defined by
+        ``split_sections``.
+
         Self.sequences has thus sum(split_section[i], i=0, ..., n-1) elements.
         """
         splits = torch.split(self.sequences, self.split_sections.tolist())
@@ -157,7 +166,9 @@ class SeriesBatch:
 @dataclass
 class TripletBatch:
     """
-    A triplet batch, composed of a batch of support sets, query contexts and prediction horizons.
+    A triplet batch, composed of a batch of support sets, query contexts and
+    prediction horizons.
+
     Compared to a simple triplet, it also manages the lengths of all samples.
     """
 
@@ -168,7 +179,8 @@ class TripletBatch:
     @classmethod
     def collate(cls, triplets: List[Triplet]) -> TripletBatch:
         """
-        Combines a list of triplets into a batched triplet to pass to a network.
+        Combines a list of triplets into a batched triplet to pass to a
+        network.
         """
         s, p, f = zip(*triplets)
         return TripletBatch(
@@ -192,8 +204,10 @@ class TripletBatch:
 
     def reduce_to_unique_query(self) -> TripletBatch:
         """
-        Selects the first query of every group of queries that use the same support set
-        (see split_sections of queries) and returns the resulting triplet batch.
+        Selects the first query of every group of queries that use the same
+        support set (see split_sections of queries) and returns the resulting
+        triplet batch.
+
         Query past and future are reduced, support sets are not touched.
         """
         return TripletBatch(
@@ -204,7 +218,8 @@ class TripletBatch:
 
     def first_n(self, n: int) -> TripletBatch:
         """
-        Choose the first n splits of each series batch and return the resulting triplet batch.
+        Choose the first n splits of each series batch and return the resulting
+        triplet batch.
         """
         return TripletBatch(
             support_set=self.support_set.first_n(n),
