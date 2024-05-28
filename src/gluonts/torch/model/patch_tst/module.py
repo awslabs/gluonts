@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -21,7 +21,7 @@ from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
-from gluonts.torch.util import unsqueeze_expand, weighted_average
+from gluonts.torch.util import take_last, unsqueeze_expand, weighted_average
 from gluonts.torch.model.simple_feedforward import make_linear_layer
 
 
@@ -85,6 +85,8 @@ class PatchTSTModel(nn.Module):
         Number of time points to predict.
     context_length
         Number of time steps prior to prediction time that the model.
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
     distr_output
         Distribution to use to evaluate observations and sample predictions.
         Default: ``StudentTOutput()``.
@@ -101,6 +103,7 @@ class PatchTSTModel(nn.Module):
         d_model: int,
         nhead: int,
         dim_feedforward: int,
+        num_feat_dynamic_real: int,
         dropout: float,
         activation: str,
         norm_first: bool,
@@ -120,6 +123,7 @@ class PatchTSTModel(nn.Module):
         self.d_model = d_model
         self.padding_patch = padding_patch
         self.distr_output = distr_output
+        self.num_feat_dynamic_real = num_feat_dynamic_real
 
         if scaling == "mean":
             self.scaler = MeanScaler(keepdim=True)
@@ -133,8 +137,11 @@ class PatchTSTModel(nn.Module):
             self.padding_patch_layer = nn.ReplicationPad1d((0, self.stride))
             self.patch_num += 1
 
-        # project from patch_len + 2 features (loc and scale) to d_model
-        self.patch_proj = make_linear_layer(patch_len + 2, d_model)
+        # project from `patch_len` + 2 features (`loc` and `scale`) +
+        # `num_feat_dynamic_real` x `patch_len` to d_model
+        self.patch_proj = make_linear_layer(
+            patch_len + 2 + self.num_feat_dynamic_real * patch_len, d_model
+        )
 
         self.positional_encoding = SinusoidalPositionalEmbedding(
             self.patch_num, d_model
@@ -163,6 +170,28 @@ class PatchTSTModel(nn.Module):
         self.args_proj = self.distr_output.get_args_proj(d_model)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
+        if self.num_feat_dynamic_real > 0:
+            input_spec_feat = {
+                "past_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+                "future_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self.prediction_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+            }
+        else:
+            input_spec_feat = {}
+
         return InputSpec(
             {
                 "past_target": Input(
@@ -171,6 +200,7 @@ class PatchTSTModel(nn.Module):
                 "past_observed_values": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float
                 ),
+                **input_spec_feat,
             },
             torch.zeros,
         )
@@ -179,6 +209,8 @@ class PatchTSTModel(nn.Module):
         self,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
         # scale the input
         past_target_scaled, loc, scale = self.scaler(
@@ -192,6 +224,25 @@ class PatchTSTModel(nn.Module):
             dimension=1, size=self.patch_len, step=self.stride
         )
 
+        # do patching for time features as well
+        if self.num_feat_dynamic_real > 0:
+            # shift time features by `prediction_length` so that they are
+            # aligned with the target input.
+            time_feat = take_last(
+                torch.cat((past_time_feat, future_time_feat), dim=1),
+                dim=1,
+                num=self.context_length,
+            )
+
+            # (bs x T x d) --> (bs x d x T) because the 1D padding is done on
+            # the last dimension.
+            time_feat = self.padding_patch_layer(
+                time_feat.transpose(-2, -1)
+            ).transpose(-2, -1)
+            time_feat_patches = time_feat.unfold(
+                dimension=1, size=self.patch_len, step=self.stride
+            ).flatten(-2, -1)
+
         # add loc and scale to past_target_patches as additional features
         log_abs_loc = loc.abs().log1p()
         log_scale = scale.log()
@@ -201,6 +252,9 @@ class PatchTSTModel(nn.Module):
             size=past_target_patches.shape[1],
         )
         inputs = torch.cat((past_target_patches, expanded_static_feat), dim=-1)
+
+        if self.num_feat_dynamic_real > 0:
+            inputs = torch.cat((inputs, time_feat_patches), dim=-1)
 
         # project patches
         enc_in = self.patch_proj(inputs)
@@ -224,9 +278,14 @@ class PatchTSTModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
-            past_target=past_target, past_observed_values=past_observed_values
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_time_feat=past_time_feat,
+            future_time_feat=future_time_feat,
         )
         loss = self.distr_output.loss(
             target=future_target, distr_args=distr_args, loc=loc, scale=scale
