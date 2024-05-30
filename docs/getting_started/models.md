@@ -2,6 +2,9 @@
 
 Model + Paper                                                | Local/global | Data layout              | Architecture/method | Implementation
 -------------------------------------------------------------|--------------|--------------------------|---------------------|----------------
+PatchTST<br>[Nie et al., 2023][Nie2023]                      | Global       | Univariate               | MLP, multi-head attention | [Pytorch][PatchTST_torch]
+LagTST<br>                                                   | Global       | Univariate               | MLP, multi-head attention | [Pytorch][LagTST_torch]
+DLinear<br>[Zeng et al., 2023][Zeng2023]                     | Global       | Univariate               | MLP | [Pytorch][DLinear_torch]
 DeepAR<br>[Salinas et al. 2020][Salinas2020]                 | Global       | Univariate               | RNN | [MXNet][DeepAR_mx], [PyTorch][DeepAR_torch]
 DeepState<br>[Rangapuram et al. 2018][Rangapuram2018]        | Global       | Univariate               | RNN, state-space model | [MXNet][DeepState]
 DeepFactor<br>[Wang et al. 2019][Wang2019]                   | Global       | Univariate               | RNN, state-space model, Gaussian process | [MXNet][DeepFactor]
@@ -30,6 +33,8 @@ NPTS                                                         | Local        | Un
 
 <!-- Links to bibliography -->
 
+[Nie2023]: https://arxiv.org/abs/2211.14730
+[Zeng2023]: https://arxiv.org/abs/2205.13504
 [Rangapuram2021]: https://proceedings.mlr.press/v139/rangapuram21a.html
 [Salinas2020]: https://doi.org/10.1016/j.ijforecast.2019.07.001
 [Rangapuram2018]: https://papers.nips.cc/paper/2018/hash/5cf68969fb67aa6082363a6d4e6468e2-Abstract.html
@@ -52,6 +57,9 @@ NPTS                                                         | Local        | Un
 
 <!-- Links to code -->
 
+[PatchTST_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/patch_tst/estimator.py
+[LagTST_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/lag_tst/estimator.py
+[DLinear_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/d_linear/estimator.py
 [DeepAR_mx]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/deepar/_estimator.py
 [DeepAR_torch]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/torch/model/deepar/estimator.py
 [DeepState]: https://github.com/awslabs/gluonts/blob/dev/src/gluonts/mx/model/deepstate/_estimator.py

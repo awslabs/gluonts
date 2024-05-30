@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from packaging.version import Version
 from typing import Any, Callable, Dict, List
 
 import numpy as np
@@ -196,7 +197,10 @@ def norm_freq_str(freq_str: str) -> str:
     # Note: Secondly ("S") frequency exists, where we don't want to remove the
     # "S"!
     if len(base_freq) >= 2 and base_freq.endswith("S"):
-        return base_freq[:-1]
+        base_freq = base_freq[:-1]
+        # In pandas >= 2.2, period end frequencies have been renamed, e.g. "M" -> "ME"
+        if Version(pd.__version__) >= Version("2.2.0"):
+            base_freq += "E"
 
     return base_freq
 
@@ -252,17 +256,13 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     Unsupported frequency {freq_str}
 
     The following frequencies are supported:
-
-        Y   - yearly
-            alias: A
-        Q   - quarterly
-        M   - monthly
-        W   - weekly
-        D   - daily
-        B   - business days
-        H   - hourly
-        T   - minutely
-            alias: min
-        S   - secondly
+    
     """
+
+    for offset_cls in features_by_offsets:
+        offset = offset_cls()
+        supported_freq_msg += (
+            f"\t{offset.freqstr.split('-')[0]} - {offset_cls.__name__}"
+        )
+
     raise RuntimeError(supported_freq_msg)

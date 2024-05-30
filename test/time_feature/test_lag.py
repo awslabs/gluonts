@@ -15,12 +15,16 @@
 Test the lags computed for different frequencies.
 """
 
+import pytest
+
 import gluonts.time_feature.lag as date_feature_set
+
+from .common import H, M, Q, Y
 
 # These are the expected lags for common frequencies and corner cases.
 # By default all frequencies have the following lags: [1, 2, 3, 4, 5, 6, 7].
 # Remaining lags correspond to the same `season` (+/- `delta`) in previous `k` cycles.
-expected_lags = {
+EXPECTED_LAGS = {
     # (apart from the default lags) centered around each of the last 3 hours (delta = 2)
     "4S": [
         1,
@@ -179,7 +183,7 @@ expected_lags = {
     ]
     + [329, 330, 331, 494, 495, 496, 659, 660, 661, 707, 708, 709],
     # centered around each of the last 3 hours (delta = 2) + last 7 days (delta = 1) + last 6 weeks (delta = 1)
-    "H": [1, 2, 3, 4, 5, 6, 7]
+    H: [1, 2, 3, 4, 5, 6, 7]
     + [
         23,
         24,
@@ -206,7 +210,7 @@ expected_lags = {
     + [335, 336, 337, 503, 504, 505, 671, 672, 673, 719, 720, 721],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0)
-    "6H": [
+    ("6" + H): [
         1,
         2,
         3,
@@ -237,21 +241,21 @@ expected_lags = {
     + [224, 336],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last year (delta = 1)
-    "12H": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    ("12" + H): [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     + [27, 28, 29, 41, 42, 43, 55, 56, 57]
     + [59, 60, 61]
     + [112, 168]
     + [727, 728, 729],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last 3 years (delta = 1)
-    "23H": [1, 2, 3, 4, 5, 6, 7, 8]
+    ("23" + H): [1, 2, 3, 4, 5, 6, 7, 8]
     + [13, 14, 15, 20, 21, 22, 28, 29]
     + [30, 31, 32]
     + [58, 87]
     + [378, 379, 380, 758, 759, 760, 1138, 1139, 1140],
     # centered around each of the last 7 days (delta = 1) + last 4 weeks (delta = 1) + last 1 month (delta = 1) +
     #  last 8th and 12th weeks (delta = 0) + last 3 years (delta = 1)
-    "25H": [1, 2, 3, 4, 5, 6, 7]
+    ("25" + H): [1, 2, 3, 4, 5, 6, 7]
     + [12, 13, 14, 19, 20, 21, 25, 26, 27]
     + [28, 29]
     + [53, 80]
@@ -285,64 +289,31 @@ expected_lags = {
     # centered around each of the last 3 years (delta = 1)
     "5W": [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 19, 20, 21, 30, 31, 32],
     # centered around each of the last 3 years (delta = 1)
-    "M": [1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 23, 24, 25, 35, 36, 37],
+    M: [1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 23, 24, 25, 35, 36, 37],
     # default
-    "6M": [1, 2, 3, 4, 5, 6, 7],
+    "6" + M: [1, 2, 3, 4, 5, 6, 7],
     # default
-    "12M": [1, 2, 3, 4, 5, 6, 7],
+    "12" + M: [1, 2, 3, 4, 5, 6, 7],
+    Q: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13],
+    "QS": [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13],
+    Y: [1, 2, 3, 4, 5, 6, 7],
+    "YS": [1, 2, 3, 4, 5, 6, 7],
 }
 
 # For the default multiple (1)
-for freq in ["min", "H", "D", "W", "M"]:
-    expected_lags["1" + freq] = expected_lags[freq]
+for freq in ["min", H, "D", "W", M]:
+    EXPECTED_LAGS["1" + freq] = EXPECTED_LAGS[freq]
 
 # For frequencies that do not have unique form
-expected_lags["60min"] = expected_lags["1H"]
-expected_lags["24H"] = expected_lags["1D"]
-expected_lags["7D"] = expected_lags["1W"]
+EXPECTED_LAGS["60min"] = EXPECTED_LAGS["1" + H]
+EXPECTED_LAGS["24" + H] = EXPECTED_LAGS["1D"]
+EXPECTED_LAGS["7D"] = EXPECTED_LAGS["1W"]
 
 
-def test_lags():
-    freq_strs = [
-        "4S",
-        "min",
-        "1min",
-        "15min",
-        "30min",
-        "59min",
-        "60min",
-        "61min",
-        "H",
-        "1H",
-        "6H",
-        "12H",
-        "23H",
-        "24H",
-        "25H",
-        "D",
-        "1D",
-        "2D",
-        "6D",
-        "7D",
-        "8D",
-        "W",
-        "1W",
-        "3W",
-        "4W",
-        "5W",
-        "M",
-        "6M",
-        "12M",
-    ]
-
-    for freq_str in freq_strs:
-        lags = date_feature_set.get_lags_for_frequency(freq_str)
-
-        assert (
-            lags == expected_lags[freq_str]
-        ), "lags do not match for the frequency '{}':\nexpected: {},\nprovided: {}".format(
-            freq_str, expected_lags[freq_str], lags
-        )
+@pytest.mark.parametrize("freq_str, expected_lags", EXPECTED_LAGS.items())
+def test_lags(freq_str, expected_lags):
+    lags = date_feature_set.get_lags_for_frequency(freq_str)
+    assert lags == expected_lags
 
 
 if __name__ == "__main__":
