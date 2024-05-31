@@ -91,14 +91,6 @@ class DistributionOutput(Output):
         return nll
 
     @property
-    def event_shape(self) -> Tuple:
-        r"""
-        Shape of each individual event contemplated by the distributions that
-        this object constructs.
-        """
-        raise NotImplementedError()
-
-    @property
     def event_dim(self) -> int:
         r"""
         Number of event dimensions, i.e., length of the `event_shape` tuple, of
