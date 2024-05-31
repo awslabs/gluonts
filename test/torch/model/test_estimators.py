@@ -148,6 +148,14 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
         ),
+        lambda dataset: TiDEEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            distr_output=QuantileOutput(quantiles=[0.1, 0.6, 0.85]),
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
         lambda dataset: WaveNetEstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
