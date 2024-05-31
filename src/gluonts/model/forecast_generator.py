@@ -84,7 +84,7 @@ def make_distribution_forecast(distr, *args, **kwargs) -> Forecast:
 
 def make_predictions(prediction_net, inputs: dict):
     try:
-        # Feed inputs as positional arguments for MXNet predictors
+        # Feed inputs as positional arguments for MXNet block predictors
         import mxnet as mx
 
         if isinstance(prediction_net, mx.gluon.Block):
