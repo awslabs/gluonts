@@ -19,7 +19,7 @@ from torch import nn
 from gluonts.core.component import validated
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.model import Input, InputSpec
-from gluonts.torch.distributions import DistributionOutput
+from gluonts.torch.distributions import Output
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.model.simple_feedforward import make_linear_layer
 from gluonts.torch.util import weighted_average
@@ -242,7 +242,7 @@ class TiDEModel(nn.Module):
         num_layers_encoder: int,
         num_layers_decoder: int,
         layer_norm: bool,
-        distr_output: DistributionOutput,
+        distr_output: Output,
         scaling: str,
     ) -> None:
         super().__init__()

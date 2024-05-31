@@ -106,6 +106,13 @@ class Output:
         raise NotImplementedError()
 
     @property
+    def event_shape(self) -> Tuple:
+        r"""
+        Shape of each individual event compatible with the output object.
+        """
+        raise NotImplementedError()
+
+    @property
     def forecast_generator(self) -> ForecastGenerator:
         raise NotImplementedError()
 
