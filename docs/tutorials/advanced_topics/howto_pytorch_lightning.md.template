@@ -151,7 +151,7 @@ class LightningFeedForwardNetwork(FeedForwardNetwork, pl.LightningModule):
 
         distr_args, loc, scale = self(past_target)
         distr = self.distr_output.distribution(distr_args, loc, scale)
-        loss = -distr.log_prob(target)
+        loss = -distr.log_prob(future_target)
 
         return loss.mean()
 
