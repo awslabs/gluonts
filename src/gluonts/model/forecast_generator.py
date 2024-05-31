@@ -87,7 +87,7 @@ def make_predictions(prediction_net, inputs: dict):
         # Feed inputs as positional arguments for MXNet predictors
         import mxnet as mx
 
-        if isinstance(prediction_net, (mx.gluon.Block)):
+        if isinstance(prediction_net, mx.gluon.Block):
             return prediction_net(*inputs.values())
     except ImportError:
         pass
