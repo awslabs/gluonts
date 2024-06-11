@@ -81,10 +81,11 @@ class Grouper:
         """
         The preprocess function iterates over the dataset to gather data that
         is necessary for grouping.
+
         This includes:
-            1) Storing first/last timestamp in the dataset
-            2) Aligning time series
-            3) Calculating groups
+             1. Storing first/last timestamp in the dataset
+             2. Aligning time series
+             3. Calculating groups
         """
         for data in dataset:
             timestamp = data["start"]

@@ -27,8 +27,10 @@ from gluonts.torch.modules.lambda_layer import LambdaLayer
 class QuantileLayer(nn.Module):
     r"""
     Implicit Quantile Layer from the paper ``IQN for Distributional
-    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
-    Dabney et al. 2018.
+    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by Dabney et
+    al.
+
+    2018.
     """
 
     def __init__(self, num_output: int, cos_embedding_dim: int = 128):
@@ -50,8 +52,10 @@ class QuantileLayer(nn.Module):
 class ImplicitQuantileModule(nn.Module):
     r"""
     Implicit Quantile Network from the paper ``IQN for Distributional
-    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by
-    Dabney et al. 2018.
+    Reinforcement Learning`` (https://arxiv.org/abs/1806.06923) by Dabney et
+    al.
+
+    2018.
     """
 
     def __init__(
@@ -102,8 +106,8 @@ class ImplicitQuantileModule(nn.Module):
 
 class ImplicitQuantileNetwork(Distribution):
     r"""
-    Distribution class for the Implicit Quantile from which
-    we can sample or calculate the quantile loss.
+    Distribution class for the Implicit Quantile from which we can sample or
+    calculate the quantile loss.
 
     Parameters
     ----------
@@ -140,8 +144,8 @@ class ImplicitQuantileNetwork(Distribution):
 
 class ImplicitQuantileNetworkOutput(DistributionOutput):
     r"""
-    DistributionOutput class for the IQN from the paper
-    ``Probabilistic Time Series Forecasting with Implicit Quantile Networks``
+    DistributionOutput class for the IQN from the paper ``Probabilistic Time
+    Series Forecasting with Implicit Quantile Networks``
     (https://arxiv.org/abs/2107.03743) by Gouttes et al. 2021.
 
     Parameters
@@ -201,14 +205,27 @@ class ImplicitQuantileNetworkOutput(DistributionOutput):
     def domain_map(cls, *args):
         return args
 
-    def distribution(self, distr_args, loc=0, scale=None) -> Distribution:
+    def distribution(
+        self, distr_args, loc=0, scale=None
+    ) -> ImplicitQuantileNetwork:
         (outputs, taus) = distr_args
 
-        if scale is None:
-            return self.distr_cls(outputs=outputs, taus=taus)
-        else:
-            return self.distr_cls(outputs=loc + outputs * scale, taus=taus)
+        if scale is not None:
+            outputs = outputs * scale
+        if loc is not None:
+            outputs = outputs + loc
+        return self.distr_cls(outputs=outputs, taus=taus)
 
     @property
     def event_shape(self):
         return ()
+
+    def loss(
+        self,
+        target: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, ...],
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        distribution = self.distribution(distr_args, loc=loc, scale=scale)
+        return distribution.quantile_loss(target)

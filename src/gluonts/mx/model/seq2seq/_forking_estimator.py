@@ -69,8 +69,8 @@ from ._transform import ForkingSequenceSplitter
 
 class ForkingSeq2SeqEstimator(GluonEstimator):
     r"""
-    Sequence-to-Sequence (seq2seq) structure with the so-called
-    "Forking Sequence" proposed in [WTN+17]_.
+    Sequence-to-Sequence (seq2seq) structure with the so-called "Forking
+    Sequence" proposed in [WTN+17]_.
 
     The basic idea is that, given a sequence :math:`x_1, x_2, \cdots, x_T`,
     with a decoding length :math:`\tau`, we learn a NN that solves the

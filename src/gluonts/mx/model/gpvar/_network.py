@@ -116,9 +116,9 @@ class GPVARNetwork(DeepVARNetwork):
                 length=unroll_length,
                 layout="NTC",
                 merge_outputs=True,
-                begin_state=begin_state[i]
-                if begin_state is not None
-                else None,
+                begin_state=(
+                    begin_state[i] if begin_state is not None else None
+                ),
             )
             outputs.append(outputs_single_dim)
             states.append(state)

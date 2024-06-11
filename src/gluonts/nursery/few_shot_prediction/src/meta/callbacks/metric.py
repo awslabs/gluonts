@@ -23,8 +23,9 @@ from meta.metrics.numpy import compute_metrics
 
 class QuantileMetricLoggerCallback(Callback):
     """
-    A callback that computes additional metrics on a numpy representation of the dataset every n epochs.
-    The computed values are logged to the output file of the pytorch lightning logger.
+    A callback that computes additional metrics on a numpy representation of
+    the dataset every n epochs. The computed values are logged to the output
+    file of the pytorch lightning logger.
 
     Args:
         quantiles: The quantiles that are predicted.

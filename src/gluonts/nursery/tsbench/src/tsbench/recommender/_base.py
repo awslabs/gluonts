@@ -116,9 +116,11 @@ class Recommender(ABC, Generic[T]):
         # Then, we perform a nondominated sort
         argsort = argsort_nondominated(
             df.to_numpy(),  # type: ignore
-            dim=df.columns.tolist().index(self.focus)
-            if self.focus is not None
-            else None,
+            dim=(
+                df.columns.tolist().index(self.focus)
+                if self.focus is not None
+                else None
+            ),
             max_items=max_count,
         )
 

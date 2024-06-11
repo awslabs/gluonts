@@ -32,7 +32,9 @@ from gluonts.dataset.jsonl import JsonLinesFile
 
 
 class Timer:
-    """Context manager for measuring the time of enclosed code fragments."""
+    """
+    Context manager for measuring the time of enclosed code fragments.
+    """
 
     def __enter__(self):
         self.start = time.perf_counter()

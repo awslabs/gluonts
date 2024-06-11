@@ -107,8 +107,9 @@ def naive_2(
 
 class Naive2Predictor(RepresentablePredictor):
     """
-    Naïve 2 forecaster as described in the M4 Competition Guide:
-    http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf
+    Naïve 2 forecaster as described in the M4 Competition Guide.
+
+    See: http://www.unic.ac.cy/test/wp-content/uploads/sites/2/2018/09/M4-Competitors-Guide.pdf.
 
     The Python analogue implementation to:
     https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R#L118

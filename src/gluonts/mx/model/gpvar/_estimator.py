@@ -63,7 +63,6 @@ from ._network import GPVARPredictionNetwork, GPVARTrainingNetwork
 
 
 class GPVAREstimator(GluonEstimator):
-
     """
     Constructs a GPVAR estimator.
 

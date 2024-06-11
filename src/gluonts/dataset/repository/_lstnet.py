@@ -200,9 +200,9 @@ def generate_lstnet_dataset(
     meta = MetaData(
         **metadata(
             cardinality=ds_info.num_series,
-            freq=ds_info.freq
-            if ds_info.agg_freq is None
-            else ds_info.agg_freq,
+            freq=(
+                ds_info.freq if ds_info.agg_freq is None else ds_info.agg_freq
+            ),
             prediction_length=prediction_length or ds_info.prediction_length,
         )
     )

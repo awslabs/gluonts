@@ -37,7 +37,9 @@ PREDICTION_INPUT_NAMES = [
 
 
 class Params:
-    """Class that loads hyperparameters from a json file.
+    """
+    Class that loads hyperparameters from a json file.
+
     Example:
     params = Params(json_path)
     print(params.learning_rate)
@@ -55,14 +57,19 @@ class Params:
             json.dump(self.__dict__, f, indent=4, ensure_ascii=False)
 
     def update(self, json_path):
-        """Loads parameters from json file"""
+        """
+        Loads parameters from json file.
+        """
         with open(json_path) as f:
             params = json.load(f)
             self.__dict__.update(params)
 
     @property
     def dict(self):
-        """Gives dict-like access to Params instance by params.dict['learning_rate']"""
+        """
+        Gives dict-like access to Params instance by
+        params.dict['learning_rate']
+        """
         return self.__dict__
 
 
@@ -263,13 +270,13 @@ def calc_loss(
             if (
                 true_future_target[:, attack_idx][..., target_items] != 0
             ).prod() == 0:
-                mape[attack_type][
-                    testset_idx : testset_idx + batch_size
-                ] = np.abs(
-                    forecasts[attack_type][i][:, :, attack_idx][
-                        ..., target_items
-                    ].mean(1)
-                    - true_future_target[:, attack_idx][..., target_items]
+                mape[attack_type][testset_idx : testset_idx + batch_size] = (
+                    np.abs(
+                        forecasts[attack_type][i][:, :, attack_idx][
+                            ..., target_items
+                        ].mean(1)
+                        - true_future_target[:, attack_idx][..., target_items]
+                    )
                 )
                 mse[attack_type][testset_idx : testset_idx + batch_size] = (
                     forecasts[attack_type][i][:, :, attack_idx][
@@ -290,14 +297,14 @@ def calc_loss(
                         j, testset_idx : testset_idx + batch_size
                     ] = quantile_loss(true, pred, quantile)
             else:
-                mape[attack_type][
-                    testset_idx : testset_idx + batch_size
-                ] = np.abs(
-                    forecasts[attack_type][i][:, :, attack_idx][
-                        ..., target_items
-                    ].mean(1)
-                    / true_future_target[:, attack_idx][..., target_items]
-                    - 1
+                mape[attack_type][testset_idx : testset_idx + batch_size] = (
+                    np.abs(
+                        forecasts[attack_type][i][:, :, attack_idx][
+                            ..., target_items
+                        ].mean(1)
+                        / true_future_target[:, attack_idx][..., target_items]
+                        - 1
+                    )
                 )
                 mse[attack_type][testset_idx : testset_idx + batch_size] = (
                     mape[attack_type][testset_idx : testset_idx + batch_size]

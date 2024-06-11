@@ -30,7 +30,9 @@ np_str_obj_array_pattern = re.compile(r"[SaUO]")
 
 
 def _default_collate(batch):
-    r"""Puts each data field into a tensor with outer dimension batch size"""
+    r"""
+    Puts each data field into a tensor with outer dimension batch size.
+    """
 
     elem = batch[0]
     elem_type = type(elem)
@@ -101,7 +103,8 @@ def copy_to_gpu(data, cuda_device: int, non_blocking: bool):
 
 class MetaDataset(NamedTuple):
     """
-    Dataset Split Manager. Possess train/valid/test datasets and provide data loaders
+    Dataset Split Manager. Possess train/valid/test datasets and provide data
+    loaders.
 
     Parameters:
     --------------

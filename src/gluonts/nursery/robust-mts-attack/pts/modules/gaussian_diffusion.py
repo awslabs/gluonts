@@ -43,8 +43,7 @@ def noise_like(shape, device, repeat=False):
 
 def cosine_beta_schedule(timesteps, s=0.008):
     """
-    cosine schedule
-    as proposed in https://openreview.net/forum?id=-NEXDKk8gZ
+    Cosine schedule as proposed in https://openreview.net/forum?id=-NEXDKk8gZ.
     """
     steps = timesteps + 1
     x = np.linspace(0, steps, steps)
@@ -80,9 +79,7 @@ class GaussianDiffusion(nn.Module):
             if beta_schedule == "linear":
                 betas = np.linspace(1e-4, beta_end, diff_steps)
             elif beta_schedule == "quad":
-                betas = (
-                    np.linspace(1e-4**0.5, beta_end**0.5, diff_steps) ** 2
-                )
+                betas = np.linspace(1e-4**0.5, beta_end**0.5, diff_steps) ** 2
             elif beta_schedule == "const":
                 betas = beta_end * np.ones(diff_steps)
             elif beta_schedule == "jsd":  # 1/T, 1/(T-1), 1/(T-2), ..., 1
@@ -314,7 +311,7 @@ class GaussianDiffusion(nn.Module):
             cond.reshape(B * T, 1, -1),
             time,
             *args,
-            **kwargs
+            **kwargs,
         )
 
         return loss

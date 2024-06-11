@@ -26,7 +26,6 @@ from .util import (
     interval_to_quantile_level,
 )
 
-
 UNIVARIATE_QUANTILE_FORECAST_METHODS = [
     "arima",
     "ets",
@@ -44,7 +43,8 @@ SUPPORTED_UNIVARIATE_METHODS = (
 
 class RForecastPredictor(RBasePredictor):
     """
-    Wrapper for calling the `R forecast package
+    Wrapper for calling the `R forecast package.
+
     <http://pkg.robjhyndman.com/forecast/>`_.
 
     In order to use it you need to install R and rpy2. You also need the R `forecast` package which

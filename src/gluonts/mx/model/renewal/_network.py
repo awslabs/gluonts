@@ -89,9 +89,11 @@ class DeepRenewalNetwork(gluon.HybridBlock):
         cond_interval, cond_size = F.split(cond_mean, num_outputs=2, axis=-1)
 
         alpha_biases = [
-            F.broadcast_mul(F.ones_like(cond_interval), bias)
-            if bias is not None
-            else None
+            (
+                F.broadcast_mul(F.ones_like(cond_interval), bias)
+                if bias is not None
+                else None
+            )
             for bias in [interval_alpha_bias, size_alpha_bias]
         ]
 

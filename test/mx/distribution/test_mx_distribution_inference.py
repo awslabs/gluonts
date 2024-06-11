@@ -12,9 +12,10 @@
 # permissions and limitations under the License.
 
 """
-Test that maximizing likelihood allows to correctly recover distribution parameters for all
-distributions exposed to the user.
+Test that maximizing likelihood allows to correctly recover distribution
+parameters for all distributions exposed to the user.
 """
+import random
 from functools import reduce
 
 from typing import List, Tuple
@@ -177,7 +178,7 @@ def maximum_likelihood_estimate_sgd(
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_beta_likelihood(alpha: float, beta: float, hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -224,7 +225,7 @@ def test_inflated_beta_likelihood(
     one_probability: float,
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -315,7 +316,7 @@ def test_studentT_likelihood(
     mu: float, sigma: float, nu: float, hybridize: bool
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -358,7 +359,7 @@ def test_studentT_likelihood(
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_gamma_likelihood(alpha: float, beta: float, hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -394,7 +395,7 @@ def test_gamma_likelihood(alpha: float, beta: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_gaussian_likelihood(mu: float, sigma: float, hybridize: bool):
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -536,7 +537,7 @@ def test_dirichlet_multinomial(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 @pytest.mark.parametrize("rank", [0, 1])
 def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
@@ -604,13 +605,14 @@ def test_lowrank_multivariate_gaussian(hybridize: bool, rank: int) -> None:
     ), f"sigma did not match: sigma = {Sigma}, sigma_hat = {Sigma_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_empirical_distribution(hybridize: bool) -> None:
     r"""
-    This verifies if the loss implemented by `EmpiricalDistribution` is correct.
-    This is done by recovering parameters of a parametric distribution not by maximizing likelihood but by
-    optimizing CRPS loss on the Monte Carlo samples drawn from the underlying parametric distribution.
+    This verifies if the loss implemented by `EmpiricalDistribution` is
+    correct. This is done by recovering parameters of a parametric distribution
+    not by maximizing likelihood but by optimizing CRPS loss on the Monte Carlo
+    samples drawn from the underlying parametric distribution.
 
     More precisely, given observations `obs` drawn from the true distribution p(x; \theta^*), we solve
 
@@ -622,7 +624,6 @@ def test_empirical_distribution(hybridize: bool) -> None:
     This test uses Multivariate Gaussian with diagonal covariance. Once multivariate CRPS is implemented in
     `EmpiricalDistribution` one could use `LowrankMultivariateGaussian` as well. Any univariate distribution whose
     `sample_rep` is differentiable can also be used in this test.
-
     """
     num_obs = 2000
     dim = 2
@@ -688,8 +689,9 @@ def test_empirical_distribution(hybridize: bool) -> None:
 def test_deterministic_l2(mu: float, hybridize: bool) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters.
-    This tests uses the Gaussian distribution with fixed variance and sample mean.
-    This essentially reduces to determistic L2.
+
+    This tests uses the Gaussian distribution with fixed variance and sample
+    mean. This essentially reduces to determistic L2.
     """
     # generate samples
     mu = mu
@@ -722,8 +724,9 @@ def test_deterministic_l2(mu: float, hybridize: bool) -> None:
 def test_deterministic_l1(mu: float, hybridize: bool) -> None:
     """
     Test to check that maximizing the likelihood recovers the parameters.
-    This tests uses the Laplace distribution with fixed variance and sample mean.
-    This essentially reduces to determistic L1.
+
+    This tests uses the Laplace distribution with fixed variance and sample
+    mean. This essentially reduces to determistic L1.
     """
     # generate samples
     mu = mu
@@ -755,8 +758,11 @@ def test_deterministic_l1(mu: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
+    random.seed(0)
+    np.random.seed(0)
+    mx.random.seed(0)
     # test instance
     mu, alpha = mu_alpha
 
@@ -792,7 +798,7 @@ def test_neg_binomial(mu_alpha: Tuple[float, float], hybridize: bool) -> None:
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_laplace(mu_b: Tuple[float, float], hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
     # test instance
     mu, b = mu_b
@@ -833,7 +839,7 @@ def test_piecewise_linear(
     hybridize: bool,
 ) -> None:
     """
-    Test to check that minimizing the CRPS recovers the quantile function
+    Test to check that minimizing the CRPS recovers the quantile function.
     """
     num_samples = 500  # use a few samples for timeout failure
 
@@ -919,7 +925,7 @@ def test_box_cox_tranform(
     lam_1: float, lam_2: float, mu: float, sigma: float, hybridize: bool
 ):
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -987,7 +993,7 @@ def test_binned_likelihood(
     num_bins: float, bin_probabilites: np.ndarray, hybridize: bool
 ):
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     bin_prob = mx.nd.array(bin_probabilites)
@@ -1031,7 +1037,7 @@ def test_categorical_likelihood(
     num_cats: int, cat_probs: np.ndarray, hybridize: bool
 ):
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
     cat_prob = mx.nd.array(cat_probs)
     cat_probs = mx.nd.zeros((NUM_SAMPLES, num_cats)) + cat_prob
@@ -1066,7 +1072,7 @@ def test_categorical_likelihood(
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -1095,7 +1101,7 @@ def test_poisson_likelihood(rate: float, hybridize: bool) -> None:
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_logit_normal_likelihood(mu: float, sigma: float, hybridize: bool):
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -1133,7 +1139,7 @@ def test_loglogistic_likelihood(
     mu: float, sigma: float, hybridize: bool
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -1172,7 +1178,7 @@ def test_weibull_likelihood(
     rate: float, shape: float, hybridize: bool
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -1209,7 +1215,7 @@ def test_weibull_likelihood(
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -1243,7 +1249,7 @@ def test_genpareto_likelihood(xi: float, beta: float, hybridize: bool) -> None:
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.flaky(max_runs=6, min_passes=1)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("rate", [50.0])
 @pytest.mark.parametrize("zero_probability", [0.8, 0.2, 0.01])
 @pytest.mark.parametrize("hybridize", [False, True])
@@ -1253,10 +1259,13 @@ def test_inflated_poisson_likelihood(
     zero_probability: float,
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
+    random.seed(0)
+    np.random.seed(0)
+    mx.random.seed(0)
     # generate samples
-    num_samples = 1000  # Required for convergence
+    num_samples = 2000  # Required for convergence
 
     distr = ZeroInflatedPoissonOutput().distribution(
         distr_args=[
@@ -1291,7 +1300,7 @@ def test_inflated_poisson_likelihood(
 
 
 @pytest.mark.timeout(150)
-@pytest.mark.flaky(max_runs=6, min_passes=1)
+@pytest.mark.flaky(retries=6)
 @pytest.mark.parametrize("mu", [5.0])
 @pytest.mark.parametrize("alpha", [0.05])
 @pytest.mark.parametrize("zero_probability", [0.3])
@@ -1303,7 +1312,7 @@ def test_inflated_neg_binomial_likelihood(
     hybridize: bool,
 ) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples

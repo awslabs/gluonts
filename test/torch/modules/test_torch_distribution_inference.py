@@ -12,13 +12,15 @@
 # permissions and limitations under the License.
 
 """
-Test that maximizing likelihood allows to correctly recover distribution parameters for all
-distributions exposed to the user.
+Test that maximizing likelihood allows to correctly recover distribution
+parameters for all distributions exposed to the user.
 """
 from typing import List
 
 import numpy as np
 import pytest
+from lightning import seed_everything
+
 import torch
 import torch.nn as nn
 from scipy.special import softmax
@@ -46,7 +48,6 @@ from gluonts.torch.distributions import (
     SplicedBinnedParetoOutput,
     StudentTOutput,
 )
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 
 NUM_SAMPLES = 3_000
 BATCH_SIZE = 32
@@ -64,7 +65,7 @@ def inv_softplus(y: np.ndarray) -> np.ndarray:
 
 def inv_softmax(y: np.ndarray) -> np.ndarray:
     """
-    Inverse of the scipy.special.softmax
+    Inverse of the scipy.special.softmax.
     """
     return np.log(y)
 
@@ -75,7 +76,6 @@ def maximum_likelihood_estimate_sgd(
     init_biases: List[np.ndarray] = None,
     num_epochs: PositiveInt = PositiveInt(5),
     learning_rate: PositiveFloat = PositiveFloat(1e-2),
-    loss: DistributionLoss = NegativeLogLikelihood(),
 ):
     arg_proj = distr_output.get_args_proj(in_features=1)
     if init_biases is not None:
@@ -111,8 +111,9 @@ def compare_logits(
     logits_true: np.array, logits_hat: np.array, TOL: int = 0.3
 ):
     """
-    Since logits {x_i} and logits {x_i + K} will result in the same probabilities {exp(x_i)/(sum_j exp(x_j))},
-    one needs to apply softmax and inv_softmax before comparing logits within a certain tolerance
+    Since logits {x_i} and logits {x_i + K} will result in the same
+    probabilities {exp(x_i)/(sum_j exp(x_j))}, one needs to apply softmax and
+    inv_softmax before comparing logits within a certain tolerance.
     """
     param_true = inv_softmax(softmax(logits_true, axis=-1))
     param_hat = inv_softmax(softmax(logits_hat, axis=-1))
@@ -121,11 +122,11 @@ def compare_logits(
     ).all(), f"logits did not match: logits_true = {param_true}, logits_hat = {param_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("concentration1, concentration0", [(3.75, 1.25)])
 def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -160,11 +161,11 @@ def test_beta_likelihood(concentration1: float, concentration0: float) -> None:
     ), f"concentration0 did not match: concentration0 = {concentration0}, concentration0_hat = {concentration0_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("concentration, rate", [(3.75, 1.25)])
 def test_gamma_likelihood(concentration: float, rate: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
 
     # generate samples
@@ -195,7 +196,7 @@ def test_gamma_likelihood(concentration: float, rate: float) -> None:
     ), f"rate did not match: rate = {rate}, rate_hat = {rate_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("loc, scale,", [(1.0, 0.1)])
 def test_normal_likelihood(loc: float, scale: float):
     locs = torch.zeros((NUM_SAMPLES,)) + loc
@@ -225,7 +226,7 @@ def test_normal_likelihood(loc: float, scale: float):
     ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("df, loc, scale,", [(6.0, 2.3, 0.7)])
 def test_studentT_likelihood(df: float, loc: float, scale: float):
     dfs = torch.zeros((NUM_SAMPLES,)) + df
@@ -260,11 +261,11 @@ def test_studentT_likelihood(df: float, loc: float, scale: float):
     ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
 
 
-@pytest.mark.flaky(max_runs=3, min_passes=1)
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("rate", [1.0])
 def test_poisson(rate: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
     # generate samples
     rates = torch.zeros((NUM_SAMPLES,)) + rate
@@ -297,8 +298,9 @@ def test_poisson(rate: float) -> None:
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 def test_neg_binomial(total_count: float, logit: float) -> None:
     """
-    Test to check that maximizing the likelihood recovers the parameters
+    Test to check that maximizing the likelihood recovers the parameters.
     """
+    seed_everything(42)
     # generate samples
     total_counts = torch.zeros((NUM_SAMPLES,)) + total_count
     logits = torch.zeros((NUM_SAMPLES,)) + logit

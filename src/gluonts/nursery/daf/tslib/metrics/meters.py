@@ -24,8 +24,8 @@ from ..engine.distributed import reduce_value
 
 class Meter(ABC):
     """
-    Abstract class for meters used in metric stats.
-    Every subclass has cached values for some metric
+    Abstract class for meters used in metric stats. Every subclass has cached
+    values for some metric.
 
     Parameters
     ----------
@@ -52,7 +52,8 @@ class Meter(ABC):
         """
         reset the meter to clear the cached values;
 
-        at the same time, the optimal value so far is compared with current metric and updated
+        at the same time, the optimal value so far is compared with current
+        metric and updated
         """
         if self.is_optimal:
             self.best = self.value
@@ -65,14 +66,14 @@ class Meter(ABC):
     @abstractmethod
     def value(self):
         """
-        read currently measured metric
+        Read currently measured metric.
         """
         pass
 
     @property
     def is_optimal(self) -> bool:
         """
-        indicates whether the current metric reaches optimality
+        Indicates whether the current metric reaches optimality.
 
         Raises
         ------
@@ -104,7 +105,7 @@ class Meter(ABC):
 
 class Timer(Meter):
     """
-    Timer to save elapsed time
+    Timer to save elapsed time.
     """
 
     def __init__(self):
@@ -113,7 +114,7 @@ class Timer(Meter):
     @property
     def value(self) -> float:
         """
-        elapsed time in seconds since instantiation or last restart call
+        Elapsed time in seconds since instantiation or last restart call.
         """
         return time.time() - self.start_time
 
@@ -123,7 +124,7 @@ class Timer(Meter):
 
 class NumericalAverageMeter(Meter):
     """
-    Maintains running average for scalar metrics
+    Maintains running average for scalar metrics.
 
     Call .restart() to clear added values and to start a new round of averaging
     """
@@ -135,7 +136,7 @@ class NumericalAverageMeter(Meter):
 
     def update(self, value: Union[Tensor, float]) -> None:
         """
-        add the current value to be further averaged
+        Add the current value to be further averaged.
 
         Parameters
         ----------
@@ -153,7 +154,7 @@ class NumericalAverageMeter(Meter):
     @property
     def value(self) -> float:
         """
-        average of all values added since instantiation or last restart call
+        Average of all values added since instantiation or last restart call.
 
         Returns
         -------
@@ -169,8 +170,8 @@ class NumericalAverageMeter(Meter):
 
 class BatchAverageMeter(NumericalAverageMeter):
     """
-    Maintains running average for a stream of batched data, in which the outer dimension is
-    assumed to be batches
+    Maintains running average for a stream of batched data, in which the outer
+    dimension is assumed to be batches.
 
     Call .restart() to clear added values and to start a new round of averaging
     """
@@ -183,7 +184,7 @@ class BatchAverageMeter(NumericalAverageMeter):
 
     def update(self, values: Tensor) -> None:
         """
-        add a batch of values to be further averaged
+        Add a batch of values to be further averaged.
 
         Parameters
         ----------
@@ -206,10 +207,11 @@ class BatchAverageMeter(NumericalAverageMeter):
 
 class MeanDeviationMeter(Meter):
     """
-    Maintains a stream of deviation and base values, and compute the ratio of their sums
-    e.g. WAPE in demand forecasting.
+    Maintains a stream of deviation and base values, and compute the ratio of
+    their sums e.g. WAPE in demand forecasting.
 
-    MD = \sigma{deviation} / \sigma{base}
+    .. math::
+        MD = \sigma{deviation} / \sigma{base}
 
     Call .restart() to clear added values and to start a new round of averaging
     """
@@ -224,7 +226,7 @@ class MeanDeviationMeter(Meter):
 
     def update(self, deviation: Tensor, base: Tensor) -> None:
         """
-        add new deviation and base values
+        add new deviation and base values.
 
         Parameters
         ----------
@@ -255,16 +257,18 @@ class MeanDeviationMeter(Meter):
 
 class RootMeanSquareDeviationMeter(MeanDeviationMeter):
     """
-    Maintains a stream of deviation and base values, and compute the following ratio
+    Maintains a stream of deviation and base values, and compute the following
+    ratio.
 
-    MD = \sqrt{\sigma{deviation^2}} / \sqrt{\sigma{base^2}}
+    .. math::
+        MD = \sqrt{\sigma{deviation^2}} / \sqrt{\sigma{base^2}}
 
     Call .restart() to clear added values and to start a new round of averaging
     """
 
     def update(self, deviation: Tensor, base: Tensor) -> None:
         """
-        add new deviation and base values
+        Add new deviation and base values.
 
         Parameters
         ----------

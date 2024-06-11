@@ -1,10 +1,12 @@
 [tool.black]
+target-version = ['py38']
 line-length = 79
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 timeout = 60
 addopts = """
+    --color=yes
     --doctest-modules
     --ignore src/gluonts/block.py
     --ignore src/gluonts/distribution.py
@@ -19,18 +21,16 @@ filterwarnings = "ignore"
 [tool.ruff]
 line-length = 79
 
-ignore = [
-    # line-length is handled by black
-    "E501",
-
-    # TODO: remove usage of `l`
-    "E741"
+lint.ignore = [
+    "E501",  # line-length is handled by black
+    "E741"  # TODO: remove usage of `l`
 ]
 
 exclude = ["src/gluonts/nursery"]
 
 
 [tool.docformatter]
+black = true
 pre-summary-newline = true
 make-summary-multi-line = true
 wrap-descriptions = 79
@@ -39,3 +39,18 @@ wrap-descriptions = 79
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
+
+[tool.isort]
+known_first_party = "gluonts"
+known_third_party = [
+    "mxnet",
+    "numpy",
+    "pandas",
+    "pytest",
+    "scipy",
+    "tqdm",
+    "torch",
+    "lightning",
+]
+line_length = 79
+profile = "black"

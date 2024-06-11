@@ -288,7 +288,7 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
         future_feat_dynamic: Tensor,
         feat_static_cat: Tensor,
         past_observed_values: Tensor,
-    ) -> Tensor:
+    ) -> Tuple[Tuple[Tensor, ...], Tensor, Tensor]:
         """
         Parameters
         ----------
@@ -332,8 +332,8 @@ class ForkingSeq2SeqPredictionNetwork(ForkingSeq2SeqNetworkBase):
             axis=1,
         )
 
-        # shape: (num_test_ts, num_quantiles, prediction_length)
-        return fcst_output.swapaxes(2, 1)
+        # shape: (num_test_ts, prediction_length, num_quantiles)
+        return (fcst_output,), None, None
 
 
 class ForkingSeq2SeqDistributionPredictionNetwork(ForkingSeq2SeqNetworkBase):

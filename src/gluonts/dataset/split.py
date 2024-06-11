@@ -86,8 +86,8 @@ def periods_between(
     end: pd.Period,
 ) -> int:
     """
-    Count how many periods fit between ``start`` and ``end``
-    (inclusive). The frequency is taken from ``start``.
+    Count how many periods fit between ``start`` and ``end`` (inclusive). The
+    frequency is taken from ``start``.
 
     For example:
 

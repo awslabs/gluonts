@@ -8,6 +8,8 @@
 [![Static](https://img.shields.io/static/v1?label=docs&message=dev&color=edc775&style=flat-square)](https://ts.gluon.ai/dev/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/gluonts?style=flat-square&color=94b594)](https://pepy.tech/project/gluonts)
 
+**📢 BREAKING NEWS**: We released **Chronos**, a suite of pretrained models for zero-shot time series forecasting. Chronos can generate accurate probabilistic predictions for new time series not seen during training. Check it out [here](https://github.com/amazon-science/chronos-forecasting)!
+
 GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models,
 based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 

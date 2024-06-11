@@ -1,2 +1,2 @@
 xgboost>=0.90,<2
-scikit-learn>=0.22,<2
+scikit-learn~=1.0

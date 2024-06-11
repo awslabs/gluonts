@@ -37,7 +37,7 @@ from meta.datasets.registry import register_data_module
 @dataclass
 class MetaData:
     """
-    Meta data for artificial datasets
+    Meta data for artificial datasets.
     """
 
     context_length_multiple: int
@@ -116,7 +116,8 @@ class ArtificialDataModule(pl.LightningDataModule):
     @property
     def root(self) -> Path:
         """
-        Returns the directory where all the data pertaining to this dataset is stored.
+        Returns the directory where all the data pertaining to this dataset is
+        stored.
         """
         return self.data_dir / "artificial" / self.dataset_name
 
@@ -593,9 +594,9 @@ def generate_artificial_tuplets(
                 np.arange(0, context_length - signal_length)
             )
             si = np.random.choice(support_set_size)
-            support_set[si][
-                marker_start : marker_start + signal_length
-            ] = query[-signal_length:]
+            support_set[si][marker_start : marker_start + signal_length] = (
+                query[-signal_length:]
+            )
         else:
             signal = np.concatenate(
                 (np.ones((4,)), query[-prediction_length:])
@@ -647,9 +648,9 @@ def generate_artificial_tuplets(
                 np.arange(0, context_length - signal_length)
             )
             si = np.random.choice(support_set_size)
-            support_set[si][
-                marker_start : marker_start + signal_length
-            ] = query[-signal_length:]
+            support_set[si][marker_start : marker_start + signal_length] = (
+                query[-signal_length:]
+            )
         # else:
         #     signal = query[-prediction_length:]
         #     signal_length = prediction_length

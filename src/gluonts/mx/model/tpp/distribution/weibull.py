@@ -34,6 +34,7 @@ class Weibull(TPPDistribution):
     parameter :math:`\lambda > 0` and the shape parameter :math:`k > 0`, and
     :math:`\lambda = b^{-1/k}`.
     """
+
     is_reparametrizable = True
 
     @validated()
@@ -73,7 +74,8 @@ class Weibull(TPPDistribution):
 
     def log_survival(self, x: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function
+        Logarithm of the survival function.
+
         :math:`\log S(x) = \log(1 - CDF(x))`.
 
         The survival function of the Weibull distribution is

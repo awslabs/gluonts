@@ -21,11 +21,12 @@ from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
 from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
 from gluonts.torch.model.simple_feedforward import make_linear_layer
+from gluonts.torch.util import weighted_average
 
 
 class MovingAvg(nn.Module):
     """
-    Moving average block to highlight the trend of time series
+    Moving average block to highlight the trend of time series.
     """
 
     def __init__(self, kernel_size, stride):
@@ -47,7 +48,7 @@ class MovingAvg(nn.Module):
 
 class SeriesDecomp(nn.Module):
     """
-    Series decomposition block
+    Series decomposition block.
     """
 
     def __init__(self, kernel_size):
@@ -63,7 +64,8 @@ class SeriesDecomp(nn.Module):
 class DLinearModel(nn.Module):
     """
     Module implementing a feed-forward model form the paper
-    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic forecasting.
+    https://arxiv.org/pdf/2205.13504.pdf extended for probabilistic
+    forecasting.
 
     Parameters
     ----------
@@ -147,3 +149,18 @@ class DLinearModel(nn.Module):
             nn_out.reshape(-1, self.prediction_length, self.hidden_dimension)
         )
         return distr_args, loc, scale
+
+    def loss(
+        self,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+    ) -> torch.Tensor:
+        distr_args, loc, scale = self(
+            past_target=past_target, past_observed_values=past_observed_values
+        )
+        loss = self.distr_output.loss(
+            target=future_target, distr_args=distr_args, loc=loc, scale=scale
+        )
+        return weighted_average(loss, weights=future_observed_values, dim=-1)

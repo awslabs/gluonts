@@ -126,8 +126,9 @@ class TPPTransformedDistribution(TransformedDistribution):
 
     def log_survival(self, y: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function
-        :math:`\log S(y) = \log(1 - CDF(y))`.
+        Logarithm of the survival function.
+
+        :math:`\log S(y) = \log(1 - CDF(y))`
         """
         x = y
         for t in self.transforms[::-1]:
@@ -187,6 +188,7 @@ class TPPDistributionOutput(DistributionOutput):
     1. Location param cannot be specified (all distributions must start at 0).
     2. The return type is either TPPDistribution or TPPTransformedDistribution.
     """
+
     distr_cls: type
 
     def distribution(

@@ -51,7 +51,8 @@ if TYPE_CHECKING:
 else:
 
     def lazy_property(method):
-        """Property that is lazily evaluated.
+        """
+        Property that is lazily evaluated.
 
         This is the same as::
 
@@ -72,8 +73,8 @@ else:
 
 def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
     """
-    Check that the content of ``tar`` will be extracted within ``path``
-    upon calling ``extractall``.
+    Check that the content of ``tar`` will be extracted within ``path`` upon
+    calling ``extractall``.
 
     Raise a ``PermissionError`` if not.
     """

@@ -52,9 +52,9 @@ class MQF2MultiHorizonModel(DeepARModel):
         estimate_logdet: bool = False,
     ) -> None:
         r"""
-        Model class for the model MQF2 proposed in the paper
-        ``Multivariate Quantile Function Forecaster``
-        by Kan, Aubet, Januschowski, Park, Benidis, Ruthotto, Gasthaus
+        Model class for the model MQF2 proposed in the paper ``Multivariate
+        Quantile Function Forecaster`` by Kan, Aubet, Januschowski, Park,
+        Benidis, Ruthotto, Gasthaus.
 
         This is the multi-horizon (multivariate in time step) variant of MQF2
 
@@ -209,3 +209,35 @@ class MQF2MultiHorizonModel(DeepARModel):
         )
 
         return unscaled_future_samples * scale.unsqueeze(-1)
+
+    def loss(
+        self,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+        future_only: bool = False,
+        aggregate_by=torch.mean,
+    ) -> torch.Tensor:
+        _, scale, hidden_state, _, _ = self.unroll_lagged_rnn(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            future_target,
+        )
+
+        hidden_state = hidden_state[:, : self.context_length]
+
+        distr = self.output_distribution(self.picnn, hidden_state, scale)
+
+        context_target = past_target[:, -self.context_length + 1 :]
+        target = torch.cat((context_target, future_target), dim=1)
+
+        return aggregate_by(distr.loss(target), dim=-1)

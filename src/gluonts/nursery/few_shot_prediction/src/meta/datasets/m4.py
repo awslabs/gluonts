@@ -36,7 +36,8 @@ M4_PREDICTION_LENGTHS = {
 @register_data_module
 class M4DataModule(GluonTSDataModule):
     """
-    A data module which provides a frequency-category split of the M4 dataset as a standalone dataset.
+    A data module which provides a frequency-category split of the M4 dataset
+    as a standalone dataset.
     """
 
     def __init__(self, **kwargs):
@@ -127,9 +128,11 @@ def generate_m4_dataset(
 
     start_dates = list(meta_df.StartingDate)
     start_dates = [
-        sd
-        if pd.Timestamp(sd) <= pd.Timestamp("2022")
-        else str(pd.Timestamp("1900"))
+        (
+            sd
+            if pd.Timestamp(sd) <= pd.Timestamp("2022")
+            else str(pd.Timestamp("1900"))
+        )
         for sd in start_dates
     ]
 

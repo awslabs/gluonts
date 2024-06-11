@@ -160,6 +160,7 @@ class TransformerNetwork(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Creates inputs for the transformer network.
+
         All tensor arguments should have NTC layout.
         """
 
@@ -206,9 +207,11 @@ class TransformerNetwork(nn.Module):
             (
                 embedded_cat,
                 feat_static_real,
-                torch.log(scale)
-                if len(self.target_shape) == 0
-                else torch.log(scale.squeeze(1)),
+                (
+                    torch.log(scale)
+                    if len(self.target_shape) == 0
+                    else torch.log(scale.squeeze(1))
+                ),
             ),
             dim=1,
         )

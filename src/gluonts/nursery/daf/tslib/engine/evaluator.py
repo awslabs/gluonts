@@ -63,9 +63,11 @@ class Evaluator(object):
             path = self.log_dir.joinpath(f"{tag}.pt.tar")
             state = pt.load(
                 path,
-                map_location=f"cuda:{self.cuda_device}"
-                if self.cuda_device >= 0
-                else "cpu",
+                map_location=(
+                    f"cuda:{self.cuda_device}"
+                    if self.cuda_device >= 0
+                    else "cpu"
+                ),
             )
             print(f"Load checkpoint from {path}")
         except FileNotFoundError:

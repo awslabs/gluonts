@@ -131,7 +131,8 @@ class NOPScaler(Scaler):
 
 class StdScaler(Scaler):
     """
-    Computes a std scaling  value along dimension ``dim``, and scales the data accordingly.
+    Computes a std scaling  value along dimension ``dim``, and scales the data
+    accordingly.
 
     Parameters
     ----------

@@ -21,8 +21,6 @@ from gluonts.dataset.common import Dataset
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
-from gluonts.model.forecast_generator import DistributionForecastGenerator
-from gluonts.torch.modules.loss import DistributionLoss, NegativeLogLikelihood
 from gluonts.transform import (
     Transformation,
     AddObservedValuesIndicator,
@@ -32,10 +30,11 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
+    RenameFields,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
-from gluonts.torch.distributions import DistributionOutput, StudentTOutput
+from gluonts.torch.distributions import Output, StudentTOutput
 
 from .lightning_module import PatchTSTLightningModule
 
@@ -76,6 +75,8 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         Number of attention heads in the Transformer encoder which must divide d_model.
     dim_feedforward
         Size of hidden layers in the Transformer encoder.
+    num_feat_dynamic_real
+        Number of dynamic real features in the data (default: 0).
     dropout
         Dropout probability in the Transformer encoder.
     activation
@@ -93,9 +94,6 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
     distr_output
         Distribution to use to evaluate observations and sample predictions
         (default: StudentTOutput()).
-    loss
-        Loss to be optimized during training
-        (default: ``NegativeLogLikelihood()``).
     batch_size
         The size of the batches to be used for training (default: 32).
     num_batches_per_epoch
@@ -120,6 +118,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         d_model: int = 32,
         nhead: int = 4,
         dim_feedforward: int = 128,
+        num_feat_dynamic_real: int = 0,
         dropout: float = 0.1,
         activation: str = "relu",
         norm_first: bool = False,
@@ -127,8 +126,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         scaling: Optional[str] = "mean",
-        distr_output: DistributionOutput = StudentTOutput(),
-        loss: DistributionLoss = NegativeLogLikelihood(),
+        distr_output: Output = StudentTOutput(),
         batch_size: int = 32,
         num_batches_per_epoch: int = 50,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
@@ -150,7 +148,6 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         self.lr = lr
         self.weight_decay = weight_decay
         self.distr_output = distr_output
-        self.loss = loss
         self.scaling = scaling
         self.patch_len = patch_len
         self.stride = stride
@@ -158,6 +155,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         self.d_model = d_model
         self.nhead = nhead
         self.dim_feedforward = dim_feedforward
+        self.num_feat_dynamic_real = num_feat_dynamic_real
         self.dropout = dropout
         self.activation = activation
         self.norm_first = norm_first
@@ -173,22 +171,30 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         )
 
     def create_transformation(self) -> Transformation:
-        return SelectFields(
-            [
-                FieldName.ITEM_ID,
-                FieldName.INFO,
-                FieldName.START,
-                FieldName.TARGET,
-            ],
-            allow_missing=True,
-        ) + AddObservedValuesIndicator(
-            target_field=FieldName.TARGET,
-            output_field=FieldName.OBSERVED_VALUES,
+        return (
+            SelectFields(
+                [
+                    FieldName.ITEM_ID,
+                    FieldName.INFO,
+                    FieldName.START,
+                    FieldName.TARGET,
+                ]
+                + (
+                    [FieldName.FEAT_DYNAMIC_REAL]
+                    if self.num_feat_dynamic_real > 0
+                    else []
+                ),
+                allow_missing=True,
+            )
+            + RenameFields({FieldName.FEAT_DYNAMIC_REAL: FieldName.FEAT_TIME})
+            + AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+            )
         )
 
     def create_lightning_module(self) -> pl.LightningModule:
         return PatchTSTLightningModule(
-            loss=self.loss,
             lr=self.lr,
             weight_decay=self.weight_decay,
             model_kwargs={
@@ -200,6 +206,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
                 "d_model": self.d_model,
                 "nhead": self.nhead,
                 "dim_feedforward": self.dim_feedforward,
+                "num_feat_dynamic_real": self.num_feat_dynamic_real,
                 "dropout": self.dropout,
                 "activation": self.activation,
                 "norm_first": self.norm_first,
@@ -228,7 +235,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
-            time_series_fields=[FieldName.OBSERVED_VALUES],
+            time_series_fields=[FieldName.OBSERVED_VALUES]
+            + (
+                [FieldName.FEAT_TIME] if self.num_feat_dynamic_real > 0 else []
+            ),
             dummy_value=self.distr_output.value_in_support,
         )
 
@@ -237,7 +247,7 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: PatchTSTLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter(module, "training").apply(
@@ -247,7 +257,15 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             instances,
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=TRAINING_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
+            ),
             output_type=torch.tensor,
             num_batches_per_epoch=self.num_batches_per_epoch,
         )
@@ -261,7 +279,15 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         return as_stacked_batches(
             instances,
             batch_size=self.batch_size,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=TRAINING_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
+            ),
             output_type=torch.tensor,
         )
 
@@ -272,11 +298,17 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
-            input_names=PREDICTION_INPUT_NAMES,
-            prediction_net=module,
-            forecast_generator=DistributionForecastGenerator(
-                self.distr_output
+            input_names=PREDICTION_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
             ),
+            prediction_net=module,
+            forecast_generator=self.distr_output.forecast_generator,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",

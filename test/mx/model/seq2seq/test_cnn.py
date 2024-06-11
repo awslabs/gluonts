@@ -22,7 +22,7 @@ def compute_causalconv1d(
     x: np.ndarray, kernels: np.ndarray, dilation: int
 ) -> np.ndarray:
     """
-    Naive way to compute the 1-d causal convolution
+    Naive way to compute the 1-d causal convolution.
 
     Parameters:
     x: np.array

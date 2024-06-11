@@ -102,17 +102,19 @@ class NBEATSEnsemblePredictor(Predictor):
                 output,
                 start_date=start_date,
                 freq=start_date.freqstr,
-                item_id=item[FieldName.ITEM_ID]
-                if FieldName.ITEM_ID in item
-                else None,
+                item_id=(
+                    item[FieldName.ITEM_ID]
+                    if FieldName.ITEM_ID in item
+                    else None
+                ),
                 info=item["info"] if "info" in item else None,
             )
 
 
 class NBEATSEnsembleEstimator(PyTorchEstimator):
     """
-    An ensemble N-BEATS Estimator (approximately) as described
-    in the paper:  https://arxiv.org/abs/1905.10437.
+    An ensemble N-BEATS Estimator (approximately) as described in the paper:
+    https://arxiv.org/abs/1905.10437.
 
     The three meta parameters 'meta_context_length', 'meta_loss_function' and 'meta_bagging_size'
     together define the way the sub-models are assembled together.

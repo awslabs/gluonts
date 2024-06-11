@@ -51,9 +51,9 @@ class MockTPPPredictionNet(mx.gluon.HybridBlock):
         self, F, past_target: Tensor, past_valid_length: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """
-        Return two tensors, of shape
-        (batch_size, num_samples, max_prediction_length, target_dim)
-        and (batch_size, num_samples) respectively.
+        Return two tensors, of shape (batch_size, num_samples,
+        max_prediction_length, target_dim) and (batch_size, num_samples)
+        respectively.
         """
         batch_size = past_target.shape[0]
         assert past_valid_length.shape[0] == batch_size

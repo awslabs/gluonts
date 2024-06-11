@@ -86,9 +86,9 @@ class PointProcessForecastGenerator(ForecastGenerator):
                     start_date=batch["forecast_start"][i],
                     freq=freq,
                     prediction_interval_length=prediction_net.prediction_interval_length,  # noqa: E501
-                    item_id=batch["item_id"][i]
-                    if "item_id" in batch
-                    else None,
+                    item_id=(
+                        batch["item_id"][i] if "item_id" in batch else None
+                    ),
                     info=batch["info"][i] if "info" in batch else None,
                 )
 

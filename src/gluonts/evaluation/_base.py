@@ -108,8 +108,9 @@ def aggregate_valid(
 def validate_forecast(
     forecast: Forecast, quantiles: Iterable[Quantile]
 ) -> bool:
-    """Validates a Forecast object by checking it for `NaN` values.
-    The supplied quantiles and mean (if available) are checked.
+    """
+    Validates a Forecast object by checking it for `NaN` values. The supplied
+    quantiles and mean (if available) are checked.
 
     Parameters
     ----------
@@ -378,9 +379,9 @@ class Evaluator:
         return {
             "item_id": forecast.item_id,
             "forecast_start": forecast.start_date,
-            "MSE": mse(pred_target, mean_fcst)
-            if mean_fcst is not None
-            else None,
+            "MSE": (
+                mse(pred_target, mean_fcst) if mean_fcst is not None else None
+            ),
             "abs_error": abs_error(pred_target, median_fcst),
             "abs_target_sum": abs_target_sum(pred_target),
             "abs_target_mean": abs_target_mean(pred_target),
@@ -767,7 +768,8 @@ class MultivariateEvaluator(Evaluator):
         fcst_iterator: Iterable[Forecast],
         num_series=None,
     ) -> Tuple[Dict[str, float], pd.DataFrame]:
-        """Compute accuracy metrics for multivariate forecasts.
+        """
+        Compute accuracy metrics for multivariate forecasts.
 
         Parameters
         ----------

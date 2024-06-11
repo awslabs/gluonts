@@ -16,6 +16,7 @@ from typing import List
 import torch
 import pytest
 
+from gluonts.torch.distributions import QuantileOutput
 from gluonts.torch.model.tft import TemporalFusionTransformerLightningModule
 
 
@@ -49,7 +50,7 @@ def test_tft_modules(
             "c_feat_dynamic_cat": c_feat_dynamic_cat,
             "d_feat_static_real": d_feat_static_real,
             "c_feat_static_cat": c_feat_static_cat,
-            "quantiles": quantiles,
+            "distr_output": QuantileOutput(quantiles),
         }
     )
     model = lightning_module.model
@@ -107,7 +108,7 @@ def test_tft_modules(
         assert x.shape == (batch_size, model.d_var)
     assert loc.shape == scale.shape == (batch_size, 1)
 
-    output = model(
+    (output,), loc, scale = model(
         past_target=past_target,
         past_observed_values=past_observed_values,
         feat_static_real=feat_static_real,
@@ -118,7 +119,8 @@ def test_tft_modules(
         past_feat_dynamic_cat=past_feat_dynamic_cat,
     )
 
-    assert output.shape == (batch_size, len(quantiles), prediction_length)
+    assert output.shape == (batch_size, prediction_length, len(quantiles))
+    assert loc.shape == scale.shape == (batch_size, 1)
 
     batch = dict(
         past_target=past_target,

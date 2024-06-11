@@ -101,7 +101,6 @@ class ISSM:
         * dimension of the latent state
         * transition and innovation coefficients of the transition model
         * emission coefficient of the observation model
-
     """
 
     @validated()
@@ -305,7 +304,7 @@ class CompositeISSM(ISSM):
 
         seasonal_issms: List[SeasonalityISSM] = []
 
-        if offset.name == "M":
+        if offset.name in ["M", "ME"]:
             seasonal_issms = [MonthOfYearSeasonalISSM()]
         elif norm_freq_str(offset.name) == "W":
             seasonal_issms = [WeekOfYearSeasonalISSM()]
@@ -313,12 +312,12 @@ class CompositeISSM(ISSM):
             seasonal_issms = [DayOfWeekSeasonalISSM()]
         elif offset.name == "B":  # TODO: check this case
             seasonal_issms = [DayOfWeekSeasonalISSM()]
-        elif offset.name == "H":
+        elif offset.name in ["H", "h"]:
             seasonal_issms = [
                 HourOfDaySeasonalISSM(),
                 DayOfWeekSeasonalISSM(),
             ]
-        elif offset.name == "T":
+        elif offset.name in ["T", "min"]:
             seasonal_issms = [
                 MinuteOfHourSeasonalISSM(),
                 HourOfDaySeasonalISSM(),

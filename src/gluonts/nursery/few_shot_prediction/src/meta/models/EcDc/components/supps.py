@@ -29,7 +29,8 @@ class SupportSetEncoder(nn.Module, ABC):
     @abstractmethod
     def forward(self, supps: SeriesBatch) -> SeriesBatch:
         """
-        Encodes each time point of each support set time series with a vector of fixed size.
+        Encodes each time point of each support set time series with a vector
+        of fixed size.
 
         Parameters
         ----------
@@ -46,7 +47,8 @@ class SupportSetEncoder(nn.Module, ABC):
 
 class LSTMSupportSetEncoder(SupportSetEncoder):
     """
-    Encodes each time step in the support set times series via the hidden states of a LSTM.
+    Encodes each time step in the support set times series via the hidden
+    states of a LSTM.
 
     Parameters
     ----------
@@ -145,7 +147,7 @@ class CNNSupportSetEncoder(SupportSetEncoder):
 
 class TcnSupportSetEncoder(SupportSetEncoder):
     """
-    Encodes each time point of the support set time series via WaveNet
+    Encodes each time point of the support set time series via WaveNet.
 
     Parameters
     ----------

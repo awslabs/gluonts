@@ -226,9 +226,11 @@ class WaveNetEstimator(GluonEstimator):
                 self.freq,
                 {
                     "H": 7 * 24,
+                    "h": 7 * 24,
                     "D": 7,
                     "W": 52,
                     "M": 12,
+                    "ME": 12,
                     "B": 7 * 5,
                     "min": 24 * 60,
                 },
@@ -309,9 +311,11 @@ class WaveNetEstimator(GluonEstimator):
             forecast_start_field=FieldName.FORECAST_START,
             instance_sampler=instance_sampler,
             past_length=self.context_length,
-            future_length=self.prediction_length
-            if mode == "test"
-            else self.train_window_length,
+            future_length=(
+                self.prediction_length
+                if mode == "test"
+                else self.train_window_length
+            ),
             output_NTC=False,
             time_series_fields=[
                 FieldName.FEAT_TIME,
