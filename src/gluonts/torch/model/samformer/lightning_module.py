@@ -18,6 +18,7 @@ from gluonts.core.component import validated
 from gluonts.itertools import select
 
 from .module import SamFormerModel
+from .sam import SAM
 
 
 class SamFormerLightningModule(pl.LightningModule):
@@ -46,7 +47,8 @@ class SamFormerLightningModule(pl.LightningModule):
         model_kwargs: dict,
         num_parallel_samples: int = 100,
         lr: float = 1e-3,
-        weight_decay: float = 1e-8,
+        weight_decay: float = 1e-5,
+        rho: float = 0.5,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -54,6 +56,10 @@ class SamFormerLightningModule(pl.LightningModule):
         self.num_parallel_samples = num_parallel_samples
         self.lr = lr
         self.weight_decay = weight_decay
+        self.rho = rho
+
+        self.automatic_optimization = False
+
         self.inputs = self.model.describe_inputs()
 
     def forward(self, *args, **kwargs):
@@ -69,11 +75,26 @@ class SamFormerLightningModule(pl.LightningModule):
         """
         Execute training step.
         """
+        opt = self.optimizers()
+        
         train_loss = self.model.loss(
             **select(self.inputs, batch),
             future_target=batch["future_target"],
             future_observed_values=batch["future_observed_values"],
         ).mean()
+
+        # Ascent Step
+        self.manual_backward(train_loss)
+        opt.first_step(zero_grad=True)
+
+        # Descent Step
+        train_loss = self.model.loss(
+            **select(self.inputs, batch),
+            future_target=batch["future_target"],
+            future_observed_values=batch["future_observed_values"],
+        ).mean()
+        self.manual_backward(train_loss)
+        opt.second_step(zero_grad=True)
 
         self.log(
             "train_loss",
@@ -103,8 +124,11 @@ class SamFormerLightningModule(pl.LightningModule):
         """
         Returns the optimizer to use.
         """
-        return torch.optim.Adam(
+        return SAM(
             self.model.parameters(),
+            base_optimizer=torch.optim.Adam,
             lr=self.lr,
+            rho=self.rho,
             weight_decay=self.weight_decay,
         )
+    

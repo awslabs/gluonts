@@ -102,7 +102,8 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         context_length: Optional[int] = None,
         hidden_dim: int = 32,
         lr: float = 1e-3,
-        weight_decay: float = 1e-8,
+        weight_decay: float = 1e-5,
+        rho: float = 0.5,
         scaling: Optional[str] = "mean",
         distr_output: Output = StudentTOutput(),
         num_parallel_samples: int = 100,
@@ -115,7 +116,6 @@ class SamFormerEstimator(PyTorchLightningEstimator):
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
-            "gradient_clip_val": 10.0,
         }
         if trainer_kwargs is not None:
             default_trainer_kwargs.update(trainer_kwargs)
@@ -127,6 +127,7 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         # somehow
         self.lr = lr
         self.weight_decay = weight_decay
+        self.rho = rho
         self.distr_output = distr_output
         self.num_parallel_samples = num_parallel_samples
         self.scaling = scaling
@@ -164,6 +165,7 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         return SamFormerLightningModule(
             lr=self.lr,
             weight_decay=self.weight_decay,
+            rho=self.rho,
             num_parallel_samples=self.num_parallel_samples,
             model_kwargs={
                 "prediction_length": self.prediction_length,
