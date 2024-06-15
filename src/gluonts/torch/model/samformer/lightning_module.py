@@ -76,7 +76,7 @@ class SamFormerLightningModule(pl.LightningModule):
         Execute training step.
         """
         opt = self.optimizers()
-        
+
         train_loss = self.model.loss(
             **select(self.inputs, batch),
             future_target=batch["future_target"],
@@ -131,4 +131,3 @@ class SamFormerLightningModule(pl.LightningModule):
             rho=self.rho,
             weight_decay=self.weight_decay,
         )
-    
