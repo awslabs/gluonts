@@ -58,7 +58,7 @@ class SamFormerLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.rho = rho
-        self.sam = sam 
+        self.sam = sam
 
         self.automatic_optimization = False
 
@@ -99,9 +99,9 @@ class SamFormerLightningModule(pl.LightningModule):
             self.manual_backward(train_loss_2)
             opt.second_step(zero_grad=True)
         else:
-             opt.zero_grad()
-             self.manual_backward(train_loss)
-             opt.step()
+            opt.zero_grad()
+            self.manual_backward(train_loss)
+            opt.step()
 
         self.log(
             "train_loss",
