@@ -101,9 +101,11 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         hidden_dim: int = 32,
+        projection_dim: int = 8,
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
         rho: float = 0.5,
+        sam: bool = True,
         scaling: Optional[str] = "mean",
         distr_output: Output = StudentTOutput(),
         num_parallel_samples: int = 100,
@@ -114,9 +116,8 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         validation_sampler: Optional[InstanceSampler] = None,
         nonnegative_pred_samples: bool = False,
     ) -> None:
-        default_trainer_kwargs = {
-            "max_epochs": 100,
-        }
+        default_trainer_kwargs = {"max_epochs": 100}
+
         if trainer_kwargs is not None:
             default_trainer_kwargs.update(trainer_kwargs)
         super().__init__(trainer_kwargs=default_trainer_kwargs)
@@ -132,6 +133,8 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         self.num_parallel_samples = num_parallel_samples
         self.scaling = scaling
         self.hidden_dim = hidden_dim
+        self.projection_dim = projection_dim
+        self.sam = sam
         self.batch_size = batch_size
         self.num_batches_per_epoch = num_batches_per_epoch
         self.nonnegative_pred_samples = nonnegative_pred_samples
@@ -167,10 +170,12 @@ class SamFormerEstimator(PyTorchLightningEstimator):
             weight_decay=self.weight_decay,
             rho=self.rho,
             num_parallel_samples=self.num_parallel_samples,
+            sam=self.sam,
             model_kwargs={
                 "prediction_length": self.prediction_length,
                 "context_length": self.context_length,
                 "hidden_dim": self.hidden_dim,
+                "projection_dim": self.projection_dim,
                 "distr_output": self.distr_output,
                 "scaling": self.scaling,
                 "nonnegative_pred_samples": self.nonnegative_pred_samples,

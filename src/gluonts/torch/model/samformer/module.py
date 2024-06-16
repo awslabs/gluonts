@@ -54,6 +54,7 @@ class SamFormerModel(nn.Module):
         prediction_length: int,
         context_length: int,
         hidden_dim: int,
+        projection_dim: int,
         scaling: Optional[str],
         distr_output=StudentTOutput(),
         nonnegative_pred_samples: bool = False,
@@ -65,7 +66,7 @@ class SamFormerModel(nn.Module):
 
         self.prediction_length = prediction_length
         self.context_length = context_length
-        self.hidden_dim = hidden_dim
+        self.projection_dim = projection_dim
 
         self.distr_output = distr_output
 
@@ -83,11 +84,11 @@ class SamFormerModel(nn.Module):
 
         # project each variate to prediction length number of latent variables
         self.projection = nn.Linear(
-            context_length, prediction_length * hidden_dim
+            context_length, prediction_length * projection_dim
         )
 
         # project each prediction length latent to distribution parameters
-        self.args_proj = self.distr_output.get_args_proj(hidden_dim)
+        self.args_proj = self.distr_output.get_args_proj(projection_dim)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -132,12 +133,12 @@ class SamFormerModel(nn.Module):
         att_score = F.scaled_dot_product_attention(queries, keys, values)
         out = past_target_scaled + att_score
 
-        # project to prediction length * hidden_dim and reshape
+        # project to prediction length * projection_dim and reshape
         projection_out = self.projection(out).reshape(
             -1,
             past_target.shape[2],
             self.prediction_length,
-            self.hidden_dim,
+            self.projection_dim,
         )
 
         # transpose to prediction length first

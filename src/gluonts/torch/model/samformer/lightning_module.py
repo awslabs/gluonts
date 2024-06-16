@@ -49,6 +49,7 @@ class SamFormerLightningModule(pl.LightningModule):
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
         rho: float = 0.5,
+        sam: bool = True,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -57,6 +58,7 @@ class SamFormerLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.rho = rho
+        self.sam = sam 
 
         self.automatic_optimization = False
 
@@ -83,18 +85,23 @@ class SamFormerLightningModule(pl.LightningModule):
             future_observed_values=batch["future_observed_values"],
         ).mean()
 
-        # Ascent Step
-        self.manual_backward(train_loss)
-        opt.first_step(zero_grad=True)
+        if self.sam:
+            # Ascent Step
+            self.manual_backward(train_loss)
+            opt.first_step(zero_grad=True)
 
-        # Descent Step
-        train_loss = self.model.loss(
-            **select(self.inputs, batch),
-            future_target=batch["future_target"],
-            future_observed_values=batch["future_observed_values"],
-        ).mean()
-        self.manual_backward(train_loss)
-        opt.second_step(zero_grad=True)
+            # Descent Step
+            train_loss_2 = self.model.loss(
+                **select(self.inputs, batch),
+                future_target=batch["future_target"],
+                future_observed_values=batch["future_observed_values"],
+            ).mean()
+            self.manual_backward(train_loss_2)
+            opt.second_step(zero_grad=True)
+        else:
+             opt.zero_grad()
+             self.manual_backward(train_loss)
+             opt.step()
 
         self.log(
             "train_loss",
@@ -124,10 +131,17 @@ class SamFormerLightningModule(pl.LightningModule):
         """
         Returns the optimizer to use.
         """
-        return SAM(
-            self.model.parameters(),
-            base_optimizer=torch.optim.Adam,
-            lr=self.lr,
-            rho=self.rho,
-            weight_decay=self.weight_decay,
-        )
+        if self.sam:
+            return SAM(
+                self.model.parameters(),
+                base_optimizer=torch.optim.Adam,
+                lr=self.lr,
+                rho=self.rho,
+                weight_decay=self.weight_decay,
+            )
+        else:
+            return torch.optim.Adam(
+                self.model.parameters(),
+                lr=self.lr,
+                weight_decay=self.weight_decay,
+            )
