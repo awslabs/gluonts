@@ -39,6 +39,10 @@ class SamFormerLightningModule(pl.LightningModule):
         Learning rate.
     weight_decay
         Weight decay regularization parameter.
+    rho
+        Rho parameter for SAM optimizer.
+    sam
+        Whether to use SAM optimizer.
     """
 
     @validated()

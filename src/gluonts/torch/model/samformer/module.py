@@ -20,14 +20,14 @@ from torch.nn import functional as F
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
-from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
+from gluonts.torch.scaler import MeanScaler, NOPScaler, StdScaler
 from gluonts.torch.util import weighted_average
 
 
 class SamFormerModel(nn.Module):
     """
     Module implementing the SamFormer model for multivariate forecasting as
-    described in TODO extended to be probabilistic.
+    described in https://arxiv.org/abs/2402.10198 extended to be probabilistic.
 
     Parameters
     ----------
@@ -37,6 +37,8 @@ class SamFormerModel(nn.Module):
         Number of time steps prior to prediction time that the model.
     hidden_dim
         Dim of query and key projection.
+    projection_dim
+        Dim of projection layer.
     scaling
         Whether to scale the input using mean or std or None.
     distr_output
@@ -78,6 +80,7 @@ class SamFormerModel(nn.Module):
             self.scaler = NOPScaler(keepdim=True, dim=1)
         self.nonnegative_pred_samples = nonnegative_pred_samples
 
+        # input is each variate together with the loc and scale
         self.compute_keys = nn.Linear(context_length + 2, hidden_dim)
         self.compute_queries = nn.Linear(context_length + 2, hidden_dim)
         self.compute_values = nn.Linear(context_length + 2, context_length)

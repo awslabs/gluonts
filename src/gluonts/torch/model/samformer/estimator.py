@@ -49,7 +49,7 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 class SamFormerEstimator(PyTorchLightningEstimator):
     """
     An estimator training the SamFormer model for multivariate forecasting
-    as described in TODO extended to be
+    as described in https://arxiv.org/abs/2402.10198 extended to be
     probabilistic.
 
     This class uses the model defined in ``SamFormerModel``,
@@ -66,10 +66,16 @@ class SamFormerEstimator(PyTorchLightningEstimator):
         takes as inputs (default: ``10 * prediction_length``).
     hidden_dim
         Size of query and key projection (default: ``32``).
+    projection_dim
+        Size of the projection dimension (default: ``8``).
+    sam
+        Whether to use SAM optimizer (default: ``True``).
+    rho
+        Rho parameter for SAM optimizer (default: ``0.5``).
     lr
         Learning rate (default: ``1e-3``).
     weight_decay
-        Weight decay regularization parameter (default: ``1e-8``).
+        Weight decay regularization parameter (default: ``1e-5``).
     scaling
         Scaling parameter can be "mean", "std" or None.
     distr_output
