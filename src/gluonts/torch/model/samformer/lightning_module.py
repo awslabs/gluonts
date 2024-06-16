@@ -23,8 +23,8 @@ from .sam import SAM
 
 class SamFormerLightningModule(pl.LightningModule):
     """
-    A ``pl.LightningModule`` class that can be used to train a
-    ``SamFormerModel`` with PyTorch Lightning.
+    A ``pl.LightningModule`` class that can be used to train a ``SamFormerModel`` with
+    PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``SamFormerModel`` object,
     that exposes the methods to evaluate training and validation loss.
