@@ -14,7 +14,6 @@
 from .module import SamFormerModel
 from .lightning_module import SamFormerLightningModule
 from .estimator import SamFormerEstimator
-from .sam import SAM
 
 __all__ = [
     "SamFormerModel",
