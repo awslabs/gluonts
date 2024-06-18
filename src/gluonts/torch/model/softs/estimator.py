@@ -48,8 +48,8 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 class SofTSEstimator(PyTorchLightningEstimator):
     """
-    An estimator training the SofTS model for multivariate forecasting
-    as described in https://arxiv.org/abs/2310.06625 extended to be
+    An estimator training the SOFTS model for multivariate forecasting
+    as described in https://arxiv.org/pdf/2404.14197 extended to be
     probabilistic.
 
     This class uses the model defined in ``SofTSModel``,
@@ -65,19 +65,19 @@ class SofTSEstimator(PyTorchLightningEstimator):
         Number of time steps prior to prediction time that the model
         takes as inputs (default: ``10 * prediction_length``).
     d_model
-        Size of latent in the Transformer encoder.
-    nhead
-        Number of attention heads in the Transformer encoder which must divide d_model.
+        Size of latent in the encoder.
+    d_core
+        Dimension of the global core representation.
     dim_feedforward
-        Size of hidden layers in the Transformer encoder.
+        Size of hidden layers in the encoder.
+    dim_projections
+        Size of the probabilistic projections.
     dropout
-        Dropout probability in the Transformer encoder.
+        Dropout probability in the encoder.
     activation
-        Activation function in the Transformer encoder.
-    norm_first
-        Whether to apply normalization before or after the attention.
+        Activation function in the encoder.
     num_encoder_layers
-        Number of layers in the Transformer encoder.
+        Number of STAR layers in the encoder.
     lr
         Learning rate (default: ``1e-3``).
     weight_decay
@@ -113,8 +113,9 @@ class SofTSEstimator(PyTorchLightningEstimator):
         prediction_length: int,
         context_length: Optional[int] = None,
         d_model: int = 32,
-        d_core: int = 16,
-        dim_feedforward: int = 64,
+        d_core: int = 128,
+        dim_feedforward: int = 32,
+        dim_projections: int = 16,
         dropout: float = 0.1,
         activation: str = "relu",
         num_encoder_layers: int = 2,
@@ -149,6 +150,7 @@ class SofTSEstimator(PyTorchLightningEstimator):
         self.scaling = scaling
         self.d_model = d_model
         self.d_core = d_core
+        self.dim_projections = dim_projections
         self.dim_feedforward = dim_feedforward
         self.dropout = dropout
         self.activation = activation
@@ -192,6 +194,7 @@ class SofTSEstimator(PyTorchLightningEstimator):
                 "context_length": self.context_length,
                 "d_model": self.d_model,
                 "d_core": self.d_core,
+                "dim_projections": self.dim_projections,
                 "dim_feedforward": self.dim_feedforward,
                 "dropout": self.dropout,
                 "activation": self.activation,

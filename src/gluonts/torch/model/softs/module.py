@@ -104,7 +104,7 @@ class EncoderLayer(nn.Module):
 class SofTSModel(nn.Module):
     """
     Module implementing the SOFTS model for multivariate forecasting as
-    described in https://arxiv.org/abs/2310.06625 extended to be probabilistic.
+    described in https://arxiv.org/pdf/2404.14197 extended to be probabilistic.
 
     Parameters
     ----------
@@ -113,19 +113,19 @@ class SofTSModel(nn.Module):
     context_length
         Number of time steps prior to prediction time that the model.
     d_model
-        Transformer latent dimension.
-    nhead
-        Number of attention heads which must be divisible with d_model.
+        Size of latent in the encoder.
+    d_core
+        Dimension of the global core representation.
     dim_feedforward
-        Dimension of the transformer's feedforward network model.
+        Dimension of the encoder's feedforward network model.
+    dim_projections
+        Dimension of the projection layer.
     dropout
-        Dropout rate for the transformer.
+        Dropout rate for the encoder.
     activation
-        Activation function for the transformer.
-    norm_first
-        Whether to normalize the input before the transformer.
+        Activation function for the encoder.
     num_encoder_layers
-        Number of transformer encoder layers.
+        Number of STAR layers in the encoder.
     scaling
         Whether to scale the input using mean or std or None.
     distr_output
@@ -145,6 +145,7 @@ class SofTSModel(nn.Module):
         d_model: int,
         d_core: int,
         dim_feedforward: int,
+        dim_projections: int,
         dropout: float,
         activation: str,
         num_encoder_layers: int,
@@ -160,7 +161,7 @@ class SofTSModel(nn.Module):
         self.prediction_length = prediction_length
         self.context_length = context_length
 
-        self.d_core = d_core
+        self.dim_projections = dim_projections
         self.distr_output = distr_output
 
         if scaling == "mean":
@@ -189,10 +190,12 @@ class SofTSModel(nn.Module):
         )
 
         # project each variate to prediction length number of latent variables
-        self.projection = nn.Linear(d_model, prediction_length * d_core)
+        self.projection = nn.Linear(
+            d_model, prediction_length * dim_projections
+        )
 
         # project each prediction length latent to distribution parameters
-        self.args_proj = self.distr_output.get_args_proj(d_core)
+        self.args_proj = self.distr_output.get_args_proj(dim_projections)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -237,12 +240,12 @@ class SofTSModel(nn.Module):
         # transformer encoder with positional encoding
         enc_out = self.encoder(enc_in)
 
-        # project to prediction length * d_core
+        # project to prediction length * dim_projections
         projection_out = self.projection(enc_out).reshape(
             -1,
             past_target.shape[2],
             self.prediction_length,
-            self.d_core,
+            self.dim_projections,
         )
 
         # transpose to prediction length first
