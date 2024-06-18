@@ -20,7 +20,7 @@ from torch.nn import functional as F
 from gluonts.core.component import validated
 from gluonts.model import Input, InputSpec
 from gluonts.torch.distributions import StudentTOutput
-from gluonts.torch.scaler import StdScaler, MeanScaler, NOPScaler
+from gluonts.torch.scaler import MeanScaler, NOPScaler, StdScaler
 from gluonts.torch.util import weighted_average
 
 

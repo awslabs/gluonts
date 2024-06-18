@@ -11,9 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from .module import SofTSModel
-from .lightning_module import SofTSLightningModule
 from .estimator import SofTSEstimator
+from .lightning_module import SofTSLightningModule
+from .module import SofTSModel
 
 __all__ = [
     "SofTSModel",
