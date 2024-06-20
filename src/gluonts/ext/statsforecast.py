@@ -48,6 +48,7 @@ from statsforecast.models import (
 
 from gluonts.core.component import validated
 from gluonts.dataset import DataEntry
+from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.util import forecast_start
 from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.forecast import QuantileForecast
@@ -120,13 +121,42 @@ class StatsForecastPredictor(RepresentablePredictor):
         self.config = ModelConfig(quantile_levels=quantile_levels)
 
     def predict_item(self, entry: DataEntry) -> QuantileForecast:
-        # TODO use also exogenous features
         kwargs = {}
         if self.config.intervals is not None:
             kwargs["level"] = self.config.intervals
 
+        length = len(entry[FieldName.TARGET])
+        covariates = None
+
+        if FieldName.FEAT_DYNAMIC_REAL in entry:
+            covariates = entry[FieldName.FEAT_DYNAMIC_REAL].T
+            length = covariates.shape[0]
+
+        if FieldName.FEAT_STATIC_REAL in entry:
+            static_real_cov = entry[FieldName.FEAT_STATIC_REAL]
+
+            repeat_static_real_cov = static_real_cov[None, :].repeat(
+                length, axis=0
+            )
+
+            if covariates is not None:
+                covariates = np.hstack([covariates, repeat_static_real_cov])
+            else:
+                covariates = repeat_static_real_cov
+
+        if covariates is not None and (
+            length == len(entry[FieldName.TARGET]) + self.prediction_length
+        ):
+            X = covariates[: -self.prediction_length, :]
+            X_future = covariates[-self.prediction_length :, :]
+        else:
+            X = covariates
+            X_future = None
+
         prediction = self.model.forecast(
-            y=entry["target"],
+            y=entry[FieldName.TARGET],
+            X=X,
+            X_future=X_future,
             h=self.prediction_length,
             **kwargs,
         )
