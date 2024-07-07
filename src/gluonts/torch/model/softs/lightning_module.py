@@ -21,8 +21,7 @@ from .module import SofTSModel
 
 
 class SofTSLightningModule(pl.LightningModule):
-    """
-    A ``pl.LightningModule`` class that can be used to train a
+    """A ``pl.LightningModule`` class that can be used to train a
     ``SofTSModel`` with PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``SofTSModel`` object,
@@ -66,9 +65,7 @@ class SofTSLightningModule(pl.LightningModule):
         return samples.transpose(0, 1)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
-        """
-        Execute training step.
-        """
+        """Execute training step."""
         train_loss = self.model.loss(
             **select(self.inputs, batch),
             future_target=batch["future_target"],
@@ -85,9 +82,7 @@ class SofTSLightningModule(pl.LightningModule):
         return train_loss
 
     def validation_step(self, batch, batch_idx: int):  # type: ignore
-        """
-        Execute validation step.
-        """
+        """Execute validation step."""
         val_loss = self.model.loss(
             **select(self.inputs, batch),
             future_target=batch["future_target"],
@@ -100,9 +95,7 @@ class SofTSLightningModule(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        """
-        Returns the optimizer to use.
-        """
+        """Returns the optimizer to use."""
         return torch.optim.Adam(
             self.model.parameters(),
             lr=self.lr,
