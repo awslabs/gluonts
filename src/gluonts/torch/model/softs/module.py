@@ -24,21 +24,6 @@ from gluonts.torch.scaler import MeanScaler, NOPScaler, StdScaler
 from gluonts.torch.util import weighted_average
 
 
-class RPLayer(nn.Module):
-    def __init__(self, in_dim, out_dim, seed=None):
-        super(RPLayer, self).__init__()
-
-        if seed is not None:
-            torch.manual_seed(seed=seed)
-
-        weight = torch.randn(out_dim, in_dim, requires_grad=False)
-        self.register_buffer("weight", weight, persistent=True)
-        self.register_buffer("bias", None)
-
-    def forward(self, x):
-        return F.linear(x, self.weight, self.bias)
-
-
 class STAR(nn.Module):
     def __init__(self, d_series, d_core):
         super(STAR, self).__init__()
@@ -46,13 +31,8 @@ class STAR(nn.Module):
 
         self.gen1 = nn.Linear(d_series, d_series)
         self.gen2 = nn.Linear(d_series, d_core)
-        # self.gen3 = nn.Linear(d_series + d_core, d_series)
-        # self.gen4 = nn.Linear(d_series, d_series)
-
-        # self.gen1 = RPLayer(d_series, d_series)
-        # self.gen2 = RPLayer(d_series, d_core)
-        self.gen3 = RPLayer(d_series + d_core, d_series)
-        self.gen4 = RPLayer(d_series, d_series)
+        self.gen3 = nn.Linear(d_series + d_core, d_series)
+        self.gen4 = nn.Linear(d_series, d_series)
 
     def forward(self, input):
         batch_size, channels, _ = input.shape
