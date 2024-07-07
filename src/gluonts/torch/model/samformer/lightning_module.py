@@ -22,9 +22,8 @@ from .sam import SAM
 
 
 class SamFormerLightningModule(pl.LightningModule):
-    """
-    A ``pl.LightningModule`` class that can be used to train a ``SamFormerModel`` with
-    PyTorch Lightning.
+    """A ``pl.LightningModule`` class that can be used to train a
+    ``SamFormerModel`` with PyTorch Lightning.
 
     This is a thin layer around a (wrapped) ``SamFormerModel`` object,
     that exposes the methods to evaluate training and validation loss.
@@ -78,9 +77,7 @@ class SamFormerLightningModule(pl.LightningModule):
         return samples.transpose(0, 1)
 
     def training_step(self, batch, batch_idx: int):  # type: ignore
-        """
-        Execute training step.
-        """
+        """Execute training step."""
         opt = self.optimizers()
 
         train_loss = self.model.loss(
@@ -117,9 +114,7 @@ class SamFormerLightningModule(pl.LightningModule):
         return train_loss
 
     def validation_step(self, batch, batch_idx: int):  # type: ignore
-        """
-        Execute validation step.
-        """
+        """Execute validation step."""
         val_loss = self.model.loss(
             **select(self.inputs, batch),
             future_target=batch["future_target"],
@@ -132,9 +127,7 @@ class SamFormerLightningModule(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        """
-        Returns the optimizer to use.
-        """
+        """Returns the optimizer to use."""
         if self.sam:
             return SAM(
                 self.model.parameters(),
