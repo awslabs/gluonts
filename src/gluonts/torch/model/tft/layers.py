@@ -27,7 +27,7 @@ class FeatureEmbedder(BaseFeatureEmbedder):
         concat_features = super().forward(features=features)
 
         if self._num_features > 1:
-            return torch.chunk(concat_features, self._num_features, dim=-1)
+            return torch.chunk(concat_features, self._num_features, dim=-1)  # type: ignore[return-value]
         else:
             return [concat_features]
 

@@ -178,14 +178,14 @@ class Quantile:
     @classmethod
     def from_float(cls, quantile: float) -> "Quantile":
         assert isinstance(quantile, float)
-        return cls(value=quantile, name=str(quantile))
+        return cls(value=quantile, name=str(quantile))  # type: ignore[call-arg]
 
     @classmethod
     def from_str(cls, quantile: str) -> "Quantile":
         assert isinstance(quantile, str)
 
         try:
-            return cls(value=float(quantile), name=quantile)
+            return cls(value=float(quantile), name=quantile)  # type: ignore[call-arg]
         except ValueError:
             m = re.match(r"^p(\d+)$", quantile)
 

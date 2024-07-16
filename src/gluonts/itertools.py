@@ -298,7 +298,7 @@ def split_into(xs: Sequence, n: int) -> Sequence:
     # e.g. 10 by 3 -> 4, 3, 3
     relative_splits[:remainder] += 1
 
-    return split(xs, np.cumsum(relative_splits))
+    return split(xs, np.cumsum(relative_splits))  # type: ignore[arg-type]
 
 
 @dataclass

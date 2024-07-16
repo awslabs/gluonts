@@ -247,8 +247,8 @@ class LearningRateReduction(Callback):
             0 <= min_lr <= base_lr
         ), "The value of `min_lr` should be >= 0 and <= base_lr"
 
-        self.lr_scheduler = MetricAttentiveScheduler(
-            patience=Patience(
+        self.lr_scheduler = MetricAttentiveScheduler(  # type: ignore[call-arg]
+            patience=Patience(  # type: ignore[call-arg]
                 patience=patience, objective=Objective.from_str(objective)
             ),
             learning_rate=base_lr,
