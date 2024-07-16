@@ -287,6 +287,15 @@ def encode_partial(v: partial) -> Any:
     }
 
 
+decode_disallow = [
+    eval,
+    exec,
+    compile,
+    open,
+    input,
+]
+
+
 def decode(r: Any) -> Any:
     """
     Decodes a value from an intermediate representation `r`.
@@ -312,7 +321,10 @@ def decode(r: Any) -> Any:
         kind = r["__kind__"]
         cls = cast(Any, locate(r["class"]))
 
-        assert cls is not None, f"Can not locate {r['class']}."
+        if cls is None:
+            raise ValueError(f"Cannot locate {r['class']}.")
+        if cls in decode_disallow:
+            raise ValueError(f"{r['class']} cannot be run.")
 
         if kind == Kind.Type:
             return cls

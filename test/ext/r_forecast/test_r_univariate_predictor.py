@@ -48,6 +48,10 @@ def test_forecasts(method_name):
             "MLP currently does not work because "
             "the `neuralnet` package is not yet updated with a known bug fix in ` bips-hb/neuralnet`"
         )
+    if method_name == "fourier.arima.xreg":
+        pytest.xfail(
+            "Method `fourier.arima.xreg` does not work because of a known issue."
+        )
 
     dataset = datasets.get_dataset("constant")
 

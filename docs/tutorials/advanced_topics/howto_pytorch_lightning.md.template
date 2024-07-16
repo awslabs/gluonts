@@ -110,10 +110,10 @@ class FeedForwardNetwork(nn.Module):
         torch.nn.init.zeros_(lin.bias)
         return lin
     
-    def forward(self, context):
-        scale = self.scaling(context)
-        scaled_context = context / scale
-        nn_out = self.nn(scaled_context)
+    def forward(self, past_target):
+        scale = self.scaling(past_target)
+        scaled_past_target = past_target / scale
+        nn_out = self.nn(scaled_past_target)
         nn_out_reshaped = nn_out.reshape(-1, self.prediction_length, self.hidden_dimensions[-1])
         distr_args = self.args_proj(nn_out_reshaped)
         return distr_args, torch.zeros_like(scale), scale
@@ -143,15 +143,15 @@ class LightningFeedForwardNetwork(FeedForwardNetwork, pl.LightningModule):
         super().__init__(*args, **kwargs)
 
     def training_step(self, batch, batch_idx):
-        context = batch["past_target"]
-        target = batch["future_target"]
+        past_target = batch["past_target"]
+        future_target = batch["future_target"]
 
-        assert context.shape[-1] == self.context_length
-        assert target.shape[-1] == self.prediction_length
+        assert past_target.shape[-1] == self.context_length
+        assert future_target.shape[-1] == self.prediction_length
 
-        distr_args, loc, scale = self(context)
+        distr_args, loc, scale = self(past_target)
         distr = self.distr_output.distribution(distr_args, loc, scale)
-        loss = -distr.log_prob(target)
+        loss = -distr.log_prob(future_target)
 
         return loss.mean()
 
