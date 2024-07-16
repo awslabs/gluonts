@@ -18,11 +18,6 @@ jobs:
       with:
         python-version: '3.8'
     - name: Install dependencies
-      run: |
-        pip install click \
-            "mypy==1.8.0" \
-            types-python-dateutil \
-            types-waitress \
-            types-PyYAML
+      run: pip install -r requirements/requirements-ci-just.txt
     - name: Check ${{ matrix.just_cmd }}
       run: just ${{ matrix.just_cmd }}
