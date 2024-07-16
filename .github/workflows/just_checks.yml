@@ -3,7 +3,7 @@ name: Type & license checks
 on: [push, pull_request]
 
 jobs:
-  license-checks:
+  just-checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
