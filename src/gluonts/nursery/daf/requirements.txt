@@ -1,7 +1,7 @@
-torch==1.13.1
+torch==2.2.0
 tensorboard==2.3.0
 numpy==1.22.0
 pandas==1.1.5
-scikit-learn~=1.4.0
+scikit-learn~=1.5.0
 scipy==1.10.0
 matplotlib==3.3.2
