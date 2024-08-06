@@ -181,7 +181,7 @@ class DLinearModel(nn.Module):
         if self.num_feat_dynamic_real > 0:
             # to do: add past and future covariates
             nn_out = nn_out + self.linear_future_cov(
-                torch.flatten(future_time_feat)
+                torch.flatten(future_time_feat, start_dim=1)
             )
 
         distr_args = self.args_proj(
