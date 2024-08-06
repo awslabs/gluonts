@@ -145,7 +145,6 @@ class RForecastPredictor(RBasePredictor):
             import rpy2.robjects.numpy2ri
 
             rpy2.robjects.numpy2ri.activate()
-
             data["feat_dynamic_real"] = np.transpose(data["feat_dynamic_real"])
             nrow, ncol = data["feat_dynamic_real"].shape
             xreg_in = self._robjects.r.matrix(
