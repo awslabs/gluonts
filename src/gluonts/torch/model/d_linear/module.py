@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import nn
@@ -88,6 +88,7 @@ class DLinearModel(nn.Module):
         distr_output=StudentTOutput(),
         kernel_size: int = 25,
         scaling: str = "mean",
+        num_feat_dynamic_real: int = 0,
     ) -> None:
         super().__init__()
 
@@ -107,6 +108,8 @@ class DLinearModel(nn.Module):
         else:
             self.scaler = NOPScaler(keepdim=True)
 
+        self.num_feat_dynamic_real = num_feat_dynamic_real
+
         self.kernel_size = kernel_size
 
         self.linear_seasonal = make_linear_layer(
@@ -115,10 +118,37 @@ class DLinearModel(nn.Module):
         self.linear_trend = make_linear_layer(
             context_length, prediction_length * hidden_dimension
         )
+        # to do: add past and future covariates
+        self.linear_future_cov = make_linear_layer(
+            prediction_length * self.num_feat_dynamic_real,
+            prediction_length * hidden_dimension,
+        )
 
         self.args_proj = self.distr_output.get_args_proj(hidden_dimension)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
+        if self.num_feat_dynamic_real > 0:
+            input_spec_feat = {
+                "past_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self.context_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+                "future_time_feat": Input(
+                    shape=(
+                        batch_size,
+                        self.prediction_length,
+                        self.num_feat_dynamic_real,
+                    ),
+                    dtype=torch.float,
+                ),
+            }
+        else:
+            input_spec_feat = {}
+
         return InputSpec(
             {
                 "past_target": Input(
@@ -127,6 +157,7 @@ class DLinearModel(nn.Module):
                 "past_observed_values": Input(
                     shape=(batch_size, self.context_length), dtype=torch.float
                 ),
+                **input_spec_feat,
             },
             torch.zeros,
         )
@@ -135,6 +166,8 @@ class DLinearModel(nn.Module):
         self,
         past_target: torch.Tensor,
         past_observed_values: torch.Tensor,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.Tensor, torch.Tensor]:
         # scale the input
         past_target_scaled, loc, scale = self.scaler(
@@ -144,6 +177,12 @@ class DLinearModel(nn.Module):
         seasonal_output = self.linear_seasonal(res.squeeze(-1))
         trend_output = self.linear_trend(trend.squeeze(-1))
         nn_out = seasonal_output + trend_output
+
+        if self.num_feat_dynamic_real > 0:
+            # to do: add past and future covariates
+            nn_out = nn_out + self.linear_future_cov(
+                torch.flatten(future_time_feat)
+            )
 
         distr_args = self.args_proj(
             nn_out.reshape(-1, self.prediction_length, self.hidden_dimension)
@@ -156,9 +195,14 @@ class DLinearModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
+        past_time_feat: Optional[torch.Tensor] = None,
+        future_time_feat: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         distr_args, loc, scale = self(
-            past_target=past_target, past_observed_values=past_observed_values
+            past_target=past_target,
+            past_observed_values=past_observed_values,
+            past_time_feat=past_time_feat,
+            future_time_feat=future_time_feat,
         )
         loss = self.distr_output.loss(
             target=future_target, distr_args=distr_args, loc=loc, scale=scale
