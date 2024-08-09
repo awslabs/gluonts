@@ -82,12 +82,8 @@ class BimModel(nn.Module):
 
         # concat loc and scale to the context window
         self.linear_backbone = nn.Linear(context_length + 2, self.mem_dim)
-
         self.end_conv = nn.Conv1d(
             self.mem_dim * 3, self.mem_dim, kernel_size=1
-        )
-        self.end_conv2 = nn.Conv1d(
-            self.mem_dim * 2, self.mem_dim, kernel_size=1
         )
 
         # memory
