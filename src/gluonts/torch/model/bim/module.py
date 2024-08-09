@@ -81,7 +81,9 @@ class BimModel(nn.Module):
             self.scaler = NOPScaler(keepdim=True)
 
         # concat loc and scale to the context window
-        self.linear_backbone = nn.Linear(context_length + 2, self.mem_dim)
+        self.linear_backbone = make_linear_layer(
+            context_length + 2, self.mem_dim
+        )
         self.end_conv = nn.Conv1d(
             self.mem_dim * 3, self.mem_dim, kernel_size=1
         )
