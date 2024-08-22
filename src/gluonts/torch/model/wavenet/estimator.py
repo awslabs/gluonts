@@ -98,7 +98,9 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         negative_data: bool = False,
         trainer_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """WaveNet estimator that uses the architecture proposed in
+        """
+        WaveNet estimator that uses the architecture proposed in.
+
         [Oord et al., 2016] with quantized targets. The model is trained
         using the cross-entropy loss.
 
@@ -348,7 +350,7 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         data: Dataset,
         module: WaveNetLightningModule,
         shuffle_buffer_length: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> Iterable:
         data = Cyclic(data).stream()
         instances = self._create_instance_splitter("training").apply(

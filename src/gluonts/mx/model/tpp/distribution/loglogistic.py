@@ -87,8 +87,9 @@ class Loglogistic(TPPDistribution):
 
     def log_survival(self, x: Tensor) -> Tensor:
         r"""
-        Logarithm of the survival function
-        :math:`\log S(x) = \log(1 - CDF(x))`.
+        Logarithm of the survival function.
+
+        :math:`\log S(x) = \log(1 - CDF(x))`
 
         We define :math:`z = (\log(x) - \mu) / \sigma` and obtain the survival
         function as :math:`S(x) = sigmoid(-z)`, or equivalently

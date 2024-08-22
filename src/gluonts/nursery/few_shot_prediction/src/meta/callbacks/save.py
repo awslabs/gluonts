@@ -20,9 +20,10 @@ from .common import get_save_dir_from_csvlogger
 
 class InitialSaveCallback(Callback):  # type: ignore
     """
-    This callback saves the initial model using the save method of the LightKit ConfigModule.
-    This allows to load the model later without access to the hyper parameters needed to instantiate the class.
-    Additionally, a dictionary of arguments is stored.
+    This callback saves the initial model using the save method of the LightKit
+    ConfigModule. This allows to load the model later without access to the
+    hyper-parameters needed to instantiate the class. Additionally, a
+    dictionary of arguments is stored.
 
     Args:
         args_to_save: Contains the arguments that are stored.

@@ -73,7 +73,7 @@ class ArgProj(gluon.HybridBlock):
 
 class Output:
     r"""
-    Class to connect a network to some output
+    Class to connect a network to some output.
     """
 
     args_dim: Dict[str, int]
@@ -144,33 +144,35 @@ class DistributionOutput(Output):
     @property
     def event_shape(self) -> Tuple:
         r"""
-        Shape of each individual event contemplated by the distributions
-        that this object constructs.
+        Shape of each individual event contemplated by the distributions that
+        this object constructs.
         """
         raise NotImplementedError()
 
     @property
     def event_dim(self) -> int:
         r"""
-        Number of event dimensions, i.e., length of the `event_shape` tuple,
-        of the distributions that this object constructs.
+        Number of event dimensions, i.e., length of the `event_shape` tuple, of
+        the distributions that this object constructs.
         """
         return len(self.event_shape)
 
     @property
     def value_in_support(self) -> float:
         r"""
-        A float that will have a valid numeric value when computing the
-        log-loss of the corresponding distribution. By default 0.0.
+        A float that will have a valid numeric value when computing the log-
+        loss of the corresponding distribution; by default 0.0.
+
         This value will be used when padding data series.
         """
         return 0.0
 
     def domain_map(self, F, *args: Tensor):
         r"""
-        Converts arguments to the right shape and domain. The domain depends
-        on the type of distribution, while the correct shape is obtained by
-        reshaping the trailing axis in such a way that the returned tensors
-        define a distribution of the right event_shape.
+        Converts arguments to the right shape and domain.
+
+        The domain depends on the type of distribution, while the correct shape
+        is obtained by reshaping the trailing axis in such a way that the
+        returned tensors define a distribution of the right event_shape.
         """
         raise NotImplementedError()

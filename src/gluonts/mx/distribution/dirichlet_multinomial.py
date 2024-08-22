@@ -27,7 +27,7 @@ class DirichletMultinomial(Distribution):
     r"""
     Dirichlet-Multinomial distribution, specified by the concentration vector
     alpha of length dim, and a number of trials n_trials.
-    https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution
+    https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution.
 
     The Dirichlet-Multinomial distribution is a discrete multivariate
     probability distribution, a sample (or observation)

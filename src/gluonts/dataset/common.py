@@ -128,10 +128,11 @@ def infer_file_type(path):
 
 
 def _rglob(path: Path, pattern="*", levels=1):
-    """Like ``path.rglob(pattern)`` except this limits the number of sub
-    directories that are traversed. ``levels = 0`` is thus the same as
-    ``path.glob(pattern)``.
+    """
+    Like ``path.rglob(pattern)`` except this limits the number of sub
+    directories that are traversed.
 
+    ``levels = 0`` is thus the same as  ``path.glob(pattern)``.
     """
     if levels is not None:
         levels -= 1

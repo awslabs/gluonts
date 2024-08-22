@@ -147,6 +147,7 @@ class BinnedUniforms(Distribution):
     def log_prob(self, x):
         """
         Log probability for a tensor of datapoints `x`.
+
         'x' is to have shape (*batch_shape)
         """
         for i in range(0, len(x.shape)):
@@ -158,8 +159,8 @@ class BinnedUniforms(Distribution):
     def log_binned_p(self, x):
         """
         Log probability for a tensor of datapoints `x`.
-        'x' is to have shape (*batch_shape)
 
+        'x' is to have shape (*batch_shape)
         """
         one_hot_bin_indicator = self.get_one_hot_bin_indicator(
             x, in_float=True
@@ -172,14 +173,15 @@ class BinnedUniforms(Distribution):
     def pdf(self, x):
         """
         Probability for a tensor of data points `x`.
+
         'x' is to have shape (*batch_shape)
         """
         return torch.exp(self.log_prob(x))
 
     def get_one_hot_bin_indicator(self, x, in_float=False):
         """
-        'x' is to have shape (*batch_shape) which can be for example () or
-        (32, ) or (32, 168, )
+        'x' is to have shape (*batch_shape) which can be for example () or (32,
+        ) or (32, 168, )
         """
         for i in range(0, len(x.shape)):
             assert (
@@ -221,8 +223,8 @@ class BinnedUniforms(Distribution):
 
     def icdf(self, quantiles):
         """
-        Inverse cdf of a tensor of quantile `quantiles`
-        'quantiles' is of shape (*batch_shape) with values between (0.0, 1.0)
+        Inverse cdf of a tensor of quantile `quantiles` 'quantiles' is of shape
+        (*batch_shape) with values between (0.0, 1.0)
 
         This is the function to be called from the outside.
         """
@@ -248,15 +250,15 @@ class BinnedUniforms(Distribution):
 
     def _inverse_cdf(self, quantiles):
         """
-        Inverse cdf of a tensor of quantile `quantiles`
-        'quantiles' is of shape (*batch_shape) with values between (0.0, 1.0)
+        Inverse cdf of a tensor of quantile `quantiles` 'quantiles' is of shape
+        (*batch_shape) with values between (0.0, 1.0)
         """
         return self._icdf_binned(quantiles)
 
     def _icdf_binned(self, quantiles):
         """
-        Inverse cdf of a tensor of quantile `quantiles`
-        'quantiles' is of shape (*batch_shape) with values between (0.0, 1.0)
+        Inverse cdf of a tensor of quantile `quantiles` 'quantiles' is of shape
+        (*batch_shape) with values between (0.0, 1.0)
         """
         quantiles = quantiles.unsqueeze(dim=-1)
         # quantiles.shape: (*batch_shape, 1)
@@ -315,6 +317,7 @@ class BinnedUniforms(Distribution):
     def cdf(self, x):
         """
         Cumulative density tensor for a tensor of data points `x`.
+
         'x' is expected to be of shape (*batch_shape)
         """
         for i in range(0, len(x.shape)):
@@ -326,12 +329,11 @@ class BinnedUniforms(Distribution):
     def _cdf_binned(self, x):
         """
         Cumulative density tensor for a tensor of data points `x`.
-        'x' is expected to be of shape (*batch_shape)
 
-        The cdf is composed of 2 parts:
-            the cdf up to the bin
-            the cdf within the bin that the point falls into (modeled with a
-            uniform distribution)
+        'x' is expected to be of shape (*batch_shape). The cdf is composed of 2
+        parts:
+        - the cdf up to the bin
+        - the cdf within the bin that the point falls into (modeled with a uniform distribution)
         """
 
         bins_prob = self.bins_prob
@@ -399,7 +401,6 @@ class BinnedUniforms(Distribution):
 
         Returns:
             samples of shape (*sample_shape, *batch_shape)
-
         """
         if len(sample_shape) == 0:
             quantiles = torch.rand(self.batch_shape)

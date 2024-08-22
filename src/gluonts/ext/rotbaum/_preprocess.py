@@ -49,7 +49,7 @@ class PreprocessGeneric:
         max_n_datapts: int = 400000,
         seed: Optional[int] = None,
         num_samples: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         """
         Parameters
@@ -296,7 +296,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
         one_hot_encode: bool = True,
         subtract_mean: bool = True,
         count_nans: bool = False,
-        **kwargs
+        **kwargs,
     ):
         if one_hot_encode:
             assert cardinality != "ignore" or (
@@ -313,7 +313,7 @@ class PreprocessOnlyLagFeatures(PreprocessGeneric):
             stratify_targets=stratify_targets,
             n_ignore_last=n_ignore_last,
             num_samples=num_samples,
-            **kwargs
+            **kwargs,
         )
 
         self.use_feat_static_real = use_feat_static_real

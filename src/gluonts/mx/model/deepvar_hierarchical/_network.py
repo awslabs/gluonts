@@ -99,7 +99,7 @@ def reconcile_samples(
 
 def coherency_error(S: np.ndarray, samples: np.ndarray) -> float:
     r"""
-    Computes the maximum relative coherency error
+    Computes the maximum relative coherency error.
 
     .. math::
 

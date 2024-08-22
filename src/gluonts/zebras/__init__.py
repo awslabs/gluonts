@@ -59,8 +59,10 @@ def batch(xs: list):
 
 
 def from_pandas(obj):
-    """Convert pandas offsets, date indices and data frames into ``zebras``
-    equivalents."""
+    """
+    Convert pandas offsets, date indices and data frames into ``zebras``
+    equivalents.
+    """
     import pandas as pd
     from pandas.core.base import IndexOpsMixin
     from pandas.tseries.offsets import BaseOffset

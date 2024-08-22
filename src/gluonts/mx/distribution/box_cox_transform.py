@@ -26,7 +26,8 @@ from .distribution import getF, softplus
 class BoxCoxTransform(Bijection):
     r"""
     Implements Box-Cox transformation of a uni-variate random variable.
-    The Box-Cox transformation of an observation :math:`z` is given by
+
+    The Box-Cox transformation of an observation :math:`z` is given by:
 
     .. math::
 
@@ -178,7 +179,8 @@ class BoxCoxTransform(Bijection):
         )
 
     def f_inv(self, y: Tensor) -> Tensor:
-        r"""Inverse of the Box-Cox Transform
+        r"""
+        Inverse of the Box-Cox Transform.
 
         Parameters
         ----------
@@ -189,7 +191,6 @@ class BoxCoxTransform(Bijection):
         -------
         Tensor
             Observations
-
         """
         F = self.F
         lambda_1 = self.lambda_1
@@ -211,7 +212,7 @@ class BoxCoxTransform(Bijection):
     def log_abs_det_jac(self, z: Tensor, y: Tensor = None) -> Tensor:
         r"""
         Logarithm of the absolute value of the Jacobian determinant
-        corresponding to the Box-Cox Transform is given by
+        corresponding to the Box-Cox Transform is given by.
 
         .. math::
             \log \frac{d}{dz} BoxCox(z; \lambda_1, \lambda_2) = \begin{cases}
@@ -231,7 +232,6 @@ class BoxCoxTransform(Bijection):
         Returns
         -------
         Tensor
-
         """  # noqa: E501
         F = self.F
         lambda_1 = self.lambda_1

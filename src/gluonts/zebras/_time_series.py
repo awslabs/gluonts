@@ -238,7 +238,8 @@ def time_series(
     name: Optional[str] = None,
     metadata: Optional[Dict] = None,
 ):
-    """Create a ``zebras.TimeSeries`` object that represents a time series.
+    """
+    Create a ``zebras.TimeSeries`` object that represents a time series.
 
     Parameters
     ----------

@@ -19,7 +19,8 @@ from meta.data.batch import SeriesBatch
 
 class MetaModel(ABC, nn.Module):
     """
-    Base class for all meta models that make predictions based on a support set and queries
+    Base class for all meta models that make predictions based on a support set
+    and queries.
     """
 
     @abstractmethod
@@ -48,7 +49,7 @@ class MetaModel(ABC, nn.Module):
 
 class SeriesModel(ABC, nn.Module):
     """
-    Base class for all models that make predictions based on a query only
+    Base class for all models that make predictions based on a query only.
     """
 
     @abstractmethod

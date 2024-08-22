@@ -82,7 +82,8 @@ def compute_metrics(
     seasonality: int,
 ) -> Dict[str, float]:
     """
-    Evaluates the forecasts on the provided dataset and returns summary metrics.
+    Evaluates the forecasts on the provided dataset and returns summary
+    metrics.
 
     Parameters
     ----------

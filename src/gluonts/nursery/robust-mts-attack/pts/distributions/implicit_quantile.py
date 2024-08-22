@@ -42,9 +42,10 @@ class ImplicitQuantile(Distribution):
 
     @torch.no_grad()
     def sample(self, sample_shape=torch.Size()):
-        """See arXiv: 1806.06923
-        Once the model has learned how to predict a given quantile tau, one can sample from the
-        distribution of the target, by sampling tau values.
+        """
+        See arXiv: 1806.06923 Once the model has learned how to predict a given
+        quantile tau, one can sample from the distribution of the target, by
+        sampling tau values.
         """
         if len(sample_shape) == 0:
             num_parallel_samples = 1

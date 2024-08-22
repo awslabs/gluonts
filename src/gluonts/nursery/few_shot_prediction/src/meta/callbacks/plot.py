@@ -27,9 +27,10 @@ from meta.vis.forecast import (
 
 class ForecastPlotLoggerCallback(Callback):
     """
-    A callback that stores plots of the  predictions for a collection of samples every n epochs.
-    The plots display the query (past and future) and forecasted quantiles.
-    This callback is intended for models without support set and attention mechanism.
+    A callback that stores plots of the  predictions for a collection of
+    samples every n epochs. The plots display the query (past and future) and
+    forecasted quantiles. This callback is intended for models without support
+    set and attention mechanism.
 
     Args:
         log_batch: For each sample in the batch the prediction is plotted when the callback is called.
@@ -83,9 +84,11 @@ class ForecastPlotLoggerCallback(Callback):
 
 class ForecastSupportSetAttentionPlotLoggerCallback(Callback):
     """
-    A callback that stores plots of the  predictions for a collection of samples every n epochs.
-    The plots display the query (past and future), forecasted quantiles and the time series in the support set
-    of this sample aligned with their attention scores. This callback works only for models with attention mechanism!
+    A callback that stores plots of the  predictions for a collection of
+    samples every n epochs. The plots display the query (past and future),
+    forecasted quantiles and the time series in the support set of this sample
+    aligned with their attention scores. This callback works only for models
+    with attention mechanism!
 
     Args:
         log_batch: For each sample in the batch the prediction is plotted when the callback is called.
@@ -160,7 +163,8 @@ class ForecastSupportSetAttentionPlotLoggerCallback(Callback):
 
 class LossPlotLoggerCallback(Callback):
     """
-    A callback that stores plots of the training and macro-averaged validation loss curve every n epochs.
+    A callback that stores plots of the training and macro-averaged validation
+    loss curve every n epochs.
 
     Args:
         every_n_epochs: Specifies how often the plots are generated.
@@ -233,7 +237,8 @@ class LossPlotLoggerCallback(Callback):
 
 class CheatLossPlotLoggerCallback(LossPlotLoggerCallback):
     """
-    A callback that stores plots of the training and multiple validation losses curve every n epochs.
+    A callback that stores plots of the training and multiple validation losses
+    curve every n epochs.
 
     Args:
         every_n_epochs: Specifies how often the plots are generated.
@@ -272,7 +277,8 @@ class CheatLossPlotLoggerCallback(LossPlotLoggerCallback):
 
 class MacroCRPSPlotCallback(Callback):
     """
-    A callback that stores plots of the validation losses and a macro-averaged validation loss curve every n epochs.
+    A callback that stores plots of the validation losses and a macro-averaged
+    validation loss curve every n epochs.
 
     Args:
         every_n_epochs: Specifies how often the plots are generated.

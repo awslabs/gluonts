@@ -44,11 +44,10 @@ from pts.distributions import (
     TransformedImplicitQuantile,
 )
 from gluonts.core.component import validated
-from gluonts.torch.modules.distribution_output import (
-    DistributionOutput,
-    LambdaLayer,
-    PtArgProj,
-)
+from gluonts.torch.distributions.distribution_output import DistributionOutput
+from gluonts.torch.modules.lambda_layer import LambdaLayer
+from gluonts.torch.distributions.output import PtArgProj
+
 from pts.modules.iqn_modules import ImplicitQuantileModule
 
 

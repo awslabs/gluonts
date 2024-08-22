@@ -81,7 +81,8 @@ class Gaussian(Distribution):
     @classmethod
     def fit(cls, F, samples: Tensor):
         """
-        Returns an instance of `Gaussian` after fitting parameters to the given data.
+        Returns an instance of `Gaussian` after fitting parameters to the given
+        data.
 
         Parameters
         ----------
@@ -92,7 +93,6 @@ class Gaussian(Distribution):
         Returns
         -------
         Distribution instance of type `Gaussian`.
-
         """
 
         # Compute mean and standard deviations

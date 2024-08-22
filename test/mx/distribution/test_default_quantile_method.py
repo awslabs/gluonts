@@ -25,9 +25,12 @@ from gluonts.mx.distribution.uniform import Uniform
 
 def test_quantile() -> None:
     r"""
-    Tests if the quantiles of a single Gaussian and the quantiles of the mixture of two Gaussians
-    identical to the first are equal. The quantiles of the single Gaussian are given by the
-    Gaussian.quantile() method while the quantiles of the mixture from the Distribution.quantile() method.
+    Tests if the quantiles of a single Gaussian and the quantiles of the
+    mixture of two Gaussians identical to the first are equal.
+
+    The quantiles of the single Gaussian are given by the Gaussian.quantile()
+    method while the quantiles of the mixture from the Distribution.quantile()
+    method.
     """
     mu = mx.nd.array(
         [[1, 10, 100, 1000, 10000], [-1, -10, -100, -1000, -10000]]
