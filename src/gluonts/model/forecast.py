@@ -328,7 +328,7 @@ class Forecast:
             self.index.to_timestamp(),
             self.quantile(0.5),
             color=color,
-            label=name,
+            label=name if show_label else None,
         )
 
         # Plot prediction intervals
