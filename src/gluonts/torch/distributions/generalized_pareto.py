@@ -37,7 +37,7 @@ class GeneralizedPareto(Distribution):
     Example::
 
         >>> m = GeneralizedPareto(torch.tensor([0.1]), torch.tensor([2.0]), torch.tensor([0.4]))
-        >>> m.sample()  # sample from a Generalized Pareto distribution with loc=1, scale=1, and concentration=1
+        >>> m.sample()  # sample from a Generalized Pareto distribution with loc=0.1, scale=2.0, and concentration=0.4
         tensor([ 1.5623])
 
     Args:
@@ -150,9 +150,7 @@ class GeneralizedPareto(Distribution):
         concentration = self.concentration
         valid = concentration < 0.5
         safe_conc = torch.where(valid, concentration, 0.25)
-        result = self.scale**2 / (
-            (1 - safe_conc) ** 2 * (1 - 2 * safe_conc)
-        ) + torch.zeros_like(self.loc)
+        result = self.scale**2 / ((1 - safe_conc) ** 2 * (1 - 2 * safe_conc))
         return torch.where(valid, result, torch.full_like(result, nan))
 
     def entropy(self):
