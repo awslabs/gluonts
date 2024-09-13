@@ -179,17 +179,7 @@ class GeneralizedPareto(Distribution):
 
 class GeneralizedParetoOutput(DistributionOutput):
     distr_cls: type = GeneralizedPareto
-
-    @validated()
-    def __init__(
-        self,
-    ) -> None:
-        super().__init__(self)
-
-        self.args_dim = cast(
-            Dict[str, int],
-            {"loc": 1, "scale": 1, "concentration": 1},
-        )
+    args_dim: Dict[str, int] = {"loc": 1, "scale": 1, "concentration": 1}
 
     @classmethod
     def domain_map(
