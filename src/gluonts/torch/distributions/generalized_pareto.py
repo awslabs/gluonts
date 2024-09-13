@@ -185,8 +185,6 @@ class GeneralizedParetoOutput(DistributionOutput):
         concentration: torch.Tensor,
     ):  # type: ignore
         scale = F.softplus(scale)
-        # Clamp concentration to avoid numerical issues
-        concentration = torch.tanh(concentration)
 
         # Adjust loc for negative concentration
         neg_conc = concentration < 0
