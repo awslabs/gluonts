@@ -30,14 +30,14 @@ class ExGeneralizedPareto(Distribution):
     r"""
     Exponentiated Generalised Pareto distribution.
 
-     Parameters
-     ----------
-     xi
-         Tensor containing the xi (heaviness) shape parameters. The tensor is
-         of shape (*batch_shape, 1)
-     beta
-         Tensor containing the beta scale parameters. The tensor is of
-         shape (*batch_shape, 1)
+    Parameters
+    ----------
+    xi
+        Tensor containing the xi (heaviness) shape parameters. The tensor is
+        of shape (*batch_shape, 1)
+    beta
+        Tensor containing the beta scale parameters. The tensor is of
+        shape (*batch_shape, 1)
     """
 
     arg_constraints = {
@@ -125,7 +125,7 @@ class ExGeneralizedPareto(Distribution):
 
     def cdf(self, x):
         """
-        cdf values for a tensor x of shape (*batch_shape)
+        Cdf values for a tensor x of shape (*batch_shape)
         """
         x = x.unsqueeze(dim=-1)
         x_shifted = torch.div(x, self.beta)
@@ -134,7 +134,7 @@ class ExGeneralizedPareto(Distribution):
 
     def icdf(self, value):
         """
-        icdf values for a tensor quantile values of shape (*batch_shape)
+        Icdf values for a tensor quantile values of shape (*batch_shape)
         """
         value = value.unsqueeze(dim=-1)
         x_shifted = torch.div(torch.pow(1 - value, -self.xi) - 1, self.xi)
