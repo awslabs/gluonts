@@ -26,7 +26,8 @@ from .distribution_output import DistributionOutput
 
 class GeneralizedPareto(Distribution):
     r"""
-    Creates a Generalized Pareto distribution parameterized by :attr:`loc`, :attr:`scale`, and :attr:`concentration`.
+    Creates a Generalized Pareto distribution parameterized by :attr:`loc`,
+    :attr:`scale`, and :attr:`concentration`.
 
     The Generalized Pareto distribution is a family of continuous probability distributions on the real line.
     Special cases include Exponential (when  :attr:`loc` = 0, :attr:`concentration` = 0), Pareto (when :attr:`concentration` > 0,
