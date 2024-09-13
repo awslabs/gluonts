@@ -26,18 +26,18 @@ from .binned_uniforms import BinnedUniforms
 from .distribution_output import DistributionOutput
 
 
-class GeneralizedPareto(Distribution):
+class ExGeneralizedPareto(Distribution):
     r"""
-    Generalised Pareto distribution.
+    Exponentiated Generalised Pareto distribution.
 
-    Parameters
-    ----------
-    xi
-        Tensor containing the xi (heaviness) shape parameters. The tensor is
-        of shape (*batch_shape, 1)
-    beta
-        Tensor containing the beta scale parameters. The tensor is of
-        shape (*batch_shape, 1)
+     Parameters
+     ----------
+     xi
+         Tensor containing the xi (heaviness) shape parameters. The tensor is
+         of shape (*batch_shape, 1)
+     beta
+         Tensor containing the beta scale parameters. The tensor is of
+         shape (*batch_shape, 1)
     """
 
     arg_constraints = {
@@ -55,13 +55,13 @@ class GeneralizedPareto(Distribution):
         setattr(self, "xi", xi)
         setattr(self, "beta", beta)
 
-        super(GeneralizedPareto, self).__init__()
+        super(ExGeneralizedPareto, self).__init__()
 
         if isinstance(xi, Number) and isinstance(beta, Number):
             batch_shape = torch.Size()
         else:
             batch_shape = self.xi.size()
-        super(GeneralizedPareto, self).__init__(
+        super(ExGeneralizedPareto, self).__init__(
             batch_shape, validate_args=validate_args
         )
 
@@ -194,13 +194,13 @@ class SplicedBinnedPareto(BinnedUniforms):
 
         self.lower_gp_xi = lower_gp_xi
         self.lower_gp_beta = lower_gp_beta
-        self.lower_gen_pareto = GeneralizedPareto(
+        self.lower_gen_pareto = ExGeneralizedPareto(
             self.lower_gp_xi, self.lower_gp_beta
         )
 
         self.upper_gp_xi = upper_gp_xi
         self.upper_gp_beta = upper_gp_beta
-        self.upper_gen_pareto = GeneralizedPareto(
+        self.upper_gen_pareto = ExGeneralizedPareto(
             self.upper_gp_xi, self.upper_gp_beta
         )
 
