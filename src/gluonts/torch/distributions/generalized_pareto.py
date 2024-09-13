@@ -13,15 +13,13 @@
 
 import math
 from numbers import Number, Real
-from typing import Dict, Tuple, cast
+from typing import Dict, Tuple
 
 import torch
 from torch import nan, inf
 import torch.nn.functional as F
 from torch.distributions import Distribution, constraints
 from torch.distributions.utils import broadcast_all
-
-from gluonts.core.component import validated
 
 from .distribution_output import DistributionOutput
 
