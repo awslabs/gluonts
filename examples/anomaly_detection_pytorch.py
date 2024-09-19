@@ -29,12 +29,12 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
     Fit a Generalized Pareto Distribution to the given data using RMSprop optimizer.
 
     Args:
-    data (torch.Tensor): Input tensor of shape (batch_size, num_samples)
-    num_iterations (int): Number of optimization iterations
-    learning_rate (float): Learning rate for the optimizer
+        data (torch.Tensor): Input tensor of shape (batch_size, num_samples)
+        num_iterations (int): Number of optimization iterations
+        learning_rate (float): Learning rate for the optimizer
 
     Returns:
-    tuple: Fitted parameters (loc, scale, concentration)
+        GeneralizedPareto: Fitted GPD(loc, scale, concentration) distribution
     """
     batch_size, _ = data.shape
 
