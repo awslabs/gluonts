@@ -64,7 +64,6 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
         optimizer.zero_grad()
         gpd = _gdk_domain_map(loc, scale, concentration)
         loss = -gpd.log_prob(data).mean()
-        print(f"Loss: {loss.item()}")
         loss.backward()
         lr_scheduler.step(loss)
         return loss
