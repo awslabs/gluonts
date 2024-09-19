@@ -26,7 +26,7 @@ from gluonts.dataset.field_names import FieldName
 
 def fit_gpd(data, num_iterations=100, learning_rate=0.001):
     """
-    Fit a Generalized Pareto Distribution to the given data using LBFGS optimizer.
+    Fit a Generalized Pareto Distribution to the given data using RMSprop optimizer.
 
     Args:
     data (torch.Tensor): Input tensor of shape (batch_size, num_samples)
@@ -124,6 +124,7 @@ def main(args):
             context_target = take_last(
                 inputs["past_target"], dim=-1, num=model.context_length - 1
             )
+            # calculate the surprisal scores for the context target
             scores = -distr.log_prob(context_target / scale)
 
             # get the top 10% of the scores for each time series of the batch
@@ -133,13 +134,13 @@ def main(args):
             # get top scores [B, 10% of context_length]
             top_scores = top_scores.values
 
-            # fit a Generalized Pareto Distribution to the top_context_target data
+            # fit a Generalized Pareto Distribution to the top_scores aka surprisal scores
             gpd = fit_gpd(top_scores)
 
             # Loop over each prediction length
             scaled_future_target = inputs["future_target"] / scale
-            anomalies = []
             distr = model.output_distribution(params, trailing_n=1)
+            anomalies = []
             for i in range(scaled_future_target.shape[1]):
                 score = -distr.log_prob(scaled_future_target[:, i : i + 1])
                 # check if the score are less than gpd.loc? for each entry in the batch
