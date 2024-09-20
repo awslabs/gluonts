@@ -57,11 +57,13 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
         optimizer, mode="min", factor=0.5, patience=3
     )
 
-    def _gdk_domain_map(loc, scale, concentration):
+    def _gdk_domain_map(loc, scale, concentration, validate_args=None):
         scale = F.softplus(scale)
         neg_conc = concentration < 0
         loc = torch.where(neg_conc, loc - scale / concentration, loc)
-        return GeneralizedPareto(loc, scale, concentration)
+        return GeneralizedPareto(
+            loc, scale, concentration, validate_args=validate_args
+        )
 
     def closure():
         optimizer.zero_grad()
@@ -74,7 +76,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
     for _ in range(num_iterations):
         optimizer.step(closure)
 
-    return GeneralizedPareto(
+    return _gdk_domain_map(
         loc.detach(),
         scale.detach(),
         concentration.detach(),
