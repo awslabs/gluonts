@@ -37,7 +37,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
         learning_rate (float): Learning rate for the optimizer
 
     Returns:
-        GeneralizedPareto: Fitted GPD(loc, scale, concentration) distribution
+        GeneralizedPareto: Fitted GPD(loc, scale, concentration) distribution without any validation
     """
     batch_size, _ = data.shape
 
@@ -75,7 +75,10 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
         optimizer.step(closure)
 
     return GeneralizedPareto(
-        loc.detach(), scale.detach(), concentration.detach()
+        loc.detach(),
+        scale.detach(),
+        concentration.detach(),
+        validate_args=False,
     )
 
 
@@ -152,12 +155,11 @@ def main(args):
                 leave=False,
             ):
                 score = -distr.log_prob(scaled_future_target[:, i : i + 1])
-                # check if the score are less than gpd.loc? for each entry in the batch
-                is_anomaly = score < gpd.loc
-                # mask out the score where is_anomaly is True
-                score = torch.where(is_anomaly, gpd.loc + 1, score)
+                # only check if its an anomaly for scores greater than gpd.loc for each entry in the batch
                 is_anomaly = torch.where(
-                    is_anomaly, False, gpd.cdf(score) < args.anomaly_threshold
+                    score < gpd.loc,
+                    False,
+                    gpd.cdf(score) < args.anomaly_threshold,
                 )
                 batch_anomalies.append(is_anomaly)
 
