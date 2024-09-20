@@ -141,11 +141,8 @@ def main(args):
                 k=int(scores.shape[1] * args.top_score_percentage),
                 dim=1,
             )
-            # get top scores [B, 10% of context_length]
-            top_scores = top_scores.values
-
-            # fit a Generalized Pareto Distribution to the top_scores aka surprisal scores
-            gpd = fit_gpd(top_scores)
+            # fit a Generalized Pareto Distribution to the top_scores aka surprisal scores values
+            gpd = fit_gpd(top_scores.values)
 
             # Loop over each prediction length
             scaled_future_target = inputs["future_target"] / scale
