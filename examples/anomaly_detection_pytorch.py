@@ -142,7 +142,11 @@ def main(args):
                 dim=1,
             )
             # fit a Generalized Pareto Distribution to the top_scores aka surprisal scores values
-            gpd = fit_gpd(top_scores.values)
+            gpd = fit_gpd(
+                top_scores.values,
+                num_iterations=args.gpd_iterations,
+                learning_rate=args.gpd_learning_rate,
+            )
 
             # Loop over each prediction length
             scaled_future_target = inputs["future_target"] / scale
@@ -237,7 +241,18 @@ if __name__ == "__main__":
         default=0.1,
         help="Percentage of top scores to consider for GPD fitting",
     )
-
+    parser.add_argument(
+        "--gpd_iterations",
+        type=int,
+        default=100,
+        help="Number of iterations for GPD fitting",
+    )
+    parser.add_argument(
+        "--gpd_learning_rate",
+        type=float,
+        default=0.001,
+        help="Learning rate for GPD fitting",
+    )
     args = parser.parse_args()
 
     if args.context_length is None:
