@@ -16,6 +16,7 @@ import argparse
 import torch
 import torch.nn.functional as F
 
+from tqdm import tqdm
 from gluonts.torch import DeepAREstimator
 from gluonts.dataset.repository import get_dataset
 from gluonts.itertools import select
@@ -38,7 +39,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
     """
     batch_size, _ = data.shape
 
-    # Initialize parameters
+    # Initialize parameters for the GPD so that the loc is always less than the data to begin with
     loc = data.min(dim=1, keepdim=True)[0] - 1
     loc.requires_grad = True
     scale = torch.ones(batch_size, 1, device=data.device, requires_grad=True)
@@ -99,9 +100,10 @@ def main(args):
         predictor.prediction_net,
     )
 
+    anomalies = []
     model.eval()
     with torch.no_grad():
-        for batch in test_data_loader:
+        for batch in tqdm(test_data_loader, desc="Processing batches"):
             inputs = select(
                 predictor.input_names + [f"future_{FieldName.TARGET}"],
                 batch,
@@ -139,8 +141,12 @@ def main(args):
             # Loop over each prediction length
             scaled_future_target = inputs["future_target"] / scale
             distr = model.output_distribution(params, trailing_n=1)
-            anomalies = []
-            for i in range(scaled_future_target.shape[1]):
+            batch_anomalies = []
+            for i in tqdm(
+                range(scaled_future_target.shape[1]),
+                desc="Processing prediction length",
+                leave=False,
+            ):
                 score = -distr.log_prob(scaled_future_target[:, i : i + 1])
                 # check if the score are less than gpd.loc? for each entry in the batch
                 is_anomaly = score < gpd.loc
@@ -149,7 +155,7 @@ def main(args):
                 is_anomaly = torch.where(
                     is_anomaly, False, gpd.cdf(score) < 0.05
                 )
-                anomalies.append(is_anomaly)
+                batch_anomalies.append(is_anomaly)
 
                 next_features = torch.cat(
                     (
@@ -169,6 +175,10 @@ def main(args):
                 output, state = model.rnn(rnn_input, state)
                 params = model.param_proj(output)
                 distr = model.output_distribution(params)
+            # stack the batch_anomalies along the prediction length dimension
+            anomalies.append(torch.stack(batch_anomalies, dim=1))
+
+    anomalies = torch.cat(anomalies, dim=0)
 
 
 if __name__ == "__main__":
