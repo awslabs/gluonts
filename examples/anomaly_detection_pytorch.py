@@ -152,6 +152,7 @@ def main(args):
             distr = model.output_distribution(
                 params, trailing_n=1, scale=scale
             )
+            scaled_past_target = inputs["past_target"] / scale
             batch_anomalies = []
             for i in tqdm(
                 range(inputs["future_target"].shape[1]),
@@ -178,13 +179,16 @@ def main(args):
                 )
                 next_lags = lagged_sequence_values(
                     model.lags_seq,
-                    inputs["past_target"] / scale,
+                    scaled_past_target,
                     target / scale,
                     dim=-1,
                 )
                 rnn_input = torch.cat((next_lags, next_features), dim=-1)
-
                 output, state = model.rnn(rnn_input, state)
+                scaled_past_target = torch.cat(
+                    (scaled_past_target, target / scale), dim=1
+                )
+
                 params = model.param_proj(output)
                 distr = model.output_distribution(params, scale=scale)
             # stack the batch_anomalies along the prediction length dimension
