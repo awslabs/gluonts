@@ -192,3 +192,46 @@ def test_rename():
 
     tf2 = tf.rename_static(x="static")
     assert tf2.static.keys() == {"x"}
+
+
+def test_update_timeframe():
+    assert tf.update(tf).eq_to(tf)
+
+    left = tf[:3]
+    right = tf[-3:]
+
+    tf2 = left.update(right)
+    assert len(tf) == len(tf2)
+    assert tf.index == tf2.index
+
+    gap = tf2[3:-3]
+    assert np.isnan(gap["target"]).all()
+
+    xxx = zb.time_frame(
+        {"xxx": np.full(3, 99)},
+        index=right.index,
+    )
+    tf3 = left.update(xxx)
+
+    assert len(tf) == len(tf3)
+    assert tf.index == tf3.index
+    tf3.columns.keys() == tf.columns.keys() | {"xxx"}
+
+
+def test_update_timeseries():
+    ts = tf["target"]
+    assert np.all(ts.update(ts) == ts)
+
+    left = ts[:3]
+    right = ts[-3:]
+
+    ts2 = left.update(right)
+    assert len(ts) == len(ts2)
+    assert ts.index == ts2.index
+
+    gap = ts2[3:-3]
+    assert np.isnan(gap).all()
+
+    ts3 = left.update(zb.time_series(np.full(3, 99), index=right.index))
+    assert len(ts) == len(ts3)
+    assert ts.index == ts3.index

@@ -21,7 +21,7 @@ import numpy as np
 from toolz import first
 
 from gluonts import maybe
-from gluonts.itertools import pluck_attr
+from gluonts.itertools import pluck_attr, replace
 
 from ._base import Pad, TimeBase
 from ._period import period, Period, Periods
@@ -93,6 +93,84 @@ class TimeSeries(TimeBase):
             values=values,
             index=index,
             _pad=self._pad.extend(left, right),
+        )
+
+    def update(self, other: TimeSeries, default=np.nan) -> TimeSeries:
+        """Create a new ``TimeSeries`` which includes values of both input
+        series.
+
+        The new series spans both input series and inserts default values if
+        there is a gap between the two series. If both series overlap, the
+        second overwrites the values of the first series.
+
+        Name and metadata is also updated, and the second series
+        value take precedence.
+
+        Updating a series with itself is effectively a noop, similar to how
+        ``dict.update`` on the same dict will return an identical result.
+
+        Update requires that both series have defined indices, since otherwise
+        its not possible to know how the values relate to each other.
+
+        Note: ``update`` will reset the padding.
+        """
+
+        if self.index is None or other.index is None:
+            raise ValueError("Both time frames need to have an index.")
+
+        if self.index.freq != other.index.freq:
+            raise ValueError("frequency mismatch on index.")
+
+        # ensure tdims match
+        if self.tdim != other.tdim:
+            raise ValueError("tdims mismatch.")
+
+        if replace(np.shape(self), self.tdim, 0) != replace(
+            np.shape(other), other.tdim, 0
+        ):
+            raise ValueError("Incompatible shapes.")
+
+        start = min(self.index.start, other.index.start)
+        end = max(self.index.end, other.index.end)
+
+        index = Periods(
+            np.arange(
+                start.to_numpy(),
+                # arange is exclusive, thus we need to add `1`
+                (end + 1).to_numpy(),
+                start.freq.step,
+            ),
+            start.freq,
+        )
+
+        values = np.full(
+            replace(np.shape(self), self.tdim, len(index)),
+            default,
+        )
+        view = AxisView(values, self.tdim)
+
+        idx = index.index_of(self.index.start)
+        view[idx : idx + len(self)] = self.values
+
+        idx = index.index_of(other.index.start)
+        view[idx : idx + len(other)] = other.values
+
+        if self.metadata is not None and other.metadata is not None:
+            metadata: Optional[dict] = {**self.metadata, **other.metadata}
+        else:
+            metadata = maybe.or_(self.metadata, other.metadata)
+
+        # TODO: Pad -- does it even make sense?
+
+        name = maybe.or_(other.name, self.name)
+
+        return _replace(
+            self,
+            values=values,
+            index=index,
+            metadata=metadata,
+            name=name,
+            _pad=Pad(),
         )
 
     @staticmethod
