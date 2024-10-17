@@ -50,6 +50,7 @@ from .metrics import (
     quantile_loss,
     smape,
     num_masked_values,
+    r2_score
 )
 
 
@@ -389,7 +390,7 @@ class Evaluator:
             "MASE": mase(pred_target, median_fcst, seasonal_error),
             "MAPE": mape(pred_target, median_fcst),
             "sMAPE": smape(pred_target, median_fcst),
-            "num_masked_target_values": num_masked_values(pred_target),
+            "r2_score: ":  smape(pred_target, median_fcst),
         }
 
     def get_metrics_per_ts(
@@ -505,6 +506,7 @@ class Evaluator:
             "sMAPE": "mean",
             "MSIS": "mean",
             "num_masked_target_values": "sum",
+            "r2_score":"mean",
         }
         if self.calculate_owa:
             agg_funs["sMAPE_naive2"] = "mean"
