@@ -48,7 +48,7 @@ def test_custom_neg_bin_cdf(total_count, probs, value):
 
 
 @pytest.mark.skipif(
-    sys.version_info == (3, 9), reason="test fails on python 3.9"
+    sys.version_info.major == 3 and sys.version_info.minor == 9, reason="test fails on python 3.9"
 )
 @pytest.mark.parametrize("probs", [0.1, 0.5, 0.8])
 @pytest.mark.parametrize("total_count", [3, 7, 100])
