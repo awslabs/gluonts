@@ -47,7 +47,9 @@ def test_custom_neg_bin_cdf(total_count, probs, value):
     assert np.allclose(torch_cdf, scipy_cdf)
 
 
-@pytest.mark.skipif(sys.version_info == (3, 9), reason="test fails on python 3.9")
+@pytest.mark.skipif(
+    sys.version_info == (3, 9), reason="test fails on python 3.9"
+)
 @pytest.mark.parametrize("probs", [0.1, 0.5, 0.8])
 @pytest.mark.parametrize("total_count", [3, 7, 100])
 @pytest.mark.parametrize("value", [0.1, 0.5, 0.9])
