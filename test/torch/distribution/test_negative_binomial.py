@@ -54,7 +54,9 @@ def test_custom_neg_bin_icdf(total_count, probs, value):
     torch_dist = NegativeBinomial(total_count=total_count, probs=probs)
     scipy_dist = torch_dist.scipy_nbinom
 
-    torch_icdf = torch_dist.icdf(torch.as_tensor(value, dtype=torch.float64)).numpy()
+    torch_icdf = torch_dist.icdf(
+        torch.as_tensor(value, dtype=torch.float64)
+    ).numpy()
     scipy_icdf = scipy_dist.ppf(np.asarray(value))
 
     assert np.allclose(torch_icdf, scipy_icdf)
