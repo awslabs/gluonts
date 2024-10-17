@@ -289,6 +289,8 @@ class ProcessStartField(pydantic.BaseModel):
                 data[self.name] = pd.Timestamp(data[self.name])
             else:
                 data[self.name] = _as_period(data[self.name], self.freq)
+            if FieldName.INDEX in data:
+                data[FieldName.INDEX] = pd.DatetimeIndex(data[FieldName.INDEX])
         except (TypeError, ValueError) as e:
             raise GluonTSDataError(
                 f'Error "{e}" occurred, when reading field "{self.name}"'

@@ -11,16 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import random
 import tempfile
 from functools import partial
 from itertools import islice
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import pandas as pd
 import numpy as np
 from lightning import seed_everything
 
+from gluonts.dataset.common import ListDataset
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
 from gluonts.torch.distributions import QuantileOutput, StudentTOutput
@@ -340,7 +343,68 @@ def test_estimator_with_features(estimator_constructor):
     seed_everything(42)
     freq = "1h"
     prediction_length = 12
+    index = sorted(
+        random.sample(
+            list(pd.date_range("2021-01-01 02:12:06", periods=400, freq=freq)),
+            100 + prediction_length,
+        )
+    )
 
+    training_dataset = ListDataset(
+        [
+            {
+                "start": "2021-01-01 00:00:00",
+                "target": [1.0] * 200,
+                "feat_static_cat": [0, 1],
+                "feat_static_real": [42.0],
+                "feat_dynamic_real": [[1.0] * 200] * 3,
+            },
+            {
+                "start": "2021-02-01 00:00:00",
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * 100] * 3,
+            },
+            {
+                "start": index[0],
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * 100] * 3,
+                "index": index[:100],
+            },
+        ],
+        freq=freq,
+    )
+
+    prediction_dataset = ListDataset(
+        [
+            {
+                "start": "2021-01-01 00:00:00",
+                "target": [1.0] * 200,
+                "feat_static_cat": [0, 1],
+                "feat_static_real": [42.0],
+                "feat_dynamic_real": [[1.0] * (200 + prediction_length)] * 3,
+            },
+            {
+                "start": "2021-02-01 00:00:00",
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
+            },
+            {
+                "start": index[0],
+                "target": [1.0] * 100,
+                "feat_static_cat": [1, 0],
+                "feat_static_real": [1.0],
+                "feat_dynamic_real": [[1.0] * (100 + prediction_length)] * 3,
+                "index": index,
+            },
+        ],
+        freq=freq,
+    )
     training_dataset = [
         {
             "start": pd.Period("2021-01-01 00:00:00", freq=freq),

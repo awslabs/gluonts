@@ -332,6 +332,8 @@ class AddTimeFeatures(MapTransformation):
         list of time features to use.
     pred_length
         Prediction length
+    index_field:
+        Field with the array containing the datetime index for irregular data.
     """
 
     @validated()
@@ -342,6 +344,7 @@ class AddTimeFeatures(MapTransformation):
         output_field: str,
         time_features: List[TimeFeature],
         pred_length: int,
+        index_field: Optional[str] = FieldName.INDEX,
         dtype: Type = np.float32,
     ) -> None:
         self.date_features = time_features
@@ -349,6 +352,7 @@ class AddTimeFeatures(MapTransformation):
         self.start_field = start_field
         self.target_field = target_field
         self.output_field = output_field
+        self.index_field = index_field
         self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
@@ -356,12 +360,15 @@ class AddTimeFeatures(MapTransformation):
             data[self.output_field] = None
             return data
 
-        start = data[self.start_field]
-        length = target_transformation_length(
-            data[self.target_field], self.pred_length, is_train=is_train
-        )
+        if self.index_field in data:
+            index = data[self.index_field]
+        else:
+            start = data[self.start_field]
+            length = target_transformation_length(
+                data[self.target_field], self.pred_length, is_train=is_train
+            )
 
-        index = pd.period_range(start, periods=length, freq=start.freq)
+            index = pd.period_range(start, periods=length, freq=start.freq)
 
         data[self.output_field] = np.vstack(
             [feat(index) for feat in self.date_features]
@@ -411,14 +418,34 @@ class AddAgeFeature(MapTransformation):
         self.dtype = dtype
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        length = target_transformation_length(
-            data[self.target_field], self.pred_length, is_train=is_train
-        )
+        if FieldName.INDEX in data:
+            length = len(data[FieldName.INDEX])
+            components = pd.TimedeltaIndex(
+                data[FieldName.INDEX] - data[FieldName.INDEX][0]
+            ).components
+            base_freq = data[FieldName.START].freq
+            if base_freq == "ns":
+                age = components.nanoseconds.values.astype(self.dtype)
+            elif base_freq == "us":
+                age = components.microseconds.values.astype(self.dtype)
+            elif base_freq == "ms":
+                age = components.milliseconds.values.astype(self.dtype)
+            elif base_freq == "S":
+                age = components.seconds.values.astype(self.dtype)
+            elif base_freq == "min" or base_freq == "T":
+                age = components.minutes.values.astype(self.dtype)
+            elif base_freq == "H":
+                age = components.hours.values.astype(self.dtype)
+            else:
+                age = components.days.values.astype(self.dtype)
+        else:
+            length = target_transformation_length(
+                data[self.target_field], self.pred_length, is_train=is_train
+            )
+            age = np.arange(length, dtype=self.dtype)
 
         if self.log_scale:
-            age = np.log10(2.0 + np.arange(length, dtype=self.dtype))
-        else:
-            age = np.arange(length, dtype=self.dtype)
+            age = np.log10(2.0 + age)
 
         data[self.feature_name] = age.reshape((1, length))
 
@@ -500,7 +527,7 @@ class AddAggregateLags(MapTransformation):
             )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        assert self.base_freq == data["start"].freq
+        assert self.base_freq == data[FieldName.START].freq
 
         # convert to pandas Series for easier indexing and aggregation
         if is_train:

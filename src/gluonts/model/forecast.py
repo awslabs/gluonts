@@ -360,7 +360,7 @@ class Forecast:
             )
 
     @property
-    def index(self) -> pd.PeriodIndex:
+    def index(self) -> Union[pd.DatetimeIndex, pd.PeriodIndex]:
         if self._index is None:
             self._index = pd.period_range(
                 self.start_date,
@@ -417,6 +417,8 @@ class SampleForecast(Forecast):
     info
         Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+    index
+        optional datatime index of the forecast for irregular time series.
     """
 
     @validated()
@@ -426,6 +428,7 @@ class SampleForecast(Forecast):
         start_date: pd.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[pd.DatetimeIndex, pd.PeriodIndex]] = None,
     ) -> None:
         assert isinstance(
             samples, np.ndarray
@@ -440,6 +443,8 @@ class SampleForecast(Forecast):
         self._dim: Optional[int] = None
         self.item_id = item_id
         self.info = info
+        if index is not None:
+            self._index = index[-self.prediction_length :]
 
         assert isinstance(
             start_date, pd.Period
@@ -504,6 +509,7 @@ class SampleForecast(Forecast):
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
     def copy_aggregate(self, agg_fun: Callable) -> "SampleForecast":
@@ -517,6 +523,7 @@ class SampleForecast(Forecast):
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
     def dim(self) -> int:
@@ -553,6 +560,7 @@ class SampleForecast(Forecast):
             forecast_keys=quantiles,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
 
@@ -575,6 +583,8 @@ class QuantileForecast(Forecast):
     info
         Additional information that the forecaster may provide e.g. estimated
         parameters, number of iterations ran etc.
+    index
+        optional datatime index of the forecast for irregular time series.
     """
 
     def __init__(
@@ -584,6 +594,7 @@ class QuantileForecast(Forecast):
         forecast_keys: List[str],
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[Union[pd.DatetimeIndex, pd.PeriodIndex]] = None,
     ) -> None:
         self.forecast_array = forecast_arrays
         assert isinstance(
@@ -610,6 +621,8 @@ class QuantileForecast(Forecast):
             k: self.forecast_array[i] for i, k in enumerate(self.forecast_keys)
         }
         self._nan_out = np.array([np.nan] * self.prediction_length)
+        if index is not None:
+            self._index = index[-self.prediction_length :]
 
     def quantile(self, inference_quantile: Union[float, str]) -> np.ndarray:
         sorted_forecast_dict = dict(sorted(self._forecast_dict.items()))
