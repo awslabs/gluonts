@@ -155,8 +155,8 @@ def test_AddTimeFeatures(start, target, is_train: bool):
     tmp_idx = pd.period_range(
         start=start, freq=start.freq, periods=expected_length
     )
-    assert np.alltrue(mat[0] == time_feature.day_of_week(tmp_idx))
-    assert np.alltrue(mat[1] == time_feature.day_of_month(tmp_idx))
+    assert np.all(mat[0] == time_feature.day_of_week(tmp_idx))
+    assert np.all(mat[1] == time_feature.day_of_month(tmp_idx))
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
@@ -285,7 +285,7 @@ def test_InstanceSplitter(
 
     # expected_length = len(target) + (0 if is_train else pred_length)
     # assert len(out['age']) == expected_length
-    # assert np.alltrue(out['age'] == np.log10(2.0 + np.arange(expected_length)))
+    # assert np.all(out['age'] == np.log10(2.0 + np.arange(expected_length)))
 
 
 @pytest.mark.parametrize("is_train", TEST_VALUES["is_train"])
