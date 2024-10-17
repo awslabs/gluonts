@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field, InitVar
-from typing import Any, Iterable, Optional, Type, Union, cast
+from typing import Any, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
