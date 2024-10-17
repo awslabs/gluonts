@@ -46,10 +46,11 @@ external_license = "# LICENSE: EXTERNAL"
 
 
 def check_file(path: Path) -> bool:
-    """Check whether `path` is complicit.
+    """
+    Check whether `path` is complicit.
 
-    The license header needs to start on the 3rd line latest. This allows
-    to have a shebang on top of the file.
+    The license header needs to start on the 3rd line latest. This allows to
+    have a shebang on top of the file.
     """
     num_lines = len(license.splitlines()) + 2
 

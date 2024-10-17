@@ -24,8 +24,8 @@ class Complex:
         self.x = x
         self.y = y
 
-        assert type(self.x) == float
-        assert type(self.y) == float
+        assert isinstance(self.x, float)
+        assert isinstance(self.y, float)
 
     def __eq__(self, that):
         return self.x == that.x and self.y == that.y
@@ -41,9 +41,9 @@ class Foo:
         self.b = kwargs["b"]
         self.c = c
 
-        assert type(self.a) == int
-        assert type(self.b) == float
-        assert type(self.c) == Complex
+        assert isinstance(self.a, int)
+        assert isinstance(self.b, float)
+        assert isinstance(self.c, Complex)
 
     def __eq__(self, that):
         return self.a == that.a and self.b == that.b and self.c == that.c

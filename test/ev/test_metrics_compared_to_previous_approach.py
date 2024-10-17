@@ -121,7 +121,7 @@ def get_data_batches(predictor, test_data):
         )
 
         seasonality = get_seasonality(freq=forecast.start_date.freqstr)
-        freq = forecast.start_date.freqstr
+        # freq = forecast.start_date.freqstr
         other_data = {
             "label": np.array([label["target"]]),
             "seasonal_error": np.array(

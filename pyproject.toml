@@ -20,13 +20,13 @@ filterwarnings = "ignore"
 
 [tool.ruff]
 line-length = 79
-
 lint.ignore = [
     "E501",  # line-length is handled by black
     "E741"  # TODO: remove usage of `l`
 ]
-
-exclude = ["src/gluonts/nursery"]
+exclude = ["src/gluonts/nursery"]  # todo
+[tool.ruff.lint.per-file-ignores]
+"examples/*" = ["E402"]
 
 
 [tool.docformatter]

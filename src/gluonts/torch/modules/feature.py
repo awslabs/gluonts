@@ -38,7 +38,7 @@ class FeatureEmbedder(nn.Module):
                 features, self._num_features, dim=-1
             )
         else:
-            cat_feature_slices = [features]
+            cat_feature_slices = [features]  # type: ignore[assignment]
 
         return torch.cat(
             [

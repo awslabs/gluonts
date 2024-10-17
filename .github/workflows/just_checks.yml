@@ -1,0 +1,23 @@
+name: Type & license checks
+
+on: [push, pull_request]
+
+jobs:
+  just-checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        just_cmd: ["license", "mypy"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: extractions/setup-just@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: pip install -r requirements/requirements-ci-just.txt
+    - name: Check ${{ matrix.just_cmd }}
+      run: just ${{ matrix.just_cmd }}

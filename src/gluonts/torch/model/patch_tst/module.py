@@ -229,7 +229,7 @@ class PatchTSTModel(nn.Module):
             # shift time features by `prediction_length` so that they are
             # aligned with the target input.
             time_feat = take_last(
-                torch.cat((past_time_feat, future_time_feat), dim=1),
+                torch.cat((past_time_feat, future_time_feat), dim=1),  # type: ignore[arg-type]
                 dim=1,
                 num=self.context_length,
             )

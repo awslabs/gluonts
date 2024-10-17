@@ -95,9 +95,9 @@ html_theme_options = {
 }
 
 if os.environ.get("GITHUB_REF_NAME") == "dev":
-    html_theme_options[
-        "announcement"
-    ] = "<strong>Note:</strong> You are looking at the development docs."
+    html_theme_options["announcement"] = (
+        "<strong>Note:</strong> You are looking at the development docs."
+    )
 
 
 # Add any paths that contain custom static files (such as style sheets) here,

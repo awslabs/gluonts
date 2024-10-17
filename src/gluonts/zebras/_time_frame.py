@@ -453,11 +453,11 @@ class TimeFrame(TimeBase):
 
         # If past_length is not provided, it will equal to `index`, since
         # `len(tf.split(5).past) == 5`
-        past_length: int = maybe.unwrap_or(past_length, index)
+        past_length: int = maybe.unwrap_or(past_length, index)  # type: ignore[annotation-unchecked]
 
         # Same logic applies to future_length, except that we deduct from the
         # right. (We can't use past_length, since it can be unequal to index).
-        future_length: int = maybe.unwrap_or(future_length, len(self) - index)
+        future_length: int = maybe.unwrap_or(future_length, len(self) - index)  # type: ignore[annotation-unchecked]
 
         if self.index is None:
             new_index = None

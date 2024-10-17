@@ -33,9 +33,6 @@ compile_notebooks:
 release:
   python setup.py sdist
 
-black:
-  black --check --diff --color src test examples
-
 mypy:
   python setup.py type_check
 
