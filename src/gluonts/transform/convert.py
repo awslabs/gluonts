@@ -135,7 +135,9 @@ class AsNumpyArray(SimpleTransformation):
 
     def transform(self, data: DataEntry) -> DataEntry:
         value = np.asarray(data[self.field], dtype=self.dtype)
-
+        if self.expected_ndim == 1:
+            if value.shape[0] == 1 or value.shape[-1] == 1:
+                value = value.ravel()
         assert_data_error(
             value.ndim == self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
