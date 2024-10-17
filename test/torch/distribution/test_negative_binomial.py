@@ -47,9 +47,6 @@ def test_custom_neg_bin_cdf(total_count, probs, value):
     assert np.allclose(torch_cdf, scipy_cdf)
 
 
-@pytest.mark.skipif(
-    sys.version_info.major == 3 and sys.version_info.minor == 9, reason="test fails on python 3.9"
-)
 @pytest.mark.parametrize("probs", [0.1, 0.5, 0.8])
 @pytest.mark.parametrize("total_count", [3, 7, 100])
 @pytest.mark.parametrize("value", [0.1, 0.5, 0.9])
@@ -57,7 +54,7 @@ def test_custom_neg_bin_icdf(total_count, probs, value):
     torch_dist = NegativeBinomial(total_count=total_count, probs=probs)
     scipy_dist = torch_dist.scipy_nbinom
 
-    torch_icdf = torch_dist.icdf(torch.as_tensor(value)).numpy()
+    torch_icdf = torch_dist.icdf(torch.as_tensor(value, dtype=torch.float64)).numpy()
     scipy_icdf = scipy_dist.ppf(np.asarray(value))
 
     assert np.allclose(torch_icdf, scipy_icdf)
