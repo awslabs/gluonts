@@ -351,4 +351,4 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
         False
     """
 
-    return cast(bool, np.all(np.diff(index.asi8) == index.freq.n))
+    return bool(np.all(np.diff(index.asi8) == index.freq.n))
