@@ -24,12 +24,19 @@ from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.forecast import DistributionForecast
 from gluonts.torch.model.i_transformer import ITransformerEstimator
+from gluonts.torch.model.softs import SofTSEstimator
 
 
 @pytest.mark.parametrize(
     "estimator_constructor",
     [
         lambda dataset: ITransformerEstimator(
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: SofTSEstimator(
             prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
             num_batches_per_epoch=3,
@@ -79,6 +86,11 @@ def test_multivariate_estimator_constant_dataset(
     "estimator_constructor",
     [
         lambda freq, prediction_length: ITransformerEstimator(
+            prediction_length=prediction_length,
+            batch_size=4,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: SofTSEstimator(
             prediction_length=prediction_length,
             batch_size=4,
             trainer_kwargs=dict(max_epochs=2),
