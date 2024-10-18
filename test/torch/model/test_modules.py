@@ -19,6 +19,7 @@ from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
 from gluonts.torch.model.tft import TemporalFusionTransformerModel
+from gluonts.torch.model.mq_cnn import MQCNNModel
 
 
 def assert_shapes_and_dtypes(tensors, shapes, dtypes):
@@ -88,6 +89,38 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
             ),
             4,
             [[(4, 12, 5)], (4, 1), (4, 1)],
+            [[torch.float], torch.float, torch.float],
+        ),
+        (
+            MQCNNModel(
+                context_length=24,
+                prediction_length=12,
+                num_forking=8,
+                distr_output=QuantileOutput([0.2, 0.25, 0.5, 0.9, 0.95]),
+                past_feat_dynamic_real_dim=4,
+                feat_dynamic_real_dim=2,
+                feat_static_real_dim=2,
+                cardinality_dynamic=[2],
+                cardinality_static=[2, 2],
+                scaling=False,
+                scaling_decoder_dynamic_feature=False,
+                embedding_dimension_dynamic=[2],
+                embedding_dimension_static=[2, 2],
+                encoder_cnn_init_dim=8,
+                dilation_seq=[1, 3, 9],
+                kernel_size_seq=[7, 3, 3],
+                channels_seq=[30, 30, 30],
+                joint_embedding_dimension=30,
+                encoder_mlp_init_dim=7,
+                encoder_mlp_dim_seq=[30],
+                use_residual=True,
+                decoder_mlp_dim_seq=[30],
+                decoder_hidden_dim=60,
+                decoder_future_init_dim=4,
+                decoder_future_embedding_dim=50,
+            ),
+            4,
+            [[(4, 8, 12, 5)], (4, 1), (4, 1)],
             [[torch.float], torch.float, torch.float],
         ),
     ],
