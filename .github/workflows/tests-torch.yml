@@ -24,8 +24,8 @@ jobs:
         pip install ".[arrow]" \
           -r requirements/requirements-test.txt \
           -r requirements/requirements-extras-m-competitions.txt \
-          -r requirements/requirements-pytorch.txt \
-          -r requirements/requirements-extras-cpflows.txt
+          -r requirements/requirements-pytorch.txt
+        pip install --no-deps -r requirements/requirements-extras-cpflows.txt
     - name: Test with pytest
       run: |
         pytest -n2 --doctest-modules --ignore test/nursery test
