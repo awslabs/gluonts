@@ -20,8 +20,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.11
 
