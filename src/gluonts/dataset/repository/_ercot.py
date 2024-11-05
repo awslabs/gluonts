@@ -26,7 +26,7 @@ def generate_ercot_dataset(dataset_path: Path, dataset_writer: DatasetWriter):
     df.ffill(inplace=True)
     regions = [col for col in df.columns if col not in ["ds", "y"]]
 
-    freq = "1H"
+    freq = "1h"
     prediction_length = 24
 
     start = pd.Period(df["ds"][0], freq=freq)
