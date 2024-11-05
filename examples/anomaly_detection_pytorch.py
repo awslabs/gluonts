@@ -115,7 +115,7 @@ def main(args):
 
     anomalies = []
     means = []
-    model.eval()
+    model.cpu().eval()
     with torch.no_grad():
         for batch in tqdm(test_data_loader, desc="Processing batches"):
             inputs = select(
