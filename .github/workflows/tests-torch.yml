@@ -21,10 +21,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install ".[arrow]" \
-          -r requirements/requirements-test.txt \
+        pip install ".[arrow,torch,shell,test]" \
           -r requirements/requirements-extras-m-competitions.txt \
-          -r requirements/requirements-pytorch.txt
         pip install --no-deps -r requirements/requirements-extras-cpflows.txt
     - name: Test with pytest
       run: |
