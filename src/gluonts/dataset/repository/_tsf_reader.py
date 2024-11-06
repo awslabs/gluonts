@@ -49,10 +49,10 @@ def frequency_converter(freq: str):
 
 BASE_FREQ_TO_PANDAS_OFFSET: Dict[str, str] = {
     "seconds": "S",
-    "minutely": "T",
-    "minutes": "T",
-    "hourly": "H",
-    "hours": "H",
+    "minutely": "min",
+    "minutes": "min",
+    "hourly": "h",
+    "hours": "h",
     "daily": "D",
     "days": "D",
     "weekly": "W",
