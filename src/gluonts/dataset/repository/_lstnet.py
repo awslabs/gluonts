@@ -91,7 +91,7 @@ datasets_info = {
         prediction_length=24,
         rolling_evaluations=7,
         start_date="2012-01-01",
-        freq="1H",
+        freq="1h",
         agg_freq=None,
     ),
     "traffic": LstnetDataset(
@@ -105,7 +105,7 @@ datasets_info = {
         prediction_length=24,
         rolling_evaluations=7,
         start_date="2015-01-01",
-        freq="H",
+        freq="h",
         agg_freq=None,
     ),
     "solar-energy": LstnetDataset(
@@ -117,7 +117,7 @@ datasets_info = {
         rolling_evaluations=7,
         start_date="2006-01-01",
         freq="10min",
-        agg_freq="1H",
+        agg_freq="1h",
     ),
 }
 

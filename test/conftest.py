@@ -30,7 +30,7 @@ from gluonts.dataset.common import ListDataset
 
 try:
     import mxnet as mx
-except ImportError:
+except (ImportError, OSError):
     mx = None
 
 try:

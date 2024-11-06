@@ -1,2 +1,2 @@
-flask~=2.0
-waitress~=2.1.2
+flask~=3.0
+waitress~=3.0.1
