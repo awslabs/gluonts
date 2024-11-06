@@ -240,7 +240,7 @@ class Fuse:
         else:
             local_idx = idx - self._offsets[part_no - 1]
 
-        return _SubIndex(part_no, local_idx)
+        return _SubIndex(int(part_no), int(local_idx))
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):

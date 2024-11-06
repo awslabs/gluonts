@@ -59,7 +59,7 @@ def _unpack(batched) -> Iterator:
     This assumes that arrays are wrapped in a  nested structure of lists and
     tuples, and each array has the same shape::
 
-        >>> a = np.arange(5)
+        >>> a = np.arange(5, dtype="O")
         >>> batched = [a, (a, [a, a, a])]
         >>> list(_unpack(batched))
         [[0, (0, [0, 0, 0])],

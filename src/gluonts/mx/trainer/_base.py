@@ -227,7 +227,7 @@ class Trainer:
             best_epoch_info = {
                 "params_path": "{}-{}.params".format(base_path(), "init"),
                 "epoch_no": -1,
-                "score": np.Inf,
+                "score": float("inf"),
             }
 
             optimizer = mx.optimizer.Adam(
