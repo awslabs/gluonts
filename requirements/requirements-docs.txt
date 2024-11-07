@@ -6,7 +6,7 @@ notedown
 lxml~=5.1.0
 pytest-runner~=2.11
 recommonmark
-sphinx~=4.0
+sphinx~=5.0
 docutils<=0.16
 optuna~=2.10
 furo==2022.6.4.1

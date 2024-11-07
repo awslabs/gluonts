@@ -20,14 +20,13 @@ from gluonts.pydantic import BaseModel
 @serde.dataclass
 class Estimator:
     prediction_length: int
-    context_length: int = serde.OrElse(
-        lambda prediction_length: prediction_length * 2
-    )
+    context_length: int = serde.EVENTUAL
 
     use_feat_static_cat: bool = True
     cardinality: List[int] = serde.EVENTUAL
 
-    def __eventually__(self, cardinality):
+    def __eventually__(self, context_length, cardinality):
+        context_length.set_default(self.prediction_length * 2)
         if not self.use_feat_static_cat:
             cardinality.set([1])
         else:

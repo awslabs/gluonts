@@ -63,7 +63,7 @@ datasets_info = {
         # original dataset can be found at https://archive.ics.uci.edu/ml/datasets/ElectricityLoadDiagrams20112014#
         num_series=370,
         prediction_length=24,
-        freq="H",
+        freq="h",
         rolling_evaluations=7,
         max_target_dim=None,
     ),
@@ -73,7 +73,7 @@ datasets_info = {
         # note there are 963 in the original dataset from https://archive.ics.uci.edu/ml/datasets/PEMS-SF
         num_series=963,
         prediction_length=24,
-        freq="H",
+        freq="h",
         rolling_evaluations=7,
         max_target_dim=None,
     ),
@@ -82,7 +82,7 @@ datasets_info = {
         url=root + "solar_nips.tar.gz",
         num_series=137,
         prediction_length=24,
-        freq="H",
+        freq="h",
         rolling_evaluations=7,
         max_target_dim=None,
     ),
