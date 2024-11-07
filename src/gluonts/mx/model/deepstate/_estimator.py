@@ -69,11 +69,14 @@ SEASON_INDICATORS_FIELD = "seasonal_indicators"
 # series in the dataset.
 FREQ_LONGEST_PERIOD_DICT = {
     "M": 12,  # yearly seasonality
+    "ME": 12,  # yearly seasonality
     "W": 52,  # yearly seasonality
     "D": 31,  # monthly seasonality
     "B": 22,  # monthly seasonality
     "H": 168,  # weekly seasonality
+    "h": 168,  # weekly seasonality
     "T": 1440,  # daily seasonality
+    "min": 1440,  # daily seasonality
 }
 
 
