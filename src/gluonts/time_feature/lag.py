@@ -146,11 +146,7 @@ def get_lags_for_frequency(
             + _make_lags_for_hour(offset.n / (60 * 60))
         )
     else:
-<<<<<<< HEAD
         raise ValueError(f"invalid frequency | `freq_str={freq_str}` -> `offset_name={offset_name}`")
-=======
-        raise ValueError(f"invalid frequency: {freq_str=}, {offset_name=}")
->>>>>>> 35598965 (Fix issues related to new Pandas offset names (#3117))
 
     # flatten lags list and filter
     lags = [
