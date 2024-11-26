@@ -30,6 +30,7 @@ from gluonts.transform import (
     TestSplitSampler,
     ExpectedNumInstanceSampler,
     SelectFields,
+    RenameFields,
 )
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
@@ -103,6 +104,7 @@ class DLinearEstimator(PyTorchLightningEstimator):
         trainer_kwargs: Optional[Dict[str, Any]] = None,
         train_sampler: Optional[InstanceSampler] = None,
         validation_sampler: Optional[InstanceSampler] = None,
+        num_feat_dynamic_real: int = 0,
     ) -> None:
         default_trainer_kwargs = {
             "max_epochs": 100,
@@ -132,18 +134,29 @@ class DLinearEstimator(PyTorchLightningEstimator):
             min_future=prediction_length
         )
 
+        self.num_feat_dynamic_real = num_feat_dynamic_real
+
     def create_transformation(self) -> Transformation:
-        return SelectFields(
-            [
-                FieldName.ITEM_ID,
-                FieldName.INFO,
-                FieldName.START,
-                FieldName.TARGET,
-            ],
-            allow_missing=True,
-        ) + AddObservedValuesIndicator(
-            target_field=FieldName.TARGET,
-            output_field=FieldName.OBSERVED_VALUES,
+        return (
+            SelectFields(
+                [
+                    FieldName.ITEM_ID,
+                    FieldName.INFO,
+                    FieldName.START,
+                    FieldName.TARGET,
+                ]
+                + (
+                    [FieldName.FEAT_DYNAMIC_REAL]
+                    if self.num_feat_dynamic_real > 0
+                    else []
+                ),
+                allow_missing=True,
+            )
+            + RenameFields({FieldName.FEAT_DYNAMIC_REAL: FieldName.FEAT_TIME})
+            + AddObservedValuesIndicator(
+                target_field=FieldName.TARGET,
+                output_field=FieldName.OBSERVED_VALUES,
+            )
         )
 
     def create_lightning_module(self) -> pl.LightningModule:
@@ -157,6 +170,7 @@ class DLinearEstimator(PyTorchLightningEstimator):
                 "distr_output": self.distr_output,
                 "kernel_size": self.kernel_size,
                 "scaling": self.scaling,
+                "num_feat_dynamic_real": self.num_feat_dynamic_real,
             },
         )
 
@@ -179,9 +193,10 @@ class DLinearEstimator(PyTorchLightningEstimator):
             instance_sampler=instance_sampler,
             past_length=self.context_length,
             future_length=self.prediction_length,
-            time_series_fields=[
-                FieldName.OBSERVED_VALUES,
-            ],
+            time_series_fields=[FieldName.OBSERVED_VALUES]
+            + (
+                [FieldName.FEAT_TIME] if self.num_feat_dynamic_real > 0 else []
+            ),
             dummy_value=self.distr_output.value_in_support,
         )
 
@@ -200,7 +215,15 @@ class DLinearEstimator(PyTorchLightningEstimator):
             instances,
             batch_size=self.batch_size,
             shuffle_buffer_length=shuffle_buffer_length,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=TRAINING_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
+            ),
             output_type=torch.tensor,
             num_batches_per_epoch=self.num_batches_per_epoch,
         )
@@ -217,7 +240,15 @@ class DLinearEstimator(PyTorchLightningEstimator):
         return as_stacked_batches(
             instances,
             batch_size=self.batch_size,
-            field_names=TRAINING_INPUT_NAMES,
+            field_names=TRAINING_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
+            ),
             output_type=torch.tensor,
         )
 
@@ -230,7 +261,15 @@ class DLinearEstimator(PyTorchLightningEstimator):
 
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
-            input_names=PREDICTION_INPUT_NAMES,
+            input_names=PREDICTION_INPUT_NAMES
+            + (
+                [
+                    f"past_{FieldName.FEAT_TIME}",
+                    f"future_{FieldName.FEAT_TIME}",
+                ]
+                if self.num_feat_dynamic_real > 0
+                else []
+            ),
             prediction_net=module,
             forecast_generator=self.distr_output.forecast_generator,
             batch_size=self.batch_size,
