@@ -15,7 +15,10 @@ import numpy as np
 import pytest
 
 from gluonts.dataset.common import ListDataset
-from gluonts.model.trivial.mean import MovingAveragePredictor
+from gluonts.model.trivial.mean import (
+    MovingAveragePredictor,
+    SkewedMeanPredictor,
+)
 
 
 def get_predictions(
@@ -77,3 +80,33 @@ def testing(data, expected_output, prediction_length, context_length):
     )
 
     np.testing.assert_equal(predictions, expected_output)
+
+
+@pytest.mark.parametrize(
+    "prediction_length, num_samples, skewness, target, expected_mean, expected_std",
+    [
+        (5, 20, 10, np.array([1.0] * 50), 1.0, 0.0),
+        (5, 20, -10, np.array([0.0] * 25 + [3.0] * 25), 1.5, 1.5),
+        (5, 20, 0, np.array([2.0] * 49 + [1.5] * 1), 1.99, 0.01),
+    ],
+)
+def test_skewed_mean_predictor(
+    prediction_length,
+    num_samples,
+    skewness,
+    target,
+    expected_mean,
+    expected_std,
+):
+    predictor = SkewedMeanPredictor(
+        prediction_length=prediction_length,
+        num_samples=num_samples,
+        skewness=skewness,
+    )
+
+    item = {"target": target}
+    forecast = predictor.predict_item(item)
+
+    assert forecast.samples.shape == (num_samples, prediction_length)
+    assert np.isclose(forecast.samples.mean(), expected_mean, atol=0.1)
+    assert np.isclose(forecast.samples.std(), expected_std, atol=0.1)
