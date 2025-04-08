@@ -305,7 +305,7 @@ class PandasDataset:
             other_static_features = pd.DataFrame()
 
         logger.info(f"Grouping data by '{item_id}'; this may take some time.")
-        pairs = list(dataframe.groupby(item_id))
+        pairs = list(dataframe.groupby(item_id, observed=True))
 
         return cls(
             dataframes=pairs,
