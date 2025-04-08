@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
@@ -243,7 +243,7 @@ class TiDEModel(nn.Module):
         num_layers_decoder: int,
         layer_norm: bool,
         distr_output: Output,
-        scaling: str,
+        scaling: Optional[str],
     ) -> None:
         super().__init__()
 
