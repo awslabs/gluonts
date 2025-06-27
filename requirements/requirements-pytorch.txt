@@ -2,5 +2,6 @@ torch>=1.9,<3
 lightning>=2.2.2,<2.5
 # Capping `lightning` does not cap `pytorch_lightning`, so we cap manually
 pytorch_lightning>=2.2.2,<2.5
-scipy~=1.10; python_version > "3.7.0"
+# scipy cap can be removed once this is resolved: https://github.com/statsmodels/statsmodels/issues/9584
+scipy<1.16.0; python_version > "3.7.0"
 scipy~=1.7.3; python_version <= "3.7.0"
