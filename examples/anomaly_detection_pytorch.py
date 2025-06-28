@@ -57,7 +57,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
         optimizer, mode="min", factor=0.5, patience=3
     )
 
-    def _gdk_domain_map(loc, scale, concentration, validate_args=None):
+    def _gpd_domain_map(loc, scale, concentration, validate_args=None):
         scale = F.softplus(scale)
         neg_conc = concentration < 0
         loc = torch.where(neg_conc, loc - scale / concentration, loc)
@@ -67,7 +67,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
 
     def closure():
         optimizer.zero_grad()
-        gpd = _gdk_domain_map(loc, scale, concentration)
+        gpd = _gpd_domain_map(loc, scale, concentration)
         loss = -gpd.log_prob(data).mean()
         loss.backward()
         lr_scheduler.step(loss)
@@ -76,7 +76,7 @@ def fit_gpd(data, num_iterations=100, learning_rate=0.001):
     for _ in range(num_iterations):
         optimizer.step(closure)
 
-    return _gdk_domain_map(
+    return _gpd_domain_map(
         loc.detach(),
         scale.detach(),
         concentration.detach(),
