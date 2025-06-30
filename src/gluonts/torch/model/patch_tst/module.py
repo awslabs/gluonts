@@ -108,7 +108,7 @@ class PatchTSTModel(nn.Module):
         activation: str,
         norm_first: bool,
         num_encoder_layers: int,
-        scaling: str,
+        scaling: Optional[str],
         distr_output=StudentTOutput(),
     ) -> None:
         super().__init__()

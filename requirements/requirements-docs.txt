@@ -1,13 +1,13 @@
 ipython
 ipykernel~=6.5
 nbconvert~=6.5.1
-nbsphinx~=0.8.8
+nbsphinx~=0.9.7
 notedown
 lxml~=5.1.0
 pytest-runner~=2.11
 recommonmark
 sphinx~=5.0
-docutils<=0.16
+docutils~=0.19.0
 optuna~=2.10
 furo==2022.6.4.1
 m2r2
