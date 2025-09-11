@@ -2,7 +2,7 @@ numpy>=1.16,<2.2
 pandas>=1.0,<3
 pydantic>=1.7,<3
 tqdm~=4.23
-toolz~=0.10
+toolz>=0.10,<2
 
 # used for Protocol, can be removed once Python 3.8 is required
 typing-extensions~=4.0
