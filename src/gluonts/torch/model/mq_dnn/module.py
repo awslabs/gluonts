@@ -321,8 +321,19 @@ class RNNEncoder(nn.Module):
             - static_code: (batch, output_size)
             - dynamic_code: (batch, seq_len, output_size)
         """
-        # Concatenate target and dynamic features
-        inputs = torch.cat([target, dynamic_features], dim=-1)
+        # Assemble inputs conditionally based on feature dimensions
+        # This matches CNN encoder and MXNet behavior
+        seq_len = target.shape[1]
+        inputs = target
+
+        # Only concatenate static features if they exist (num_static_features > 0)
+        if static_features.shape[-1] > 0:
+            tiled_static_features = static_features.unsqueeze(1).expand(-1, seq_len, -1)
+            inputs = torch.cat([inputs, tiled_static_features], dim=-1)
+
+        # Only concatenate dynamic features if they exist (num_dynamic_features > 0)
+        if dynamic_features.shape[-1] > 0:
+            inputs = torch.cat([inputs, dynamic_features], dim=-1)
 
         # Lazy initialization of RNN
         if self.rnn is None:
@@ -886,11 +897,42 @@ class MQDNNModel(nn.Module):
         # Shape: (batch, prediction_length)
         return weighted_loss
 
+    def _crps_weights_pwl(self, quantile_levels: List[float]) -> List[float]:
+        """
+        Compute the quantile loss weights making mean quantile loss equal to CRPS
+        under linear interpolation assumption (matching MXNet's crps_weights_pwl).
+
+        Parameters
+        ----------
+        quantile_levels
+            Sorted list of quantile levels.
+
+        Returns
+        -------
+        List[float]
+            CRPS weights for each quantile.
+        """
+        num_quantiles = len(quantile_levels)
+
+        if num_quantiles < 2:
+            return [1.0] * num_quantiles
+
+        weights = (
+            [0.5 * (quantile_levels[1] - quantile_levels[0])]
+            + [
+                0.5 * (quantile_levels[i + 1] - quantile_levels[i - 1])
+                for i in range(1, num_quantiles - 1)
+            ]
+            + [0.5 * (quantile_levels[-1] - quantile_levels[-2])]
+        )
+
+        return weights
+
     def quantile_loss(
         self, target: torch.Tensor, quantile_preds: torch.Tensor
     ) -> torch.Tensor:
         """
-        Compute quantile loss.
+        Compute quantile loss using CRPS weights (matching MXNet's IncrementalQuantileOutput).
 
         Parameters
         ----------
@@ -920,17 +962,14 @@ class MQDNNModel(nn.Module):
 
         errors = target - quantile_preds  # (batch, num_forking, pred_len, num_quantiles)
 
-        quantiles = torch.tensor(
-            self.quantiles, dtype=quantile_preds.dtype, device=quantile_preds.device
-        ).reshape(1, 1, 1, -1)
-
         under_bias = quantiles * torch.maximum(errors, torch.zeros_like(errors))
         over_bias = (1 - quantiles) * torch.maximum(-errors, torch.zeros_like(errors))
 
         qt_loss = 2 * (under_bias + over_bias)
 
-        # Apply uniform weights to match MXNet: weight each quantile by 1/num_quantiles
-        # This ensures loss scales correctly regardless of number of quantiles
+        # Apply uniform weights for now (investigation ongoing)
+        # MXNet uses CRPS weights for IncrementalQuantileOutput, but empirically
+        # uniform weights give closer match for MQRNN
         num_quantiles = len(self.quantiles)
         uniform_weight = 1.0 / num_quantiles
         weighted_qt_loss = uniform_weight * qt_loss
