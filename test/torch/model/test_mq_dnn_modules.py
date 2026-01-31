@@ -381,3 +381,102 @@ def test_mqdnn_lightning_module():
     optimizer_config = lightning_module.configure_optimizers()
     assert "optimizer" in optimizer_config
     assert "lr_scheduler" in optimizer_config
+
+
+def test_optimizer_includes_all_parameters():
+    """
+    Regression test for lazy initialization bug.
+
+    Verifies that all model parameters, including lazily-initialized RNN
+    parameters, are included in the optimizer after configure_optimizers().
+
+    This test catches the bug where RNN parameters were not included in the
+    optimizer because the RNN was created during the first forward pass,
+    after the optimizer was already configured.
+    """
+    seed_everything(42)
+
+    batch_size = 4
+    context_length = 50
+    prediction_length = 12
+    num_forking = 20
+    num_feat_dynamic_real = 3
+    num_feat_static_cat = 2
+
+    # Test with RNN encoder (uses lazy initialization)
+    encoder = RNNEncoder(
+        hidden_size=40,
+        num_layers=1,
+        bidirectional=True,
+        cell_type="gru",
+    )
+
+    model_kwargs = {
+        "freq": "H",
+        "context_length": context_length,
+        "prediction_length": prediction_length,
+        "num_feat_dynamic_real": num_feat_dynamic_real,
+        "num_feat_static_cat": num_feat_static_cat,
+        "cardinality": [5, 8],
+        "encoder": encoder,
+        "decoder_mlp_dim_seq": [30],
+        "quantiles": [0.1, 0.5, 0.9],
+        "num_forking": num_forking,
+    }
+
+    lightning_module = MQDNNLightningModule(
+        model_kwargs=model_kwargs,
+        lr=1e-3,
+        weight_decay=1e-8,
+        patience=10,
+    )
+
+    # Get all model parameters
+    model_param_ids = {id(p) for p in lightning_module.model.parameters()}
+    model_param_count = len(model_param_ids)
+
+    # Configure optimizer (this should materialize lazy layers)
+    optimizer_config = lightning_module.configure_optimizers()
+    optimizer = optimizer_config["optimizer"]
+
+    # Get all parameters in optimizer
+    optimizer_param_ids = set()
+    for param_group in optimizer.param_groups:
+        for param in param_group["params"]:
+            optimizer_param_ids.add(id(param))
+
+    optimizer_param_count = len(optimizer_param_ids)
+
+    # Critical assertion: ALL model parameters must be in optimizer
+    assert optimizer_param_count == model_param_count, (
+        f"Optimizer missing parameters! "
+        f"Model has {model_param_count} parameters but optimizer only has {optimizer_param_count}. "
+        f"This likely means lazy layers were not materialized before optimizer creation."
+    )
+
+    # Verify specific RNN parameters are present
+    rnn = lightning_module.model.encoder.rnn
+    rnn_param_count = sum(1 for _ in rnn.parameters())
+    rnn_params_in_optimizer = sum(
+        1 for p in rnn.parameters() if id(p) in optimizer_param_ids
+    )
+
+    assert rnn_params_in_optimizer == rnn_param_count, (
+        f"RNN parameters missing from optimizer! "
+        f"RNN has {rnn_param_count} parameters but only {rnn_params_in_optimizer} are in optimizer."
+    )
+
+    # Verify RNN bias parameters are present (these were specifically affected by the bug)
+    bias_params = [name for name, _ in rnn.named_parameters() if "bias" in name]
+    assert len(bias_params) > 0, "RNN should have bias parameters"
+
+    bias_params_in_optimizer = sum(
+        1
+        for name, param in rnn.named_parameters()
+        if "bias" in name and id(param) in optimizer_param_ids
+    )
+
+    assert bias_params_in_optimizer == len(bias_params), (
+        f"RNN bias parameters missing from optimizer! "
+        f"Found {len(bias_params)} bias parameters but only {bias_params_in_optimizer} in optimizer."
+    )
