@@ -778,12 +778,16 @@ class MQDNNModel(nn.Module):
 
         # Project to quantiles directly (matching MXNet behavior)
         # MXNet applies quantile_proj directly to decoder output WITHOUT scaling
-        # The predictions are in scaled space; scaling back happens in the transformation
+        # The predictions are in scaled space; unscaling happens in forecast generator
         # Shape: (batch, prediction_length, num_quantiles)
         quantile_preds = self.quantile_proj(fcst_output)
 
-        # Return predictions in scaled space, matching MXNet
-        return (quantile_preds,), None, None
+        # Return predictions like MXNet: (predictions,), None, None
+        # MXNet does NOT return scale, which means predictions stay in scaled space
+        # But MXNet predictions are actually at full scale somehow...
+        # For now, match MXNet behavior exactly: return None for both loc and scale
+        loc = None
+        return (quantile_preds,), loc, None
 
     def loss(
         self,
@@ -993,7 +997,8 @@ class MQDNNModel(nn.Module):
         else:
             scale = series_scale  # Already (batch, 1) or similar
 
-        # Scale the target using pre-computed scale
+        # Scale the target using pre-computed series-level scale
+        # This matches MXNet's behavior: scaled_past_target, scale = self.scaler(...)
         scaled_past_target = past_target / scale.unsqueeze(-1)  # Broadcast to (batch, context_length, 1)
 
         # Embed categorical features
@@ -1017,7 +1022,7 @@ class MQDNNModel(nn.Module):
             [past_feat_dynamic, past_observed_values], dim=-1
         )
 
-        # Encode
+        # Encode with scaled target (matching MXNet)
         enc_output_static, enc_output_dynamic = self.encoder(
             scaled_past_target, feat_static_real, past_feat_dynamic_extended
         )

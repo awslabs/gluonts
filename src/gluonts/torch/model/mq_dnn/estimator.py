@@ -13,6 +13,7 @@
 
 from typing import List, Optional, Iterable, Dict, Any
 
+import numpy as np
 import torch
 
 from gluonts.core.component import validated
@@ -278,12 +279,24 @@ class MQDNNEstimator(PyTorchLightningEstimator):
                     output_field=FieldName.OBSERVED_VALUES,
                     imputation_method=DummyValueImputation(0.0),
                 ),
-                AddSeriesScale(
-                    target_field=FieldName.TARGET,
-                    observed_field=FieldName.OBSERVED_VALUES,
-                    scale_field="series_scale",
-                    minimum_scale=1e-10,
-                ),
+            ]
+            + (
+                [
+                    AddSeriesScale(
+                        target_field=FieldName.TARGET,
+                        observed_field=FieldName.OBSERVED_VALUES,
+                        scale_field="series_scale",
+                        minimum_scale=1e-10,
+                    ),
+                ]
+                if self.scaling
+                else [
+                    # When scaling=False (NOPScaler), set scale to 1.0 as float32
+                    # to match the dtype used by AddSeriesScale
+                    SetField(output_field="series_scale", value=np.float32(1.0)),
+                ]
+            )
+            + [
                 AddTimeFeatures(
                     start_field=FieldName.START,
                     target_field=FieldName.TARGET,
