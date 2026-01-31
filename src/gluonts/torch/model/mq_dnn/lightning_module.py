@@ -179,8 +179,8 @@ class MQDNNLightningModule(pl.LightningModule):
         # Materialize lazy layers if not already done
         if not self._lazy_layers_materialized:
             # Create example batch to materialize layers
-            example_batch = {k: v.unsqueeze(0) if v.ndim > 0 else v.unsqueeze(0).unsqueeze(0)
-                           for k, v in self.example_input_array.items()}
+            # Note: example_input_array already has batch_size=1, so we don't add another dimension
+            example_batch = dict(self.example_input_array)
 
             # Add required training fields with proper shapes
             batch_size = 1
