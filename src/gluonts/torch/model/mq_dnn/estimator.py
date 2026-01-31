@@ -146,7 +146,7 @@ class MQDNNEstimator(PyTorchLightningEstimator):
         encoder=None,
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         quantiles: Optional[List[float]] = None,
-        scaling: bool = True,  # Enable scaling for numerical stability
+        scaling: Optional[bool] = None,  # Default: False for quantile output (matches MXNet)
         num_forking: Optional[int] = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
@@ -196,7 +196,10 @@ class MQDNNEstimator(PyTorchLightningEstimator):
             0.9,
             0.975,
         ]
-        self.scaling = scaling
+        # Match MXNet behavior: default to False for quantile output (NOPScaler)
+        # MXNet: scaling = (scaling if scaling is not None else (quantile_output is None))
+        # For quantile output (our case), this evaluates to False
+        self.scaling = scaling if scaling is not None else False
         self.num_forking = (
             num_forking if num_forking is not None else self.context_length
         )
@@ -528,7 +531,7 @@ class MQCNNEstimator(MQDNNEstimator):
         use_residual: bool = True,
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         quantiles: Optional[List[float]] = None,
-        scaling: bool = True,  # Enable scaling for numerical stability
+        scaling: Optional[bool] = None,  # Default: False for quantile output (matches MXNet)
         num_forking: Optional[int] = None,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,
@@ -647,7 +650,7 @@ class MQRNNEstimator(MQDNNEstimator):
         cell_type: str = "gru",
         decoder_mlp_dim_seq: Optional[List[int]] = None,
         quantiles: Optional[List[float]] = None,
-        scaling: bool = True,  # Enable scaling for numerical stability
+        scaling: Optional[bool] = None,  # Default: False for quantile output (matches MXNet)
         num_forking: Optional[int] = None,
         num_feat_dynamic_real: int = 0,
         num_feat_static_cat: int = 0,

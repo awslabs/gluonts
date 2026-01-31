@@ -776,21 +776,13 @@ class MQDNNModel(nn.Module):
         # Shape: (batch, prediction_length, decoder_mlp_dim_seq[-1])
         fcst_output = dec_output[:, -1, :, :]
 
-        # Scale decoder output before projection (matching MXNet behavior)
-        # MXNet does: scaled_decoder_output = decoder_output * scale
-        # This ensures predictions are in the original (unscaled) space
-        # Shape: scale is (batch, 1), need to broadcast to (batch, prediction_length, decoder_dim)
-        # DEBUG: Print shapes
-        # print(f"[DEBUG forward] fcst_output.shape={fcst_output.shape}, scale.shape={scale.shape}")
-        # print(f"[DEBUG forward] scale values={scale.detach().cpu().numpy()}")
-        scaled_fcst_output = fcst_output * scale.unsqueeze(-1)
-        # print(f"[DEBUG forward] scaled_fcst_output.shape={scaled_fcst_output.shape}")
-
-        # Project to quantiles
+        # Project to quantiles directly (matching MXNet behavior)
+        # MXNet applies quantile_proj directly to decoder output WITHOUT scaling
+        # The predictions are in scaled space; scaling back happens in the transformation
         # Shape: (batch, prediction_length, num_quantiles)
-        quantile_preds = self.quantile_proj(scaled_fcst_output)
+        quantile_preds = self.quantile_proj(fcst_output)
 
-        # Return predictions in original (unscaled) space, matching MXNet
+        # Return predictions in scaled space, matching MXNet
         return (quantile_preds,), None, None
 
     def loss(
@@ -845,16 +837,13 @@ class MQDNNModel(nn.Module):
             series_scale=series_scale,
         )
 
-        # Scale decoder output before projection (matching MXNet behavior)
-        # MXNet does: scaled_decoder_output = decoder_output * scale
-        # Shape: scale is (batch, 1), need to broadcast to (batch, num_forking, prediction_length, decoder_dim)
-        scaled_dec_output = dec_output * scale.unsqueeze(-1).unsqueeze(-1)
-
-        # Project to quantiles in UNSCALED space (matching MXNet)
+        # Project to quantiles directly (matching MXNet behavior)
+        # MXNet applies quantile_proj directly to decoder output WITHOUT scaling
+        # Both predictions and targets are in scaled space
         # Shape: (batch, num_forking, prediction_length, num_quantiles)
-        quantile_preds = self.quantile_proj(scaled_dec_output)
+        quantile_preds = self.quantile_proj(dec_output)
 
-        # Compute loss comparing UNSCALED targets with predictions in UNSCALED space
+        # Compute loss comparing scaled targets with predictions in scaled space
         # Shape: (batch, num_forking, prediction_length)
         loss_per_timestep = self.quantile_loss(future_target, quantile_preds)
 
