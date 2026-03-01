@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from gluonts.torch.model.deepar import DeepARLightningModule, DeepARModel
+from gluonts.torch.distributions.quantile_output import QuantileOutput
 
 
 @pytest.mark.parametrize(
@@ -243,3 +244,113 @@ def test_rnn_input(
 
     for idx, lag in enumerate(lags_seq):
         assert torch.equal(ref - lag, rnn_input[0, :, idx])
+
+
+def test_deepar_quantile_output():
+    batch_size = 4
+    prediction_length = 6
+    context_length = 12
+    num_feat_dynamic_real = 3
+    num_feat_static_real = 2
+    num_feat_static_cat = 1
+    cardinality = [1]
+    quantiles = [0.1, 0.5, 0.9]
+    num_quantiles = len(quantiles)
+
+    distr_output = QuantileOutput(quantiles=quantiles)
+
+    lightning_module = DeepARLightningModule(
+        model_kwargs={
+            "freq": "1H",
+            "context_length": context_length,
+            "prediction_length": prediction_length,
+            "num_feat_dynamic_real": num_feat_dynamic_real,
+            "num_feat_static_real": num_feat_static_real,
+            "num_feat_static_cat": num_feat_static_cat,
+            "cardinality": cardinality,
+            "scaling": True,
+            "distr_output": distr_output,
+        }
+    )
+    model = lightning_module.model
+
+    feat_static_cat = torch.zeros(
+        batch_size, num_feat_static_cat, dtype=torch.long
+    )
+    feat_static_real = torch.ones(batch_size, num_feat_static_real)
+    past_time_feat = torch.ones(
+        batch_size, model._past_length, num_feat_dynamic_real
+    )
+    future_time_feat = torch.ones(
+        batch_size, prediction_length, num_feat_dynamic_real
+    )
+    past_target = torch.ones(batch_size, model._past_length)
+    past_observed_values = torch.ones(batch_size, model._past_length)
+    future_target = torch.ones(batch_size, prediction_length)
+    future_observed_values = torch.ones(batch_size, prediction_length)
+
+    # Test unroll_lagged_rnn: params should have shape (batch, seq_len, Q)
+    params, scale, _, _, _ = model.unroll_lagged_rnn(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+        future_target,
+    )
+
+    assert scale.shape == (batch_size, 1)
+    assert len(params) == 1
+    assert params[0].shape == (
+        batch_size,
+        context_length + prediction_length - 1,
+        num_quantiles,
+    )
+
+    # Test forward: returns ((batch, pred_len, Q),), None, (batch, 1)
+    result = model(
+        feat_static_cat,
+        feat_static_real,
+        past_time_feat,
+        past_target,
+        past_observed_values,
+        future_time_feat,
+    )
+
+    quantile_preds_tuple, loc, result_scale = result
+    assert loc is None
+    assert result_scale.shape == (batch_size, 1)
+    assert len(quantile_preds_tuple) == 1
+    assert quantile_preds_tuple[0].shape == (
+        batch_size,
+        prediction_length,
+        num_quantiles,
+    )
+
+    # Test training_step and validation_step produce scalar loss
+    batch = dict(
+        feat_static_cat=feat_static_cat,
+        feat_static_real=feat_static_real,
+        past_time_feat=past_time_feat,
+        future_time_feat=future_time_feat,
+        past_target=past_target,
+        past_observed_values=past_observed_values,
+        future_target=future_target,
+        future_observed_values=future_observed_values,
+    )
+
+    assert lightning_module.training_step(batch, batch_idx=0).shape == ()
+    assert lightning_module.validation_step(batch, batch_idx=0).shape == ()
+
+    # Test log_prob raises NotImplementedError
+    with pytest.raises(NotImplementedError):
+        model.log_prob(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            future_target,
+        )

@@ -22,6 +22,8 @@ from gluonts.torch.distributions import (
     DistributionOutput,
     StudentTOutput,
 )
+from gluonts.torch.distributions.output import Output
+from gluonts.torch.distributions.quantile_output import QuantileOutput
 from gluonts.torch.scaler import Scaler, MeanScaler, NOPScaler
 from gluonts.torch.modules.feature import FeatureEmbedder
 from gluonts.torch.util import (
@@ -105,7 +107,7 @@ class DeepARModel(nn.Module):
         num_layers: int = 2,
         hidden_size: int = 40,
         dropout_rate: float = 0.1,
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Output = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
         default_scale: Optional[float] = None,
@@ -339,6 +341,8 @@ class DeepARModel(nn.Module):
         """
         Instantiate the output distribution.
 
+        Only valid when ``distr_output`` is a ``DistributionOutput``.
+
         Parameters
         ----------
         params
@@ -354,6 +358,10 @@ class DeepARModel(nn.Module):
         torch.distributions.Distribution
             Output distribution from the model.
         """
+        assert isinstance(self.distr_output, DistributionOutput), (
+            "output_distribution is only supported for DistributionOutput, "
+            f"got {type(self.distr_output)}"
+        )
         sliced_params = params
         if trailing_n is not None:
             sliced_params = [p[:, -trailing_n:] for p in params]
@@ -386,7 +394,7 @@ class DeepARModel(nn.Module):
         past_observed_values: torch.Tensor,
         future_time_feat: torch.Tensor,
         num_parallel_samples: Optional[int] = None,
-    ) -> torch.Tensor:
+    ):
         """
         Invokes the model on input data, and produce outputs future samples.
 
@@ -414,6 +422,35 @@ class DeepARModel(nn.Module):
             How many future samples to produce.
             By default, self.num_parallel_samples is used.
         """
+        if isinstance(self.distr_output, QuantileOutput):
+            return self._forward_quantile(
+                feat_static_cat,
+                feat_static_real,
+                past_time_feat,
+                past_target,
+                past_observed_values,
+                future_time_feat,
+            )
+        return self._forward_distribution(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            num_parallel_samples,
+        )
+
+    def _forward_distribution(
+        self,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        num_parallel_samples: Optional[int] = None,
+    ) -> torch.Tensor:
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
 
@@ -486,6 +523,88 @@ class DeepARModel(nn.Module):
             (-1, num_parallel_samples, self.prediction_length)
         )
 
+    def _forward_quantile(
+        self,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+    ) -> Tuple[Tuple[torch.Tensor, ...], None, torch.Tensor]:
+        """
+        Quantile prediction path. Autoregressively produces quantile
+        predictions, feeding the median (P50) back into the RNN at each step.
+
+        Returns ``((quantile_preds,), None, scale)`` where
+        ``quantile_preds`` has shape ``(batch, prediction_length,
+        num_quantiles)`` in scale-normalized space.
+        ``QuantileForecastGenerator`` handles scale multiplication.
+        """
+        assert isinstance(self.distr_output, QuantileOutput)
+
+        # Find the index of the quantile closest to 0.5 (median)
+        quantiles = self.distr_output.quantiles
+        median_idx = min(
+            range(len(quantiles)), key=lambda i: abs(quantiles[i] - 0.5)
+        )
+
+        params, scale, _, static_feat, state = self.unroll_lagged_rnn(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat[:, :1],
+        )
+
+        # params is a tuple with one element: (quantile_preds,)
+        # quantile_preds shape: (batch, context_length, num_quantiles)
+        # Take last time step predictions
+        (quantile_preds,) = params
+        last_quantile_preds = quantile_preds[:, -1:, :]  # (batch, 1, Q)
+
+        future_quantiles = [last_quantile_preds]
+
+        # Median value in normalized space for autoregressive feedback
+        next_value = last_quantile_preds[:, :, median_idx : median_idx + 1]
+        # shape: (batch, 1, 1) -> squeeze last dim -> (batch, 1)
+        next_value = next_value.squeeze(-1)
+
+        past_target_scaled = past_target / scale
+
+        static_feat_expanded = static_feat.unsqueeze(dim=1)
+
+        for k in range(1, self.prediction_length):
+            next_features = torch.cat(
+                (static_feat_expanded, future_time_feat[:, k : k + 1]),
+                dim=-1,
+            )
+            next_lags = lagged_sequence_values(
+                self.lags_seq, past_target_scaled, next_value, dim=-1
+            )
+            rnn_input = torch.cat((next_lags, next_features), dim=-1)
+
+            output, state = self.rnn(rnn_input, state)
+
+            past_target_scaled = torch.cat(
+                (past_target_scaled, next_value), dim=1
+            )
+
+            params = self.param_proj(output)
+            (step_quantile_preds,) = params  # (batch, 1, Q)
+            future_quantiles.append(step_quantile_preds)
+
+            # Extract median for next autoregressive step
+            next_value = step_quantile_preds[
+                :, :, median_idx : median_idx + 1
+            ].squeeze(-1)
+
+        # (batch, prediction_length, num_quantiles)
+        quantile_preds = torch.cat(future_quantiles, dim=1)
+
+        return (quantile_preds,), None, scale
+
     def log_prob(
         self,
         feat_static_cat: torch.Tensor,
@@ -496,6 +615,12 @@ class DeepARModel(nn.Module):
         future_time_feat: torch.Tensor,
         future_target: torch.Tensor,
     ) -> torch.Tensor:
+        if isinstance(self.distr_output, QuantileOutput):
+            raise NotImplementedError(
+                "log_prob is not defined for QuantileOutput. "
+                "Quantile regression does not produce a probability "
+                "distribution."
+            )
         return -self.loss(
             feat_static_cat=feat_static_cat,
             feat_static_real=feat_static_real,
