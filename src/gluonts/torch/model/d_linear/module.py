@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import nn
@@ -87,7 +87,7 @@ class DLinearModel(nn.Module):
         hidden_dimension: int,
         distr_output=StudentTOutput(),
         kernel_size: int = 25,
-        scaling: str = "mean",
+        scaling: Optional[str] = "mean",
     ) -> None:
         super().__init__()
 
