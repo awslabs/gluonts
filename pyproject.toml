@@ -103,6 +103,7 @@ torch = [
     "lightning>=2.2.2,<2.6",
     "pytorch_lightning>=2.2.2,<2.6",
     "scipy<1.16.0",
+    "cpflows @ git+https://github.com/lostella/CP-Flow.git@gluonts-dependency",
 ]
 
 shell = [
@@ -194,6 +195,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = [
