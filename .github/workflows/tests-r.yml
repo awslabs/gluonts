@@ -16,11 +16,18 @@ jobs:
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'pr:test-r')
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
     - name: Set up R
       uses: r-lib/actions/setup-r@v2
       with:
         r-version: '4.2.3'
+
     - name: Install R dependencies
       run: |
         wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
@@ -32,14 +39,14 @@ jobs:
           libxml2-dev \
           libcurl4-openssl-dev
         Rscript -e 'install.packages(c("forecast", "nnfor", "hts"), repos="https://cloud.r-project.org")'
-    - uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
     - name: Install Python dependencies
       run: |
-        pip install . \
-          -r requirements/requirements-test.txt \
-          -r requirements/requirements-extras-r.txt
+        uv sync --python ${{ matrix.python-version }} --extra test --extra R
+
     - name: Test with pytest
       run: |
-        pytest -n2 test/ext/r_forecast
+        uv run pytest -n2 test/ext/r_forecast

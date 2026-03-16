@@ -16,15 +16,26 @@ based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
 ## Installation
 
-GluonTS requires Python 3.7 or newer, and the easiest way to install it is via
+GluonTS requires Python 3.9 or newer, and the easiest way to install it is via
 `pip`:
 
 ```bash
 # install with support for torch models
 pip install "gluonts[torch]"
 
-# install with support for mxnet models
+# install with support for mxnet models (Python < 3.12 only)
 pip install "gluonts[mxnet]"
+```
+
+For development, we recommend using [uv](https://github.com/astral-sh/uv):
+
+```bash
+# clone the repository
+git clone https://github.com/awslabs/gluonts.git
+cd gluonts
+
+# install with all development dependencies
+uv sync --all-extras
 ```
 
 See the [documentation](https://ts.gluon.ai/stable/getting_started/install.html)

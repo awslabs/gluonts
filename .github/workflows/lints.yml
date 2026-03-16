@@ -10,16 +10,24 @@ jobs:
         check: ["ruff", "docformatter"]
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
-          python-version: '3.11'
-    - name: Install tools
-      run: pip install "ruff==0.2.2" "docformatter[tomli]==1.5.0"
+        version: "latest"
+
+    - name: Set up Python
+      run: uv python install 3.11
+
+    - name: Install dependencies
+      run: uv sync --python 3.11
+
     - name: Ruff (Flake8)
       if: matrix.check == 'ruff'
       working-directory: src/
-      run: ruff check .
+      run: uv run ruff check .
+
     - name: Docformatter
       if: matrix.check == 'docformatter'
-      run: docformatter --check -r src/
+      run: uv run docformatter --check -r src/

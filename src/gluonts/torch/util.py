@@ -18,7 +18,7 @@ import torch
 
 
 def resolve_device(
-    device: Union[str, torch.device]
+    device: Union[str, torch.device],
 ) -> Union[str, torch.device]:
     """
     Resolves a torch device to the most appropriate one.

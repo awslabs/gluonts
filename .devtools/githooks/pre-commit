@@ -36,7 +36,7 @@ def type_check() -> int:
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run
 
-                    python setup.py type_check
+                    just mypy
 
                 in order to validate your fixes.
                 """
@@ -72,7 +72,7 @@ def style_check() -> int:
 
                 and then run
 
-                    python setup.py style_check
+                    just black
 
                 in order to validate your fixes.
                 """
@@ -117,7 +117,7 @@ def license_check() -> int:
 
                 and then run
 
-                    .devtools/license check src test
+                    just license
 
                 in order to validate your fixes.
                 """

@@ -146,7 +146,8 @@ class LevelISSM(ISSM):
         return [ZeroFeature()]
 
     def emission_coeff(
-        self, feature: Tensor  # (batch_size, time_length, 1)
+        self,
+        feature: Tensor,  # (batch_size, time_length, 1)
     ) -> Tensor:
         F = getF(feature)
 
@@ -162,7 +163,8 @@ class LevelISSM(ISSM):
         return _emission_coeff.broadcast_like(zeros)
 
     def transition_coeff(
-        self, feature: Tensor  # (batch_size, time_length, 1)
+        self,
+        feature: Tensor,  # (batch_size, time_length, 1)
     ) -> Tensor:
         F = getF(feature)
 
@@ -181,7 +183,8 @@ class LevelISSM(ISSM):
         return _transition_coeff.broadcast_like(zeros)
 
     def innovation_coeff(
-        self, feature: Tensor  # (batch_size, time_length, 1)
+        self,
+        feature: Tensor,  # (batch_size, time_length, 1)
     ) -> Tensor:
         return self.emission_coeff(feature).squeeze(axis=2)
 
@@ -197,7 +200,8 @@ class LevelTrendISSM(LevelISSM):
         return [ZeroFeature()]
 
     def transition_coeff(
-        self, feature: Tensor  # (batch_size, time_length, 1)
+        self,
+        feature: Tensor,  # (batch_size, time_length, 1)
     ) -> Tensor:
         F = getF(feature)
 
@@ -328,7 +332,8 @@ class CompositeISSM(ISSM):
         return cls(seasonal_issms=seasonal_issms, add_trend=add_trend)
 
     def get_issm_coeff(
-        self, features: Tensor  # (batch_size, time_length, num_features)
+        self,
+        features: Tensor,  # (batch_size, time_length, num_features)
     ) -> Tuple[Tensor, Tensor, Tensor]:
         F = getF(features)
         emission_coeff_ls, transition_coeff_ls, innovation_coeff_ls = zip(

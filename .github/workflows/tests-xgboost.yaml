@@ -14,18 +14,21 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install other dependencies
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
       run: |
-        pip install "Cython<3.0"
-        pip install . \
-          -r requirements/requirements-test.txt \
-          -r requirements/requirements-rotbaum.txt \
-          -r requirements/requirements-rotbaum-extra-methods.txt
+        uv pip install "Cython<3.0"
+        uv sync --python ${{ matrix.python-version }} --extra test --extra rotbaum --extra rotbaum-extra
+
     - name: Test with pytest
       run: |
-        pytest -n2 --timeout 120 --doctest-modules test/ext/rotbaum
+        uv run pytest -n2 --timeout 120 --doctest-modules test/ext/rotbaum

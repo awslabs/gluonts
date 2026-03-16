@@ -1,57 +1,68 @@
 # Development Setup
 
-This setup guide assumes that the ``python`` command references a Python 3.7 version or higher.
-We recommend using [pyenv][pyenv] for managing Python versions.
+This setup guide assumes that you have Python 3.9 or higher installed.
+We recommend using [uv][uv] for managing Python environments and dependencies.
+
+## Initial Setup
 
 Upon checking out this package, please run the following:
 
 ```bash
 ./dev_setup.sh
-pip install -e .[dev]
 
-# if you use zsh you might need to escape `[` and `]`
-pip install -e ".[dev]"
+# Install with uv (recommended)
+uv sync
 ```
 
-This will install all required packages with pip and setup a Git hook that does
+This will install all required packages and setup a Git hook that does
 automated type and style checks when you try to create a new Git commit.
 
 When you create commits on a branch, you can disable these checks temporarily
 with the ``--no-verify`` Git commit option.
 
-[pyenv]: https://github.com/pyenv/pyenv
+[uv]: https://github.com/astral-sh/uv
 
 ## Build Instructions
 
 To run the project tests:
 
 ```bash
-pytest
-# or
-python setup.py tests
+uv run pytest
+# or using just
+just test
 ```
 
 To build the project documentation:
 
 ```bash
-python setup.py docs
+just docs
 ```
 
 This will put the documentation in ``docs/_build/html``, where you can inspect
 it by opening ``index.html``.
 
-You can also run the code quality checks manually using ``setup.py``:
+You can also run the code quality checks manually:
 
 ```bash
-python setup.py type_check   # for Mypy type checks
-python setup.py style_check  # for Black code style checks
+just mypy    # for Mypy type checks
+just black   # for Black code style checks
+just lint    # for Ruff linting
+just license # for license header checks
 ```
 
-Note that the above commands are executed automatically as part of the
-``build`` command. Developers that want to merge their code changes in the
-project mainline are therefore advised to ensure that their commits do not
-violate the above commands. If you have configured your developer environment
-using ``./dev_setup.sh`` and are not relying on the ``--no-verify`` option,
+Or run individual commands directly:
+
+```bash
+uv run mypy src                              # type checking
+uv run black --check --diff --color src test # style checking
+uv run ruff check src/                       # linting
+```
+
+Note that these checks are executed automatically as part of CI.
+Developers that want to merge their code changes in the project mainline are
+therefore advised to ensure that their commits do not violate the above
+commands. If you have configured your developer environment using
+``./dev_setup.sh`` and are not relying on the ``--no-verify`` option,
 this should already be asserted when you create your commits.
 
 
@@ -81,9 +92,9 @@ to ensure that code added to the repository is type-safe and type-checked.
    marked with return type ``None``.
 
 If you adhere to the above guidelines, you should be able to run
-``python setup.py style_check`` and catch type errors early directly on your branch.
+``just mypy`` and catch type errors early directly on your branch.
 
-[type hints]: https://docs.python.org/3.7/library/typing.html
+[type hints]: https://docs.python.org/3.9/library/typing.html
 [mypy]: https://mypy.readthedocs.io/en/latest/
 
 ## Editing the documentation
