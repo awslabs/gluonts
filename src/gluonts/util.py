@@ -13,6 +13,7 @@
 
 import copy
 import tarfile
+import zipfile
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
@@ -102,3 +103,35 @@ def safe_extractall(
     """
     will_extractall_into(tar, path)
     tar.extractall(path, members, numeric_owner=numeric_owner)
+
+
+def will_extractall_zip_into(zf: zipfile.ZipFile, path: Path) -> None:
+    """
+    Check that the content of ``zf`` will be extracted within ``path`` upon
+    calling ``extractall``.
+
+    Raise a ``PermissionError`` if not.
+    """
+    path = Path(path).resolve()
+
+    for member in zf.namelist():
+        member_path = (path / member).resolve()
+
+        try:
+            member_path.relative_to(path)
+        except ValueError:
+            raise PermissionError(f"'{member}' extracts out of target.")
+
+
+def safe_extractall_zip(
+    zf: zipfile.ZipFile,
+    path: Path = Path("."),
+    members=None,
+    pwd=None,
+):
+    """
+    Safe wrapper around ``ZipFile.extractall`` that checks all destination
+    files to be strictly within the given ``path``.
+    """
+    will_extractall_zip_into(zf, path)
+    zf.extractall(path, members, pwd)

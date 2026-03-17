@@ -30,7 +30,7 @@ from functools import partial
 from pathlib import Path
 from typing import Optional
 
-from gluonts.util import safe_extractall
+from gluonts.util import safe_extractall, safe_extractall_zip
 
 
 class Installer:
@@ -84,7 +84,7 @@ class Installer:
 
             elif zipfile.is_zipfile(path):
                 self.handle_archive(
-                    zipfile.ZipFile, zipfile.ZipFile.extractall, path
+                    zipfile.ZipFile, safe_extractall_zip, path
                 )
 
             elif path.match("requirements*.txt"):
