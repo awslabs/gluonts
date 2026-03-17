@@ -26,7 +26,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv pip install "Cython<3.0"
         uv sync --python ${{ matrix.python-version }} --extra test --extra rotbaum --extra rotbaum-extra
 
     - name: Test with pytest

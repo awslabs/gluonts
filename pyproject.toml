@@ -93,11 +93,6 @@ test = [
     "matplotlib~=3.6",
 ]
 
-mxnet = [
-    "numpy>=1.16,<1.24; python_version < '3.12'",
-    "mxnet~=1.7; python_version < '3.12'",
-]
-
 torch = [
     "torch>=1.13,<3",
     "lightning>=2.2.2,<2.6",
@@ -135,6 +130,7 @@ rotbaum = [
 ]
 
 rotbaum-extra = [
+    "Cython<3.0",
     "lightgbm>=2.3.1",
 ]
 
@@ -216,16 +212,6 @@ exclude = [
 packages = ["src/gluonts"]
 exclude = [
     "gluonts/nursery",
-]
-
-[tool.uv]
-# Skip conflicting extras when syncing with --all-extras
-# mxnet requires numpy<1.24 which conflicts with the base requirement
-conflicts = [
-    [
-        { extra = "mxnet" },
-        { extra = "torch" },
-    ],
 ]
 
 [dependency-groups]
@@ -314,7 +300,6 @@ exclude = ["src/gluonts/nursery", "test/nursery"]
 [tool.isort]
 known_first_party = "gluonts"
 known_third_party = [
-    "mxnet",
     "numpy",
     "pandas",
     "pytest",

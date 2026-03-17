@@ -26,15 +26,7 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
 
-    - name: Install MXNet (Linux)
-      if: ${{ runner.os == 'Linux' }}
-      run: uv pip install mxnet~=1.8.0
-
-    - name: Install MXNet (Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: uv pip install mxnet~=1.7.0
-
-    - name: Install other dependencies
+    - name: Install dependencies
       run: |
         uv pip install "torch==1.10.0" "pytorch-lightning~=1.5" \
           -f https://download.pytorch.org/whl/cpu/torch_stable.html

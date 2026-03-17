@@ -31,7 +31,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv sync --python 3.11 --extra arrow --extra docs --extra mxnet --extra torch --extra rotbaum --extra statsforecast
+        uv sync --python 3.11 --extra arrow --extra docs --extra torch --extra rotbaum --extra statsforecast
 
     - name: Install Pandoc
       run: |

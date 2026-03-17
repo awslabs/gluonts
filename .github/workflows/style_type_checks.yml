@@ -23,7 +23,7 @@ jobs:
         uv pip install types-python-dateutil types-waitress types-PyYAML
 
     - name: Style check
-      run: uv run black --check --diff --color src test examples
+      run: uv run ruff format --check src test
 
     - name: Type check
       run: uv run mypy src
