@@ -83,9 +83,7 @@ class Installer:
                 self.handle_archive(tarfile.open, safe_extractall, path)
 
             elif zipfile.is_zipfile(path):
-                self.handle_archive(
-                    zipfile.ZipFile, safe_extractall_zip, path
-                )
+                self.handle_archive(zipfile.ZipFile, safe_extractall_zip, path)
 
             elif path.match("requirements*.txt"):
                 self.install_requirement(path)
