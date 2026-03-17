@@ -63,7 +63,7 @@ docs = [
     "nbconvert~=6.5.1",
     "nbsphinx~=0.9.7",
     "notedown",
-    "setuptools",
+    "setuptools<71",
     "lxml~=5.1.0",
     "pytest-runner~=2.11",
     "recommonmark",
@@ -149,6 +149,11 @@ m-competitions = [
     "statsmodels~=0.11",
 ]
 
+nursery = [
+    "torch==1.10.0",
+    "pytorch-lightning~=1.5",
+]
+
 dev = [
     # arrow
     "pyarrow",
@@ -158,7 +163,7 @@ dev = [
     "nbconvert~=6.5.1",
     "nbsphinx~=0.9.7",
     "notedown",
-    "setuptools",
+    "setuptools<71",
     "lxml~=5.1.0",
     "pytest-runner~=2.11",
     "recommonmark",
@@ -188,6 +193,14 @@ dev = [
     # sagemaker
     "sagemaker~=2.0,>2.214.3",
     "s3fs~=0.6",
+]
+
+[tool.uv]
+conflicts = [
+    [
+        { extra = "torch" },
+        { extra = "nursery" },
+    ],
 ]
 
 [build-system]
@@ -244,7 +257,7 @@ dev = [
     "nbconvert~=6.5.1",
     "nbsphinx~=0.9.7",
     "notedown",
-    "setuptools",
+    "setuptools<71",
     "lxml~=5.1.0",
     "pytest-runner~=2.11",
     "recommonmark",

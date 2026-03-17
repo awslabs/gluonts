@@ -27,10 +27,7 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: |
-        uv pip install "torch==1.10.0" "pytorch-lightning~=1.5" \
-          -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        uv sync --python ${{ matrix.python-version }} --extra shell --extra test --extra sagemaker --extra m-competitions --extra rotbaum
+      run: uv sync --python ${{ matrix.python-version }} --extra nursery --extra shell --extra test --extra sagemaker --extra m-competitions --extra rotbaum
 
     - name: Test with pytest
       run: |

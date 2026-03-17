@@ -25,9 +25,7 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: |
-        uv sync --python ${{ matrix.python-version }} --extra arrow --extra torch --extra shell --extra test --extra m-competitions
-        uv pip install --no-deps "git+https://github.com/lostella/CP-Flow.git@gluonts-dependency"
+      run: uv sync --python ${{ matrix.python-version }} --extra arrow --extra torch --extra shell --extra test --extra m-competitions
 
     - name: Test with pytest
       run: |
