@@ -20,7 +20,6 @@ import pandas as pd
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.repository._util import metadata
-from gluonts.util import safe_extractall_zip
 
 
 def generate_uber_dataset(
@@ -46,7 +45,7 @@ def generate_uber_dataset(
         )
         request.urlretrieve(uber_url_path, temp_zip_path)
         with zipfile.ZipFile(temp_zip_path) as zf:
-            safe_extractall_zip(zf, path=temp_dir_path)
+            zf.extractall(path=temp_dir_path)
         uber_file_path = temp_dir_path / "uber-raw-data-janjune-15.csv"
         uber_df = pd.read_csv(
             uber_file_path,

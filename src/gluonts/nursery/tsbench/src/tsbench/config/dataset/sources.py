@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Tuple
 from zipfile import ZipFile
 from gluonts.dataset.common import MetaData
-from gluonts.util import safe_extractall_zip
 from gluonts.dataset.repository._tsf_datasets import Dataset as MonashDataset
 from gluonts.dataset.repository._tsf_datasets import (
     save_datasets,
@@ -135,7 +134,7 @@ class MonashDatasetConfig(GluonTsDatasetConfig):
             temp_path = Path(temp_dir)
 
             with ZipFile(dataset.download(temp_path)) as archive:
-                safe_extractall_zip(archive, path=temp_path)
+                archive.extractall(path=temp_path)
 
             # only one file is exptected
             reader = TSFReader(temp_path / archive.namelist()[0])

@@ -18,7 +18,6 @@ from zipfile import ZipFile
 from pandas.tseries.frequencies import to_offset
 
 from gluonts.dataset.field_names import FieldName
-from gluonts.util import safe_extractall_zip
 from gluonts.dataset.repository._tsf_reader import (
     TSFReader,
     frequency_converter,
@@ -63,7 +62,7 @@ def generate_dominick_dataset(
         temp_path = Path(temp_dir)
 
         with ZipFile(dataset.download(temp_path)) as archive:
-            safe_extractall_zip(archive, path=temp_path)
+            archive.extractall(path=temp_path)
 
         # only one file is exptected
         reader = TSFReader(temp_path / archive.namelist()[0])
