@@ -35,7 +35,6 @@ from gluonts.transform import (
     InstanceSplitter,
     RemoveFields,
     SelectFields,
-    SetField,
     TestSplitSampler,
     Transformation,
     ValidationSplitSampler,
@@ -52,6 +51,70 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class CrossformerEstimator(PyTorchLightningEstimator):
+    """
+    An estimator training the Crossformer model for forecasting as described in
+    https://openreview.net/forum?id=vSVLM2j9eie, extended to be probabilistic.
+
+    This class uses the model defined in ``CrossformerModel`` and wraps it in a
+    ``CrossformerLightningModule`` for training with PyTorch Lightning's
+    ``pl.Trainer``.
+
+    Parameters
+    ----------
+    freq
+        Frequency string of the data (used to build calendar time features).
+    prediction_length
+        Length of the prediction horizon.
+    context_length
+        Number of time steps prior to prediction time used as input
+        (default: ``10 * prediction_length``).
+    seg_len
+        Segment length for the dimension-segment-wise (DSW) embedding and
+        multi-scale encoder.
+    win_size
+        Number of adjacent segments merged per scale in the encoder after the
+        first scale (default: 2, as in the paper).
+    factor
+        Number of learnable router vectors in each two-stage attention layer.
+    d_model
+        Hidden size of the transformer blocks.
+    d_ff
+        Hidden size of the feed-forward sublayers.
+    n_heads
+        Number of attention heads (must be compatible with ``d_model``).
+    num_encoder_layers
+        Number of encoder scales (depth of the cross-scale hierarchy).
+    num_feat_dynamic_real
+        Number of dynamic real covariates in the data, stacked with calendar
+        features (default: 0).
+    lr
+        Learning rate (default: ``1e-3``).
+    weight_decay
+        Weight decay regularization (default: ``1e-8``).
+    scaling
+        Input scaling: ``"mean"``, ``"std"``, or ``None`` for no scaling.
+    distr_output
+        Distribution head for likelihood and sampling (default:
+        ``StudentTOutput()``).
+    num_parallel_samples
+        Number of sample paths per series when the output defines a
+        distribution (default: 100).
+    batch_size
+        Training and inference batch size (default: 32).
+    num_batches_per_epoch
+        Number of training batches per epoch (default: 50).
+    trainer_kwargs
+        Additional keyword arguments passed to ``pl.Trainer``.
+    train_sampler
+        Sampler for training windows (default: ``ExpectedNumInstanceSampler``).
+    validation_sampler
+        Sampler for validation windows (default: ``ValidationSplitSampler``).
+    dropout
+        Dropout probability in attention and feed-forward blocks.
+    time_features
+        Optional list of calendar features; if ``None``, derived from ``freq``.
+    """
+
     @validated()
     def __init__(
         self,
