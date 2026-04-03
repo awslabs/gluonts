@@ -55,7 +55,7 @@ class LagTSTModel(nn.Module):
         activation: str,
         norm_first: bool,
         num_encoder_layers: int,
-        scaling: str,
+        scaling: Optional[str],
         lags_seq: Optional[List[int]] = None,
         distr_output=StudentTOutput(),
     ) -> None:

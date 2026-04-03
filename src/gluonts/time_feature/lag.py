@@ -19,7 +19,7 @@ from pandas.tseries.frequencies import to_offset
 from gluonts.time_feature import norm_freq_str
 
 
-def _make_lags(middle: int, delta: int) -> np.ndarray:
+def _make_lags(middle: int, delta: int) -> List[int]:
     """
     Create a set of lags around a middle point including +/- delta.
     """
