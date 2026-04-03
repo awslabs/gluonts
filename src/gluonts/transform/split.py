@@ -494,7 +494,7 @@ class TFTInstanceSplitter(InstanceSplitter):
         is_pad_field: str = FieldName.IS_PAD,
         start_field: str = FieldName.START,
         forecast_start_field: str = FieldName.FORECAST_START,
-        observed_value_field: str = FieldName.OBSERVED_VALUES,
+        observed_value_field: Optional[str] = FieldName.OBSERVED_VALUES,
         lead_time: int = 0,
         output_NTC: bool = True,
         time_series_fields: List[str] = [],
@@ -529,11 +529,9 @@ class TFTInstanceSplitter(InstanceSplitter):
 
         sampled_indices = self.instance_sampler(target)
 
-        slice_cols = (
-            self.ts_fields
-            + self.past_ts_fields
-            + [self.target_field, self.observed_value_field]
-        )
+        slice_cols = self.ts_fields + self.past_ts_fields + [self.target_field]
+        if self.observed_value_field is not None:
+            slice_cols.append(self.observed_value_field)
         for i in sampled_indices:
             pad_length = max(self.past_length - i, 0)
             d = data.copy()

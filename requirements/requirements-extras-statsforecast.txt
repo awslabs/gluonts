@@ -1,1 +1,4 @@
+# scipy cap can be removed once this is resolved: https://github.com/statsmodels/statsmodels/issues/9584
+scipy<1.16.0; python_version > "3.7.0"
+scipy~=1.7.3; python_version <= "3.7.0"
 statsforecast~=1.0
