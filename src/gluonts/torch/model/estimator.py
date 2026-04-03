@@ -206,12 +206,22 @@ class PyTorchLightningEstimator(Estimator):
             }
         )
 
-        trainer.fit(
-            model=training_network,
-            train_dataloaders=training_data_loader,
-            val_dataloaders=validation_data_loader,
-            ckpt_path=ckpt_path,
-        )
+        try:
+            trainer.fit(
+                model=training_network,
+                train_dataloaders=training_data_loader,
+                val_dataloaders=validation_data_loader,
+                ckpt_path=ckpt_path,
+            )
+        except Exception as e:
+            if checkpoint.best_model_path == "":
+                logger.error("Training failed with no checkpoint available")
+                raise
+            else:
+                logger.warning(
+                    "Recovering from a checkpoint after training failed "
+                    f"with the following exception:\n {e}"
+                )
 
         if checkpoint.best_model_path != "":
             logger.info(
