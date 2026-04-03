@@ -20,6 +20,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from lightning import seed_everything
+from lightning.pytorch.callbacks import Callback
 
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
@@ -400,3 +401,29 @@ def test_estimator_with_features(estimator_constructor):
 
     for f in islice(forecasts, 5):
         f.mean
+
+
+def test_estimator_recovers_if_exception_encountered_during_training():
+    class RaiseOnEpoch(Callback):
+        def __init__(self):
+            self.raised = False
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 3:
+                self.raised = True
+                raise ValueError("Surprise!")
+
+    callback = RaiseOnEpoch()
+
+    dataset = get_dataset("constant")
+    estimator = DeepAREstimator(
+        freq=dataset.metadata.freq,
+        prediction_length=5,
+        batch_size=4,
+        num_batches_per_epoch=5,
+        trainer_kwargs=dict(max_epochs=50, callbacks=[callback]),
+    )
+    predictor = estimator.train(dataset.train)
+    forecast = list(predictor.predict(dataset.train))
+    assert callback.raised
+    assert isinstance(forecast[0].mean, np.ndarray)
