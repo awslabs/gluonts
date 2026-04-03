@@ -136,6 +136,28 @@ def test_copy_dim(name):
             )
 
 
+@pytest.mark.parametrize("name", MULTIVARIATE_FORECASTS.keys())
+def test_copy_aggregate(name):
+    forecast = MULTIVARIATE_FORECASTS[name]
+    agg_forecast = forecast.copy_aggregate(np.sum)
+
+    assert agg_forecast.dim() == 1
+    assert agg_forecast.start_date == forecast.start_date
+    assert agg_forecast.item_id == forecast.item_id
+    assert agg_forecast.info == forecast.info
+
+    if name == "SampleForecast":
+        assert np.array_equal(
+            agg_forecast.samples,
+            forecast.samples.sum(axis=2),
+        )
+    else:
+        assert np.array_equal(
+            agg_forecast.forecast_array,
+            forecast.forecast_array.sum(axis=2),
+        )
+
+
 def test_linear_interpolation() -> None:
     tol = 1e-7
     x_coord = [0.1, 0.5, 0.9]

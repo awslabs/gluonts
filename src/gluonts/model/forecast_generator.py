@@ -115,6 +115,10 @@ class QuantileForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self, quantiles: List[str]) -> None:
         self.quantiles = quantiles
+        self.median_idx = next(
+            (i for i, q in enumerate(quantiles) if float(q) == 0.5),
+            None,
+        )
 
     def __call__(
         self,
@@ -141,8 +145,16 @@ class QuantileForecastGenerator(ForecastGenerator):
 
             i = -1
             for i, output in enumerate(outputs):
+                forecast_array = np.moveaxis(output, -1, 0)
+                forecast_keys = list(self.quantiles)
+                if self.median_idx is not None:
+                    forecast_array = np.concatenate(
+                        [forecast_array, forecast_array[self.median_idx:self.median_idx+1]],
+                        axis=0,
+                    )
+                    forecast_keys = forecast_keys + ["mean"]
                 yield QuantileForecast(
-                    output.T,
+                    forecast_array,
                     start_date=batch[FieldName.FORECAST_START][i],
                     item_id=(
                         batch[FieldName.ITEM_ID][i]
@@ -150,7 +162,7 @@ class QuantileForecastGenerator(ForecastGenerator):
                         else None
                     ),
                     info=batch["info"][i] if "info" in batch else None,
-                    forecast_keys=self.quantiles,
+                    forecast_keys=forecast_keys,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
 

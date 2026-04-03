@@ -644,6 +644,20 @@ class QuantileForecast(Forecast):
                 inference_quantile,
             )
 
+    def copy_aggregate(self, agg_fun: Callable) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        else:
+            # Aggregate over target dimension axis
+            forecast_array = agg_fun(self.forecast_array, axis=2)
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
     def copy_dim(self, dim: int) -> "QuantileForecast":
         if len(self.forecast_array.shape) == 2:
             forecast_array = self.forecast_array
