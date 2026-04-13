@@ -152,7 +152,6 @@ class QuantileForecastGenerator(ForecastGenerator):
                 #     (prediction_length, target_dim, num_quantiles)
                 #     -> (num_quantiles, prediction_length, target_dim)
                 forecast_array = np.moveaxis(output, -1, 0)
-                forecast_keys = list(self.quantiles)
                 yield QuantileForecast(
                     forecast_array,
                     start_date=batch[FieldName.FORECAST_START][i],
@@ -162,7 +161,7 @@ class QuantileForecastGenerator(ForecastGenerator):
                         else None
                     ),
                     info=batch["info"][i] if "info" in batch else None,
-                    forecast_keys=forecast_keys,
+                    forecast_keys=self.quantiles,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
 
